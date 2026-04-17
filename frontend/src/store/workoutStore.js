@@ -22,12 +22,12 @@ export const useWorkoutStore = create((set, get) => ({
 
   addWorkout: async (workout) => {
     const { data } = await client.post('/workouts', workout);
-    await get().fetchAll();
+    get().fetchAll().catch(() => {});
     return data;
   },
 
   deleteWorkout: async (id) => {
     await client.delete(`/workouts/${id}`);
-    await get().fetchAll();
+    get().fetchAll().catch(() => {});
   },
 }));

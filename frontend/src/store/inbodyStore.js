@@ -17,12 +17,12 @@ export const useInbodyStore = create((set, get) => ({
 
   addRecord: async (record) => {
     const { data } = await client.post('/inbody', record);
-    await get().fetchAll();
+    get().fetchAll().catch(() => {});
     return data;
   },
 
   deleteRecord: async (id) => {
     await client.delete(`/inbody/${id}`);
-    await get().fetchAll();
+    get().fetchAll().catch(() => {});
   },
 }));

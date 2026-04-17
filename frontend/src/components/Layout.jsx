@@ -28,6 +28,7 @@ export default function Layout() {
   const [profilePhoto, setProfilePhoto] = useState(localStorage.getItem(PROFILE_KEY) || '');
   const [editingNick, setEditingNick] = useState(false);
   const [newNick, setNewNick] = useState('');
+  const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('steelbody_theme') || 'dark');
@@ -85,14 +86,31 @@ export default function Layout() {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      localStorage.setItem(PROFILE_KEY, reader.result);
-      setProfilePhoto(reader.result);
-      client.post('/photos', { type: 'profile', data: reader.result }).catch(() => {
+      const photoData = reader.result;
+      setProfilePhoto(photoData);
+      client.post('/photos', { type: 'profile', data: photoData }).then(() => {
+        localStorage.setItem(PROFILE_KEY, photoData);
+      }).catch(() => {
+        setProfilePhoto(localStorage.getItem(PROFILE_KEY) || '');
         toast('사진 업로드 실패', 'error');
       });
     };
     reader.readAsDataURL(file);
   };
+
+  const saveNickname = useCallback(() => {
+    const trimmed = newNick.trim();
+    if (!trimmed || savingNick) return;
+    setSavingNick(true);
+    client.put('/auth/nickname', { nickname: trimmed }).then(() => {
+      localStorage.setItem('nickname', trimmed);
+      useAuthStore.setState({ nickname: trimmed });
+      setEditingNick(false);
+      toast('닉네임이 변경됐어요');
+    }).catch((err) => {
+      toast(err.response?.data?.error || '닉네임 변경 실패', 'error');
+    }).finally(() => setSavingNick(false));
+  }, [newNick, savingNick]);
 
   const handlePhotoDelete = () => {
     if (!confirm('프로필 사진을 삭제하시겠어요?')) return;
@@ -397,37 +415,14 @@ export default function Layout() {
                     className="input"
                     value={newNick}
                     onChange={(e) => setNewNick(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newNick.trim()) {
-                        const trimmed = newNick.trim();
-                        client.put('/auth/nickname', { nickname: trimmed }).then(() => {
-                          localStorage.setItem('nickname', trimmed);
-                          useAuthStore.setState({ nickname: trimmed });
-                          setEditingNick(false);
-                          toast('닉네임이 변경됐어요');
-                        }).catch((err) => {
-                          toast(err.response?.data?.error || '닉네임 변경 실패', 'error');
-                        });
-                      }
-                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveNickname(); }}
                     autoFocus
                     style={{ width: 120, fontSize: 13, padding: '6px 8px', textAlign: 'center' }}
                     placeholder="새 닉네임"
                   />
                   <button
-                    onClick={() => {
-                      if (newNick.trim()) {
-                        const trimmed = newNick.trim();
-                        client.put('/auth/nickname', { nickname: trimmed }).then(() => {
-                          localStorage.setItem('nickname', trimmed);
-                          useAuthStore.setState({ nickname: trimmed });
-                          setEditingNick(false);
-                          toast('닉네임이 변경됐어요');
-                        }).catch((err) => {
-                          toast(err.response?.data?.error || '닉네임 변경 실패', 'error');
-                        });
-                      }
-                    }}
+                    onClick={saveNickname}
+                    disabled={savingNick}
                     style={{
                       background: 'var(--accent)', color: '#000', border: 'none',
                       padding: '6px 10px', fontSize: 11, borderRadius: 'var(--radius)',

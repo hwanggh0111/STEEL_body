@@ -44,7 +44,8 @@ async function findOrCreateUser(email, nickname, provider) {
   let user = db.findUserByEmail(email);
   if (!user) {
     const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 12);
-    db.createUser(email, randomPw, nickname || provider + '_user');
+    const username = provider + '_' + crypto.randomBytes(4).toString('hex');
+    db.createUser(email, randomPw, nickname || provider + '_user', username);
     user = db.findUserByEmail(email);
   }
   return { user, nickname: user.nickname, email: user.email };

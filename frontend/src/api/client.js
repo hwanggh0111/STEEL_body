@@ -59,20 +59,22 @@ client.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-        // 갱신 성공: 큐에 있는 요청들 재시도
-        refreshQueue.forEach(({ resolve }) => resolve());
+        // 갱신 성공: 큐 복사 후 초기화 (경쟁 상태 방지)
+        isRefreshing = false;
+        const queue = [...refreshQueue];
         refreshQueue = [];
+        queue.forEach(({ resolve }) => resolve());
         return client(originalRequest);
-      } catch {
-        // refresh도 실패: 로그아웃
-        refreshQueue.forEach(({ reject }) => reject(err));
+      } catch (refreshErr) {
+        // refresh도 실패: 큐 복사 후 초기화
+        isRefreshing = false;
+        const queue = [...refreshQueue];
         refreshQueue = [];
+        queue.forEach(({ reject }) => reject(refreshErr));
         localStorage.removeItem('token');
         localStorage.removeItem('nickname');
         window.location.href = '/login';
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
+        return Promise.reject(refreshErr);
       }
     }
 

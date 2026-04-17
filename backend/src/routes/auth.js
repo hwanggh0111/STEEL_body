@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
 const { addLog } = require('./security');
+const { recordLoginFailure } = require('../middleware/aiGuard');
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -199,6 +200,9 @@ router.post('/login', async (req, res) => {
     loginAttempts[key].count++;
     loginAttempts[key].lastAttempt = Date.now();
     addLog('login_fail', `Login failed: ${email} (attempt ${loginAttempts[key].count})`);
+    // AI Guard에도 로그인 실패 기록
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    recordLoginFailure(clientIp);
     return res.status(401).json({ error: '아이디(이메일) 또는 비밀번호가 틀렸어요' });
   }
 
