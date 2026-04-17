@@ -31,6 +31,13 @@ function setAuthCookies(res, user) {
 function getUrls(req) {
   const host = req.get('host') || `localhost:${process.env.PORT || 4000}`;
   const protocol = req.get('x-forwarded-proto') || req.protocol;
+  // Host 헤더 검증 (SSRF 방지)
+  if (IS_PROD) {
+    const backendHost = new URL(process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`).host;
+    if (host !== backendHost && !host.endsWith('.onrender.com')) {
+      throw new Error('Invalid host header');
+    }
+  }
   const backendUrl = `${protocol}://${host}`;
   const frontendHost = host.replace(/:\d+$/, ':5173');
   const frontendUrl = `${protocol}://${frontendHost}`;

@@ -1,21 +1,25 @@
 const router = require('express').Router();
+const fs = require('fs');
+const path = require('path');
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
 const aiGuard = require('../middleware/aiGuard');
 
-// 메모리 기반 보안 로그
+// 보안 로그 (메모리 + 파일 영속화)
+const LOG_PATH = path.join(__dirname, '../../security.log');
 const securityLogs = [];
 
 function addLog(type, detail) {
-  securityLogs.push({
+  const entry = {
     type,
     detail,
     timestamp: new Date().toISOString(),
-  });
-  // 최대 1000건까지만 보관
-  if (securityLogs.length > 1000) {
-    securityLogs.shift();
-  }
+  };
+  securityLogs.push(entry);
+  if (securityLogs.length > 1000) securityLogs.shift();
+  // 파일에도 기록 (비동기)
+  const line = `[${entry.timestamp}] [${type}] ${detail}\n`;
+  fs.appendFile(LOG_PATH, line, () => {});
 }
 
 // GET /api/security/dashboard - 보안 대시보드
@@ -109,9 +113,15 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
   });
 });
 
+// IP 형식 검증
+function isValidIP(ip) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) || /^[a-fA-F0-9:]+$/.test(ip) || ip === '::1';
+}
+
 // POST /api/security/ai-unblock/:ip - IP 차단 해제
 router.post('/ai-unblock/:ip', adminAuth, (req, res) => {
   const ip = req.params.ip;
+  if (!isValidIP(ip)) return res.status(400).json({ error: '올바른 IP 형식이 아니에요' });
   const result = aiGuard.unblockIP(ip);
   if (result) {
     addLog('ai-unblock', `AI Guard IP 차단 해제: ${ip}`);
@@ -126,6 +136,10 @@ router.post('/ai-block', adminAuth, (req, res) => {
   const { ip, minutes } = req.body;
   if (!ip || !minutes) {
     return res.status(400).json({ error: 'ip와 minutes를 입력해주세요' });
+  }
+  if (!isValidIP(ip)) return res.status(400).json({ error: '올바른 IP 형식이 아니에요' });
+  if (isNaN(Number(minutes)) || Number(minutes) <= 0 || Number(minutes) > 525600) {
+    return res.status(400).json({ error: '차단 시간은 1분~365일 범위여야 해요' });
   }
   const blockedUntil = aiGuard.manualBlock(ip, Number(minutes));
   addLog('ai-block', `AI Guard IP 수동 차단: ${ip} (${minutes}분)`);

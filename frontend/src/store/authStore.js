@@ -7,7 +7,7 @@ function hasCsrfCookie() {
 }
 
 export const useAuthStore = create((set) => ({
-  token: localStorage.getItem('token'), // 레거시 호환
+  token: localStorage.getItem('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: localStorage.getItem('nickname'),
   isLoggedIn: !!localStorage.getItem('token') || hasCsrfCookie(),
 

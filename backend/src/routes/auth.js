@@ -113,8 +113,9 @@ router.post('/verify-code', (req, res) => {
     return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
   }
 
-  // 타이밍 공격 방지 (일정 시간 후 응답)
-  if (stored.code !== code) {
+  // 타이밍 공격 방지 (상수 시간 ��교)
+  const codeMatch = crypto.timingSafeEqual(Buffer.from(stored.code), Buffer.from(String(code).padEnd(6, '0').slice(0, 6)));
+  if (!codeMatch) {
     return res.status(400).json({ error: '인증번호가 틀렸어요' });
   }
 

@@ -1,4 +1,18 @@
 require('dotenv').config();
+
+// 필수 환경변수 검증
+const REQUIRED_ENV = ['JWT_SECRET'];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`[FATAL] 환경변수 ${key}가 설정되지 않았습니다.`);
+    process.exit(1);
+  }
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.error('[FATAL] JWT_SECRET은 최소 32자 이상이어야 합니다.');
+  process.exit(1);
+}
+
 const express = require('express');
 const cors    = require('cors');
 const helmet  = require('helmet');
@@ -21,7 +35,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'", "https://api.open-meteo.com", "https://wger.de", "https://*.lhr.life"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
@@ -147,14 +161,24 @@ app.use('/api/notices',     require('./routes/notices'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/export',      require('./routes/export'));
 
-// 프론트엔드 정적 파일 서빙 (터널/모바일 지원, CSP 해제)
+// 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)
 const path = require('path');
 const frontendDist = path.join(__dirname, '../../frontend/dist');
-const noCSP = (req, res, next) => {
-  res.removeHeader('Content-Security-Policy');
+const spaCSP = (req, res, next) => {
+  res.set('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' https://api.open-meteo.com https://wger.de",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; '));
   next();
 };
-app.use(noCSP, express.static(frontendDist, {
+app.use(spaCSP, express.static(frontendDist, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
   etag: true,
   lastModified: true,
@@ -173,8 +197,9 @@ app.get('/api/health', (req, res) => {
 // SPA 폴백 — API가 아닌 모든 요청은 index.html로
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.removeHeader('Content-Security-Policy');
-  res.sendFile(path.join(frontendDist, 'index.html'));
+  spaCSP(req, res, () => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
 });
 
 // 전역 에러 핸들러 (내부 정보 노출 방지)
