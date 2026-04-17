@@ -33,6 +33,10 @@ const XSS_PATTERNS = [
   /javascript:/i, /eval\s*\(/i, /document\.cookie/i,
   /window\.location/i, /innerHTML/i, /<iframe/i, /<svg\s+onload/i,
   /document\.write/i, /\.fromCharCode/i, /alert\s*\(/i,
+  /\bon(?:click|focus|blur|mouse\w+|key\w+|change|submit|error|load|unload)\s*=/i,
+  /expression\s*\(/i,
+  /url\s*\(\s*javascript/i,
+  /data:\s*text\/html/i,
 ];
 
 // ── 인젝션 패턴 ──
@@ -208,9 +212,12 @@ function executeLevel1(ip, triggerType, details) {
   }
 }
 
-// ── 입력 스캔 (XSS/인젝션) ──
+// ── 프로토타입 오염 패턴 ──
+const PROTO_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// ── 입력 스캔 (XSS/인젝션/프로토타입오염) ──
 function scanInput(obj, depth) {
-  if (depth > 5) return null; // prevent deep recursion
+  if (depth > 5) return null;
   if (typeof obj === 'string') {
     for (const p of XSS_PATTERNS) {
       if (p.test(obj)) return { type: 'xss', pattern: p.toString() };
@@ -219,7 +226,9 @@ function scanInput(obj, depth) {
       if (p.test(obj)) return { type: 'injection', pattern: p.toString() };
     }
   } else if (typeof obj === 'object' && obj !== null) {
-    for (const val of Object.values(obj)) {
+    for (const [key, val] of Object.entries(obj)) {
+      // 프로토타입 오염 감지
+      if (PROTO_KEYS.has(key)) return { type: 'injection', pattern: `prototype pollution: ${key}` };
       const result = scanInput(val, (depth || 0) + 1);
       if (result) return result;
     }
@@ -385,8 +394,13 @@ function aiGuardMiddleware(req, res, next) {
     return res.status(403).json({ error: '비정상적인 요청으로 차단되었습니다.' });
   }
 
-  // XSS/인젝션 스캔 (body + query + params)
+  // XSS/인젝션 스캔 (body + query + params + URL 디코딩)
   const allInput = { ...req.body, ...req.query, ...req.params };
+  // URL 인코딩 우회 방지: 디코딩된 값도 스캔
+  try {
+    const decoded = decodeURIComponent(req.originalUrl);
+    if (decoded !== req.originalUrl) allInput._decodedUrl = decoded;
+  } catch {}
   const threat = scanInput(allInput, 0);
   if (threat) {
     // userId가 있으면 (인증된 요청) → LEVEL 4
@@ -479,7 +493,15 @@ module.exports.getBlockedIPs = () => {
   }
   return result;
 };
-module.exports.getStats = () => ({ totalRequests, blockedRequests, threats, warningCounts: warningCounts.size, suspiciousIPs: [...blockedIPs.keys()] });
+module.exports.getStats = () => ({
+  totalRequests, blockedRequests, threats,
+  warningCounts: warningCounts.size,
+  suspiciousIPs: [...blockedIPs.keys()],
+  activeLocks: blockedIPs.size,
+  requestTracking: requestCounts.size,
+  loginFailureTracking: loginFailures.size,
+  spamTracking: spamCounts.size,
+});
 module.exports.getSuspiciousIPs = () => [...blockedIPs.keys()];
 module.exports.unblockIP = (ip) => { const r = blockedIPs.delete(ip); if (r) addLog('system', '수동 차단 해제', ip); return r; };
 module.exports.manualBlock = (ip, minutes) => { const until = Date.now() + minutes * 60000; blockedIPs.set(ip, { until, level: 2, reason: '관리자 수동 차단' }); return new Date(until).toISOString(); };

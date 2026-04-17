@@ -91,8 +91,14 @@ app.use(cors({
 // 쿠키 파서
 app.use(cookieParser());
 
-// 요청 바디 크기 제한
-app.use(express.json({ limit: '3mb' }));
+// 요청 바디 크기 제한 + 프로토타입 오염 방지
+app.use(express.json({
+  limit: '3mb',
+  reviver: (key, value) => {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+    return value;
+  },
+}));
 
 // CSRF 보호 (쿠키 인증 사용 시에만 double-submit cookie 패턴 적용)
 app.use((req, res, next) => {
@@ -149,6 +155,13 @@ app.use('/api/auth/check-username', rateLimit({
   message: { error: 'Too many requests.' },
 }));
 
+// API 보안 헤더 (JSON 응답에 추가 보호)
+app.use('/api', (req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // API 응답 캐싱 (변경이 드문 공개 엔드포인트)
 app.use('/api/routines', (req, res, next) => {
   res.set('Cache-Control', 'public, max-age=3600'); // 1시간
@@ -195,8 +208,11 @@ app.use(spaCSP, express.static(frontendDist, {
   lastModified: true,
 }));
 
-// 헬스체크 (모니터링 정보 포함)
+// 헬스체크 (프로덕션에서는 최소 정보만)
 app.get('/api/health', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.json({ status: 'OK' });
+  }
   const mem = process.memoryUsage();
   res.json({
     status: 'OK',
