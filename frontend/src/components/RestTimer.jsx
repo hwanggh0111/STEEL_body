@@ -119,7 +119,7 @@ export default function RestTimer() {
 
   const handleCustomConfirm = () => {
     const val = parseInt(customInput, 10);
-    if (val > 0 && val <= 600) {
+    if (!isNaN(val) && val > 0 && val <= 600) {
       setDuration(val);
       setCustomInput('');
       setShowCustom(false);

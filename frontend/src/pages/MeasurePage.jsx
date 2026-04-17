@@ -562,8 +562,10 @@ export default function MeasurePage() {
     try {
       const date = data.date || new Date().toISOString().split('T')[0];
       const payload = { type, date, data };
-      const { data: saved } = await client.post('/measures', payload);
-      setMeasures(prev => [saved, ...prev]);
+      await client.post('/measures', payload);
+      // 서버에서 전체 목록 재조회 (서버 응답이 id만 포함하므로)
+      const { data: refreshed } = await client.get('/measures');
+      setMeasures(refreshed);
       toast('저장 완료!');
     } catch {
       toast('저장에 실패했어요');

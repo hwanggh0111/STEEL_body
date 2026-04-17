@@ -159,8 +159,15 @@ export default function SecurityPanel() {
   };
 
   const handleAction = async (userId, action) => {
+    const actionMap = {
+      'block': 'block-user',
+      'unblock': 'unblock-user',
+      'grant-admin': 'make-admin',
+      'revoke-admin': 'revoke-admin',
+    };
+    const endpoint = actionMap[action] || action;
     try {
-      await client.post(`/security/users/${userId}/${action}`);
+      await client.post(`/security/${endpoint}/${userId}`);
       const res = await client.get('/security/users');
       setUsers(res.data);
     } catch (e) {

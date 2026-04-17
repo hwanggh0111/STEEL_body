@@ -22,10 +22,10 @@ export function forceDefaultSchedule() {
 }
 
 // 앱 시작 시 기본 스케줄과 localStorage 동기화
-// DEFAULT_SCHEDULE이 코드에서 바뀌면 자동 반영
+// DEFAULT_SCHEDULE이 코드에서 바뀌면 자동 반영 (빈 배열이면 건너뜀 — 사용자 설정 보존)
 const MAINT_VERSION_KEY = 'ironlog_maint_version';
 const CURRENT_VERSION = JSON.stringify(DEFAULT_SCHEDULE);
-if (localStorage.getItem(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
+if (DEFAULT_SCHEDULE.length > 0 && localStorage.getItem(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
   localStorage.setItem(MAINT_KEY, CURRENT_VERSION);
   localStorage.setItem(MAINT_VERSION_KEY, CURRENT_VERSION);
 }

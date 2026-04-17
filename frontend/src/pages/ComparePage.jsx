@@ -141,6 +141,7 @@ export default function ComparePage() {
 
   useEffect(() => {
     client.get('/photos').then(({ data }) => {
+      if (!Array.isArray(data)) return;
       const before = data.find(p => p.type === 'before');
       const after = data.find(p => p.type === 'after');
       const serverPhotos = {};
