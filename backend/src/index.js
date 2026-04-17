@@ -63,7 +63,7 @@ app.use(cookieParser());
 // 요청 바디 크기 제한
 app.use(express.json({ limit: '3mb' }));
 
-// CSRF 보호 (상태 변경 요청에 대해 double-submit cookie 패턴)
+// CSRF 보호 (쿠키 인증 사용 시에만 double-submit cookie 패턴 적용)
 app.use((req, res, next) => {
   // GET, HEAD, OPTIONS는 CSRF 검사 생략
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
@@ -71,7 +71,9 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/oauth/')) return next();
   // 공개 API는 생략
   if (req.path === '/api/health') return next();
-  // CSRF 토큰 검증: 쿠키의 sb_csrf와 헤더의 X-CSRF-Token 비교
+  // Bearer 토큰 사용 시 CSRF 불필요 (브라우저가 자동 전송하지 않음)
+  if (req.headers.authorization?.startsWith('Bearer ')) return next();
+  // 쿠키 인증일 때만 CSRF 검증: sb_csrf 쿠키와 X-CSRF-Token 헤더 비교
   const cookieToken = req.cookies?.sb_csrf;
   const headerToken = req.headers['x-csrf-token'];
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {

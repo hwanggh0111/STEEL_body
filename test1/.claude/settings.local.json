@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill //F //IM node.exe)",
+      "Read(//c/project/backend/**)",
+      "Bash(node src/index.js)"
+    ]
+  }
+}
