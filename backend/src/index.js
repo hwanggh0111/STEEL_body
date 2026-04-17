@@ -124,6 +124,16 @@ app.use('/api/auth/check-username', rateLimit({
   message: { error: 'Too many requests.' },
 }));
 
+// API 응답 캐싱 (변경이 드문 공개 엔드포인트)
+app.use('/api/routines', (req, res, next) => {
+  res.set('Cache-Control', 'public, max-age=3600'); // 1시간
+  next();
+});
+app.use('/api/notices', (req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'public, max-age=300'); // 5분
+  next();
+});
+
 // 라우터 연결
 app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/workouts',    require('./routes/workouts'));
@@ -176,6 +186,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)
+server.keepAliveTimeout = 65000; // ALB/프록시 뒤에서 소켓 유지
+server.headersTimeout = 66000;
+server.timeout = 30000; // 요청 처리 최대 30초
+
+// graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => process.exit(0));
 });
