@@ -35,7 +35,7 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
   }
 
-  const sanitize = str => typeof str === 'string' ? str.replace(/[<>"'&]/g, '') : str;
+  const { sanitize } = require('../utils/sanitize');
   const sanitizedName = sanitize(name);
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
 

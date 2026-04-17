@@ -60,11 +60,7 @@ const loginAttempts = {};
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
 
-// 입력값 새니타이즈
-function sanitize(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[<>"'&]/g, '').trim();
-}
+const { sanitize } = require('../utils/sanitize');
 
 // 이메일 형식 검증
 function isValidEmail(email) {
@@ -94,7 +90,7 @@ router.post('/send-code', (req, res) => {
 // 인증번호 확인 (Brute Force 방지)
 router.post('/verify-code', (req, res) => {
   const { email, code } = req.body;
-  if (!email || !code) return res.status(400).json({ error: '이메일과 인증번호를 입력해주세요' });
+  if (!email || !code || typeof email !== 'string' || typeof code !== 'string') return res.status(400).json({ error: '이메일과 인증번호를 입력해주세요' });
 
   const stored = verifyStore[email];
   if (!stored) return res.status(400).json({ error: '인증번호를 먼저 발송해주세요' });
@@ -144,7 +140,9 @@ router.post('/check-username', (req, res) => {
 router.post('/register', async (req, res) => {
   const { email, password, nickname, username } = req.body;
 
-  if (!email || !password || !nickname || !username) {
+  if (!email || !password || !nickname || !username ||
+      typeof email !== 'string' || typeof password !== 'string' ||
+      typeof nickname !== 'string' || typeof username !== 'string') {
     return res.status(400).json({ error: '모든 항목을 입력해주세요' });
   }
   if (!isValidEmail(email)) {
@@ -180,7 +178,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ error: '아이디(이메일)와 비밀번호를 입력해주세요' });
   }
 

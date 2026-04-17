@@ -5,16 +5,7 @@ const db     = require('../db');
 
 const VALID_TYPES = ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch'];
 
-function sanitizeObj(obj) {
-  if (typeof obj === 'string') return obj.replace(/[<>"'&]/g, '');
-  if (Array.isArray(obj)) return obj.map(sanitizeObj);
-  if (typeof obj === 'object' && obj !== null) {
-    const clean = {};
-    for (const [k, v] of Object.entries(obj)) clean[k] = sanitizeObj(v);
-    return clean;
-  }
-  return obj;
-}
+const { sanitizeObj } = require('../utils/sanitize');
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {

@@ -16,7 +16,7 @@ router.post('/', adminAuth, (req, res) => {
     return res.status(400).json({ error: '날짜, 제목, 유형, 내용은 필수에요' });
   }
 
-  const sanitize = str => typeof str === 'string' ? str.replace(/[<>"'&]/g, '') : str;
+  const { sanitize } = require('../utils/sanitize');
   const result = db.createNotice(date, sanitize(title), type, sanitize(content));
   res.status(201).json({ id: result.lastInsertRowid, message: '공지사항 등록 완료!' });
 });
@@ -86,7 +86,7 @@ router.post('/ai-generate', adminAuth, (req, res) => {
 router.put('/:id', adminAuth, (req, res) => {
   const { title, type, content } = req.body;
 
-  const sanitize = str => typeof str === 'string' ? str.replace(/[<>"'&]/g, '') : str;
+  const { sanitize } = require('../utils/sanitize');
   const result = db.updateNotice(Number(req.params.id), sanitize(title), type, sanitize(content));
 
   if (result.changes === 0) {

@@ -50,7 +50,8 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
   }
 
-  const sanitizedExercise = exercise.replace(/[<>"'&]/g, '');
+  const { sanitize } = require('../utils/sanitize');
+  const sanitizedExercise = sanitize(exercise);
   const result = db.createWorkout(req.userId, date, sanitizedExercise, weight || '맨몸', numSets, numReps);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
