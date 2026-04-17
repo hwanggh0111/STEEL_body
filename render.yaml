@@ -3,18 +3,20 @@ services:
     name: steel-body
     runtime: node
     plan: free
+    region: oregon
     buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
-    startCommand: cd backend && node src/index.js
+    startCommand: cd backend && node --max-old-space-size=256 --optimize-for-size src/index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        fromService:
-          name: steel-body
-          type: web
-          property: host
+        value: https://steel-body.onrender.com
+      - key: BACKEND_URL
+        value: https://steel-body.onrender.com
       - key: ADMIN_EMAIL
         sync: false
       - key: GOOGLE_CLIENT_ID
