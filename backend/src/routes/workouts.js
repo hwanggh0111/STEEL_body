@@ -52,7 +52,8 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   const { sanitize } = require('../utils/sanitize');
   const sanitizedExercise = sanitize(exercise);
-  const result = db.createWorkout(req.userId, date, sanitizedExercise, weight || '맨몸', numSets, numReps);
+  const safeWeight = (weight !== undefined && weight !== null && weight !== '') ? weight : '맨몸';
+  const result = db.createWorkout(req.userId, date, sanitizedExercise, safeWeight, numSets, numReps);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 
