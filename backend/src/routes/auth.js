@@ -113,8 +113,12 @@ router.post('/verify-code', (req, res) => {
     return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
   }
 
-  // 타이밍 공격 방지 (상수 시간 ��교)
-  const codeMatch = crypto.timingSafeEqual(Buffer.from(stored.code), Buffer.from(String(code).padEnd(6, '0').slice(0, 6)));
+  // 타이밍 공격 방지 (길이 검증 후 상수 시간 비교)
+  const codeStr = String(code);
+  if (codeStr.length !== 6 || isNaN(Number(codeStr))) {
+    return res.status(400).json({ error: '인증번호가 틀렸어요' });
+  }
+  const codeMatch = crypto.timingSafeEqual(Buffer.from(stored.code), Buffer.from(codeStr));
   if (!codeMatch) {
     return res.status(400).json({ error: '인증번호가 틀렸어요' });
   }
@@ -202,8 +206,7 @@ router.post('/login', async (req, res) => {
     loginAttempts[key].count++;
     loginAttempts[key].lastAttempt = Date.now();
     addLog('login_fail', `Login failed: ${email} (attempt ${loginAttempts[key].count})`);
-    // AI Guard에도 로그인 실패 기록
-    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    // AI Guard에도 로그인 실패 기록 (clientIp는 상단에서 선언됨)
     recordLoginFailure(clientIp);
     return res.status(401).json({ error: '아이디(이메일) 또는 비밀번호가 틀렸어요' });
   }

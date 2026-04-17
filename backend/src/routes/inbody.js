@@ -18,10 +18,10 @@ router.post('/', auth, spamCheck, (req, res) => {
   }
 
   weight = Number(weight);
-  height = height ? Number(height) : null;
-  fat_pct = fat_pct ? Number(fat_pct) : null;
-  muscle_kg = muscle_kg ? Number(muscle_kg) : null;
-  water_l = water_l ? Number(water_l) : null;
+  height = (height !== undefined && height !== null && height !== '') ? Number(height) : null;
+  fat_pct = (fat_pct !== undefined && fat_pct !== null && fat_pct !== '') ? Number(fat_pct) : null;
+  muscle_kg = (muscle_kg !== undefined && muscle_kg !== null && muscle_kg !== '') ? Number(muscle_kg) : null;
+  water_l = (water_l !== undefined && water_l !== null && water_l !== '') ? Number(water_l) : null;
 
   if (isNaN(weight) || weight <= 0 || weight > 500) return res.status(400).json({ error: '체중 값이 올바르지 않아요' });
   if (height !== null && (isNaN(height) || height <= 0 || height > 300)) return res.status(400).json({ error: '키 값이 올바르지 않아요' });
