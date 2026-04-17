@@ -105,12 +105,65 @@ router.post('/revoke-admin/:id', adminAuth, (req, res) => {
 
 // ── AI Guard 엔드포인트 ──
 
-// GET /api/security/ai-dashboard - AI 관리 현황
+// GET /api/security/ai-dashboard - AI 관리 현황 (강화)
 router.get('/ai-dashboard', adminAuth, (req, res) => {
+  const stats = aiGuard.getStats();
+  const blockedIPsRaw = aiGuard.getBlockedIPs();
+  const aiLogs = aiGuard.getAiLogs();
+  const suspensions = db.getSuspensions();
+  const blacklist = db.getBlacklist();
+  const users = db.getAllUsers();
+
+  // blocked IPs를 배열로 변환 + 남은 시간 계산
+  const now = Date.now();
+  const blockedIps = Object.entries(blockedIPsRaw).map(([ip, info]) => ({
+    ip,
+    level: info.level,
+    until: info.until,
+    blockedAt: info.until === 'permanent' ? null : new Date(info.until === 'permanent' ? now : now).toISOString(),
+    remaining: info.until === 'permanent' ? 'permanent' : Math.max(0, Math.ceil((new Date(info.until).getTime() - now) / 60000)),
+  }));
+
+  // 로그를 표시용으로 변환
+  const logs = aiLogs.slice(-100).reverse().map(l => ({
+    type: l.type?.toLowerCase().includes('critical') ? 'block' :
+          l.type?.toLowerCase().includes('warning') ? 'warning' :
+          l.type?.toLowerCase().includes('alert') ? 'suspicious' :
+          l.type?.toLowerCase().includes('info') ? 'warning' : 'system',
+    time: l.timestamp,
+    message: l.message,
+    ip: l.ip,
+    userId: l.userId,
+  }));
+
+  // 위협 통계
+  const threats = {
+    ...stats.threats,
+    blockedIpCount: blockedIps.length,
+    todayWarnings: stats.threats.level1 + stats.threats.level2,
+    suspiciousIpCount: stats.suspiciousIPs?.length || 0,
+    totalSuspensions: suspensions.length,
+    activeSuspensions: suspensions.filter(s => s.expires_at === 'permanent' || s.expires_at > new Date().toISOString()).length,
+    blacklistEntries: blacklist.length,
+    bannedUsers: users.filter(u => u.is_banned).length,
+    blockedUsers: users.filter(u => u.role === 'blocked').length,
+  };
+
   res.json({
-    stats: aiGuard.getStats(),
-    aiLogs: aiGuard.getAiLogs(),
-    blockedIPs: aiGuard.getBlockedIPs(),
+    stats: {
+      totalRequests: stats.totalRequests,
+      totalBlocks: stats.blockedRequests,
+      totalWarnings: stats.threats.level1 + stats.threats.level2,
+      activeLocks: stats.activeLocks,
+      requestTracking: stats.requestTracking,
+      loginFailureTracking: stats.loginFailureTracking,
+      spamTracking: stats.spamTracking,
+    },
+    threats,
+    blockedIps,
+    logs,
+    blacklist: blacklist.slice(-20),
+    suspensions: suspensions.slice(-20).reverse(),
   });
 });
 
