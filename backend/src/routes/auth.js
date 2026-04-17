@@ -179,8 +179,9 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: '아이디(이메일)와 비밀번호를 입력해주세요' });
   }
 
-  // 로그인 시도 잠금 확인
-  const key = email.toLowerCase();
+  // 로그인 시도 잠금 확인 (IP + 입력값 조합으로 추적)
+  const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+  const key = `${clientIp}:${email.toLowerCase()}`;
   const attempts = loginAttempts[key];
   if (attempts && attempts.count >= LOGIN_MAX_ATTEMPTS) {
     const elapsed = Date.now() - attempts.lastAttempt;
@@ -220,7 +221,7 @@ router.post('/login', async (req, res) => {
   );
 
   addLog('login_success', `Login success: ${user.email} (id=${user.id})`);
-  res.json({ token: legacyToken, nickname: user.nickname, role: user.role || 'user' });
+  res.json({ token: legacyToken, nickname: user.nickname, email: user.email, role: user.role || 'user' });
 });
 
 // 토큰 갱신

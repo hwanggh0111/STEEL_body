@@ -53,8 +53,8 @@ export default function LoginPage() {
     const err = searchParams.get('error');
 
     if (oauthSuccess === 'success' && nick) {
-      const sanitizedNick = nick.replace(/[<>"'&]/g, '');
-      const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&]/g, '') : null;
+      const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, 30);
+      const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
       localStorage.setItem('nickname', sanitizedNick);
       if (sanitizedEmail) localStorage.setItem('ironlog_email', sanitizedEmail);
       useAuthStore.setState({ nickname: sanitizedNick, isLoggedIn: true });

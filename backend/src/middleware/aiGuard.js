@@ -137,14 +137,10 @@ function executeLevel4(userId, ip, triggerType, details) {
   // 유저 정보 가져오기 (블랙리스트용)
   const user = db.findUserById(userId);
 
-  // 즉시 비활성화
+  // 즉시 비활성화 + 삭제
   if (user) db.banUser(userId);
-
-  // 30초 후 완전 삭제
-  setTimeout(() => {
-    db.deleteUserCompletely(userId);
-    addLog('CRITICAL', `계정 데이터 완전 삭제 완료 (userId=${userId})`, ip, userId);
-  }, 30000);
+  db.deleteUserCompletely(userId);
+  addLog('CRITICAL', `계정 데이터 완전 삭제 완료 (userId=${userId})`, ip, userId);
 
   // 블랙리스트
   if (user?.email) db.addBlacklist('email', user.email, aiReason);
@@ -421,7 +417,6 @@ function spamCheck(req, res, next) {
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
   if (req.userId && req.method === 'POST') {
     if (checkSpam(req.userId)) {
-      const ip = req.ip || req.connection?.remoteAddress || 'unknown';
       const reason = executeLevel3(req.userId, ip, 'spam', `${spamCounts.get(req.userId)?.count || 10}건/분`, 7);
       return res.status(403).json({
         error: '스팸 활동이 감지되었습니다.',

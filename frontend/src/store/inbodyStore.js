@@ -22,7 +22,13 @@ export const useInbodyStore = create((set, get) => ({
   },
 
   deleteRecord: async (id) => {
-    await client.delete(`/inbody/${id}`);
-    get().fetchAll().catch(() => {});
+    const prev = get().records;
+    set({ records: prev.filter(r => (r._id || r.id) !== id) });
+    try {
+      await client.delete(`/inbody/${id}`);
+    } catch {
+      set({ records: prev });
+      throw new Error('삭제 실패');
+    }
   },
 }));

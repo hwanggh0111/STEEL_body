@@ -27,7 +27,20 @@ export const useWorkoutStore = create((set, get) => ({
   },
 
   deleteWorkout: async (id) => {
-    await client.delete(`/workouts/${id}`);
-    get().fetchAll().catch(() => {});
+    // 낙관적 업데이트: 먼저 UI에서 제거
+    const prev = get().workouts;
+    const updated = {};
+    for (const [date, items] of Object.entries(prev)) {
+      const filtered = items.filter(w => w.id !== id);
+      if (filtered.length > 0) updated[date] = filtered;
+    }
+    set({ workouts: updated });
+    try {
+      await client.delete(`/workouts/${id}`);
+    } catch {
+      // 실패 시 롤백
+      set({ workouts: prev });
+      throw new Error('삭제 실패');
+    }
   },
 }));

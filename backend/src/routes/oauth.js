@@ -59,6 +59,12 @@ function generateState() {
 
 function validateState(state) {
   if (!state || !oauthStates.has(state)) return false;
+  const data = oauthStates.get(state);
+  // 시간 기반 만료 검증 (setTimeout 외에 이중 체크)
+  if (data?.time && Date.now() - data.time > 10 * 60 * 1000) {
+    oauthStates.delete(state);
+    return false;
+  }
   oauthStates.delete(state);
   return true;
 }

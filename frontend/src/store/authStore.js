@@ -16,6 +16,8 @@ export const useAuthStore = create((set) => ({
     // 서버가 httpOnly 쿠키를 설정함 + 레거시 body에도 token 포함
     if (data.token) localStorage.setItem('token', data.token);
     localStorage.setItem('nickname', data.nickname);
+    if (data.email) localStorage.setItem('ironlog_email', data.email);
+    if (data.role) localStorage.setItem('ironlog_role', data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -29,6 +31,7 @@ export const useAuthStore = create((set) => ({
     } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('nickname');
+    localStorage.removeItem('ironlog_role');
     set({ token: null, nickname: null, isLoggedIn: false });
     // 다른 스토어 초기화
     try {
@@ -44,6 +47,7 @@ export const useAuthStore = create((set) => ({
     try {
       const { data } = await client.get('/auth/me');
       localStorage.setItem('nickname', data.nickname);
+      if (data.role) localStorage.setItem('ironlog_role', data.role);
       set({ nickname: data.nickname, isLoggedIn: true });
       return true;
     } catch {
