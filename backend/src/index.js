@@ -34,15 +34,26 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://api.open-meteo.com", "https://wger.de", "https://*.lhr.life"],
+      connectSrc: ["'self'", "https://api.open-meteo.com", "https://wger.de"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false,
   hsts: { maxAge: 31536000, includeSubDomains: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permissionsPolicy: {
+    features: {
+      camera: ["'none'"],
+      microphone: ["'none'"],
+      geolocation: ["'none'"],
+    },
+  },
 }));
 
 // gzip compression (1KB 미만은 압축 생략)
@@ -64,11 +75,11 @@ app.use(aiGuard);
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
 app.use(cors({
   origin: (origin, callback) => {
+    // 같은 서버 (프록시, SSR) 또는 허용 목록
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Render 도메인 (*.onrender.com)
+    if (origin.endsWith('.onrender.com')) return callback(null, true);
     // 개발 환경: 같은 네트워크 허용
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    // 개발 환경에서 192.168.x.x (같은 Wi-Fi) 허용
     if (process.env.NODE_ENV !== 'production' && /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin)) {
       return callback(null, true);
     }
@@ -204,6 +215,10 @@ app.get('*', (req, res, next) => {
 
 // 전역 에러 핸들러 (내부 정보 노출 방지)
 app.use((err, req, res, next) => {
+  // CORS 에러는 403으로
+  if (err.message === 'CORS not allowed') {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
   if (process.env.NODE_ENV !== 'production') {
     console.error(err.message);
   }
@@ -220,8 +235,13 @@ server.keepAliveTimeout = 65000; // ALB/프록시 뒤에서 소켓 유지
 server.headersTimeout = 66000;
 server.timeout = 30000; // 요청 처리 최대 30초
 
-// graceful shutdown
+// graceful shutdown (DB flush 보장)
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => process.exit(0));
+  server.close(() => {
+    console.log('Server closed, flushing DB...');
+    process.exit(0); // exit 이벤트에서 _flush 호출됨
+  });
+  // 10초 안에 종료 안 되면 강제 종료
+  setTimeout(() => { console.error('Forced shutdown'); process.exit(1); }, 10000);
 });

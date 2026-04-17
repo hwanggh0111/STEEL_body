@@ -25,20 +25,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first strategy
+// Fetch: network-first strategy (API 요청은 캐시 안 함)
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  // API, OAuth 요청은 캐시 제외
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/oauth/')) {
+    return;
+  }
+  // POST 등 non-GET도 제외
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone and cache the successful response
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
       .catch(() => {
-        // Network failed, try cache
         return caches.match(event.request);
       })
   );

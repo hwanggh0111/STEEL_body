@@ -79,12 +79,11 @@ process.on('exit', _flush);
 process.on('SIGINT', () => { _flush(); process.exit(); });
 process.on('SIGTERM', () => { _flush(); process.exit(); });
 
-// 다음 ID 가져오기 (단일 함수 내에서 load+save 원자적 처리)
+// 다음 ID 가져오기 (save는 호출자가 함)
 function nextId(table) {
   const data = load();
   const id = data._nextId[table] || 1;
   data._nextId[table] = id + 1;
-  save(data);
   return id;
 }
 
