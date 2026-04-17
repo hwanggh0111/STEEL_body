@@ -43,14 +43,14 @@ function BodySizeSection({ records, onSave, onDelete }) {
       <button className="btn-primary" onClick={handleSave} style={{ marginBottom: 12 }}>측정 저장</button>
 
       {records.map((r, i) => (
-        <div key={r._id || r.id} className="card" style={{ marginBottom: 6, cursor: 'pointer', borderColor: openIdx === i ? 'var(--accent)' : 'var(--border)' }}
+        <div key={r.id} className="card" style={{ marginBottom: 6, cursor: 'pointer', borderColor: openIdx === i ? 'var(--accent)' : 'var(--border)' }}
           onClick={() => setOpenIdx(openIdx === i ? null : i)}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.date}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {r.data?.chest && <span style={{ fontSize: 12 }}>가슴 <strong style={{ color: 'var(--accent)' }}>{r.data.chest}</strong></span>}
               {r.data?.arm_r && <span style={{ fontSize: 12 }}>팔 <strong>{r.data.arm_r}</strong></span>}
-              <button className="delete-btn" onClick={(e) => { e.stopPropagation(); onDelete(r._id || r.id); }}>✕</button>
+              <button className="delete-btn" onClick={(e) => { e.stopPropagation(); onDelete(r.id); }}>✕</button>
             </div>
           </div>
           {openIdx === i && (
@@ -122,7 +122,7 @@ function OneRMSection({ records, onSave }) {
         <>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>기록</div>
           {records.slice(0, 5).map(r => (
-            <div key={r._id || r.id} className="card" style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={r.id} className="card" style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1 }}>{r.data?.exercise}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>{r.data?.weight}kg × {r.data?.reps}회</span>
@@ -172,7 +172,7 @@ function FitnessTestSection({ records, onSave }) {
       <button className="btn-primary" onClick={handleSave} style={{ marginBottom: 12 }}>기록 저장</button>
 
       {records.slice(0, 3).map(r => (
-        <div key={r._id || r.id} className="card" style={{ marginBottom: 4 }}>
+        <div key={r.id} className="card" style={{ marginBottom: 4 }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{r.date}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {FITNESS_TESTS.map(f => r.data?.[f.key] && (
@@ -392,7 +392,7 @@ function FlexibilitySection({ records, onSave }) {
       <button className="btn-primary" onClick={handleSave} style={{ marginBottom: 12 }}>기록 저장</button>
 
       {records.slice(0, 3).map(r => (
-        <div key={r._id || r.id} className="card" style={{ marginBottom: 4 }}>
+        <div key={r.id} className="card" style={{ marginBottom: 4 }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{r.date}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {FLEX_FIELDS.map(f => r.data?.[f.key] && (
@@ -511,7 +511,7 @@ function ShoulderSection({ records, onSave, onDelete }) {
         const t = getShoulderType(r.data?.shoulder);
         const rg = r.data?.ratio ? getRatioGrade(r.data.ratio) : null;
         return (
-          <div key={r._id || r.id} className="card" style={{ marginBottom: 8 }}>
+          <div key={r.id} className="card" style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{r.date}</div>
@@ -521,7 +521,7 @@ function ShoulderSection({ records, onSave, onDelete }) {
                   {r.data?.ratio && rg && <span style={{ fontSize: 13 }}>비율 <strong style={{ color: rg.color }}>{r.data.ratio}</strong></span>}
                 </div>
               </div>
-              <button className="delete-btn" onClick={() => onDelete(r._id || r.id)}>✕</button>
+              <button className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>
             </div>
           </div>
         );
@@ -577,7 +577,7 @@ export default function MeasurePage() {
     if (!confirm('정말 삭제하시겠어요?')) return;
     try {
       await client.delete(`/measures/${id}`);
-      setMeasures(prev => prev.filter(m => (m._id || m.id) !== id));
+      setMeasures(prev => prev.filter(m => (m.id) !== id));
       toast('삭제 완료!');
     } catch {
       toast('삭제에 실패했어요');

@@ -249,7 +249,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)
 server.keepAliveTimeout = 65000; // ALB/프록시 뒤에서 소켓 유지
 server.headersTimeout = 66000;
-server.timeout = 30000; // 요청 처리 최대 30초
+server.timeout = 25000; // 요청 처리 최대 25초 (Render 30초 제한 여유)
 
 // graceful shutdown (DB flush 보장)
 process.on('SIGTERM', () => {

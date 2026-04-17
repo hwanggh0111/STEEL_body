@@ -15,6 +15,8 @@ const client = axios.create({
 // 토큰 갱신 중복 방지
 let isRefreshing = false;
 let refreshQueue = [];
+let refreshFailCount = 0;
+const MAX_REFRESH_FAILS = 3;
 
 // 요청 인터셉터: CSRF 토큰 + 레거시 Bearer 토큰
 client.interceptors.request.use((config) => {
@@ -35,6 +37,14 @@ client.interceptors.response.use(
 
     // 401이고 refresh 시도 안 한 경우
     if (err.response?.status === 401 && !originalRequest._retry) {
+      // refresh 연속 실패 시 바로 로그아웃 (무한 루프 방지)
+      if (refreshFailCount >= MAX_REFRESH_FAILS) {
+        refreshFailCount = 0;
+        localStorage.removeItem('token');
+        localStorage.removeItem('nickname');
+        window.location.href = '/login';
+        return Promise.reject(err);
+      }
       // refresh/logout 요청 자체가 실패한 경우는 바로 로그아웃
       if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/logout')) {
         localStorage.removeItem('token');
@@ -59,14 +69,16 @@ client.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-        // 갱신 성공: 큐 복사 후 초기화 (경쟁 상태 방지)
+        // 갱신 성공: 카운터 리셋 + 큐 복사 후 초기화
+        refreshFailCount = 0;
         isRefreshing = false;
         const queue = [...refreshQueue];
         refreshQueue = [];
         queue.forEach(({ resolve }) => resolve());
         return client(originalRequest);
       } catch (refreshErr) {
-        // refresh도 실패: 큐 복사 후 초기화
+        // refresh도 실패: 카운터 증가 + 큐 복사 후 초기화
+        refreshFailCount++;
         isRefreshing = false;
         const queue = [...refreshQueue];
         refreshQueue = [];

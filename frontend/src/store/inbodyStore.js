@@ -23,7 +23,7 @@ export const useInbodyStore = create((set, get) => ({
 
   deleteRecord: async (id) => {
     const prev = get().records;
-    set({ records: prev.filter(r => (r._id || r.id) !== id) });
+    set({ records: prev.filter(r => r.id !== id) });
     try {
       await client.delete(`/inbody/${id}`);
     } catch {

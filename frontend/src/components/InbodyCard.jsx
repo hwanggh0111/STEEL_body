@@ -25,7 +25,7 @@ export default function InbodyCard({ record, onDelete }) {
             )}
           </div>
         </div>
-        <button className="delete-btn" onClick={() => onDelete(record._id || record.id)}>✕</button>
+        <button className="delete-btn" onClick={() => onDelete(record.id)}>✕</button>
       </div>
     </div>
   );
