@@ -698,14 +698,16 @@ export default function HomePage() {
 
   const handleClosePopup = useCallback(() => {
     // 큐에 남은 안 읽은 공지가 있으면 다음 공지 바로 표시
-    if (unreadQueue.length > 0) {
-      const next = unreadQueue[0];
-      markNoticeRead(next.id);
-      setPopupNotice(next);
-      setUnreadQueue(prev => prev.slice(1));
-    } else {
+    setUnreadQueue(prev => {
+      if (prev.length > 0) {
+        const next = prev[0];
+        markNoticeRead(next.id);
+        setPopupNotice(next);
+        return prev.slice(1);
+      }
       setPopupNotice(null);
-    }
+      return prev;
+    });
   }, []);
 
   const handleGoNotice = useCallback(() => {

@@ -29,11 +29,9 @@ function setAuthCookies(res, user) {
 
 // 요청 기반으로 백엔드/프론트엔드 URL 결정 (모바일/터널 지원)
 function getUrls(req) {
-  const host = req.get('host'); // e.g. "192.168.0.152:4000" or "localhost:4000"
-  // 터널(lhr.life)이면 https, 아니면 req.protocol 사용
+  const host = req.get('host') || `localhost:${process.env.PORT || 4000}`;
   const protocol = req.get('x-forwarded-proto') || req.protocol;
   const backendUrl = `${protocol}://${host}`;
-  // 프론트엔드 포트로 변환 (4000 → 5173)
   const frontendHost = host.replace(/:\d+$/, ':5173');
   const frontendUrl = `${protocol}://${frontendHost}`;
   return { backendUrl, frontendUrl };
@@ -86,13 +84,12 @@ router.get('/google', (req, res) => {
 router.get('/google/callback', async (req, res) => {
   const { backendUrl } = getUrls(req);
   const stateData = oauthStates.get(req.query.state);
-  if (!stateData) {
+  if (!validateState(req.query.state)) {
     return res.redirect(`${FRONTEND}/login?error=invalid_state`);
   }
-  oauthStates.delete(req.query.state);
   // referer에서 프론트엔드 origin 추출
   let frontendUrl = FRONTEND;
-  if (stateData.referer) {
+  if (stateData?.referer) {
     try {
       const url = new URL(stateData.referer);
       frontendUrl = url.origin;
@@ -109,6 +106,7 @@ router.get('/google/callback', async (req, res) => {
     const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
+    if (!profile || !profile.email) throw new Error('Google profile missing email');
     const { user, nickname, email } = await findOrCreateUser(profile.email, profile.name, 'google');
     setAuthCookies(res, user);
     res.redirect(`${frontendUrl}/login?oauth=success&nickname=${encodeURIComponent(nickname)}&email=${encodeURIComponent(email)}`);
@@ -215,7 +213,7 @@ router.get('/facebook/callback', async (req, res) => {
     const { data: profile } = await axios.get('https://graph.facebook.com/me', {
       params: { fields: 'id,name,email', access_token: tokens.access_token },
     });
-    if (!profile) throw new Error('Facebook profile missing');
+    if (!profile || !profile.id) throw new Error('Facebook profile missing');
     const email = profile.email || `fb_${profile.id}@facebook.com`;
     const { user, nickname, email: userEmail } = await findOrCreateUser(email, profile.name, 'facebook');
     setAuthCookies(res, user);
@@ -259,7 +257,7 @@ router.get('/instagram/callback', async (req, res) => {
     const { data: profile } = await axios.get(`https://graph.instagram.com/v21.0/me`, {
       params: { fields: 'user_id,username', access_token: tokens.access_token },
     });
-    if (!profile) throw new Error('Instagram profile missing');
+    if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
     const email = `ig_${profile.user_id}@instagram.com`;
     const { user, nickname, email: userEmail } = await findOrCreateUser(email, profile.username, 'instagram');
     setAuthCookies(res, user);
