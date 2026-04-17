@@ -11,8 +11,8 @@ const db = require('./db');
 
 const app = express();
 
-// 터널/프록시 뒤에서 올바른 프로토콜 감지
-app.set('trust proxy', true);
+// 터널/프록시 뒤에서 올바른 프로토콜 감지 (Render는 1 hop)
+app.set('trust proxy', 1);
 
 // 보안 헤더
 app.use(helmet({
@@ -31,8 +31,14 @@ app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true },
 }));
 
-// gzip compression
-app.use(compression());
+// gzip compression (1KB 미만은 압축 생략)
+app.use(compression({
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+}));
 
 // X-Powered-By 헤더 제거
 app.disable('x-powered-by');
@@ -138,11 +144,20 @@ const noCSP = (req, res, next) => {
   res.removeHeader('Content-Security-Policy');
   next();
 };
-app.use(noCSP, express.static(frontendDist));
+app.use(noCSP, express.static(frontendDist, {
+  maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
+  etag: true,
+  lastModified: true,
+}));
 
-// 헬스체크
+// 헬스체크 (모니터링 정보 포함)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK' });
+  const mem = process.memoryUsage();
+  res.json({
+    status: 'OK',
+    uptime: Math.floor(process.uptime()),
+    memory: { rss: Math.round(mem.rss / 1024 / 1024), heap: Math.round(mem.heapUsed / 1024 / 1024) },
+  });
 });
 
 // SPA 폴백 — API가 아닌 모든 요청은 index.html로

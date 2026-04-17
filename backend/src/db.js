@@ -56,7 +56,8 @@ function _flush() {
   }
   _writeLock = true;
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(_cache, null, 2), 'utf-8');
+    const indent = process.env.NODE_ENV === 'production' ? undefined : 2;
+    fs.writeFileSync(DB_PATH, JSON.stringify(_cache, null, indent), 'utf-8');
     _dirty = false;
   } catch (err) {
     console.error('[DB] 저장 실패:', err.message);
@@ -87,19 +88,36 @@ function nextId(table) {
   return id;
 }
 
+// ── 인덱스 캐시 (O(n) → O(1) 조회) ──
+const _index = { userById: null, userByEmail: null, userByUsername: null };
+
+function rebuildIndex() {
+  const data = load();
+  _index.userById = new Map();
+  _index.userByEmail = new Map();
+  _index.userByUsername = new Map();
+  for (const u of data.users) {
+    _index.userById.set(u.id, u);
+    _index.userByEmail.set(u.email, u);
+    if (u.username) _index.userByUsername.set(u.username, u);
+  }
+}
+
+function invalidateUserIndex() { _index.userById = null; }
+
 const db = {
-  // users
+  // users (인덱스 기반 O(1) 조회)
   findUserByEmail(email) {
-    const data = load();
-    return data.users.find(u => u.email === email) || null;
+    if (!_index.userById) rebuildIndex();
+    return _index.userByEmail.get(email) || null;
   },
   findUserById(id) {
-    const data = load();
-    return data.users.find(u => u.id === id) || null;
+    if (!_index.userById) rebuildIndex();
+    return _index.userById.get(id) || null;
   },
   findUserByUsername(username) {
-    const data = load();
-    return data.users.find(u => u.username === username) || null;
+    if (!_index.userById) rebuildIndex();
+    return _index.userByUsername.get(username) || null;
   },
   createUser(email, password, nickname, username) {
     const data = load();
@@ -114,6 +132,7 @@ const db = {
     const role = (process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL) ? 'admin' : 'user';
     const user = { id, email, password, nickname, username: username || null, role, created_at: new Date().toISOString() };
     data.users.push(user);
+    invalidateUserIndex();
     save(data);
     return { lastInsertRowid: id };
   },
@@ -178,6 +197,7 @@ const db = {
     const user = data.users.find(u => u.id === id);
     if (!user) return { changes: 0 };
     user.nickname = nickname;
+    invalidateUserIndex();
     save(data);
     return { changes: 1 };
   },
@@ -365,6 +385,7 @@ const db = {
     const user = data.users.find(u => u.id === userId);
     if (!user) return { changes: 0 };
     user.is_banned = true;
+    invalidateUserIndex();
     save(data);
     return { changes: 1 };
   },
@@ -376,6 +397,8 @@ const db = {
     data.measures = (data.measures || []).filter(m => m.user_id !== userId);
     data.myRoutines = (data.myRoutines || []).filter(r => r.user_id !== userId);
     data.photos = (data.photos || []).filter(p => p.user_id !== userId);
+    data.refreshTokens = (data.refreshTokens || []).filter(t => t.user_id !== userId);
+    invalidateUserIndex();
     save(data);
     return { changes: 1 };
   },
@@ -422,6 +445,7 @@ const db = {
     const user = data.users.find(u => u.id === id);
     if (!user) return { changes: 0 };
     user.role = role;
+    invalidateUserIndex();
     save(data);
     return { changes: 1 };
   },

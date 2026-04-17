@@ -4,7 +4,16 @@
  */
 const db = require('../db');
 
-// ── 상태 저장소 (인메모리) ──
+// ── 상태 저장소 (인메모리, 크기 제한) ──
+const MAX_MAP_SIZE = 10000;
+function limitedSet(map, key, value) {
+  if (map.size >= MAX_MAP_SIZE) {
+    const firstKey = map.keys().next().value;
+    map.delete(firstKey);
+  }
+  map.set(key, value);
+}
+
 const requestCounts = new Map();    // IP → { count, firstRequest }
 const blockedIPs = new Map();       // IP → { until, level, reason }
 const loginFailures = new Map();    // IP → { count, lastFailure }
@@ -270,7 +279,7 @@ function recordLoginFailure(ip) {
 function checkRequestRate(ip) {
   const now = Date.now();
   if (!requestCounts.has(ip)) {
-    requestCounts.set(ip, { count: 1, firstRequest: now });
+    limitedSet(requestCounts, ip, { count: 1, firstRequest: now });
     return;
   }
   const record = requestCounts.get(ip);
