@@ -353,8 +353,9 @@ function aiGuardMiddleware(req, res, next) {
   const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   totalRequests++;
 
-  // localhost 화이트리스트
+  // localhost + 헬스체크 화이트리스트
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
+  if (req.path === '/api/health') return next();
 
   // 블랙리스트 체크 (가입 시)
   if (req.path === '/api/auth/register' && req.method === 'POST') {
@@ -380,9 +381,9 @@ function aiGuardMiddleware(req, res, next) {
     blockedIPs.delete(ip);
   }
 
-  // 봇 감지
+  // 봇 감지 (Render/UptimeRobot 등 모니터링 서비스 제외)
   const ua = req.get('user-agent') || '';
-  if (BOT_PATTERNS.some(p => p.test(ua)) && !ua.includes('Mozilla')) {
+  if (BOT_PATTERNS.some(p => p.test(ua)) && !ua.includes('Mozilla') && !ua.includes('Render') && !ua.includes('UptimeRobot') && !ua.includes('HealthCheck')) {
     executeLevel2(ip, 'bot', ua, 72);
     return res.status(403).json({ error: '자동화된 접근이 차단되었습니다.' });
   }
