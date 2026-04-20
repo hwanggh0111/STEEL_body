@@ -33,6 +33,8 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('nickname');
     localStorage.removeItem('ironlog_role');
+    // CSRF 쿠키 클라이언트에서도 삭제 (서버 실패 대비)
+    document.cookie = 'sb_csrf=; Max-Age=0; path=/';
     set({ token: null, nickname: null, isLoggedIn: false });
     // 다른 스토어 초기화
     useWorkoutStore.setState({ workouts: {}, loading: false });

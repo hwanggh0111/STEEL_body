@@ -87,7 +87,12 @@ router.put('/:id', adminAuth, (req, res) => {
   const { title, type, content } = req.body;
 
   const { sanitize } = require('../utils/sanitize');
-  const result = db.updateNotice(Number(req.params.id), sanitize(title), type, sanitize(content));
+  const result = db.updateNotice(
+    Number(req.params.id),
+    title !== undefined ? sanitize(title) : undefined,
+    type,
+    content !== undefined ? sanitize(content) : undefined
+  );
 
   if (result.changes === 0) {
     return res.status(404).json({ error: '공지사항을 찾을 수 없어요' });

@@ -20,10 +20,12 @@ export default function HistoryPage() {
   const [filterExercise, setFilterExercise] = useState('');
 
   const handleExportCSV = (type = 'workouts') => {
-    const token = localStorage.getItem('token');
     const filename = type === 'inbody' ? 'steelbody_inbody.csv' : 'steelbody_workouts.csv';
-    fetch(`${import.meta.env.VITE_API_URL || '/api'}/export/${type}`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const baseURL = import.meta.env.VITE_API_URL || '/api';
+    const token = localStorage.getItem('token');
+    fetch(`${baseURL}/export/${type}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     })
       .then(res => {
         if (!res.ok) throw new Error('Export failed');
