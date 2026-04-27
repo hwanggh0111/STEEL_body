@@ -53,6 +53,11 @@ async function findOrCreateUser(email, nickname, provider) {
     db.createUser(email, randomPw, nickname || provider + '_user', username);
     user = db.findUserByEmail(email);
   }
+  // ADMIN_EMAIL이면 자동 관리자 승격
+  if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
+    db.updateUserRole(user.id, 'admin');
+    user.role = 'admin';
+  }
   return { user, nickname: user.nickname, email: user.email };
 }
 

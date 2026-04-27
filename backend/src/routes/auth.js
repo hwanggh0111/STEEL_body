@@ -212,6 +212,12 @@ router.post('/login', async (req, res) => {
   // 성공 시 시도 횟수 초기화
   delete loginAttempts[key];
 
+  // ADMIN_EMAIL이면 자동 관리자 승격
+  if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
+    db.updateUserRole(user.id, 'admin');
+    user.role = 'admin';
+  }
+
   // httpOnly 쿠키에 토큰 설정
   issueTokens(res, user);
 
