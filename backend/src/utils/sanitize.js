@@ -17,6 +17,13 @@ const DANGEROUS_PATTERNS = [
   /\.outerHTML/gi,         // outerHTML
   /\.fromCharCode/gi,      // String.fromCharCode
   /data\s*:\s*text\/html/gi, // data:text/html
+  /formaction\s*=/gi,      // form action hijack
+  /srcdoc\s*=/gi,          // iframe srcdoc
+  /xlink:href/gi,          // SVG xlink
+  /xmlns/gi,               // XML namespace injection
+  /base\s+href/gi,         // base tag hijack
+  /meta\s+http-equiv/gi,   // meta refresh/redirect
+  /action\s*=\s*["']?javascript/gi, // form action javascript
 ];
 
 function sanitize(str) {
