@@ -19,6 +19,11 @@ export const useAuthStore = create((set) => ({
     localStorage.setItem('nickname', data.nickname);
     if (data.email) localStorage.setItem('ironlog_email', data.email);
     if (data.role) localStorage.setItem('ironlog_role', data.role);
+    // 관리자 자동 만렙 + 칭호
+    if (data.role === 'admin') {
+      localStorage.setItem('steelbody_legend', 'true');
+      localStorage.setItem('steelbody_immortal', 'true');
+    }
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -47,6 +52,10 @@ export const useAuthStore = create((set) => ({
       const { data } = await client.get('/auth/me');
       localStorage.setItem('nickname', data.nickname);
       if (data.role) localStorage.setItem('ironlog_role', data.role);
+      if (data.role === 'admin') {
+        localStorage.setItem('steelbody_legend', 'true');
+        localStorage.setItem('steelbody_immortal', 'true');
+      }
       set({ nickname: data.nickname, isLoggedIn: true });
       return true;
     } catch {
