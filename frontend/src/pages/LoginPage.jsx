@@ -93,14 +93,26 @@ export default function LoginPage() {
 
   // 구글 로그인 후 닉네임 설정 화면
   if (oauthNickStep) {
+    const [nickSaving, setNickSaving] = useState(false);
+    const [nickError, setNickError] = useState('');
     const saveOauthNick = async () => {
       const nick = oauthNick.trim();
-      if (!nick) return;
-      localStorage.setItem('nickname', nick);
-      useAuthStore.setState({ nickname: nick });
-      try { await client.put('/auth/nickname', { nickname: nick }); } catch {}
-      setOauthNickStep(false);
-      setShowSplash(true);
+      if (!nick) { setNickError('닉네임을 입력해주세요'); return; }
+      if (nick.length > 30) { setNickError('닉네임은 30자 이하여야 해요'); return; }
+      setNickSaving(true);
+      setNickError('');
+      try {
+        await client.put('/auth/nickname', { nickname: nick });
+        localStorage.setItem('nickname', nick);
+        useAuthStore.setState({ nickname: nick });
+        toast('닉네임이 저장됐어요!');
+        setOauthNickStep(false);
+        setShowSplash(true);
+      } catch (err) {
+        setNickError(err.response?.data?.error || '닉네임 저장에 실패했어요');
+      } finally {
+        setNickSaving(false);
+      }
     };
     return (
       <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -111,17 +123,30 @@ export default function LoginPage() {
             className="input"
             type="text"
             value={oauthNick}
-            onChange={(e) => setOauthNick(e.target.value)}
+            onChange={(e) => { setOauthNick(e.target.value); setNickError(''); }}
             onKeyDown={(e) => e.key === 'Enter' && saveOauthNick()}
             placeholder="사용할 닉네임"
+            maxLength={30}
             autoFocus
-            style={{ textAlign: 'center', fontSize: 18, marginBottom: 16 }}
+            style={{ textAlign: 'center', fontSize: 18, marginBottom: 8 }}
           />
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+            {oauthNick.length}/30자
+          </div>
+          {nickError && (
+            <div style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>{nickError}</div>
+          )}
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
             구글 이름이 기본 설정됩니다. 원하는 닉네임으로 변경하세요.
           </p>
-          <button className="btn-primary" onClick={saveOauthNick} style={{ width: '100%' }}>
-            시작하기
+          <button className="btn-primary" onClick={saveOauthNick} disabled={nickSaving} style={{ width: '100%' }}>
+            {nickSaving ? '저장 중...' : '시작하기'}
+          </button>
+          <button
+            onClick={() => { setOauthNickStep(false); setShowSplash(true); }}
+            style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
+          >
+            기본 이름으로 시작
           </button>
         </div>
       </div>
