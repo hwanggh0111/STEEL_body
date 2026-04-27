@@ -30,27 +30,37 @@
   <path d="M200 198 L190 210 L195 250 L210 310 L220 340 L240 345 L256 350 L272 345 L292 340 L302 310 L317 250 L322 210 L312 198 L290 195 L256 193 L222 195 Z" fill="#e0e0e0"/>
 
   <!-- Arms (posed flex) -->
+  <!-- Left arm -->
   <path d="M200 198 L175 215 L160 245 L165 250 L172 248 L180 225 L195 235 L200 230 Z" fill="#d0d0d0"/>
+  <!-- Left forearm (flexed up) -->
   <path d="M160 245 L150 220 L145 200 L152 198 L160 215 L165 240 Z" fill="#d0d0d0"/>
+
+  <!-- Right arm -->
   <path d="M312 198 L337 215 L352 245 L347 250 L340 248 L332 225 L317 235 L312 230 Z" fill="#d0d0d0"/>
+  <!-- Right forearm (flexed up) -->
   <path d="M352 245 L362 220 L367 200 L360 198 L352 215 L347 240 Z" fill="#d0d0d0"/>
 
   <!-- Legs -->
   <path d="M230 345 L225 390 L220 430 L235 432 L242 395 L256 350" fill="#e0e0e0"/>
   <path d="M282 345 L287 390 L292 430 L277 432 L270 395 L256 350" fill="#e0e0e0"/>
 
-  <!-- Dumbbell -->
+  <!-- Dumbbell (small, below figure) -->
+  <!-- Bar -->
   <rect x="216" y="440" width="80" height="6" rx="3" fill="url(#redGlow)"/>
+  <!-- Left plate -->
   <rect x="208" y="434" width="12" height="18" rx="3" fill="url(#redGlow)"/>
   <rect x="200" y="437" width="10" height="12" rx="2" fill="url(#redGlow)" opacity="0.7"/>
+  <!-- Right plate -->
   <rect x="292" y="434" width="12" height="18" rx="3" fill="url(#redGlow)"/>
   <rect x="302" y="437" width="10" height="12" rx="2" fill="url(#redGlow)" opacity="0.7"/>
 
-  <!-- Lightning bolts -->
+  <!-- Lightning bolt (left of figure) -->
   <path d="M150 280 L165 280 L158 300 L175 300 L148 335 L155 310 L140 310 Z" fill="#ff3333" opacity="0.9"/>
+
+  <!-- Lightning bolt (right of figure) -->
   <path d="M362 280 L347 280 L354 300 L337 300 L364 335 L357 310 L372 310 Z" fill="#ff3333" opacity="0.9"/>
 
-  <!-- Red glow -->
+  <!-- Red glow effect behind figure -->
   <circle cx="256" cy="270" r="90" fill="#ff1a1a" opacity="0.06"/>
   <circle cx="256" cy="270" r="60" fill="#ff1a1a" opacity="0.08"/>
 </svg>
