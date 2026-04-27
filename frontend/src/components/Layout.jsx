@@ -80,8 +80,8 @@ export default function Layout() {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      toast('파일 크기는 3MB 이하만 가능해요', 'error');
+    if (file.size > 2 * 1024 * 1024) {
+      toast('파일 크기는 2MB 이하만 가능해요', 'error');
       return;
     }
     const reader = new FileReader();

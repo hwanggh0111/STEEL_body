@@ -212,6 +212,16 @@ const db = {
     return { changes: 1 };
   },
 
+  updateUserPassword(id, hashedPassword) {
+    const data = load();
+    const user = data.users.find(u => u.id === id);
+    if (!user) return { changes: 0 };
+    user.password = hashedPassword;
+    invalidateUserIndex();
+    save(data);
+    return { changes: 1 };
+  },
+
   // measures
   getMeasures(userId) {
     const data = load();

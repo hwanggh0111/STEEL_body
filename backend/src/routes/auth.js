@@ -109,13 +109,11 @@ router.post('/verify-code', (req, res) => {
     return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
   }
 
-  // 타이밍 공격 방지 (길이 검증 후 상수 시간 비교)
-  const codeStr = String(code);
-  if (codeStr.length !== 6 || isNaN(Number(codeStr))) {
-    return res.status(400).json({ error: '인증번호가 틀렸어요' });
-  }
-  const codeMatch = crypto.timingSafeEqual(Buffer.from(stored.code), Buffer.from(codeStr));
-  if (!codeMatch) {
+  // 타이밍 공격 방지 (고정 길이 패딩 후 상수 시간 비교)
+  const codeStr = String(code).slice(0, 6).padEnd(6, '0');
+  const storedStr = String(stored.code).slice(0, 6).padEnd(6, '0');
+  const codeMatch = crypto.timingSafeEqual(Buffer.from(storedStr), Buffer.from(codeStr));
+  if (!codeMatch || String(code).length !== 6) {
     return res.status(400).json({ error: '인증번호가 틀렸어요' });
   }
 
@@ -163,6 +161,9 @@ router.post('/register', async (req, res) => {
 
   const safeNickname = sanitize(nickname);
   const hashed = await bcrypt.hash(password, 12);
+  if (!hashed || !hashed.startsWith('$2')) {
+    return res.status(500).json({ error: '서버 오류가 발생했어요. 다시 시도해주세요' });
+  }
 
   try {
     const result = db.createUser(email, hashed, safeNickname, username);
@@ -284,6 +285,33 @@ router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const result = db.updateUserNickname(req.userId, safeNickname);
   if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   res.json({ nickname: safeNickname, message: '닉네임이 변경됐어요' });
+});
+
+// 비밀번호 변경
+router.put('/password', require('../middleware/auth'), async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
+    return res.status(400).json({ error: '현재 비밀번호와 새 비밀번호를 입력해주세요' });
+  }
+  if (newPassword.length < 8 || newPassword.length > 100) {
+    return res.status(400).json({ error: '새 비밀번호는 8~100자여야 해요' });
+  }
+  if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
+  }
+  const user = db.findUserById(req.userId);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  const valid = await bcrypt.compare(currentPassword, user.password);
+  if (!valid) return res.status(401).json({ error: '현재 비밀번호가 틀렸어요' });
+  const hashed = await bcrypt.hash(newPassword, 12);
+  if (!hashed || !hashed.startsWith('$2')) {
+    return res.status(500).json({ error: '서버 오류. 다시 시도해주세요' });
+  }
+  // 비밀번호 변경 + 모든 refresh token 무효화
+  db.updateUserPassword(req.userId, hashed);
+  db.deleteUserRefreshTokens(req.userId);
+  addLog('password_change', `Password changed: userId=${req.userId}`);
+  res.json({ message: '비밀번호가 변경됐어요. 다시 로그인해주세요' });
 });
 
 module.exports = router;

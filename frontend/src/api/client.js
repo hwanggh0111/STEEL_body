@@ -85,6 +85,7 @@ client.interceptors.response.use(
         queue.forEach(({ reject }) => reject(refreshErr));
         localStorage.removeItem('token');
         localStorage.removeItem('nickname');
+        localStorage.setItem('session_expired', 'true');
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       }

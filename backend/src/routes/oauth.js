@@ -7,6 +7,7 @@ const db = require('../db');
 const crypto = require('crypto');
 const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
 const oauthStates = new Map();
+const MAX_OAUTH_STATES = 1000;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -65,8 +66,12 @@ async function findOrCreateUser(email, nickname, provider) {
 
 // ─── Google ───────────────────────────
 function generateState() {
+  // Map 크기 제한
+  if (oauthStates.size >= MAX_OAUTH_STATES) {
+    const oldest = oauthStates.keys().next().value;
+    oauthStates.delete(oldest);
+  }
   const s = crypto.randomBytes(16).toString('hex');
-  // 10분 후 자동 만료
   setTimeout(() => oauthStates.delete(s), 10 * 60 * 1000);
   return s;
 }

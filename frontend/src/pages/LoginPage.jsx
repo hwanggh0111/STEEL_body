@@ -24,6 +24,14 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // 세션 만료 알림
+  useEffect(() => {
+    if (localStorage.getItem('session_expired')) {
+      localStorage.removeItem('session_expired');
+      toast('세션이 만료되었어요. 다시 로그인해주세요.', 'warning');
+    }
+  }, []);
+
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_BASE}/api/oauth/google`;
   };

@@ -21,8 +21,14 @@ const DANGEROUS_PATTERNS = [
 
 function sanitize(str) {
   if (typeof str !== 'string') return '';
+  // 0단계: URL 인코딩 디코딩 (이중 인코딩 우회 방지)
+  let clean = str;
+  try {
+    let decoded = decodeURIComponent(clean);
+    while (decoded !== clean) { clean = decoded; decoded = decodeURIComponent(clean); }
+  } catch {}
   // 1단계: HTML 태그 관련 문자 제거
-  let clean = str.replace(/[<>"'&`]/g, '');
+  clean = clean.replace(/[<>"'&`]/g, '');
   // 2단계: 위험 패턴 제거
   for (const pattern of DANGEROUS_PATTERNS) {
     clean = clean.replace(pattern, '');

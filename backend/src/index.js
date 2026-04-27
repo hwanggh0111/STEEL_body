@@ -155,6 +155,13 @@ app.use('/api/auth/check-username', rateLimit({
   message: { error: 'Too many requests.' },
 }));
 
+// OAuth Rate Limit (IP당 시간당 10회)
+app.use('/api/oauth', rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many OAuth attempts. Try again later.' },
+}));
+
 // API 보안 헤더 (JSON 응답에 추가 보호)
 app.use('/api', (req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
