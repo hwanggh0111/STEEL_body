@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Pi
 import InbodyCard from '../components/InbodyCard';
 import BodyAnalysis from '../components/BodyAnalysis';
 import ComparePage from './ComparePage';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 export default function InbodyPage() {
   const [tab, setTab] = useState('record');
@@ -338,7 +338,7 @@ export default function InbodyPage() {
 
       </>}
 
-      <Toast />
+
     </div>
   );
 }

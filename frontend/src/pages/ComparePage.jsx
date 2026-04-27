@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 import client from '../api/client';
 
 const PHOTO_KEY = 'ironlog_photos';
@@ -340,7 +340,7 @@ export default function ComparePage() {
         </ResponsiveContainer>
       </div>
 
-      <Toast />
+
     </div>
   );
 }

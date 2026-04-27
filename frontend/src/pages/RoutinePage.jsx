@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 const PARTS_MAP = {
   '머신': ['가슴', '등', '어깨', '하체', '팔'],
@@ -308,7 +308,7 @@ export default function RoutinePage() {
         </div>
       )}
 
-      <Toast />
+
     </div>
   );
 }

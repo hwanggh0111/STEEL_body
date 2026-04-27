@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { NOTICES, NOTICE_BADGE, getReadNotices, markNoticeRead } from '../data/notices';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 import { isAdmin } from '../data/admin';
 
 export default function NoticePage() {
@@ -444,7 +444,7 @@ export default function NoticePage() {
         }}>해당 유형의 공지가 없습니다.</div>
       )}
 
-      <Toast />
+
     </div>
   );
 }

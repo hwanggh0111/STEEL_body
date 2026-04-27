@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 const PROGRAMS = {
   '전신 초급': [
@@ -188,7 +188,7 @@ export default function HomeworkoutPage() {
             기록 저장
           </button>
         </div>
-        <Toast />
+  
       </div>
     );
   }
@@ -264,7 +264,7 @@ export default function HomeworkoutPage() {
           </div>
         ))}
       </div>
-      <Toast />
+
     </div>
   );
 }

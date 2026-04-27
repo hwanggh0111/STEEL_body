@@ -5,7 +5,7 @@ import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
@@ -141,7 +141,7 @@ export default function HistoryPage() {
           );
         })
       )}
-      <Toast />
+
     </div>
   );
 }

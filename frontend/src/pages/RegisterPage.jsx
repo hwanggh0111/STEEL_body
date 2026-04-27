@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -232,7 +232,7 @@ export default function RegisterPage() {
           <Link to="/login" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>로그인</Link>
         </div>
       </div>
-      <Toast />
+
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import client from '../api/client';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 // ─── 전신 사이즈 ───
 const SIZE_FIELDS = [
@@ -592,7 +592,7 @@ export default function MeasurePage() {
           <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           로딩 중...
         </div>
-        <Toast />
+  
       </div>
     );
   }
@@ -618,7 +618,7 @@ export default function MeasurePage() {
       {tab === 'stopwatch' && <StopwatchSection onSave={(data) => handleSave('stopwatch', data)} />}
       {tab === 'flex' && <FlexibilitySection records={filterByType('flexibility')} onSave={(data) => handleSave('flexibility', data)} />}
 
-      <Toast />
+
     </div>
   );
 }

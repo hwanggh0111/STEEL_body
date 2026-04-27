@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { NOTICES, NOTICE_BADGE, NOTICE_READ_KEY, getAllNotices, addAdminNotice, deleteNotice as deleteNoticeFromStore } from '../data/notices';
 import { getSchedules, saveSchedules } from '../components/MaintenanceScreen';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 import SecurityPanel from '../components/SecurityPanel';
 import HackingSecurityPanel from '../components/HackingSecurityPanel';
 import AiAdminPanel from '../components/AiAdminPanel';
@@ -90,7 +90,7 @@ export default function AdminPage() {
       {tab === 'ainotice' && <AiNoticeWriter />}
       {tab === 'scan' && <SecurityScan />}
 
-      <Toast />
+
     </div>
   );
 }

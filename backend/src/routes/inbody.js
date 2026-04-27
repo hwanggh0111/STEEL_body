@@ -13,7 +13,7 @@ router.get('/', auth, (req, res) => {
 router.post('/', auth, spamCheck, (req, res) => {
   let { date, height, weight, fat_pct, muscle_kg, water_l } = req.body;
 
-  if (!weight) {
+  if (weight === undefined || weight === null || weight === '') {
     return res.status(400).json({ error: '체중은 필수에요' });
   }
 

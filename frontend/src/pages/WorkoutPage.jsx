@@ -4,7 +4,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useLangStore } from '../store/langStore';
 import WorkoutCard from '../components/WorkoutCard';
 import RestTimer from '../components/RestTimer';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 
 const TEXT = {
   ko: {
@@ -286,7 +286,7 @@ export default function WorkoutPage() {
           <WorkoutCard key={w.id} workout={w} onDelete={handleDelete} />
         ))
       )}
-      <Toast />
+
     </div>
   );
 }
