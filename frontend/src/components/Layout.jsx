@@ -13,9 +13,10 @@ const PROFILE_KEY = 'ironlog_profile_photo';
 function useIsPC() {
   const [isPC, setIsPC] = useState(window.innerWidth >= 768);
   useEffect(() => {
-    const handler = () => setIsPC(window.innerWidth >= 768);
+    let tid;
+    const handler = () => { clearTimeout(tid); tid = setTimeout(() => setIsPC(window.innerWidth >= 768), 150); };
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    return () => { clearTimeout(tid); window.removeEventListener('resize', handler); };
   }, []);
   return isPC;
 }

@@ -119,8 +119,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// 만료된 refresh token 정리 (5분마다)
-setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch {} }, 5 * 60 * 1000);
+// 만료된 refresh token 정리 (30분마다)
+setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); } }, 30 * 60 * 1000);
 
 // 글로벌 Rate Limit (분당 100회)
 app.use(rateLimit({

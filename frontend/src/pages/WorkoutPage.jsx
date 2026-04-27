@@ -80,23 +80,22 @@ export default function WorkoutPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // 가장 최근 운동 기록을 찾는 함수
-  const findLastRecord = useCallback((name) => {
-    if (!name) return null;
-    const trimmed = name.trim().toLowerCase();
-    // 날짜 내림차순으로 정렬하여 최신 기록 우선 탐색
-    const sortedDates = Object.keys(workouts).sort((a, b) => b.localeCompare(a)); // useCallback 내부라 workouts 변경 시만 재생성
+  // 운동별 최근 기록 인덱스 (O(1) 조회)
+  const exerciseIndex = useMemo(() => {
+    const idx = new Map();
+    const sortedDates = Object.keys(workouts).sort((a, b) => a.localeCompare(b));
     for (const d of sortedDates) {
-      const records = workouts[d];
-      // 해당 날짜의 마지막(가장 최근 추가된) 기록부터 탐색
-      for (let i = records.length - 1; i >= 0; i--) {
-        if (records[i].exercise.trim().toLowerCase() === trimmed) {
-          return records[i];
-        }
+      for (const r of workouts[d]) {
+        idx.set(r.exercise.trim().toLowerCase(), r);
       }
     }
-    return null;
+    return idx;
   }, [workouts]);
+
+  const findLastRecord = useCallback((name) => {
+    if (!name) return null;
+    return exerciseIndex.get(name.trim().toLowerCase()) || null;
+  }, [exerciseIndex]);
 
   // 운동명 변경 시 이전 기록 자동 채우기 + 자동완성 제안
   const handleExerciseChange = (e) => {

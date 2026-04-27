@@ -99,6 +99,10 @@ function nextId(table) {
   return id;
 }
 
+// ── 쿼리 캐시 (5초 TTL) ──
+const _queryCache = new Map();
+function invalidateQueryCache() { _queryCache.clear(); }
+
 // ── 인덱스 캐시 (O(n) → O(1) 조회) ──
 const _index = { userById: null, userByEmail: null, userByUsername: null };
 
@@ -150,10 +154,14 @@ const db = {
 
   // workouts
   getWorkouts(userId) {
+    const cacheKey = 'w_' + userId;
+    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d;
     const data = load();
-    return (data.workouts || [])
+    const result = (data.workouts || [])
       .filter(w => w.user_id === userId)
       .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at));
+    _queryCache.set(cacheKey, { d: result, t: Date.now() });
+    return result;
   },
   getWorkoutsByDate(userId, date) {
     const data = load();
@@ -166,6 +174,7 @@ const db = {
     const data = load();
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
     data.workouts.push(workout);
+    invalidateQueryCache();
     save(data);
     return { lastInsertRowid: id };
   },
@@ -174,22 +183,28 @@ const db = {
     const idx = data.workouts.findIndex(w => w.id === id && w.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.workouts.splice(idx, 1);
+    invalidateQueryCache();
     save(data);
     return { changes: 1 };
   },
 
   // inbody
   getInbody(userId) {
+    const cacheKey = 'i_' + userId;
+    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d;
     const data = load();
-    return (data.inbody || [])
+    const result = (data.inbody || [])
       .filter(r => r.user_id === userId)
       .sort((a, b) => b.date.localeCompare(a.date));
+    _queryCache.set(cacheKey, { d: result, t: Date.now() });
+    return result;
   },
   createInbody(userId, date, height, weight, fat_pct, muscle_kg, water_l, bmi) {
     const id = nextId('inbody');
     const data = load();
     const record = { id, user_id: userId, date, height, weight, fat_pct, muscle_kg, water_l, bmi, created_at: new Date().toISOString() };
     data.inbody.push(record);
+    invalidateQueryCache();
     save(data);
     return { lastInsertRowid: id };
   },
@@ -198,6 +213,7 @@ const db = {
     const idx = data.inbody.findIndex(r => r.id === id && r.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.inbody.splice(idx, 1);
+    invalidateQueryCache();
     save(data);
     return { changes: 1 };
   },
