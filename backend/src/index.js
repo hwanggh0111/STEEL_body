@@ -225,7 +225,9 @@ app.get('/api/health', (req, res) => {
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   spaCSP(req, res, () => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
+    res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+      if (err) res.status(500).json({ error: 'Frontend not found' });
+    });
   });
 });
 

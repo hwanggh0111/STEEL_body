@@ -158,7 +158,7 @@ function executeLevel4(userId, ip, triggerType, details) {
   suspensionCounts.set(userId, (suspensionCounts.get(userId) || 0) + 1);
 
   // IP 영구 차단
-  blockedIPs.set(ip, { until: Infinity, level: 4, reason: aiReason });
+  limitedSet(blockedIPs, ip, { until: Infinity, level: 4, reason: aiReason });
 
   return aiReason;
 }
@@ -182,7 +182,7 @@ function executeLevel3(userId, ip, triggerType, details, days) {
   }
 
   // IP 차단 (정지 기간만큼)
-  blockedIPs.set(ip, { until: Date.now() + days * 24 * 60 * 60 * 1000, level: 3, reason: aiReason });
+  limitedSet(blockedIPs, ip, { until: Date.now() + days * 24 * 60 * 60 * 1000, level: 3, reason: aiReason });
 
   return aiReason;
 }
@@ -194,7 +194,7 @@ function executeLevel2(ip, triggerType, details, hours) {
   const aiReason = generateAiReason(2, triggerType, details);
   addLog('ALERT', `LEVEL 2 — ${triggerType}: ${hours}시간 잠금`, ip);
 
-  blockedIPs.set(ip, { until, level: 2, reason: aiReason });
+  limitedSet(blockedIPs, ip, { until, level: 2, reason: aiReason });
   return aiReason;
 }
 
@@ -505,4 +505,4 @@ module.exports.getStats = () => ({
 });
 module.exports.getSuspiciousIPs = () => [...blockedIPs.keys()];
 module.exports.unblockIP = (ip) => { const r = blockedIPs.delete(ip); if (r) addLog('system', '수동 차단 해제', ip); return r; };
-module.exports.manualBlock = (ip, minutes) => { const until = Date.now() + minutes * 60000; blockedIPs.set(ip, { until, level: 2, reason: '관리자 수동 차단' }); return new Date(until).toISOString(); };
+module.exports.manualBlock = (ip, minutes) => { const until = Date.now() + minutes * 60000; limitedSet(blockedIPs, ip, { until, level: 2, reason: '관리자 수동 차단' }); return new Date(until).toISOString(); };

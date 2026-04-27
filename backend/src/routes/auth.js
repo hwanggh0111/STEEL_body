@@ -218,18 +218,11 @@ router.post('/login', async (req, res) => {
     user.role = 'admin';
   }
 
-  // httpOnly 쿠키에 토큰 설정
-  issueTokens(res, user);
-
-  // 하위 호환: 레거시 클라이언트를 위해 body에도 token 포함
-  const legacyToken = jwt.sign(
-    { userId: user.id, role: user.role || 'user' },
-    process.env.JWT_SECRET,
-    { expiresIn: '15m', algorithm: 'HS256' }
-  );
+  // httpOnly 쿠키에 토큰 설정 (accessToken 재사용)
+  const { accessToken } = issueTokens(res, user);
 
   addLog('login_success', `Login success: ${user.email} (id=${user.id})`);
-  res.json({ token: legacyToken, nickname: user.nickname, email: user.email, role: user.role || 'user' });
+  res.json({ token: accessToken, nickname: user.nickname, email: user.email, role: user.role || 'user' });
 });
 
 // 토큰 갱신

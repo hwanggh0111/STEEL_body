@@ -74,10 +74,21 @@ function _flushSync(data) {
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-// Flush on process exit
-process.on('exit', _flush);
-process.on('SIGINT', () => { _flush(); process.exit(); });
-process.on('SIGTERM', () => { _flush(); process.exit(); });
+// Flush on process exit (즉시 동기 저장)
+function _flushImmediate() {
+  if (_dirty && _cache) {
+    try {
+      const indent = process.env.NODE_ENV === 'production' ? undefined : 2;
+      fs.writeFileSync(DB_PATH, JSON.stringify(_cache, null, indent), 'utf-8');
+      _dirty = false;
+    } catch (err) {
+      console.error('[DB] 종료 시 저장 실패:', err.message);
+    }
+  }
+}
+process.on('exit', _flushImmediate);
+process.on('SIGINT', () => { _flushImmediate(); process.exit(); });
+process.on('SIGTERM', () => { _flushImmediate(); process.exit(); });
 
 // 다음 ID 가져오기 (save는 호출자가 함)
 function nextId(table) {
