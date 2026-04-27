@@ -13,6 +13,11 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
+  // 토큰 길이 제한 (DoS 방지)
+  if (token.length > 2000) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ['HS256'],
