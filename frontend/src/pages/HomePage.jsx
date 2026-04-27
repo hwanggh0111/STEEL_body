@@ -567,7 +567,7 @@ const IMMORTAL_QUOTES = [
 ];
 
 function LegendHome({ nickname, totalWorkouts }) {
-  const quote = LEGEND_QUOTES[Math.floor(Math.random() * LEGEND_QUOTES.length)];
+  const quote = useMemo(() => LEGEND_QUOTES[Math.floor(Math.random() * LEGEND_QUOTES.length)], []);
   return (
     <div style={{
       marginBottom: 20, borderRadius: 'var(--radius)', overflow: 'hidden',
@@ -616,7 +616,7 @@ function LegendHome({ nickname, totalWorkouts }) {
 }
 
 function ImmortalHome({ nickname, totalWorkouts }) {
-  const quote = IMMORTAL_QUOTES[Math.floor(Math.random() * IMMORTAL_QUOTES.length)];
+  const quote = useMemo(() => IMMORTAL_QUOTES[Math.floor(Math.random() * IMMORTAL_QUOTES.length)], []);
   return (
     <div style={{
       marginBottom: 20, borderRadius: 'var(--radius)',

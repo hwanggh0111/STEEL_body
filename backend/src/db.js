@@ -90,11 +90,12 @@ process.on('exit', _flushImmediate);
 process.on('SIGINT', () => { _flushImmediate(); process.exit(); });
 process.on('SIGTERM', () => { _flushImmediate(); process.exit(); });
 
-// 다음 ID 가져오기 (save는 호출자가 함)
+// 다음 ID 가져오기
 function nextId(table) {
   const data = load();
   const id = data._nextId[table] || 1;
   data._nextId[table] = id + 1;
+  save(data);
   return id;
 }
 

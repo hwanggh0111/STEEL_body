@@ -577,7 +577,7 @@ export default function MeasurePage() {
     if (!confirm('정말 삭제하시겠어요?')) return;
     try {
       await client.delete(`/measures/${id}`);
-      setMeasures(prev => prev.filter(m => (m.id) !== id));
+      setMeasures(prev => prev.filter(m => m.id !== Number(id)));
       toast('삭제 완료!');
     } catch {
       toast('삭제에 실패했어요');

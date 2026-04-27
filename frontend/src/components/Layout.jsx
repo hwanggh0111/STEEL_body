@@ -296,7 +296,7 @@ export default function Layout() {
               }}
             >{theme === 'dark' ? '☀️ 라이트' : '🌙 다크'}</button>
             <button
-              onClick={async () => { localStorage.removeItem('auto_login'); localStorage.removeItem('ironlog_email'); await logout(); navigate('/login'); }}
+              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>localStorage.removeItem(k)); await logout(); navigate('/login'); }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
@@ -487,7 +487,7 @@ export default function Layout() {
                 로그인
               </div>
               <div
-                onClick={async () => { setSideMenu(false); localStorage.removeItem('auto_login'); localStorage.removeItem('ironlog_email'); await logout(); navigate('/login'); }}
+                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>localStorage.removeItem(k)); await logout(); navigate('/login'); }}
                 style={{ ...menuStyle, flex: 1, textAlign: 'center', color: 'var(--danger)' }}
                 onMouseEnter={hIn} onMouseLeave={hOut}
               >
