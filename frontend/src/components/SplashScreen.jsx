@@ -19,7 +19,7 @@ export default function SplashScreen({ onDone }) {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      background: '#0a0a0a',
+      background: 'var(--bg-primary)',
       zIndex: 99999,
       display: 'flex',
       flexDirection: 'column',
@@ -79,7 +79,7 @@ export default function SplashScreen({ onDone }) {
             fontFamily: "'Barlow', sans-serif",
             fontSize: phase >= 2 ? 9 : 13,
             letterSpacing: 3,
-            color: '#666',
+            color: 'var(--text-muted)',
             textTransform: 'uppercase',
             marginTop: 6,
             opacity: phase >= 1 ? 1 : 0,

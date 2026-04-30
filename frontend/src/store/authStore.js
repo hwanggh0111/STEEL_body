@@ -8,6 +8,20 @@ function hasCsrfCookie() {
   return document.cookie.includes('sb_csrf=');
 }
 
+// 관리자 자동 만렙 셋업 (login + checkAuth 공통)
+function applyAdminPerks(role) {
+  if (role !== 'admin') return;
+  localStorage.setItem('steelbody_legend', 'true');
+  localStorage.setItem('steelbody_immortal', 'true');
+  localStorage.setItem('steelbody_level', '100');
+  localStorage.setItem('steelbody_exp', '999999');
+  localStorage.setItem('steelbody_title', 'STEEL MASTER');
+  localStorage.setItem('steelbody_badges', JSON.stringify([
+    'legend','immortal','master','champion','warrior','iron','steel',
+    'bronze','silver','gold','platinum','diamond',
+  ]));
+}
+
 export const useAuthStore = create((set) => ({
   token: localStorage.getItem('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: localStorage.getItem('nickname'),
@@ -19,20 +33,20 @@ export const useAuthStore = create((set) => ({
     localStorage.setItem('nickname', data.nickname);
     if (data.email) localStorage.setItem('ironlog_email', data.email);
     if (data.role) localStorage.setItem('ironlog_role', data.role);
-    // 관리자 자동 만렙 + 모든 칭호/뱃지
-    if (data.role === 'admin') {
-      localStorage.setItem('steelbody_legend', 'true');
-      localStorage.setItem('steelbody_immortal', 'true');
-      localStorage.setItem('steelbody_level', '100');
-      localStorage.setItem('steelbody_exp', '999999');
-      localStorage.setItem('steelbody_title', 'STEEL MASTER');
-      localStorage.setItem('steelbody_badges', JSON.stringify(['legend','immortal','master','champion','warrior','iron','steel','bronze','silver','gold','platinum','diamond']));
-    }
+    applyAdminPerks(data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
+  // 가입 직후 자동 로그인 (백엔드가 토큰/쿠키 발급)
   register: async (email, password, nickname, username) => {
-    await client.post('/auth/register', { email, password, nickname, username });
+    const { data } = await client.post('/auth/register', { email, password, nickname, username });
+    if (data?.token) localStorage.setItem('token', data.token);
+    if (data?.nickname) localStorage.setItem('nickname', data.nickname);
+    if (data?.email) localStorage.setItem('ironlog_email', data.email);
+    if (data?.role) localStorage.setItem('ironlog_role', data.role);
+    applyAdminPerks(data?.role);
+    set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
+    return data;
   },
 
   logout: async () => {
@@ -56,14 +70,7 @@ export const useAuthStore = create((set) => ({
       const { data } = await client.get('/auth/me');
       localStorage.setItem('nickname', data.nickname);
       if (data.role) localStorage.setItem('ironlog_role', data.role);
-      if (data.role === 'admin') {
-        localStorage.setItem('steelbody_legend', 'true');
-        localStorage.setItem('steelbody_immortal', 'true');
-        localStorage.setItem('steelbody_level', '100');
-        localStorage.setItem('steelbody_exp', '999999');
-        localStorage.setItem('steelbody_title', 'STEEL MASTER');
-        localStorage.setItem('steelbody_badges', JSON.stringify(['legend','immortal','master','champion','warrior','iron','steel','bronze','silver','gold','platinum','diamond']));
-      }
+      applyAdminPerks(data.role);
       set({ nickname: data.nickname, isLoggedIn: true });
       return true;
     } catch {

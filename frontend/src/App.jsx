@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import MaintenanceScreen from './components/MaintenanceScreen';
+import Toast from './components/Toast';
+import ConfirmModalHost from './components/ConfirmModal';
 import './styles/globals.css';
 
 // lazy load 페이지들
@@ -41,6 +43,8 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <MaintenanceScreen>
+      <Toast />
+      <ConfirmModalHost />
       <BrowserRouter>
         <Suspense fallback={<Loading />}>
           <Routes>

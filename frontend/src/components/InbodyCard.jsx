@@ -1,3 +1,5 @@
+import { confirmDialog } from './ConfirmModal';
+
 function getBmiInfo(bmi) {
   if (!bmi) return { label: '-', color: 'var(--text-muted)' };
   if (bmi < 18.5) return { label: '저체중', color: 'var(--info)' };
@@ -6,7 +8,7 @@ function getBmiInfo(bmi) {
   return { label: '비만', color: 'var(--danger)' };
 }
 
-export default function InbodyCard({ record, onDelete }) {
+export default function InbodyCard({ record, onDelete, onEdit }) {
   const bmiInfo = getBmiInfo(record.bmi);
 
   return (
@@ -25,7 +27,25 @@ export default function InbodyCard({ record, onDelete }) {
             )}
           </div>
         </div>
-        <button className="delete-btn" onClick={() => onDelete(record.id)}>✕</button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(record)}
+              style={{
+                background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                padding: '4px 10px', cursor: 'pointer', fontSize: 12, borderRadius: 'var(--radius)',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              title="수정"
+            >✎</button>
+          )}
+          <button className="delete-btn" onClick={async () => {
+            const ok = await confirmDialog(`${record.date} 인바디 기록을 삭제할까요?`, { title: '인바디 기록 삭제', confirmText: '삭제' });
+            if (ok) onDelete(record.id);
+          }}>✕</button>
+        </div>
       </div>
     </div>
   );

@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { NOTICES, NOTICE_BADGE, getReadNotices, markNoticeRead } from '../data/notices';
 import { toast } from '../components/Toast';
+import { confirmDialog } from '../components/ConfirmModal';
 import { isAdmin } from '../data/admin';
 
 export default function NoticePage() {
   const navigate = useNavigate();
+  const expandTimerRef = useRef(null);
+  useEffect(() => () => { if (expandTimerRef.current) clearTimeout(expandTimerRef.current); }, []);
   const [filter, setFilter] = useState('전체');
   const [expandedId, setExpandedId] = useState(null);
   const [writing, setWriting] = useState(false);
@@ -54,7 +57,8 @@ export default function NoticePage() {
       setForm({ title: '', type: '공지', content: '' });
       setWriting(false);
       setFilter('전체');
-      setTimeout(() => {
+      if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+      expandTimerRef.current = setTimeout(() => {
         setExpandedId(data.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
@@ -418,9 +422,10 @@ export default function NoticePage() {
                         }}
                       >수정</button>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          if (confirm('이 공지를 삭제하시겠어요?')) handleDelete(n.id);
+                          const ok = await confirmDialog('이 공지를 삭제할까요?', { title: '공지 삭제', confirmText: '삭제' });
+                          if (ok) handleDelete(n.id);
                         }}
                         style={{
                           background: 'var(--danger)', border: 'none', color: '#fff',

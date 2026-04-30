@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useLangStore } from '../store/langStore';
@@ -75,10 +75,14 @@ export default function WorkoutPage() {
   const [saving, setSaving] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editingOriginalDate, setEditingOriginalDate] = useState(null);
+  const blurTimerRef = useRef(null);
 
-  const { workouts, loading, fetchAll, addWorkout, deleteWorkout } = useWorkoutStore();
+  const { workouts, loading, fetchAll, addWorkout, updateWorkout, deleteWorkout } = useWorkoutStore();
 
   useEffect(() => { fetchAll(); }, []);
+  useEffect(() => () => { if (blurTimerRef.current) clearTimeout(blurTimerRef.current); }, []);
 
   // 운동별 최근 기록 인덱스 (O(1) 조회)
   const exerciseIndex = useMemo(() => {
@@ -97,19 +101,25 @@ export default function WorkoutPage() {
     return exerciseIndex.get(name.trim().toLowerCase()) || null;
   }, [exerciseIndex]);
 
+  // 운동명 자동완성 후보 (workouts 변경 시에만 재계산)
+  const allExercises = useMemo(
+    () => [...new Set(Object.values(workouts).flat().map(w => w.exercise).filter(Boolean))],
+    [workouts]
+  );
+
   // 운동명 변경 시 이전 기록 자동 채우기 + 자동완성 제안
   const handleExerciseChange = (e) => {
     const val = e.target.value;
     setExercise(val);
     setAutofilled(false);
-    const allExercises = [...new Set(Object.values(workouts).flat().map(w => w.exercise).filter(Boolean))];
     const filtered = allExercises.filter(ex => ex.toLowerCase().includes(val.toLowerCase()));
     setSuggestions(val ? filtered.slice(0, 5) : []);
   };
 
   const handleExerciseBlur = () => {
     // 드롭다운 클릭을 허용하기 위해 약간의 딜레이 후 닫기
-    setTimeout(() => setSuggestions([]), 150);
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    blurTimerRef.current = setTimeout(() => setSuggestions([]), 150);
     if (!exercise.trim()) return;
     const last = findLastRecord(exercise);
     if (last) {
@@ -138,6 +148,14 @@ export default function WorkoutPage() {
 
   const todayWorkouts = workouts[date] || [];
 
+  // 수정 중인데 폼 날짜를 바꾼 경우, 수정 카드를 list에서 잃지 않도록 원본 날짜의 카드도 노출
+  const displayedWorkouts = useMemo(() => {
+    if (!editingId || !editingOriginalDate || date === editingOriginalDate) return todayWorkouts;
+    const editingRecord = (workouts[editingOriginalDate] || []).find(w => w.id === editingId);
+    if (!editingRecord) return todayWorkouts;
+    return [editingRecord, ...todayWorkouts];
+  }, [todayWorkouts, editingId, editingOriginalDate, date, workouts]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -155,8 +173,16 @@ export default function WorkoutPage() {
     }
     setSaving(true);
     try {
-      await addWorkout({ date, exercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) });
-      toast(t.saved);
+      const payload = { date, exercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) };
+      if (editingId) {
+        await updateWorkout(editingId, payload);
+        toast(lang === 'en' ? 'Updated!' : '수정 완료!');
+        setEditingId(null);
+        setEditingOriginalDate(null);
+      } else {
+        await addWorkout(payload);
+        toast(t.saved);
+      }
       setWeight('');
       setSets('');
       setReps('');
@@ -168,8 +194,32 @@ export default function WorkoutPage() {
     }
   };
 
+  const handleEdit = (w) => {
+    setEditingId(w.id);
+    setEditingOriginalDate(w.date);
+    setDate(w.date);
+    setExercise(w.exercise);
+    setWeight(w.weight === t.bodyweight || w.weight === '맨몸' || w.weight === 'Bodyweight' ? '' : String(w.weight));
+    setSets(String(w.sets));
+    setReps(String(w.reps));
+    setAutofilled(false);
+    setError('');
+    setSuggestions([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingOriginalDate(null);
+    setExercise('');
+    setWeight('');
+    setSets('');
+    setReps('');
+    setAutofilled(false);
+    setError('');
+  };
+
   const handleDelete = async (id) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
     try {
       await deleteWorkout(id);
       toast(t.deleted);
@@ -184,6 +234,31 @@ export default function WorkoutPage() {
         <div className="accent-bar" />
         {t.title}
       </div>
+
+      {editingId && (
+        <div style={{
+          background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+          borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
+              ✎ {lang === 'en' ? `Editing: ${exercise}` : `수정 중: ${exercise}`}
+            </span>
+            <button
+              onClick={cancelEdit}
+              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                padding: '4px 10px', cursor: 'pointer', fontSize: 11, borderRadius: 'var(--radius)' }}
+            >{lang === 'en' ? 'Cancel' : '취소'}</button>
+          </div>
+          {editingOriginalDate && date !== editingOriginalDate && (
+            <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 6 }}>
+              ⚠ {lang === 'en'
+                ? `Date will be moved: ${editingOriginalDate} → ${date}`
+                : `날짜가 이동돼요: ${editingOriginalDate} → ${date}`}
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
         <label className="label">{t.exerciseName}</label>
@@ -257,7 +332,9 @@ export default function WorkoutPage() {
         {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
         <button className="btn-primary" type="submit" disabled={saving}>
-          {saving ? t.saving : t.save}
+          {saving
+            ? (editingId ? (lang === 'en' ? 'Updating...' : '수정 중...') : t.saving)
+            : (editingId ? (lang === 'en' ? 'Update' : '수정 완료') : t.save)}
         </button>
       </form>
 
@@ -274,15 +351,15 @@ export default function WorkoutPage() {
           <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           {t.loading}
         </div>
-      ) : todayWorkouts.length === 0 ? (
+      ) : displayedWorkouts.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-title">기록 없음</div>
           <div className="empty-state-desc">{t.noRecords}</div>
           <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => { document.querySelector('form input')?.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ 운동 기록하기</button>
         </div>
       ) : (
-        todayWorkouts.map((w) => (
-          <WorkoutCard key={w.id} workout={w} onDelete={handleDelete} />
+        displayedWorkouts.map((w) => (
+          <WorkoutCard key={w.id} workout={w} onDelete={handleDelete} onEdit={handleEdit} />
         ))
       )}
 

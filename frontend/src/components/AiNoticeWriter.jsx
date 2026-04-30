@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { addAdminNotice, getAllNotices, NOTICE_BADGE } from '../data/notices';
 import { useLangStore } from '../store/langStore';
 
@@ -310,10 +310,13 @@ export default function AiNoticeWriter() {
   const [toast, setToast] = useState('');
   const [recommendations] = useState(() => getAiRecommendations(lang));
 
+  const toastTimerRef = useRef(null);
   const showToast = useCallback((msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2500);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(''), 2500);
   }, []);
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
 
   // 템플릿 선택 시 자동 채우기
   const applyTemplate = (catKey, idx) => {

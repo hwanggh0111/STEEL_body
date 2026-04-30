@@ -187,6 +187,20 @@ const db = {
     save(data);
     return { changes: 1 };
   },
+  updateWorkout(id, userId, fields) {
+    const data = load();
+    const workout = data.workouts.find(w => w.id === id && w.user_id === userId);
+    if (!workout) return { changes: 0 };
+    if (fields.date !== undefined) workout.date = fields.date;
+    if (fields.exercise !== undefined) workout.exercise = fields.exercise;
+    if (fields.weight !== undefined) workout.weight = fields.weight;
+    if (fields.sets !== undefined) workout.sets = fields.sets;
+    if (fields.reps !== undefined) workout.reps = fields.reps;
+    workout.updated_at = new Date().toISOString();
+    invalidateQueryCache();
+    save(data);
+    return { changes: 1, workout };
+  },
 
   // inbody
   getInbody(userId) {
@@ -216,6 +230,22 @@ const db = {
     invalidateQueryCache();
     save(data);
     return { changes: 1 };
+  },
+  updateInbody(id, userId, fields) {
+    const data = load();
+    const record = data.inbody.find(r => r.id === id && r.user_id === userId);
+    if (!record) return { changes: 0 };
+    if (fields.date !== undefined) record.date = fields.date;
+    if (fields.height !== undefined) record.height = fields.height;
+    if (fields.weight !== undefined) record.weight = fields.weight;
+    if (fields.fat_pct !== undefined) record.fat_pct = fields.fat_pct;
+    if (fields.muscle_kg !== undefined) record.muscle_kg = fields.muscle_kg;
+    if (fields.water_l !== undefined) record.water_l = fields.water_l;
+    if (fields.bmi !== undefined) record.bmi = fields.bmi;
+    record.updated_at = new Date().toISOString();
+    invalidateQueryCache();
+    save(data);
+    return { changes: 1, record };
   },
 
   // user updates

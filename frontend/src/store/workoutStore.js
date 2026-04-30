@@ -26,6 +26,12 @@ export const useWorkoutStore = create((set, get) => ({
     return data;
   },
 
+  updateWorkout: async (id, workout) => {
+    const { data } = await client.put(`/workouts/${id}`, workout);
+    get().fetchAll().catch(() => {});
+    return data;
+  },
+
   deleteWorkout: async (id) => {
     // 낙관적 업데이트: 먼저 UI에서 제거
     const prev = get().workouts;

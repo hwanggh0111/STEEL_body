@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { confirmDialog } from '../components/ConfirmModal';
 
 const PARTS_MAP = {
   '머신': ['가슴', '등', '어깨', '하체', '팔'],
@@ -200,7 +201,12 @@ export default function RoutinePage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
             <button
-              onClick={() => { if (!confirm('정말 삭제하시겠어요?')) return; deleteMyRoutine(r._id || r.id); toast('루틴 삭제 완료'); }}
+              onClick={async () => {
+                const ok = await confirmDialog(`"${r.name}" 루틴을 삭제할까요?`, { title: '루틴 삭제', confirmText: '삭제' });
+                if (!ok) return;
+                deleteMyRoutine(r._id || r.id);
+                toast('루틴 삭제 완료');
+              }}
               style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer' }}
             >삭제</button>
           </div>

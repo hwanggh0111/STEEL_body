@@ -5,7 +5,8 @@ import { useAuthStore } from '../store/authStore';
 import { useLangStore } from '../store/langStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
-import Toast, { toast } from './Toast';
+import { toast } from './Toast';
+import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 
 const PROFILE_KEY = 'ironlog_profile_photo';
@@ -113,8 +114,9 @@ export default function Layout() {
     }).finally(() => setSavingNick(false));
   }, [newNick, savingNick]);
 
-  const handlePhotoDelete = () => {
-    if (!confirm('프로필 사진을 삭제하시겠어요?')) return;
+  const handlePhotoDelete = async () => {
+    const ok = await confirmDialog('프로필 사진을 삭제할까요?', { title: '프로필 사진 삭제', confirmText: '삭제' });
+    if (!ok) return;
     localStorage.removeItem(PROFILE_KEY);
     setProfilePhoto('');
     client.delete('/photos/profile').catch(() => {});
@@ -184,9 +186,9 @@ export default function Layout() {
                 fontFamily: "'Barlow', sans-serif",
                 fontSize: 8,
                 letterSpacing: 3,
-                color: '#666',
+                color: 'var(--text-muted)',
                 textTransform: 'uppercase',
-                borderTop: '1px solid #333',
+                borderTop: '1px solid var(--border)',
                 paddingTop: 3,
                 marginTop: 3,
               }}>
@@ -360,12 +362,13 @@ export default function Layout() {
         </div>
       )}
 
-      {/* 오른쪽 고정 닉네임 위젯 */}
+      {/* 오른쪽 하단 고정 프로필 위젯 */}
       <div ref={sideRef} style={{
-        position: 'absolute',
-        top: 160,
+        position: 'fixed',
+        bottom: isPC ? 30 : 90,
         right: 20,
         zIndex: 9998,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
       }}>
         {sideMenu && (
           <div style={{
@@ -374,7 +377,9 @@ export default function Layout() {
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             minWidth: 220,
-            overflow: 'hidden',
+            maxHeight: '70vh',
+            overflow: 'auto',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
           }}>
             {/* 프로필 사진 영역 */}
             <div style={{ padding: '20px 18px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
@@ -474,9 +479,11 @@ export default function Layout() {
               { label: '측정 시스템', path: '/measure' },
               { label: '히스토리', path: '/history' },
             ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            <MenuCategory label="관리" items={[
-              { label: '관리자', path: '/admin' },
-            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
+            {checkAdmin() && (
+              <MenuCategory label="관리" items={[
+                { label: '관리자', path: '/admin' },
+              ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
+            )}
 
             {/* 로그인 / 로그아웃 */}
             <div style={{ borderTop: '1px solid var(--border)', display: 'flex' }}>
@@ -498,32 +505,31 @@ export default function Layout() {
           </div>
         )}
 
-        <div
+        <button
           onClick={() => setSideMenu(!sideMenu)}
+          aria-label="프로필 메뉴"
+          aria-expanded={sideMenu}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '18px 34px',
+            width: 56, height: 56, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 24,
+            border: `2px solid ${sideMenu ? 'var(--accent)' : 'var(--border)'}`,
             cursor: 'pointer',
-            transition: 'border-color 0.15s',
-            borderColor: sideMenu ? 'var(--accent)' : 'var(--border)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            transition: 'border-color 0.15s, transform 0.15s',
+            padding: 0,
+            transform: sideMenu ? 'scale(0.95)' : 'scale(1)',
           }}
         >
-          <Avatar size={36} fontSize={18} />
-          <span style={{ fontSize: 15, color: 'var(--text-secondary)', fontFamily: "'Barlow', sans-serif", fontWeight: 500 }}>{nickname}</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', transform: sideMenu ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
-        </div>
+          <Avatar size={42} fontSize={18} />
+        </button>
       </div>
 
       {showTopBtn && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{
-            position: 'fixed', bottom: isPC ? 30 : 90, right: 20,
+            position: 'fixed', bottom: isPC ? 30 : 90, left: 20,
             width: 40, height: 40, borderRadius: '50%',
             background: 'var(--accent)', color: '#000', border: 'none',
             fontSize: 18, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -533,8 +539,6 @@ export default function Layout() {
           title="맨 위로"
         >↑</button>
       )}
-
-      <Toast />
     </div>
   );
 }

@@ -14,7 +14,7 @@ export default function MiniSplash({ onDone }) {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      background: '#0a0a0a',
+      background: 'var(--bg-primary)',
       zIndex: 99999,
       display: 'flex',
       alignItems: 'center',

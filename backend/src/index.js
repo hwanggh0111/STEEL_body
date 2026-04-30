@@ -154,6 +154,11 @@ app.use('/api/auth/check-username', rateLimit({
   max: 10,
   message: { error: 'Too many requests.' },
 }));
+app.use('/api/auth/check-email', rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many requests.' },
+}));
 
 // OAuth Rate Limit (IP당 시간당 10회)
 app.use('/api/oauth', rateLimit({

@@ -3,6 +3,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
+const { sanitize } = require('../utils/sanitize');
 
 const crypto = require('crypto');
 const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -10,6 +11,26 @@ const oauthStates = new Map();
 const MAX_OAUTH_STATES = 1000;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+// 허용된 frontend origin 목록 (open redirect 방지)
+const ALLOWED_FRONTENDS = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+function isAllowedFrontendOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOWED_FRONTENDS.includes(origin)) return true;
+  // *.onrender.com 허용 (프로덕션 배포)
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith('.onrender.com')) return true;
+    // 개발 환경: localhost / 같은 네트워크 IP
+    if (!IS_PROD) {
+      if (url.hostname === 'localhost' || /^127\./.test(url.hostname)) return true;
+      if (/^192\.168\.\d+\.\d+$/.test(url.hostname)) return true;
+    }
+  } catch {}
+  return false;
+}
 
 // OAuth용 쿠키 설정 헬퍼
 function setAuthCookies(res, user) {
@@ -48,12 +69,14 @@ function getUrls(req) {
 }
 
 // 소셜 로그인 공통: 유저 찾거나 생성
-async function findOrCreateUser(email, nickname, provider) {
+async function findOrCreateUser(email, rawNickname, provider) {
+  // 외부 제공자가 준 닉네임 sanitize + 길이 제한 (XSS 방어)
+  const safeNickname = (sanitize(String(rawNickname || '')).slice(0, 30) || (provider + '_user'));
   let user = db.findUserByEmail(email);
   if (!user) {
     const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 12);
     const username = provider + '_' + crypto.randomBytes(4).toString('hex');
-    db.createUser(email, randomPw, nickname || provider + '_user', username);
+    db.createUser(email, randomPw, safeNickname, username);
     user = db.findUserByEmail(email);
   }
   // ADMIN_EMAIL이면 자동 관리자 승격
@@ -112,12 +135,12 @@ router.get('/google/callback', async (req, res) => {
   if (!validateState(req.query.state)) {
     return res.redirect(`${FRONTEND}/login?error=invalid_state`);
   }
-  // referer에서 프론트엔드 origin 추출
-  let frontendUrl = FRONTEND;
+  // referer 기반 frontend origin — 화이트리스트 검증 (open redirect 방지)
+  let frontendUrl = ALLOWED_FRONTENDS[0] || FRONTEND;
   if (stateData?.referer) {
     try {
-      const url = new URL(stateData.referer);
-      frontendUrl = url.origin;
+      const candidate = new URL(stateData.referer).origin;
+      if (isAllowedFrontendOrigin(candidate)) frontendUrl = candidate;
     } catch {}
   }
   try {

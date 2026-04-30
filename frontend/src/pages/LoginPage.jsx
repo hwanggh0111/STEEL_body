@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import Toast, { toast } from '../components/Toast';
+import { toast } from '../components/Toast';
 import SplashScreen from '../components/SplashScreen';
+import PasswordResetModal from '../components/PasswordResetModal';
+import client from '../api/client';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 // 백엔드 URL (OAuth 리다이렉트용)
 const BACKEND_BASE = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL.replace(/\/api$/, '');
-import client from '../api/client';
+
+// autoLogin 실패 시 정리할 키
+const AUTO_LOGIN_KEYS = ['token', 'auto_login', 'nickname', 'ironlog_email', 'ironlog_role'];
 
 export default function LoginPage() {
   const [email, setEmail] = useState(localStorage.getItem('saved_id') || '');
   const [password, setPassword] = useState('');
-  const [savedNickname, setSavedNickname] = useState(localStorage.getItem('saved_nickname') || '');
+  const savedNickname = localStorage.getItem('saved_nickname') || '';
   const [autoLogin, setAutoLogin] = useState(!!localStorage.getItem('auto_login'));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,9 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [oauthNickStep, setOauthNickStep] = useState(false);
   const [oauthNick, setOauthNick] = useState('');
+  const [showReset, setShowReset] = useState(false);
+  const [nickSaving, setNickSaving] = useState(false);
+  const [nickError, setNickError] = useState('');
   const { login } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -46,8 +53,9 @@ export default function LoginPage() {
         client.get('/auth/me').then(() => {
           setShowSplash(true);
         }).catch(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('auto_login');
+          // 자동 로그인 실패 — 모든 관련 키 정리
+          AUTO_LOGIN_KEYS.forEach(k => localStorage.removeItem(k));
+          setAutoLogin(false);
         });
       }
     }
@@ -66,7 +74,9 @@ export default function LoginPage() {
       localStorage.setItem('nickname', sanitizedNick);
       if (sanitizedEmail) localStorage.setItem('ironlog_email', sanitizedEmail);
       useAuthStore.setState({ nickname: sanitizedNick, isLoggedIn: true });
-      // 구글 로그인 후 닉네임 설정 단계
+      // 구글 로그인 후 닉네임 설정 단계 — 이전 로그인 실패 메시지 정리
+      setError('');
+      setNickError('');
       setOauthNick(sanitizedNick);
       setOauthNickStep(true);
     }
@@ -101,8 +111,6 @@ export default function LoginPage() {
 
   // 구글 로그인 후 닉네임 설정 화면
   if (oauthNickStep) {
-    const [nickSaving, setNickSaving] = useState(false);
-    const [nickError, setNickError] = useState('');
     const saveOauthNick = async () => {
       const nick = oauthNick.trim();
       if (!nick) { setNickError('닉네임을 입력해주세요'); return; }
@@ -187,18 +195,18 @@ export default function LoginPage() {
               gap: 10,
               width: '100%',
               padding: '12px 16px',
-              border: '1px solid #333',
+              border: '1px solid #dadce0',
               borderRadius: 'var(--radius)',
               background: '#ffffff',
-              color: '#333',
+              color: '#3c4043',
               fontSize: 14,
               fontWeight: 600,
               fontFamily: "'Barlow', sans-serif",
               cursor: 'pointer',
-              transition: 'opacity 0.2s',
+              transition: 'opacity 0.2s, box-shadow 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(60,64,67,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -228,31 +236,38 @@ export default function LoginPage() {
         )}
 
         {/* 로그인 폼 */}
-        <form onSubmit={handleSubmit}>
-          <label className="label">아이디 또는 이메일</label>
+        <form onSubmit={handleSubmit} autoComplete="on">
+          <label className="label" htmlFor="login-id">아이디 또는 이메일</label>
           <input
+            id="login-id"
+            name="username"
+            autoComplete="username"
+            inputMode="email"
             className="input"
             type="text"
-            placeholder="username 또는 user@email.com"
+            placeholder="아이디 또는 이메일"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
             style={{ marginBottom: 2 }}
           />
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
             가입 시 설정한 아이디 또는 이메일 주소
           </div>
 
-          <label className="label">비밀번호</label>
+          <label className="label" htmlFor="login-password">비밀번호</label>
           <div style={{ position: 'relative', marginBottom: 12 }}>
             <input
+              id="login-password"
+              name="password"
+              autoComplete="current-password"
               className="input"
               type={showPw ? 'text' : 'password'}
               placeholder="비밀번호"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
               style={{ paddingRight: 40 }}
             />
-            <button type="button" onClick={() => setShowPw(!showPw)} style={{
+            <button type="button" onClick={() => setShowPw(!showPw)} aria-label="비밀번호 표시 토글" style={{
               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
             }}>{showPw ? '🙈' : '👁'}</button>
@@ -273,17 +288,29 @@ export default function LoginPage() {
             <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>
           )}
 
-          <button className="btn-primary" type="submit" disabled={loading} style={{ marginTop: 8 }}>
+          <button className="btn-primary" type="submit" disabled={loading || !email || !password} style={{ marginTop: 8 }}>
             {loading ? '처리 중...' : '로그인'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button
+            type="button"
+            onClick={() => setShowReset(true)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12,
+              cursor: 'pointer', textDecoration: 'underline', padding: 4,
+            }}
+          >비밀번호를 잊으셨나요?</button>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>계정이 없나요? </span>
           <Link to="/register" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>회원가입</Link>
         </div>
       </div>
-      <Toast />
+
+      {showReset && <PasswordResetModal onClose={() => setShowReset(false)} />}
     </div>
   );
 }

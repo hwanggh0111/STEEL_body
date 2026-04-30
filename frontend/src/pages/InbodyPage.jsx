@@ -6,6 +6,23 @@ import BodyAnalysis from '../components/BodyAnalysis';
 import ComparePage from './ComparePage';
 import { toast } from '../components/Toast';
 
+// ── 체성분 비율 파이차트 (컴포넌트 외부 — 매 렌더 재생성 방지) ──
+function getCompositionData(record) {
+  if (!record || !record.weight) return null;
+  const fatKg = record.fat_pct ? (record.weight * record.fat_pct / 100) : null;
+  const muscleKg = record.muscle_kg || null;
+  const waterKg = record.water_l || null;
+  if (!fatKg && !muscleKg) return null;
+  const parts = [];
+  if (muscleKg) parts.push({ name: '골격근', value: Number(muscleKg.toFixed(1)), color: '#3a9e3a' });
+  if (fatKg) parts.push({ name: '체지방', value: Number(fatKg.toFixed(1)), color: '#e84040' });
+  if (waterKg) parts.push({ name: '체수분', value: Number(waterKg.toFixed(1)), color: '#4a9aff' });
+  const known = parts.reduce((s, p) => s + p.value, 0);
+  const etc = record.weight - known;
+  if (etc > 0) parts.push({ name: '기타(뼈·장기)', value: Number(etc.toFixed(1)), color: '#666' });
+  return parts;
+}
+
 export default function InbodyPage() {
   const [tab, setTab] = useState('record');
   const today = new Date().toISOString().split('T')[0];
@@ -18,8 +35,10 @@ export default function InbodyPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [quickMode, setQuickMode] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [savedQuickMode, setSavedQuickMode] = useState(null);
 
-  const { records, loading, fetchAll, addRecord, deleteRecord } = useInbodyStore();
+  const { records, loading, fetchAll, addRecord, updateRecord, deleteRecord } = useInbodyStore();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -74,16 +93,28 @@ export default function InbodyPage() {
     }
     setSaving(true);
     try {
-      await addRecord({
+      const payload = {
         date,
         height: effectiveHeight ? Number(effectiveHeight) : null,
         weight: Number(weight),
         fat_pct: fatPct ? Number(fatPct) : null,
         muscle_kg: muscleKg ? Number(muscleKg) : null,
         water_l: waterL ? Number(waterL) : null,
-      });
-      toast('인바디 기록 저장!');
-      setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
+      };
+      if (editingId) {
+        await updateRecord(editingId, payload);
+        toast('인바디 기록 수정 완료!');
+        setEditingId(null);
+        // 수정 진입 전 quickMode 복원
+        if (savedQuickMode !== null) {
+          setQuickMode(savedQuickMode);
+          setSavedQuickMode(null);
+        }
+      } else {
+        await addRecord(payload);
+        toast('인바디 기록 저장!');
+      }
+      setDate(today); setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
     } catch (err) {
       setError(err.response?.data?.error || '저장 실패');
     } finally {
@@ -91,8 +122,34 @@ export default function InbodyPage() {
     }
   };
 
+  const handleEdit = (record) => {
+    // 수정 진입 전 quickMode 백업 (수정 종료 시 복원)
+    if (savedQuickMode === null) setSavedQuickMode(quickMode);
+    setEditingId(record.id);
+    setDate(record.date);
+    setHeight(record.height ? String(record.height) : '');
+    setWeight(String(record.weight));
+    setFatPct(record.fat_pct ? String(record.fat_pct) : '');
+    setMuscleKg(record.muscle_kg ? String(record.muscle_kg) : '');
+    setWaterL(record.water_l ? String(record.water_l) : '');
+    setQuickMode(false);
+    setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDate(today);
+    setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
+    setError('');
+    // 수정 진입 전 quickMode 복원
+    if (savedQuickMode !== null) {
+      setQuickMode(savedQuickMode);
+      setSavedQuickMode(null);
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
     try {
       await deleteRecord(id);
       toast('삭제 완료!');
@@ -114,23 +171,6 @@ export default function InbodyPage() {
 
   const latestRecord = records.length > 0 ? records[0] : null;
 
-  // ── 체성분 비율 파이차트 ──
-  function getCompositionData(record) {
-    if (!record || !record.weight) return null;
-    const fatKg = record.fat_pct ? (record.weight * record.fat_pct / 100) : null;
-    const muscleKg = record.muscle_kg || null;
-    const waterKg = record.water_l || null;
-    if (!fatKg && !muscleKg) return null;
-    const parts = [];
-    if (muscleKg) parts.push({ name: '골격근', value: Number(muscleKg.toFixed(1)), color: '#3a9e3a' });
-    if (fatKg) parts.push({ name: '체지방', value: Number(fatKg.toFixed(1)), color: '#e84040' });
-    if (waterKg) parts.push({ name: '체수분', value: Number(waterKg.toFixed(1)), color: '#4a9aff' });
-    const known = parts.reduce((s, p) => s + p.value, 0);
-    const etc = record.weight - known;
-    if (etc > 0) parts.push({ name: '기타(뼈·장기)', value: Number(etc.toFixed(1)), color: '#666' });
-    return parts;
-  }
-
   const compositionData = useMemo(() => getCompositionData(latestRecord), [latestRecord]);
 
 
@@ -150,6 +190,21 @@ export default function InbodyPage() {
 
       {tab === 'compare' && <ComparePage />}
       {tab === 'record' && <>
+
+      {editingId && (
+        <div style={{
+          background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+          borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>✎ 수정 중 ({date})</span>
+          <button
+            onClick={cancelEdit}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+              padding: '4px 10px', cursor: 'pointer', fontSize: 11, borderRadius: 'var(--radius)' }}
+          >취소</button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         <button className={`btn-secondary${quickMode ? ' active' : ''}`} onClick={() => setQuickMode(true)} style={{ fontSize: 12, padding: '5px 14px' }}>간편</button>
@@ -206,7 +261,7 @@ export default function InbodyPage() {
         {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
         <button className="btn-primary" type="submit" disabled={saving}>
-          {saving ? '저장 중...' : '기록 저장'}
+          {saving ? (editingId ? '수정 중...' : '저장 중...') : (editingId ? '수정 완료' : '기록 저장')}
         </button>
       </form>
 
@@ -290,7 +345,7 @@ export default function InbodyPage() {
         </div>
       ) : (
         records.map((r) => (
-          <InbodyCard key={r.id} record={r} onDelete={handleDelete} />
+          <InbodyCard key={r.id} record={r} onDelete={handleDelete} onEdit={handleEdit} />
         ))
       )}
 

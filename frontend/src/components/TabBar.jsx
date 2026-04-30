@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
+import { isAdmin } from '../data/admin';
 
 const TABS = [
   { path: '/home',    label: '홈',    icon: '🏠' },
@@ -10,7 +11,7 @@ const TABS = [
   { path: '/more',    label: '더보기', icon: '⋯' },
 ];
 
-const MORE_ITEMS = [
+const MORE_ITEMS_ALL = [
   { path: '/homeworkout', label: '홈트레이닝', icon: '🏠' },
   { path: '/search',     label: '운동 검색',  icon: '🔍' },
   { path: '/measure',    label: '측정 시스템', icon: '📐' },
@@ -18,15 +19,28 @@ const MORE_ITEMS = [
   { path: '/event',      label: '이벤트',     icon: '🎉' },
   { path: '/game',       label: '미니게임',   icon: '🎮' },
   { path: '/notice',     label: '공지사항',   icon: '📢' },
-  { path: '/admin',      label: '관리자',     icon: '⚙️' },
+  { path: '/admin',      label: '관리자',     icon: '⚙️', adminOnly: true },
 ];
+
+// ─── 통일 디자인 토큰 ──────────────────
+const NAV_TOKENS = {
+  iconSize: 22,
+  iconSizeSmall: 20,
+  labelSize: 11,
+  labelLetterSpacing: 1,
+  labelFont: "'Bebas Neue', sans-serif",
+  paddingY: 10,
+  paddingX: 16,
+  activeBarSize: 24,
+};
 
 function useIsPC() {
   const [isPC, setIsPC] = useState(window.innerWidth >= 768);
   useEffect(() => {
-    const handler = () => setIsPC(window.innerWidth >= 768);
+    let tid;
+    const handler = () => { clearTimeout(tid); tid = setTimeout(() => setIsPC(window.innerWidth >= 768), 100); };
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    return () => { clearTimeout(tid); window.removeEventListener('resize', handler); };
   }, []);
   return isPC;
 }
@@ -34,9 +48,23 @@ function useIsPC() {
 export default function TabBar() {
   const [showMore, setShowMore] = useState(false);
   const [splash, setSplash] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(isAdmin());
   const location = useLocation();
   const navigate = useNavigate();
   const isPC = useIsPC();
+
+  // 관리자 권한 변경 감지 (다른 탭에서 로그인/로그아웃 시)
+  useEffect(() => {
+    const handler = () => setIsAdminUser(isAdmin());
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
+  // 권한 기반 메뉴 필터링
+  const moreItems = useMemo(
+    () => MORE_ITEMS_ALL.filter(i => !i.adminOnly || isAdminUser),
+    [isAdminUser]
+  );
 
   const handleTab = (path) => {
     if (path === '/more') {
@@ -53,9 +81,55 @@ export default function TabBar() {
   };
 
   const isActive = (path) => {
-    if (path === '/more') return showMore || MORE_ITEMS.some(m => location.pathname === m.path);
+    if (path === '/more') return showMore || moreItems.some(m => location.pathname === m.path);
     return location.pathname === path;
   };
+
+  // ─── 공통 셀 컴포넌트 (모양/크기 통일) ───
+  const NavCell = ({ item, active, onClick, layout = 'vertical' }) => (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        flexDirection: layout === 'vertical' ? 'column' : 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: layout === 'vertical' ? 4 : 12,
+        padding: layout === 'vertical' ? `${NAV_TOKENS.paddingY}px 4px` : `${NAV_TOKENS.paddingY}px ${NAV_TOKENS.paddingX}px`,
+        cursor: 'pointer',
+        position: 'relative',
+        transition: 'all 0.15s',
+        borderLeft: layout === 'horizontal' && active ? '3px solid var(--accent)' : '3px solid transparent',
+        background: active ? 'var(--accent-dim)' : 'none',
+        borderRadius: layout === 'vertical' ? 'var(--radius)' : 0,
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'none'; }}
+    >
+      {/* 모바일 상단 active bar */}
+      {layout === 'vertical' && active && (
+        <div style={{
+          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+          width: NAV_TOKENS.activeBarSize, height: 2, background: 'var(--accent)', borderRadius: 1,
+        }} />
+      )}
+      <span style={{
+        fontSize: NAV_TOKENS.iconSize,
+        opacity: active ? 1 : 0.7,
+        transition: 'opacity 0.15s, transform 0.15s',
+        transform: active ? 'scale(1.05)' : 'scale(1)',
+        lineHeight: 1,
+      }}>{item.icon}</span>
+      <span style={{
+        fontFamily: NAV_TOKENS.labelFont,
+        fontSize: NAV_TOKENS.labelSize,
+        letterSpacing: NAV_TOKENS.labelLetterSpacing,
+        color: active ? 'var(--accent)' : 'var(--text-muted)',
+        transition: 'color 0.15s',
+        whiteSpace: 'nowrap',
+      }}>{item.label}</span>
+    </div>
+  );
 
   // ─── PC: 좌측 사이드바 ───
   if (isPC) {
@@ -94,37 +168,15 @@ export default function TabBar() {
 
           {/* 메인 탭 */}
           <div style={{ flex: 1, padding: '8px 0' }}>
-            {TABS.filter(t => t.path !== '/more').map(tab => {
-              const active = isActive(tab.path);
-              return (
-                <div
-                  key={tab.path}
-                  onClick={() => handleTab(tab.path)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 20px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent',
-                    background: active ? 'var(--accent-dim)' : 'none',
-                  }}
-                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'none'; }}
-                >
-                  <span style={{
-                    fontSize: 20,
-                    filter: active ? 'none' : 'grayscale(1) opacity(0.5)',
-                    transition: 'filter 0.15s',
-                  }}>{tab.icon}</span>
-                  <span style={{
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: 15, letterSpacing: 1.5,
-                    color: active ? 'var(--accent)' : 'var(--text-muted)',
-                    transition: 'color 0.15s',
-                  }}>{tab.label}</span>
-                </div>
-              );
-            })}
+            {TABS.filter(t => t.path !== '/more').map(tab => (
+              <NavCell
+                key={tab.path}
+                item={tab}
+                active={isActive(tab.path)}
+                onClick={() => handleTab(tab.path)}
+                layout="horizontal"
+              />
+            ))}
 
             {/* 구분선 */}
             <div style={{
@@ -132,41 +184,23 @@ export default function TabBar() {
               margin: '8px 16px',
             }} />
 
-            {/* 더보기 항목들 - PC에서는 항상 펼쳐서 표시 */}
-            <div style={{ padding: '0' }}>
+            {/* 더보기 항목들 */}
+            <div>
               <div style={{
                 padding: '8px 20px 4px',
                 fontFamily: "'Bebas Neue', sans-serif",
                 fontSize: 11, letterSpacing: 1.5,
                 color: 'var(--text-muted)',
               }}>MORE</div>
-              {MORE_ITEMS.map(item => {
-                const active = location.pathname === item.path;
-                return (
-                  <div
-                    key={item.path}
-                    onClick={() => { navigate(item.path); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 20px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      borderLeft: active ? '3px solid var(--accent)' : '3px solid transparent',
-                      background: active ? 'var(--accent-dim)' : 'none',
-                    }}
-                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'none'; }}
-                  >
-                    <span style={{ fontSize: 18 }}>{item.icon}</span>
-                    <span style={{
-                      fontFamily: "'Barlow', sans-serif",
-                      fontSize: 13, fontWeight: 500,
-                      color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                      transition: 'color 0.15s',
-                    }}>{item.label}</span>
-                  </div>
-                );
-              })}
+              {moreItems.map(item => (
+                <NavCell
+                  key={item.path}
+                  item={item}
+                  active={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                  layout="horizontal"
+                />
+              ))}
             </div>
           </div>
         </nav>
@@ -174,7 +208,7 @@ export default function TabBar() {
     );
   }
 
-  // ─── 모바일: 기존 하단 탭바 ───
+  // ─── 모바일: 하단 탭바 + 더보기 패널 ───
   return (
     <>
       {splash && <MiniSplash onDone={() => { setSplash(false); navigate('/home'); }} />}
@@ -201,23 +235,14 @@ export default function TabBar() {
               display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
               gap: 4, maxWidth: 'var(--max-width)', margin: '0 auto', padding: '0 12px',
             }}>
-              {MORE_ITEMS.map(item => (
-                <div
+              {moreItems.map(item => (
+                <NavCell
                   key={item.path}
+                  item={item}
+                  active={location.pathname === item.path}
                   onClick={() => { setShowMore(false); navigate(item.path); }}
-                  style={{
-                    textAlign: 'center', padding: '12px 4px', cursor: 'pointer',
-                    borderRadius: 'var(--radius)',
-                    background: location.pathname === item.path ? 'var(--accent-dim)' : 'none',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <div style={{ fontSize: 22, marginBottom: 4 }}>{item.icon}</div>
-                  <div style={{
-                    fontSize: 10, fontFamily: "'Barlow', sans-serif", fontWeight: 500,
-                    color: location.pathname === item.path ? 'var(--accent)' : 'var(--text-muted)',
-                  }}>{item.label}</div>
-                </div>
+                  layout="vertical"
+                />
               ))}
             </div>
           </div>
@@ -235,43 +260,16 @@ export default function TabBar() {
         <div style={{
           display: 'flex', width: '100%', maxWidth: 'var(--max-width)',
         }}>
-          {TABS.map(tab => {
-            const active = isActive(tab.path);
-            return (
-              <div
-                key={tab.path}
+          {TABS.map(tab => (
+            <div key={tab.path} style={{ flex: 1 }}>
+              <NavCell
+                item={tab}
+                active={isActive(tab.path)}
                 onClick={() => handleTab(tab.path)}
-                style={{
-                  flex: 1, textAlign: 'center',
-                  padding: '8px 0 10px', cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  position: 'relative',
-                }}
-              >
-                {active && tab.path !== '/more' && (
-                  <div style={{
-                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                    width: 24, height: 2, background: 'var(--accent)', borderRadius: 1,
-                  }} />
-                )}
-                <div style={{
-                  fontSize: tab.path === '/more' ? 24 : 20, marginBottom: 2,
-                  filter: active ? 'none' : 'grayscale(1) opacity(0.5)',
-                  transition: 'filter 0.15s',
-                }}>
-                  {tab.icon}
-                </div>
-                <div style={{
-                  fontFamily: "'Bebas Neue', sans-serif",
-                  fontSize: 10, letterSpacing: 1,
-                  color: active ? 'var(--accent)' : 'var(--text-muted)',
-                  transition: 'color 0.15s',
-                }}>
-                  {tab.label}
-                </div>
-              </div>
-            );
-          })}
+                layout="vertical"
+              />
+            </div>
+          ))}
         </div>
       </nav>
 

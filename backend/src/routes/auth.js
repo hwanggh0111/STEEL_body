@@ -61,6 +61,7 @@ const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
 
 const { sanitize } = require('../utils/sanitize');
+const { sendVerificationCode, SMTP_CONFIGURED } = require('../utils/mailer');
 
 // 이메일 형식 검증
 function isValidEmail(email) {
@@ -68,7 +69,7 @@ function isValidEmail(email) {
 }
 
 // 인증번호 발송
-router.post('/send-code', (req, res) => {
+router.post('/send-code', async (req, res) => {
   const { email } = req.body;
   if (!email || !isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
@@ -78,12 +79,28 @@ router.post('/send-code', (req, res) => {
   verifyStore[email] = { code, expires: Date.now() + 5 * 60 * 1000 };
   verifyAttempts[email] = 0;
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[DEV] code: ${code}`);
+  // SMTP 미설정 + production: 인증 메일 발송 인프라 없음 → 명확한 안내
+  if (process.env.NODE_ENV === 'production' && !SMTP_CONFIGURED) {
+    delete verifyStore[email];
+    console.error('[AUTH] SMTP 미설정 — 인증번호 발송 불가. 환경변수 SMTP_HOST/USER/PASS 설정 필요');
+    return res.status(503).json({
+      error: '이메일 인증이 일시적으로 비활성화됐어요. 관리자에게 문의해주세요',
+    });
   }
+
+  // SMTP 설정되어 있으면 실제 발송, 아니면 dev 모드에서 응답에 포함
+  const sent = await sendVerificationCode(email, code);
+
+  if (!sent && process.env.NODE_ENV === 'production' && SMTP_CONFIGURED) {
+    // SMTP 설정되어 있는데 발송 실패한 경우
+    delete verifyStore[email];
+    return res.status(500).json({ error: '메일 발송에 실패했어요. 잠시 후 다시 시도해주세요' });
+  }
+
   res.json({
     message: '인증번호가 발송됐어요',
-    ...(process.env.NODE_ENV !== 'production' ? { code } : {}),
+    // dev 모드 + SMTP 미설정일 때만 응답에 코드 포함 (편의)
+    ...(process.env.NODE_ENV !== 'production' && !sent ? { code } : {}),
   });
 });
 
@@ -120,6 +137,16 @@ router.post('/verify-code', (req, res) => {
   delete verifyStore[email];
   delete verifyAttempts[email];
   res.json({ message: '인증 완료!', verified: true });
+});
+
+// 이메일 중복 확인
+router.post('/check-email', (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') return res.status(400).json({ error: '이메일을 입력해주세요' });
+  if (!isValidEmail(email)) return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
+  const exists = db.findUserByEmail(email);
+  if (exists) return res.json({ available: false, message: '이미 가입된 이메일이에요' });
+  res.json({ available: true, message: '사용 가능한 이메일이에요' });
 });
 
 // 아이디 중복 확인
@@ -166,9 +193,23 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const result = db.createUser(email, hashed, safeNickname, username);
+    db.createUser(email, hashed, safeNickname, username);
     addLog('register', `New user: ${email} (${username})`);
-    res.status(201).json({ message: '회원가입 완료!' });
+
+    // 가입 직후 자동 로그인 — 토큰/쿠키 발급
+    const newUser = db.findUserByEmail(email);
+    if (process.env.ADMIN_EMAIL && newUser.email === process.env.ADMIN_EMAIL && newUser.role !== 'admin') {
+      db.updateUserRole(newUser.id, 'admin');
+      newUser.role = 'admin';
+    }
+    const { accessToken } = issueTokens(res, newUser);
+    return res.status(201).json({
+      message: '회원가입 완료!',
+      token: accessToken,
+      nickname: newUser.nickname,
+      email: newUser.email,
+      role: newUser.role || 'user',
+    });
   } catch (err) {
     if (err.message === 'DUPLICATE_USERNAME') return res.status(409).json({ error: '이미 사용 중인 아이디에요' });
     return res.status(409).json({ error: '이미 사용 중인 이메일이에요' });
@@ -285,6 +326,68 @@ router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const result = db.updateUserNickname(req.userId, safeNickname);
   if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   res.json({ nickname: safeNickname, message: '닉네임이 변경됐어요' });
+});
+
+// 비밀번호 재설정 (분실 시 — 인증번호 검증 후 새 비밀번호 설정)
+router.post('/reset-password', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword ||
+      typeof email !== 'string' || typeof code !== 'string' || typeof newPassword !== 'string') {
+    return res.status(400).json({ error: '이메일, 인증번호, 새 비밀번호를 모두 입력해주세요' });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
+  }
+  if (newPassword.length < 8 || newPassword.length > 100) {
+    return res.status(400).json({ error: '새 비밀번호는 8~100자여야 해요' });
+  }
+  if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
+  }
+
+  // 인증번호 검증 (verify-code와 동일 로직)
+  const stored = verifyStore[email];
+  if (!stored) return res.status(400).json({ error: '인증번호를 먼저 발송해주세요' });
+
+  verifyAttempts[email] = (verifyAttempts[email] || 0) + 1;
+  if (verifyAttempts[email] > 5) {
+    delete verifyStore[email];
+    delete verifyAttempts[email];
+    return res.status(429).json({ error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' });
+  }
+  if (Date.now() > stored.expires) {
+    delete verifyStore[email];
+    delete verifyAttempts[email];
+    return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
+  }
+
+  const codeStr = String(code).slice(0, 6).padEnd(6, '0');
+  const storedStr = String(stored.code).slice(0, 6).padEnd(6, '0');
+  const codeMatch = crypto.timingSafeEqual(Buffer.from(storedStr), Buffer.from(codeStr));
+  if (!codeMatch || String(code).length !== 6) {
+    return res.status(400).json({ error: '인증번호가 틀렸어요' });
+  }
+
+  // account enumeration 방지: 가입 여부와 무관하게 동일한 성공 응답.
+  // 인증번호는 이미 통과했으므로(=메일 받은 사람), 가입된 경우에만 실제 변경.
+  const user = db.findUserByEmail(email);
+
+  delete verifyStore[email];
+  delete verifyAttempts[email];
+
+  if (user) {
+    const hashed = await bcrypt.hash(newPassword, 12);
+    if (!hashed || !hashed.startsWith('$2')) {
+      return res.status(500).json({ error: '서버 오류. 다시 시도해주세요' });
+    }
+    db.updateUserPassword(user.id, hashed);
+    db.deleteUserRefreshTokens(user.id);
+    addLog('password_reset', `Password reset: ${email} (id=${user.id})`);
+  } else {
+    addLog('password_reset_unknown', `Reset attempt for unknown email: ${email}`);
+  }
+
+  res.json({ message: '비밀번호가 재설정됐어요. 다시 로그인해주세요' });
 });
 
 // 비밀번호 변경

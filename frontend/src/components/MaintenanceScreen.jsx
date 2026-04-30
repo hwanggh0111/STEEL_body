@@ -107,7 +107,7 @@ export default function MaintenanceScreen({ children }) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: '#0a0a0a',
+      background: 'var(--bg-primary)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 999999, padding: 20,
     }}>

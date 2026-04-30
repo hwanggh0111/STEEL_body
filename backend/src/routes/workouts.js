@@ -57,6 +57,59 @@ router.post('/', auth, spamCheck, (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 
+// 수정
+router.put('/:id', auth, spamCheck, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: '잘못된 ID에요' });
+  }
+
+  const { date, exercise, weight, sets, reps } = req.body;
+
+  if (!date || !exercise || sets === undefined || reps === undefined) {
+    return res.status(400).json({ error: '날짜, 운동명, 세트, 횟수는 필수에요' });
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: '올바른 날짜 형식이 아니에요 (YYYY-MM-DD)' });
+  }
+  const [y, m, d] = date.split('-').map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
+    return res.status(400).json({ error: '존재하지 않는 날짜에요' });
+  }
+
+  if (typeof exercise !== 'string' || exercise.length > 100 || exercise.trim() === '') {
+    return res.status(400).json({ error: '운동명이 올바르지 않아요' });
+  }
+
+  const numSets = Number(sets);
+  const numReps = Number(reps);
+  if (isNaN(numSets) || isNaN(numReps) || numSets <= 0 || numReps <= 0) {
+    return res.status(400).json({ error: '세트와 횟수는 1 이상의 숫자여야 해요' });
+  }
+  if (numSets > 100 || numReps > 1000) {
+    return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
+  }
+
+  const { sanitize } = require('../utils/sanitize');
+  const sanitizedExercise = sanitize(exercise);
+  const safeWeight = (weight !== undefined && weight !== null && weight !== '') ? weight : '맨몸';
+
+  const result = db.updateWorkout(id, req.userId, {
+    date,
+    exercise: sanitizedExercise,
+    weight: safeWeight,
+    sets: numSets,
+    reps: numReps,
+  });
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: '기록을 찾을 수 없어요' });
+  }
+  res.json({ id, message: '운동 기록 수정 완료!' });
+});
+
 // 삭제
 router.delete('/:id', auth, (req, res) => {
   const result = db.deleteWorkout(Number(req.params.id), req.userId);

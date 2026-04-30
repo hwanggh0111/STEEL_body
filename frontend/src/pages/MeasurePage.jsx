@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { confirmDialog } from '../components/ConfirmModal';
 
 // ─── 전신 사이즈 ───
 const SIZE_FIELDS = [
@@ -574,7 +575,8 @@ export default function MeasurePage() {
 
   // Delete a measure
   const handleDelete = async (id) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
+    const ok = await confirmDialog('이 측정 기록을 삭제할까요?', { title: '측정 기록 삭제', confirmText: '삭제' });
+    if (!ok) return;
     try {
       await client.delete(`/measures/${id}`);
       setMeasures(prev => prev.filter(m => m.id !== Number(id)));

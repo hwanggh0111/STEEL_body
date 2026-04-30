@@ -1,4 +1,6 @@
-const CACHE_NAME = 'steelbody-v1';
+// __SW_VERSION__는 빌드 시 vite plugin이 timestamp로 치환합니다.
+// 개발 모드에서는 그대로 'steelbody-dev' 사용.
+const CACHE_NAME = '__SW_VERSION__'.startsWith('__SW') ? 'steelbody-dev' : '__SW_VERSION__';
 const PRECACHE_URLS = ['/', '/index.html'];
 
 // Install: precache core static files
