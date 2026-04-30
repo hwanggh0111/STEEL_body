@@ -269,14 +269,14 @@ function recordLoginFailure(ip) {
   }
 
   const record = loginFailures.get(ip);
-  if (record.count >= 10) {
-    executeLevel2(ip, 'login_lock', '10회', 168); // 7일
+  if (record.count >= 20) {
+    executeLevel2(ip, 'login_lock', '20회', 168); // 7일
     loginFailures.delete(ip);
-  } else if (record.count >= 5) {
-    executeLevel2(ip, 'login_lock', '5회', 24);
+  } else if (record.count >= 10) {
+    executeLevel2(ip, 'login_lock', '10회', 24);
     loginFailures.delete(ip);
-  } else if (record.count >= 3) {
-    executeLevel2(ip, 'login_lock', '3회', 1);
+  } else if (record.count >= 7) {
+    executeLevel2(ip, 'login_lock', '7회', 1);
   }
 }
 
@@ -294,11 +294,11 @@ function checkRequestRate(ip) {
   }
   record.count++;
 
-  if (record.count >= 50) {
+  if (record.count >= 500) {
     executeLevel2(ip, 'rate_limit', `${record.count}회`, 168); // 7일
-  } else if (record.count >= 30) {
+  } else if (record.count >= 300) {
     executeLevel2(ip, 'rate_limit', `${record.count}회`, 24);
-  } else if (record.count >= 15) {
+  } else if (record.count >= 200) {
     executeLevel2(ip, 'rate_limit', `${record.count}회`, 1);
   }
 }
@@ -317,7 +317,7 @@ function checkNotFound(ip) {
     }
   }
   const record = notFoundCounts.get(ip);
-  if (record.count >= 3) {
+  if (record.count >= 30) {
     executeLevel2(ip, 'scan_attack', `${record.count}회/분`, 72); // 3일
     notFoundCounts.delete(ip);
   }
@@ -356,6 +356,10 @@ function aiGuardMiddleware(req, res, next) {
   // localhost + 헬스체크 화이트리스트
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
   if (req.path === '/api/health') return next();
+
+  // 정적 파일 / SPA 경로는 보안 검사 스킵 (API만 검사)
+  // — favicon, /assets/*, /icons/*, .js/.css/.png 등 → API 외 경로는 통과
+  if (!req.path.startsWith('/api/')) return next();
 
   // 블랙리스트 체크 (가입 시)
   if (req.path === '/api/auth/register' && req.method === 'POST') {
