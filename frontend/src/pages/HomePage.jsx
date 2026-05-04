@@ -187,8 +187,8 @@ export default function HomePage() {
           {/* 출시 기념 이벤트 (배너만) */}
           <div className="card clickable" onClick={() => navigate('/event')} style={{
             marginBottom: 16, padding: 16, textAlign: 'center',
-            background: 'linear-gradient(135deg, #1a1000, #2a1500)',
-            border: '1px solid #ffd700',
+            background: 'var(--home-event-bg)',
+            border: '1px solid var(--home-event-border)',
           }}>
             <div style={{
               fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 3,
@@ -196,7 +196,7 @@ export default function HomePage() {
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               marginBottom: 4,
             }}>GRAND LAUNCH EVENT</div>
-            <div style={{ fontSize: 12, color: '#c4a060' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               {(() => {
                 const launch = new Date('2026-04-22');
                 const now = new Date();

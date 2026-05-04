@@ -13,7 +13,7 @@ function applyAdminPerks(role) {
   if (role !== 'admin') return;
   localStorage.setItem('steelbody_legend', 'true');
   localStorage.setItem('steelbody_immortal', 'true');
-  localStorage.setItem('steelbody_level', '100');
+  localStorage.setItem('steelbody_level', '50');
   localStorage.setItem('steelbody_exp', '999999');
   localStorage.setItem('steelbody_title', 'STEEL MASTER');
   localStorage.setItem('steelbody_badges', JSON.stringify([

@@ -32,6 +32,28 @@
   --border-hover:  #333333;
   --border-accent: #ff6b1a;
 
+  /* 이벤트 배너 (다크) */
+  --event-banner-bg: linear-gradient(135deg, #1a0a2e 0%, #16213e 30%, #0f3460 60%, #1a0a2e 100%);
+  --event-banner-overlay: radial-gradient(circle at 20% 30%, rgba(255,215,0,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,107,26,0.08) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(255,255,255,0.03) 0%, transparent 40%);
+  --event-banner-shadow: 0 0 40px rgba(255,107,26,0.15), 0 0 80px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+  --event-card-bg: rgba(255,255,255,0.02);
+  --event-card-border: rgba(255,255,255,0.05);
+  --event-soft-bg: rgba(255,255,255,0.03);
+  --event-soft-border: rgba(255,255,255,0.06);
+  --event-text-strong: rgba(255,255,255,0.85);
+  --event-text-mid: rgba(255,255,255,0.7);
+  --event-text-soft: rgba(255,255,255,0.55);
+  --event-text-faded: rgba(255,255,255,0.4);
+  --event-text-muted: rgba(255,255,255,0.25);
+  --event-text-ghost: rgba(255,255,255,0.15);
+  --event-progress-track: rgba(255,255,255,0.08);
+  --event-stamp-text-locked: rgba(255,255,255,0.2);
+  --event-mission-divider: rgba(255,255,255,0.04);
+
+  /* 홈 이벤트 배너 (다크) */
+  --home-event-bg: linear-gradient(135deg, #1a1000, #2a1500);
+  --home-event-border: #ffd700;
+
   /* 레이아웃 */
   --max-width:     640px;
   --padding-x:     20px;
@@ -66,6 +88,28 @@
   --border:        #d0d0d0;
   --border-hover:  #aaa;
   --border-accent: #e85d0f;
+
+  /* 이벤트 배너 (라이트) */
+  --event-banner-bg: linear-gradient(135deg, #fff5e6 0%, #ffe9c4 30%, #ffdca0 60%, #fff5e6 100%);
+  --event-banner-overlay: radial-gradient(circle at 20% 30%, rgba(255,107,26,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(232,93,15,0.10) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(255,255,255,0.4) 0%, transparent 40%);
+  --event-banner-shadow: 0 4px 20px rgba(232,93,15,0.15), 0 0 40px rgba(255,215,0,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
+  --event-card-bg: rgba(0,0,0,0.02);
+  --event-card-border: rgba(0,0,0,0.08);
+  --event-soft-bg: rgba(0,0,0,0.03);
+  --event-soft-border: rgba(0,0,0,0.08);
+  --event-text-strong: rgba(0,0,0,0.85);
+  --event-text-mid: rgba(0,0,0,0.7);
+  --event-text-soft: rgba(0,0,0,0.55);
+  --event-text-faded: rgba(0,0,0,0.4);
+  --event-text-muted: rgba(0,0,0,0.3);
+  --event-text-ghost: rgba(0,0,0,0.18);
+  --event-progress-track: rgba(0,0,0,0.08);
+  --event-stamp-text-locked: rgba(0,0,0,0.3);
+  --event-mission-divider: rgba(0,0,0,0.06);
+
+  /* 홈 이벤트 배너 (라이트) */
+  --home-event-bg: linear-gradient(135deg, #fff8e7, #fff1d4);
+  --home-event-border: #e85d0f;
 }
 
 

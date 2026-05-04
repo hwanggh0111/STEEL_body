@@ -164,7 +164,7 @@ const WEEK_MISSIONS = [
 /* ===================== Styles ===================== */
 
 const bannerStyle = {
-  background: 'linear-gradient(135deg, #1a0a2e 0%, #16213e 30%, #0f3460 60%, #1a0a2e 100%)',
+  background: 'var(--event-banner-bg)',
   borderRadius: 18,
   padding: '36px 24px 28px',
   textAlign: 'center',
@@ -172,7 +172,7 @@ const bannerStyle = {
   overflow: 'hidden',
   marginBottom: 18,
   border: '2px solid rgba(255,215,0,0.3)',
-  boxShadow: '0 0 40px rgba(255,107,26,0.15), 0 0 80px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05)',
+  boxShadow: 'var(--event-banner-shadow)',
 };
 
 const particleOverlayStyle = {
@@ -182,7 +182,7 @@ const particleOverlayStyle = {
   right: 0,
   bottom: 0,
   pointerEvents: 'none',
-  background: 'radial-gradient(circle at 20% 30%, rgba(255,215,0,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,107,26,0.08) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(255,255,255,0.03) 0%, transparent 40%)',
+  background: 'var(--event-banner-overlay)',
 };
 
 const titleStyle = {
@@ -201,7 +201,7 @@ const titleStyle = {
 const subtitleStyle = {
   fontFamily: "'Barlow', sans-serif",
   fontSize: 14,
-  color: 'rgba(255,255,255,0.7)',
+  color: 'var(--event-text-mid)',
   marginTop: 6,
   letterSpacing: 2,
 };
@@ -209,13 +209,13 @@ const subtitleStyle = {
 const ddayStyle = {
   fontFamily: "'Bebas Neue', sans-serif",
   fontSize: 28,
-  color: '#ffd700',
+  color: 'var(--accent)',
   marginTop: 16,
   textShadow: '0 0 16px rgba(255,215,0,0.5)',
 };
 
 const progressBarOuter = {
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--event-progress-track)',
   borderRadius: 10,
   height: 10,
   margin: '16px 0 0',
@@ -227,7 +227,7 @@ const sectionTitleStyle = {
   fontFamily: "'Bebas Neue', sans-serif",
   fontSize: 22,
   letterSpacing: 2,
-  color: '#ffd700',
+  color: 'var(--accent)',
   marginBottom: 14,
   textShadow: '0 0 8px rgba(255,215,0,0.3)',
 };
@@ -235,11 +235,11 @@ const sectionTitleStyle = {
 const weekCardStyle = (isActive) => ({
   background: isActive
     ? 'linear-gradient(135deg, rgba(255,107,26,0.15), rgba(255,215,0,0.08))'
-    : 'rgba(255,255,255,0.03)',
+    : 'var(--event-soft-bg)',
   borderRadius: 14,
   padding: '16px 18px',
   marginBottom: 12,
-  border: isActive ? '1px solid rgba(255,215,0,0.4)' : '1px solid rgba(255,255,255,0.06)',
+  border: isActive ? '1px solid rgba(255,215,0,0.4)' : '1px solid var(--event-soft-border)',
   boxShadow: isActive ? '0 0 20px rgba(255,107,26,0.1)' : 'none',
   transition: 'all 0.3s',
 });
@@ -249,7 +249,7 @@ const missionRowStyle = (done) => ({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '10px 0',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: '1px solid var(--event-mission-divider)',
   opacity: done ? 0.7 : 1,
 });
 
@@ -265,16 +265,16 @@ const checkCircle = (done) => ({
   flexShrink: 0,
   background: done
     ? 'linear-gradient(135deg, #ffd700, #ff6b1a)'
-    : 'rgba(255,255,255,0.06)',
-  color: done ? '#1a0a2e' : 'rgba(255,255,255,0.2)',
-  border: done ? 'none' : '2px solid rgba(255,255,255,0.1)',
+    : 'var(--event-soft-bg)',
+  color: done ? '#1a0a2e' : 'var(--event-stamp-text-locked)',
+  border: done ? 'none' : '2px solid var(--event-text-ghost)',
   boxShadow: done ? '0 0 10px rgba(255,215,0,0.4)' : 'none',
 });
 
 const expBadgeStyle = {
   fontFamily: "'Bebas Neue', sans-serif",
   fontSize: 14,
-  color: '#ffd700',
+  color: 'var(--accent)',
   background: 'rgba(255,215,0,0.1)',
   borderRadius: 8,
   padding: '2px 10px',
@@ -302,9 +302,9 @@ const stampCellStyle = (stamped, isToday) => ({
     ? 'linear-gradient(135deg, rgba(255,107,26,0.25), rgba(255,215,0,0.15))'
     : isToday
       ? 'rgba(255,215,0,0.08)'
-      : 'rgba(255,255,255,0.03)',
-  color: stamped ? '#ffd700' : isToday ? '#ff6b1a' : 'rgba(255,255,255,0.25)',
-  border: isToday && !stamped ? '1px solid rgba(255,107,26,0.5)' : stamped ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.04)',
+      : 'var(--event-soft-bg)',
+  color: stamped ? '#ffd700' : isToday ? '#ff6b1a' : 'var(--event-text-muted)',
+  border: isToday && !stamped ? '1px solid rgba(255,107,26,0.5)' : stamped ? '1px solid rgba(255,215,0,0.3)' : '1px solid var(--event-mission-divider)',
   boxShadow: stamped ? '0 0 8px rgba(255,215,0,0.2)' : 'none',
   cursor: isToday && !stamped ? 'pointer' : 'default',
   transition: 'all 0.2s',
@@ -319,20 +319,20 @@ const attendanceBadgeStyle = (earned) => ({
   fontSize: 13,
   fontFamily: "'Barlow', sans-serif",
   fontWeight: 600,
-  background: earned ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,107,26,0.1))' : 'rgba(255,255,255,0.03)',
-  color: earned ? '#ffd700' : 'rgba(255,255,255,0.3)',
-  border: earned ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
+  background: earned ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,107,26,0.1))' : 'var(--event-soft-bg)',
+  color: earned ? '#ffd700' : 'var(--event-text-muted)',
+  border: earned ? '1px solid rgba(255,215,0,0.3)' : '1px solid var(--event-soft-border)',
   boxShadow: earned ? '0 0 12px rgba(255,215,0,0.15)' : 'none',
 });
 
 const rewardCardStyle = (acquired) => ({
   background: acquired
     ? 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,26,0.08))'
-    : 'rgba(255,255,255,0.03)',
+    : 'var(--event-soft-bg)',
   borderRadius: 14,
   padding: '20px 18px',
   textAlign: 'center',
-  border: acquired ? '2px solid rgba(255,215,0,0.4)' : '2px solid rgba(255,255,255,0.06)',
+  border: acquired ? '2px solid rgba(255,215,0,0.4)' : '2px solid var(--event-soft-border)',
   boxShadow: acquired ? '0 0 24px rgba(255,215,0,0.15)' : 'none',
   flex: '1 1 0',
   minWidth: 140,
@@ -343,7 +343,7 @@ const rewardTitleStyle = (acquired) => ({
   fontFamily: "'Bebas Neue', sans-serif",
   fontSize: 20,
   letterSpacing: 2,
-  color: acquired ? '#ffd700' : 'rgba(255,255,255,0.25)',
+  color: acquired ? '#ffd700' : 'var(--event-text-muted)',
   textShadow: acquired ? '0 0 10px rgba(255,215,0,0.4)' : 'none',
   marginBottom: 6,
 });
@@ -353,26 +353,26 @@ const rewardStatusStyle = (acquired) => ({
   fontSize: 12,
   fontWeight: 700,
   letterSpacing: 1,
-  color: acquired ? '#ff6b1a' : 'rgba(255,255,255,0.2)',
+  color: acquired ? '#ff6b1a' : 'var(--event-stamp-text-locked)',
   textTransform: 'uppercase',
   marginTop: 8,
-  background: acquired ? 'rgba(255,107,26,0.12)' : 'rgba(255,255,255,0.03)',
+  background: acquired ? 'rgba(255,107,26,0.12)' : 'var(--event-soft-bg)',
   display: 'inline-block',
   padding: '3px 12px',
   borderRadius: 6,
 });
 
 const infoBoxStyle = {
-  background: 'rgba(255,255,255,0.03)',
+  background: 'var(--event-soft-bg)',
   borderRadius: 14,
   padding: '18px 18px',
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--event-soft-border)',
 };
 
 const infoTextStyle = {
   fontFamily: "'Barlow', sans-serif",
   fontSize: 13,
-  color: 'rgba(255,255,255,0.55)',
+  color: 'var(--event-text-soft)',
   lineHeight: 1.7,
   margin: 0,
 };
@@ -387,8 +387,8 @@ const stampBtnStyle = (canStamp) => ({
   cursor: canStamp ? 'pointer' : 'default',
   background: canStamp
     ? 'linear-gradient(135deg, #ff6b1a, #ffd700)'
-    : 'rgba(255,255,255,0.06)',
-  color: canStamp ? '#1a0a2e' : 'rgba(255,255,255,0.25)',
+    : 'var(--event-soft-bg)',
+  color: canStamp ? '#1a0a2e' : 'var(--event-text-muted)',
   fontWeight: 700,
   boxShadow: canStamp ? '0 0 16px rgba(255,107,26,0.4)' : 'none',
   marginTop: 12,
@@ -566,7 +566,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
           <div style={ddayStyle}>{ddayText}</div>
 
           {/* Progress bar */}
-          <div style={{ marginTop: 10, fontSize: 11, fontFamily: "'Barlow', sans-serif", color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>
+          <div style={{ marginTop: 10, fontSize: 11, fontFamily: "'Barlow', sans-serif", color: 'var(--event-text-faded)', letterSpacing: 1 }}>
             {t.remaining}
           </div>
           <div style={progressBarOuter}>
@@ -581,14 +581,14 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
               }}
             />
           </div>
-          <div style={{ fontSize: 11, fontFamily: "'Barlow', sans-serif", color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
+          <div style={{ fontSize: 11, fontFamily: "'Barlow', sans-serif", color: 'var(--event-text-muted)', marginTop: 4 }}>
             {progressPct}%
           </div>
         </div>
       </div>
 
       {/* ===== Weekly Missions ===== */}
-      <div className="card" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="card" style={{ background: 'var(--event-card-bg)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid var(--event-card-border)'}}>
         <div style={sectionTitleStyle}>🎯 {t.weekMission}</div>
         {WEEK_MISSIONS.map((wk, wi) => {
           const isActive = wi === currentWeek;
@@ -596,13 +596,13 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
           return (
             <div key={wk.week} style={weekCardStyle(isActive)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 2, color: isActive ? '#ffd700' : 'rgba(255,255,255,0.4)' }}>
+                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 2, color: isActive ? '#ffd700' : 'var(--event-text-faded)' }}>
                   {wk.week}{t.week}
-                  <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, fontWeight: 400, marginLeft: 8, color: 'rgba(255,255,255,0.3)', letterSpacing: 0 }}>
+                  <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, fontWeight: 400, marginLeft: 8, color: 'var(--event-text-muted)', letterSpacing: 0 }}>
                     {wk.dateRange[0].slice(5)} ~ {wk.dateRange[1].slice(5)}
                   </span>
                 </div>
-                <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: isActive ? '#ff6b1a' : 'rgba(255,255,255,0.2)', fontWeight: 700 }}>
+                <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: isActive ? '#ff6b1a' : 'var(--event-stamp-text-locked)', fontWeight: 700 }}>
                   {prog}%
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
                   width: `${prog}%`,
                   height: '100%',
                   borderRadius: 10,
-                  background: isActive ? 'linear-gradient(90deg, #ff6b1a, #ffd700)' : 'rgba(255,255,255,0.15)',
+                  background: isActive ? 'linear-gradient(90deg, #ff6b1a, #ffd700)' : 'var(--event-text-ghost)',
                   transition: 'width 0.4s',
                 }} />
               </div>
@@ -625,7 +625,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
                       <span style={{
                         fontFamily: "'Barlow', sans-serif",
                         fontSize: 13,
-                        color: done ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)',
+                        color: done ? 'var(--event-text-soft)' : 'var(--event-text-strong)',
                         textDecoration: done ? 'line-through' : 'none',
                         fontWeight: 500,
                       }}>
@@ -643,14 +643,14 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
         })}
         {/* Total progress */}
         <div style={{ marginTop: 8, textAlign: 'center' }}>
-          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: 'var(--event-text-faded)' }}>
             {t.progress}: {completedCount}/{totalMissionIds.length}
           </span>
         </div>
       </div>
 
       {/* ===== Attendance ===== */}
-      <div className="card" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="card" style={{ background: 'var(--event-card-bg)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid var(--event-card-border)'}}>
         <div style={sectionTitleStyle}>🔥 {t.attendance}</div>
         <p style={{ ...infoTextStyle, fontSize: 12, marginBottom: 8 }}>{t.attendanceDesc}</p>
         <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", color: '#ff6b1a', fontWeight: 700, marginBottom: 6 }}>
@@ -699,13 +699,13 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
       </div>
 
       {/* ===== Rewards ===== */}
-      <div className="card" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="card" style={{ background: 'var(--event-card-bg)', borderRadius: 16, padding: '20px 16px', marginBottom: 18, border: '1px solid var(--event-card-border)'}}>
         <div style={sectionTitleStyle}>🏆 {t.rewards}</div>
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={rewardCardStyle(pioneerEarned)}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>{pioneerEarned ? '⚜️' : '🔒'}</div>
             <div style={rewardTitleStyle(pioneerEarned)}>{t.launchPioneer}</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: 'var(--event-text-faded)', marginBottom: 4 }}>
               {t.launchPioneerDesc}
             </div>
             <div style={rewardStatusStyle(pioneerEarned)}>
@@ -715,7 +715,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
           <div style={rewardCardStyle(diamondEarned)}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>{diamondEarned ? '💎' : '🔒'}</div>
             <div style={rewardTitleStyle(diamondEarned)}>{t.diamondMember}</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: 'var(--event-text-faded)', marginBottom: 4 }}>
               {t.diamondMemberDesc}
             </div>
             <div style={rewardStatusStyle(diamondEarned)}>
@@ -726,7 +726,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
       </div>
 
       {/* ===== Event Info ===== */}
-      <div className="card" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: '20px 16px', marginBottom: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="card" style={{ background: 'var(--event-card-bg)', borderRadius: 16, padding: '20px 16px', marginBottom: 0, border: '1px solid var(--event-card-border)' }}>
         <div style={sectionTitleStyle}>📋 {t.info}</div>
         <div style={infoBoxStyle}>
           <p style={infoTextStyle}>• {t.rule1}</p>
@@ -736,7 +736,7 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: '#ffd700', letterSpacing: 1, marginBottom: 4 }}>
               {t.period}
             </div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: 'var(--event-text-soft)', fontWeight: 600 }}>
               {t.periodValue}
             </div>
           </div>
