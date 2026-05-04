@@ -57,7 +57,6 @@ const SEARCH_ITEMS = [
   { label: '측정 시스템', keywords: ['측정', 'measure', '허리', '팔둘레', '가슴둘레', '사이즈', '시스템', '어깨', 'shoulder'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
-  { label: '식단', keywords: ['식단', '벌크업', '다이어트', '유지', 'diet', '칼로리', '단백질', '탄수화물', 'meal', 'bulk', 'cut', '식', '밥'], path: null, icon: '🍽️', scroll: 'diet' },
 ];
 
 export default function HomePage() {
@@ -169,6 +168,120 @@ export default function HomePage() {
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
           {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
         </div>
+      </div>
+
+      {/* 검색 (가운데) */}
+      <div style={{ position: 'relative', marginBottom: 20 }}>
+        <input
+          type="text"
+          className="input"
+          placeholder="검색 (예: 운동, 인바디, 식단, 루틴)"
+          value={homeSearch}
+          onChange={(e) => setHomeSearch(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+          style={{ paddingLeft: 38, fontSize: 14 }}
+        />
+        <span style={{
+          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 15, pointerEvents: 'none', opacity: 0.7,
+        }}>🔍</span>
+
+        {searchFocused && (homeSearch.trim() || searchHistory.length > 0) && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)', maxHeight: 320, overflowY: 'auto',
+            zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+          }}>
+            {homeSearch.trim() ? (() => {
+              const results = SEARCH_ITEMS.filter(item => matchSearch(homeSearch, item));
+              if (results.length === 0) return (
+                <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  일치하는 항목이 없어요
+                </div>
+              );
+              return results.map((item, i) => (
+                <div
+                  key={item.label}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    addSearchHistory(item.label);
+                    setHomeSearch('');
+                    setSearchFocused(false);
+                    if (item.scroll) {
+                      document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
+                    } else if (item.path) {
+                      navigate(item.path);
+                    }
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', cursor: 'pointer',
+                    borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{item.label}</span>
+                </div>
+              ));
+            })() : (
+              <>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '8px 14px', borderBottom: '1px solid var(--border)',
+                  fontSize: 11, color: 'var(--text-muted)',
+                }}>
+                  <span>최근 검색</span>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); clearSearchHistory(); }}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--text-muted)',
+                      fontSize: 11, cursor: 'pointer',
+                    }}
+                  >전체 삭제</button>
+                </div>
+                {searchHistory.map((label, i) => {
+                  const item = SEARCH_ITEMS.find(s => s.label === label);
+                  return (
+                    <div
+                      key={label}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 14px',
+                        borderBottom: i < searchHistory.length - 1 ? '1px solid var(--border)' : 'none',
+                      }}
+                    >
+                      <div
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          if (item) {
+                            if (item.scroll) document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
+                            else if (item.path) navigate(item.path);
+                          }
+                          setSearchFocused(false);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }}
+                      >
+                        <span style={{ fontSize: 14 }}>{item?.icon || '🕒'}</span>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
+                      </div>
+                      <button
+                        onMouseDown={(e) => { e.preventDefault(); removeSearchHistory(label); }}
+                        style={{
+                          background: 'none', border: 'none', color: 'var(--text-muted)',
+                          cursor: 'pointer', padding: 4, fontSize: 12,
+                        }}
+                      >✕</button>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -317,10 +430,8 @@ export default function HomePage() {
               { icon: '📊', label: '인바디', path: '/inbody' },
               { icon: '📋', label: '루틴', path: '/routine' },
               { icon: '🏠', label: '홈트', path: '/homeworkout' },
-              { icon: '🔍', label: '검색', path: '/search' },
               { icon: '📐', label: '측정', path: '/measure' },
               { icon: '📅', label: '히스토리', path: '/history' },
-              { icon: '🎮', label: '미니게임', path: '/game' },
             ].map((q, i) => (
               <div key={q.label} className="card clickable" onClick={() => {
                 if (q.scroll) {

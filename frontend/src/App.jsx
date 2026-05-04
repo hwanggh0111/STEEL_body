@@ -21,7 +21,6 @@ const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const NoticePage = lazy(() => import('./pages/NoticePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const EventPage = lazy(() => import('./pages/EventPage'));
-const GamePage = lazy(() => import('./pages/GamePage'));
 
 function Loading() {
   return (
@@ -63,7 +62,6 @@ export default function App() {
               <Route path="notice" element={<NoticePage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="event" element={<EventPage />} />
-              <Route path="game" element={<GamePage />} />
             </Route>
           </Routes>
         </Suspense>
