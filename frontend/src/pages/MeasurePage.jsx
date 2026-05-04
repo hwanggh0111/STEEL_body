@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
@@ -21,9 +22,17 @@ const TABS = [
 ];
 
 export default function MeasurePage() {
-  const [tab, setTab] = useState('size');
+  const location = useLocation();
+  // 검색에서 navigate state로 탭 지정 가능
+  const initialTab = location.state?.tab || 'size';
+  const [tab, setTab] = useState(initialTab);
   const [measures, setMeasures] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // location.state.tab 변경 시 탭 동기화 (검색에서 다시 들어올 때)
+  useEffect(() => {
+    if (location.state?.tab) setTab(location.state.tab);
+  }, [location.state?.tab]);
 
   useEffect(() => {
     client.get('/measures')

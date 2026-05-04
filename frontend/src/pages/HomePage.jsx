@@ -8,6 +8,7 @@ import LevelSystem from '../components/LevelSystem';
 import MissionSystem from '../components/MissionSystem';
 import NoticeBanner, { NoticePopup } from '../components/NoticeBanner';
 import { NOTICES, getReadNotices, markNoticeRead } from '../data/notices';
+import { isAdmin } from '../data/admin';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -48,15 +49,35 @@ function matchSearch(q, item) {
 }
 
 const SEARCH_ITEMS = [
+  // ─── 메인 페이지 ───
   { label: '홈', keywords: ['홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면'], path: '/home', icon: '🏠' },
   { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: '📋' },
   { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: '🏋️' },
-  { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체'], path: '/inbody', icon: '📊' },
+  { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: '📊' },
   { label: '홈트레이닝', keywords: ['홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: '🏠' },
   { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: '🔍' },
-  { label: '측정 시스템', keywords: ['측정', 'measure', '허리', '팔둘레', '가슴둘레', '사이즈', '시스템', '어깨', 'shoulder'], path: '/measure', icon: '📐' },
+  { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
+  { label: '이벤트', keywords: ['이벤트', 'event', '챌린지', 'challenge', '출시', '미션', '도장', '출석', '보상', 'launch'], path: '/event', icon: '🎉' },
+
+  // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
+  { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
+  { label: '어깨 측정', keywords: ['어깨', 'shoulder', '견봉', '어깨너비', '문짝', '광배', '비율'], path: '/measure', tab: 'shoulder', icon: '💪' },
+  { label: '1RM 계산', keywords: ['1rm', '1RM', '최대중량', 'one rep max', '벤치프레스', '스쿼트', '데드리프트', '숄더프레스', 'brzycki'], path: '/measure', tab: 'orm', icon: '🔢' },
+  { label: '체력 테스트', keywords: ['체력', '테스트', '푸시업', '풀업', '플랭크', '달리기', '윗몸일으키기', '시트업', '스쿼트', 'fitness'], path: '/measure', tab: 'fitness', icon: '🏃' },
+  { label: '심박수 존', keywords: ['심박수', '심박', 'heart rate', '존', 'zone', '최대심박', '안정심박', '유산소', 'bpm'], path: '/measure', tab: 'heart', icon: '❤️' },
+  { label: '스톱워치 / 타이머', keywords: ['스톱워치', 'stopwatch', '타이머', 'timer', '시간', '랩', 'lap'], path: '/measure', tab: 'stopwatch', icon: '⏱️' },
+  { label: '유연성 측정', keywords: ['유연성', 'flexibility', '앉아 앞으로 굽히기', '스트레칭', '스쿼트 깊이'], path: '/measure', tab: 'flex', icon: '🧘' },
+
+  // ─── 홈 내부 섹션 (현재 페이지 스크롤) ───
+  { label: '레벨 시스템', keywords: ['레벨', 'level', '경험치', 'exp', '티어', 'tier', '랭크', 'rank', '입문', '초보', '중급', '상급', '엘리트', '전설', '불멸', '신화', '초월', '만렙'], path: '/home', icon: '⭐' },
+  { label: '미션', keywords: ['미션', 'mission', '목표', '주간', 'weekly'], path: '/home', icon: '🎯' },
+  { label: '성취 뱃지', keywords: ['뱃지', '배지', 'badge', '성취', '업적', 'achievement', '연속', '스트릭', 'streak'], path: '/home', icon: '🏅' },
+  { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', icon: '📅' },
+
+  // ─── 관리자 (관리자 권한 필요) ───
+  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '공지관리', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
 ];
 
 export default function HomePage() {
@@ -195,7 +216,10 @@ export default function HomePage() {
             zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
           }}>
             {homeSearch.trim() ? (() => {
-              const results = SEARCH_ITEMS.filter(item => matchSearch(homeSearch, item));
+              const admin = isAdmin();
+              const results = SEARCH_ITEMS
+                .filter(item => !item.adminOnly || admin)
+                .filter(item => matchSearch(homeSearch, item));
               if (results.length === 0) return (
                 <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
                   일치하는 항목이 없어요
@@ -212,7 +236,7 @@ export default function HomePage() {
                     if (item.scroll) {
                       document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
                     } else if (item.path) {
-                      navigate(item.path);
+                      navigate(item.path, item.tab ? { state: { tab: item.tab } } : undefined);
                     }
                   }}
                   style={{
@@ -259,7 +283,7 @@ export default function HomePage() {
                           e.preventDefault();
                           if (item) {
                             if (item.scroll) document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
-                            else if (item.path) navigate(item.path);
+                            else if (item.path) navigate(item.path, item.tab ? { state: { tab: item.tab } } : undefined);
                           }
                           setSearchFocused(false);
                         }}
