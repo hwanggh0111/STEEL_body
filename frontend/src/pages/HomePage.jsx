@@ -196,11 +196,34 @@ export default function HomePage() {
         <input
           type="text"
           className="input"
-          placeholder="검색 (예: 운동, 인바디, 식단, 루틴)"
+          placeholder="검색 후 Enter (예: 1RM, 어깨 측정, 이벤트)"
           value={homeSearch}
           onChange={(e) => setHomeSearch(e.target.value)}
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && homeSearch.trim()) {
+              const admin = isAdmin();
+              const top = SEARCH_ITEMS
+                .filter(item => !item.adminOnly || admin)
+                .find(item => matchSearch(homeSearch, item));
+              if (top) {
+                addSearchHistory(top.label);
+                setHomeSearch('');
+                setSearchFocused(false);
+                e.target.blur();
+                if (top.scroll) {
+                  document.getElementById(top.scroll)?.scrollIntoView({ behavior: 'smooth' });
+                } else if (top.path) {
+                  navigate(top.path, top.tab ? { state: { tab: top.tab } } : undefined);
+                }
+              }
+            } else if (e.key === 'Escape') {
+              setHomeSearch('');
+              setSearchFocused(false);
+              e.target.blur();
+            }
+          }}
           style={{ paddingLeft: 38, fontSize: 14 }}
         />
         <span style={{
