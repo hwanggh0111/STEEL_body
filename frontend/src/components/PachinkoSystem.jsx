@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLangStore } from '../store/langStore';
 import { toast } from './Toast';
 import CasinoChip from './CasinoChip';
-import { MAX_EXP } from './LevelSystem';
+import { usePachinkoStore } from '../store/pachinkoStore';
 import {
-  TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, LOG_MAX,
-  drawPrize, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP,
+  TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS,
+  drawPrize, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
 } from '../data/pachinkoData';
 
 const T = {
@@ -80,15 +80,12 @@ function compactExp(n) {
   return String(n);
 }
 
-export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, onExpChange }) {
+export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
 
-  const [used, setUsed] = useState(() => readInt(LS.used, 0));
-  const [gained, setGained] = useState(() => readInt(LS.exp, 0));
-  const [log, setLog] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(LS.log) || '[]'); } catch { return []; }
-  });
+  // 티켓/누적 EXP/기록은 사다리 모드와 공유한다
+  const { used, gained, log, play } = usePachinkoStore();
 
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
@@ -111,12 +108,6 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, onE
   const earned = earnedTickets(totalWorkouts, totalInbody);
   // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음)
   const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
-
-  const persist = useCallback((nextUsed, nextExp, nextLog) => {
-    localStorage.setItem(LS.used, String(nextUsed));
-    localStorage.setItem(LS.exp, String(nextExp));
-    localStorage.setItem(LS.log, JSON.stringify(nextLog.slice(0, LOG_MAX)));
-  }, []);
 
   const spin = () => {
     if (spinning || available <= 0) return;
@@ -150,26 +141,12 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, onE
       timersRef.current.push(id);
     });
 
-    // 4) 결과 확정 + 저장
+    // 4) 결과 확정 + 저장 (티켓 1장 소모)
     const doneId = setTimeout(() => {
-      const nextUsed = used + 1;
-      // 2^53을 넘으면 정수 정밀도가 깨지므로 LV100 기준선에서 자른다
-      const nextExp = Math.min(gained + prize.exp, MAX_EXP);
-      const nextLog = [{ id: prize.id, exp: prize.exp }, ...log];
-
-      setUsed(nextUsed);
-      setGained(nextExp);
-      setLog(nextLog.slice(0, LOG_MAX));
-      persist(nextUsed, nextExp, nextLog);
-
-      const prevBest = localStorage.getItem(LS.best);
-      const prevRank = PRIZES.findIndex(p => p.id === prevBest);
-      const rank = PRIZES.findIndex(p => p.id === prize.id);
-      if (rank > prevRank) localStorage.setItem(LS.best, prize.id);
+      play(1, prize, 'reel');
 
       setResult(prize);
       setSpinning(false);
-      onExpChange?.(nextExp);
 
       if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
       else toast(prize.msg[lang] || prize.msg.ko, 'error');
@@ -353,7 +330,8 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, onE
           </div>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
             {log.map((entry, i) => {
-              const p = PRIZES.find(x => x.id === entry.id) || PRIZES[0];
+              // 사다리 기록도 같은 목록에 섞여 들어온다
+              const p = [...PRIZES, ...LADDER_PRIZES].find(x => x.id === entry.id) || PRIZES[0];
               return (
                 <span key={i} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -361,7 +339,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, onE
                   background: `${p.color}18`, border: `1px solid ${p.color}44`,
                   fontSize: 10, color: p.color,
                 }}>
-                  {p.icon} +{compactExp(entry.exp)}
+                  {entry.mode === 'ladder' ? '🪜' : p.icon} +{compactExp(entry.exp)}
                 </span>
               );
             })}

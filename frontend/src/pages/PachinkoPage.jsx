@@ -1,13 +1,17 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
-import PachinkoSystem, { getPachinkoExp } from '../components/PachinkoSystem';
+import { usePachinkoStore } from '../store/pachinkoStore';
+import PachinkoSystem, { earnedTickets } from '../components/PachinkoSystem';
+import LadderGame from '../components/LadderGame';
 import LevelSystem from '../components/LevelSystem';
+import { TICKET_RULE } from '../data/pachinkoData';
 
 export default function PachinkoPage() {
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
-  const [pachinkoExp, setPachinkoExp] = useState(() => getPachinkoExp());
+  // 파칭코와 사다리가 같은 티켓/누적 EXP를 쓴다
+  const { used, gained } = usePachinkoStore();
 
   useEffect(() => {
     fetchWorkouts();
@@ -17,6 +21,10 @@ export default function PachinkoPage() {
   const loading = wLoading || iLoading;
   // workouts는 날짜별로 묶인 객체 — HomePage와 동일하게 펼쳐서 센다
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
+  const totalInbody = records.length;
+
+  const earned = earnedTickets(totalWorkouts, totalInbody);
+  const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
 
   return (
     <div>
@@ -31,19 +39,25 @@ export default function PachinkoPage() {
         <>
           <PachinkoSystem
             totalWorkouts={totalWorkouts}
-            totalInbody={records.length}
-            onExpChange={setPachinkoExp}
+            totalInbody={totalInbody}
           />
 
-          {/* 돌린 결과가 레벨에 어떻게 반영되는지 바로 확인 */}
+          {/* 두 번째 모드 — 티켓은 위 파칭코와 공유 */}
+          <div className="section-title">
+            <div className="accent-bar" />
+            LADDER
+          </div>
+          <LadderGame available={available} />
+
+          {/* 두 모드에서 번 EXP가 함께 반영되는 레벨 */}
           <div className="section-title">
             <div className="accent-bar" />
             MY LEVEL
           </div>
           <LevelSystem
             totalWorkouts={totalWorkouts}
-            totalInbody={records.length}
-            bonusExp={pachinkoExp}
+            totalInbody={totalInbody}
+            bonusExp={gained}
           />
         </>
       )}

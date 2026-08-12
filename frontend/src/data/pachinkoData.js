@@ -6,7 +6,7 @@
 export const TICKET_RULE = {
   perWorkouts: 3,   // 운동 N회당 티켓 1개
   perInbody: 1,     // 인바디 N회당 티켓 1개
-  maxStack: 60,     // 미사용 티켓 최대 보유량 (무한 적립 방지)
+  maxStack: 600,    // 미사용 티켓 최대 보유량 (무한 적립 방지)
 };
 
 // ── 보상 등급 ──
@@ -23,7 +23,7 @@ export const PRIZES = [
   },
   {
     id: 'normal',
-    weight: 32,
+    weight: 33,
     exp: 5,
     icon: '⚪',
     color: '#888888',
@@ -106,7 +106,7 @@ export const PRIZES = [
   },
   {
     id: 'supernova',
-    weight: 2,
+    weight: 1,
     exp: 999999999999999,       // 15자리 — 전 칸이 9로 채워짐
     icon: '💥',
     color: '#ffcc00',
@@ -129,6 +129,60 @@ export const BIG_HIT_EXP = 500;
 export const EXPECTED_EXP = PRIZES.reduce(
   (sum, p) => sum + p.exp * p.weight, 0
 ) / PRIZES.reduce((sum, p) => sum + p.weight, 0);
+
+// ══ 사다리타기 (하이리스크 모드) ══
+// 티켓 5장을 걸고 한 판 — 꽝이 훨씬 잦은 대신 최고 보상 확률이 5배
+export const LADDER = {
+  // 판당 티켓 3장 — 최고 보상을 3%로 낮춘 만큼 비용도 낮춰
+  // 티켓당 기대값을 파칭코와 1.000배로 맞춘다 (유불리 없이 분산만 다르게)
+  cost: 3,
+  columns: 5,       // 세로줄 = 시작점 개수 = 도착 칸 개수
+  rows: 9,          // 가로줄이 놓일 수 있는 층 수
+  rungChance: 0.55, // 각 층에서 가로줄이 생길 확률
+  traceMs: 2800,    // 경로를 따라 내려가는 시간 (천천히 보이도록)
+};
+
+export const LADDER_PRIZES = [
+  {
+    id: 'l_miss', weight: 30, exp: 0, icon: '💨', color: '#555555',
+    label: { ko: '꽝', en: 'Miss' },
+    msg: { ko: '5장이 날아갔습니다…', en: 'Five tickets gone…' },
+  },
+  {
+    id: 'l_small', weight: 32, exp: 500, icon: '🔹', color: '#4a9aff',
+    label: { ko: '소', en: 'Small' },
+    msg: { ko: '본전은 아니지만…', en: 'Not quite even…' },
+  },
+  {
+    id: 'l_mid', weight: 20, exp: 50000, icon: '🔶', color: '#ffa040',
+    label: { ko: '중', en: 'Medium' },
+    msg: { ko: '괜찮은 수확!', en: 'Decent haul!' },
+  },
+  {
+    id: 'l_big', weight: 15, exp: 10000000, icon: '💠', color: '#c060ff',
+    label: { ko: '대', en: 'Big' },
+    msg: { ko: '천만 EXP! 크게 먹었습니다', en: '10M EXP! Big win' },
+  },
+  {
+    id: 'l_max', weight: 3, exp: 999999999999999, icon: '💥', color: '#ffcc00',
+    label: { ko: '초대박', en: 'MAX' },
+    msg: { ko: '💥 사다리 최고 보상!! 999조!!', en: '💥 LADDER MAX!! 999 TRILLION!!' },
+  },
+];
+
+export function drawLadderPrize(rand = Math.random) {
+  const total = LADDER_PRIZES.reduce((sum, p) => sum + p.weight, 0);
+  let roll = rand() * total;
+  for (const p of LADDER_PRIZES) {
+    roll -= p.weight;
+    if (roll < 0) return p;
+  }
+  return LADDER_PRIZES[0];
+}
+
+export const LADDER_EXPECTED_EXP = LADDER_PRIZES.reduce(
+  (sum, p) => sum + p.exp * p.weight, 0
+) / LADDER_PRIZES.reduce((sum, p) => sum + p.weight, 0);
 
 // ── localStorage 키 ──
 export const LS = {
