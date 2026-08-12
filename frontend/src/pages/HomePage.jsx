@@ -6,6 +6,8 @@ import StatBox from '../components/StatBox';
 import Badges from '../components/Badges';
 import LevelSystem from '../components/LevelSystem';
 import MissionSystem from '../components/MissionSystem';
+import { getPachinkoExp } from '../components/PachinkoSystem';
+import CasinoChip from '../components/CasinoChip';
 import NoticeBanner, { NoticePopup } from '../components/NoticeBanner';
 import { NOTICES, getReadNotices, markNoticeRead } from '../data/notices';
 import { isAdmin } from '../data/admin';
@@ -60,6 +62,7 @@ const SEARCH_ITEMS = [
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
   { label: '이벤트', keywords: ['이벤트', 'event', '챌린지', 'challenge', '출시', '미션', '도장', '출석', '보상', 'launch'], path: '/event', icon: '🎉' },
+  { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
 
   // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
   { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
@@ -93,6 +96,9 @@ export default function HomePage() {
     try { return JSON.parse(localStorage.getItem('ironlog_search_history')) || []; } catch { return []; }
   });
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // 파칭코로 획득한 누적 EXP (파칭코는 /pachinko 전용 페이지에 있고, 홈은 레벨 합산에만 사용)
+  const [pachinkoExp] = useState(() => getPachinkoExp());
 
   const addSearchHistory = (label) => {
     const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
@@ -410,7 +416,11 @@ export default function HomePage() {
             <div className="accent-bar" />
             MY LEVEL
           </div>
-          <LevelSystem totalWorkouts={totalWorkouts} totalInbody={records.length} />
+          <LevelSystem
+            totalWorkouts={totalWorkouts}
+            totalInbody={records.length}
+            bonusExp={pachinkoExp}
+          />
 
           {/* 미션 */}
           <div className="section-title">

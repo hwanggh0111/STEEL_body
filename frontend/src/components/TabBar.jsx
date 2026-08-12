@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
+import CasinoChip from './CasinoChip';
 import { isAdmin } from '../data/admin';
 
 const TABS = [
@@ -8,6 +9,7 @@ const TABS = [
   { path: '/workout', label: '기록',  icon: '🏋️' },
   { path: '/inbody',  label: '인바디', icon: '📊' },
   { path: '/routine', label: '루틴',  icon: '📋' },
+  { path: '/pachinko', label: '파칭코', icon: <CasinoChip size={22} /> },
   { path: '/more',    label: '더보기', icon: '⋯' },
 ];
 
