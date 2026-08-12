@@ -8,18 +8,15 @@ function hasCsrfCookie() {
   return document.cookie.includes('sb_csrf=');
 }
 
-// 관리자 자동 만렙 셋업 (login + checkAuth 공통)
-function applyAdminPerks(role) {
-  if (role !== 'admin') return;
-  localStorage.setItem('steelbody_legend', 'true');
-  localStorage.setItem('steelbody_immortal', 'true');
-  localStorage.setItem('steelbody_level', '50');
-  localStorage.setItem('steelbody_exp', '999999');
-  localStorage.setItem('steelbody_title', 'STEEL MASTER');
-  localStorage.setItem('steelbody_badges', JSON.stringify([
-    'legend','immortal','master','champion','warrior','iron','steel',
-    'bronze','silver','gold','platinum','diamond',
-  ]));
+// 관리자도 다른 계정과 동일하게 기록대로 레벨/뱃지가 오르도록 특전을 두지 않는다.
+// 이전 버전에서 심어둔 값이 남아 있으면 만렙 취급이 유지되므로 로그인 시 걷어낸다.
+const LEGACY_ADMIN_PERK_KEYS = [
+  'steelbody_legend', 'steelbody_immortal', 'steelbody_level',
+  'steelbody_exp', 'steelbody_title', 'steelbody_badges',
+];
+
+function clearLegacyAdminPerks() {
+  LEGACY_ADMIN_PERK_KEYS.forEach(k => localStorage.removeItem(k));
 }
 
 export const useAuthStore = create((set) => ({
@@ -33,7 +30,7 @@ export const useAuthStore = create((set) => ({
     localStorage.setItem('nickname', data.nickname);
     if (data.email) localStorage.setItem('ironlog_email', data.email);
     if (data.role) localStorage.setItem('ironlog_role', data.role);
-    applyAdminPerks(data.role);
+    clearLegacyAdminPerks();
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -44,7 +41,7 @@ export const useAuthStore = create((set) => ({
     if (data?.nickname) localStorage.setItem('nickname', data.nickname);
     if (data?.email) localStorage.setItem('ironlog_email', data.email);
     if (data?.role) localStorage.setItem('ironlog_role', data.role);
-    applyAdminPerks(data?.role);
+    clearLegacyAdminPerks();
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
     return data;
   },
@@ -70,7 +67,7 @@ export const useAuthStore = create((set) => ({
       const { data } = await client.get('/auth/me');
       localStorage.setItem('nickname', data.nickname);
       if (data.role) localStorage.setItem('ironlog_role', data.role);
-      applyAdminPerks(data.role);
+      clearLegacyAdminPerks();
       set({ nickname: data.nickname, isLoggedIn: true });
       return true;
     } catch {

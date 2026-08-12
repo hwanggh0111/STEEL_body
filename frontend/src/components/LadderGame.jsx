@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useLangStore } from '../store/langStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import { toast } from './Toast';
+import ExpGainBanner from './ExpGainBanner';
 import {
-  LADDER, LADDER_PRIZES, LADDER_EXPECTED_EXP, drawLadderPrize,
+  LADDER, LADDER_PRIZES, LADDER_EXPECTED_EXP, drawLadderPrize, compactExp,
 } from '../data/pachinkoData';
 
 const T = {
@@ -44,6 +45,8 @@ const T = {
 const W = 300;   // SVG 좌표계 너비
 const H = 210;   // SVG 좌표계 높이
 const PAD_Y = 16;
+// PC처럼 폭이 넓은 화면에서 사다리가 세로로 과하게 늘어나지 않도록 하는 상한
+const LADDER_MAX_W = 420;
 
 // 각 층마다 인접한 두 세로줄 사이에 가로줄을 놓는다.
 // 같은 층에서 한 줄이 두 개의 가로줄을 갖지 않도록 막는다 (사다리타기 규칙).
@@ -80,17 +83,21 @@ function trace(rungs, startCol) {
 const colX = (c) => ((c + 0.5) / LADDER.columns) * W;
 const rowY = (r) => PAD_Y + ((r + 1) / (LADDER.rows + 1)) * (H - PAD_Y * 2);
 
-export default function LadderGame({ available = 0 }) {
+export default function LadderGame({ available = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
-  const { play } = usePachinkoStore();
+  const { play, gained } = usePachinkoStore();
 
   const [rungs, setRungs] = useState(() => buildRungs());
   const [slots, setSlots] = useState(() => LADDER_PRIZES.slice(0, LADDER.columns));
   const [selected, setSelected] = useState(0);   // 고른 시작점 (아직 출발 전)
   const [picked, setPicked] = useState(null);    // 실제로 출발한 시작점
   const [pathD, setPathD] = useState('');
-  const [drawn, setDrawn] = useState(false);   // 선을 끝까지 그렸는지 (dashoffset 1 -> 0)
+  // 선 그리기 단계
+  //  idle    — 아직 안 그림
+  //  armed   — 트랜지션을 끈 채 선을 감춰둔 상태 (되감기 애니메이션 방지)
+  //  drawing — 트랜지션을 켜고 끝까지 그리는 중
+  const [phase, setPhase] = useState('idle');
   const [tracing, setTracing] = useState(false);
   const [result, setResult] = useState(null);
   const [showRates, setShowRates] = useState(false);
@@ -135,18 +142,20 @@ export default function LadderGame({ available = 0 }) {
     setPathD(d);
     setResult(null);
     setTracing(true);
-    setDrawn(false);   // 선을 감춘 상태로 붙이고
+    setPhase('armed');   // 트랜지션을 끈 채 선을 감춰두고
 
-    // 다음 프레임에 그리기 시작해야 트랜지션이 걸린다
+    // 다음 프레임에 트랜지션을 켜야 처음부터 그려진다.
+    // (트랜지션을 켠 채로 되돌리면 이전 선이 거꾸로 지워지기 시작해
+    //  두 번째 판부터 선이 즉시 완성돼 버린다)
     rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = requestAnimationFrame(() => setDrawn(true));
+      rafRef.current = requestAnimationFrame(() => setPhase('drawing'));
     });
 
     const id = setTimeout(() => {
       play(LADDER.cost, prize, 'ladder');
       setResult({ ...prize, endCol: end });
       setTracing(false);
-      if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko}`);
+      if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
       else toast(prize.msg[lang] || prize.msg.ko, 'error');
     }, LADDER.traceMs + 200);
     timersRef.current.push(id);
@@ -189,6 +198,8 @@ export default function LadderGame({ available = 0 }) {
         <div style={{
           display: 'grid', gridTemplateColumns: `repeat(${LADDER.columns}, 1fr)`, gap: 4,
           marginBottom: 4,
+          // PC에서 폭이 넓어져도 사다리가 과하게 커지지 않도록 제한
+          maxWidth: LADDER_MAX_W, margin: '0 auto 4px',
         }}>
           {Array.from({ length: LADDER.columns }).map((_, c) => (
             <button
@@ -212,7 +223,11 @@ export default function LadderGame({ available = 0 }) {
           ))}
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          style={{ display: 'block', maxWidth: LADDER_MAX_W, margin: '0 auto' }}
+        >
           {/* 세로줄 */}
           {Array.from({ length: LADDER.columns }).map((_, c) => (
             <line
@@ -241,9 +256,11 @@ export default function LadderGame({ available = 0 }) {
               pathLength="1"
               style={{
                 strokeDasharray: 1,
-                strokeDashoffset: drawn ? 0 : 1,
-                // 트랜지션을 끊지 않도록 항상 유지한다 (끊기면 선이 튀어나옴)
-                transition: `stroke-dashoffset ${LADDER.traceMs}ms linear, stroke 300ms ease`,
+                strokeDashoffset: phase === 'drawing' ? 0 : 1,
+                // armed 단계에서만 트랜지션을 끈다 (선을 되감지 않고 즉시 숨기려고)
+                transition: phase === 'armed'
+                  ? 'none'
+                  : `stroke-dashoffset ${LADDER.traceMs}ms linear, stroke 300ms ease`,
                 filter: `drop-shadow(0 0 5px ${result ? result.color : 'var(--accent)'})`,
               }}
             />
@@ -254,6 +271,7 @@ export default function LadderGame({ available = 0 }) {
         <div style={{
           display: 'grid', gridTemplateColumns: `repeat(${LADDER.columns}, 1fr)`, gap: 4,
           padding: '4px 0 8px',
+          maxWidth: LADDER_MAX_W, margin: '0 auto',
         }}>
           {slots.map((p, c) => {
             const hit = result?.endCol === c;
@@ -279,6 +297,14 @@ export default function LadderGame({ available = 0 }) {
                 }}>
                   {tracing ? '???' : (p.label[lang] || p.label.ko)}
                 </span>
+                {/* 각 칸이 얼마짜리인지 */}
+                <span style={{
+                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 9,
+                  color: hit ? p.color : 'var(--text-muted)',
+                  opacity: hit ? 1 : 0.6,
+                }}>
+                  {tracing ? '' : `+${compactExp(p.exp)}`}
+                </span>
               </div>
             );
           })}
@@ -297,6 +323,15 @@ export default function LadderGame({ available = 0 }) {
             ? `${result.icon} ${result.label[lang] || result.label.ko} — ${result.msg[lang] || result.msg.ko}`
             : available >= LADDER.cost ? t.pick : t.noTicket}
       </div>
+
+      {/* 획득 EXP + 레벨 변화 */}
+      {result && !tracing && (
+        <ExpGainBanner
+          baseExp={baseExp + gained}
+          gainedExp={result.exp}
+          color={result.color}
+        />
+      )}
 
       {/* 출발 버튼 */}
       <button

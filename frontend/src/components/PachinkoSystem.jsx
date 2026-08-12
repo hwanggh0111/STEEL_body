@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useLangStore } from '../store/langStore';
 import { toast } from './Toast';
 import CasinoChip from './CasinoChip';
+import ExpGainBanner from './ExpGainBanner';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import {
-  TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS,
+  TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, MAX_BATCH,
   drawPrize, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
+  compactExp,
 } from '../data/pachinkoData';
 
 const T = {
@@ -13,7 +15,11 @@ const T = {
     title: '파칭코',
     tickets: '보유 티켓',
     totalExp: '누적 획득',
-    spin: '돌리기',
+    spin1: '1회 뽑기',
+    spin10: '10회 뽑기',
+    spinAll: '모두 쓰기',
+    timesUnit: '회',
+    resultLabel: '결과',
     spinning: '돌리는 중…',
     noTicket: '티켓이 없어요',
     howTo: `운동 ${TICKET_RULE.perWorkouts}회당 티켓 1개, 인바디 ${TICKET_RULE.perInbody}회당 티켓 1개`,
@@ -32,7 +38,11 @@ const T = {
     title: 'Pachinko',
     tickets: 'Tickets',
     totalExp: 'Total earned',
-    spin: 'SPIN',
+    spin1: 'SPIN x1',
+    spin10: 'SPIN x10',
+    spinAll: 'SPIN ALL',
+    timesUnit: 'x',
+    resultLabel: 'RESULT',
     spinning: 'Spinning…',
     noTicket: 'No tickets',
     howTo: `1 ticket per ${TICKET_RULE.perWorkouts} workouts, 1 per ${TICKET_RULE.perInbody} inbody`,
@@ -55,7 +65,8 @@ export function earnedTickets(totalWorkouts, totalInbody) {
   const w = Number.isFinite(+totalWorkouts) ? Math.max(0, +totalWorkouts) : 0;
   const i = Number.isFinite(+totalInbody) ? Math.max(0, +totalInbody) : 0;
   return Math.floor(w / TICKET_RULE.perWorkouts)
-       + Math.floor(i / TICKET_RULE.perInbody);
+       + Math.floor(i / TICKET_RULE.perInbody)
+       + (TICKET_RULE.bonus || 0);
 }
 
 // 파칭코로 획득한 누적 EXP (레벨 계산에 합산됨)
@@ -65,27 +76,13 @@ export function getPachinkoExp() {
 
 const STRIP = Array.from({ length: REEL.cycles * 10 }, (_, i) => i % 10);
 
-// 15자리까지 나오므로 좁은 칩/버튼 안에서는 축약해서 표기
-function compactExp(n) {
-  if (n < 10000) return String(n);
-  const units = [
-    [1e12, '조'], [1e8, '억'], [1e4, '만'],
-  ];
-  for (const [size, suffix] of units) {
-    if (n >= size) {
-      const v = n / size;
-      return (v >= 100 ? Math.round(v) : +v.toFixed(1)) + suffix;
-    }
-  }
-  return String(n);
-}
-
-export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
+export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
 
   // 티켓/누적 EXP/기록은 사다리 모드와 공유한다
-  const { used, gained, log, play } = usePachinkoStore();
+  const { used, gained, log, play, playMany } = usePachinkoStore();
+  const [multi, setMulti] = useState(null);   // 다회 뽑기 결과 요약
 
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
@@ -109,14 +106,21 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
   // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음)
   const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
 
-  const spin = () => {
+  // count 판을 한 번에 돌린다. 릴은 그중 최고 등급을 보여주고,
+  // 2판 이상이면 전체 내역을 요약 패널로 따로 표시한다.
+  const spin = (count = 1) => {
     if (spinning || available <= 0) return;
 
-    const prize = drawPrize();
+    // 티켓이 수백만 장이어도 한 번에 그만큼 배열을 만들면 브라우저가 멈춘다
+    const n = Math.min(count, available, MAX_BATCH);
+    const prizes = Array.from({ length: n }, () => drawPrize());
+    // 릴에 띄울 판 — 여러 판이면 그중 가장 높은 등급
+    const prize = prizes.reduce((a, b) => (b.exp > a.exp ? b : a), prizes[0]);
     const digits = String(prize.exp).padStart(REEL.digits, '0').split('').map(Number);
 
     setSpinning(true);
     setResult(null);
+    setMulti(null);
 
     // 1) 트랜지션 없이 각 릴을 시작 위치(0~9)로 되돌린다
     setReels(digits.map(() => ({ pos: 0, moving: false, stopped: false })));
@@ -141,15 +145,30 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
       timersRef.current.push(id);
     });
 
-    // 4) 결과 확정 + 저장 (티켓 1장 소모)
+    // 4) 결과 확정 + 저장 (티켓 n장 소모)
     const doneId = setTimeout(() => {
-      play(1, prize, 'reel');
+      if (n === 1) {
+        play(1, prize, 'reel');
+        if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
+        else toast(prize.msg[lang] || prize.msg.ko, 'error');
+      } else {
+        const { totalExp } = playMany(prizes, 'reel');
+        // 등급별로 몇 번 나왔는지 집계
+        const counts = new Map();
+        for (const p of prizes) counts.set(p.id, (counts.get(p.id) || 0) + 1);
+        setMulti({
+          n,
+          totalExp,
+          best: prize,
+          rows: PRIZES.filter(p => counts.has(p.id))
+            .map(p => ({ prize: p, count: counts.get(p.id) }))
+            .reverse(),
+        });
+        toast(`${n}${t.timesUnit} — +${compactExp(totalExp)} EXP`);
+      }
 
       setResult(prize);
       setSpinning(false);
-
-      if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
-      else toast(prize.msg[lang] || prize.msg.ko, 'error');
     }, REEL_TOTAL_MS + REEL.revealMs);
     timersRef.current.push(doneId);
   };
@@ -185,7 +204,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
               fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, lineHeight: 1,
               color: available > 0 ? 'var(--accent)' : 'var(--text-muted)',
             }}>
-              🎫 {available}
+              🎫 {available.toLocaleString()}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -312,15 +331,102 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0 }) {
             : available > 0 ? t.howTo : t.noTicket}
       </div>
 
-      {/* 돌리기 버튼 */}
+      {/* 획득 EXP + 레벨 변화 */}
+      {result && !spinning && (
+        <ExpGainBanner
+          baseExp={baseExp + gained}
+          gainedExp={multi ? multi.totalExp : result.exp}
+          color={result.color}
+        />
+      )}
+
+      {/* 뽑기 버튼 3종 */}
       <button
         className="btn-primary"
-        onClick={spin}
+        onClick={() => spin(1)}
         disabled={spinning || available <= 0}
         style={{ width: '100%' }}
       >
-        {spinning ? t.spinning : available > 0 ? `${t.spin} (🎫 ${available})` : t.noTicket}
+        {spinning ? t.spinning : available > 0 ? `${t.spin1} (🎫 1)` : t.noTicket}
       </button>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <button
+          onClick={() => spin(10)}
+          disabled={spinning || available < 10}
+          style={{
+            flex: 1, padding: '10px 0',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--border-accent)',
+            background: available >= 10 && !spinning ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
+            color: available >= 10 && !spinning ? 'var(--accent)' : 'var(--text-muted)',
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1,
+            cursor: available >= 10 && !spinning ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {t.spin10} (🎫 10)
+        </button>
+        <button
+          onClick={() => spin(available)}
+          disabled={spinning || available <= 0}
+          style={{
+            flex: 1, padding: '10px 0',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--danger)',
+            background: available > 0 && !spinning ? 'var(--danger-dim)' : 'var(--bg-tertiary)',
+            color: available > 0 && !spinning ? 'var(--danger)' : 'var(--text-muted)',
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1,
+            cursor: available > 0 && !spinning ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {t.spinAll} (🎫 {Math.min(available, MAX_BATCH).toLocaleString()})
+        </button>
+      </div>
+
+      {/* 다회 뽑기 요약 */}
+      {multi && !spinning && (
+        <div style={{
+          marginTop: 12, padding: 12,
+          borderRadius: 'var(--radius)',
+          background: 'var(--bg-tertiary)',
+          border: `1px solid ${multi.best.color}55`,
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+            marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)',
+          }}>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1,
+              color: 'var(--text-primary)',
+            }}>
+              {multi.n}{t.timesUnit} {t.resultLabel}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 18,
+              color: 'var(--success)',
+            }}>
+              +{compactExp(multi.totalExp)} EXP
+            </span>
+          </div>
+
+          {multi.rows.map(({ prize: p, count }) => (
+            <div key={p.id} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              fontSize: 11, padding: '3px 0',
+            }}>
+              <span style={{ color: p.color }}>
+                {p.icon} {p.label[lang] || p.label.ko}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {count}{t.timesUnit}
+                <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                  +{compactExp(p.exp * count)}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 최근 결과 */}
       {log.length > 0 && (

@@ -14,6 +14,8 @@ import {
   rewardCardStyle, rewardTitleStyle, rewardStatusStyle,
   infoBoxStyle, infoTextStyle, stampBtnStyle,
 } from './launchEvent/styles';
+import { calcExp, getLevelInfo } from './LevelSystem';
+import { getPachinkoExp } from './PachinkoSystem';
 
 export default function LaunchEvent({ workouts = {}, records = [] }) {
   const lang = useLangStore((s) => s.lang) || 'ko';
@@ -76,12 +78,12 @@ export default function LaunchEvent({ workouts = {}, records = [] }) {
     }
     if (workoutDays.length === 1) maxStreak = 1;
 
-    // Level from localStorage
-    let userLevel = 1;
-    try {
-      const lv = localStorage.getItem('steelbody_level');
-      if (lv) userLevel = parseInt(lv, 10) || 1;
-    } catch {}
+    // 레벨은 실제 기록 + 파칭코 EXP에서 계산한다
+    // (예전에는 localStorage의 steelbody_level을 읽었는데, 그 값은
+    //  관리자 특전으로만 심어지던 것이라 이제 존재하지 않는다)
+    const userLevel = getLevelInfo(
+      calcExp(totalWorkouts, records.length, getPachinkoExp())
+    ).level;
 
     const updated = { ...completedMissions };
     let changed = false;

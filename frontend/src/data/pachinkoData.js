@@ -6,8 +6,15 @@
 export const TICKET_RULE = {
   perWorkouts: 3,   // 운동 N회당 티켓 1개
   perInbody: 1,     // 인바디 N회당 티켓 1개
-  maxStack: 600,    // 미사용 티켓 최대 보유량 (무한 적립 방지)
+  maxStack: 60,     // 미사용 티켓 최대 보유량 (무한 적립 방지)
+  // 무상 지급 티켓. 평소 0이며, 테스트로 티켓을 늘릴 때만 잠깐 올린다
+  // (기록을 수백만 건 만들지 않고 티켓만 확보하기 위한 용도).
+  bonus: 0,
 };
+
+// 한 번에 돌릴 수 있는 최대 판수.
+// 티켓이 수백만 장이어도 그만큼 배열을 만들면 브라우저가 멈추므로 잘라낸다.
+export const MAX_BATCH = 1000;
 
 // ── 보상 등급 ──
 // weight 합계가 100일 필요는 없습니다 (가중치 비율로 계산).
@@ -139,7 +146,7 @@ export const LADDER = {
   columns: 5,       // 세로줄 = 시작점 개수 = 도착 칸 개수
   rows: 9,          // 가로줄이 놓일 수 있는 층 수
   rungChance: 0.55, // 각 층에서 가로줄이 생길 확률
-  traceMs: 2800,    // 경로를 따라 내려가는 시간 (천천히 보이도록)
+  traceMs: 3600,    // 경로를 따라 내려가는 시간 (천천히 보이도록)
 };
 
 export const LADDER_PRIZES = [
@@ -222,6 +229,19 @@ export function drawPrize(rand = Math.random) {
     if (roll < 0) return p;
   }
   return PRIZES[0];
+}
+
+// ── 큰 숫자 축약 (15자리까지 나오므로 좁은 칸에서는 줄여 표기) ──
+export function compactExp(n) {
+  if (n < 10000) return String(n);
+  const units = [[1e12, '조'], [1e8, '억'], [1e4, '만']];
+  for (const [size, suffix] of units) {
+    if (n >= size) {
+      const v = n / size;
+      return (v >= 100 ? Math.round(v) : +v.toFixed(1)) + suffix;
+    }
+  }
+  return String(n);
 }
 
 // ── 안전한 숫자 읽기 (조작/손상 값 방어) ──

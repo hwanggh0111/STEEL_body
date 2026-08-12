@@ -43,6 +43,34 @@ export const usePachinkoStore = create((set, get) => ({
     return nextGained;
   },
 
+  // 여러 판을 한 번에 반영한다 (10연차 / 모두 쓰기).
+  // 판마다 set을 호출하면 리렌더가 수백 번 일어나므로 한 번에 합산한다.
+  playMany: (prizes, mode) => {
+    const { used, gained, log } = get();
+
+    const nextUsed = used + prizes.length;
+    const sum = prizes.reduce((s, p) => s + p.exp, 0);
+    const nextGained = Math.min(gained + sum, MAX_EXP);
+
+    // 기록에는 등급이 높은 것부터 남긴다 (수백 판이면 전부 남길 수 없음)
+    const top = [...prizes].sort((a, b) => b.exp - a.exp).slice(0, LOG_MAX);
+    const nextLog = [...top.map(p => ({ id: p.id, exp: p.exp, mode })), ...log].slice(0, LOG_MAX);
+
+    localStorage.setItem(LS.used, String(nextUsed));
+    localStorage.setItem(LS.exp, String(nextGained));
+    localStorage.setItem(LS.log, JSON.stringify(nextLog));
+
+    const best = top[0];
+    if (best && best.exp > readInt(LS.best + '_exp', 0)) {
+      localStorage.setItem(LS.best, best.id);
+      localStorage.setItem(LS.best + '_exp', String(best.exp));
+    }
+
+    set({ used: nextUsed, gained: nextGained, log: nextLog });
+    // 상한에 걸렸으면 실제로 반영된 양만 돌려준다
+    return { totalExp: nextGained - gained, rawTotal: sum, best };
+  },
+
   reset: () => {
     [LS.used, LS.exp, LS.log, LS.best, LS.best + '_exp'].forEach(k => localStorage.removeItem(k));
     set({ used: 0, gained: 0, log: [] });

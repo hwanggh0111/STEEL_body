@@ -1,129 +1,128 @@
 import { useState } from 'react';
 import { useLangStore } from '../store/langStore';
-import { isAdmin } from '../data/admin';
 
-// 20티어 × 5레벨 = 100레벨
+// 20티어 × 5레벨 = 100레벨 (LV 0 ~ LV 99)
 const LEVEL_TABLE = [
-  // 1~5: T1 입문 (gray)
-  { level: 1,  exp: 0,     tier: 1, title: { ko: '입문자',     en: 'Beginner' },        icon: '🌱', color: '#888' },
-  { level: 2,  exp: 30,    tier: 1, title: { ko: '첫걸음',     en: 'First Step' },      icon: '🐣', color: '#888' },
-  { level: 3,  exp: 80,    tier: 1, title: { ko: '운동 시작',   en: 'Started' },         icon: '🔥', color: '#999' },
-  { level: 4,  exp: 150,   tier: 1, title: { ko: '적응 단계',   en: 'Adapting' },        icon: '💪', color: '#a0a0a0' },
-  { level: 5,  exp: 240,   tier: 1, title: { ko: '입문 졸업',   en: 'Graduated' },       icon: '🎓', color: '#aaa' },
-  // 6~10: T2 초보 (bronze)
-  { level: 6,  exp: 350,   tier: 2, title: { ko: '초보 헬린이', en: 'Newbie Lifter' },   icon: '🏋️', color: '#b8860b' },
-  { level: 7,  exp: 480,   tier: 2, title: { ko: '운동 습관',   en: 'Habit Builder' },   icon: '📅', color: '#b8860b' },
-  { level: 8,  exp: 630,   tier: 2, title: { ko: '꾸준함',     en: 'Steady' },          icon: '🏃', color: '#cd853f' },
-  { level: 9,  exp: 800,   tier: 2, title: { ko: '초보 강자',   en: 'Strong Newbie' },   icon: '💥', color: '#cd853f' },
-  { level: 10, exp: 1000,  tier: 2, title: { ko: '초보 마스터', en: 'Newbie Master' },   icon: '🎯', color: '#daa520' },
-  // 11~15: T3 중급 (orange)
-  { level: 11, exp: 1230,  tier: 3, title: { ko: '중급 진입',   en: 'Mid Lifter' },      icon: '🔥', color: '#ff6b1a' },
-  { level: 12, exp: 1490,  tier: 3, title: { ko: '헬스 매니아', en: 'Gym Maniac' },      icon: '⚡', color: '#ff6b1a' },
-  { level: 13, exp: 1780,  tier: 3, title: { ko: '근육 사냥꾼', en: 'Muscle Hunter' },   icon: '🏹', color: '#ff6b1a' },
-  { level: 14, exp: 2100,  tier: 3, title: { ko: '철의 의지',   en: 'Iron Will' },       icon: '🔩', color: '#ff6b1a' },
-  { level: 15, exp: 2450,  tier: 3, title: { ko: '중급 마스터', en: 'Mid Master' },      icon: '🎯', color: '#ff6b1a' },
-  // 16~20: T4 상급 (blue)
-  { level: 16, exp: 2840,  tier: 4, title: { ko: '상급 리프터', en: 'Advanced Lifter' }, icon: '💎', color: '#4a9aff' },
-  { level: 17, exp: 3270,  tier: 4, title: { ko: '근육 조각가', en: 'Body Sculptor' },   icon: '🗿', color: '#4a9aff' },
-  { level: 18, exp: 3740,  tier: 4, title: { ko: '철인',       en: 'Iron Man' },        icon: '🦾', color: '#4a9aff' },
-  { level: 19, exp: 4250,  tier: 4, title: { ko: '짐 마스터',   en: 'Gym Master' },      icon: '🏅', color: '#4a9aff' },
-  { level: 20, exp: 4800,  tier: 4, title: { ko: '상급 정점',   en: 'Advanced Peak' },   icon: '🎯', color: '#4a9aff' },
-  // 21~25: T5 엘리트 (purple)
-  { level: 21, exp: 5400,  tier: 5, title: { ko: '엘리트',     en: 'Elite' },           icon: '⭐', color: '#c0a0ff' },
-  { level: 22, exp: 6050,  tier: 5, title: { ko: '전설 입문',   en: 'Legend Initiate' }, icon: '✨', color: '#c0a0ff' },
-  { level: 23, exp: 6750,  tier: 5, title: { ko: '타이탄',     en: 'Titan' },           icon: '🗼', color: '#c0a0ff' },
-  { level: 24, exp: 7500,  tier: 5, title: { ko: '헤라클레스', en: 'Hercules' },        icon: '⚡', color: '#c0a0ff' },
-  { level: 25, exp: 8300,  tier: 5, title: { ko: '엘리트 마스터', en: 'Elite Master' }, icon: '🎯', color: '#c0a0ff' },
-  // 26~30: T6 전설 (gold)
-  { level: 26, exp: 9150,  tier: 6, title: { ko: '전설의 시작', en: 'Legend Begins' },   icon: '👑', color: '#ffd700' },
-  { level: 27, exp: 10050, tier: 6, title: { ko: '전설의 리프터', en: 'Legendary' },     icon: '🏆', color: '#ffd700' },
-  { level: 28, exp: 11000, tier: 6, title: { ko: '황금 보디',   en: 'Golden Body' },     icon: '💛', color: '#ffd700' },
-  { level: 29, exp: 12000, tier: 6, title: { ko: '챔피언',     en: 'Champion' },        icon: '🥇', color: '#ffd700' },
-  { level: 30, exp: 13050, tier: 6, title: { ko: '전설 마스터', en: 'Legend Master' },   icon: '🎯', color: '#ffd700' },
-  // 31~35: T7 불멸 (magenta)
-  { level: 31, exp: 14150, tier: 7, title: { ko: '불멸의 시작', en: 'Immortal Begins' }, icon: '🔱', color: '#ff44ff' },
-  { level: 32, exp: 15300, tier: 7, title: { ko: '시간의 정복자', en: 'Time Conqueror' },icon: '⏳', color: '#ff44ff' },
-  { level: 33, exp: 16500, tier: 7, title: { ko: '영원의 전사', en: 'Eternal Warrior' }, icon: '♾️', color: '#ff44ff' },
-  { level: 34, exp: 17750, tier: 7, title: { ko: '불사신',     en: 'Immortal' },        icon: '🌟', color: '#ff44ff' },
-  { level: 35, exp: 19050, tier: 7, title: { ko: '불멸 마스터', en: 'Immortal Master' }, icon: '🎯', color: '#ff44ff' },
-  // 36~40: T8 신화 (red)
-  { level: 36, exp: 20400, tier: 8, title: { ko: '신화의 시작', en: 'Myth Begins' },     icon: '🌟', color: '#ff2222' },
-  { level: 37, exp: 21800, tier: 8, title: { ko: '천둥의 신',   en: 'Thunder God' },     icon: '⛈️', color: '#ff2222' },
-  { level: 38, exp: 23250, tier: 8, title: { ko: '전쟁의 신',   en: 'War God' },         icon: '⚔️', color: '#ff2222' },
-  { level: 39, exp: 24750, tier: 8, title: { ko: '우주의 리프터', en: 'Cosmic Lifter' }, icon: '🌌', color: '#ff2222' },
-  { level: 40, exp: 26300, tier: 8, title: { ko: '신화 마스터', en: 'Myth Master' },     icon: '🎯', color: '#ff2222' },
-  // 41~45: T9 초월 (cyan)
-  { level: 41, exp: 27900, tier: 9, title: { ko: '초월의 시작', en: 'Transcend' },       icon: '🔮', color: '#00ffcc' },
-  { level: 42, exp: 29550, tier: 9, title: { ko: '차원 파괴자', en: 'Dimension Breaker' },icon: '🌀', color: '#00ffcc' },
-  { level: 43, exp: 31250, tier: 9, title: { ko: '만물의 리프터', en: 'Universal' },     icon: '🌐', color: '#00ffcc' },
-  { level: 44, exp: 33000, tier: 9, title: { ko: '우주의 끝',   en: 'Edge of Universe' },icon: '🚀', color: '#00ffcc' },
-  { level: 45, exp: 34800, tier: 9, title: { ko: '초월 마스터', en: 'Transcend Master' },icon: '🎯', color: '#00ffcc' },
-  // 46~50: T10 정점 (hot pink)
-  { level: 46, exp: 36650, tier: 10, title: { ko: '절대자',     en: 'Absolute' },        icon: '🌠', color: '#ff0066' },
-  { level: 47, exp: 38550, tier: 10, title: { ko: '무적의 보디', en: 'Invincible Body' },icon: '💠', color: '#ff0066' },
-  { level: 48, exp: 40500, tier: 10, title: { ko: '극한의 리프터', en: 'Ultimate' },     icon: '🔥', color: '#ff0066' },
-  { level: 49, exp: 42500, tier: 10, title: { ko: '신을 넘은 자', en: 'Beyond Gods' },   icon: '⚡', color: '#ff0066' },
-  { level: 50, exp: 44550, tier: 10, title: { ko: '신화를 넘은 자', en: 'Beyond Myth' }, icon: '🌟', color: '#ff0066' },
-  // 51~55: T11 각성
-  { level: 51, exp: 71760, tier: 11, title: { ko: '각성의 시작', en: 'Awakening' }, icon: '🌿', color: '#a0ff40' },
-  { level: 52, exp: 115600, tier: 11, title: { ko: '한계 돌파', en: 'Limit Breaker' }, icon: '💢', color: '#a0ff40' },
-  { level: 53, exp: 186200, tier: 11, title: { ko: '잠재력 해방', en: 'Unleashed' }, icon: '🔓', color: '#a0ff40' },
-  { level: 54, exp: 299900, tier: 11, title: { ko: '초월한 육체', en: 'Beyond Flesh' }, icon: '🦿', color: '#a0ff40' },
-  { level: 55, exp: 483000, tier: 11, title: { ko: '각성 마스터', en: 'Awakened Master' }, icon: '🎯', color: '#a0ff40' },
-  // 56~60: T12 초인
-  { level: 56, exp: 778000, tier: 12, title: { ko: '초인 입문', en: 'Superhuman' }, icon: '🦸', color: '#40ffa0' },
-  { level: 57, exp: 1253000, tier: 12, title: { ko: '강철 심장', en: 'Steel Heart' }, icon: '🫀', color: '#40ffa0' },
-  { level: 58, exp: 2019000, tier: 12, title: { ko: '불굴의 의지', en: 'Unbroken' }, icon: '🛡️', color: '#40ffa0' },
-  { level: 59, exp: 3251000, tier: 12, title: { ko: '인간 최강', en: 'Peak Human' }, icon: '🥊', color: '#40ffa0' },
-  { level: 60, exp: 5237000, tier: 12, title: { ko: '초인 마스터', en: 'Superhuman Master' }, icon: '🎯', color: '#40ffa0' },
-  // 61~65: T13 반신
-  { level: 61, exp: 8435000, tier: 13, title: { ko: '반신 강림', en: 'Demigod' }, icon: '🌓', color: '#40e0ff' },
-  { level: 62, exp: 13590000, tier: 13, title: { ko: '신의 그림자', en: 'Gods Shadow' }, icon: '👤', color: '#40e0ff' },
-  { level: 63, exp: 21890000, tier: 13, title: { ko: '영웅의 피', en: 'Heroic Blood' }, icon: '🩸', color: '#40e0ff' },
-  { level: 64, exp: 35250000, tier: 13, title: { ko: '신화 재림', en: 'Myth Reborn' }, icon: '📜', color: '#40e0ff' },
-  { level: 65, exp: 56780000, tier: 13, title: { ko: '반신 마스터', en: 'Demigod Master' }, icon: '🎯', color: '#40e0ff' },
-  // 66~70: T14 신격
-  { level: 66, exp: 91460000, tier: 14, title: { ko: '신격 획득', en: 'Divinity' }, icon: '😇', color: '#8080ff' },
-  { level: 67, exp: 147300000, tier: 14, title: { ko: '천상의 힘', en: 'Celestial' }, icon: '☁️', color: '#8080ff' },
-  { level: 68, exp: 237300000, tier: 14, title: { ko: '신의 권능', en: 'Authority' }, icon: '⚖️', color: '#8080ff' },
-  { level: 69, exp: 382200000, tier: 14, title: { ko: '올림포스', en: 'Olympus' }, icon: '🏛️', color: '#8080ff' },
-  { level: 70, exp: 615600000, tier: 14, title: { ko: '신격 마스터', en: 'Divine Master' }, icon: '🎯', color: '#8080ff' },
-  // 71~75: T15 창조
-  { level: 71, exp: 991600000, tier: 15, title: { ko: '창조의 시작', en: 'Genesis' }, icon: '🌱', color: '#c060ff' },
-  { level: 72, exp: 1597000000, tier: 15, title: { ko: '세계의 설계자', en: 'Architect' }, icon: '📐', color: '#c060ff' },
-  { level: 73, exp: 2573000000, tier: 15, title: { ko: '생명의 근원', en: 'Origin' }, icon: '🧬', color: '#c060ff' },
-  { level: 74, exp: 4144000000, tier: 15, title: { ko: '만물의 창조주', en: 'Creator' }, icon: '🖐️', color: '#c060ff' },
-  { level: 75, exp: 6675000000, tier: 15, title: { ko: '창조 마스터', en: 'Creation Master' }, icon: '🎯', color: '#c060ff' },
-  // 76~80: T16 무한
-  { level: 76, exp: 10750000000, tier: 16, title: { ko: '무한 개방', en: 'Infinity' }, icon: '♾️', color: '#ff60c0' },
-  { level: 77, exp: 17320000000, tier: 16, title: { ko: '끝없는 힘', en: 'Endless' }, icon: '🌊', color: '#ff60c0' },
-  { level: 78, exp: 27890000000, tier: 16, title: { ko: '영원의 순환', en: 'Eternal Cycle' }, icon: '🔄', color: '#ff60c0' },
-  { level: 79, exp: 44930000000, tier: 16, title: { ko: '무한 동력', en: 'Infinite Engine' }, icon: '⚙️', color: '#ff60c0' },
-  { level: 80, exp: 72370000000, tier: 16, title: { ko: '무한 마스터', en: 'Infinity Master' }, icon: '🎯', color: '#ff60c0' },
-  // 81~85: T17 차원
-  { level: 81, exp: 116600000000, tier: 17, title: { ko: '차원 도약', en: 'Dimension' }, icon: '🌀', color: '#ff6060' },
-  { level: 82, exp: 187800000000, tier: 17, title: { ko: '평행 세계', en: 'Parallel' }, icon: '🪞', color: '#ff6060' },
-  { level: 83, exp: 302400000000, tier: 17, title: { ko: '시공 지배자', en: 'Spacetime' }, icon: '⏳', color: '#ff6060' },
-  { level: 84, exp: 487100000000, tier: 17, title: { ko: '차원의 왕', en: 'Dimension King' }, icon: '👑', color: '#ff6060' },
-  { level: 85, exp: 784600000000, tier: 17, title: { ko: '차원 마스터', en: 'Dimension Master' }, icon: '🎯', color: '#ff6060' },
-  // 86~90: T18 우주
-  { level: 86, exp: 1264000000000, tier: 18, title: { ko: '우주 진출', en: 'Cosmos' }, icon: '🚀', color: '#ffa040' },
-  { level: 87, exp: 2036000000000, tier: 18, title: { ko: '은하의 지배자', en: 'Galactic' }, icon: '🌠', color: '#ffa040' },
-  { level: 88, exp: 3279000000000, tier: 18, title: { ko: '별의 창조자', en: 'Star Maker' }, icon: '⭐', color: '#ffa040' },
-  { level: 89, exp: 5281000000000, tier: 18, title: { ko: '우주의 심장', en: 'Cosmic Heart' }, icon: '💫', color: '#ffa040' },
-  { level: 90, exp: 8507000000000, tier: 18, title: { ko: '우주 마스터', en: 'Cosmos Master' }, icon: '🎯', color: '#ffa040' },
-  // 91~95: T19 특이점
-  { level: 91, exp: 13700000000000, tier: 19, title: { ko: '특이점 돌입', en: 'Singularity' }, icon: '🕳️', color: '#ffe040' },
-  { level: 92, exp: 22070000000000, tier: 19, title: { ko: '법칙 초월', en: 'Beyond Law' }, icon: '📖', color: '#ffe040' },
-  { level: 93, exp: 35550000000000, tier: 19, title: { ko: '존재의 끝', en: 'End of Being' }, icon: '🌑', color: '#ffe040' },
-  { level: 94, exp: 57260000000000, tier: 19, title: { ko: '무의 경지', en: 'Void' }, icon: '⬛', color: '#ffe040' },
-  { level: 95, exp: 92230000000000, tier: 19, title: { ko: '특이점 마스터', en: 'Singularity Master' }, icon: '🎯', color: '#ffe040' },
-  // 96~100: T20 절대
-  { level: 96, exp: 148600000000000, tier: 20, title: { ko: '절대 영역', en: 'Absolute' }, icon: '🔆', color: '#ffffff' },
-  { level: 97, exp: 239300000000000, tier: 20, title: { ko: '모든 것의 위', en: 'Above All' }, icon: '🗻', color: '#ffffff' },
-  { level: 98, exp: 385400000000000, tier: 20, title: { ko: '개념 그 자체', en: 'Concept' }, icon: '🔯', color: '#ffffff' },
-  { level: 99, exp: 620800000000000, tier: 20, title: { ko: '서사의 끝', en: 'End of Story' }, icon: '📕', color: '#ffffff' },
-  { level: 100, exp: 999999999999999, tier: 20, title: { ko: '신화를 만든 자', en: 'Myth Maker' }, icon: '🌟', color: '#ffffff' },
+  // 0~4: T1 입문 (gray)
+  { level: 0,  exp: 0,     tier: 1, title: { ko: '입문자',     en: 'Beginner' },        icon: '🌱', color: '#888' },
+  { level: 1,  exp: 30,    tier: 1, title: { ko: '첫걸음',     en: 'First Step' },      icon: '🐣', color: '#888' },
+  { level: 2,  exp: 80,    tier: 1, title: { ko: '운동 시작',   en: 'Started' },         icon: '🔥', color: '#999' },
+  { level: 3,  exp: 150,   tier: 1, title: { ko: '적응 단계',   en: 'Adapting' },        icon: '💪', color: '#a0a0a0' },
+  { level: 4,  exp: 240,   tier: 1, title: { ko: '입문 졸업',   en: 'Graduated' },       icon: '🎓', color: '#aaa' },
+  // 5~9: T2 초보 (bronze)
+  { level: 5,  exp: 350,   tier: 2, title: { ko: '초보 헬린이', en: 'Newbie Lifter' },   icon: '🏋️', color: '#b8860b' },
+  { level: 6,  exp: 480,   tier: 2, title: { ko: '운동 습관',   en: 'Habit Builder' },   icon: '📅', color: '#b8860b' },
+  { level: 7,  exp: 630,   tier: 2, title: { ko: '꾸준함',     en: 'Steady' },          icon: '🏃', color: '#cd853f' },
+  { level: 8,  exp: 800,   tier: 2, title: { ko: '초보 강자',   en: 'Strong Newbie' },   icon: '💥', color: '#cd853f' },
+  { level: 9, exp: 1000,  tier: 2, title: { ko: '초보 마스터', en: 'Newbie Master' },   icon: '🎯', color: '#daa520' },
+  // 10~14: T3 중급 (orange)
+  { level: 10, exp: 1230,  tier: 3, title: { ko: '중급 진입',   en: 'Mid Lifter' },      icon: '🔥', color: '#ff6b1a' },
+  { level: 11, exp: 1490,  tier: 3, title: { ko: '헬스 매니아', en: 'Gym Maniac' },      icon: '⚡', color: '#ff6b1a' },
+  { level: 12, exp: 1780,  tier: 3, title: { ko: '근육 사냥꾼', en: 'Muscle Hunter' },   icon: '🏹', color: '#ff6b1a' },
+  { level: 13, exp: 2100,  tier: 3, title: { ko: '철의 의지',   en: 'Iron Will' },       icon: '🔩', color: '#ff6b1a' },
+  { level: 14, exp: 2450,  tier: 3, title: { ko: '중급 마스터', en: 'Mid Master' },      icon: '🎯', color: '#ff6b1a' },
+  // 15~19: T4 상급 (blue)
+  { level: 15, exp: 2840,  tier: 4, title: { ko: '상급 리프터', en: 'Advanced Lifter' }, icon: '💎', color: '#4a9aff' },
+  { level: 16, exp: 3270,  tier: 4, title: { ko: '근육 조각가', en: 'Body Sculptor' },   icon: '🗿', color: '#4a9aff' },
+  { level: 17, exp: 3740,  tier: 4, title: { ko: '철인',       en: 'Iron Man' },        icon: '🦾', color: '#4a9aff' },
+  { level: 18, exp: 4250,  tier: 4, title: { ko: '짐 마스터',   en: 'Gym Master' },      icon: '🏅', color: '#4a9aff' },
+  { level: 19, exp: 4800,  tier: 4, title: { ko: '상급 정점',   en: 'Advanced Peak' },   icon: '🎯', color: '#4a9aff' },
+  // 20~24: T5 엘리트 (purple)
+  { level: 20, exp: 5400,  tier: 5, title: { ko: '엘리트',     en: 'Elite' },           icon: '⭐', color: '#c0a0ff' },
+  { level: 21, exp: 6050,  tier: 5, title: { ko: '전설 입문',   en: 'Legend Initiate' }, icon: '✨', color: '#c0a0ff' },
+  { level: 22, exp: 6750,  tier: 5, title: { ko: '타이탄',     en: 'Titan' },           icon: '🗼', color: '#c0a0ff' },
+  { level: 23, exp: 7500,  tier: 5, title: { ko: '헤라클레스', en: 'Hercules' },        icon: '⚡', color: '#c0a0ff' },
+  { level: 24, exp: 8300,  tier: 5, title: { ko: '엘리트 마스터', en: 'Elite Master' }, icon: '🎯', color: '#c0a0ff' },
+  // 25~29: T6 전설 (gold)
+  { level: 25, exp: 9150,  tier: 6, title: { ko: '전설의 시작', en: 'Legend Begins' },   icon: '👑', color: '#ffd700' },
+  { level: 26, exp: 10050, tier: 6, title: { ko: '전설의 리프터', en: 'Legendary' },     icon: '🏆', color: '#ffd700' },
+  { level: 27, exp: 11000, tier: 6, title: { ko: '황금 보디',   en: 'Golden Body' },     icon: '💛', color: '#ffd700' },
+  { level: 28, exp: 12000, tier: 6, title: { ko: '챔피언',     en: 'Champion' },        icon: '🥇', color: '#ffd700' },
+  { level: 29, exp: 13050, tier: 6, title: { ko: '전설 마스터', en: 'Legend Master' },   icon: '🎯', color: '#ffd700' },
+  // 30~34: T7 불멸 (magenta)
+  { level: 30, exp: 14150, tier: 7, title: { ko: '불멸의 시작', en: 'Immortal Begins' }, icon: '🔱', color: '#ff44ff' },
+  { level: 31, exp: 15300, tier: 7, title: { ko: '시간의 정복자', en: 'Time Conqueror' },icon: '⏳', color: '#ff44ff' },
+  { level: 32, exp: 16500, tier: 7, title: { ko: '영원의 전사', en: 'Eternal Warrior' }, icon: '♾️', color: '#ff44ff' },
+  { level: 33, exp: 17750, tier: 7, title: { ko: '불사신',     en: 'Immortal' },        icon: '🌟', color: '#ff44ff' },
+  { level: 34, exp: 19050, tier: 7, title: { ko: '불멸 마스터', en: 'Immortal Master' }, icon: '🎯', color: '#ff44ff' },
+  // 35~39: T8 신화 (red)
+  { level: 35, exp: 20400, tier: 8, title: { ko: '신화의 시작', en: 'Myth Begins' },     icon: '🌟', color: '#ff2222' },
+  { level: 36, exp: 21800, tier: 8, title: { ko: '천둥의 신',   en: 'Thunder God' },     icon: '⛈️', color: '#ff2222' },
+  { level: 37, exp: 23250, tier: 8, title: { ko: '전쟁의 신',   en: 'War God' },         icon: '⚔️', color: '#ff2222' },
+  { level: 38, exp: 24750, tier: 8, title: { ko: '우주의 리프터', en: 'Cosmic Lifter' }, icon: '🌌', color: '#ff2222' },
+  { level: 39, exp: 26300, tier: 8, title: { ko: '신화 마스터', en: 'Myth Master' },     icon: '🎯', color: '#ff2222' },
+  // 40~44: T9 초월 (cyan)
+  { level: 40, exp: 27900, tier: 9, title: { ko: '초월의 시작', en: 'Transcend' },       icon: '🔮', color: '#00ffcc' },
+  { level: 41, exp: 29550, tier: 9, title: { ko: '차원 파괴자', en: 'Dimension Breaker' },icon: '🌀', color: '#00ffcc' },
+  { level: 42, exp: 31250, tier: 9, title: { ko: '만물의 리프터', en: 'Universal' },     icon: '🌐', color: '#00ffcc' },
+  { level: 43, exp: 33000, tier: 9, title: { ko: '우주의 끝',   en: 'Edge of Universe' },icon: '🚀', color: '#00ffcc' },
+  { level: 44, exp: 34800, tier: 9, title: { ko: '초월 마스터', en: 'Transcend Master' },icon: '🎯', color: '#00ffcc' },
+  // 45~49: T10 정점 (hot pink)
+  { level: 45, exp: 36650, tier: 10, title: { ko: '절대자',     en: 'Absolute' },        icon: '🌠', color: '#ff0066' },
+  { level: 46, exp: 38550, tier: 10, title: { ko: '무적의 보디', en: 'Invincible Body' },icon: '💠', color: '#ff0066' },
+  { level: 47, exp: 40500, tier: 10, title: { ko: '극한의 리프터', en: 'Ultimate' },     icon: '🔥', color: '#ff0066' },
+  { level: 48, exp: 42500, tier: 10, title: { ko: '신을 넘은 자', en: 'Beyond Gods' },   icon: '⚡', color: '#ff0066' },
+  { level: 49, exp: 44550, tier: 10, title: { ko: '신화를 넘은 자', en: 'Beyond Myth' }, icon: '🌟', color: '#ff0066' },
+  // 50~54: T11 각성
+  { level: 50, exp: 71760, tier: 11, title: { ko: '각성의 시작', en: 'Awakening' }, icon: '🌿', color: '#a0ff40' },
+  { level: 51, exp: 115600, tier: 11, title: { ko: '한계 돌파', en: 'Limit Breaker' }, icon: '💢', color: '#a0ff40' },
+  { level: 52, exp: 186200, tier: 11, title: { ko: '잠재력 해방', en: 'Unleashed' }, icon: '🔓', color: '#a0ff40' },
+  { level: 53, exp: 299900, tier: 11, title: { ko: '초월한 육체', en: 'Beyond Flesh' }, icon: '🦿', color: '#a0ff40' },
+  { level: 54, exp: 483000, tier: 11, title: { ko: '각성 마스터', en: 'Awakened Master' }, icon: '🎯', color: '#a0ff40' },
+  // 55~59: T12 초인
+  { level: 55, exp: 778000, tier: 12, title: { ko: '초인 입문', en: 'Superhuman' }, icon: '🦸', color: '#40ffa0' },
+  { level: 56, exp: 1253000, tier: 12, title: { ko: '강철 심장', en: 'Steel Heart' }, icon: '🫀', color: '#40ffa0' },
+  { level: 57, exp: 2019000, tier: 12, title: { ko: '불굴의 의지', en: 'Unbroken' }, icon: '🛡️', color: '#40ffa0' },
+  { level: 58, exp: 3251000, tier: 12, title: { ko: '인간 최강', en: 'Peak Human' }, icon: '🥊', color: '#40ffa0' },
+  { level: 59, exp: 5237000, tier: 12, title: { ko: '초인 마스터', en: 'Superhuman Master' }, icon: '🎯', color: '#40ffa0' },
+  // 60~64: T13 반신
+  { level: 60, exp: 8435000, tier: 13, title: { ko: '반신 강림', en: 'Demigod' }, icon: '🌓', color: '#40e0ff' },
+  { level: 61, exp: 13590000, tier: 13, title: { ko: '신의 그림자', en: 'Gods Shadow' }, icon: '👤', color: '#40e0ff' },
+  { level: 62, exp: 21890000, tier: 13, title: { ko: '영웅의 피', en: 'Heroic Blood' }, icon: '🩸', color: '#40e0ff' },
+  { level: 63, exp: 35250000, tier: 13, title: { ko: '신화 재림', en: 'Myth Reborn' }, icon: '📜', color: '#40e0ff' },
+  { level: 64, exp: 56780000, tier: 13, title: { ko: '반신 마스터', en: 'Demigod Master' }, icon: '🎯', color: '#40e0ff' },
+  // 65~69: T14 신격
+  { level: 65, exp: 91460000, tier: 14, title: { ko: '신격 획득', en: 'Divinity' }, icon: '😇', color: '#8080ff' },
+  { level: 66, exp: 147300000, tier: 14, title: { ko: '천상의 힘', en: 'Celestial' }, icon: '☁️', color: '#8080ff' },
+  { level: 67, exp: 237300000, tier: 14, title: { ko: '신의 권능', en: 'Authority' }, icon: '⚖️', color: '#8080ff' },
+  { level: 68, exp: 382200000, tier: 14, title: { ko: '올림포스', en: 'Olympus' }, icon: '🏛️', color: '#8080ff' },
+  { level: 69, exp: 615600000, tier: 14, title: { ko: '신격 마스터', en: 'Divine Master' }, icon: '🎯', color: '#8080ff' },
+  // 70~74: T15 창조
+  { level: 70, exp: 991600000, tier: 15, title: { ko: '창조의 시작', en: 'Genesis' }, icon: '🌱', color: '#c060ff' },
+  { level: 71, exp: 1597000000, tier: 15, title: { ko: '세계의 설계자', en: 'Architect' }, icon: '📐', color: '#c060ff' },
+  { level: 72, exp: 2573000000, tier: 15, title: { ko: '생명의 근원', en: 'Origin' }, icon: '🧬', color: '#c060ff' },
+  { level: 73, exp: 4144000000, tier: 15, title: { ko: '만물의 창조주', en: 'Creator' }, icon: '🖐️', color: '#c060ff' },
+  { level: 74, exp: 6675000000, tier: 15, title: { ko: '창조 마스터', en: 'Creation Master' }, icon: '🎯', color: '#c060ff' },
+  // 75~79: T16 무한
+  { level: 75, exp: 10750000000, tier: 16, title: { ko: '무한 개방', en: 'Infinity' }, icon: '♾️', color: '#ff60c0' },
+  { level: 76, exp: 17320000000, tier: 16, title: { ko: '끝없는 힘', en: 'Endless' }, icon: '🌊', color: '#ff60c0' },
+  { level: 77, exp: 27890000000, tier: 16, title: { ko: '영원의 순환', en: 'Eternal Cycle' }, icon: '🔄', color: '#ff60c0' },
+  { level: 78, exp: 44930000000, tier: 16, title: { ko: '무한 동력', en: 'Infinite Engine' }, icon: '⚙️', color: '#ff60c0' },
+  { level: 79, exp: 72370000000, tier: 16, title: { ko: '무한 마스터', en: 'Infinity Master' }, icon: '🎯', color: '#ff60c0' },
+  // 80~84: T17 차원
+  { level: 80, exp: 116600000000, tier: 17, title: { ko: '차원 도약', en: 'Dimension' }, icon: '🌀', color: '#ff6060' },
+  { level: 81, exp: 187800000000, tier: 17, title: { ko: '평행 세계', en: 'Parallel' }, icon: '🪞', color: '#ff6060' },
+  { level: 82, exp: 302400000000, tier: 17, title: { ko: '시공 지배자', en: 'Spacetime' }, icon: '⏳', color: '#ff6060' },
+  { level: 83, exp: 487100000000, tier: 17, title: { ko: '차원의 왕', en: 'Dimension King' }, icon: '👑', color: '#ff6060' },
+  { level: 84, exp: 784600000000, tier: 17, title: { ko: '차원 마스터', en: 'Dimension Master' }, icon: '🎯', color: '#ff6060' },
+  // 85~89: T18 우주
+  { level: 85, exp: 1264000000000, tier: 18, title: { ko: '우주 진출', en: 'Cosmos' }, icon: '🚀', color: '#ffa040' },
+  { level: 86, exp: 2036000000000, tier: 18, title: { ko: '은하의 지배자', en: 'Galactic' }, icon: '🌠', color: '#ffa040' },
+  { level: 87, exp: 3279000000000, tier: 18, title: { ko: '별의 창조자', en: 'Star Maker' }, icon: '⭐', color: '#ffa040' },
+  { level: 88, exp: 5281000000000, tier: 18, title: { ko: '우주의 심장', en: 'Cosmic Heart' }, icon: '💫', color: '#ffa040' },
+  { level: 89, exp: 8507000000000, tier: 18, title: { ko: '우주 마스터', en: 'Cosmos Master' }, icon: '🎯', color: '#ffa040' },
+  // 90~94: T19 특이점
+  { level: 90, exp: 13700000000000, tier: 19, title: { ko: '특이점 돌입', en: 'Singularity' }, icon: '🕳️', color: '#ffe040' },
+  { level: 91, exp: 22070000000000, tier: 19, title: { ko: '법칙 초월', en: 'Beyond Law' }, icon: '📖', color: '#ffe040' },
+  { level: 92, exp: 35550000000000, tier: 19, title: { ko: '존재의 끝', en: 'End of Being' }, icon: '🌑', color: '#ffe040' },
+  { level: 93, exp: 57260000000000, tier: 19, title: { ko: '무의 경지', en: 'Void' }, icon: '⬛', color: '#ffe040' },
+  { level: 94, exp: 92230000000000, tier: 19, title: { ko: '특이점 마스터', en: 'Singularity Master' }, icon: '🎯', color: '#ffe040' },
+  // 95~99: T20 절대
+  { level: 95, exp: 148600000000000, tier: 20, title: { ko: '절대 영역', en: 'Absolute' }, icon: '🔆', color: '#ffffff' },
+  { level: 96, exp: 239300000000000, tier: 20, title: { ko: '모든 것의 위', en: 'Above All' }, icon: '🗻', color: '#ffffff' },
+  { level: 97, exp: 385400000000000, tier: 20, title: { ko: '개념 그 자체', en: 'Concept' }, icon: '🔯', color: '#ffffff' },
+  { level: 98, exp: 620800000000000, tier: 20, title: { ko: '서사의 끝', en: 'End of Story' }, icon: '📕', color: '#ffffff' },
+  { level: 99, exp: 999999999999999, tier: 20, title: { ko: '신화를 만든 자', en: 'Myth Maker' }, icon: '🌟', color: '#ffffff' },
 ];
 
 const TIER_INFO = {
@@ -158,6 +157,8 @@ const T = {
     allLevels: '전체 레벨 보기',
     closeLevels: '접기',
     current: '현재',
+    trTable: '초월 등급표',
+    trPerLevel: '초월 1레벨당',
     required: '필요 EXP',
     tier: '티어',
     nextTier: '다음 티어까지',
@@ -170,6 +171,8 @@ const T = {
     allLevels: 'View All Levels',
     closeLevels: 'Close',
     current: 'Current',
+    trTable: 'Transcend Tiers',
+    trPerLevel: 'Per transcend level',
     required: 'Required EXP',
     tier: 'TIER',
     nextTier: 'Next tier in',
@@ -178,7 +181,58 @@ const T = {
 
 // EXP 공식 1.5배 상향: 운동 ×10 → ×15, 인바디 ×20 → ×30
 // LV100 누적 EXP — 이 위로는 의미가 없고, 넘기면 JS 정수 정밀도(2^53)가 깨진다
-export const MAX_EXP = LEVEL_TABLE[LEVEL_TABLE.length - 1].exp;
+// LV 99 도달 EXP — 여기부터 초월 등급이 시작된다
+export const TABLE_MAX_EXP = LEVEL_TABLE[LEVEL_TABLE.length - 1].exp;
+
+// ══ 초월 등급 ══
+// 일반 레벨(0~99)을 다 채우면 그 위로 열리는 별도 체계.
+// 레벨 구간이 아니라 고정 비용으로 오른다.
+export const TRANSCEND = {
+  expPerLevel: 80000000000000,   // 초월 1레벨당 80조 EXP
+  maxLevel: 100,                 // 초월 만렙
+  name: { ko: '초월', en: 'Transcend' },
+  color: '#ffffff',
+  icon: '🔆',
+};
+
+// 누적 EXP 상한 — 초월 만렙 도달점.
+// 2^53(9,007,199,254,740,991) 안쪽이라 정수 정밀도가 깨지지 않는다.
+export const MAX_EXP = TABLE_MAX_EXP + TRANSCEND.expPerLevel * TRANSCEND.maxLevel;
+
+// 초월 100레벨을 10등급으로 나눈다 (등급당 10레벨, 마지막만 11)
+export const TRANSCEND_TIERS = [
+  { from: 0,  to: 9,   name: { ko: '여명', en: 'Dawn' },          icon: '🌅', color: '#a0ffd0' },
+  { from: 10, to: 19,  name: { ko: '성좌', en: 'Constellation' }, icon: '✨', color: '#a0d0ff' },
+  { from: 20, to: 29,  name: { ko: '심연', en: 'Abyss' },         icon: '🌊', color: '#8080ff' },
+  { from: 30, to: 39,  name: { ko: '균열', en: 'Rift' },          icon: '🌀', color: '#c060ff' },
+  { from: 40, to: 49,  name: { ko: '공허', en: 'Void' },          icon: '⬛', color: '#8060c0' },
+  { from: 50, to: 59,  name: { ko: '영겁', en: 'Eon' },           icon: '⏳', color: '#ffb060' },
+  { from: 60, to: 69,  name: { ko: '창천', en: 'Empyrean' },      icon: '🌌', color: '#60d0ff' },
+  { from: 70, to: 79,  name: { ko: '태초', en: 'Primordial' },    icon: '🔥', color: '#ffd060' },
+  { from: 80, to: 89,  name: { ko: '종말', en: 'Omega' },         icon: '💀', color: '#ff6060' },
+  { from: 90, to: 100, name: { ko: '무극', en: 'Boundless' },     icon: '👁️', color: '#ffffff' },
+];
+
+export function getTranscendTier(level) {
+  return TRANSCEND_TIERS.find(tier => level >= tier.from && level <= tier.to) || TRANSCEND_TIERS[0];
+}
+
+// 초월 등급 정보. 아직 LV 99가 아니면 null.
+export function getTranscendInfo(exp) {
+  if (exp < TABLE_MAX_EXP) return null;
+  const over = exp - TABLE_MAX_EXP;
+  const level = Math.min(Math.floor(over / TRANSCEND.expPerLevel), TRANSCEND.maxLevel);
+  const maxed = level >= TRANSCEND.maxLevel;
+  const into = maxed ? TRANSCEND.expPerLevel : over % TRANSCEND.expPerLevel;
+  return {
+    level,
+    into,
+    need: TRANSCEND.expPerLevel,
+    progress: (into / TRANSCEND.expPerLevel) * 100,
+    maxed,
+    tier: getTranscendTier(level),
+  };
+}
 
 export function calcExp(totalWorkouts, totalInbody, bonusExp = 0) {
   const total = (totalWorkouts * 15) + (totalInbody * 30) + bonusExp;
@@ -223,9 +277,12 @@ export default function LevelSystem({ totalWorkouts, totalInbody, bonusExp = 0 }
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
   const [showAll, setShowAll] = useState(false);
+  const [showTrTiers, setShowTrTiers] = useState(false);
 
-  const exp = isAdmin() ? 999999 : calcExp(totalWorkouts, totalInbody, bonusExp);
+  const exp = calcExp(totalWorkouts, totalInbody, bonusExp);
   const info = getLevelInfo(exp);
+  // LV 99를 채우면 그 위로 초월 등급이 열린다
+  const tr = getTranscendInfo(exp);
 
   // 현재 티어 안에서의 레벨 진행도 (5레벨 중 몇 번째)
   const tierStartLevel = (info.tier - 1) * 5 + 1;
@@ -269,6 +326,135 @@ export default function LevelSystem({ totalWorkouts, totalInbody, bonusExp = 0 }
           </span>
         </div>
       </div>
+
+      {/* 초월 등급 — LV 99를 채운 뒤부터 표시 */}
+      {tr && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 10, marginBottom: 12, padding: '8px 12px',
+          borderRadius: 'var(--radius)',
+          background: `${tr.tier.color}0e`,
+          border: `1px solid ${tr.tier.color}55`,
+          boxShadow: `0 0 24px ${tr.tier.color}22 inset`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+            <span style={{ fontSize: 15 }}>{tr.tier.icon}</span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: 2,
+              color: 'var(--text-muted)',
+            }}>
+              {TRANSCEND.name[lang] || TRANSCEND.name.ko}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1,
+              color: tr.tier.color,
+            }}>
+              {tr.tier.name[lang] || tr.tier.name.ko}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1,
+              color: tr.tier.color,
+              textShadow: `0 0 14px ${tr.tier.color}aa`,
+            }}>
+              {tr.level}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              / {TRANSCEND.maxLevel}
+            </span>
+          </div>
+
+          <div style={{ flex: 1, maxWidth: 160 }}>
+            <div style={{
+              height: 4, borderRadius: 2,
+              background: 'var(--bg-tertiary)', overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${tr.progress}%`, height: '100%',
+                background: tr.tier.color,
+                boxShadow: `0 0 8px ${tr.tier.color}`,
+                transition: 'width 400ms ease',
+              }} />
+            </div>
+            <div style={{
+              fontSize: 9, color: 'var(--text-muted)', marginTop: 3, textAlign: 'right',
+            }}>
+              {tr.maxed
+                ? t.maxLevel
+                : `${(tr.need - tr.into).toLocaleString()} ${t.exp}`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 초월 등급표 */}
+      {tr && (
+        <div style={{ marginBottom: 12 }}>
+          <button
+            onClick={() => setShowTrTiers(v => !v)}
+            style={{
+              width: '100%', background: 'none',
+              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+              color: 'var(--text-muted)', fontSize: 11, padding: '6px 0', cursor: 'pointer',
+            }}
+          >
+            {showTrTiers ? t.closeLevels : `🔆 ${t.trTable}`}
+          </button>
+
+          {showTrTiers && (
+            <div style={{ marginTop: 8 }}>
+              {TRANSCEND_TIERS.map(tier => {
+                const isCurrent = tr.level >= tier.from && tr.level <= tier.to;
+                const cleared = tr.level > tier.to;
+                return (
+                  <div
+                    key={tier.from}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '6px 8px', marginBottom: 3,
+                      borderRadius: 'var(--radius)',
+                      background: isCurrent ? `${tier.color}1a` : 'transparent',
+                      border: `1px solid ${isCurrent ? `${tier.color}88` : 'var(--border)'}`,
+                      opacity: cleared || isCurrent ? 1 : 0.45,
+                    }}
+                  >
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 12, color: tier.color,
+                    }}>
+                      <span>{tier.icon}</span>
+                      <span style={{ fontWeight: isCurrent ? 700 : 400 }}>
+                        {tier.name[lang] || tier.name.ko}
+                      </span>
+                      {isCurrent && (
+                        <span style={{
+                          padding: '0 5px', borderRadius: 'var(--radius)',
+                          background: `${tier.color}22`, border: `1px solid ${tier.color}66`,
+                          fontFamily: "'Bebas Neue', sans-serif", fontSize: 9, letterSpacing: 1,
+                        }}>
+                          {t.current}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{
+                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
+                      color: 'var(--text-muted)',
+                    }}>
+                      {tier.from} ~ {tier.to}
+                    </span>
+                  </div>
+                );
+              })}
+              <div style={{
+                marginTop: 6, fontSize: 10, color: 'var(--text-muted)',
+                display: 'flex', justifyContent: 'space-between',
+              }}>
+                <span>{t.trPerLevel}</span>
+                <span>{TRANSCEND.expPerLevel.toLocaleString()} {t.exp}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 메인: 아이콘 + 칭호 + EXP 바 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
