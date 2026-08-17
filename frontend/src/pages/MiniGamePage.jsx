@@ -6,7 +6,7 @@ import { usePachinkoStore } from '../store/pachinkoStore';
 import { usePlateStore } from '../store/plateStore';
 import { earnedTickets } from '../components/PachinkoSystem';
 import PlateDodge from '../components/PlateDodge';
-import { TICKET_RULE } from '../data/pachinkoData';
+import { TICKET_RULE, ticketsAvailable, ticketText } from '../data/pachinkoData';
 import { PLATE_RULE, todayKey } from '../data/plateData';
 
 // 미니게임 전용 페이지.
@@ -17,6 +17,7 @@ export default function MiniGamePage() {
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
   const used = usePachinkoStore(s => s.used);
   const purchased = usePlateStore(s => s.purchased);
+  const unlimited = usePlateStore(s => s.unlimited);
 
   useEffect(() => {
     fetchWorkouts();
@@ -25,10 +26,11 @@ export default function MiniGamePage() {
 
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
   const earned = earnedTickets(totalWorkouts, records.length, purchased);
-  const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
+  const available = ticketsAvailable({ earned, used, unlimited });
 
-  // 상한을 넘겨 산 티켓은 available 계산에서 잘려 사라지므로, 남은 자리만큼만 팔게 한다
-  const ticketRoom = Math.max(0, TICKET_RULE.maxStack - available);
+  // 상한을 넘겨 산 티켓은 available 계산에서 잘려 사라지므로, 남은 자리만큼만 팔게 한다.
+  // 무한 티켓을 얻었으면 살 이유가 없으므로 교환을 아예 닫는다 (원판만 없어진다).
+  const ticketRoom = unlimited ? 0 : Math.max(0, TICKET_RULE.maxStack - available);
 
   // needWorkoutToday 가 켜져 있으면 오늘 운동 기록이 있어야 도전할 수 있다.
   // 날짜는 로컬 기준(todayKey) — toISOString 은 UTC라 오전 9시 이전에 어제로 밀린다.
@@ -69,7 +71,7 @@ export default function MiniGamePage() {
                 fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1,
                 color: available > 0 ? 'var(--accent)' : 'var(--text-muted)',
               }}>
-                🎫 {available.toLocaleString()}
+                🎫 {ticketText(available, unlimited)}
               </span>
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>

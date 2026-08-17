@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { LS, LOG_MAX, readInt, readLS, saveLS, removeLS } from '../data/pachinkoData';
 import { MAX_EXP } from '../components/LevelSystem';
+// 무한 티켓 여부는 원판 지갑이 들고 있다. plateStore 는 이 파일을 import 하지 않으므로
+// 순환 참조가 생기지 않는다.
+import { usePlateStore } from './plateStore';
 
 // 파칭코 / 사다리 두 모드가 티켓과 누적 EXP를 공유한다.
 // 티켓 발급량은 기록 수에서 매번 계산하므로 여기서는 "사용량"만 누적한다.
@@ -63,6 +66,9 @@ export const usePachinkoStore = create((set, get) => ({
   beginPlay: (cost) => {
     const n = Number.isFinite(+cost) ? Math.floor(+cost) : 0;
     if (n <= 0) return false;
+    // 무한 티켓을 얻었으면 소모하지 않는다. 이게 "진짜 무한"의 구현이다 —
+    // 지갑에 큰 수를 넣는 대신 차감을 멈춘다 (pachinkoData 의 UNLIMITED_TICKETS 주석 참고).
+    if (usePlateStore.getState().unlimited) return true;
     const nextUsed = get().used + n;
     saveLS(LS.used, nextUsed);
     set({ used: nextUsed });

@@ -4,7 +4,7 @@ import { usePlateStore } from '../store/plateStore';
 import {
   PLATE_RULE, DODGE, GROUND, PLATES, drawPlate,
   EXPECTED_PER_PLATE, EXPECTED_PER_PLATE_COMMON,
-  JACKPOT_VALUE, groundLife, plateValueText,
+  JACKPOT_VALUE, groundLife, plateValueText, RAINBOW_STOPS,
   plateWeight, PLATE_WEIGHT_TOTAL, PLATE_WEIGHT_TOTAL_PROD, HAS_DEV_WEIGHTS,
 } from '../data/plateData';
 
@@ -51,6 +51,10 @@ const T = {
   revivedNote: '부활',
   lethalTag: '즉사',
   lethalNote: '울트라 무한에 맞았습니다 — 부활 없이 그대로 끝납니다',
+  unlimitedTag: '무한 티켓',
+  unlimitedToast: '∞ 무한 티켓 획득 — 이제 티켓이 닳지 않습니다',
+  unlimitedGot: '∞ 무한 티켓을 얻었습니다. 파칭코와 사다리에서 티켓이 영원히 닳지 않습니다.',
+  unlimitedOwned: '∞ 무한 티켓 보유 중 — 티켓이 닳지 않습니다',
   rates: '원판표',
   ratesTitle: '원판표',
   ratesDesc: '떨어지는 원판의 종류와 등장 확률입니다. 무거울수록 크고 빠른 대신 주웠을 때 많이 줍니다.',
@@ -69,7 +73,10 @@ const T = {
 // ticketRoom = 보유 상한까지 더 받을 수 있는 티켓 수. 상한을 넘겨 사면
 // 파칭코 쪽 available 계산에서 잘려 원판만 사라지므로 교환 자체를 막는다.
 export default function PlateDodge({ canPlay = true, blockedReason = '', ticketRoom = Infinity }) {
-  const { plates, best, day, startRun, finishRun, buyTickets, rollDay } = usePlateStore();
+  const {
+    plates, best, day, unlimited,
+    startRun, finishRun, buyTickets, rollDay, grantUnlimited,
+  } = usePlateStore();
 
   const [phase, setPhase] = useState('idle');   // idle | playing | over
   const [score, setScore] = useState(0);
@@ -176,6 +183,16 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
 
     if (!g) return;
 
+    // 무지개 원판(울트라 무한)만의 채우기 — 단색 대신 원뿔 그라디언트가 천천히 돈다.
+    // ctx.translate 로 원판 중심이 원점이 된 뒤에 불러야 색이 제자리에 앉는다.
+    // createConicGradient 가 없는 브라우저에서는 조용히 단색으로 떨어진다.
+    const fillFor = (spec) => {
+      if (!spec.rainbow || !ctx.createConicGradient) return spec.color;
+      const gd = ctx.createConicGradient(g.elapsed / 350, 0, 0);
+      RAINBOW_STOPS.forEach((c, i) => gd.addColorStop(i / (RAINBOW_STOPS.length - 1), c));
+      return gd;
+    };
+
     // 바닥에 떨어진 원판 — 납작하게 눕혀 그리고, 사라지기 직전엔 깜빡인다
     for (const q of g.ground) {
       const left = groundLife(q.spec) - q.age;
@@ -190,7 +207,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       ctx.shadowColor = q.spec.ring;
       // 잭팟은 멀리서도 보여야 주우러 갈지 판단할 시간이 생긴다
       ctx.shadowBlur = q.spec.value >= JACKPOT_VALUE ? 30 : 16;
-      ctx.fillStyle = q.spec.color;
+      ctx.fillStyle = fillFor(q.spec);
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
@@ -209,7 +226,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       ctx.shadowColor = p.spec.ring;
       // 즉사 원판은 멀리서부터 눈에 띄어야 한다 — 다른 원판보다 훨씬 세게 빛낸다
       ctx.shadowBlur = p.spec.lethal ? 26 : 12;
-      ctx.fillStyle = p.spec.color;
+      ctx.fillStyle = fillFor(p.spec);
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
@@ -306,6 +323,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       pickedBy: { ...g.pickedBy },   // 다음 판이 같은 객체를 덮어쓰지 않게 복사
       revivedCount: PLATE_RULE.revives - g.revives,   // 이 판에 몇 번 부활했는지
       lethal,
+      gotUnlimited: !!g.gotUnlimited,   // 이 판에서 무한 티켓을 얻었는가
       ...result,
     });
     setPhase('over');
@@ -470,6 +488,12 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
           g.pickedBy[q.spec.kg] = (g.pickedBy[q.spec.kg] || 0) + 1;
           g.raw += q.spec.value;
           setScore(g.raw);
+          // 무한 티켓은 줍는 즉시 확정한다 — 판이 끝날 때까지 미루면
+          // 이 판을 정산 못 하고 나갔을 때 평생 한 번을 날린다.
+          if (q.spec.unlimited && grantUnlimited()) {
+            g.gotUnlimited = true;
+            toast(T.unlimitedToast);
+          }
         }
       }
 
@@ -685,6 +709,18 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                   )}
                 </div>
 
+                {/* 이 판에서 무한 티켓을 얻었으면 그게 결과의 전부다 */}
+                {last.gotUnlimited && (
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, maxWidth: 250,
+                    padding: '8px 10px', borderRadius: 'var(--radius)',
+                    background: 'linear-gradient(90deg,#ff3b3b,#ff8a00,#ffe600,#3bff6e,#00e5ff,#4d5bff,#c14dff)',
+                    color: '#000',
+                  }}>
+                    {T.unlimitedGot}
+                  </div>
+                )}
+
                 {/* 부활이 남았는데도 끝난 경우 — 이유를 안 적으면 버그로 보인다 */}
                 {last.lethal && (
                   <div style={{
@@ -817,7 +853,9 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
           <span style={{ fontSize: 11, opacity: 0.75, letterSpacing: 0 }}>
             {affordable > 0
               ? `${affordable}장 교환 가능`
-              : (ticketFull ? T.full : `원판 ${PLATE_RULE.perTicket}개부터`)}
+              : unlimited
+                ? T.unlimitedOwned   // 살 이유가 없다. "가득 찼다"고 하면 오해한다
+                : (ticketFull ? T.full : `원판 ${PLATE_RULE.perTicket}개부터`)}
           </span>
         </button>
 
@@ -923,6 +961,16 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                           fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
                         }}>
                           ☠️ {T.lethalTag}
+                        </span>
+                      )}
+                      {/* 이건 "값이 크다"가 아니라 규칙이 바뀌는 등급이라 따로 알린다 */}
+                      {p.unlimited && (
+                        <span style={{
+                          padding: '1px 5px', borderRadius: 'var(--radius)',
+                          background: 'linear-gradient(90deg,#ff3b3b,#ffe600,#00e5ff,#c14dff)',
+                          color: '#000', fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                        }}>
+                          ∞ {T.unlimitedTag}
                         </span>
                       )}
                     </span>

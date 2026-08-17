@@ -24,6 +24,17 @@ export const usePlateStore = create((set, get) => ({
   purchased: readInt(PLS.purchased, 0),
   best: readInt(PLS.best, 0),
   day: loadDay(),
+  // 울트라 무한(∞)을 주웠는가. 켜지면 티켓이 영구히 닳지 않는다.
+  unlimited: readLS(PLS.unlimited) === '1',
+
+  // 무한 티켓 획득. 이미 켜져 있으면 아무것도 하지 않고 false 를 돌려준다
+  // (연출을 두 번 띄우지 않도록).
+  grantUnlimited: () => {
+    if (get().unlimited) return false;
+    saveLS(PLS.unlimited, '1');
+    set({ unlimited: true });
+    return true;
+  },
 
   // 날짜가 바뀌었으면 오늘 판 수를 0으로 되돌린다 (앱을 켜 둔 채 자정을 넘긴 경우)
   rollDay: () => {
@@ -81,7 +92,10 @@ export const usePlateStore = create((set, get) => ({
   },
 
   reset: () => {
-    [PLS.plates, PLS.purchased, PLS.best, PLS.day].forEach(removeLS);
-    set({ plates: 0, purchased: 0, best: 0, day: { date: todayKey(), plays: 0 } });
+    [PLS.plates, PLS.purchased, PLS.best, PLS.day, PLS.unlimited].forEach(removeLS);
+    set({
+      plates: 0, purchased: 0, best: 0, unlimited: false,
+      day: { date: todayKey(), plays: 0 },
+    });
   },
 }));

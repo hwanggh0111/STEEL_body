@@ -5,7 +5,7 @@ import { usePachinkoStore } from '../store/pachinkoStore';
 import PachinkoSystem, { earnedTickets } from '../components/PachinkoSystem';
 import LadderGame from '../components/LadderGame';
 import LevelSystem from '../components/LevelSystem';
-import { TICKET_RULE } from '../data/pachinkoData';
+import { TICKET_RULE, ticketsAvailable } from '../data/pachinkoData';
 import { usePlateStore } from '../store/plateStore';
 import { toast } from '../components/Toast';
 
@@ -16,6 +16,7 @@ export default function PachinkoPage() {
   // ?reset=1 초기화는 main.jsx가 앱 부팅 전에 처리한다 (로그인 여부와 무관하게 동작해야 하므로)
   const { used, gained, trimOverflow } = usePachinkoStore();
   const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
+  const unlimited = usePlateStore(s => s.unlimited);   // 울트라 무한(∞)을 주웠는가
 
   useEffect(() => {
     fetchWorkouts();
@@ -39,7 +40,8 @@ export default function PachinkoPage() {
   // 안 돌린 유저는 이 페이지를 여는 것만으로 티켓이 잘린다. 몇 장이 사라졌는지
   // 알려준다 (trimOverflow 가 소멸량을 돌려준다).
   useEffect(() => {
-    if (loading) return;   // 기록을 못 받았으면 건드리지 않는다
+    if (loading) return;         // 기록을 못 받았으면 건드리지 않는다
+    if (unlimited) return;       // 무한 티켓이면 상한 자체가 의미 없다
     const burned = trimOverflow(earned, TICKET_RULE.maxStack);
     if (burned > 0) {
       toast(
@@ -48,10 +50,10 @@ export default function PachinkoPage() {
         'warning',
       );
     }
-  }, [earned, used, loading, trimOverflow]);
+  }, [earned, used, loading, unlimited, trimOverflow]);
 
   // 티켓은 판을 시작하는 즉시 used 로 확정되므로, 연출 중이라고 따로 빼둘 몫이 없다.
-  const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
+  const available = ticketsAvailable({ earned, used, unlimited });
   // 파칭코를 뺀 순수 기록 EXP — 두 모드가 레벨 변화를 계산하는 기준
   const baseExp = totalWorkouts * 15 + totalInbody * 30;
 

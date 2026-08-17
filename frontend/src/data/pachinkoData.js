@@ -28,6 +28,32 @@ export const TICKET_RULE = {
   bonus: DEV_TICKETS,
 };
 
+// ── 무한 티켓 ──
+// 원판 피하기의 울트라 무한(∞)을 주우면 티켓이 영구히 닳지 않는다.
+//
+// "티켓 N장 지급"이 아니라 "소모를 멈춘다"로 구현한다.
+//   - 지갑에 큰 수를 넣는 방식은 결국 유한하고, 상한(maxStack)에도 걸린다
+//   - Infinity 를 넣으면 String(Infinity) → readInt 의 isFinite 가드에 걸려
+//     다음 접속에 지갑이 통째로 0 이 된다
+// 소모를 멈추면 숫자를 아예 안 건드리므로 아무것도 안 깨진다.
+// 구체적으로는 beginPlay 가 used 를 올리지 않고, available 은 아래 상수를 쓴다.
+//
+// 화면에는 이 수 대신 ∞ 를 찍는다(ticketText). 이 값이 필요한 이유는
+// "모두 쓰기" 가 실제로 돌릴 판 수를 알아야 하기 때문이다.
+// 9,999,999 는 개발 보너스로 이미 쓰던 규모라 다회 뽑기 경로가 검증돼 있다.
+export const UNLIMITED_TICKETS = 9999999;
+
+// 지금 쓸 수 있는 티켓. 세 화면(파칭코/사다리/미니게임)이 같은 식을 쓰도록 모아둔다.
+export function ticketsAvailable({ earned, used, unlimited }) {
+  if (unlimited) return UNLIMITED_TICKETS;
+  return Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
+}
+
+// 티켓 수 표기 — 무한이면 숫자 대신 ∞
+export function ticketText(n, unlimited) {
+  return unlimited ? '∞' : n.toLocaleString();
+}
+
 // 판마다 결과 객체를 만드는 방식으로 처리할 최대 판수.
 // 이 위로는 배열 대신 등급별 횟수만 뽑는다(drawPrizeCounts) — 쓸 수 있는 티켓의
 // 상한이 아니라 "어느 방식으로 계산할지"의 경계다. 모두 쓰기는 판수 제한이 없다.

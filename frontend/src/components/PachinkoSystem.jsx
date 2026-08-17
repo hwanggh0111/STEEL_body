@@ -8,7 +8,7 @@ import { usePlateStore } from '../store/plateStore';
 import {
   TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, MAX_BATCH,
   drawPrize, drawPrizeCounts, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
-  compactExp,
+  compactExp, ticketsAvailable, ticketText,
 } from '../data/pachinkoData';
 
 const T = {
@@ -102,6 +102,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
   // 티켓/누적 EXP/기록은 사다리 모드와 공유한다
   const { used, gained, log, beginPlay } = usePachinkoStore();
   const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
+  const unlimited = usePlateStore(s => s.unlimited);   // 울트라 무한(∞) 획득 여부
   const [multi, setMulti] = useState(null);   // 다회 뽑기 결과 요약
 
   const [spinning, setSpinning] = useState(false);
@@ -143,9 +144,10 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
   const earned = earnedTickets(totalWorkouts, totalInbody, purchased);
   // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음).
   // 티켓은 돌리는 즉시 used 로 확정되므로 사다리와 이중 사용될 여지가 없다.
-  const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
-  // 상한에 닿았으면 지금부터 버는 티켓은 쌓이지 않고 사라진다
-  const atCap = available >= TICKET_RULE.maxStack;
+  const available = ticketsAvailable({ earned, used, unlimited });
+  // 상한에 닿았으면 지금부터 버는 티켓은 쌓이지 않고 사라진다.
+  // 무한 티켓이면 상한 자체가 없으므로 경고할 것도 없다.
+  const atCap = !unlimited && available >= TICKET_RULE.maxStack;
 
   // count 판을 한 번에 돌린다. 릴은 그중 최고 등급을 보여주고,
   // 2판 이상이면 전체 내역을 요약 패널로 따로 표시한다.
@@ -268,7 +270,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
               fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, lineHeight: 1,
               color: available > 0 ? 'var(--accent)' : 'var(--text-muted)',
             }}>
-              🎫 {available.toLocaleString()}
+              🎫 {ticketText(available, unlimited)}
             </div>
             {/* 상한에 닿으면 그 뒤로 버는 티켓은 소멸한다.
                 잘린 다음에 알리는 것(PachinkoPage 토스트)만으로는 늦으므로 미리 띄운다 */}
@@ -471,7 +473,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
             cursor: available > 0 && !spinning ? 'pointer' : 'not-allowed',
           }}
         >
-          {t.spinAll} (🎫 {available.toLocaleString()})
+          {t.spinAll} (🎫 {ticketText(available, unlimited)})
         </button>
       </div>
 
