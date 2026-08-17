@@ -101,16 +101,34 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
     };
   }, [rollDay]);
 
+  // 이 판을 이미 정산했는가. 정산 경로가 셋(죽음·이탈·페이지 종료)이라 플래그로 막는다.
+  const settledRef = useRef(false);
+
   // 판이 끝나기 전에 화면을 벗어나면 그때까지 번 원판을 넣어준다.
   // 판 수는 시작할 때 이미 깎았으므로, 정산하지 않으면 하루치 기회만 날리는 셈이 된다.
   // 죽으나 나가나 결과가 같아지므로 이걸로 이득 보는 방법은 없다.
-  // 부활을 고르는 중(revive)에 나가는 경우도 아직 정산 전이라 같이 넣는다
-  useEffect(() => () => {
+  // 부활을 고르는 중(revive)에 나가는 경우도 아직 정산 전이라 같이 넣는다.
+  const settleRun = useCallback(() => {
+    if (settledRef.current) return;
     const p = phaseRef.current;
-    if ((p === 'playing' || p === 'revive') && gameRef.current) {
-      finishRun(gameRef.current.raw);
-    }
+    const g = gameRef.current;
+    if (!g || (p !== 'playing' && p !== 'revive')) return;
+    settledRef.current = true;
+    finishRun(g.raw);
   }, [finishRun]);
+
+  // 이탈 경로가 둘이다.
+  //   라우팅으로 나가기 → 언마운트 cleanup
+  //   새로고침 / 탭 닫기 / 브라우저 종료 → pagehide
+  // 언마운트만 받으면 새로고침에서 판 수만 깎이고 번 원판이 통째로 사라진다.
+  // beforeunload 대신 pagehide 를 쓴다 — 모바일 사파리에서도 뜨고 bfcache 진입에도 뜬다.
+  useEffect(() => {
+    window.addEventListener('pagehide', settleRun);
+    return () => {
+      window.removeEventListener('pagehide', settleRun);
+      settleRun();
+    };
+  }, [settleRun]);
 
   // ── 캔버스 크기: 컨테이너 폭에 맞추고 DPR 보정 ──
   const fitCanvas = useCallback(() => {
@@ -275,6 +293,9 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
   // lethal = 울트라 무한에 맞아 끝난 판. 부활이 남아 있었는데도 끝나므로
   // 결과 화면에 이유를 적어줘야 한다 (안 그러면 부활 버튼이 안 뜬 게 버그로 보인다).
   const endRun = useCallback((g, lethal = false) => {
+    // 여기서 정산했다고 표시해 둔다. setPhase('over') 는 다음 렌더에나 반영되므로
+    // 그 사이에 pagehide 가 뜨면 phaseRef 는 아직 'playing' 이라 두 번 들어온다.
+    settledRef.current = true;
     const result = finishRun(g.raw);
     setLast({
       raw: g.raw, dodged: g.dodged, picked: g.picked,
@@ -320,6 +341,9 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
     if (!canPlay) return;
     // 판 수는 시작할 때 깎는다. 끝날 때 깎으면 지기 직전에 새로고침해서 무한히 돌릴 수 있다.
     if (!startRun()) { toast(T.noPlays, 'error'); return; }
+    settledRef.current = false;   // 새 판이므로 정산 플래그를 되돌린다
+    setShowShop(false);           // 열린 창이 남아 게임을 가리지 않게
+    setShowRates(false);
     gameRef.current = {
       player: { x: 0.5, target: 0.5, vx: 0 },
       keys: { left: false, right: false },
@@ -535,9 +559,13 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
   const canAfford = Math.floor(plates / PLATE_RULE.perTicket);
   const affordable = Math.max(0, Math.min(canAfford, ticketRoom));
   const ticketFull = canAfford > 0 && affordable === 0;   // 원판은 있는데 티켓이 꽉 참
-  // 판이 도는 중에는 못 연다 — 열어도 게임은 뒤에서 계속 돌아 가려진 채로 죽는다.
+  // 판이 도는 중에는 창을 못 연다 — 열어도 게임은 뒤에서 계속 돌아 가려진 채로 죽는다.
   // 부활 선택 중에도 막는다. 판이 아직 안 끝나서 결과가 확정되지 않았다.
-  const canShop = affordable > 0 && phase !== 'playing' && phase !== 'revive';
+  // 교환창뿐 아니라 원판표도 같다. 모달이 화면을 덮어도 rAF 루프는 phase 가
+  // 'playing' 인 한 계속 돌고, pointermove 리스너가 window 에 붙어 있어
+  // 가려진 채로 캐릭터가 움직이다 죽는다.
+  const inRun = phase === 'playing' || phase === 'revive';
+  const canShop = affordable > 0 && !inRun;
 
   // 원판이 줄면(교환하거나 판이 끝나면) 고른 수량이 살 수 있는 양을 넘지 않게 맞춘다
   useEffect(() => {
@@ -791,18 +819,20 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
           </span>
         </button>
 
-        {/* 원판표 — 파칭코 확률표와 같은 역할 */}
+        {/* 원판표 — 파칭코 확률표와 같은 역할.
+            판이 도는 중에는 교환창과 똑같이 막는다 (위 inRun 주석 참고) */}
         <button
           onClick={() => setShowRates(true)}
+          disabled={inRun}
           style={{
             marginTop: 8, width: '100%',
             background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-hover)',
+            border: `1px solid ${inRun ? 'var(--border)' : 'var(--border-hover)'}`,
             borderRadius: 'var(--radius)',
-            color: 'var(--text-secondary)',
+            color: inRun ? 'var(--text-muted)' : 'var(--text-secondary)',
             fontFamily: "'Bebas Neue', sans-serif",
             fontSize: 13, letterSpacing: 1.5,
-            padding: '9px 0', cursor: 'pointer',
+            padding: '9px 0', cursor: inRun ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >

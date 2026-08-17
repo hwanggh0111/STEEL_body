@@ -51,6 +51,12 @@ export const useAuthStore = create((set) => ({
     if (data?.email) localStorage.setItem('ironlog_email', data.email);
     if (data?.role) localStorage.setItem('ironlog_role', data.role);
     clearLegacyAdminPerks();
+    // 가입은 언제나 새 계정이다. 그런데 /register 는 PrivateRoute 밖이라
+    // 로그인한 채로도 들어올 수 있어서, 안 비우면 앞 계정의 파칭코 EXP 와
+    // 원판·구매 티켓이 그대로 새 계정 것이 된다 (login 에는 있는 가드가 여기만 없었다).
+    // 새 계정이 물려받을 진행도는 없으므로 조건 없이 비운다.
+    usePachinkoStore.getState().reset();
+    usePlateStore.getState().reset();
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
     return data;
   },
