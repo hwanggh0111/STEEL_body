@@ -91,7 +91,7 @@ export const PLATES = [
   // 0.1 이면 하루 51장 — 거들어주되 대체하지는 않는 수준이다.
   {
     kg: 100, name: '슈퍼울트라', value: 900, r: 0.105, speed: 1.45,
-    weight: import.meta.env.DEV ? 5 : 0.1,
+    weight: 0.1, devWeight: 5,
     color: '#ff44ff', ring: '#ffb3ff',
   },
   // 최상위. 한 번 주우면 티켓 999장이라 사실상 판이 끝난다.
@@ -109,7 +109,7 @@ export const PLATES = [
   // 바닥 정리에서 보호되고, 9초를 버티고, 멀리서도 보이게 크게 빛난다.
   {
     kg: 999, name: '무한', value: 9999, r: 0.118, speed: 1.60,
-    weight: import.meta.env.DEV ? 8 : 0.001,
+    weight: 0.001, devWeight: 8,
     color: '#00f0ff', ring: '#ccfbff',
   },
   // 전설. 화면에는 숫자 대신 ∞ 로 나온다 (display).
@@ -143,10 +143,32 @@ export const PLATES = [
   {
     kg: 9999, name: '울트라 무한', display: '∞', value: 9999990,
     r: 0.130, speed: 1.15, lethal: true, legend: true,
-    weight: import.meta.env.DEV ? 8 : 0.0001,
+    weight: 0.0001, devWeight: 8,
     color: '#ffffff', ring: '#c9a7ff',
   },
 ];
+
+// ── 가중치: 운영값과 개발값을 둘 다 들고 있는다 ──
+//
+// weight 가 진짜(운영) 값이고, devWeight 는 개발 빌드에서만 대신 쓰는 값이다.
+// 희귀 등급은 운영 확률이 만분의 일 단위라 그대로 두면 테스트가 불가능하다.
+//
+// 예전에는 `weight: import.meta.env.DEV ? 8 : 0.001` 처럼 삼항으로 섞어놨는데,
+// 그러면 개발 화면에서 운영 확률을 알 방법이 없어진다. 실제로 원판표에 뜬
+// 개발용 6.6% 를 진짜 확률로 오해하는 일이 있었다. 그래서 둘을 분리하고,
+// 원판표가 개발 빌드에서는 운영 확률을 함께 보여준다.
+export function plateWeight(p) {
+  return (import.meta.env.DEV && p.devWeight != null) ? p.devWeight : p.weight;
+}
+
+// 실제로 뽑기에 쓰는 가중치의 합 (개발이면 개발값 기준)
+export const PLATE_WEIGHT_TOTAL = PLATES.reduce((s, p) => s + plateWeight(p), 0);
+// 운영 가중치의 합 — 개발 화면에서 "운영이라면 몇 %인지" 계산할 때 쓴다
+export const PLATE_WEIGHT_TOTAL_PROD = PLATES.reduce((s, p) => s + p.weight, 0);
+
+// 개발 빌드에서 부풀린 등급이 하나라도 있는가 (원판표 경고 배너 조건)
+export const HAS_DEV_WEIGHTS = import.meta.env.DEV
+  && PLATES.some(p => p.devWeight != null && p.devWeight !== p.weight);
 
 // 값 표기 — display 가 있으면 숫자 대신 그 기호를 쓴다 (울트라 무한의 ∞).
 // count 는 여러 개 주웠을 때 합계용. ∞ 는 몇 개를 주워도 ∞ 다.
@@ -159,10 +181,9 @@ export function plateValueText(p, count = 1) {
 export const JACKPOT_VALUE = 100;
 
 export function drawPlate(rand = Math.random) {
-  const total = PLATES.reduce((s, p) => s + p.weight, 0);
-  let roll = rand() * total;
+  let roll = rand() * PLATE_WEIGHT_TOTAL;
   for (const p of PLATES) {
-    roll -= p.weight;
+    roll -= plateWeight(p);
     if (roll < 0) return p;
   }
   return PLATES[0];
@@ -177,6 +198,9 @@ export function drawPlate(rand = Math.random) {
 // 그래서 두 개를 따로 낸다.
 //   COMMON — legend 를 뺀 값. 보통 한 판에서 실제로 겪는 수준.
 //   전체    — 산술적으로 정확한 값. 참고로만 같이 보여준다.
+//
+// 개발 빌드에서도 **운영 가중치**로 계산한다. 개발용으로 부풀린 값을 쓰면
+// 원판표에 743 같은 숫자가 뜨는데, 그건 밸런싱에도 안내에도 쓸모가 없다.
 const evOf = (list) => list.reduce((s, p) => s + p.value * p.weight, 0)
   / list.reduce((s, p) => s + p.weight, 0);
 

@@ -5,6 +5,7 @@ import {
   PLATE_RULE, DODGE, GROUND, PLATES, drawPlate,
   EXPECTED_PER_PLATE, EXPECTED_PER_PLATE_COMMON,
   JACKPOT_VALUE, groundLife, plateValueText,
+  plateWeight, PLATE_WEIGHT_TOTAL, PLATE_WEIGHT_TOTAL_PROD, HAS_DEV_WEIGHTS,
 } from '../data/plateData';
 
 // 원판 이름 — name 이 있으면 그걸, 없으면 무게로 부른다
@@ -58,6 +59,7 @@ const T = {
   dodgeReward: '피하면',
   avgPick: '주울 때 평균 (∞ 제외)',
   avgWithLegend: '∞ 포함',
+  avgProdNote: '운영 확률 기준',
   exchange: '교환 비율',
   perDay: '하루 판 수',
   close: '닫기',
@@ -582,8 +584,6 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
   };
 
   const remainingPlays = Math.max(0, PLATE_RULE.dailyPlays - day.plays);
-  // 원판표의 등장 확률 — 가중치 합이 100이라는 보장은 없으므로 매번 나눠 쓴다
-  const plateWeight = PLATES.reduce((s, p) => s + p.weight, 0);
 
   return (
     <div className="card" style={{ marginBottom: 16, padding: 16 }}>
@@ -877,8 +877,27 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
               {T.ratesDesc}
             </p>
 
+            {/* 개발 빌드에서만. 운영 빌드에서는 HAS_DEV_WEIGHTS 가 false 라 통째로 사라진다 */}
+            {HAS_DEV_WEIGHTS && (
+              <div style={{
+                marginBottom: 14, padding: '8px 10px',
+                borderRadius: 'var(--radius)',
+                background: 'rgba(255,193,7,0.10)',
+                border: '1px solid var(--warning)',
+                fontSize: 11, color: 'var(--warning)', lineHeight: 1.6,
+              }}>
+                ⚠️ 개발 빌드입니다. 아래 확률은 테스트하려고 부풀려 놓은 값이라
+                실제와 전혀 다릅니다. 각 줄의 <b>운영 N%</b> 가 진짜 확률입니다.
+                아래 평균값은 언제나 운영 기준으로 계산합니다.
+              </div>
+            )}
+
             {PLATES.map(p => {
-              const pct = (p.weight / plateWeight) * 100;
+              // 지금 빌드에서 실제로 적용되는 확률 (개발이면 부풀린 값)
+              const pct = (plateWeight(p) / PLATE_WEIGHT_TOTAL) * 100;
+              // 운영이라면 몇 %인지 — 개발 빌드에서만 같이 보여준다
+              const prodPct = (p.weight / PLATE_WEIGHT_TOTAL_PROD) * 100;
+              const boosted = HAS_DEV_WEIGHTS && p.devWeight != null && p.devWeight !== p.weight;
               return (
                 <div key={p.kg} style={{ marginBottom: 10 }}>
                   <div style={{
@@ -908,7 +927,13 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                       )}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
-                      {fmtPct(pct)}% · {T.onPick}{' '}
+                      {fmtPct(pct)}%
+                      {/* 개발 빌드에서 부풀린 등급은 진짜 확률을 옆에 붙인다.
+                          안 그러면 테스트용 6.6%를 실제 확률로 오해한다. */}
+                      {boosted && (
+                        <span style={{ color: 'var(--warning)' }}> (운영 {fmtPct(prodPct)}%)</span>
+                      )}
+                      {' · '}{T.onPick}{' '}
                       <span style={{ color: 'var(--accent)' }}>+{plateValueText(p)}</span>
                     </span>
                   </div>
@@ -942,7 +967,12 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>{T.avgWithLegend}</span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {T.avgWithLegend}
+                  {HAS_DEV_WEIGHTS && (
+                    <span style={{ color: 'var(--warning)', fontSize: 10 }}> · {T.avgProdNote}</span>
+                  )}
+                </span>
                 <span style={{ color: 'var(--text-muted)' }}>
                   🥏 +{EXPECTED_PER_PLATE.toFixed(2)}
                 </span>
