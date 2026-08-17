@@ -3,11 +3,16 @@ import { toast } from './Toast';
 import { usePlateStore } from '../store/plateStore';
 import {
   PLATE_RULE, DODGE, GROUND, PLATES, drawPlate, EXPECTED_PER_PLATE,
-  JACKPOT_VALUE, groundLife,
+  JACKPOT_VALUE, groundLife, plateValueText,
 } from '../data/plateData';
 
 // 원판 이름 — name 이 있으면 그걸, 없으면 무게로 부른다
 const plateName = (p) => p.name || `${p.kg}kg`;
+
+// 확률 표기. 무한 0.00199%, 울트라 무한 0.000498% 라 소수 첫째 자리로 자르면
+// 둘 다 "0.0%" 가 되어 확률이 0인 것처럼 보인다.
+// 1% 아래는 유효숫자 3자리로 찍어 아무리 작아도 실제 값이 드러나게 한다.
+const fmtPct = (v) => (v >= 1 ? v.toFixed(1) : String(Number(v.toPrecision(3))));
 
 // 위에서 떨어지는 원판을 피하고, 바닥에 쌓인 원판을 주워 모으는 게임.
 // 피하면 1개, 주우면 원판 값(1~5)만큼 더 받는다. 주우려면 낙하 구간으로
@@ -42,6 +47,8 @@ const T = {
     `부활하면 지금까지 모은 🥏 ${score}개를 그대로 들고 이어서 합니다. 남은 부활 ${left}번.`,
   reviveLeft: '부활',
   revivedNote: '부활',
+  lethalTag: '즉사',
+  lethalNote: '울트라 무한에 맞았습니다 — 부활 없이 그대로 끝납니다',
   rates: '원판표',
   ratesTitle: '원판표',
   ratesDesc: '떨어지는 원판의 종류와 등장 확률입니다. 무거울수록 크고 빠른 대신 주웠을 때 많이 줍니다.',
@@ -178,7 +185,8 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       ctx.save();
       ctx.translate(x, y);
       ctx.shadowColor = p.spec.ring;
-      ctx.shadowBlur = 12;
+      // 즉사 원판은 멀리서부터 눈에 띄어야 한다 — 다른 원판보다 훨씬 세게 빛낸다
+      ctx.shadowBlur = p.spec.lethal ? 26 : 12;
       ctx.fillStyle = p.spec.color;
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -187,6 +195,19 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       ctx.strokeStyle = p.spec.ring;
       ctx.lineWidth = Math.max(2, r * 0.16);
       ctx.stroke();
+      // 즉사 원판에는 붉은 테를 하나 더 둘러 깜빡인다.
+      // 흰색 몸통만으로는 "제일 좋은 것"으로만 보여서, 달려들다 판이 끝난다.
+      // (가운데 구멍을 뚫는 destination-out 보다 먼저 그려야 지워지지 않는다)
+      if (p.spec.lethal) {
+        ctx.save();
+        ctx.globalAlpha = 0.55 + 0.35 * Math.sin(g.elapsed / 100);
+        ctx.strokeStyle = '#ff2d2d';
+        ctx.lineWidth = Math.max(2, r * 0.14);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.18, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       // 가운데 구멍
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
@@ -251,12 +272,15 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
   // ── 한 판 정산 ──
   // 루프 안(부활 없이 죽음)과 버튼(포기) 양쪽에서 부른다.
   // 루프 effect 의 의존성에 들어가므로 반드시 그 위에서 선언해야 한다.
-  const endRun = useCallback((g) => {
+  // lethal = 울트라 무한에 맞아 끝난 판. 부활이 남아 있었는데도 끝나므로
+  // 결과 화면에 이유를 적어줘야 한다 (안 그러면 부활 버튼이 안 뜬 게 버그로 보인다).
+  const endRun = useCallback((g, lethal = false) => {
     const result = finishRun(g.raw);
     setLast({
       raw: g.raw, dodged: g.dodged, picked: g.picked,
       pickedBy: { ...g.pickedBy },   // 다음 판이 같은 객체를 덮어쓰지 않게 복사
       revivedCount: PLATE_RULE.revives - g.revives,   // 이 판에 몇 번 부활했는지
+      lethal,
       ...result,
     });
     setPhase('over');
@@ -366,6 +390,8 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       const speed = Math.min(DODGE.fallMax, DODGE.fallBase + g.dodged * DODGE.fallPerDodge);
       const pr = DODGE.playerR;
       let hit = false;
+      // 무엇에 맞았는지도 들고 있어야 한다 — 울트라 무한(lethal)은 부활을 무시한다
+      let hitLethal = false;
 
       for (let i = g.plates.length - 1; i >= 0; i--) {
         const p = g.plates[i];
@@ -376,7 +402,10 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
           const dx = p.x - g.player.x;
           const dy = (p.y - DODGE.playerY) * DODGE.aspect;
           const rr = p.spec.r + pr * 0.75;
-          if (dx * dx + dy * dy < rr * rr) hit = true;
+          if (dx * dx + dy * dy < rr * rr) {
+            hit = true;
+            hitLethal = !!p.spec.lethal;
+          }
         }
 
         // 바닥에 닿으면 피한 것 — 소액을 주고, 원판은 바닥에 남겨 둔다
@@ -421,8 +450,9 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
       if (hit) {
         // 부활이 남아 있으면 정산하지 않고 멈춰 세운다 — 여기서 쓸지 말지 고른다.
         // 루프는 phase 가 'playing' 일 때만 도므로 이 순간 게임이 멎는다.
-        if (g.revives > 0) { setPhase('revive'); return; }
-        endRun(g);
+        // 단 울트라 무한(lethal)에 맞으면 목숨이 남아 있어도 그대로 끝난다.
+        if (!hitLethal && g.revives > 0) { setPhase('revive'); return; }
+        endRun(g, hitLethal);
         return;
       }
       rafRef.current = requestAnimationFrame(step);
@@ -592,7 +622,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
             fontFamily: "'Bebas Neue', sans-serif", fontSize: 26,
             color: 'var(--accent)', textShadow: '0 0 12px rgba(255,107,26,0.6)',
           }}>
-            🥏 {score}
+            🥏 {score.toLocaleString()}
             {revivesLeft > 0 && (
               <span style={{ fontSize: 13, marginLeft: 8, opacity: 0.85 }}>
                 ❤️{revivesLeft > 1 ? `×${revivesLeft}` : ''}
@@ -616,7 +646,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                   fontFamily: "'Bebas Neue', sans-serif", fontSize: 34, lineHeight: 1,
                   color: 'var(--accent)',
                 }}>
-                  🥏 {last.raw}
+                  🥏 {last.raw.toLocaleString()}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   피함 {last.dodged} · 주움 {last.picked}
@@ -625,8 +655,20 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                   )}
                 </div>
 
+                {/* 부활이 남았는데도 끝난 경우 — 이유를 안 적으면 버그로 보인다 */}
+                {last.lethal && (
+                  <div style={{
+                    fontSize: 11, color: 'var(--danger)', maxWidth: 240,
+                    padding: '5px 9px', borderRadius: 'var(--radius)',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid var(--danger)',
+                  }}>
+                    ☠️ {T.lethalNote}
+                  </div>
+                )}
+
                 {/* 무엇을 주워서 이 점수가 났는지 — 무거운 원판일수록 값이 크다는 걸 여기서 배운다.
-                    실제로 주운 종류만 나오므로 한 판에 최대 5칸이다. */}
+                    실제로 주운 종류만 나오므로 최대 PLATES 종류 수만큼이다. */}
                 {last.picked > 0 && (
                   <div style={{
                     display: 'flex', flexWrap: 'wrap', gap: 4,
@@ -647,7 +689,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                         }} />
                         {plateName(p)} ×{last.pickedBy[p.kg]}
                         <span style={{ color: 'var(--accent)' }}>
-                          +{p.value * last.pickedBy[p.kg]}
+                          +{plateValueText(p, last.pickedBy[p.kg])}
                         </span>
                       </span>
                     ))}
@@ -822,15 +864,27 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                         boxShadow: p.value >= JACKPOT_VALUE ? `0 0 8px ${p.ring}` : 'none',
                       }} />
                       {plateName(p)}
+                      {/* 즉사 원판은 보상만 보고 달려들면 안 되므로 여기서 미리 경고한다 */}
+                      {p.lethal && (
+                        <span style={{
+                          padding: '1px 5px', borderRadius: 'var(--radius)',
+                          background: 'var(--danger)', color: '#fff',
+                          fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                        }}>
+                          ☠️ {T.lethalTag}
+                        </span>
+                      )}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
-                      {pct % 1 === 0 ? pct : pct.toFixed(1)}% · {T.onPick}{' '}
-                      <span style={{ color: 'var(--accent)' }}>+{p.value}</span>
+                      {fmtPct(pct)}% · {T.onPick}{' '}
+                      <span style={{ color: 'var(--accent)' }}>+{plateValueText(p)}</span>
                     </span>
                   </div>
                   <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                    {/* 무한 원판은 막대가 0.01% 라 아예 안 보인다. 줄이 비어 보이지 않게
+                        최소 폭만 준다 — 숫자는 위에 정확히 적혀 있다. */}
                     <div style={{
-                      width: `${pct}%`, height: '100%',
+                      width: `${Math.max(pct, 0.8)}%`, height: '100%',
                       background: p.ring, borderRadius: 2,
                     }} />
                   </div>
