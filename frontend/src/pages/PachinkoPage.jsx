@@ -7,6 +7,7 @@ import LadderGame from '../components/LadderGame';
 import LevelSystem from '../components/LevelSystem';
 import { TICKET_RULE } from '../data/pachinkoData';
 import { usePlateStore } from '../store/plateStore';
+import { toast } from '../components/Toast';
 
 export default function PachinkoPage() {
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
@@ -33,9 +34,20 @@ export default function PachinkoPage() {
   // 계정은 티켓을 써도 숫자가 줄지 않아 무한히 돌릴 수 있다.
   // 두 모드(파칭코/사다리)가 earned 를 아는 곳은 여기뿐이라 이 페이지에서 처리한다.
   // 소멸 뒤엔 earned - used == maxStack 이 되므로 effect 가 다시 돌아도 아무 일도 안 한다.
+  //
+  // 소멸은 말없이 하면 안 된다. 운영 상한이 150이고 운동 3회당 1장이므로, 한동안
+  // 안 돌린 유저는 이 페이지를 여는 것만으로 티켓이 잘린다. 몇 장이 사라졌는지
+  // 알려준다 (trimOverflow 가 소멸량을 돌려준다).
   useEffect(() => {
     if (loading) return;   // 기록을 못 받았으면 건드리지 않는다
-    trimOverflow(earned, TICKET_RULE.maxStack);
+    const burned = trimOverflow(earned, TICKET_RULE.maxStack);
+    if (burned > 0) {
+      toast(
+        `보유 상한 ${TICKET_RULE.maxStack.toLocaleString()}장을 넘은 티켓 `
+        + `${burned.toLocaleString()}장이 사라졌어요`,
+        'warning',
+      );
+    }
   }, [earned, used, loading, trimOverflow]);
 
   // 티켓은 판을 시작하는 즉시 used 로 확정되므로, 연출 중이라고 따로 빼둘 몫이 없다.

@@ -40,6 +40,7 @@ const T = {
     digitBanner: '자리 달성',
     novaBanner: '15자리 전부 9 달성',
     capped: '상한 도달',
+    atCap: '상한 · 더 안 쌓여요',
   },
   en: {
     title: 'Pachinko',
@@ -68,12 +69,14 @@ const T = {
     digitBanner: ' DIGITS',
     novaBanner: 'ALL FIFTEEN NINES',
     capped: 'MAXED',
+    atCap: 'MAX · stops stacking',
   },
 };
 
 // 기록 수 → 발급된 총 티켓.
-// 기록분은 저장하지 않고 매번 계산한다(조작 불가). purchased 는 원판 피하기로 산 티켓이라
-// 저장할 수밖에 없으므로, 그쪽은 하루 판 수 제한(PLATE_RULE.dailyPlays)으로 벌이를 묶는다.
+// 기록분은 저장하지 않고 매번 계산한다. purchased 는 원판 피하기로 산 티켓이라
+// 저장할 수밖에 없고, 정직하게 플레이할 때의 벌이는 하루 판 수 제한(PLATE_RULE.dailyPlays)이
+// 묶는다. localStorage 조작까지 막지는 않는다 — 의도된 선택이다 (pachinkoData.js 상단 주석).
 // 호출부가 객체/undefined를 넘겨도 NaN이 조용히 퍼지지 않도록 방어한다.
 export function earnedTickets(totalWorkouts, totalInbody, purchased = 0) {
   const w = Number.isFinite(+totalWorkouts) ? Math.max(0, +totalWorkouts) : 0;
@@ -141,6 +144,8 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
   // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음).
   // 티켓은 돌리는 즉시 used 로 확정되므로 사다리와 이중 사용될 여지가 없다.
   const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
+  // 상한에 닿았으면 지금부터 버는 티켓은 쌓이지 않고 사라진다
+  const atCap = available >= TICKET_RULE.maxStack;
 
   // count 판을 한 번에 돌린다. 릴은 그중 최고 등급을 보여주고,
   // 2판 이상이면 전체 내역을 요약 패널로 따로 표시한다.
@@ -265,6 +270,13 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
             }}>
               🎫 {available.toLocaleString()}
             </div>
+            {/* 상한에 닿으면 그 뒤로 버는 티켓은 소멸한다.
+                잘린 다음에 알리는 것(PachinkoPage 토스트)만으로는 늦으므로 미리 띄운다 */}
+            {atCap && (
+              <div style={{ fontSize: 9, color: 'var(--warning)', letterSpacing: 0.5, marginTop: 2 }}>
+                {t.atCap}
+              </div>
+            )}
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 1 }}>{t.totalExp}</div>
