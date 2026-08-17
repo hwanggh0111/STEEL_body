@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from './Toast';
 import { usePlateStore } from '../store/plateStore';
 import {
-  PLATE_RULE, DODGE, GROUND, PLATES, drawPlate, EXPECTED_PER_PLATE,
+  PLATE_RULE, DODGE, GROUND, PLATES, drawPlate,
+  EXPECTED_PER_PLATE, EXPECTED_PER_PLATE_COMMON,
   JACKPOT_VALUE, groundLife, plateValueText,
 } from '../data/plateData';
 
@@ -55,7 +56,8 @@ const T = {
   appear: '등장',
   onPick: '주우면',
   dodgeReward: '피하면',
-  avgPick: '주울 때 평균',
+  avgPick: '주울 때 평균 (∞ 제외)',
+  avgWithLegend: '∞ 포함',
   exchange: '교환 비율',
   perDay: '하루 판 수',
   close: '닫기',
@@ -931,9 +933,19 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
                 <span>{T.dodgeReward}</span>
                 <span style={{ color: 'var(--accent)' }}>🥏 +{DODGE.dodgeReward}</span>
               </div>
+              {/* 울트라 무한(4년 반에 한 번, 값 999만)이 산술 평균의 61%를 차지한다.
+                  그 값만 띄우면 매 판 그만큼 받는 것처럼 읽히므로 ∞ 제외를 기본으로 둔다 */}
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{T.avgPick}</span>
-                <span style={{ color: 'var(--success)' }}>🥏 +{EXPECTED_PER_PLATE.toFixed(2)}</span>
+                <span style={{ color: 'var(--success)' }}>
+                  🥏 +{EXPECTED_PER_PLATE_COMMON.toFixed(2)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>{T.avgWithLegend}</span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  🥏 +{EXPECTED_PER_PLATE.toFixed(2)}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{T.exchange}</span>
