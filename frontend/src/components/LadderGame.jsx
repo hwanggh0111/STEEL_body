@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLangStore } from '../store/langStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import { toast } from './Toast';
@@ -11,6 +11,7 @@ const T = {
   ko: {
     title: '사다리타기',
     sub: `하이리스크 — 티켓 ${LADDER.cost}장`,
+    tickets: '보유 티켓',
     pick: '시작점을 고르고 출발하세요',
     go: '출발',
     fromCol: '번에서',
@@ -18,8 +19,9 @@ const T = {
     noTicket: `티켓 ${LADDER.cost}장이 필요해요`,
     rates: '확률표',
     ratesTitle: '사다리 확률표',
-    ratesDesc: `티켓 ${LADDER.cost}장을 걸고 한 판. 꽝이 잦은 대신 최고 보상 확률이 파칭코의 3배입니다.`,
+    ratesDesc: `티켓 ${LADDER.cost}장을 걸고 한 판. 꽝이 잦은 대신 최고 보상 확률이 파칭코의 약 100배입니다.`,
     avg: '판당 평균',
+    expUnit: '경험치',
     cost: '판당 비용',
     close: '닫기',
     retry: '다시',
@@ -27,6 +29,7 @@ const T = {
   en: {
     title: 'Ladder',
     sub: `High risk — ${LADDER.cost} tickets`,
+    tickets: 'Tickets',
     pick: 'Pick a start, then go',
     go: 'START FROM',
     fromCol: '',
@@ -34,8 +37,9 @@ const T = {
     noTicket: `Needs ${LADDER.cost} tickets`,
     rates: 'Odds',
     ratesTitle: 'Ladder Odds',
-    ratesDesc: `${LADDER.cost} tickets per play. More misses, but 3x the top-prize chance.`,
+    ratesDesc: `${LADDER.cost} tickets per play. More misses, but ~100x the top-prize chance.`,
     avg: 'Avg / play',
+    expUnit: 'EXP',
     cost: 'Cost / play',
     close: 'Close',
     retry: 'Again',
@@ -86,7 +90,7 @@ const rowY = (r) => PAD_Y + ((r + 1) / (LADDER.rows + 1)) * (H - PAD_Y * 2);
 export default function LadderGame({ available = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
-  const { play, gained } = usePachinkoStore();
+  const { beginPlay, gained } = usePachinkoStore();
 
   const [rungs, setRungs] = useState(() => buildRungs());
   const [slots, setSlots] = useState(() => LADDER_PRIZES.slice(0, LADDER.columns));
@@ -104,19 +108,47 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
 
   const timersRef = useRef([]);
   const rafRef = useRef(0);
-  useEffect(() => () => {
+  // 한 판마다 타이머 id 가 하나씩 쌓이므로 매 판 시작할 때 비운다.
+  // (파칭코는 이미 이렇게 하고 있다)
+  const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
     cancelAnimationFrame(rafRef.current);
+  };
+
+  // 연출 중이라 아직 화면에 안 나온 보상. 티켓은 출발할 때 이미 나갔으므로
+  // 도중에 이탈하면 여기 든 보상을 정산해 준다 (안 하면 티켓만 날린 셈이 된다).
+  const inFlightRef = useRef(null);
+  // 언마운트 cleanup 이 한 번만 걸리도록 참조를 고정한다. 스토어 함수는 zustand 가
+  // 만들 때 한 번 만들어져 계속 같은 참조이므로 getState() 로 꺼내 쓴다.
+  const settleInFlight = useCallback(() => {
+    const prize = inFlightRef.current;
+    if (!prize) return null;
+    inFlightRef.current = null;
+    return usePachinkoStore.getState().award(prize, 'ladder');
   }, []);
+  useEffect(() => () => {
+    clearTimers();
+    settleInFlight();
+  }, [settleInFlight]);
 
   const canPlay = available >= LADDER.cost && !tracing;
 
   const start = (startCol) => {
     if (!canPlay) return;
 
+    clearTimers();
+    settleInFlight();   // 앞 판이 남아 있으면 먼저 정산 (보통은 없다)
+
+    // 출발하는 순간 티켓을 확정 차감한다.
+    // 연출이 끝날 때 차감하면 3.6초 동안 보상 배치를 보고 꽝일 때만 새로고침해서
+    // 무를 수 있다 (pachinkoStore 주석 참고).
+    if (!beginPlay(LADDER.cost)) return;
+
     const fresh = buildRungs();
     const { path, end } = trace(fresh, startCol);
     const prize = drawLadderPrize();
+    inFlightRef.current = prize;   // 도중에 이탈해도 이 보상은 지급된다
 
     // 도착 칸에 뽑힌 보상을 놓고, 나머지 칸은 다른 보상으로 섞어 채운다
     const rest = LADDER_PRIZES.filter(p => p.id !== prize.id)
@@ -152,8 +184,11 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
     });
 
     const id = setTimeout(() => {
-      play(LADDER.cost, prize, 'ladder');
-      setResult({ ...prize, endCol: end });
+      // 티켓은 출발할 때 이미 나갔다. 여기서는 보상만 반영한다.
+      // actualExp = 누적 상한에 잘린 뒤의 실제 증가분 — 획득 배너가 이전 레벨을
+      // 역산하는 데 쓴다. prize.exp(자르기 전 원본)를 쓰면 만렙에서 어긋난다.
+      const actualExp = settleInFlight();
+      setResult({ ...prize, endCol: end, actualExp });
       setTracing(false);
       if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
       else toast(prize.msg[lang] || prize.msg.ko, 'error');
@@ -171,16 +206,30 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 12, gap: 8, flexWrap: 'wrap',
       }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '4px 10px', borderRadius: 'var(--radius)',
-          background: 'var(--danger-dim)', border: '1px solid var(--danger)',
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
-          letterSpacing: 1.5, color: 'var(--danger)',
-        }}>
-          🪜 {t.title}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px', borderRadius: 'var(--radius)',
+            background: 'var(--danger-dim)', border: '1px solid var(--danger)',
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
+            letterSpacing: 1.5, color: 'var(--danger)',
+          }}>
+            🪜 {t.title}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.sub}</div>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.sub}</div>
+
+        {/* 파칭코와 같은 지갑이라 여기서도 보유 티켓을 띄운다.
+            한 판에 LADDER.cost 장이 나가므로 그만큼 없으면 흐리게 — 못 도는 게 바로 보이도록. */}
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 1 }}>{t.tickets}</div>
+          <div style={{
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, lineHeight: 1,
+            color: available >= LADDER.cost ? 'var(--accent)' : 'var(--text-muted)',
+          }}>
+            🎫 {available.toLocaleString()}
+          </div>
+        </div>
       </div>
 
       {/* 사다리 */}
@@ -328,7 +377,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
       {result && !tracing && (
         <ExpGainBanner
           baseExp={baseExp + gained}
-          gainedExp={result.exp}
+          gainedExp={result.actualExp ?? result.exp}
           color={result.color}
         />
       )}
@@ -427,7 +476,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{t.avg}</span>
                 <span style={{ color: 'var(--success)' }}>
-                  ~{Math.round(LADDER_EXPECTED_EXP).toLocaleString()} EXP
+                  ~{compactExp(Math.round(LADDER_EXPECTED_EXP))} {t.expUnit}
                 </span>
               </div>
             </div>

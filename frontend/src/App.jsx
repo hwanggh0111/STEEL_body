@@ -22,6 +22,7 @@ const NoticePage = lazy(() => import('./pages/NoticePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const EventPage = lazy(() => import('./pages/EventPage'));
 const PachinkoPage = lazy(() => import('./pages/PachinkoPage'));
+const MiniGamePage = lazy(() => import('./pages/MiniGamePage'));
 
 function Loading() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="event" element={<EventPage />} />
               <Route path="pachinko" element={<PachinkoPage />} />
+              <Route path="minigame" element={<MiniGamePage />} />
             </Route>
           </Routes>
         </Suspense>

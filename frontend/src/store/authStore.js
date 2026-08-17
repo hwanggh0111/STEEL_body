@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import client from '../api/client';
 import { useWorkoutStore } from './workoutStore';
 import { useInbodyStore } from './inbodyStore';
+import { usePachinkoStore } from './pachinkoStore';
+import { usePlateStore } from './plateStore';
 
 // 쿠키 존재 여부로 로그인 상태 판단 (sb_csrf는 httpOnly가 아니므로 읽기 가능)
 function hasCsrfCookie() {
@@ -25,12 +27,19 @@ export const useAuthStore = create((set) => ({
   isLoggedIn: !!localStorage.getItem('token') || hasCsrfCookie(),
 
   login: async (email, password) => {
+    const prevEmail = localStorage.getItem('ironlog_email');
     const { data } = await client.post('/auth/login', { email, password });
     if (data.token) localStorage.setItem('token', data.token);
     localStorage.setItem('nickname', data.nickname);
     if (data.email) localStorage.setItem('ironlog_email', data.email);
     if (data.role) localStorage.setItem('ironlog_role', data.role);
     clearLegacyAdminPerks();
+    // 파칭코/원판 진행도는 localStorage 에 계정 구분 없이 저장된다.
+    // 다른 계정으로 갈아타면 앞 사람의 EXP 와 원판·티켓이 내 것으로 넘어오므로 여기서 끊는다.
+    if (prevEmail && data.email && prevEmail !== data.email) {
+      usePachinkoStore.getState().reset();
+      usePlateStore.getState().reset();
+    }
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -59,6 +68,11 @@ export const useAuthStore = create((set) => ({
     // 다른 스토어 초기화
     useWorkoutStore.setState({ workouts: {}, loading: false });
     useInbodyStore.setState({ records: [], loading: false });
+    // 파칭코 EXP/티켓도 비운다 — 안 지우면 다음에 로그인한 계정의 레벨에 얹힌다
+    usePachinkoStore.getState().reset();
+    // 원판 지갑(원판·구매 티켓·오늘 판 수)도 같이 비운다
+    usePlateStore.getState().reset();
+    localStorage.removeItem('ironlog_email');
   },
 
   // 쿠키 기반 인증 상태 확인 (앱 시작 시 호출)

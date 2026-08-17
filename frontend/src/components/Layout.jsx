@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import TabBar from './TabBar';
 import { useAuthStore } from '../store/authStore';
-import { useLangStore } from '../store/langStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
@@ -24,7 +23,6 @@ function useIsPC() {
 
 export default function Layout() {
   const { nickname, logout } = useAuthStore();
-  const { lang, setLang } = useLangStore();
   const navigate = useNavigate();
   const [sideMenu, setSideMenu] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(localStorage.getItem(PROFILE_KEY) || '');
@@ -274,17 +272,6 @@ export default function Layout() {
                 }}>관리자</span>
               )}
             </div>
-            <button
-              onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}
-              style={{
-                background: 'none',
-                border: '1px solid', borderColor: 'var(--border)',
-                color: 'var(--text-muted)',
-                padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
-                fontFamily: "'Barlow', sans-serif", transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >{lang === 'ko' ? '🌐 KO' : '🌐 EN'}</button>
             <button
               onClick={() => {
                 setTheme(theme === 'dark' ? 'light' : 'dark');

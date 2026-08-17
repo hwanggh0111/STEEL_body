@@ -6,13 +6,15 @@ import PachinkoSystem, { earnedTickets } from '../components/PachinkoSystem';
 import LadderGame from '../components/LadderGame';
 import LevelSystem from '../components/LevelSystem';
 import { TICKET_RULE } from '../data/pachinkoData';
+import { usePlateStore } from '../store/plateStore';
 
 export default function PachinkoPage() {
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
   // 파칭코와 사다리가 같은 티켓/누적 EXP를 쓴다
   // ?reset=1 초기화는 main.jsx가 앱 부팅 전에 처리한다 (로그인 여부와 무관하게 동작해야 하므로)
-  const { used, gained } = usePachinkoStore();
+  const { used, gained, trimOverflow } = usePachinkoStore();
+  const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
 
   useEffect(() => {
     fetchWorkouts();
@@ -24,7 +26,19 @@ export default function PachinkoPage() {
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
   const totalInbody = records.length;
 
-  const earned = earnedTickets(totalWorkouts, totalInbody);
+  const earned = earnedTickets(totalWorkouts, totalInbody, purchased);
+
+  // 상한을 넘겨 쌓인 미사용 티켓은 여기서 소멸시킨다.
+  // 이걸 안 하면 min() 이 표시만 상한에 묶어둘 뿐이라, earned - used 가 상한보다 큰
+  // 계정은 티켓을 써도 숫자가 줄지 않아 무한히 돌릴 수 있다.
+  // 두 모드(파칭코/사다리)가 earned 를 아는 곳은 여기뿐이라 이 페이지에서 처리한다.
+  // 소멸 뒤엔 earned - used == maxStack 이 되므로 effect 가 다시 돌아도 아무 일도 안 한다.
+  useEffect(() => {
+    if (loading) return;   // 기록을 못 받았으면 건드리지 않는다
+    trimOverflow(earned, TICKET_RULE.maxStack);
+  }, [earned, used, loading, trimOverflow]);
+
+  // 티켓은 판을 시작하는 즉시 used 로 확정되므로, 연출 중이라고 따로 빼둘 몫이 없다.
   const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
   // 파칭코를 뺀 순수 기록 EXP — 두 모드가 레벨 변화를 계산하는 기준
   const baseExp = totalWorkouts * 15 + totalInbody * 30;

@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLangStore } from '../store/langStore';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from './Toast';
 import CasinoChip from './CasinoChip';
 import ExpGainBanner from './ExpGainBanner';
+import { useLangStore } from '../store/langStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
+import { usePlateStore } from '../store/plateStore';
 import {
   TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, MAX_BATCH,
-  drawPrize, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
+  drawPrize, drawPrizeCounts, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
   compactExp,
 } from '../data/pachinkoData';
 
@@ -17,9 +18,13 @@ const T = {
     totalExp: '누적 획득',
     spin1: '1회 뽑기',
     spin10: '10회 뽑기',
+    spin100: '100회 뽑기',
     spinAll: '모두 쓰기',
     timesUnit: '회',
     resultLabel: '결과',
+    // 다회 뽑기에서 릴은 최고 등급 하나만 보여준다 — 합계와 헷갈리지 않게 붙이는 말
+    best: '최고',
+    bestOf: (n) => `${n}회 중 최고`,
     spinning: '돌리는 중…',
     noTicket: '티켓이 없어요',
     howTo: `운동 ${TICKET_RULE.perWorkouts}회당 티켓 1개, 인바디 ${TICKET_RULE.perInbody}회당 티켓 1개`,
@@ -28,11 +33,13 @@ const T = {
     ratesDesc: '한 판을 돌렸을 때 각 등급이 나올 확률입니다.',
     recent: '최근 결과',
     avg: '판당 평균',
+    expUnit: '경험치',
     ticketRule: '티켓 획득',
     stackLabel: '최대 보유',
     close: '닫기',
     digitBanner: '자리 달성',
     novaBanner: '15자리 전부 9 달성',
+    capped: '상한 도달',
   },
   en: {
     title: 'Pachinko',
@@ -40,9 +47,12 @@ const T = {
     totalExp: 'Total earned',
     spin1: 'SPIN x1',
     spin10: 'SPIN x10',
+    spin100: 'SPIN x100',
     spinAll: 'SPIN ALL',
     timesUnit: 'x',
     resultLabel: 'RESULT',
+    best: 'BEST',
+    bestOf: (n) => `best of ${n}`,
     spinning: 'Spinning…',
     noTicket: 'No tickets',
     howTo: `1 ticket per ${TICKET_RULE.perWorkouts} workouts, 1 per ${TICKET_RULE.perInbody} inbody`,
@@ -51,21 +61,27 @@ const T = {
     ratesDesc: 'Chance of each tier per single spin.',
     recent: 'Recent',
     avg: 'Avg / spin',
+    expUnit: 'EXP',
     ticketRule: 'Tickets',
     stackLabel: 'Max stack',
     close: 'Close',
     digitBanner: ' DIGITS',
     novaBanner: 'ALL FIFTEEN NINES',
+    capped: 'MAXED',
   },
 };
 
-// 기록 수 → 발급된 총 티켓 (저장하지 않고 매번 계산 = 조작 불가)
+// 기록 수 → 발급된 총 티켓.
+// 기록분은 저장하지 않고 매번 계산한다(조작 불가). purchased 는 원판 피하기로 산 티켓이라
+// 저장할 수밖에 없으므로, 그쪽은 하루 판 수 제한(PLATE_RULE.dailyPlays)으로 벌이를 묶는다.
 // 호출부가 객체/undefined를 넘겨도 NaN이 조용히 퍼지지 않도록 방어한다.
-export function earnedTickets(totalWorkouts, totalInbody) {
+export function earnedTickets(totalWorkouts, totalInbody, purchased = 0) {
   const w = Number.isFinite(+totalWorkouts) ? Math.max(0, +totalWorkouts) : 0;
   const i = Number.isFinite(+totalInbody) ? Math.max(0, +totalInbody) : 0;
+  const b = Number.isFinite(+purchased) ? Math.max(0, +purchased) : 0;
   return Math.floor(w / TICKET_RULE.perWorkouts)
        + Math.floor(i / TICKET_RULE.perInbody)
+       + Math.floor(b)
        + (TICKET_RULE.bonus || 0);
 }
 
@@ -81,7 +97,8 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
   const t = T[lang] || T.ko;
 
   // 티켓/누적 EXP/기록은 사다리 모드와 공유한다
-  const { used, gained, log, play, playMany } = usePachinkoStore();
+  const { used, gained, log, beginPlay } = usePachinkoStore();
+  const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
   const [multi, setMulti] = useState(null);   // 다회 뽑기 결과 요약
 
   const [spinning, setSpinning] = useState(false);
@@ -100,22 +117,63 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
     timersRef.current = [];
     cancelAnimationFrame(rafRef.current);
   };
-  useEffect(() => clearTimers, []);
 
-  const earned = earnedTickets(totalWorkouts, totalInbody);
-  // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음)
+  // 연출 중이라 아직 화면에 안 나온 판. 티켓은 돌리는 순간 이미 나갔으므로
+  // 도중에 이탈하면 여기 든 보상을 정산해 준다 (안 하면 티켓만 날린 셈이 된다).
+  const inFlightRef = useRef(null);
+  // 언마운트 cleanup 이 한 번만 걸리도록 참조를 고정한다. 스토어 함수는 zustand 가
+  // 만들 때 한 번 만들어져 계속 같은 참조이므로 getState() 로 꺼내 쓴다.
+  const settleInFlight = useCallback(() => {
+    const f = inFlightRef.current;
+    if (!f) return null;
+    inFlightRef.current = null;
+    const s = usePachinkoStore.getState();
+    if (f.n === 1) return { actualExp: s.award(f.prize, 'reel'), exact: true };
+    const { totalExp, exact } = s.awardMany(f.rows, 'reel');
+    return { actualExp: totalExp, exact };
+  }, []);
+  useEffect(() => () => {
+    clearTimers();
+    settleInFlight();
+  }, [settleInFlight]);
+
+  const earned = earnedTickets(totalWorkouts, totalInbody, purchased);
+  // 미사용 티켓은 maxStack까지만 (오래 안 돌려도 무한 적립되지 않음).
+  // 티켓은 돌리는 즉시 used 로 확정되므로 사다리와 이중 사용될 여지가 없다.
   const available = Math.max(0, Math.min(earned - used, TICKET_RULE.maxStack));
 
   // count 판을 한 번에 돌린다. 릴은 그중 최고 등급을 보여주고,
   // 2판 이상이면 전체 내역을 요약 패널로 따로 표시한다.
   const spin = (count = 1) => {
     if (spinning || available <= 0) return;
+    clearTimers();      // 앞선 판의 타이머 id 가 계속 쌓이지 않도록 비운다
+    settleInFlight();   // 앞 판이 남아 있으면 먼저 정산 (보통은 없다)
 
-    // 티켓이 수백만 장이어도 한 번에 그만큼 배열을 만들면 브라우저가 멈춘다
-    const n = Math.min(count, available, MAX_BATCH);
-    const prizes = Array.from({ length: n }, () => drawPrize());
-    // 릴에 띄울 판 — 여러 판이면 그중 가장 높은 등급
-    const prize = prizes.reduce((a, b) => (b.exp > a.exp ? b : a), prizes[0]);
+    const n = Math.min(count, available);
+    // 돌리는 순간 티켓을 확정 차감한다.
+    // 연출이 끝날 때 차감하면 결과를 보고 새로고침해 무를 수 있다
+    // (pachinkoStore 주석 참고 — 파칭코는 창이 190ms라 좁지만 원인은 사다리와 같다).
+    if (!beginPlay(n)) return;
+
+    // 판수가 적으면 판마다 뽑고, 많으면 등급별 횟수만 표본추출한다.
+    // 수백만 장을 한 번에 쓸 때 그만큼 배열을 만들면 브라우저가 멈추기 때문이다.
+    // 어느 쪽이든 결과는 PRIZES 순서의 [{ prize, count }] 로 모인다.
+    let rows;
+    if (n <= MAX_BATCH) {
+      const counts = new Map();
+      for (let i = 0; i < n; i++) {
+        const p = drawPrize();
+        counts.set(p, (counts.get(p) || 0) + 1);
+      }
+      rows = PRIZES.filter(p => counts.has(p)).map(p => ({ prize: p, count: counts.get(p) }));
+    } else {
+      const counts = drawPrizeCounts(n);
+      rows = PRIZES.map((p, i) => ({ prize: p, count: counts[i] })).filter(r => r.count > 0);
+    }
+
+    // 릴에 띄울 판 — 여러 판이면 그중 가장 높은 등급 (PRIZES 는 오름차순)
+    const prize = rows[rows.length - 1].prize;
+    inFlightRef.current = { n, rows, prize };   // 도중에 이탈해도 이 보상은 지급된다
     const digits = String(prize.exp).padStart(REEL.digits, '0').split('').map(Number);
 
     setSpinning(true);
@@ -147,27 +205,28 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
 
     // 4) 결과 확정 + 저장 (티켓 n장 소모)
     const doneId = setTimeout(() => {
+      // 티켓은 돌릴 때 이미 나갔다. 여기서는 보상만 반영한다.
+      // actualExp = 누적 상한에 잘린 뒤의 실제 증가분 — 획득 배너가 이전 레벨을
+      // 역산하는 데 쓴다. prize.exp(자르기 전 원본)를 쓰면 만렙에서 어긋난다.
+      const { actualExp, exact } = settleInFlight();
+
       if (n === 1) {
-        play(1, prize, 'reel');
         if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
         else toast(prize.msg[lang] || prize.msg.ko, 'error');
       } else {
-        const { totalExp } = playMany(prizes, 'reel');
-        // 등급별로 몇 번 나왔는지 집계
-        const counts = new Map();
-        for (const p of prizes) counts.set(p.id, (counts.get(p.id) || 0) + 1);
         setMulti({
           n,
-          totalExp,
+          totalExp: actualExp,
+          exact,
           best: prize,
-          rows: PRIZES.filter(p => counts.has(p.id))
-            .map(p => ({ prize: p, count: counts.get(p.id) }))
-            .reverse(),
+          rows: [...rows].reverse(),   // 높은 등급부터 보여준다
         });
-        toast(`${n}${t.timesUnit} — +${compactExp(totalExp)} EXP`);
+        toast(exact
+          ? `${n}${t.timesUnit} — +${compactExp(actualExp)} EXP`
+          : `${n}${t.timesUnit} — ${t.capped}`);
       }
 
-      setResult(prize);
+      setResult({ ...prize, actualExp });
       setSpinning(false);
     }, REEL_TOTAL_MS + REEL.revealMs);
     timersRef.current.push(doneId);
@@ -307,7 +366,11 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
           color: result ? result.color : 'var(--text-muted)',
           transition: 'color 200ms ease',
         }}>
-          {result ? `${result.exp.toLocaleString()} EXP` : 'EXP'}
+          {/* 다회 뽑기면 이 값은 합계가 아니라 그중 최고 등급이다.
+              바로 아래 배너가 합계를 보여주므로 라벨이 없으면 두 숫자가 서로 어긋나 보인다. */}
+          {result
+            ? `${multi ? `${t.best} ` : ''}${result.exp.toLocaleString()} EXP`
+            : 'EXP'}
         </div>
 
         {/* 가운데 라인 (릴 기준선) */}
@@ -327,7 +390,9 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
         {spinning
           ? t.spinning
           : result
-            ? `${result.icon} ${result.label[lang] || result.label.ko} — ${result.msg[lang] || result.msg.ko}`
+            ? `${result.icon} ${result.label[lang] || result.label.ko} — ${
+                multi ? t.bestOf(multi.n.toLocaleString()) : (result.msg[lang] || result.msg.ko)
+              }`
             : available > 0 ? t.howTo : t.noTicket}
       </div>
 
@@ -335,7 +400,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
       {result && !spinning && (
         <ExpGainBanner
           baseExp={baseExp + gained}
-          gainedExp={multi ? multi.totalExp : result.exp}
+          gainedExp={result.actualExp ?? result.exp}
           color={result.color}
         />
       )}
@@ -367,6 +432,21 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
           {t.spin10} (🎫 10)
         </button>
         <button
+          onClick={() => spin(100)}
+          disabled={spinning || available < 100}
+          style={{
+            flex: 1, padding: '10px 0',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--border-accent)',
+            background: available >= 100 && !spinning ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
+            color: available >= 100 && !spinning ? 'var(--accent)' : 'var(--text-muted)',
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1,
+            cursor: available >= 100 && !spinning ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {t.spin100} (🎫 100)
+        </button>
+        <button
           onClick={() => spin(available)}
           disabled={spinning || available <= 0}
           style={{
@@ -379,7 +459,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
             cursor: available > 0 && !spinning ? 'pointer' : 'not-allowed',
           }}
         >
-          {t.spinAll} (🎫 {Math.min(available, MAX_BATCH).toLocaleString()})
+          {t.spinAll} (🎫 {available.toLocaleString()})
         </button>
       </div>
 
@@ -399,13 +479,13 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
               fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1,
               color: 'var(--text-primary)',
             }}>
-              {multi.n}{t.timesUnit} {t.resultLabel}
+              {multi.n.toLocaleString()}{t.timesUnit} {t.resultLabel}
             </span>
             <span style={{
               fontFamily: "'Bebas Neue', sans-serif", fontSize: 18,
               color: 'var(--success)',
             }}>
-              +{compactExp(multi.totalExp)} EXP
+              {multi.exact ? `+${compactExp(multi.totalExp)} EXP` : t.capped}
             </span>
           </div>
 
@@ -418,10 +498,14 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
                 {p.icon} {p.label[lang] || p.label.ko}
               </span>
               <span style={{ color: 'var(--text-secondary)' }}>
-                {count}{t.timesUnit}
-                <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
-                  +{compactExp(p.exp * count)}
-                </span>
+                {count.toLocaleString()}{t.timesUnit}
+                {/* exp * count 가 2^53을 넘으면 끝자리부터 뭉개진다.
+                    틀린 수를 보여주느니 횟수만 남긴다 (multi.exact=false) */}
+                {multi.exact && (
+                  <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                    +{compactExp(p.exp * count)}
+                  </span>
+                )}
               </span>
             </div>
           ))}
@@ -515,7 +599,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
                     fontSize: 12, marginBottom: 4,
                   }}>
                     <span style={{ color: p.color, fontWeight: 600 }}>
-                      {p.icon} {p.label[lang] || p.label.ko}
+                      {p.icon} {p.label[lang]}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
                       {pct >= 1 ? (pct % 1 === 0 ? pct : pct.toFixed(1)) : pct.toFixed(4)}% · <span style={{ color: p.color }}>+{compactExp(p.exp)}</span>
@@ -542,7 +626,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{t.avg}</span>
-                <span style={{ color: 'var(--success)' }}>~{EXPECTED_EXP.toFixed(1)} EXP</span>
+                <span style={{ color: 'var(--success)' }}>~{compactExp(Math.round(EXPECTED_EXP))} {t.expUnit}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{t.ticketRule}</span>

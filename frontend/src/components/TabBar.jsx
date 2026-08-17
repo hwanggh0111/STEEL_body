@@ -14,6 +14,7 @@ const TABS = [
 ];
 
 const MORE_ITEMS_ALL = [
+  { path: '/minigame',   label: '미니게임',   icon: '🥏' },
   { path: '/homeworkout', label: '홈트레이닝', icon: '🏠' },
   { path: '/search',     label: '운동 검색',  icon: '🔍' },
   { path: '/measure',    label: '측정 시스템', icon: '📐' },

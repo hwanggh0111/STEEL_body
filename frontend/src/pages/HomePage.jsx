@@ -6,7 +6,7 @@ import StatBox from '../components/StatBox';
 import Badges from '../components/Badges';
 import LevelSystem from '../components/LevelSystem';
 import MissionSystem from '../components/MissionSystem';
-import { getPachinkoExp } from '../components/PachinkoSystem';
+import { usePachinkoStore } from '../store/pachinkoStore';
 import CasinoChip from '../components/CasinoChip';
 import NoticeBanner, { NoticePopup } from '../components/NoticeBanner';
 import { NOTICES, getReadNotices, markNoticeRead } from '../data/notices';
@@ -63,6 +63,7 @@ const SEARCH_ITEMS = [
   { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
   { label: '이벤트', keywords: ['이벤트', 'event', '챌린지', 'challenge', '출시', '미션', '도장', '출석', '보상', 'launch'], path: '/event', icon: '🎉' },
   { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
+  { label: '미니게임', keywords: ['미니게임', 'minigame', 'game', '게임', '원판', '피하기', 'dodge', 'plate', '티켓', 'ticket', '원판피하기', 'ㅁㄴㄱ'], path: '/minigame', icon: '🥏' },
 
   // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
   { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
@@ -97,8 +98,10 @@ export default function HomePage() {
   });
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // 파칭코로 획득한 누적 EXP (파칭코는 /pachinko 전용 페이지에 있고, 홈은 레벨 합산에만 사용)
-  const [pachinkoExp] = useState(() => getPachinkoExp());
+  // 파칭코로 획득한 누적 EXP (파칭코는 /pachinko 전용 페이지에 있고, 홈은 레벨 합산에만 사용).
+  // 스토어를 구독한다 — useState 로 마운트 때 한 번만 읽으면, 홈이 언마운트되지 않는
+  // 구조로 바뀌는 순간 파칭코를 돌려도 홈 레벨이 옛날 값에 멈춘다.
+  const pachinkoExp = usePachinkoStore(s => s.gained);
 
   const addSearchHistory = (label) => {
     const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
