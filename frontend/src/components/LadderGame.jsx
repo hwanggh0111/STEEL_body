@@ -7,6 +7,11 @@ import {
   LADDER, LADDER_PRIZES, LADDER_EXPECTED_EXP, drawLadderPrize, compactExp,
 } from '../data/pachinkoData';
 
+// 배수판 구성은 T 의 안내 문구가 참조하므로 T 보다 위에 있어야 한다.
+// (아래에 두면 모듈이 평가되는 순간 TDZ 로 터진다 — 빌드는 통과하고 런타임에만 죽는다)
+const GAMBLE_MULTS = [2, 2, 1, 0, 0];
+const MAX_DOUBLE = 3;    // 연속 3회까지 → 최대 8배
+
 const T = {
   ko: {
     title: '사다리타기',
@@ -25,6 +30,16 @@ const T = {
     cost: '판당 비용',
     close: '닫기',
     retry: '다시',
+    heldToast: '아직 안 받았습니다 — 챙기거나 한 번 더',
+    take: '지금 챙기기',
+    gamble: '두 배로 간다',
+    gambleLeft: (k) => `더블 오어 나씽 — ${k}번 더 걸 수 있습니다`,
+    gamblePick: '배수 칸이 보입니다. 시작점을 고르세요 — 사다리는 출발해야 드러납니다',
+    gambleGo: (c) => `${c}번에서 건다`,
+    cancel: '그만두기',
+    gambleNote: `당첨되면 받기 전에 한 번 더 걸 수 있습니다. 배수 칸 ${GAMBLE_MULTS.length}개가 ×2 ×2 본전 꽝 꽝 이라 거는 기대값은 1.0 — 걸어도 평균 수익은 그대로이고 진폭만 커집니다. 최대 ${MAX_DOUBLE}연속(${2 ** MAX_DOUBLE}배)까지.`,
+    busted: '💀 전부 날아갔습니다',
+    maxed: `${MAX_DOUBLE}연속 성공 — 여기까지입니다`,
   },
   en: {
     title: 'Ladder',
@@ -43,6 +58,16 @@ const T = {
     cost: 'Cost / play',
     close: 'Close',
     retry: 'Again',
+    heldToast: 'Not banked yet — take it or push',
+    take: 'Take it',
+    gamble: 'Double or nothing',
+    gambleLeft: (k) => `Double or nothing — ${k} left`,
+    gamblePick: 'Multipliers are face-up. Pick a start — rungs show once you go',
+    gambleGo: (c) => `PUSH FROM ${c}`,
+    cancel: 'Back',
+    gambleNote: `A win can be pushed before you bank it. The ${GAMBLE_MULTS.length} slots are ×2 ×2 keep bust bust — an EV of exactly 1.0, so pushing changes the swing, not the average. Up to ${MAX_DOUBLE} in a row (${2 ** MAX_DOUBLE}×).`,
+    busted: '💀 Busted — all gone',
+    maxed: `${MAX_DOUBLE} in a row — that is the cap`,
   },
 };
 
@@ -51,6 +76,47 @@ const H = 210;   // SVG 좌표계 높이
 const PAD_Y = 16;
 // PC처럼 폭이 넓은 화면에서 사다리가 세로로 과하게 늘어나지 않도록 하는 상한
 const LADDER_MAX_W = 420;
+
+// ══ 더블 오어 나씽 ══
+// 당첨된 판은 바로 받지 않고 한 번 더 걸 수 있다. 이때 도착 칸이 배수판으로 바뀐다.
+// 배수의 합(2+2+1+0+0=5)이 칸 수와 같아 한 번 거는 기대값이 정확히 1.0 이다 —
+// 걸든 안 걸든 사다리 모드 전체의 기대 EXP 는 변하지 않는다. 분산만 커진다.
+// 칸 수와 길이가 같아야 하므로 LADDER.columns 를 바꾸면 여기도 같이 고쳐야 한다.
+
+// 배수 칸을 보상 칸과 같은 모양으로 만든다 (도착 칸 렌더가 icon/label/color/exp 를 그대로 쓴다)
+function gambleSlot(mult, heldExp) {
+  if (mult >= 2) return {
+    id: 'l_g2', mult, exp: heldExp * mult, icon: '✨', color: '#c060ff',
+    label: { ko: `×${mult}`, en: `×${mult}` },
+    msg: { ko: '두 배로 불렸습니다!', en: 'Doubled!' },
+  };
+  if (mult === 1) return {
+    id: 'l_g1', mult, exp: heldExp, icon: '🛡️', color: '#4a9aff',
+    label: { ko: '본전', en: 'Keep' },
+    msg: { ko: '그대로 지켰습니다', en: 'Kept it' },
+  };
+  return {
+    id: 'l_g0', mult, exp: 0, icon: '💀', color: '#555555',
+    label: { ko: '꽝', en: 'Bust' },
+    msg: { ko: '전부 날아갔습니다…', en: 'All gone…' },
+  };
+}
+
+// 배수 칸 배치는 균등해야 한다. 사다리의 도착 분포는 칸마다 조금씩 다르므로
+// (가운데 칸이 더 자주 걸린다) 배치가 치우치면 기대값 1.0 이 깨진다.
+// sort(() => Math.random() - 0.5) 는 균등한 셔플이 아니라서 피셔-예이츠를 쓴다.
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 걸 수 있는 판인지. 꽝은 걸 게 없고, 초대박(999조)은 그대로 챙기게 둔다 —
+// 8배까지 불려봐야 누적 상한에 잘리고, 최고 보상을 잃게 만들 이유도 없다.
+const canGamble = (prize) => prize.exp > 0 && prize.id !== 'l_max';
 
 // 각 층마다 인접한 두 세로줄 사이에 가로줄을 놓는다.
 // 같은 층에서 한 줄이 두 개의 가로줄을 갖지 않도록 막는다 (사다리타기 규칙).
@@ -105,6 +171,11 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
   const [tracing, setTracing] = useState(false);
   const [result, setResult] = useState(null);
   const [showRates, setShowRates] = useState(false);
+  // 아직 받지 않고 손에 든 보상. { prize, mult } — 더블 오어 나씽 중에는 계속 여기 남는다.
+  // 실제 EXP 는 prize.exp * mult 이고, 확정된 값은 언제나 inFlightRef 에도 들어 있다.
+  const [stake, setStake] = useState(null);
+  const [doubles, setDoubles] = useState(0);       // 연속으로 성공한 횟수
+  const [gambleMode, setGambleMode] = useState(false);   // 배수판을 깔고 시작점을 기다리는 중
 
   const timersRef = useRef([]);
   const rafRef = useRef(0);
@@ -119,6 +190,8 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
   // 연출 중이라 아직 화면에 안 나온 보상. 티켓은 출발할 때 이미 나갔으므로
   // 도중에 이탈하면 여기 든 보상을 정산해 준다 (안 하면 티켓만 날린 셈이 된다).
   const inFlightRef = useRef(null);
+  // 배수판을 깔기 직전의 도착 칸 — 그만두기를 누르면 이걸로 되돌린다
+  const boardBeforeGambleRef = useRef(null);
   // 언마운트 cleanup 이 한 번만 걸리도록 참조를 고정한다. 스토어 함수는 zustand 가
   // 만들 때 한 번 만들어져 계속 같은 참조이므로 getState() 로 꺼내 쓴다.
   const settleInFlight = useCallback(() => {
@@ -127,12 +200,51 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
     inFlightRef.current = null;
     return usePachinkoStore.getState().award(prize, 'ladder');
   }, []);
-  useEffect(() => () => {
-    clearTimers();
-    settleInFlight();
+  // 새로고침 / 탭 닫기에도 손에 든 보상을 정산한다.
+  // 더블 오어 나씽이 생기면서 보상이 "받지 않은 채로" 화면에 오래 머무르게 됐다 —
+  // 언마운트에만 걸어두면 그 사이 탭을 닫는 순간 티켓만 날린 셈이 된다.
+  // (PlateDodge 와 같은 이유로 beforeunload 가 아니라 pagehide 를 쓴다)
+  useEffect(() => {
+    window.addEventListener('pagehide', settleInFlight);
+    return () => {
+      window.removeEventListener('pagehide', settleInFlight);
+      clearTimers();
+      settleInFlight();
+    };
   }, [settleInFlight]);
 
-  const canPlay = available >= LADDER.cost && !tracing;
+  // 손에 든 보상이 있으면 먼저 처리해야 한다 (챙기거나 걸거나) — 새 판은 못 연다
+  const canPlay = available >= LADDER.cost && !tracing && !stake;
+
+  // 사다리 한 판을 화면에 태운다. 시작 · 배수판이 공유하는 연출 부분.
+  const runTrace = (fresh, startCol, d, done) => {
+    setRungs(fresh);
+    setPicked(startCol);
+    setPathD(d);
+    setResult(null);
+    setTracing(true);
+    setPhase('armed');   // 트랜지션을 끈 채 선을 감춰두고
+
+    // 다음 프레임에 트랜지션을 켜야 처음부터 그려진다.
+    // (트랜지션을 켠 채로 되돌리면 이전 선이 거꾸로 지워지기 시작해
+    //  두 번째 판부터 선이 즉시 완성돼 버린다)
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => setPhase('drawing'));
+    });
+
+    timersRef.current.push(setTimeout(done, LADDER.traceMs + 200));
+  };
+
+  // 경로를 SVG path 로
+  const pathOf = (path, startCol, end) => {
+    let d = `M ${colX(startCol)} ${PAD_Y - 8}`;
+    for (let i = 1; i < path.length; i++) {
+      const y = rowY(path[i].row);
+      d += ` L ${colX(path[i - 1].col)} ${y}`;   // 세로 이동
+      d += ` L ${colX(path[i].col)} ${y}`;       // 가로 이동
+    }
+    return d + ` L ${colX(end)} ${H - PAD_Y + 8}`;
+  };
 
   const start = (startCol) => {
     if (!canPlay) return;
@@ -159,41 +271,111 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
       nextSlots[c] = c === end ? prize : rest[ri++ % rest.length];
     }
 
-    // 경로를 SVG path 로
-    let d = `M ${colX(startCol)} ${PAD_Y - 8}`;
-    for (let i = 1; i < path.length; i++) {
-      const y = rowY(path[i].row);
-      d += ` L ${colX(path[i - 1].col)} ${y}`;   // 세로 이동
-      d += ` L ${colX(path[i].col)} ${y}`;       // 가로 이동
-    }
-    d += ` L ${colX(end)} ${H - PAD_Y + 8}`;
-
-    setRungs(fresh);
     setSlots(nextSlots);
-    setPicked(startCol);
-    setPathD(d);
-    setResult(null);
-    setTracing(true);
-    setPhase('armed');   // 트랜지션을 끈 채 선을 감춰두고
+    setDoubles(0);
+    setGambleMode(false);
 
-    // 다음 프레임에 트랜지션을 켜야 처음부터 그려진다.
-    // (트랜지션을 켠 채로 되돌리면 이전 선이 거꾸로 지워지기 시작해
-    //  두 번째 판부터 선이 즉시 완성돼 버린다)
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = requestAnimationFrame(() => setPhase('drawing'));
-    });
+    runTrace(fresh, startCol, pathOf(path, startCol, end), () => {
+      setTracing(false);
 
-    const id = setTimeout(() => {
+      // 걸 수 있는 판이면 아직 주지 않는다. inFlightRef 에 그대로 둔 채 손에 들려주고
+      // (stake) 챙길지 걸지 고르게 한다. 이탈해도 inFlightRef 가 정산되므로
+      // 티켓만 날리는 일은 없다.
+      if (canGamble(prize)) {
+        setStake({ prize, mult: 1 });
+        setResult({ ...prize, endCol: end, held: true });
+        toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} — ${t.heldToast}`);
+        return;
+      }
+
       // 티켓은 출발할 때 이미 나갔다. 여기서는 보상만 반영한다.
       // actualExp = 누적 상한에 잘린 뒤의 실제 증가분 — 획득 배너가 이전 레벨을
       // 역산하는 데 쓴다. prize.exp(자르기 전 원본)를 쓰면 만렙에서 어긋난다.
       const actualExp = settleInFlight();
       setResult({ ...prize, endCol: end, actualExp });
-      setTracing(false);
       if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);
       else toast(prize.msg[lang] || prize.msg.ko, 'error');
-    }, LADDER.traceMs + 200);
-    timersRef.current.push(id);
+    });
+  };
+
+  // 손에 든 보상을 그대로 받는다
+  const takeStake = () => {
+    if (!stake || tracing) return;
+    const gainedExp = stake.prize.exp * stake.mult;
+    const actualExp = settleInFlight();
+    setResult(r => (r ? { ...r, held: false, actualExp } : r));
+    setStake(null);
+    setDoubles(0);
+    setGambleMode(false);
+    toast(`${stake.prize.icon} +${compactExp(gainedExp)} EXP`);
+  };
+
+  // 배수판을 깐다. 아직 아무것도 안 건 상태 — 시작점을 고르면 그때 출발한다.
+  const enterGamble = () => {
+    if (!stake || tracing) return;
+    boardBeforeGambleRef.current = slots;   // 그만두면 되돌린다
+    const heldExp = stake.prize.exp * stake.mult;
+    setSlots(shuffle(GAMBLE_MULTS).map(m => gambleSlot(m, heldExp)));
+    setRungs([]);      // 가로줄은 출발할 때 만든다 — 미리 보이면 눈으로 따라가 이길 수 있다
+    setPathD('');
+    setPhase('idle');
+    setResult(null);
+    setGambleMode(true);
+  };
+
+  // 배수판에서 물러난다. 아직 아무것도 굴리지 않았으므로 그냥 되돌리면 된다.
+  const cancelGamble = () => {
+    if (tracing) return;
+    if (boardBeforeGambleRef.current) setSlots(boardBeforeGambleRef.current);
+    setGambleMode(false);
+  };
+
+  // 배수판 사다리를 탄다.
+  const gamble = (startCol) => {
+    if (!stake || tracing || !gambleMode) return;
+    clearTimers();
+
+    // 시작점을 누르는 순간 결과가 확정된다. 가로줄을 여기서 처음 만들기 때문에
+    // 화면으로 미리 따라갈 수 없다 — 배수 칸만 보이고 연결은 출발해야 드러난다.
+    // 확정된 결과를 곧바로 inFlightRef 에 넣어, 연출 3.6초 동안 새로고침해서
+    // 실패를 무르는 것을 막는다 (출발 때 티켓을 선차감하는 것과 같은 이유다).
+    const fresh = buildRungs();
+    const { path, end } = trace(fresh, startCol);
+    const landed = slots[end];
+    inFlightRef.current = { ...stake.prize, exp: landed.exp };
+
+    runTrace(fresh, startCol, pathOf(path, startCol, end), () => {
+      setTracing(false);
+      setGambleMode(false);
+
+      if (landed.mult === 0) {
+        settleInFlight();     // 0 EXP 로 확정한다 (판 기록에는 남는다)
+        setResult({ ...landed, endCol: end, actualExp: 0 });
+        setStake(null);
+        setDoubles(0);
+        toast(t.busted, 'error');
+        return;
+      }
+
+      const nextMult = stake.mult * landed.mult;
+      const nextDoubles = doubles + 1;
+      setDoubles(nextDoubles);
+
+      // 아직 더 걸 수 있으면 계속 손에 들고 있는다 (inFlightRef 에는 이미 새 값이 들어 있다)
+      if (nextDoubles < MAX_DOUBLE) {
+        setStake({ prize: stake.prize, mult: nextMult });
+        setResult({ ...landed, endCol: end, held: true, mult: nextMult });
+        toast(`${landed.icon} ${landed.msg[lang] || landed.msg.ko} — ${compactExp(landed.exp)} EXP`);
+        return;
+      }
+
+      // 상한까지 갔으면 자동으로 챙긴다
+      const actualExp = settleInFlight();
+      setResult({ ...landed, endCol: end, actualExp, mult: nextMult });
+      setStake(null);
+      setDoubles(0);
+      toast(`${landed.icon} ${t.maxed} +${compactExp(landed.exp)} EXP`);
+    });
   };
 
   const totalWeight = LADDER_PRIZES.reduce((s, p) => s + p.weight, 0);
@@ -324,6 +506,9 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
         }}>
           {slots.map((p, c) => {
             const hit = result?.endCol === c;
+            // 배수판은 출발 전부터 다 보여준다 — 뭐가 걸려 있는지 알고 골라야 의미가 있다.
+            // 감추는 건 보상 사다리(첫 판)뿐이다.
+            const hidden = tracing && !gambleMode;
             return (
               <div
                 key={c}
@@ -336,15 +521,15 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
                   boxShadow: hit ? `0 0 16px ${p.color}66` : 'none',
                   transition: 'all 200ms',
                   // 결과가 나오기 전에는 어떤 칸이 무엇인지 감춘다
-                  opacity: tracing ? 0.35 : 1,
+                  opacity: hidden ? 0.35 : 1,
                 }}
               >
-                <span style={{ fontSize: 13 }}>{tracing ? '❓' : p.icon}</span>
+                <span style={{ fontSize: 13 }}>{hidden ? '❓' : p.icon}</span>
                 <span style={{
                   fontFamily: "'Bebas Neue', sans-serif", fontSize: 9,
                   color: hit ? p.color : 'var(--text-muted)',
                 }}>
-                  {tracing ? '???' : (p.label[lang] || p.label.ko)}
+                  {hidden ? '???' : (p.label[lang] || p.label.ko)}
                 </span>
                 {/* 각 칸이 얼마짜리인지 */}
                 <span style={{
@@ -352,7 +537,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
                   color: hit ? p.color : 'var(--text-muted)',
                   opacity: hit ? 1 : 0.6,
                 }}>
-                  {tracing ? '' : `+${compactExp(p.exp)}`}
+                  {hidden ? '' : `+${compactExp(p.exp)}`}
                 </span>
               </div>
             );
@@ -368,13 +553,15 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
       }}>
         {tracing
           ? t.tracing
-          : result
-            ? `${result.icon} ${result.label[lang] || result.label.ko} — ${result.msg[lang] || result.msg.ko}`
-            : available >= LADDER.cost ? t.pick : t.noTicket}
+          : gambleMode
+            ? t.gamblePick
+            : result
+              ? `${result.icon} ${result.label[lang] || result.label.ko} — ${result.msg[lang] || result.msg.ko}`
+              : available >= LADDER.cost ? t.pick : t.noTicket}
       </div>
 
-      {/* 획득 EXP + 레벨 변화 */}
-      {result && !tracing && (
+      {/* 획득 EXP + 레벨 변화 — 손에 든 채(held)면 아직 받은 게 아니라 띄우지 않는다 */}
+      {result && !tracing && !result.held && (
         <ExpGainBanner
           baseExp={baseExp + gained}
           gainedExp={result.actualExp ?? result.exp}
@@ -382,19 +569,68 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
         />
       )}
 
-      {/* 출발 버튼 */}
-      <button
-        className="btn-primary"
-        onClick={() => start(selected)}
-        disabled={!canPlay}
-        style={{ width: '100%', marginBottom: 10 }}
-      >
-        {tracing
-          ? t.tracing
-          : available >= LADDER.cost
-            ? `${t.go} ${selected + 1}${t.fromCol} (🎫 ${LADDER.cost})`
-            : t.noTicket}
-      </button>
+      {/* 손에 든 보상 — 챙기거나 한 번 더 걸거나 */}
+      {stake && !gambleMode && !tracing && (
+        <>
+          <div style={{
+            textAlign: 'center', marginBottom: 8,
+            fontSize: 11, color: 'var(--danger)', fontWeight: 600,
+          }}>
+            {t.gambleLeft(MAX_DOUBLE - doubles)}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <button className="btn-primary" onClick={takeStake} style={{ flex: 1 }}>
+              💰 {t.take} +{compactExp(stake.prize.exp * stake.mult)}
+            </button>
+            <button
+              onClick={enterGamble}
+              style={{
+                flex: 1,
+                background: 'var(--danger-dim)',
+                border: '1px solid var(--danger)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--danger)',
+                fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.2,
+                padding: '9px 0', cursor: 'pointer',
+              }}
+            >
+              🎲 {t.gamble}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* 출발 버튼 — 배수판에서는 그대로 "건다" 가 된다 */}
+      {(!stake || gambleMode) && (
+        <button
+          className="btn-primary"
+          onClick={() => (gambleMode ? gamble(selected) : start(selected))}
+          disabled={gambleMode ? tracing : !canPlay}
+          style={{ width: '100%', marginBottom: 10 }}
+        >
+          {tracing
+            ? t.tracing
+            : gambleMode
+              ? `🎲 ${t.gambleGo(selected + 1)}`
+              : available >= LADDER.cost
+                ? `${t.go} ${selected + 1}${t.fromCol} (🎫 ${LADDER.cost})`
+                : t.noTicket}
+        </button>
+      )}
+
+      {/* 배수판에서 물러나기 */}
+      {gambleMode && !tracing && (
+        <button
+          onClick={cancelGamble}
+          style={{
+            width: '100%', background: 'transparent', border: 'none',
+            color: 'var(--text-muted)', fontSize: 11,
+            padding: '2px 0 10px', cursor: 'pointer',
+          }}
+        >
+          {t.cancel}
+        </button>
+      )}
 
       {/* 확률표 버튼 */}
       <button
@@ -479,6 +715,13 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
                   ~{compactExp(Math.round(LADDER_EXPECTED_EXP))} {t.expUnit}
                 </span>
               </div>
+            </div>
+
+            <div style={{
+              marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)',
+              fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7,
+            }}>
+              🎲 {t.gambleNote}
             </div>
 
             <button
