@@ -33,8 +33,13 @@ export function applyDevLevel() {
   const setLevelTo = (lv) => {
     const exp = expForLevel(lv);
     localStorage.setItem(LS.exp, String(exp));
-    [LS.used, LS.ulExp, LS.log, LS.best, LS.best + '_exp'].forEach(k => localStorage.removeItem(k));
-    usePachinkoStore.setState({ gained: exp, used: 0, ulExp: 0, log: [] });
+    // 울트라 티켓(교환으로만 생기는 값)까지 비운다. 안 그러면 LV 0 인데 끝판 티켓을
+    // 들고 있는 상태가 돼서 "처음 상태"가 아니게 된다.
+    [LS.used, LS.ulExp, LS.ulTickets, LS.log, LS.best, LS.best + '_exp']
+      .forEach(k => localStorage.removeItem(k));
+    usePachinkoStore.setState({
+      gained: exp, used: 0, ulExp: 0, ulTickets: 0, lastUlGain: 0, log: [],
+    });
   };
 
   const params = new URLSearchParams(window.location.search);
