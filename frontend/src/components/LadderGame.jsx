@@ -77,6 +77,9 @@ const PAD_Y = 16;
 // PC처럼 폭이 넓은 화면에서 사다리가 세로로 과하게 늘어나지 않도록 하는 상한
 const LADDER_MAX_W = 420;
 
+// 정적 테이블이라 렌더마다 다시 더하지 않는다
+const LADDER_WEIGHT_TOTAL = LADDER_PRIZES.reduce((s, p) => s + p.weight, 0);
+
 // ══ 더블 오어 나씽 ══
 // 당첨된 판은 바로 받지 않고 한 번 더 걸 수 있다. 이때 도착 칸이 배수판으로 바뀐다.
 // 배수의 합(2+2+1+0+0=5)이 칸 수와 같아 한 번 거는 기대값이 정확히 1.0 이다 —
@@ -378,7 +381,6 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
     });
   };
 
-  const totalWeight = LADDER_PRIZES.reduce((s, p) => s + p.weight, 0);
   const big = result && result.exp >= 10000000;
 
   return (
@@ -678,7 +680,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
             </p>
 
             {LADDER_PRIZES.map(p => {
-              const pct = (p.weight / totalWeight) * 100;
+              const pct = (p.weight / LADDER_WEIGHT_TOTAL) * 100;
               return (
                 <div key={p.id} style={{ marginBottom: 10 }}>
                   <div style={{

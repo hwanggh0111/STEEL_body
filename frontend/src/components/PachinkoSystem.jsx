@@ -94,6 +94,13 @@ export function getPachinkoExp() {
 }
 
 const STRIP = Array.from({ length: REEL.cycles * 10 }, (_, i) => i % 10);
+// 숫자 띠를 칸마다 <div> 로 쪼개면 릴 하나에 70개, 15칸이면 1,050개다.
+// 칸마다 스타일이 같으므로 줄바꿈으로 이어 붙인 텍스트 한 덩어리로 그린다 —
+// white-space: pre 와 고정 line-height 면 각 줄이 정확히 itemHeight 라 보이는 건 같다.
+const STRIP_TEXT = STRIP.join('\n');
+
+// 정적 테이블이라 렌더마다 다시 더하지 않는다
+const PRIZE_WEIGHT_TOTAL = PRIZES.reduce((s, p) => s + p.weight, 0);
 
 export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
@@ -239,7 +246,6 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
     timersRef.current.push(doneId);
   };
 
-  const totalWeight = PRIZES.reduce((s, p) => s + p.weight, 0);
   const glow = result ? result.color : 'var(--accent)';
   const bigHit = result && result.exp >= BIG_HIT_EXP;
   const isNova = result?.id === SUPERNOVA_ID;
@@ -345,27 +351,20 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
               <div style={{
                 transform: `translateY(${-reel.pos * REEL.itemHeight}px)`,
                 transition: reel.moving
-                  ? `transform ${REEL.baseMs + REEL.staggerMs * i}ms cubic-bezier(.12,.72,.16,1)`
-                  : 'none',
-                willChange: 'transform',
+                  ? `transform ${REEL.baseMs + REEL.staggerMs * i}ms cubic-bezier(.12,.72,.16,1), color 180ms ease, text-shadow 180ms ease`
+                  : 'color 180ms ease, text-shadow 180ms ease',
+                // will-change 는 도는 동안만. 켜둔 채로 두면 릴 31개가 영구히
+                // 레이어로 승격돼 모바일에서 GPU 메모리만 잡아먹는다.
+                willChange: reel.moving ? 'transform' : 'auto',
+                whiteSpace: 'pre',
+                lineHeight: `${REEL.itemHeight}px`,
+                textAlign: 'center',
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: REEL.fontSize,
+                color: reel.stopped && result ? result.color : 'var(--text-primary)',
+                textShadow: reel.stopped && result ? `0 0 16px ${result.color}88` : 'none',
               }}>
-                {STRIP.map((n, k) => (
-                  <div
-                    key={k}
-                    style={{
-                      height: REEL.itemHeight,
-                      lineHeight: `${REEL.itemHeight}px`,
-                      textAlign: 'center',
-                      fontFamily: "'Bebas Neue', sans-serif",
-                      fontSize: REEL.fontSize,
-                      color: reel.stopped && result ? result.color : 'var(--text-primary)',
-                      textShadow: reel.stopped && result ? `0 0 16px ${result.color}88` : 'none',
-                      transition: 'color 180ms ease',
-                    }}
-                  >
-                    {n}
-                  </div>
-                ))}
+                {STRIP_TEXT}
               </div>
             </div>
           ))}
@@ -607,7 +606,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
             </p>
 
             {PRIZES.map(p => {
-              const pct = (p.weight / totalWeight) * 100;
+              const pct = (p.weight / PRIZE_WEIGHT_TOTAL) * 100;
               return (
                 <div key={p.id} style={{ marginBottom: 10 }}>
                   <div style={{

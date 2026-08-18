@@ -75,6 +75,12 @@ const T = {
 
 // 릴에 감아둘 숫자 띠 (0~9 반복)
 const STRIP = Array.from({ length: UL_PACHINKO.cycles * 10 }, (_, i) => i % 10);
+// 칸마다 <div> 를 만들면 릴 하나에 70개, 16칸이면 1,120개다. 칸 스타일이 전부 같으므로
+// 줄바꿈으로 이어 붙인 텍스트 한 덩어리로 그린다 (PachinkoSystem 과 같은 이유).
+const STRIP_TEXT = STRIP.join('\n');
+
+// 개발 경고에 쓰는 합계. 개발 빌드에서만 의미가 있고 값이 고정이라 여기서 한 번만 구한다
+const UL_WEIGHT_TOTAL_DEV = UL_PRIZES.reduce((s, p) => s + ulWeight(p), 0);
 
 // 이 보상이 개벽 몇 레벨분인지 — 조 단위 숫자만으로는 크기가 안 읽힌다
 const levelsOf = (exp) => Math.round((exp / GENESIS.expPerLevel) * 10) / 10;
@@ -265,24 +271,18 @@ export default function UltraPachinko({ available = 0, unlocked = false, genesis
             <div style={{
               transform: `translateY(${-reel.pos * UL_PACHINKO.itemHeight}px)`,
               transition: reel.moving
-                ? `transform ${UL_PACHINKO.baseMs + UL_PACHINKO.staggerMs * i}ms cubic-bezier(.12,.72,.16,1)`
-                : 'none',
+                ? `transform ${UL_PACHINKO.baseMs + UL_PACHINKO.staggerMs * i}ms cubic-bezier(.12,.72,.16,1), color 180ms ease`
+                : 'color 180ms ease',
+              // will-change 는 도는 동안만 (PachinkoSystem 주석 참고)
+              willChange: reel.moving ? 'transform' : 'auto',
+              whiteSpace: 'pre',
+              lineHeight: `${UL_PACHINKO.itemHeight}px`,
+              textAlign: 'center',
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: UL_PACHINKO.fontSize,
+              color: reel.stopped && result ? glow : 'var(--text-secondary)',
             }}>
-              {STRIP.map((d, j) => (
-                <div
-                  key={j}
-                  style={{
-                    height: UL_PACHINKO.itemHeight,
-                    lineHeight: `${UL_PACHINKO.itemHeight}px`,
-                    textAlign: 'center',
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: UL_PACHINKO.fontSize,
-                    color: reel.stopped && result ? glow : 'var(--text-secondary)',
-                  }}
-                >
-                  {d}
-                </div>
-              ))}
+              {STRIP_TEXT}
             </div>
           </div>
         ))}
@@ -444,7 +444,7 @@ export default function UltraPachinko({ available = 0, unlocked = false, genesis
                 fontSize: 10, color: 'var(--danger)', lineHeight: 1.6,
               }}>
                 ⚠️ {t.devWarn}
-                {' '}({UL_PRIZES.filter(p => p.devWeight != null).map(p => `${p.label[lang] || p.label.ko} ${pctText((ulWeight(p) / UL_PRIZES.reduce((s, q) => s + ulWeight(q), 0)) * 100)}`).join(', ')})
+                {' '}({UL_PRIZES.filter(p => p.devWeight != null).map(p => `${p.label[lang] || p.label.ko} ${pctText((ulWeight(p) / UL_WEIGHT_TOTAL_DEV) * 100)}`).join(', ')})
               </div>
             )}
 
