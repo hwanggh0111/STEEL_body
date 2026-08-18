@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLangStore } from '../store/langStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import { toast } from './Toast';
@@ -74,12 +74,27 @@ export default function ExchangeBooth({ available = 0, unlocked = false }) {
 
   const add = (n) => setPending(p => Math.min(p + n, affordable));
 
+  // 확정이 같은 프레임에 두 번 들어오는 것을 막는다 (모바일 더블탭).
+  // 두 번째 호출은 첫 번째가 반영되기 전의 available 을 그대로 들고 들어와
+  // 검사를 통과해 버린다. 받는 울트라 티켓 수는 제값이라 손익은 없지만,
+  // used 가 earned 를 넘어 "아직 못 번 티켓을 미리 쓴" 상태가 된다.
+  //
+  // 성공했을 때만 잠근다. 실패는 스토어를 안 건드려 리렌더가 없으므로
+  // 여기서 잠그면 아래 effect 가 안 돌아 버튼이 영영 잠긴다.
+  const busyRef = useRef(false);
+  useEffect(() => { busyRef.current = false; });   // 리렌더될 때마다 해제
+
   const confirm = () => {
-    if (!unlocked) return;
+    if (!unlocked || busyRef.current) return;
     if (pending < 1) { toast(t.pickFirst, 'error'); return; }
     const got = exchangeUlTickets(pending, available);
-    if (got > 0) { toast(t.done(got)); setPending(0); }
-    else toast(t.fail, 'error');
+    if (got > 0) {
+      busyRef.current = true;
+      toast(t.done(got));
+      setPending(0);
+    } else {
+      toast(t.fail, 'error');
+    }
   };
 
   const cost = pending * UL_TICKET.rate;
