@@ -14,7 +14,7 @@ export default function PachinkoPage() {
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
   // 파칭코와 사다리가 같은 티켓/누적 EXP를 쓴다
   // ?reset=1 초기화는 main.jsx가 앱 부팅 전에 처리한다 (로그인 여부와 무관하게 동작해야 하므로)
-  const { used, gained, trimOverflow } = usePachinkoStore();
+  const { used, gained, ulExp, trimOverflow } = usePachinkoStore();
   const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
   const unlimited = usePlateStore(s => s.unlimited);   // 울트라 무한(∞)을 주웠는가
 
@@ -90,6 +90,7 @@ export default function PachinkoPage() {
             totalWorkouts={totalWorkouts}
             totalInbody={totalInbody}
             bonusExp={gained}
+            ulExp={ulExp}
           />
         </>
       )}

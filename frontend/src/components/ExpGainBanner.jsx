@@ -1,5 +1,5 @@
 import { useLangStore } from '../store/langStore';
-import { getLevelInfo, getTranscendInfo } from './LevelSystem';
+import { getLevelInfo, getTranscendInfo, getGenesisInfo, UL_EXP } from './LevelSystem';
 import { compactExp } from '../data/pachinkoData';
 
 // 한 판에서 얻은 EXP와 그로 인한 레벨 변화를 보여준다.
@@ -8,13 +8,17 @@ import { compactExp } from '../data/pachinkoData';
 //
 // 만렙을 넘어서면 일반 레벨은 더 이상 움직이지 않으므로 초월 레벨을 대신 보여준다.
 // (안 그러면 만렙 이후로는 영원히 "LV 149 → LV 149"만 뜬다)
+//
+// 초월까지 만렙이면 같은 이유로 개벽 레벨을 보여준다. 이때는 일반 EXP 가 상한에 걸려
+// 증가분이 항상 0 이므로, 획득량도 울트라 레전드 EXP(ulGain)로 바꿔서 띄운다.
+// ulExp = 이번 판까지 반영된 UL EXP 총량, ulGain = 이번 판에 넘어온 몫.
 
 const T = {
-  ko: { gain: '획득', levelUp: '레벨 업', max: '만렙', nextTo: '다음까지', tr: '초월' },
-  en: { gain: 'GAIN', levelUp: 'LEVEL UP', max: 'MAX', nextTo: 'next', tr: 'TR' },
+  ko: { gain: '획득', levelUp: '레벨 업', max: '만렙', nextTo: '다음까지', tr: '초월', gn: '개벽' },
+  en: { gain: 'GAIN', levelUp: 'LEVEL UP', max: 'MAX', nextTo: 'next', tr: 'TR', gn: 'GN' },
 };
 
-export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--success)' }) {
+export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--success)', ulExp = 0, ulGain = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
 
@@ -23,21 +27,37 @@ export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--succe
   const after = getLevelInfo(baseExp);
   const trBefore = getTranscendInfo(beforeExp);
   const trAfter = getTranscendInfo(baseExp);
+  const gnAfter = getGenesisInfo(baseExp, ulExp);
+  const gnBefore = getGenesisInfo(beforeExp, Math.max(0, ulExp - ulGain));
 
-  // 초월 구간에 들어섰으면 표시 기준을 초월 레벨로 바꾼다
-  const inTr = !!trAfter;
-  const labelBefore = inTr && trBefore ? `${t.tr} ${trBefore.level}` : `LV ${before.level}`;
-  const labelAfter = inTr ? `${t.tr} ${trAfter.level}` : `LV ${after.level}`;
-  const leveledUp = inTr
-    ? (!trBefore || trAfter.level > trBefore.level)
-    : after.level > before.level;
-  const isMax = inTr ? trAfter.maxed : !after.next;
+  // 표시 기준: 개벽 > 초월 > 일반 순으로 "아직 움직이는 레벨"을 고른다
+  const inGn = !!gnAfter;
+  const inTr = !inGn && !!trAfter;
 
-  const upColor = inTr ? trAfter.tier.color : after.color;
-  const upIcon = inTr ? trAfter.tier.icon : after.icon;
-  const remaining = inTr
-    ? trAfter.need - trAfter.into
-    : Math.max(0, after.needExp - after.exp);
+  // 개벽 구간에서는 획득량도 UL EXP 로 바꾼다 (일반 EXP 는 상한에 걸려 늘 0 이다)
+  const shownGain = inGn ? ulGain : gainedExp;
+  const gainUnit = inGn ? (UL_EXP.short[lang] || UL_EXP.short.ko) : 'EXP';
+
+  const labelBefore = inGn
+    ? `${t.gn} ${gnBefore ? gnBefore.level : 0}`
+    : inTr && trBefore ? `${t.tr} ${trBefore.level}` : `LV ${before.level}`;
+  const labelAfter = inGn
+    ? `${t.gn} ${gnAfter.level}`
+    : inTr ? `${t.tr} ${trAfter.level}` : `LV ${after.level}`;
+  const leveledUp = inGn
+    ? (!gnBefore || gnAfter.level > gnBefore.level)
+    : inTr
+      ? (!trBefore || trAfter.level > trBefore.level)
+      : after.level > before.level;
+  const isMax = inGn ? gnAfter.maxed : inTr ? trAfter.maxed : !after.next;
+
+  const upColor = inGn ? gnAfter.tier.color : inTr ? trAfter.tier.color : after.color;
+  const upIcon = inGn ? gnAfter.tier.icon : inTr ? trAfter.tier.icon : after.icon;
+  const remaining = inGn
+    ? gnAfter.need - gnAfter.into
+    : inTr
+      ? trAfter.need - trAfter.into
+      : Math.max(0, after.needExp - after.exp);
 
   return (
     <div style={{
@@ -45,8 +65,8 @@ export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--succe
       gap: 10, flexWrap: 'wrap',
       padding: '8px 10px', marginBottom: 10,
       borderRadius: 'var(--radius)',
-      background: gainedExp > 0 ? `${color}12` : 'var(--bg-tertiary)',
-      border: `1px solid ${gainedExp > 0 ? `${color}44` : 'var(--border)'}`,
+      background: shownGain > 0 ? `${color}12` : 'var(--bg-tertiary)',
+      border: `1px solid ${shownGain > 0 ? `${color}44` : 'var(--border)'}`,
     }}>
       {/* 획득 EXP */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
@@ -55,11 +75,14 @@ export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--succe
         </span>
         <span style={{
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1,
-          color: gainedExp > 0 ? color : 'var(--text-muted)',
+          color: shownGain > 0 ? (inGn ? UL_EXP.color : color) : 'var(--text-muted)',
         }}>
-          {gainedExp > 0 ? `+${compactExp(gainedExp)}` : '+0'}
+          {shownGain > 0 ? `+${compactExp(shownGain)}` : '+0'}
         </span>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>EXP</span>
+        <span style={{
+          fontSize: 10,
+          color: inGn ? UL_EXP.color : 'var(--text-muted)',
+        }}>{gainUnit}</span>
       </div>
 
       {/* 레벨 변화 */}

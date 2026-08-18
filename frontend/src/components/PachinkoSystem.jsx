@@ -100,7 +100,7 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
   const t = T[lang] || T.ko;
 
   // 티켓/누적 EXP/기록은 사다리 모드와 공유한다
-  const { used, gained, log, beginPlay } = usePachinkoStore();
+  const { used, gained, log, beginPlay, ulExp, lastUlGain } = usePachinkoStore();
   const purchased = usePlateStore(s => s.purchased);   // 원판 피하기로 산 티켓
   const unlimited = usePlateStore(s => s.unlimited);   // 울트라 무한(∞) 획득 여부
   const [multi, setMulti] = useState(null);   // 다회 뽑기 결과 요약
@@ -415,6 +415,8 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
         <ExpGainBanner
           baseExp={baseExp + gained}
           gainedExp={result.actualExp ?? result.exp}
+          ulExp={ulExp}
+          ulGain={lastUlGain}
           color={result.color}
         />
       )}

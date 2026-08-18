@@ -229,6 +229,10 @@ const T = {
     current: '현재',
     trTable: '초월 등급표',
     trPerLevel: '초월 1레벨당',
+    gnTable: '개벽 등급표',
+    gnPerLevel: '개벽 1레벨당',
+    ulHeld: '보유',
+    ulRule: '누적 EXP 가 상한에 닿은 뒤로 버는 EXP 는 전부 울트라 레전드 EXP 가 됩니다.',
     required: '필요 EXP',
     tier: '티어',
     nextTier: '다음 티어까지',
@@ -243,6 +247,10 @@ const T = {
     current: 'Current',
     trTable: 'Transcend Tiers',
     trPerLevel: 'Per transcend level',
+    gnTable: 'Genesis Tiers',
+    gnPerLevel: 'Per genesis level',
+    ulHeld: 'Held',
+    ulRule: 'Once total EXP hits the cap, everything you earn becomes ULTRA LEGEND EXP.',
     required: 'Required EXP',
     tier: 'TIER',
     nextTier: 'Next tier in',
@@ -304,6 +312,71 @@ export function getTranscendInfo(exp) {
   };
 }
 
+// ══ 울트라 레전드 EXP ══
+// 일반 EXP 와는 별개인 두 번째 화폐. 규칙은 한 줄이다 —
+// **누적 EXP 가 상한(MAX_EXP)에 닿은 뒤로 버는 EXP 는 전부 울트라 레전드 EXP 가 된다.**
+//
+// 화폐를 나눈 건 취향이 아니라 필요다. 일반 150레벨 + 초월 100레벨이 이미 2^53 을
+// 거의 다 쓴다 (MAX_EXP = 8,999조, 2^53 = 9,007조). 한 숫자로 계속 세면 끝자리가
+// 뭉개지므로, 상한 위쪽은 아예 다른 값에 담는다 (LS.ulExp).
+export const UL_EXP = {
+  name:  { ko: '울트라 레전드 EXP', en: 'ULTRA LEGEND EXP' },
+  short: { ko: 'UL EXP',            en: 'UL EXP' },
+  color: '#ff5ce0',
+  icon: '⚡',
+};
+
+// ══ 개벽 등급 ══
+// 초월(0~100)을 다 채우면 그 위로 열리는 3차 체계. 다시 0부터 시작하고,
+// 일반 EXP 가 아니라 울트라 레전드 EXP 로 오른다.
+export const GENESIS = {
+  expPerLevel: 80000000000000,   // 개벽 1레벨당 80조 UL EXP (초월과 같은 값)
+  maxLevel: 100,
+  name: { ko: '개벽', en: 'Genesis' },
+  color: '#ffe9a8',
+  icon: '🌑',
+};
+
+// UL EXP 누적의 상한. 이 값도 2^53 안쪽이어야 한다 (80조 × 100 = 8,000조).
+export const MAX_UL_EXP = GENESIS.expPerLevel * GENESIS.maxLevel;
+
+// 개벽 100레벨을 10등급으로 나눈다 (등급당 10레벨, 마지막만 11).
+// 이름은 초월 등급(여명·성좌·심연·균열·공허·영겁·창천·태초·종말·무극)과 겹치지 않게 골랐다.
+export const GENESIS_TIERS = [
+  { from: 0,  to: 9,   name: { ko: '혼돈', en: 'Chaos' },     icon: '🌫️', color: '#7a7a8c' },
+  { from: 10, to: 19,  name: { ko: '태동', en: 'Stirring' },  icon: '🌋', color: '#c86a3a' },
+  { from: 20, to: 29,  name: { ko: '천지', en: 'Firmament' }, icon: '⛰️', color: '#8fae6a' },
+  { from: 30, to: 39,  name: { ko: '만상', en: 'Myriad' },    icon: '🌿', color: '#4fc98a' },
+  { from: 40, to: 49,  name: { ko: '윤회', en: 'Samsara' },   icon: '☸️', color: '#4fa8d8' },
+  { from: 50, to: 59,  name: { ko: '적멸', en: 'Nirvana' },   icon: '🕯️', color: '#9a7ad8' },
+  { from: 60, to: 69,  name: { ko: '진리', en: 'Truth' },     icon: '📜', color: '#d8b84f' },
+  { from: 70, to: 79,  name: { ko: '도',   en: 'The Way' },   icon: '🎋', color: '#6ad8c0' },
+  { from: 80, to: 89,  name: { ko: '창조', en: 'Creation' },  icon: '🖐️', color: '#ff9a4f' },
+  { from: 90, to: 100, name: { ko: '하나', en: 'The One' },   icon: '⚪', color: '#ffffff' },
+];
+
+export function getGenesisTier(level) {
+  return GENESIS_TIERS.find(tier => level >= tier.from && level <= tier.to) || GENESIS_TIERS[0];
+}
+
+// 개벽 등급 정보. 초월이 만렙이 아니면 null — 초월을 다 채워야 열린다.
+export function getGenesisInfo(exp, ulExp = 0) {
+  const tr = getTranscendInfo(exp);
+  if (!tr || !tr.maxed) return null;
+  const capped = Math.min(Math.max(Number(ulExp) || 0, 0), MAX_UL_EXP);
+  const level = Math.min(Math.floor(capped / GENESIS.expPerLevel), GENESIS.maxLevel);
+  const maxed = level >= GENESIS.maxLevel;
+  const into = maxed ? GENESIS.expPerLevel : capped % GENESIS.expPerLevel;
+  return {
+    level,
+    into,
+    need: GENESIS.expPerLevel,
+    progress: (into / GENESIS.expPerLevel) * 100,
+    maxed,
+    tier: getGenesisTier(level),
+  };
+}
+
 // 해당 레벨에 막 도달하는 누적 EXP. 범위를 벗어나면 양끝으로 자른다.
 export function expForLevel(level) {
   const first = LEVEL_TABLE[0], last = LEVEL_TABLE[LEVEL_TABLE.length - 1];
@@ -353,16 +426,19 @@ export function getLevelInfo(exp) {
   };
 }
 
-export default function LevelSystem({ totalWorkouts, totalInbody, bonusExp = 0 }) {
+export default function LevelSystem({ totalWorkouts, totalInbody, bonusExp = 0, ulExp = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
   const [showAll, setShowAll] = useState(false);
   const [showTrTiers, setShowTrTiers] = useState(false);
+  const [showGnTiers, setShowGnTiers] = useState(false);
 
   const exp = calcExp(totalWorkouts, totalInbody, bonusExp);
   const info = getLevelInfo(exp);
   // LV 149를 채우면 그 위로 초월 등급이 열린다
   const tr = getTranscendInfo(exp);
+  // 초월 100을 다 채우면 그 위로 개벽이 열린다. 누적 EXP 상한을 넘어 버려지던 초과분으로 센다
+  const gn = getGenesisInfo(exp, ulExp);
 
   // 현재 티어 안에서의 레벨 진행도 (5레벨 중 몇 번째).
   // 레벨이 0부터라 Tₙ의 시작 레벨은 (n-1)*5 다. +1 을 붙이면 전 티어가 0/5 부터 시작한다.
@@ -531,6 +607,153 @@ export default function LevelSystem({ totalWorkouts, totalInbody, bonusExp = 0 }
               }}>
                 <span>{t.trPerLevel}</span>
                 <span>{TRANSCEND.expPerLevel.toLocaleString()} {t.exp}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 개벽 등급 — 초월 100을 채운 뒤부터 표시 */}
+      {gn && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 10, marginBottom: 12, padding: '8px 12px',
+          borderRadius: 'var(--radius)',
+          background: `${gn.tier.color}0e`,
+          border: `1px solid ${gn.tier.color}55`,
+          boxShadow: `0 0 24px ${gn.tier.color}22 inset`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+            <span style={{ fontSize: 15 }}>{gn.tier.icon}</span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: 2,
+              color: 'var(--text-muted)',
+            }}>
+              {GENESIS.name[lang] || GENESIS.name.ko}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1,
+              color: gn.tier.color,
+            }}>
+              {gn.tier.name[lang] || gn.tier.name.ko}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1,
+              color: gn.tier.color,
+              textShadow: `0 0 14px ${gn.tier.color}aa`,
+            }}>
+              {gn.level}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              / {GENESIS.maxLevel}
+            </span>
+          </div>
+
+          <div style={{ flex: 1, maxWidth: 160 }}>
+            <div style={{
+              height: 4, borderRadius: 2,
+              background: 'var(--bg-tertiary)', overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${gn.progress}%`, height: '100%',
+                background: gn.tier.color,
+                boxShadow: `0 0 8px ${gn.tier.color}`,
+                transition: 'width 400ms ease',
+              }} />
+            </div>
+            <div style={{
+              fontSize: 9, color: 'var(--text-muted)', marginTop: 3, textAlign: 'right',
+            }}>
+              {gn.maxed
+                ? t.maxLevel
+                : `${(gn.need - gn.into).toLocaleString()} ${UL_EXP.short[lang] || UL_EXP.short.ko}`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 개벽 등급표 */}
+      {gn && (
+        <div style={{ marginBottom: 12 }}>
+          <button
+            onClick={() => setShowGnTiers(v => !v)}
+            style={{
+              width: '100%', background: 'none',
+              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+              color: 'var(--text-muted)', fontSize: 11, padding: '6px 0', cursor: 'pointer',
+            }}
+          >
+            {showGnTiers ? t.closeLevels : `${GENESIS.icon} ${t.gnTable}`}
+          </button>
+
+          {showGnTiers && (
+            <div style={{ marginTop: 8 }}>
+              {GENESIS_TIERS.map(tier => {
+                const isCurrent = gn.level >= tier.from && gn.level <= tier.to;
+                const cleared = gn.level > tier.to;
+                return (
+                  <div
+                    key={tier.from}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '6px 8px', marginBottom: 3,
+                      borderRadius: 'var(--radius)',
+                      background: isCurrent ? `${tier.color}1a` : 'transparent',
+                      border: `1px solid ${isCurrent ? `${tier.color}88` : 'var(--border)'}`,
+                      opacity: cleared || isCurrent ? 1 : 0.45,
+                    }}
+                  >
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 12, color: tier.color,
+                    }}>
+                      <span>{tier.icon}</span>
+                      <span style={{ fontWeight: isCurrent ? 700 : 400 }}>
+                        {tier.name[lang] || tier.name.ko}
+                      </span>
+                      {isCurrent && (
+                        <span style={{
+                          padding: '0 5px', borderRadius: 'var(--radius)',
+                          background: `${tier.color}22`, border: `1px solid ${tier.color}66`,
+                          fontFamily: "'Bebas Neue', sans-serif", fontSize: 9, letterSpacing: 1,
+                        }}>
+                          {t.current}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{
+                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
+                      color: 'var(--text-muted)',
+                    }}>
+                      {tier.from} ~ {tier.to}
+                    </span>
+                  </div>
+                );
+              })}
+              <div style={{
+                marginTop: 6, fontSize: 10, color: 'var(--text-muted)',
+                display: 'flex', justifyContent: 'space-between',
+              }}>
+                <span>{t.gnPerLevel}</span>
+                <span>
+                  {GENESIS.expPerLevel.toLocaleString()}{' '}
+                  <span style={{ color: UL_EXP.color }}>{UL_EXP.short[lang] || UL_EXP.short.ko}</span>
+                </span>
+              </div>
+              <div style={{
+                marginTop: 3, fontSize: 10, color: 'var(--text-muted)',
+                display: 'flex', justifyContent: 'space-between',
+              }}>
+                <span>{t.ulHeld} {UL_EXP.icon} {UL_EXP.name[lang] || UL_EXP.name.ko}</span>
+                <span style={{ color: UL_EXP.color }}>
+                  {Math.min(Math.max(Number(ulExp) || 0, 0), MAX_UL_EXP).toLocaleString()}
+                </span>
+              </div>
+              <div style={{
+                marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)',
+                fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.6,
+              }}>
+                {UL_EXP.icon} {t.ulRule}
               </div>
             </div>
           )}

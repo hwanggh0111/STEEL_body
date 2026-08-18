@@ -156,7 +156,7 @@ const rowY = (r) => PAD_Y + ((r + 1) / (LADDER.rows + 1)) * (H - PAD_Y * 2);
 export default function LadderGame({ available = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
-  const { beginPlay, gained } = usePachinkoStore();
+  const { beginPlay, gained, ulExp, lastUlGain } = usePachinkoStore();
 
   const [rungs, setRungs] = useState(() => buildRungs());
   const [slots, setSlots] = useState(() => LADDER_PRIZES.slice(0, LADDER.columns));
@@ -565,6 +565,8 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
         <ExpGainBanner
           baseExp={baseExp + gained}
           gainedExp={result.actualExp ?? result.exp}
+          ulExp={ulExp}
+          ulGain={lastUlGain}
           color={result.color}
         />
       )}

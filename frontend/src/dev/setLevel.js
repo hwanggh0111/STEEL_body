@@ -33,8 +33,8 @@ export function applyDevLevel() {
   const setLevelTo = (lv) => {
     const exp = expForLevel(lv);
     localStorage.setItem(LS.exp, String(exp));
-    [LS.used, LS.log, LS.best, LS.best + '_exp'].forEach(k => localStorage.removeItem(k));
-    usePachinkoStore.setState({ gained: exp, used: 0, log: [] });
+    [LS.used, LS.ulExp, LS.log, LS.best, LS.best + '_exp'].forEach(k => localStorage.removeItem(k));
+    usePachinkoStore.setState({ gained: exp, used: 0, ulExp: 0, log: [] });
   };
 
   const params = new URLSearchParams(window.location.search);

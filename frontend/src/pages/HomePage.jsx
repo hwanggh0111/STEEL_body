@@ -101,6 +101,7 @@ export default function HomePage() {
   // 스토어를 구독한다 — useState 로 마운트 때 한 번만 읽으면, 홈이 언마운트되지 않는
   // 구조로 바뀌는 순간 파칭코를 돌려도 홈 레벨이 옛날 값에 멈춘다.
   const pachinkoExp = usePachinkoStore(s => s.gained);
+  const pachinkoUlExp = usePachinkoStore(s => s.ulExp);
 
   const addSearchHistory = (label) => {
     const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
@@ -399,6 +400,7 @@ export default function HomePage() {
             totalWorkouts={totalWorkouts}
             totalInbody={records.length}
             bonusExp={pachinkoExp}
+            ulExp={pachinkoUlExp}
           />
 
           {/* 미션 */}

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { LS, LOG_MAX, readInt, readLS, saveLS, removeLS } from '../data/pachinkoData';
-import { MAX_EXP } from '../components/LevelSystem';
+import { MAX_EXP, MAX_UL_EXP } from '../components/LevelSystem';
 // 무한 티켓 여부는 원판 지갑이 들고 있다. plateStore 는 이 파일을 import 하지 않으므로
 // 순환 참조가 생기지 않는다.
 import { usePlateStore } from './plateStore';
@@ -42,6 +42,12 @@ function bumpBest(prize) {
 export const usePachinkoStore = create((set, get) => ({
   used: readInt(LS.used, 0),
   gained: readInt(LS.exp, 0),
+  // 누적 EXP 가 MAX_EXP 에 닿은 뒤로 넘쳐서 버려지던 몫. 개벽 등급이 이 값으로 계산된다.
+  // gained 와 따로 두는 이유는 둘을 합치면 2^53 을 넘어 정수 정밀도가 깨지기 때문이다.
+  ulExp: readInt(LS.ulExp, 0),
+  // 직전 판에서 UL EXP 로 넘어간 몫. 획득 배너가 "+0 EXP" 대신 이걸 보여준다.
+  // (상한에 닿은 뒤에는 일반 EXP 증가분이 항상 0 이라 화면에 아무 일도 안 일어난 것처럼 보인다)
+  lastUlGain: 0,
   log: loadLog(),
 
   // 보유 상한을 넘겨 쌓인 미사용 티켓을 실제로 소멸시킨다.
@@ -53,12 +59,13 @@ export const usePachinkoStore = create((set, get) => ({
   // 한 판 쓸 때마다 정직하게 줄어든다.
   trimOverflow: (earned, maxStack) => {
     const { used } = get();
-    const overflow = earned - used - maxStack;
-    if (!(overflow > 0)) return 0;   // NaN 이면 아무것도 하지 않는다
-    const nextUsed = used + overflow;
+    // 여기서 넘치는 건 '티켓' 이다. EXP 쪽 초과분(ulExp)과 헷갈리지 않게 이름을 나눈다.
+    const spill = earned - used - maxStack;
+    if (!(spill > 0)) return 0;   // NaN 이면 아무것도 하지 않는다
+    const nextUsed = used + spill;
     saveLS(LS.used, nextUsed);
     set({ used: nextUsed });
-    return overflow;
+    return spill;
   },
 
   // 판을 시작할 때 티켓을 확정 차감한다. cost 가 이상한 값이면 시작하지 않는다.
@@ -79,17 +86,24 @@ export const usePachinkoStore = create((set, get) => ({
   // 티켓은 beginPlay 에서 이미 나갔으므로 여기서는 건드리지 않는다.
   // 반환값은 상한에 잘린 뒤의 "실제 증가분" — 획득 배너가 이전 레벨을 역산하는 데 쓴다.
   award: (prize, mode) => {
-    const { gained, log } = get();
+    const { gained, log, ulExp } = get();
 
-    // 2^53을 넘으면 정수 정밀도가 깨지므로 LV100 기준선에서 자른다
-    const nextGained = Math.min(gained + prize.exp, MAX_EXP);
+    // 2^53을 넘으면 정수 정밀도가 깨지므로 상한에서 자른다.
+    // gained + prize.exp 를 먼저 더하면 그 합 자체가 2^53 을 넘어 끝자리가 뭉개진다.
+    // 남은 자리(room)를 먼저 구해서 "들어갈 몫"과 "넘칠 몫"으로 나눈다.
+    const room = MAX_EXP - gained;
+    const applied = Math.min(prize.exp, room);
+    const nextGained = gained + applied;
+    // 예전에는 넘친 몫을 그냥 버렸다. 이제 개벽 등급(초월 만렙 위의 3차 체계)으로 넘긴다.
+    const nextUlExp = Math.min(ulExp + (prize.exp - applied), MAX_UL_EXP);
     const nextLog = [{ id: prize.id, exp: prize.exp, mode }, ...log].slice(0, LOG_MAX);
 
     saveLS(LS.exp, nextGained);
+    saveLS(LS.ulExp, nextUlExp);
     saveLS(LS.log, JSON.stringify(nextLog));
     bumpBest(prize);
 
-    set({ gained: nextGained, log: nextLog });
+    set({ gained: nextGained, ulExp: nextUlExp, lastUlGain: nextUlExp - ulExp, log: nextLog });
     return nextGained - gained;
   },
 
@@ -99,7 +113,7 @@ export const usePachinkoStore = create((set, get) => ({
   // 판 배열이 아니라 등급별 횟수를 받는다. rows = [{ prize, count }].
   // 티켓 수백만 장을 한 번에 써도 그만큼 배열을 만들 필요가 없다.
   awardMany: (rows, mode) => {
-    const { gained, log } = get();
+    const { gained, log, ulExp } = get();
 
     // exp * count 는 2^53을 넘길 수 있다 (초신성 999조가 10회만 나와도 1e16).
     // 넘는 순간 끝자리부터 뭉개져 요약 패널 숫자가 조용히 틀리므로,
@@ -117,7 +131,14 @@ export const usePachinkoStore = create((set, get) => ({
     }
     if (!exact) sum = MAX_EXP;
 
-    const nextGained = Math.min(gained + sum, MAX_EXP);
+    const room = MAX_EXP - gained;
+    const applied = Math.min(sum, room);
+    const nextGained = gained + applied;
+    // 넘친 몫은 개벽으로 넘긴다. exact=false 면 합계 자체를 믿을 수 없으므로
+    // (안전 정수 범위를 벗어나 합산을 멈춘 경우다) 개벽도 상한으로 본다.
+    const nextUlExp = exact
+      ? Math.min(ulExp + (sum - applied), MAX_UL_EXP)
+      : MAX_UL_EXP;
 
     // 기록에는 등급이 높은 것부터 남긴다 (수백만 판이면 전부 남길 수 없음)
     const byExp = [...rows].sort((a, b) => b.prize.exp - a.prize.exp);
@@ -131,19 +152,20 @@ export const usePachinkoStore = create((set, get) => ({
     const nextLog = [...head, ...log].slice(0, LOG_MAX);
 
     saveLS(LS.exp, nextGained);
+    saveLS(LS.ulExp, nextUlExp);
     saveLS(LS.log, JSON.stringify(nextLog));
 
     const best = byExp[0]?.prize;
     bumpBest(best);
 
-    set({ gained: nextGained, log: nextLog });
+    set({ gained: nextGained, ulExp: nextUlExp, lastUlGain: nextUlExp - ulExp, log: nextLog });
     // totalExp = 상한에 잘린 뒤 실제로 반영된 양.
     // exact=false 면 등급별 합계도 믿을 수 없으므로 화면에서 정확한 수치를 감춘다.
     return { totalExp: nextGained - gained, exact, best };
   },
 
   reset: () => {
-    [LS.used, LS.exp, LS.log, LS.best, LS.best + '_exp'].forEach(removeLS);
-    set({ used: 0, gained: 0, log: [] });
+    [LS.used, LS.exp, LS.ulExp, LS.log, LS.best, LS.best + '_exp'].forEach(removeLS);
+    set({ used: 0, gained: 0, ulExp: 0, lastUlGain: 0, log: [] });
   },
 }));

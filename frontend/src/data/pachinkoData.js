@@ -273,6 +273,9 @@ export const LS = {
   exp: 'steelbody_pachinko_exp',     // 파칭코로 획득한 누적 EXP
   log: 'steelbody_pachinko_log',     // 최근 결과 (최대 LOG_MAX개)
   best: 'steelbody_pachinko_best',   // 최고 등급 id
+  // 울트라 레전드 EXP — 누적 EXP 가 상한에 닿은 뒤로 버는 EXP 는 전부 이쪽으로 들어온다.
+  // 개벽 등급이 이 값으로 오른다. (티켓 상한 초과분인 trimOverflow 와는 다른 값이다)
+  ulExp: 'steelbody_ul_exp',
 };
 
 export const LOG_MAX = 8;
