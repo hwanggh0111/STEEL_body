@@ -10,7 +10,12 @@ import { usePlateStore } from './store/plateStore';
 // ?reset=1 이 붙어 있으면 앱이 뜨기 전에 파칭코/원판 진행도를 비운다.
 // 라우터/로그인 상태와 무관하게 동작해야 해서 여기서 처리한다
 // (라우트 안에서 처리하면 비로그인 시 /login 으로 튕겨 실행되지 않음).
+//
+// **개발 빌드에서만 동작한다.** 진행도는 전부 localStorage 에만 있고 되돌릴 수 없는데,
+// 운영에서도 열려 있으면 주소 하나로 남의 기록을 통째로 날릴 수 있다 —
+// 링크만 눌러도 확인 창 없이 지워진다. ?level / ?tickets 과 같은 가드를 붙인다.
 (() => {
+  if (!import.meta.env.DEV) return;
   const params = new URLSearchParams(window.location.search);
   if (params.get('reset') !== '1') return;
   // 스토어는 import 시점(= 이 블록보다 먼저)에 이미 localStorage 를 읽어 갔다.

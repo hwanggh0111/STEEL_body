@@ -31,13 +31,21 @@ function devTicketBonus() {
 }
 const DEV_TICKETS = devTicketBonus();
 
+// 미사용 티켓 최대 보유량 (무한 적립 방지).
+//
+// 150 이었는데 400 으로 올렸다. 교환소가 티켓 200장을 한 번에 먹는데 상한이 150 이면
+// 지갑을 꽉 채워도 단 한 장을 못 바꾼다 — 울트라 레전드 파칭코와 개벽 등급 전체가
+// 운영 빌드에서 도달 불가능이었다. 상한은 무한 적립을 막으려고 둔 값이지 소비처의
+// 크기를 정하는 값이 아니므로, 가장 비싼 소비처보다 넉넉해야 한다.
+// 지금 소비처: 파칭코 1 · 사다리 100 · 교환소 200.
+export const BASE_MAX_STACK = 400;
+
 export const TICKET_RULE = {
   perWorkouts: 3,   // 운동 N회당 티켓 1개
   perInbody: 1,     // 인바디 N회당 티켓 1개
-  // 미사용 티켓 최대 보유량 (무한 적립 방지).
-  // bonus만 올리고 이걸 150으로 두면 available이 60에서 잘려 의미가 없다.
-  // 보너스를 0 으로 끄면 운영과 같은 150 이 되어 상한 동작까지 그대로 확인할 수 있다.
-  maxStack: import.meta.env.DEV ? Math.max(DEV_TICKETS, 150) : 150,
+  // bonus만 올리고 이걸 기본값으로 두면 available 이 잘려 의미가 없다.
+  // 보너스를 0 으로 끄면 운영과 같아져 상한 동작까지 그대로 확인할 수 있다.
+  maxStack: import.meta.env.DEV ? Math.max(DEV_TICKETS, BASE_MAX_STACK) : BASE_MAX_STACK,
   // 무상 지급 티켓. 프로덕션에서는 0.
   bonus: DEV_TICKETS,
 };

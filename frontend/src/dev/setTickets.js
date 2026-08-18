@@ -1,8 +1,8 @@
-import { TICKET_RULE } from '../data/pachinkoData';
+import { TICKET_RULE, BASE_MAX_STACK } from '../data/pachinkoData';
 
 // `?tickets=N` — 개발 보너스 티켓 수를 바꾼다. 개발 빌드에서만 동작한다.
 //
-//   ?tickets=0     보너스를 끈다. 기록으로 번 티켓만 남고 상한도 운영과 같은 150 이 된다.
+//   ?tickets=0     보너스를 끈다. 기록으로 번 티켓만 남고 상한도 운영과 같아진다(BASE_MAX_STACK).
 //   ?tickets=500   500장만 준다. 상한 동작을 볼 때 편하다.
 //   ?tickets=9999999  원래대로
 //
@@ -33,7 +33,7 @@ export function applyDevTickets() {
   } catch { /* 저장이 안 돼도 이번 세션은 아래에서 반영된다 */ }
 
   TICKET_RULE.bonus = bonus;
-  TICKET_RULE.maxStack = Math.max(bonus, 150);
+  TICKET_RULE.maxStack = Math.max(bonus, BASE_MAX_STACK);
 
   // 새로고침해도 다시 적용되지 않도록 쿼리를 지운다 (값은 localStorage 에 남는다)
   params.delete('tickets');
