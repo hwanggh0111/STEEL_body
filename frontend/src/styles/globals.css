@@ -51,8 +51,6 @@
   --event-mission-divider: rgba(255,255,255,0.04);
 
   /* 홈 이벤트 배너 (다크) */
-  --home-event-bg: linear-gradient(135deg, #1a1000, #2a1500);
-  --home-event-border: #ffd700;
 
   /* 레이아웃 */
   --max-width:     640px;
@@ -108,8 +106,6 @@
   --event-mission-divider: rgba(0,0,0,0.06);
 
   /* 홈 이벤트 배너 (라이트) */
-  --home-event-bg: linear-gradient(135deg, #fff8e7, #fff1d4);
-  --home-event-border: #e85d0f;
 }
 
 

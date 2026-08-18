@@ -20,7 +20,6 @@ const MeasurePage = lazy(() => import('./pages/MeasurePage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const NoticePage = lazy(() => import('./pages/NoticePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-const EventPage = lazy(() => import('./pages/EventPage'));
 const PachinkoPage = lazy(() => import('./pages/PachinkoPage'));
 const MiniGamePage = lazy(() => import('./pages/MiniGamePage'));
 
@@ -63,9 +62,12 @@ export default function App() {
               <Route path="history" element={<HistoryPage />} />
               <Route path="notice" element={<NoticePage />} />
               <Route path="admin" element={<AdminPage />} />
-              <Route path="event" element={<EventPage />} />
               <Route path="pachinko" element={<PachinkoPage />} />
               <Route path="minigame" element={<MiniGamePage />} />
+              {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
+                  이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면
+                  Layout 안이 통째로 비어서 앱이 죽은 것처럼 보인다. */}
+              <Route path="*" element={<Navigate to="/home" replace />} />
             </Route>
           </Routes>
         </Suspense>

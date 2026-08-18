@@ -61,7 +61,6 @@ const SEARCH_ITEMS = [
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
-  { label: '이벤트', keywords: ['이벤트', 'event', '챌린지', 'challenge', '출시', '미션', '도장', '출석', '보상', 'launch'], path: '/event', icon: '🎉' },
   { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
   { label: '미니게임', keywords: ['미니게임', 'minigame', 'game', '게임', '원판', '피하기', 'dodge', 'plate', '티켓', 'ticket', '원판피하기', 'ㅁㄴㄱ'], path: '/minigame', icon: '🥏' },
 
@@ -352,29 +351,6 @@ export default function HomePage() {
 
 
 
-
-          {/* 출시 기념 이벤트 (배너만) */}
-          <div className="card clickable" onClick={() => navigate('/event')} style={{
-            marginBottom: 16, padding: 16, textAlign: 'center',
-            background: 'var(--home-event-bg)',
-            border: '1px solid var(--home-event-border)',
-          }}>
-            <div style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 3,
-              background: 'linear-gradient(135deg, #ffd700, #ff6b1a)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              marginBottom: 4,
-            }}>GRAND LAUNCH EVENT</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {(() => {
-                const launch = new Date('2026-04-22');
-                const now = new Date();
-                const diff = Math.ceil((launch - now) / (1000 * 60 * 60 * 24));
-                return diff > 0 ? `D-${diff}` : diff === 0 ? 'D-DAY!' : `D+${Math.abs(diff)}`;
-              })()}
-              {' · '}터치하여 이벤트 참여
-            </div>
-          </div>
 
           {/* 오늘의 요약 */}
           <div className="section-title">
