@@ -31,6 +31,10 @@ import { usePlateStore } from './store/plateStore';
 // 프로덕션 빌드에서는 아래 블록이 통째로 제거된다.
 async function devBoot() {
   if (import.meta.env.DEV) {
+    // 티켓 보너스를 먼저 맞춘다 — ?tickets=0 으로 껐는데 레벨 처리가 먼저 돌면
+    // 그 판의 화면이 옛 상한으로 한 번 그려진다
+    const { applyDevTickets } = await import('./dev/setTickets');
+    applyDevTickets();
     const { applyDevLevel } = await import('./dev/setLevel');
     applyDevLevel();
   }

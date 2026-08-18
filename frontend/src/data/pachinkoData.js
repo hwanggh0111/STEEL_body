@@ -16,14 +16,26 @@
 // 개발 중에만 티켓을 몰아준다 (기록을 수백만 건 만들지 않고 티켓만 확보).
 // import.meta.env.DEV 는 빌드 시 false 로 치환되므로 프로덕션에서는
 // 원래 값(bonus 0 / maxStack 150)만 남는다 — 되돌리는 걸 잊어도 안전.
-const DEV_TICKETS = import.meta.env.DEV ? 9999999 : 0;
+// 개발 보너스 티켓. `?tickets=N` 으로 이 값을 바꿔 저장해 둘 수 있다(dev/setTickets.js).
+// 0 을 주면 보너스가 꺼져서 "기록으로 번 티켓만" 남는다 — 초기 상태를 볼 때 쓴다.
+// 프로덕션 빌드에서는 이 함수가 통째로 0 을 돌려준다.
+const DEV_TICKET_KEY = 'steelbody_dev_tickets';
+function devTicketBonus() {
+  if (!import.meta.env.DEV) return 0;
+  const raw = readLS(DEV_TICKET_KEY);
+  const n = Number(raw);
+  if (raw !== null && Number.isFinite(n) && n >= 0) return Math.floor(n);
+  return 9999999;
+}
+const DEV_TICKETS = devTicketBonus();
 
 export const TICKET_RULE = {
   perWorkouts: 3,   // 운동 N회당 티켓 1개
   perInbody: 1,     // 인바디 N회당 티켓 1개
   // 미사용 티켓 최대 보유량 (무한 적립 방지).
   // bonus만 올리고 이걸 150으로 두면 available이 60에서 잘려 의미가 없다.
-  maxStack: import.meta.env.DEV ? DEV_TICKETS : 150,
+  // 보너스를 0 으로 끄면 운영과 같은 150 이 되어 상한 동작까지 그대로 확인할 수 있다.
+  maxStack: import.meta.env.DEV ? Math.max(DEV_TICKETS, 150) : 150,
   // 무상 지급 티켓. 프로덕션에서는 0.
   bonus: DEV_TICKETS,
 };
