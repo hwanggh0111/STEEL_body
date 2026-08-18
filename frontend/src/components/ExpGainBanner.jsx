@@ -14,11 +14,19 @@ import { compactExp } from '../data/pachinkoData';
 // ulExp = 이번 판까지 반영된 UL EXP 총량, ulGain = 이번 판에 넘어온 몫.
 
 const T = {
-  ko: { gain: '획득', levelUp: '레벨 업', max: '만렙', nextTo: '다음까지', tr: '초월', gn: '개벽' },
-  en: { gain: 'GAIN', levelUp: 'LEVEL UP', max: 'MAX', nextTo: 'next', tr: 'TR', gn: 'GN' },
+  ko: {
+    gain: '획득', levelUp: '레벨 업', max: '만렙', nextTo: '다음까지', tr: '초월', gn: '개벽',
+    capped: 'EXP 상한 — 티켓은 교환소에서 울트라 티켓으로',
+  },
+  en: {
+    gain: 'GAIN', levelUp: 'LEVEL UP', max: 'MAX', nextTo: 'next', tr: 'TR', gn: 'GN',
+    capped: 'EXP capped — trade tickets at the Exchange',
+  },
 };
 
-export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--success)', ulExp = 0, ulGain = 0 }) {
+export default function ExpGainBanner({
+  baseExp, gainedExp, color = 'var(--success)', ulExp = 0, ulGain = 0, source = 'normal',
+}) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
 
@@ -37,6 +45,12 @@ export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--succe
   // 개벽 구간에서는 획득량도 UL EXP 로 바꾼다 (일반 EXP 는 상한에 걸려 늘 0 이다)
   const shownGain = inGn ? ulGain : gainedExp;
   const gainUnit = inGn ? (UL_EXP.short[lang] || UL_EXP.short.ko) : 'EXP';
+
+  // 상한에 닿은 계정이 일반 파칭코·사다리를 돌리면 이제 정말 아무것도 안 생긴다
+  // (넘친 EXP 를 UL EXP 로 넘기던 통로를 없앴다). 그냥 "+0" 만 띄우면 왜 0 인지
+  // 알 수가 없으므로 어디로 가야 하는지 같이 알려준다.
+  // source='ul' 은 울트라 레전드 파칭코 자신이라 이 안내가 필요 없다 (그 기계의 꽝일 뿐).
+  const cappedHint = inGn && source === 'normal' && gainedExp === 0 && ulGain === 0;
 
   const labelBefore = inGn
     ? `${t.gn} ${gnBefore ? gnBefore.level : 0}`
@@ -114,9 +128,15 @@ export default function ExpGainBanner({ baseExp, gainedExp, color = 'var(--succe
       </div>
 
       {/* 다음 레벨까지 남은 양 */}
-      {!isMax && (
+      {!isMax && !cappedHint && (
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
           {t.nextTo} {compactExp(remaining)}
+        </span>
+      )}
+
+      {cappedHint && (
+        <span style={{ fontSize: 10, color: UL_EXP.color }}>
+          {UL_EXP.icon} {t.capped}
         </span>
       )}
     </div>

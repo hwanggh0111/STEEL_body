@@ -232,7 +232,7 @@ const T = {
     gnTable: '개벽 등급표',
     gnPerLevel: '개벽 1레벨당',
     ulHeld: '보유',
-    ulRule: '누적 EXP 가 상한에 닿은 뒤로 버는 EXP 는 전부 울트라 레전드 EXP 가 됩니다.',
+    ulRule: '울트라 레전드 EXP 는 울트라 레전드 파칭코에서만 나옵니다. 남는 티켓을 교환소에서 울트라 티켓으로 바꿔 돌리세요.',
     required: '필요 EXP',
     tier: '티어',
     nextTier: '다음 티어까지',
@@ -250,7 +250,7 @@ const T = {
     gnTable: 'Genesis Tiers',
     gnPerLevel: 'Per genesis level',
     ulHeld: 'Held',
-    ulRule: 'Once total EXP hits the cap, everything you earn becomes ULTRA LEGEND EXP.',
+    ulRule: 'ULTRA LEGEND EXP comes only from the Ultra Legend Pachinko. Trade spare tickets at the Exchange to play it.',
     required: 'Required EXP',
     tier: 'TIER',
     nextTier: 'Next tier in',
@@ -314,11 +314,15 @@ export function getTranscendInfo(exp) {
 
 // ══ 울트라 레전드 EXP ══
 // 일반 EXP 와는 별개인 두 번째 화폐. 규칙은 한 줄이다 —
-// **누적 EXP 가 상한(MAX_EXP)에 닿은 뒤로 버는 EXP 는 전부 울트라 레전드 EXP 가 된다.**
+// **울트라 레전드 파칭코에서만 나온다.** 개벽 등급은 이 값으로만 오른다.
 //
 // 화폐를 나눈 건 취향이 아니라 필요다. 일반 150레벨 + 초월 100레벨이 이미 2^53 을
 // 거의 다 쓴다 (MAX_EXP = 8,999조, 2^53 = 9,007조). 한 숫자로 계속 세면 끝자리가
 // 뭉개지므로, 상한 위쪽은 아예 다른 값에 담는다 (LS.ulExp).
+//
+// 한때는 "누적 EXP 상한을 넘겨 버려지던 몫"을 여기로 넘겼는데, 그건 전용 기계가
+// 없던 시절의 임시 통로였다. 지금은 남는 티켓을 교환소에서 울트라 티켓으로 바꿔
+// 그 기계를 돌리는 것이 정해진 경로다.
 export const UL_EXP = {
   name:  { ko: '울트라 레전드 EXP', en: 'ULTRA LEGEND EXP' },
   short: { ko: 'UL EXP',            en: 'UL EXP' },

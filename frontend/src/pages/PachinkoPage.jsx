@@ -4,7 +4,9 @@ import { useInbodyStore } from '../store/inbodyStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import PachinkoSystem, { earnedTickets } from '../components/PachinkoSystem';
 import LadderGame from '../components/LadderGame';
-import LevelSystem from '../components/LevelSystem';
+import UltraPachinko from '../components/UltraPachinko';
+import ExchangeBooth from '../components/ExchangeBooth';
+import LevelSystem, { calcExp, getTranscendInfo } from '../components/LevelSystem';
 import { TICKET_RULE, ticketsAvailable } from '../data/pachinkoData';
 import { usePlateStore } from '../store/plateStore';
 import { toast } from '../components/Toast';
@@ -54,8 +56,16 @@ export default function PachinkoPage() {
 
   // 티켓은 판을 시작하는 즉시 used 로 확정되므로, 연출 중이라고 따로 빼둘 몫이 없다.
   const available = ticketsAvailable({ earned, used, unlimited });
-  // 파칭코를 뺀 순수 기록 EXP — 두 모드가 레벨 변화를 계산하는 기준
+  // 파칭코를 뺀 순수 기록 EXP — 세 모드가 레벨 변화를 계산하는 기준
   const baseExp = totalWorkouts * 15 + totalInbody * 30;
+
+  // 울트라 레전드 파칭코는 "새 레벨 단계"에 들어가면 나온다 —
+  // 일반 150레벨(LV 149)을 다 채워 초월이 열리는 순간이다.
+  // 개벽(UL EXP 를 실제로 쓰는 등급)은 그보다 위인 초월 만렙에서 열리므로,
+  // 그 사이에는 UL EXP 를 모아두는 구간이 된다. 기계가 그걸 설명한다.
+  const tr = getTranscendInfo(calcExp(totalWorkouts, totalInbody, gained));
+  const ulOpen = !!tr;                      // 초월 진입 = 새 레벨 단계 시작
+  const genesisOpen = !!tr && tr.maxed;     // 개벽 개방
 
   return (
     <div>
@@ -80,6 +90,19 @@ export default function PachinkoPage() {
             LADDER
           </div>
           <LadderGame available={available} baseExp={baseExp} />
+
+          {/* 세 번째 모드 — 보상이 울트라 레전드 EXP 라 개벽 등급이 오른다 */}
+          <div className="section-title">
+            <div className="accent-bar" />
+            ULTRA LEGEND
+          </div>
+          <ExchangeBooth available={available} unlocked={ulOpen} />
+          <UltraPachinko
+            available={available}
+            unlocked={ulOpen}
+            genesisOpen={genesisOpen}
+            baseExp={baseExp}
+          />
 
           {/* 두 모드에서 번 EXP가 함께 반영되는 레벨 */}
           <div className="section-title">

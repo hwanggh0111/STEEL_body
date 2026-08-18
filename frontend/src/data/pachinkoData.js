@@ -1,3 +1,5 @@
+import { GENESIS } from '../components/LevelSystem';
+
 // 파칭코 시스템 설정 — 확률/보상/티켓 수급을 여기서만 조정하면 됩니다.
 
 // ── 티켓 수급 ──
@@ -267,12 +269,121 @@ export const LADDER_EXPECTED_EXP = LADDER_PRIZES.reduce(
   (sum, p) => sum + p.exp * p.weight, 0
 ) / LADDER_PRIZES.reduce((sum, p) => sum + p.weight, 0);
 
+// ══ 울트라 레전드 파칭코 (개벽 전용) ══
+// 초월 만렙을 찍어 개벽이 열린 계정만 돌릴 수 있는 세 번째 기계.
+// 보상이 일반 EXP 가 아니라 울트라 레전드 EXP 라 개벽 등급이 바로 오른다.
+//
+// 왜 따로 만드나 — 상한에 닿은 계정은 일반 파칭코 당첨도 어차피 1:1 로 UL EXP 가
+// 되지만, 일반 파칭코의 기대값은 1/54만 짜리 초신성이 지배한다. 개벽 만렙(8,000조)
+// 까지 그걸로 가려면 티켓 수백만 장이 필요해 사실상 길이 아니다. 이 기계는 분포를
+// 눕혀서(최상위 없이도 굴러가게) 개벽을 실제로 오를 수 있는 경로로 만든다.
+//
+// 보상은 개벽 1레벨(GENESIS.expPerLevel = 80조)을 단위로 잡았다. L 배수로 읽으면 된다.
+const L = GENESIS.expPerLevel;
+
+// 울트라 티켓 — 이 기계 전용 화폐. 일반 티켓을 바꿔서 만든다.
+// 교환비가 예전 판당 비용(일반 200장)과 같으므로 밸런스는 그대로다.
+// 굳이 화폐를 나눈 이유는 두 가지다.
+//  - 판당 "200장"이 아니라 "1장"이라 화면에서 남은 판 수가 바로 읽힌다
+//  - 일반 파칭코·사다리와 지갑이 갈려 서로의 소비에 휘둘리지 않는다
+export const UL_TICKET = {
+  rate: 200,        // 일반 티켓 몇 장이 울트라 티켓 1장인가
+  icon: '🎟️',
+  name: { ko: '울트라 티켓', en: 'Ultra Ticket' },
+};
+
+export const UL_PACHINKO = {
+  cost: 1,          // 판당 울트라 티켓 (= 일반 티켓 UL_TICKET.rate 장)
+  batch: 10,        // 연차 판 수
+  // 최고 보상이 8,000조(16자리)라 릴도 16칸. 일반 파칭코(15칸)보다 한 칸 좁게 잡는다
+  digits: 16,
+  itemHeight: 34,
+  fontSize: 15,
+  gap: 2,
+  cycles: 7,
+  baseSpins: 6,
+  baseMs: 700,
+  staggerMs: 80,
+  revealMs: 240,
+};
+
+export const UL_REEL_TOTAL_MS =
+  UL_PACHINKO.baseMs + UL_PACHINKO.staggerMs * (UL_PACHINKO.digits - 1);
+
+// 가중치 합은 100,000 — 확률을 그대로 읽을 수 있게 맞춰뒀다.
+// 판당 기대값 0.0212 L (약 1.7조) → 개벽 1레벨당 울트라 티켓 약 47장
+// (일반 티켓으로는 약 9,500장). 개벽은 끝판 콘텐츠라 일부러 이렇게 잡았다.
+//
+// devWeight 는 개발 빌드에서만 대신 쓰는 값이다. 운영 확률이 만분의 일 단위라
+// 그대로 두면 상위 등급 연출을 한 번도 못 보고 개발하게 된다.
+// 확률표는 언제나 weight(운영) 기준으로 % 를 내고, 개발 빌드에서는 경고를 띄운다.
+export const UL_PRIZES = [
+  {
+    id: 'ul_miss', weight: 92000, devWeight: 5000, exp: 0, icon: '🌑', color: '#555555',
+    label: { ko: '무', en: 'Void' },
+    msg: { ko: '아무것도 열리지 않았습니다', en: 'Nothing opened' },
+  },
+  {
+    id: 'ul_glim', weight: 7000, exp: 0.1 * L, icon: '✦', color: '#7a7a8c',
+    label: { ko: '미광', en: 'Glimmer' },
+    msg: { ko: '희미한 빛', en: 'A faint light' },
+  },
+  {
+    id: 'ul_after', weight: 900, exp: 0.8 * L, icon: '✧', color: '#4fa8d8',
+    label: { ko: '잔광', en: 'Afterglow' },
+    msg: { ko: '개벽 한 레벨에 가깝습니다', en: 'Nearly a full level' },
+  },
+  {
+    id: 'ul_radiance', weight: 95, devWeight: 900, exp: 5 * L, icon: '☀️', color: '#d8b84f',
+    label: { ko: '광휘', en: 'Radiance' },
+    msg: { ko: '개벽 5레벨분!', en: '5 genesis levels!' },
+  },
+  {
+    id: 'ul_shard', weight: 4, devWeight: 200, exp: 30 * L, icon: '💠', color: '#ff9a4f',
+    label: { ko: '개벽의 파편', en: 'Genesis Shard' },
+    msg: { ko: '💠 개벽 30레벨분!!', en: '💠 30 genesis levels!!' },
+  },
+  {
+    id: 'ul_origin', weight: 1, devWeight: 60, exp: 100 * L, icon: '⚪', color: '#ffffff',
+    label: { ko: '태초의 빛', en: 'First Light' },
+    msg: { ko: '⚪ 태초의 빛 — 개벽 만렙!!!', en: '⚪ FIRST LIGHT — GENESIS MAX!!!' },
+  },
+];
+
+// 뽑기에 실제로 쓰는 가중치 (개발이면 개발값)
+export function ulWeight(p) {
+  return (import.meta.env.DEV && p.devWeight != null) ? p.devWeight : p.weight;
+}
+// 운영 가중치의 합 — 확률표는 언제나 이 값으로 % 를 낸다
+export const UL_WEIGHT_TOTAL_PROD = UL_PRIZES.reduce((s, p) => s + p.weight, 0);
+// 개발 빌드에서 부풀린 등급이 있는가 (확률표 경고 배너 조건)
+export const UL_HAS_DEV_WEIGHTS = import.meta.env.DEV
+  && UL_PRIZES.some(p => p.devWeight != null && p.devWeight !== p.weight);
+
+export function drawUlPrize(rand = Math.random) {
+  const total = UL_PRIZES.reduce((sum, p) => sum + ulWeight(p), 0);
+  let roll = rand() * total;
+  for (const p of UL_PRIZES) {
+    roll -= ulWeight(p);
+    if (roll < 0) return p;
+  }
+  return UL_PRIZES[0];
+}
+
+// 운영 기준 판당 기대값. 확률표에 뜨는 숫자라 개발 가중치를 섞으면 안 된다.
+export const UL_EXPECTED = UL_PRIZES.reduce(
+  (sum, p) => sum + p.exp * p.weight, 0
+) / UL_WEIGHT_TOTAL_PROD;
+
 // ── localStorage 키 ──
 export const LS = {
   used: 'steelbody_pachinko_used',   // 사용한 티켓 수
   exp: 'steelbody_pachinko_exp',     // 파칭코로 획득한 누적 EXP
   log: 'steelbody_pachinko_log',     // 최근 결과 (최대 LOG_MAX개)
   best: 'steelbody_pachinko_best',   // 최고 등급 id
+  // 울트라 티켓 보유량. 일반 티켓과 달리 "사용량"이 아니라 잔량을 직접 들고 있다
+  // (교환으로만 생기므로 기록에서 되계산할 수가 없다).
+  ulTickets: 'steelbody_ul_tickets',
   // 울트라 레전드 EXP — 누적 EXP 가 상한에 닿은 뒤로 버는 EXP 는 전부 이쪽으로 들어온다.
   // 개벽 등급이 이 값으로 오른다. (티켓 상한 초과분인 trimOverflow 와는 다른 값이다)
   ulExp: 'steelbody_ul_exp',

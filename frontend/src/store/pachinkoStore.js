@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { LS, LOG_MAX, readInt, readLS, saveLS, removeLS } from '../data/pachinkoData';
+import { LS, LOG_MAX, UL_TICKET, readInt, readLS, saveLS, removeLS } from '../data/pachinkoData';
 import { MAX_EXP, MAX_UL_EXP } from '../components/LevelSystem';
 // 무한 티켓 여부는 원판 지갑이 들고 있다. plateStore 는 이 파일을 import 하지 않으므로
 // 순환 참조가 생기지 않는다.
@@ -45,6 +45,8 @@ export const usePachinkoStore = create((set, get) => ({
   // 누적 EXP 가 MAX_EXP 에 닿은 뒤로 넘쳐서 버려지던 몫. 개벽 등급이 이 값으로 계산된다.
   // gained 와 따로 두는 이유는 둘을 합치면 2^53 을 넘어 정수 정밀도가 깨지기 때문이다.
   ulExp: readInt(LS.ulExp, 0),
+  // 울트라 티켓 잔량 (울트라 레전드 파칭코 전용)
+  ulTickets: readInt(LS.ulTickets, 0),
   // 직전 판에서 UL EXP 로 넘어간 몫. 획득 배너가 "+0 EXP" 대신 이걸 보여준다.
   // (상한에 닿은 뒤에는 일반 EXP 증가분이 항상 0 이라 화면에 아무 일도 안 일어난 것처럼 보인다)
   lastUlGain: 0,
@@ -86,7 +88,7 @@ export const usePachinkoStore = create((set, get) => ({
   // 티켓은 beginPlay 에서 이미 나갔으므로 여기서는 건드리지 않는다.
   // 반환값은 상한에 잘린 뒤의 "실제 증가분" — 획득 배너가 이전 레벨을 역산하는 데 쓴다.
   award: (prize, mode) => {
-    const { gained, log, ulExp } = get();
+    const { gained, log } = get();
 
     // 2^53을 넘으면 정수 정밀도가 깨지므로 상한에서 자른다.
     // gained + prize.exp 를 먼저 더하면 그 합 자체가 2^53 을 넘어 끝자리가 뭉개진다.
@@ -94,16 +96,16 @@ export const usePachinkoStore = create((set, get) => ({
     const room = MAX_EXP - gained;
     const applied = Math.min(prize.exp, room);
     const nextGained = gained + applied;
-    // 예전에는 넘친 몫을 그냥 버렸다. 이제 개벽 등급(초월 만렙 위의 3차 체계)으로 넘긴다.
-    const nextUlExp = Math.min(ulExp + (prize.exp - applied), MAX_UL_EXP);
+    // 상한을 넘은 몫은 버린다. UL EXP 는 울트라 레전드 파칭코(awardUl)에서만 나온다 —
+    // 한때 이 초과분을 UL EXP 로 넘겼지만, 그건 그 기계가 없던 시절의 임시 통로였다.
+    // 지금은 남는 티켓을 교환소에서 울트라 티켓으로 바꾸는 게 정해진 경로다.
     const nextLog = [{ id: prize.id, exp: prize.exp, mode }, ...log].slice(0, LOG_MAX);
 
     saveLS(LS.exp, nextGained);
-    saveLS(LS.ulExp, nextUlExp);
     saveLS(LS.log, JSON.stringify(nextLog));
     bumpBest(prize);
 
-    set({ gained: nextGained, ulExp: nextUlExp, lastUlGain: nextUlExp - ulExp, log: nextLog });
+    set({ gained: nextGained, lastUlGain: 0, log: nextLog });
     return nextGained - gained;
   },
 
@@ -113,7 +115,7 @@ export const usePachinkoStore = create((set, get) => ({
   // 판 배열이 아니라 등급별 횟수를 받는다. rows = [{ prize, count }].
   // 티켓 수백만 장을 한 번에 써도 그만큼 배열을 만들 필요가 없다.
   awardMany: (rows, mode) => {
-    const { gained, log, ulExp } = get();
+    const { gained, log } = get();
 
     // exp * count 는 2^53을 넘길 수 있다 (초신성 999조가 10회만 나와도 1e16).
     // 넘는 순간 끝자리부터 뭉개져 요약 패널 숫자가 조용히 틀리므로,
@@ -131,14 +133,11 @@ export const usePachinkoStore = create((set, get) => ({
     }
     if (!exact) sum = MAX_EXP;
 
+    // 넘친 몫은 버린다 (award 주석 참고 — UL EXP 는 awardUl 에서만 나온다).
+    // 자르기 전에 더하면 그 합이 2^53 을 넘어 끝자리가 뭉개지므로 남은 자리를 먼저 구한다.
     const room = MAX_EXP - gained;
     const applied = Math.min(sum, room);
     const nextGained = gained + applied;
-    // 넘친 몫은 개벽으로 넘긴다. exact=false 면 합계 자체를 믿을 수 없으므로
-    // (안전 정수 범위를 벗어나 합산을 멈춘 경우다) 개벽도 상한으로 본다.
-    const nextUlExp = exact
-      ? Math.min(ulExp + (sum - applied), MAX_UL_EXP)
-      : MAX_UL_EXP;
 
     // 기록에는 등급이 높은 것부터 남긴다 (수백만 판이면 전부 남길 수 없음)
     const byExp = [...rows].sort((a, b) => b.prize.exp - a.prize.exp);
@@ -152,20 +151,64 @@ export const usePachinkoStore = create((set, get) => ({
     const nextLog = [...head, ...log].slice(0, LOG_MAX);
 
     saveLS(LS.exp, nextGained);
-    saveLS(LS.ulExp, nextUlExp);
     saveLS(LS.log, JSON.stringify(nextLog));
 
     const best = byExp[0]?.prize;
     bumpBest(best);
 
-    set({ gained: nextGained, ulExp: nextUlExp, lastUlGain: nextUlExp - ulExp, log: nextLog });
+    set({ gained: nextGained, lastUlGain: 0, log: nextLog });
     // totalExp = 상한에 잘린 뒤 실제로 반영된 양.
     // exact=false 면 등급별 합계도 믿을 수 없으므로 화면에서 정확한 수치를 감춘다.
     return { totalExp: nextGained - gained, exact, best };
   },
 
+  // 일반 티켓을 울트라 티켓으로 바꾼다 (UL_TICKET.rate 장 → 1장).
+  // 차감은 beginPlay 를 그대로 태운다 — 무한 티켓이면 안 닳는 규칙까지 따라간다.
+  // available(지금 쓸 수 있는 티켓)은 발급량을 아는 호출부만 알기 때문에 인자로 받는다.
+  exchangeUlTickets: (count, available) => {
+    const n = Math.floor(Number(count) || 0);
+    if (n < 1) return 0;
+    const cost = UL_TICKET.rate * n;
+    const unlimited = usePlateStore.getState().unlimited;
+    if (!unlimited && !(available >= cost)) return 0;   // NaN 이면 아무것도 안 한다
+    if (!get().beginPlay(cost)) return 0;
+
+    const next = get().ulTickets + n;
+    saveLS(LS.ulTickets, next);
+    set({ ulTickets: next });
+    return n;
+  },
+
+  // 울트라 티켓을 쓴다. 판을 시작하는 순간 부르는 것이 규칙 —
+  // 연출이 끝날 때 빼면 결과를 보고 새로고침해서 무를 수 있다 (beginPlay 와 같은 이유).
+  spendUlTickets: (count) => {
+    const n = Math.floor(Number(count) || 0);
+    const { ulTickets } = get();
+    if (n < 1 || ulTickets < n) return false;
+    const next = ulTickets - n;
+    saveLS(LS.ulTickets, next);
+    set({ ulTickets: next });
+    return true;
+  },
+
+  // 울트라 레전드 파칭코 전용 — 보상이 UL EXP 로 바로 들어간다.
+  // 일반 EXP(gained)는 건드리지 않는다. 로그도 안 남긴다 — 일반 파칭코 로그와
+  // 단위가 달라(EXP vs UL EXP) 같은 목록에 섞으면 숫자를 잘못 읽게 된다.
+  awardUl: (amount) => {
+    const { ulExp } = get();
+    const add = Number.isFinite(+amount) ? Math.max(0, Math.floor(+amount)) : 0;
+    // award 와 같은 이유로 먼저 남은 자리를 구한다 — ulExp + add 는 2^53 을 넘을 수 있다
+    const room = MAX_UL_EXP - ulExp;
+    const applied = Math.min(add, room);
+    const next = ulExp + applied;
+
+    saveLS(LS.ulExp, next);
+    set({ ulExp: next, lastUlGain: applied });
+    return applied;
+  },
+
   reset: () => {
-    [LS.used, LS.exp, LS.ulExp, LS.log, LS.best, LS.best + '_exp'].forEach(removeLS);
-    set({ used: 0, gained: 0, ulExp: 0, lastUlGain: 0, log: [] });
+    [LS.used, LS.exp, LS.ulExp, LS.ulTickets, LS.log, LS.best, LS.best + '_exp'].forEach(removeLS);
+    set({ used: 0, gained: 0, ulExp: 0, ulTickets: 0, lastUlGain: 0, log: [] });
   },
 }));
