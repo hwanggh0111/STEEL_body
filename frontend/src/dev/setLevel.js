@@ -15,7 +15,7 @@ import { usePachinkoStore } from '../store/pachinkoStore';
 // 주소창에 아무것도 안 쳐도 한 번은 적용되는 시작 레벨.
 // tag 가 localStorage 에 남아 있으면 건너뛰므로 브라우저당 딱 한 번만 돈다.
 // 다시 한 번 강제하고 싶으면 tag 값을 바꾸면 된다 ('lv0-2', 'lv50-1' 처럼).
-const ONCE = { tag: 'lv0-1', level: 0 };
+const ONCE = { tag: 'lv0-2', level: 0 };
 const ONCE_KEY = 'steelbody_dev_level_once';
 
 function applyOnce(setLevelTo) {
