@@ -229,7 +229,7 @@ export const LADDER = {
 
 export const LADDER_PRIZES = [
   {
-    id: 'l_miss', weight: 800000000, exp: 0, icon: '💨', color: '#555555',
+    id: 'l_miss', weight: 800000000, devWeight: 20000000, exp: 0, icon: '💨', color: '#555555',
     label: { ko: '꽝', en: 'Miss' },
     msg: { ko: `${LADDER.cost}장이 날아갔습니다…`, en: `${LADDER.cost} tickets gone…` },
   },
@@ -257,25 +257,37 @@ export const LADDER_PRIZES = [
 
 // 파칭코와 같은 이유로 개발 중에만 꽝을 낮춘다 (80% 는 테스트가 더디다).
 // 꽝만 건드리므로 나머지 등급끼리의 비율은 그대로고, 다 같은 배수로 올라간다.
-// 프로덕션 빌드에서는 이 블록이 통째로 사라지고 위의 800000000 이 그대로 쓰인다.
-if (import.meta.env.DEV) {
-  const miss = LADDER_PRIZES.find(p => p.id === 'l_miss');
-  if (miss) miss.weight = 20000000;
+//
+// 예전에는 여기서 `miss.weight = 20000000` 으로 **덮어썼다.** 그러면 운영 확률이
+// 메모리에서 사라져 확률표가 개발용 9.2% 를 진짜 꽝 확률(80.2%)처럼 보여준다.
+// 원판표·울트라 확률표에서 이미 같은 문제를 겪었으므로, 여기도 devWeight 로 분리한다.
+// import.meta.env.DEV 는 빌드 시 false 로 치환되므로 운영에는 800000000 만 남는다.
+export function ladderWeight(p) {
+  return (import.meta.env.DEV && p.devWeight != null) ? p.devWeight : p.weight;
 }
 
+// 운영 가중치의 합 — 확률표는 언제나 이 값으로 % 를 낸다
+export const LADDER_WEIGHT_TOTAL_PROD = LADDER_PRIZES.reduce((s, p) => s + p.weight, 0);
+// 실제로 뽑기에 쓰는 합 (개발이면 개발값). 경고 배너가 "지금 진짜 확률"을 적을 때 쓴다
+export const LADDER_WEIGHT_TOTAL_DEV = LADDER_PRIZES.reduce((s, p) => s + ladderWeight(p), 0);
+// 개발 빌드에서 부풀린 등급이 있는가 (확률표 경고 배너 조건)
+export const LADDER_HAS_DEV_WEIGHTS = import.meta.env.DEV
+  && LADDER_PRIZES.some(p => p.devWeight != null && p.devWeight !== p.weight);
+
 export function drawLadderPrize(rand = Math.random) {
-  const total = LADDER_PRIZES.reduce((sum, p) => sum + p.weight, 0);
+  const total = LADDER_PRIZES.reduce((sum, p) => sum + ladderWeight(p), 0);
   let roll = rand() * total;
   for (const p of LADDER_PRIZES) {
-    roll -= p.weight;
+    roll -= ladderWeight(p);
     if (roll < 0) return p;
   }
   return LADDER_PRIZES[0];
 }
 
+// 운영 기준 판당 기대값. 확률표에 뜨는 숫자라 개발 가중치를 섞으면 안 된다.
 export const LADDER_EXPECTED_EXP = LADDER_PRIZES.reduce(
   (sum, p) => sum + p.exp * p.weight, 0
-) / LADDER_PRIZES.reduce((sum, p) => sum + p.weight, 0);
+) / LADDER_WEIGHT_TOTAL_PROD;
 
 // ══ 울트라 레전드 파칭코 (개벽 전용) ══
 // 초월 만렙을 찍어 개벽이 열린 계정만 돌릴 수 있는 세 번째 기계.

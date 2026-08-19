@@ -5,6 +5,7 @@ import { toast } from './Toast';
 import ExpGainBanner from './ExpGainBanner';
 import {
   LADDER, LADDER_PRIZES, LADDER_EXPECTED_EXP, drawLadderPrize, compactExp,
+  ladderWeight, LADDER_WEIGHT_TOTAL_PROD, LADDER_WEIGHT_TOTAL_DEV, LADDER_HAS_DEV_WEIGHTS,
 } from '../data/pachinkoData';
 
 // 배수판 구성은 T 의 안내 문구가 참조하므로 T 보다 위에 있어야 한다.
@@ -25,6 +26,7 @@ const T = {
     rates: '확률표',
     ratesTitle: '사다리 확률표',
     ratesDesc: `티켓 ${LADDER.cost}장을 걸고 한 판. 꽝이 잦은 대신 최고 보상 확률이 파칭코의 약 100배입니다.`,
+    devWarn: '개발 빌드입니다 — 실제로 뽑히는 확률은 아래와 다릅니다 (표는 운영 확률)',
     avg: '판당 평균',
     expUnit: '경험치',
     cost: '판당 비용',
@@ -53,6 +55,7 @@ const T = {
     rates: 'Odds',
     ratesTitle: 'Ladder Odds',
     ratesDesc: `${LADDER.cost} tickets per play. More misses, but ~100x the top-prize chance.`,
+    devWarn: 'Dev build — actual draw odds differ from this table (table shows production odds)',
     avg: 'Avg / play',
     expUnit: 'EXP',
     cost: 'Cost / play',
@@ -78,7 +81,9 @@ const PAD_Y = 16;
 const LADDER_MAX_W = 420;
 
 // 정적 테이블이라 렌더마다 다시 더하지 않는다
-const LADDER_WEIGHT_TOTAL = LADDER_PRIZES.reduce((s, p) => s + p.weight, 0);
+// 확률 표기 — 소수점이 길게 늘어지지 않게 자른다 (0.00997% 같은 값도 0 으로 뭉개지 않는다).
+// 전에는 계산 결과를 그대로 찍어 80.23271820847239% 같은 게 나왔다.
+const pctText = (v) => `${Number(v.toFixed(v < 1 ? 3 : 1))}%`;
 
 // ══ 더블 오어 나씽 ══
 // 당첨된 판은 바로 받지 않고 한 번 더 걸 수 있다. 이때 도착 칸이 배수판으로 바뀐다.
@@ -679,8 +684,20 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
               {t.ratesDesc}
             </p>
 
+            {LADDER_HAS_DEV_WEIGHTS && (
+              <div style={{
+                marginBottom: 12, padding: '7px 9px',
+                borderRadius: 'var(--radius)',
+                background: 'var(--danger-dim)', border: '1px solid var(--danger)',
+                fontSize: 10, color: 'var(--danger)', lineHeight: 1.6,
+              }}>
+                ⚠️ {t.devWarn}
+                {' '}({LADDER_PRIZES.filter(p => p.devWeight != null).map(p => `${p.label[lang] || p.label.ko} ${pctText((ladderWeight(p) / LADDER_WEIGHT_TOTAL_DEV) * 100)}`).join(', ')})
+              </div>
+            )}
+
             {LADDER_PRIZES.map(p => {
-              const pct = (p.weight / LADDER_WEIGHT_TOTAL) * 100;
+              const pct = (p.weight / LADDER_WEIGHT_TOTAL_PROD) * 100;
               return (
                 <div key={p.id} style={{ marginBottom: 10 }}>
                   <div style={{
@@ -691,7 +708,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
                       {p.icon} {p.label[lang] || p.label.ko}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
-                      {pct}% · <span style={{ color: p.color }}>+{p.exp.toLocaleString()}</span>
+                      {pctText(pct)} · <span style={{ color: p.color }}>+{compactExp(p.exp)}</span>
                     </span>
                   </div>
                   <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
