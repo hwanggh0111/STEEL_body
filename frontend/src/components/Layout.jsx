@@ -32,18 +32,12 @@ export default function Layout() {
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
-  const [theme, setTheme] = useState(readLS('steelbody_theme') || 'dark');
   const location = useLocation();
   const isPC = useIsPC();
   const [showTopBtn, setShowTopBtn] = useState(false);
   const isImmortal = useMemo(() => readLS('steelbody_immortal') === 'true', []);
   const isLegend = useMemo(() => readLS('steelbody_legend') === 'true', []);
   const hasFrame = isImmortal || isLegend;
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    saveLS('steelbody_theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     const handleScroll = () => setShowTopBtn(window.scrollY > 300);
@@ -273,19 +267,6 @@ export default function Layout() {
                 }}>관리자</span>
               )}
             </div>
-            <button
-              onClick={() => {
-                setTheme(theme === 'dark' ? 'light' : 'dark');
-              }}
-              style={{
-                background: 'none',
-                border: '1px solid', borderColor: 'var(--border)',
-                color: 'var(--text-muted)',
-                padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
-                fontFamily: "'Barlow', sans-serif", transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >{theme === 'dark' ? '☀️ 라이트' : '🌙 다크'}</button>
             <button
               onClick={async () => { ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
               style={{

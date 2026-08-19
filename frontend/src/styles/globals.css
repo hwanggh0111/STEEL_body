@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@1,700;1,800;1,900&family=Great+Vibes&family=Oswald:wght@400;500;600;700&display=swap');
 
 /* ─── CSS Variables (다크 모드 - 기본) ── */
-:root, [data-theme="dark"] {
+:root {
   /* 배경 */
   --bg-primary:    #0a0a0a;
   --bg-secondary:  #111111;
@@ -60,53 +60,6 @@
   --radius-lg:     4px;
 }
 
-/* ─── 라이트 모드 ─────────────────── */
-[data-theme="light"] {
-  --bg-primary:    #f0f0f0;
-  --bg-secondary:  #ffffff;
-  --bg-tertiary:   #e4e4e4;
-
-  --text-primary:  #111111;
-  --text-secondary:#333333;
-  --text-muted:    #666666;
-
-  --accent:        #e85d0f;
-  --accent-hover:  #ff7a2e;
-  --accent-dim:    #f5e6da;
-
-  --success:       #2d8a2d;
-  --success-dim:   #ddf0dd;
-  --warning:       #c48a10;
-  --warning-dim:   #f5ecd0;
-  --danger:        #d03030;
-  --danger-dim:    #f5dada;
-  --info:          #3080e0;
-  --info-dim:      #d8e8f8;
-
-  --border:        #d0d0d0;
-  --border-hover:  #aaa;
-  --border-accent: #e85d0f;
-
-  /* 이벤트 배너 (라이트) */
-  --event-banner-bg: linear-gradient(135deg, #fff5e6 0%, #ffe9c4 30%, #ffdca0 60%, #fff5e6 100%);
-  --event-banner-overlay: radial-gradient(circle at 20% 30%, rgba(255,107,26,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(232,93,15,0.10) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(255,255,255,0.4) 0%, transparent 40%);
-  --event-banner-shadow: 0 4px 20px rgba(232,93,15,0.15), 0 0 40px rgba(255,215,0,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
-  --event-card-bg: rgba(0,0,0,0.02);
-  --event-card-border: rgba(0,0,0,0.08);
-  --event-soft-bg: rgba(0,0,0,0.03);
-  --event-soft-border: rgba(0,0,0,0.08);
-  --event-text-strong: rgba(0,0,0,0.85);
-  --event-text-mid: rgba(0,0,0,0.7);
-  --event-text-soft: rgba(0,0,0,0.55);
-  --event-text-faded: rgba(0,0,0,0.4);
-  --event-text-muted: rgba(0,0,0,0.3);
-  --event-text-ghost: rgba(0,0,0,0.18);
-  --event-progress-track: rgba(0,0,0,0.08);
-  --event-stamp-text-locked: rgba(0,0,0,0.3);
-  --event-mission-divider: rgba(0,0,0,0.06);
-
-  /* 홈 이벤트 배너 (라이트) */
-}
 
 
 /* ─── 프로필 테두리 애니메이션 ────── */
@@ -376,7 +329,7 @@ body {
 
 /* ─── PC 반응형 (768px 이상) ─────── */
 @media (min-width: 768px) {
-  :root, [data-theme="dark"], [data-theme="light"] {
+  :root {
     --max-width: 960px;
   }
 
@@ -406,7 +359,7 @@ body {
 }
 
 @media (min-width: 1200px) {
-  :root, [data-theme="dark"], [data-theme="light"] {
+  :root {
     --max-width: 1100px;
   }
 }

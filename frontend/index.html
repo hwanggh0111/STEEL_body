@@ -27,21 +27,10 @@
     <meta name="apple-mobile-web-app-title" content="STEEL BODY" />
     <link rel="apple-touch-icon" href="/icons/icon.svg" />
 
-    <!-- 테마를 CSS 평가 이전에 적용 (검정/흰색 깜빡임 방지) -->
-    <script>
-      (function () {
-        // 쿠키·사이트 데이터를 막아둔 브라우저는 localStorage 를 읽기만 해도 던진다.
-        // 이 스크립트는 <head> 에서 동기로 돌기 때문에, 여기서 터지면 아래 <style> 과
-        // 앱 스크립트가 실행은 되지만 콘솔이 에러로 시작하고 테마가 안 붙는다.
-        var t = 'dark';
-        try { t = localStorage.getItem('steelbody_theme') || 'dark'; } catch (e) { /* 저장소 차단 */ }
-        document.documentElement.setAttribute('data-theme', t);
-        document.documentElement.style.backgroundColor = t === 'light' ? '#f0f0f0' : '#0a0a0a';
-      })();
-    </script>
+    <!-- 테마는 다크 하나뿐이다. 라이트를 지운 뒤로는 고를 것이 없으므로
+         localStorage 를 읽던 인라인 스크립트도 함께 없앴다 (첫 페인트가 한 단계 짧아진다). -->
     <style>
       html, body { background-color: #0a0a0a; }
-      html[data-theme="light"], html[data-theme="light"] body { background-color: #f0f0f0; }
     </style>
   </head>
   <body>
