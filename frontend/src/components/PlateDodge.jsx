@@ -17,9 +17,9 @@ const plateName = (p) => p.name || `${p.kg}kg`;
 const fmtPct = (v) => (v >= 1 ? v.toFixed(1) : String(Number(v.toPrecision(3))));
 
 // 위에서 떨어지는 원판을 피하고, 바닥에 쌓인 원판을 주워 모으는 게임.
-// 피하면 1개, 주우면 원판 값(1~5)만큼 더 받는다. 주우려면 낙하 구간으로
-// 다시 들어가야 해서 "안전하게 피하기"와 "욕심내서 줍기"가 상충한다.
-// 모은 원판으로 파칭코 티켓을 산다.
+// 피하는 것만으로는 아무것도 안 들어온다 — 주운 원판의 값(1~9,999,990)만 점수가 된다.
+// 주우려면 낙하 구간으로 다시 들어가야 해서 "안전하게 피하기"와 "욕심내서 줍기"가
+// 상충한다. 모은 원판으로 파칭코 티켓을 산다.
 //
 // 60fps 로 도는 부분은 전부 ref 안에서 처리하고 캔버스에 직접 그린다.
 // 프레임마다 setState 하면 React 가 초당 60번 리렌더해서 폰에서 끊긴다.
@@ -60,7 +60,7 @@ const T = {
   ratesDesc: '떨어지는 원판의 종류와 등장 확률입니다. 무거울수록 크고 빠른 대신 주웠을 때 많이 줍니다.',
   appear: '등장',
   onPick: '주우면',
-  dodgeReward: '피하면',
+  dodgeReward: '피하기만 하면',
   avgPick: '주울 때 평균 (∞ 제외)',
   avgWithLegend: '∞ 포함',
   avgProdNote: '운영 확률 기준',
@@ -454,11 +454,11 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
           }
         }
 
-        // 바닥에 닿으면 피한 것 — 소액을 주고, 원판은 바닥에 남겨 둔다
+        // 바닥에 닿으면 피한 것 — 점수는 없다. 원판만 바닥에 남겨 둔다.
+        // dodged 는 계속 센다: 난이도(낙하 속도·생성 간격)와 결과창 표시에 쓴다.
         if (p.y >= GROUND.y) {
           g.plates.splice(i, 1);
           g.dodged += 1;
-          g.raw += DODGE.dodgeReward;
           g.ground.push({ spec: p.spec, x: p.x, age: 0 });
           if (g.ground.length > GROUND.max) {
             // 앞에서 그냥 밀어내면 900짜리 잭팟이 뒤에 쌓인 1짜리들에 밀려 사라진다.
@@ -469,7 +469,6 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
             }
             g.ground.splice(worst, 1);
           }
-          setScore(g.raw);
         }
       }
 
@@ -1004,7 +1003,7 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{T.dodgeReward}</span>
-                <span style={{ color: 'var(--accent)' }}>🥏 +{DODGE.dodgeReward}</span>
+                <span style={{ color: 'var(--text-muted)' }}>🥏 0</span>
               </div>
               {/* 울트라 무한(4년 반에 한 번, 값 999만)이 산술 평균의 61%를 차지한다.
                   그 값만 띄우면 매 판 그만큼 받는 것처럼 읽히므로 ∞ 제외를 기본으로 둔다 */}
