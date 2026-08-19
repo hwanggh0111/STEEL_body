@@ -114,6 +114,19 @@ export default function RegisterPage() {
   const pwValid = isValidPw(password);
   const canSubmit = usernameOk && nickname.trim() && emailOk && pwValid && pwMatch && !loading;
 
+  // 버튼이 왜 안 눌리는지 화면에 알려준다.
+  // 조건이 다섯이나 되는데 그동안은 회색으로 죽어 있기만 해서, 특히 "아이디 중복확인"을
+  // 누르지 않은 경우 아무 표시 없이 영영 안 눌렸다 — 무엇이 남았는지 알 방법이 없었다.
+  const blockReason = loading ? null
+    : !username.trim() ? '아이디를 입력하세요'
+    : !usernameOk ? '아이디 옆 중복확인을 눌러주세요'
+    : !nickname.trim() ? '닉네임을 입력하세요'
+    : !email.trim() ? '이메일을 입력하세요'
+    : !emailOk ? '이메일을 확인하는 중이거나 쓸 수 없는 주소예요'
+    : !pwValid ? '비밀번호는 영문+숫자 8자 이상이어야 해요'
+    : !pwMatch ? '비밀번호 확인이 일치하지 않아요'
+    : null;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -294,6 +307,14 @@ export default function RegisterPage() {
           <button className="btn-primary" type="submit" disabled={!canSubmit} style={{ marginTop: 4 }}>
             {loading ? '처리 중...' : '회원가입'}
           </button>
+          {blockReason && (
+            <div style={{
+              marginTop: 6, textAlign: 'center',
+              fontSize: 12, color: 'var(--text-muted)',
+            }}>
+              {blockReason}
+            </div>
+          )}
         </form>
 
         <div style={{ textAlign: 'center', marginTop: 20 }}>
