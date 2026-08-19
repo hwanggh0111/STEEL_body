@@ -77,6 +77,13 @@ cd backend  && npm start       # http://localhost:4000
 
 ## 2026-08-19
 
+**죽은 컴포넌트 7개 제거 (1,528줄)**
+- 어디서도 `import` 하지 않던 것들이다 — `CharacterAvatar`(474) · `WorkoutHeatmap`(356) · `WeatherWorkout`(256) · `SpecialHomes`(100) · `DietSection`(88) · `TrendSection`(85), 그리고 `DietSection` 만 쓰던 `data/dietData.js`(169)가 연쇄로 죽어 같이 지웠다
+- **번들은 그대로다.** import 안 된 파일은 Vite 가 애초에 담지 않으므로 앱이 가벼워지지는 않는다. 줄어드는 건 읽어야 할 코드다
+- 되살릴 일이 생기면 `git show <이 커밋 이전>:frontend/src/components/CharacterAvatar.jsx` 로 꺼내면 된다. 특히 `CharacterAvatar` 와 `SpecialHomes`(등급별 특별 홈)는 새로 만들 페이지의 재료가 될 수도 있다
+- 확인: 운영 빌드 통과, 로그인 · 파칭코 1판 · 미니게임 캔버스 · 기록 페이지 정상, 콘솔 에러 없음
+
+
 **라이트 테마 제거 — 다크 하나만 남긴다**
 - `styles/globals.css` 의 `[data-theme="light"]` 블록 47줄과, 반응형 미디어쿼리에 남아 있던 `[data-theme="light"]` 셀렉터를 지웠다. `:root, [data-theme="dark"]` 로 갈라져 있던 것도 `:root` 하나로 합쳤다
 - `index.html` 의 **인라인 테마 스크립트를 통째로 없앴다.** localStorage 를 읽어 `data-theme` 을 붙이던 코드인데, 고를 것이 하나뿐이면 읽을 이유가 없다. 첫 페인트가 한 단계 짧아진다
