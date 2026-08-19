@@ -1,4 +1,6 @@
 import { useAuthStore } from '../store/authStore';
+// 개발 도구도 앱이 뜨기 전에 도는 코드다 — 쿠키를 막아둔 브라우저에서 던지면 흰 화면이 된다
+import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
 
 // 개발 중에만 동작하는 자동 로그인.
 // import.meta.env.DEV 는 빌드 시 false 로 치환되므로 프로덕션 번들에서는 통째로 죽는다.
@@ -14,8 +16,8 @@ export async function devAutoLogin() {
 
   // 같은 계정 세션이 이미 있으면 그대로 둔다 (새로고침마다 토큰 발급 방지).
   // 이메일이 바뀌었으면 옛 세션을 버리고 새로 로그인해야 한다.
-  const authed = localStorage.getItem('token') || document.cookie.includes('sb_csrf=');
-  if (authed && localStorage.getItem('ironlog_email') === email) return;
+  const authed = readLS('token') || readCookies().includes('sb_csrf=');
+  if (authed && readLS('ironlog_email') === email) return;
 
   try {
     await useAuthStore.getState().login(email, password);

@@ -3,14 +3,15 @@ import { useInbodyStore } from '../store/inbodyStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { toast } from '../components/Toast';
 import client from '../api/client';
+import { readLS, saveLS } from '../data/safeStorage';
 
 const PHOTO_KEY = 'ironlog_photos';
 
 function loadPhotos() {
-  try { return JSON.parse(localStorage.getItem(PHOTO_KEY)) || {}; } catch { return {}; }
+  try { return JSON.parse(readLS(PHOTO_KEY)) || {}; } catch { return {}; }
 }
 function savePhotos(photos) {
-  localStorage.setItem(PHOTO_KEY, JSON.stringify(photos));
+  saveLS(PHOTO_KEY, JSON.stringify(photos));
 }
 
 function getBmiInfo(bmi) {

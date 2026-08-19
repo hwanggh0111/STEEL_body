@@ -7,6 +7,7 @@ import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
+import { readLS, removeLS, saveLS } from '../data/safeStorage';
 
 const PROFILE_KEY = 'ironlog_profile_photo';
 
@@ -25,23 +26,23 @@ export default function Layout() {
   const { nickname, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sideMenu, setSideMenu] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(localStorage.getItem(PROFILE_KEY) || '');
+  const [profilePhoto, setProfilePhoto] = useState(readLS(PROFILE_KEY) || '');
   const [editingNick, setEditingNick] = useState(false);
   const [newNick, setNewNick] = useState('');
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('steelbody_theme') || 'dark');
+  const [theme, setTheme] = useState(readLS('steelbody_theme') || 'dark');
   const location = useLocation();
   const isPC = useIsPC();
   const [showTopBtn, setShowTopBtn] = useState(false);
-  const isImmortal = useMemo(() => localStorage.getItem('steelbody_immortal') === 'true', []);
-  const isLegend = useMemo(() => localStorage.getItem('steelbody_legend') === 'true', []);
+  const isImmortal = useMemo(() => readLS('steelbody_immortal') === 'true', []);
+  const isLegend = useMemo(() => readLS('steelbody_legend') === 'true', []);
   const hasFrame = isImmortal || isLegend;
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('steelbody_theme', theme);
+    saveLS('steelbody_theme', theme);
   }, [theme]);
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function Layout() {
       const profile = data.find(p => p.type === 'profile');
       if (profile) {
         setProfilePhoto(profile.data);
-        localStorage.setItem(PROFILE_KEY, profile.data);
+        saveLS(PROFILE_KEY, profile.data);
       }
     }).catch(() => {});
   }, []);
@@ -89,9 +90,9 @@ export default function Layout() {
       const photoData = reader.result;
       setProfilePhoto(photoData);
       client.post('/photos', { type: 'profile', data: photoData }).then(() => {
-        localStorage.setItem(PROFILE_KEY, photoData);
+        saveLS(PROFILE_KEY, photoData);
       }).catch(() => {
-        setProfilePhoto(localStorage.getItem(PROFILE_KEY) || '');
+        setProfilePhoto(readLS(PROFILE_KEY) || '');
         toast('사진 업로드 실패', 'error');
       });
     };
@@ -103,7 +104,7 @@ export default function Layout() {
     if (!trimmed || savingNick) return;
     setSavingNick(true);
     client.put('/auth/nickname', { nickname: trimmed }).then(() => {
-      localStorage.setItem('nickname', trimmed);
+      saveLS('nickname', trimmed);
       useAuthStore.setState({ nickname: trimmed });
       setEditingNick(false);
       toast('닉네임이 변경됐어요');
@@ -115,7 +116,7 @@ export default function Layout() {
   const handlePhotoDelete = async () => {
     const ok = await confirmDialog('프로필 사진을 삭제할까요?', { title: '프로필 사진 삭제', confirmText: '삭제' });
     if (!ok) return;
-    localStorage.removeItem(PROFILE_KEY);
+    removeLS(PROFILE_KEY);
     setProfilePhoto('');
     client.delete('/photos/profile').catch(() => {});
   };
@@ -286,7 +287,7 @@ export default function Layout() {
               }}
             >{theme === 'dark' ? '☀️ 라이트' : '🌙 다크'}</button>
             <button
-              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>localStorage.removeItem(k)); await logout(); navigate('/login'); }}
+              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
@@ -482,7 +483,7 @@ export default function Layout() {
                 로그인
               </div>
               <div
-                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>localStorage.removeItem(k)); await logout(); navigate('/login'); }}
+                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
                 style={{ ...menuStyle, flex: 1, textAlign: 'center', color: 'var(--danger)' }}
                 onMouseEnter={hIn} onMouseLeave={hOut}
               >

@@ -1,4 +1,6 @@
 import { TICKET_RULE, BASE_MAX_STACK } from '../data/pachinkoData';
+// 개발 도구도 앱이 뜨기 전에 도는 코드다 — 쿠키를 막아둔 브라우저에서 던지면 흰 화면이 된다
+import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
 
 // `?tickets=N` — 개발 보너스 티켓 수를 바꾼다. 개발 빌드에서만 동작한다.
 //
@@ -29,7 +31,7 @@ export function applyDevTickets() {
   const bonus = Math.floor(n);
 
   try {
-    localStorage.setItem(KEY, String(bonus));
+    saveLS(KEY, String(bonus));
   } catch { /* 저장이 안 돼도 이번 세션은 아래에서 반영된다 */ }
 
   TICKET_RULE.bonus = bonus;

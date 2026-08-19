@@ -1,4 +1,6 @@
 import { GENESIS } from '../components/LevelSystem';
+// 이 파일 안에서도 쓴다 — 재수출만으로는 지역 스코프에 이름이 잡히지 않는다
+import { readLS } from './safeStorage';
 
 // 파칭코 시스템 설정 — 확률/보상/티켓 수급을 여기서만 조정하면 됩니다.
 
@@ -533,38 +535,8 @@ export function compactExp(n) {
 }
 
 // ── 안전한 localStorage 접근 ──
-// 사파리 프라이빗 모드나 용량 초과에서 setItem 이 throw 하고,
-// 쿠키를 막아둔 브라우저에서는 getItem 조차 throw 한다.
-// 판 정산 한가운데에서 터지면 그 뒤 코드(EXP 반영·상태 갱신)가 통째로 중단되므로,
-// 저장 실패는 삼키고 최소한 메모리 상태는 살린다. 성공 여부를 돌려준다.
-export function readLS(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
+// 구현은 safeStorage 로 옮겼다 (인증·API 계층도 같은 래퍼를 써야 하는데,
+// 그쪽이 이 파일의 상품표까지 끌어오면 안 되기 때문이다).
+// 기존 import 경로를 깨지 않도록 여기서 다시 내보낸다.
+export { readLS, saveLS, removeLS, readInt } from './safeStorage';
 
-export function saveLS(key, value) {
-  try {
-    localStorage.setItem(key, String(value));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function removeLS(key) {
-  try {
-    localStorage.removeItem(key);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// ── 안전한 숫자 읽기 (조작/손상 값 방어) ──
-export function readInt(key, fallback = 0) {
-  const raw = Number(readLS(key));
-  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : fallback;
-}

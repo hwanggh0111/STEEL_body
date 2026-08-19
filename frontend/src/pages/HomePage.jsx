@@ -11,6 +11,7 @@ import CasinoChip from '../components/CasinoChip';
 import NoticeBanner, { NoticePopup } from '../components/NoticeBanner';
 import { NOTICES, getReadNotices, markNoticeRead } from '../data/notices';
 import { isAdmin } from '../data/admin';
+import { readLS, removeLS, saveLS } from '../data/safeStorage';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -93,7 +94,7 @@ export default function HomePage() {
   const [unreadQueue, setUnreadQueue] = useState([]);
   const [homeSearch, setHomeSearch] = useState('');
   const [searchHistory, setSearchHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('ironlog_search_history')) || []; } catch { return []; }
+    try { return JSON.parse(readLS('ironlog_search_history')) || []; } catch { return []; }
   });
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -106,18 +107,18 @@ export default function HomePage() {
   const addSearchHistory = (label) => {
     const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
     setSearchHistory(updated);
-    localStorage.setItem('ironlog_search_history', JSON.stringify(updated));
+    saveLS('ironlog_search_history', JSON.stringify(updated));
   };
 
   const removeSearchHistory = (label) => {
     const updated = searchHistory.filter(h => h !== label);
     setSearchHistory(updated);
-    localStorage.setItem('ironlog_search_history', JSON.stringify(updated));
+    saveLS('ironlog_search_history', JSON.stringify(updated));
   };
 
   const clearSearchHistory = () => {
     setSearchHistory([]);
-    localStorage.removeItem('ironlog_search_history');
+    removeLS('ironlog_search_history');
   };
 
   useEffect(() => {

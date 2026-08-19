@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { addAdminNotice, getAllNotices, NOTICE_BADGE } from '../data/notices';
 import { useLangStore } from '../store/langStore';
 import { TEMPLATES, CATEGORY_KEYS, getAiRecommendations } from '../data/aiNoticeTemplates';
+import { readLS, saveLS } from '../data/safeStorage';
 const SCHEDULE_KEY = 'ironlog_ai_notice_schedule';
 
 function getSchedules() {
-  try { return JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || []; } catch { return []; }
+  try { return JSON.parse(readLS(SCHEDULE_KEY)) || []; } catch { return []; }
 }
 function saveSchedules(list) {
-  localStorage.setItem(SCHEDULE_KEY, JSON.stringify(list));
+  saveLS(SCHEDULE_KEY, JSON.stringify(list));
 }
 
 // ─── 오늘 날짜 YYYY-MM-DD ───
@@ -136,7 +137,7 @@ export default function AiNoticeWriter() {
   // 자동 스케줄 실행 (오늘 요일에 해당하는 스케줄 자동 공지)
   useEffect(() => {
     const today = new Date().getDay();
-    const lastRun = localStorage.getItem('ironlog_schedule_last_run');
+    const lastRun = readLS('ironlog_schedule_last_run');
     const todayKey = todayStr();
     if (lastRun === todayKey) return;
 
@@ -154,7 +155,7 @@ export default function AiNoticeWriter() {
           content: s.content,
         });
       });
-      localStorage.setItem('ironlog_schedule_last_run', todayKey);
+      saveLS('ironlog_schedule_last_run', todayKey);
     }
   }, [schedules]);
 

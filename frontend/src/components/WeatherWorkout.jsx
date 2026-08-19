@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLangStore } from '../store/langStore';
+import { readLS, saveLS } from '../data/safeStorage';
 
 const CITIES = [
   { ko: '내 위치', en: 'My Location', lat: null, lng: null, isGps: true },
@@ -78,7 +79,7 @@ export default function WeatherWorkout() {
   const t = TEXT[lang] || TEXT.ko;
 
   const [selectedCity, setSelectedCity] = useState(() => {
-    const saved = Number(localStorage.getItem('steelbody_city'));
+    const saved = Number(readLS('steelbody_city'));
     return saved >= 0 && saved < CITIES.length ? saved : 0;
   });
   const [weather, setWeather] = useState(null);
@@ -91,7 +92,7 @@ export default function WeatherWorkout() {
     setError(false);
 
     const city = CITIES[selectedCity];
-    localStorage.setItem('steelbody_city', selectedCity);
+    saveLS('steelbody_city', selectedCity);
 
     function fetchWeather(lat, lng) {
       fetch(

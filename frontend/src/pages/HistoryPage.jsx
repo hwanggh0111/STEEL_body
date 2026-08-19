@@ -6,6 +6,7 @@ import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
 import { toast } from '../components/Toast';
+import { readLS } from '../data/safeStorage';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function HistoryPage() {
   const handleExportCSV = (type = 'workouts') => {
     const filename = type === 'inbody' ? 'steelbody_inbody.csv' : 'steelbody_workouts.csv';
     const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = localStorage.getItem('token');
+    const token = readLS('token');
     fetch(`${baseURL}/export/${type}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',

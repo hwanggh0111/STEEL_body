@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NOTICE_BADGE, NOTICE_READ_KEY, getAllNotices, addAdminNotice, deleteNotice as deleteNoticeFromStore } from '../../data/notices';
 import { toast } from '../Toast';
+import { removeLS } from '../../data/safeStorage';
 
 export default function NoticeAdmin() {
   const [notices, setNotices] = useState(() => getAllNotices());
@@ -52,8 +53,8 @@ export default function NoticeAdmin() {
   };
 
   const resetRead = () => {
-    localStorage.removeItem(NOTICE_READ_KEY);
-    localStorage.removeItem('ironlog_notice_count');
+    removeLS(NOTICE_READ_KEY);
+    removeLS('ironlog_notice_count');
     toast('읽음 기록 초기화 완료! 홈에서 전체 공지 팝업이 다시 뜹니다');
   };
 

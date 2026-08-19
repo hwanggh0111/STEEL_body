@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { saveLS } from '../data/safeStorage';
 
 // 백엔드와 동일한 비밀번호 정책
 const PW_MIN = 8;
@@ -121,8 +122,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, password, nickname, username);
-      localStorage.setItem('saved_nickname', nickname);
-      localStorage.setItem('saved_id', email);
+      saveLS('saved_nickname', nickname);
+      saveLS('saved_id', email);
       toast('회원가입 완료! 자동 로그인됐어요');
       // 자동 로그인 상태 → 홈으로
       navTimerRef.current = setTimeout(() => navigate('/home'), 600);

@@ -53,6 +53,7 @@ function getStreak(workouts) {
 }
 
 import { isAdmin } from '../data/admin';
+import { readLS, saveLS } from '../data/safeStorage';
 
 export default function Badges({ workouts, inbodyRecords }) {
   const [showAll, setShowAll] = useState(false);
@@ -69,10 +70,10 @@ export default function Badges({ workouts, inbodyRecords }) {
 
   // 전설 조건: 모든 뱃지 + 1000일 경과 + 12월 31일 운동
   const [firstDate] = useState(() => {
-    const stored = localStorage.getItem('steelbody_first_date');
+    const stored = readLS('steelbody_first_date');
     if (!stored) {
       const today = toLocalDate(new Date());
-      localStorage.setItem('steelbody_first_date', today);
+      saveLS('steelbody_first_date', today);
       return today;
     }
     return stored;
@@ -146,23 +147,23 @@ export default function Badges({ workouts, inbodyRecords }) {
 
   useEffect(() => {
     // 전설 달성 체크
-    if (legendEarned && localStorage.getItem('steelbody_legend_seen') !== 'true5') {
-      localStorage.setItem('steelbody_legend', 'true');
-      localStorage.setItem('steelbody_legend_seen', 'true5');
+    if (legendEarned && readLS('steelbody_legend_seen') !== 'true5') {
+      saveLS('steelbody_legend', 'true');
+      saveLS('steelbody_legend_seen', 'true5');
       if (immortalEarned) {
-        localStorage.setItem('steelbody_immortal', 'true');
-        localStorage.setItem('steelbody_immortal_seen', 'true4');
+        saveLS('steelbody_immortal', 'true');
+        saveLS('steelbody_immortal_seen', 'true4');
       }
       setCeremonyType('legend');
       setShowCeremony(true);
-    } else if (immortalEarned && localStorage.getItem('steelbody_immortal_seen') !== 'true4') {
-      localStorage.setItem('steelbody_immortal', 'true');
-      localStorage.setItem('steelbody_immortal_seen', 'true4');
+    } else if (immortalEarned && readLS('steelbody_immortal_seen') !== 'true4') {
+      saveLS('steelbody_immortal', 'true');
+      saveLS('steelbody_immortal_seen', 'true4');
       setCeremonyType('immortal');
       setShowCeremony(true);
     } else {
-      if (legendEarned) localStorage.setItem('steelbody_legend', 'true');
-      if (immortalEarned) localStorage.setItem('steelbody_immortal', 'true');
+      if (legendEarned) saveLS('steelbody_legend', 'true');
+      if (immortalEarned) saveLS('steelbody_immortal', 'true');
     }
   }, [legendEarned, immortalEarned]);
   const display = showAll ? BADGE_DEFS : BADGE_DEFS.slice(0, 6);

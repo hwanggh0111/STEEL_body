@@ -5,6 +5,7 @@ import { toast } from '../components/Toast';
 import SplashScreen from '../components/SplashScreen';
 import PasswordResetModal from '../components/PasswordResetModal';
 import client from '../api/client';
+import { readLS, removeLS, saveLS } from '../data/safeStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 // 백엔드 URL (OAuth 리다이렉트용)
@@ -14,10 +15,10 @@ const BACKEND_BASE = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL.r
 const AUTO_LOGIN_KEYS = ['token', 'auto_login', 'nickname', 'ironlog_email', 'ironlog_role'];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(localStorage.getItem('saved_id') || '');
+  const [email, setEmail] = useState(readLS('saved_id') || '');
   const [password, setPassword] = useState('');
-  const savedNickname = localStorage.getItem('saved_nickname') || '';
-  const [autoLogin, setAutoLogin] = useState(!!localStorage.getItem('auto_login'));
+  const savedNickname = readLS('saved_nickname') || '';
+  const [autoLogin, setAutoLogin] = useState(!!readLS('auto_login'));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
@@ -33,8 +34,8 @@ export default function LoginPage() {
 
   // 세션 만료 알림
   useEffect(() => {
-    if (localStorage.getItem('session_expired')) {
-      localStorage.removeItem('session_expired');
+    if (readLS('session_expired')) {
+      removeLS('session_expired');
       toast('세션이 만료되었어요. 다시 로그인해주세요.', 'warning');
     }
   }, []);
@@ -48,13 +49,13 @@ export default function LoginPage() {
     if (autoLogin) {
       // 쿠키 또는 localStorage 토큰이 있으면 서버에 검증
       const hasCookie = document.cookie.includes('sb_csrf=');
-      const hasToken = !!localStorage.getItem('token');
+      const hasToken = !!readLS('token');
       if (hasCookie || hasToken) {
         client.get('/auth/me').then(() => {
           setShowSplash(true);
         }).catch(() => {
           // 자동 로그인 실패 — 모든 관련 키 정리
-          AUTO_LOGIN_KEYS.forEach(k => localStorage.removeItem(k));
+          AUTO_LOGIN_KEYS.forEach(k => removeLS(k));
           setAutoLogin(false);
         });
       }
@@ -71,8 +72,8 @@ export default function LoginPage() {
     if (oauthSuccess === 'success' && nick) {
       const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, 30);
       const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
-      localStorage.setItem('nickname', sanitizedNick);
-      if (sanitizedEmail) localStorage.setItem('ironlog_email', sanitizedEmail);
+      saveLS('nickname', sanitizedNick);
+      if (sanitizedEmail) saveLS('ironlog_email', sanitizedEmail);
       useAuthStore.setState({ nickname: sanitizedNick, isLoggedIn: true });
       // 구글 로그인 후 닉네임 설정 단계 — 이전 로그인 실패 메시지 정리
       setError('');
@@ -93,13 +94,13 @@ export default function LoginPage() {
     try {
       await login(email, password);
       // 아이디/닉네임 저장
-      localStorage.setItem('saved_id', email);
-      localStorage.setItem('saved_nickname', useAuthStore.getState().nickname || '');
+      saveLS('saved_id', email);
+      saveLS('saved_nickname', useAuthStore.getState().nickname || '');
       // 자동 로그인
       if (autoLogin) {
-        localStorage.setItem('auto_login', 'true');
+        saveLS('auto_login', 'true');
       } else {
-        localStorage.removeItem('auto_login');
+        removeLS('auto_login');
       }
       setShowSplash(true);
     } catch (err) {
@@ -119,7 +120,7 @@ export default function LoginPage() {
       setNickError('');
       try {
         await client.put('/auth/nickname', { nickname: nick });
-        localStorage.setItem('nickname', nick);
+        saveLS('nickname', nick);
         useAuthStore.setState({ nickname: nick });
         toast('닉네임이 저장됐어요!');
         setOauthNickStep(false);

@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+// 이 컴포넌트는 App 전체를 감싼다. 쿠키를 막아둔 브라우저에서 localStorage 가
+// 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
+import { readLS, saveLS } from '../data/safeStorage';
 
 const MAINT_KEY = 'ironlog_maintenance';
 
@@ -6,10 +9,10 @@ const DEFAULT_SCHEDULE = [];
 
 export function getSchedules() {
   try {
-    const saved = JSON.parse(localStorage.getItem(MAINT_KEY));
+    const saved = JSON.parse(readLS(MAINT_KEY));
     // localStorage에 저장된 스케줄이 없으면 기본값 사용하고 저장
     if (!saved || saved.length === 0) {
-      localStorage.setItem(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
+      saveLS(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
       return DEFAULT_SCHEDULE;
     }
     return saved;
@@ -18,20 +21,20 @@ export function getSchedules() {
 
 // 기본 스케줄 강제 적용 (테스트용)
 export function forceDefaultSchedule() {
-  localStorage.setItem(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
+  saveLS(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
 }
 
 // 앱 시작 시 기본 스케줄과 localStorage 동기화
 // DEFAULT_SCHEDULE이 코드에서 바뀌면 자동 반영 (빈 배열이면 건너뜀 — 사용자 설정 보존)
 const MAINT_VERSION_KEY = 'ironlog_maint_version';
 const CURRENT_VERSION = JSON.stringify(DEFAULT_SCHEDULE);
-if (DEFAULT_SCHEDULE.length > 0 && localStorage.getItem(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
-  localStorage.setItem(MAINT_KEY, CURRENT_VERSION);
-  localStorage.setItem(MAINT_VERSION_KEY, CURRENT_VERSION);
+if (DEFAULT_SCHEDULE.length > 0 && readLS(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
+  saveLS(MAINT_KEY, CURRENT_VERSION);
+  saveLS(MAINT_VERSION_KEY, CURRENT_VERSION);
 }
 
 export function saveSchedules(schedules) {
-  localStorage.setItem(MAINT_KEY, JSON.stringify(schedules));
+  saveLS(MAINT_KEY, JSON.stringify(schedules));
 }
 
 function getMaintenanceInfo() {

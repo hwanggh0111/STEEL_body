@@ -1,6 +1,8 @@
 import { expForLevel, MAX_LEVEL } from '../components/LevelSystem';
 import { LS } from '../data/pachinkoData';
 import { usePachinkoStore } from '../store/pachinkoStore';
+// 개발 도구도 앱이 뜨기 전에 도는 코드다 — 쿠키를 막아둔 브라우저에서 던지면 흰 화면이 된다
+import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
 
 // ?level=30  으로 계정 레벨을 그 자리에서 올린다 (개발용).
 // ?level=max 면 만렙.
@@ -19,9 +21,9 @@ const ONCE = { tag: 'lv0-2', level: 0 };
 const ONCE_KEY = 'steelbody_dev_level_once';
 
 function applyOnce(setLevelTo) {
-  if (localStorage.getItem(ONCE_KEY) === ONCE.tag) return false;
+  if (readLS(ONCE_KEY) === ONCE.tag) return false;
   setLevelTo(ONCE.level);
-  localStorage.setItem(ONCE_KEY, ONCE.tag);
+  saveLS(ONCE_KEY, ONCE.tag);
   console.info(`[dev-level] 최초 1회 적용 — LV ${ONCE.level} 로 맞췄습니다 (tag: ${ONCE.tag})`);
   return true;
 }
@@ -32,11 +34,11 @@ export function applyDevLevel() {
   // 목표 레벨의 문턱값을 파칭코 EXP 에 심는다. 티켓 사용량도 함께 비워 처음 상태로 되돌린다.
   const setLevelTo = (lv) => {
     const exp = expForLevel(lv);
-    localStorage.setItem(LS.exp, String(exp));
+    saveLS(LS.exp, String(exp));
     // 울트라 티켓(교환으로만 생기는 값)까지 비운다. 안 그러면 LV 0 인데 끝판 티켓을
     // 들고 있는 상태가 돼서 "처음 상태"가 아니게 된다.
     [LS.used, LS.ulExp, LS.ulTickets, LS.log, LS.best, LS.best + '_exp']
-      .forEach(k => localStorage.removeItem(k));
+      .forEach(k => removeLS(k));
     usePachinkoStore.setState({
       gained: exp, used: 0, ulExp: 0, ulTickets: 0, lastUlGain: 0, log: [],
     });
@@ -55,7 +57,7 @@ export function applyDevLevel() {
   const clamped = Math.max(0, Math.min(Math.floor(level), MAX_LEVEL));
   setLevelTo(clamped);
   // ?level 을 직접 쓴 이상 1회 적용분은 소진된 것으로 본다
-  localStorage.setItem(ONCE_KEY, ONCE.tag);
+  saveLS(ONCE_KEY, ONCE.tag);
 
   // 새로고침해도 다시 적용되지 않도록 쿼리를 지운다
   params.delete('level');

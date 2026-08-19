@@ -1,8 +1,11 @@
 import axios from 'axios';
+import { readLS, removeLS, saveLS, readCookies } from '../data/safeStorage';
 
-// 쿠키에서 값 읽기 헬퍼
+// 쿠키에서 값 읽기 헬퍼.
+// document.cookie 도 샌드박스 iframe 에서는 던진다 — 요청 인터셉터에서 터지면
+// 앱의 모든 API 호출이 죽으므로 안전하게 읽는다.
 function getCookie(name) {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  const match = readCookies().match(new RegExp('(^| )' + name + '=([^;]+)'));
   return match ? match[2] : null;
 }
 
@@ -24,7 +27,7 @@ client.interceptors.request.use((config) => {
   const csrf = getCookie('sb_csrf');
   if (csrf) config.headers['X-CSRF-Token'] = csrf;
   // 레거시 호환: localStorage 토큰도 보냄 (마이그레이션 기간)
-  const token = localStorage.getItem('token');
+  const token = readLS('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -40,15 +43,15 @@ client.interceptors.response.use(
       // refresh 연속 실패 시 바로 로그아웃 (무한 루프 방지)
       if (refreshFailCount >= MAX_REFRESH_FAILS) {
         refreshFailCount = 0;
-        localStorage.removeItem('token');
-        localStorage.removeItem('nickname');
+        removeLS('token');
+        removeLS('nickname');
         window.location.href = '/login';
         return Promise.reject(err);
       }
       // refresh/logout 요청 자체가 실패한 경우는 바로 로그아웃
       if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/logout')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('nickname');
+        removeLS('token');
+        removeLS('nickname');
         window.location.href = '/login';
         return Promise.reject(err);
       }
@@ -83,9 +86,9 @@ client.interceptors.response.use(
         const queue = [...refreshQueue];
         refreshQueue = [];
         queue.forEach(({ reject }) => reject(refreshErr));
-        localStorage.removeItem('token');
-        localStorage.removeItem('nickname');
-        localStorage.setItem('session_expired', 'true');
+        removeLS('token');
+        removeLS('nickname');
+        saveLS('session_expired', 'true');
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       }

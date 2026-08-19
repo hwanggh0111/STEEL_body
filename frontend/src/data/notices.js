@@ -1,3 +1,4 @@
+import { readLS, removeLS, saveLS } from './safeStorage';
 // ─── 공지사항 데이터 ───
 export const NOTICES = [
   { id: 1, date: '2026-03-23', title: 'STEEL BODY v1.0 정식 오픈!', type: '공지', content: 'STEEL BODY 헬스 트래커가 정식 오픈했습니다. 운동 기록, 인바디 측정, 루틴 추천 등 다양한 기능을 활용해보세요!' },
@@ -38,20 +39,20 @@ const NOTICE_COUNT_KEY = 'ironlog_notice_count';
 
 export function getReadNotices() {
   // 공지 개수가 바뀌었으면 (새 공지 추가됨) 읽음 기록 초기화
-  const savedCount = parseInt(localStorage.getItem(NOTICE_COUNT_KEY) || '0', 10);
+  const savedCount = parseInt(readLS(NOTICE_COUNT_KEY) || '0', 10);
   if (NOTICES.length !== savedCount) {
-    localStorage.removeItem(NOTICE_READ_KEY);
-    localStorage.setItem(NOTICE_COUNT_KEY, String(NOTICES.length));
+    removeLS(NOTICE_READ_KEY);
+    saveLS(NOTICE_COUNT_KEY, String(NOTICES.length));
     return [];
   }
-  try { return JSON.parse(localStorage.getItem(NOTICE_READ_KEY)) || []; } catch { return []; }
+  try { return JSON.parse(readLS(NOTICE_READ_KEY)) || []; } catch { return []; }
 }
 
 export function markNoticeRead(id) {
   const read = getReadNotices();
   if (!read.includes(id)) {
     read.push(id);
-    localStorage.setItem(NOTICE_READ_KEY, JSON.stringify(read));
+    saveLS(NOTICE_READ_KEY, JSON.stringify(read));
   }
 }
 
@@ -66,34 +67,34 @@ export function getAllNotices() {
 }
 
 export function getAdminNotices() {
-  try { return JSON.parse(localStorage.getItem(ADMIN_NOTICES_KEY)) || []; } catch { return []; }
+  try { return JSON.parse(readLS(ADMIN_NOTICES_KEY)) || []; } catch { return []; }
 }
 
 export function addAdminNotice(notice) {
   const list = getAdminNotices();
   list.push(notice);
-  localStorage.setItem(ADMIN_NOTICES_KEY, JSON.stringify(list));
+  saveLS(ADMIN_NOTICES_KEY, JSON.stringify(list));
 }
 
 export function deleteNotice(id) {
   // 관리자가 추가한 공지면 localStorage에서 삭제
   const adminList = getAdminNotices();
   const filtered = adminList.filter(n => n.id !== id);
-  localStorage.setItem(ADMIN_NOTICES_KEY, JSON.stringify(filtered));
+  saveLS(ADMIN_NOTICES_KEY, JSON.stringify(filtered));
   // 기본 공지면 삭제 목록에 추가
   if (NOTICES.find(n => n.id === id)) {
     const deleted = getDeletedNoticeIds();
     if (!deleted.includes(id)) {
       deleted.push(id);
-      localStorage.setItem('ironlog_deleted_notices', JSON.stringify(deleted));
+      saveLS('ironlog_deleted_notices', JSON.stringify(deleted));
     }
   }
 }
 
 export function getDeletedNoticeIds() {
-  try { return JSON.parse(localStorage.getItem('ironlog_deleted_notices')) || []; } catch { return []; }
+  try { return JSON.parse(readLS('ironlog_deleted_notices')) || []; } catch { return []; }
 }
 
 export function restoreAllNotices() {
-  localStorage.removeItem('ironlog_deleted_notices');
+  removeLS('ironlog_deleted_notices');
 }
