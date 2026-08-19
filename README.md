@@ -77,6 +77,13 @@ cd backend  && npm start       # http://localhost:4000
 
 ## 2026-08-19
 
+**라이트 테마 제거 — 다크 하나만 남긴다**
+- `styles/globals.css` 의 `[data-theme="light"]` 블록 47줄과, 반응형 미디어쿼리에 남아 있던 `[data-theme="light"]` 셀렉터를 지웠다. `:root, [data-theme="dark"]` 로 갈라져 있던 것도 `:root` 하나로 합쳤다
+- `index.html` 의 **인라인 테마 스크립트를 통째로 없앴다.** localStorage 를 읽어 `data-theme` 을 붙이던 코드인데, 고를 것이 하나뿐이면 읽을 이유가 없다. 첫 페인트가 한 단계 짧아진다
+- `components/Layout.jsx` 의 `☀️ 라이트` 토글 버튼과 `theme` 상태·effect 제거
+- 확인: 예전에 라이트를 켜뒀던 사용자로 접속 → `data-theme` 속성 없음, 배경 `rgb(10,10,10)`, 글자 `rgb(240,240,240)` 로 자동 전환. 토글 버튼 사라짐, 화면 정상. `steelbody_theme` 키는 남지만 이제 아무도 읽지 않는다
+
+
 **저장소를 막아둔 브라우저에서 앱이 통째로 흰 화면이 되던 것**
 
 크롬의 "모든 쿠키 차단" 같은 설정에서는 `localStorage` 를 **읽기만 해도** `SecurityError` 를 던진다. 파칭코 계열은 예전에 `readLS`/`saveLS` 로 막아뒀지만 나머지 앱은 그대로였고(`docs/BUGS.md` 에 남은 범위로 적혀 있던 것), 실제로 재현해 보니 `data/admin.js` 의 `isAdmin()` 이 `MaintenanceScreen` **렌더 중에** 던져서 앱 전체가 죽었다. 이건 사용자가 로그인조차 못 하는 상태다.
