@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import { NOTICES, NOTICE_BADGE, getReadNotices, markNoticeRead } from '../data/notices';
+import { NOTICES, NOTICE_BADGE, NOTICE_TYPES, AI_TYPES, aiLabel, getReadNotices, markNoticeRead } from '../data/notices';
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
 import { isAdmin } from '../data/admin';
@@ -30,7 +30,7 @@ export default function NoticePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const types = ['전체', '공지', '긴급공지', '업데이트', '신기능', '이벤트'];
+  const types = ['전체', ...NOTICE_TYPES];
   const sorted = [...notices].reverse();
   const filtered = filter === '전체' ? sorted : sorted.filter(n => n.type === filter);
   const [readList, setReadList] = useState(() => getReadNotices());
@@ -106,7 +106,7 @@ export default function NoticePage() {
     setAiLoading(true);
     try {
       const { data } = await client.post('/notices/ai-generate', { topic: aiTopic, type: aiType });
-      setForm({ title: data.title, type: aiType === 'event' ? '이벤트' : aiType === 'update' ? '업데이트' : aiType === 'maintenance' ? '긴급공지' : '공지', content: data.content });
+      setForm({ title: data.title, type: aiLabel(aiType), content: data.content });
       setAiTopic('');
       toast('AI가 공지를 작성했어요! 수정 후 등록하세요');
     } catch {
@@ -183,10 +183,9 @@ export default function NoticePage() {
                 onChange={(e) => setAiType(e.target.value)}
                 style={{ width: 100, fontSize: 12 }}
               >
-                <option value="update">업데이트</option>
-                <option value="event">이벤트</option>
-                <option value="notice">공지</option>
-                <option value="maintenance">점검</option>
+                {AI_TYPES.map(({ key, label }) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
               </select>
             </div>
             <button
@@ -219,7 +218,7 @@ export default function NoticePage() {
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
                 style={{ height: 38 }}
               >
-                {['공지', '긴급공지', '업데이트', '신기능', '이벤트'].map(t => (
+                {NOTICE_TYPES.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
@@ -275,7 +274,7 @@ export default function NoticePage() {
                 onChange={(e) => setEditing({ ...editing, type: e.target.value })}
                 style={{ height: 38 }}
               >
-                {['공지', '긴급공지', '업데이트', '신기능', '이벤트'].map(t => (
+                {NOTICE_TYPES.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>

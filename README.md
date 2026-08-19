@@ -77,6 +77,14 @@ cd backend  && npm start       # http://localhost:4000
 
 ## 2026-08-19
 
+**공지 유형 5종을 한 목록으로 — AI 작성만 어긋나 있던 것**
+- 앱의 공지 유형은 `공지 · 긴급공지 · 업데이트 · 신기능 · 이벤트` 다섯이다. 그런데 같은 배열이 **다섯 군데에 따로 박혀 있었고**, 그중 `NoticePage` 의 **AI 작성 유형 드롭다운만 4종**이었다 — `신기능` 이 없고, 다른 데 없는 `점검` 이 대신 들어가 있었다
+- `data/notices.js` 에 `NOTICE_TYPES` 하나를 두고 작성 폼 · 수정 폼 · 필터 · `NoticeAdmin` · `AiNoticeWriter` 가 전부 그것만 보게 했다
+- AI 작성은 백엔드에 영문 키를 보내므로 `AI_TYPES`(키 ↔ 라벨)와 `aiLabel()` 을 같이 뒀다. 유형 5종과 1:1 이다
+- 백엔드 `routes/notices.js` 에 `newfeature` · `urgent` 템플릿을 추가했다. `점검(maintenance)` 은 드롭다운에서 뺐지만 템플릿은 남겨뒀다 — 점검 공지는 `MaintAdmin` 이 점검을 걸 때 자동으로 만들어 주므로 여기서 고를 필요가 없다
+- 확인: 백엔드 5종 전부 200 + 서로 다른 제목, 모르는 유형은 `공지` 로 폴백. 화면에서 작성 폼 · 수정 폼 두 드롭다운과 필터 칩이 모두 `공지 / 긴급공지 / 업데이트 / 신기능 / 이벤트` 로 같은 순서
+
+
 **죽은 컴포넌트 7개 제거 (1,528줄)**
 - 어디서도 `import` 하지 않던 것들이다 — `CharacterAvatar`(474) · `WorkoutHeatmap`(356) · `WeatherWorkout`(256) · `SpecialHomes`(100) · `DietSection`(88) · `TrendSection`(85), 그리고 `DietSection` 만 쓰던 `data/dietData.js`(169)가 연쇄로 죽어 같이 지웠다
 - **번들은 그대로다.** import 안 된 파일은 Vite 가 애초에 담지 않으므로 앱이 가벼워지지는 않는다. 줄어드는 건 읽어야 할 코드다

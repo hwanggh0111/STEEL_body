@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { addAdminNotice, getAllNotices, NOTICE_BADGE } from '../data/notices';
+import { NOTICE_TYPES, addAdminNotice, getAllNotices, NOTICE_BADGE } from '../data/notices';
 import { useLangStore } from '../store/langStore';
 import { TEMPLATES, CATEGORY_KEYS, getAiRecommendations } from '../data/aiNoticeTemplates';
 import { readLS, saveLS } from '../data/safeStorage';
@@ -378,7 +378,7 @@ export default function AiNoticeWriter() {
     ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
     : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const typeOptions = ['공지', '업데이트', '신기능', '이벤트', '긴급공지'];
+  const typeOptions = NOTICE_TYPES;
 
   return (
     <div style={styles.container}>

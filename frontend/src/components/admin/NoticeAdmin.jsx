@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NOTICE_BADGE, NOTICE_READ_KEY, getAllNotices, addAdminNotice, deleteNotice as deleteNoticeFromStore } from '../../data/notices';
+import { NOTICE_TYPES, NOTICE_BADGE, NOTICE_READ_KEY, getAllNotices, addAdminNotice, deleteNotice as deleteNoticeFromStore } from '../../data/notices';
 import { toast } from '../Toast';
 import { removeLS } from '../../data/safeStorage';
 
@@ -9,7 +9,7 @@ export default function NoticeAdmin() {
   const [form, setForm] = useState({ title: '', type: '공지', content: '' });
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const types = ['공지', '긴급공지', '업데이트', '신기능', '이벤트'];
+  const types = NOTICE_TYPES;
 
   const reload = () => setNotices(getAllNotices());
 
