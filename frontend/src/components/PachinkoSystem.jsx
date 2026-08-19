@@ -8,6 +8,7 @@ import { usePlateStore } from '../store/plateStore';
 import {
   TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, MAX_BATCH,
   drawPrize, drawPrizeCounts, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
+  prizeWeight, PRIZE_WEIGHT_TOTAL_PROD, PRIZE_WEIGHT_TOTAL_DEV, PRIZE_HAS_DEV_WEIGHTS,
   compactExp, ticketsAvailable, ticketText,
 } from '../data/pachinkoData';
 
@@ -31,6 +32,7 @@ const T = {
     rates: '확률표',
     ratesTitle: '확률표',
     ratesDesc: '한 판을 돌렸을 때 각 등급이 나올 확률입니다.',
+    devWarn: '개발 빌드입니다 — 실제로 뽑히는 확률은 아래와 다릅니다 (표는 운영 확률)',
     recent: '최근 결과',
     avg: '판당 평균',
     expUnit: '경험치',
@@ -60,6 +62,7 @@ const T = {
     rates: 'Odds',
     ratesTitle: 'Odds Table',
     ratesDesc: 'Chance of each tier per single spin.',
+    devWarn: 'Dev build — actual draw odds differ from this table (table shows production odds)',
     recent: 'Recent',
     avg: 'Avg / spin',
     expUnit: 'EXP',
@@ -100,7 +103,7 @@ const STRIP = Array.from({ length: REEL.cycles * 10 }, (_, i) => i % 10);
 const STRIP_TEXT = STRIP.join('\n');
 
 // 정적 테이블이라 렌더마다 다시 더하지 않는다
-const PRIZE_WEIGHT_TOTAL = PRIZES.reduce((s, p) => s + p.weight, 0);
+// 확률표는 언제나 운영 가중치로 낸다 — 개발값을 띄우면 진짜 확률로 오해한다
 
 export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, baseExp = 0 }) {
   const { lang } = useLangStore();
@@ -605,8 +608,20 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
               {t.ratesDesc}
             </p>
 
+            {PRIZE_HAS_DEV_WEIGHTS && (
+              <div style={{
+                marginBottom: 12, padding: '7px 9px',
+                borderRadius: 'var(--radius)',
+                background: 'var(--danger-dim)', border: '1px solid var(--danger)',
+                fontSize: 10, color: 'var(--danger)', lineHeight: 1.6,
+              }}>
+                ⚠️ {t.devWarn}
+                {' '}({PRIZES.filter(p => p.devWeight != null).map(p => `${p.label[lang]} ${Number(((prizeWeight(p) / PRIZE_WEIGHT_TOTAL_DEV) * 100).toFixed(1))}%`).join(', ')})
+              </div>
+            )}
+
             {PRIZES.map(p => {
-              const pct = (p.weight / PRIZE_WEIGHT_TOTAL) * 100;
+              const pct = (p.weight / PRIZE_WEIGHT_TOTAL_PROD) * 100;
               return (
                 <div key={p.id} style={{ marginBottom: 10 }}>
                   <div style={{

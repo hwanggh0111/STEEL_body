@@ -88,6 +88,7 @@ export const PRIZES = [
   {
     id: 'miss',
     weight: 530000,
+    devWeight: 30000,
     exp: 0,
     icon: '💨',
     color: '#555555',
@@ -195,11 +196,23 @@ export const PRIZES = [
 // 꽝만 건드리므로 나머지 등급끼리의 비율은 그대로고, 전부 같은 배수로 올라간다
 // (530000 → 30000 이면 약 2배. 꽝을 0으로 만들어도 2.12배가 천장이다 —
 //  초신성 같은 최상위 연출을 보려면 그 등급의 weight 를 직접 올려야 한다).
-// 프로덕션 빌드에서는 이 블록이 통째로 사라지고 위의 530000 이 그대로 쓰인다.
-if (import.meta.env.DEV) {
-  const miss = PRIZES.find(p => p.id === 'miss');
-  if (miss) miss.weight = 30000;
+//
+// 예전에는 여기서 `miss.weight = 30000` 으로 덮어썼다. 그러면 운영 확률이
+// 메모리에서 사라져 확률표가 개발용 5.9% 를 진짜 꽝 확률(53.4%)처럼 보여주고,
+// 판당 평균(EXPECTED_EXP)까지 개발 기준으로 나온다.
+// 원판표·울트라·사다리에서 이미 고친 문제라 여기도 devWeight 로 분리한다.
+// import.meta.env.DEV 는 빌드 시 false 로 치환되므로 운영에는 530000 만 남는다.
+export function prizeWeight(p) {
+  return (import.meta.env.DEV && p.devWeight != null) ? p.devWeight : p.weight;
 }
+
+// 운영 가중치의 합 — 확률표는 언제나 이 값으로 % 를 낸다
+export const PRIZE_WEIGHT_TOTAL_PROD = PRIZES.reduce((s, p) => s + p.weight, 0);
+// 실제로 뽑기에 쓰는 합 (개발이면 개발값). 경고 배너가 "지금 진짜 확률"을 적을 때 쓴다
+export const PRIZE_WEIGHT_TOTAL_DEV = PRIZES.reduce((s, p) => s + prizeWeight(p), 0);
+// 개발 빌드에서 부풀린 등급이 있는가 (확률표 경고 배너 조건)
+export const PRIZE_HAS_DEV_WEIGHTS = import.meta.env.DEV
+  && PRIZES.some(p => p.devWeight != null && p.devWeight !== p.weight);
 
 // 5칸을 채우는 등급 (5자리 연출 기준)
 export const MEGA_ID = 'mega';
@@ -208,10 +221,11 @@ export const SUPERNOVA_ID = 'supernova';
 // 특별 연출을 켜는 기준 (초월 이상)
 export const BIG_HIT_EXP = 500;
 
-// 기대값은 상위 등급(7·11·15자리)이 지배한다 — 확률표의 '판당 평균'에 계산된 값이 나온다
+// 기대값은 상위 등급(7·11·15자리)이 지배한다 — 확률표의 '판당 평균'에 계산된 값이 나온다.
+// 운영 가중치로만 낸다. 개발값을 섞으면 표에 뜨는 숫자가 밸런싱에도 안내에도 쓸모없어진다.
 export const EXPECTED_EXP = PRIZES.reduce(
   (sum, p) => sum + p.exp * p.weight, 0
-) / PRIZES.reduce((sum, p) => sum + p.weight, 0);
+) / PRIZE_WEIGHT_TOTAL_PROD;
 
 // ══ 사다리타기 (하이리스크 모드) ══
 // 티켓 100장을 걸고 한 판 — 꽝이 80%인 대신 최고 보상 확률이 파칭코의 약 100배
@@ -275,8 +289,7 @@ export const LADDER_HAS_DEV_WEIGHTS = import.meta.env.DEV
   && LADDER_PRIZES.some(p => p.devWeight != null && p.devWeight !== p.weight);
 
 export function drawLadderPrize(rand = Math.random) {
-  const total = LADDER_PRIZES.reduce((sum, p) => sum + ladderWeight(p), 0);
-  let roll = rand() * total;
+  let roll = rand() * LADDER_WEIGHT_TOTAL_DEV;
   for (const p of LADDER_PRIZES) {
     roll -= ladderWeight(p);
     if (roll < 0) return p;
@@ -379,13 +392,14 @@ export function ulWeight(p) {
 }
 // 운영 가중치의 합 — 확률표는 언제나 이 값으로 % 를 낸다
 export const UL_WEIGHT_TOTAL_PROD = UL_PRIZES.reduce((s, p) => s + p.weight, 0);
+// 실제로 뽑기에 쓰는 합 (개발이면 개발값). 확률표 경고 배너와 추첨이 함께 쓴다
+export const UL_WEIGHT_TOTAL_DEV = UL_PRIZES.reduce((s, p) => s + ulWeight(p), 0);
 // 개발 빌드에서 부풀린 등급이 있는가 (확률표 경고 배너 조건)
 export const UL_HAS_DEV_WEIGHTS = import.meta.env.DEV
   && UL_PRIZES.some(p => p.devWeight != null && p.devWeight !== p.weight);
 
 export function drawUlPrize(rand = Math.random) {
-  const total = UL_PRIZES.reduce((sum, p) => sum + ulWeight(p), 0);
-  let roll = rand() * total;
+  let roll = rand() * UL_WEIGHT_TOTAL_DEV;
   for (const p of UL_PRIZES) {
     roll -= ulWeight(p);
     if (roll < 0) return p;
@@ -435,10 +449,9 @@ export const REEL_TOTAL_MS = REEL.baseMs + REEL.staggerMs * (REEL.digits - 1);
 
 // ── 가중 랜덤 추첨 ──
 export function drawPrize(rand = Math.random) {
-  const total = PRIZES.reduce((sum, p) => sum + p.weight, 0);
-  let roll = rand() * total;
+  let roll = rand() * PRIZE_WEIGHT_TOTAL_DEV;
   for (const p of PRIZES) {
-    roll -= p.weight;
+    roll -= prizeWeight(p);
     if (roll < 0) return p;
   }
   return PRIZES[0];
@@ -486,7 +499,7 @@ function binomial(m, p, rand) {
 export function drawPrizeCounts(n, rand = Math.random) {
   const counts = new Array(PRIZES.length).fill(0);
   let remaining = Math.max(0, Math.floor(n));
-  let remWeight = PRIZES.reduce((s, p) => s + p.weight, 0);
+  let remWeight = PRIZE_WEIGHT_TOTAL_DEV;
 
   // 희귀한 등급부터 뽑는다 — 순서가 결과를 바꾼다.
   // 마지막에 남는 등급은 앞선 근사들의 오차를 전부 떠안는데, 그 자리를 초신성
@@ -494,10 +507,10 @@ export function drawPrizeCounts(n, rand = Math.random) {
   // 실제로 흔한 등급부터 뽑았을 때 초신성이 기대치의 약 2배로 나왔다.
   // 가장 흔한 꽝이 떠안으면 수백만 판에서 몇 판 차이라 티가 나지 않는다.
   for (let i = PRIZES.length - 1; i > 0 && remaining > 0; i--) {
-    const k = binomial(remaining, PRIZES[i].weight / remWeight, rand);
+    const k = binomial(remaining, prizeWeight(PRIZES[i]) / remWeight, rand);
     counts[i] = k;
     remaining -= k;
-    remWeight -= PRIZES[i].weight;
+    remWeight -= prizeWeight(PRIZES[i]);
   }
   // 남은 판은 전부 꽝 — 조건부 확률이 1 이므로 이게 정확한 값이다
   counts[0] = remaining;
