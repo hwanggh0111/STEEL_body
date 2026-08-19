@@ -286,7 +286,9 @@ export const LADDER_EXPECTED_EXP = LADDER_PRIZES.reduce(
 // 까지 그걸로 가려면 티켓 수백만 장이 필요해 사실상 길이 아니다. 이 기계는 분포를
 // 눕혀서(최상위 없이도 굴러가게) 개벽을 실제로 오를 수 있는 경로로 만든다.
 //
-// 보상은 개벽 1레벨(GENESIS.expPerLevel = 80조)을 단위로 잡았다. L 배수로 읽으면 된다.
+// 보상은 개벽 1레벨(GENESIS.expPerLevel = 32조)을 단위로 잡았다. L 배수로 읽으면 된다.
+// L 을 그대로 쓰므로 개벽 1레벨당 비용이 바뀌면 상품도 같이 따라간다 —
+// "이 상품은 몇 레벨분" 이라는 아래 문구들이 항상 맞는다.
 const L = GENESIS.expPerLevel;
 
 // 울트라 티켓 — 이 기계 전용 화폐. 일반 티켓을 바꿔서 만든다.
@@ -354,7 +356,8 @@ export const UL_PRIZES = [
   {
     id: 'ul_origin', weight: 1, devWeight: 60, exp: 100 * L, icon: '⚪', color: '#ffffff',
     label: { ko: '태초의 빛', en: 'First Light' },
-    msg: { ko: '⚪ 태초의 빛 — 개벽 만렙!!!', en: '⚪ FIRST LIGHT — GENESIS MAX!!!' },
+    // 개벽이 250레벨이 된 뒤로 100레벨은 더 이상 만렙이 아니다 (그래도 최고 상품이다)
+    msg: { ko: '⚪ 태초의 빛 — 개벽 100레벨분!!!', en: '⚪ FIRST LIGHT — 100 GENESIS LEVELS!!!' },
   },
 ];
 

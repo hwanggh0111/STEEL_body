@@ -333,30 +333,62 @@ export const UL_EXP = {
 // ══ 개벽 등급 ══
 // 초월(0~100)을 다 채우면 그 위로 열리는 3차 체계. 다시 0부터 시작하고,
 // 일반 EXP 가 아니라 울트라 레전드 EXP 로 오른다.
+// 100 → 250 레벨로 늘렸다. 1레벨당 비용도 같이 내려야 한다:
+//
+//   80조 × 250 = 20,000조  →  2^53(9,007조)을 넘어 정수 정밀도가 깨진다
+//   36조 × 250 =  9,000조  →  들어가긴 하나 여유가 7조뿐이라 위험하다
+//   32조 × 250 =  8,000조  →  여유 1,007조. 누적 상한이 예전과 똑같아진다  ← 이걸 쓴다
+//
+// 울트라 파칭코 보상은 이 값의 배수(pachinkoData 의 L)로 잡혀 있어 같이 줄어든다.
+// 그래서 "한 판에 몇 레벨" 은 그대로고, 250레벨을 다 오르는 데 드는 판 수만 2.5배가 된다.
+// 레벨을 늘린다는 건 그만큼 더 오래 오른다는 뜻이므로 이게 맞는 방향이다.
+//
+// 이미 UL EXP 를 모아둔 계정은 EXP 가 그대로인 채 레벨 표시만 2.5배가 된다
+// (개벽 40 → 100). 잃는 건 없고, 앞으로 판당 오르는 레벨도 예전과 같다.
 export const GENESIS = {
-  expPerLevel: 80000000000000,   // 개벽 1레벨당 80조 UL EXP (초월과 같은 값)
-  maxLevel: 100,
+  expPerLevel: 32000000000000,   // 개벽 1레벨당 32조 UL EXP
+  maxLevel: 250,
   name: { ko: '개벽', en: 'Genesis' },
   color: '#ffe9a8',
   icon: '🌑',
 };
 
-// UL EXP 누적의 상한. 이 값도 2^53 안쪽이어야 한다 (80조 × 100 = 8,000조).
+// UL EXP 누적의 상한. 이 값도 2^53 안쪽이어야 한다 (32조 × 250 = 8,000조).
 export const MAX_UL_EXP = GENESIS.expPerLevel * GENESIS.maxLevel;
 
-// 개벽 100레벨을 10등급으로 나눈다 (등급당 10레벨, 마지막만 11).
+// 개벽 250레벨을 25등급으로 나눈다 (등급당 10레벨, 마지막만 11).
 // 이름은 초월 등급(여명·성좌·심연·균열·공허·영겁·창천·태초·종말·무극)과 겹치지 않게 골랐다.
+//
+// 0~99 는 원래대로 두고 100 위로 15등급을 더 얹었다. '하나'(모든 것이 하나)에서
+// 끝났던 자리라, 그 위는 하나마저 지워지는 쪽으로 간다 — 무(없음) → 현(가물함) →
+// 태허 → 불이 → 진여 … → 무위(함이 없음). 다 오르면 이름조차 남지 않는다.
 export const GENESIS_TIERS = [
-  { from: 0,  to: 9,   name: { ko: '혼돈', en: 'Chaos' },     icon: '🌫️', color: '#7a7a8c' },
-  { from: 10, to: 19,  name: { ko: '태동', en: 'Stirring' },  icon: '🌋', color: '#c86a3a' },
-  { from: 20, to: 29,  name: { ko: '천지', en: 'Firmament' }, icon: '⛰️', color: '#8fae6a' },
-  { from: 30, to: 39,  name: { ko: '만상', en: 'Myriad' },    icon: '🌿', color: '#4fc98a' },
-  { from: 40, to: 49,  name: { ko: '윤회', en: 'Samsara' },   icon: '☸️', color: '#4fa8d8' },
-  { from: 50, to: 59,  name: { ko: '적멸', en: 'Nirvana' },   icon: '🕯️', color: '#9a7ad8' },
-  { from: 60, to: 69,  name: { ko: '진리', en: 'Truth' },     icon: '📜', color: '#d8b84f' },
-  { from: 70, to: 79,  name: { ko: '도',   en: 'The Way' },   icon: '🎋', color: '#6ad8c0' },
-  { from: 80, to: 89,  name: { ko: '창조', en: 'Creation' },  icon: '🖐️', color: '#ff9a4f' },
-  { from: 90, to: 100, name: { ko: '하나', en: 'The One' },   icon: '⚪', color: '#ffffff' },
+  { from: 0,   to: 9,   name: { ko: '혼돈', en: 'Chaos' },       icon: '🌫️', color: '#7a7a8c' },
+  { from: 10,  to: 19,  name: { ko: '태동', en: 'Stirring' },    icon: '🌋', color: '#c86a3a' },
+  { from: 20,  to: 29,  name: { ko: '천지', en: 'Firmament' },   icon: '⛰️', color: '#8fae6a' },
+  { from: 30,  to: 39,  name: { ko: '만상', en: 'Myriad' },      icon: '🌿', color: '#4fc98a' },
+  { from: 40,  to: 49,  name: { ko: '윤회', en: 'Samsara' },     icon: '☸️', color: '#4fa8d8' },
+  { from: 50,  to: 59,  name: { ko: '적멸', en: 'Nirvana' },     icon: '🕯️', color: '#9a7ad8' },
+  { from: 60,  to: 69,  name: { ko: '진리', en: 'Truth' },       icon: '📜', color: '#d8b84f' },
+  { from: 70,  to: 79,  name: { ko: '도',   en: 'The Way' },     icon: '🎋', color: '#6ad8c0' },
+  { from: 80,  to: 89,  name: { ko: '창조', en: 'Creation' },    icon: '🖐️', color: '#ff9a4f' },
+  { from: 90,  to: 99,  name: { ko: '하나', en: 'The One' },     icon: '⚪', color: '#ffffff' },
+  // ── 여기부터 이번에 늘린 구간 ──
+  { from: 100, to: 109, name: { ko: '무',   en: 'Nothing' },     icon: '🕳️', color: '#5e5e6e' },
+  { from: 110, to: 119, name: { ko: '현',   en: 'Mystery' },     icon: '🌘', color: '#7b6bd8' },
+  { from: 120, to: 129, name: { ko: '태허', en: 'Great Void' },  icon: '🫧', color: '#6fb7d8' },
+  { from: 130, to: 139, name: { ko: '불이', en: 'Nondual' },     icon: '☯️', color: '#c9c9d8' },
+  { from: 140, to: 149, name: { ko: '진여', en: 'Suchness' },    icon: '🔷', color: '#4fd8c9' },
+  { from: 150, to: 159, name: { ko: '법계', en: 'Dharma Realm' },icon: '🕸️', color: '#a8d84f' },
+  { from: 160, to: 169, name: { ko: '화엄', en: 'Flower Realm' },icon: '🪷', color: '#ff7ab8' },
+  { from: 170, to: 179, name: { ko: '원융', en: 'Interfusion' }, icon: '⭕', color: '#ffb84f' },
+  { from: 180, to: 189, name: { ko: '무량', en: 'Immeasurable' },icon: '🌠', color: '#6a8cff' },
+  { from: 190, to: 199, name: { ko: '겁외', en: 'Beyond Kalpa' },icon: '🕰️', color: '#d89a4f' },
+  { from: 200, to: 209, name: { ko: '적광', en: 'Still Light' }, icon: '🔅', color: '#ffe066' },
+  { from: 210, to: 219, name: { ko: '상주', en: 'Everlasting' }, icon: '🗿', color: '#9aa0a6' },
+  { from: 220, to: 229, name: { ko: '묘각', en: 'Wondrous' },    icon: '🧿', color: '#4fa8ff' },
+  { from: 230, to: 239, name: { ko: '대원', en: 'Great Perfection' },  icon: '🌕', color: '#ff5ce0' },
+  { from: 240, to: 250, name: { ko: '무위', en: 'Unconditioned' },icon: '🕊️', color: '#ffe9a8' },
 ];
 
 export function getGenesisTier(level) {
