@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLangStore } from '../store/langStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
+import { usePlateStore } from '../store/plateStore';
 import { toast } from './Toast';
 import { UL_EXP } from './LevelSystem';
 import { UL_TICKET } from '../data/pachinkoData';
@@ -66,6 +67,8 @@ export default function ExchangeBooth({ available = 0, unlocked = false }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
   const { ulTickets, exchangeUlTickets } = usePachinkoStore();
+  // 무한 티켓(∞)이면 일반 티켓이 닳지 않는다 — 아래 반복 교환의 종료 조건이 달라진다
+  const unlimited = usePlateStore(s => s.unlimited);
 
   // 담아둔 수량. 확정을 눌러야 실제로 차감된다.
   const [pending, setPending] = useState(0);
@@ -132,7 +135,10 @@ export default function ExchangeBooth({ available = 0, unlocked = false }) {
     busyRef.current = true;
     setPending(0);
     toast(t.done(got));
-    return true;
+    // 무한 티켓이면 지갑이 줄지 않아 "빌 때까지"가 영원히 오지 않는다.
+    // 누르고 있는 동안 초당 수만 장이 찍혀 나오므로 한 번 바꾸고 멈춘다.
+    // (한 번에 바꿀 수 있는 최대치는 이미 나갔다 — 더 눌러야 할 이유가 없다)
+    return !unlimited;
   });
 
   return (
