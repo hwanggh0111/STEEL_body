@@ -6,7 +6,7 @@ import ExpGainBanner from './ExpGainBanner';
 import { UL_EXP, GENESIS } from './LevelSystem';
 import {
   UL_PACHINKO, UL_PRIZES, UL_REEL_TOTAL_MS, UL_EXPECTED, drawUlPrize, compactExp,
-  UL_WEIGHT_TOTAL_PROD, UL_HAS_DEV_WEIGHTS, ulWeight, UL_TICKET,
+  UL_WEIGHT_TOTAL_PROD, UL_WEIGHT_TOTAL_DEV, UL_HAS_DEV_WEIGHTS, ulWeight, UL_TICKET,
 } from '../data/pachinkoData';
 
 // 개벽(3차 레벨 체계) 전용 파칭코.
@@ -80,7 +80,7 @@ const STRIP = Array.from({ length: UL_PACHINKO.cycles * 10 }, (_, i) => i % 10);
 const STRIP_TEXT = STRIP.join('\n');
 
 // 개발 경고에 쓰는 합계. 개발 빌드에서만 의미가 있고 값이 고정이라 여기서 한 번만 구한다
-const UL_WEIGHT_TOTAL_DEV = UL_PRIZES.reduce((s, p) => s + ulWeight(p), 0);
+// (UL_WEIGHT_TOTAL_DEV 는 pachinkoData 에서 가져다 쓴다 — 추첨과 같은 값이어야 한다)
 
 // 이 보상이 개벽 몇 레벨분인지 — 조 단위 숫자만으로는 크기가 안 읽힌다
 const levelsOf = (exp) => Math.round((exp / GENESIS.expPerLevel) * 10) / 10;

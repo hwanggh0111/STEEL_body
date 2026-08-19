@@ -90,6 +90,9 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
 
   const canvasRef = useRef(null);
   const boxRef = useRef(null);
+  // 배경 그라디언트 캐시 — 높이에만 의존하는데 프레임마다 새로 만들고 있었다.
+  // 60fps 면 초당 60개를 만들어 버리는 셈이라, 크기가 바뀔 때만 다시 만든다.
+  const bgRef = useRef(null);
   const rafRef = useRef(0);
   const gameRef = useRef(null);
 
@@ -166,12 +169,15 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
     const w = cv.clientWidth, h = cv.clientHeight;
     const g = gameRef.current;
 
-    // 바닥
-    const bg = ctx.createLinearGradient(0, 0, 0, h);
-    bg.addColorStop(0, '#14080c');
-    bg.addColorStop(0.5, '#0c0c12');
-    bg.addColorStop(1, '#090909');
-    ctx.fillStyle = bg;
+    // 바닥 — 그라디언트는 높이가 바뀔 때만 다시 만든다 (bgRef 주석 참고)
+    if (bgRef.current?.h !== h) {
+      const bg = ctx.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#14080c');
+      bg.addColorStop(0.5, '#0c0c12');
+      bg.addColorStop(1, '#090909');
+      bgRef.current = { h, grad: bg };
+    }
+    ctx.fillStyle = bgRef.current.grad;
     ctx.fillRect(0, 0, w, h);
 
     // 바닥 선
