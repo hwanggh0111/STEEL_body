@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from './Toast';
 import { usePlateStore } from '../store/plateStore';
+import { useHoldRepeat } from './useHoldRepeat';
 import {
   PLATE_RULE, DODGE, GROUND, PLATES, drawPlate,
   EXPECTED_PER_PLATE, EXPECTED_PER_PLATE_COMMON,
@@ -599,6 +600,15 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
     setQty(q => Math.max(1, Math.min(q, affordable || 1)));
   }, [affordable]);
 
+  // − / + 는 꾹 누르고 있으면 계속 오르내린다. 한계에 닿으면 false 로 멈춘다.
+  // 원판을 많이 모은 뒤에는 살 수 있는 장수가 수십에 이르러 한 번씩 눌러선 못 맞춘다.
+  const holdStep = useHoldRepeat((step) => {
+    const next = qty + step;
+    if (next < 1 || next > affordable) return false;
+    setQty(next);
+    return true;
+  });
+
   const buy = (n) => {
     const got = buyTickets(n);
     if (got > 0) toast(`🎫 티켓 ${got}장 구입 — 원판 ${got * PLATE_RULE.perTicket}개 사용`);
@@ -1086,9 +1096,12 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
             }}>
               <button
                 className="btn-secondary"
-                onClick={() => setQty(q => Math.max(1, q - 1))}
+                {...holdStep(-1)}
                 disabled={qty <= 1}
-                style={{ width: 44, padding: '8px 0', fontSize: 18, lineHeight: 1 }}
+                style={{
+                  width: 44, padding: '8px 0', fontSize: 18, lineHeight: 1,
+                  touchAction: 'manipulation', userSelect: 'none',
+                }}
                 aria-label="한 장 줄이기"
               >-</button>
 
@@ -1106,9 +1119,12 @@ export default function PlateDodge({ canPlay = true, blockedReason = '', ticketR
 
               <button
                 className="btn-secondary"
-                onClick={() => setQty(q => Math.min(affordable, q + 1))}
+                {...holdStep(1)}
                 disabled={qty >= affordable}
-                style={{ width: 44, padding: '8px 0', fontSize: 18, lineHeight: 1 }}
+                style={{
+                  width: 44, padding: '8px 0', fontSize: 18, lineHeight: 1,
+                  touchAction: 'manipulation', userSelect: 'none',
+                }}
                 aria-label="한 장 늘리기"
               >+</button>
             </div>
