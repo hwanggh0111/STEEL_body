@@ -77,6 +77,28 @@ cd backend  && npm start       # http://localhost:4000
 
 ## 2026-08-19
 
+**저장소를 막아둔 브라우저에서 앱이 통째로 흰 화면이 되던 것**
+
+크롬의 "모든 쿠키 차단" 같은 설정에서는 `localStorage` 를 **읽기만 해도** `SecurityError` 를 던진다. 파칭코 계열은 예전에 `readLS`/`saveLS` 로 막아뒀지만 나머지 앱은 그대로였고(`docs/BUGS.md` 에 남은 범위로 적혀 있던 것), 실제로 재현해 보니 `data/admin.js` 의 `isAdmin()` 이 `MaintenanceScreen` **렌더 중에** 던져서 앱 전체가 죽었다. 이건 사용자가 로그인조차 못 하는 상태다.
+
+- `data/safeStorage.js` 를 새로 만들어 `readLS`·`saveLS`·`removeLS`·`readInt` 를 옮기고 `readCookies` 를 더했다. `pachinkoData` 는 기존 import 경로가 안 깨지게 다시 내보낸다 — 인증·API 계층이 파칭코 상품표를 끌어오면 안 되므로 파일을 나눴다
+- **src 전체의 raw `localStorage` 호출 140곳을 전부 안전 래퍼로 바꿨다** (0곳 남음). 특히 크래시 경로 셋:
+  - `store/authStore.js` — 모듈 로드 시점에 읽는다. 여기서 던지면 import 단계에서 흰 화면
+  - `api/client.js` — 요청 인터셉터. 던지면 모든 API 호출이 죽는다
+  - `components/MaintenanceScreen.jsx` + `data/admin.js` — App 전체를 감싼다. 실제 범인
+- `index.html` 의 테마 인라인 스크립트도 `try/catch` 로 감쌌다 — `<head>` 에서 동기로 도는 첫 코드다
+- 개발 도구(`autoLogin`·`setLevel`·`setTickets`)도 같이 바꿨다. 앱보다 먼저 도는 코드라 여기서 던지면 개발 중에는 이 시나리오를 테스트할 수조차 없었다
+
+검증 — 헤드리스 Chrome 에서 `localStorage` 게터가 `SecurityError` 를 던지도록 바꿔치기하고 접속:
+- 고치기 전: 본문 **0자**, 흰 화면, uncaught 3건
+- 고친 뒤: 본문 **1,075자**, 쿠키로 로그인 유지, **uncaught 0건**
+- 정상 상태 회귀도 확인 — 로그인 · `/api/health` 200 · 파칭코 1판(티켓 9,999,999 → 9,999,998, 결과 표시) · 미니게임 캔버스 · 기록 페이지 모두 정상, 콘솔 에러 없음
+
+**교환소 — 무한 티켓일 때 `최대` 꾹 누르기가 멈추지 않던 것**
+
+∞ 를 얻으면 일반 티켓이 닳지 않으므로 "지갑이 빌 때까지"가 영원히 오지 않는다. 누르고 있는 동안 초당 수만 장의 울트라 티켓이 찍혀 나왔다. 무한이면 한 번 바꾸고 멈춘다 — 한 번에 바꿀 수 있는 최대치는 이미 나갔으니 더 누를 이유가 없다.
+
+
 **버그 · 최적화 훑기**
 
 `일반 파칭코 확률표도 개발 확률을 진짜처럼 보여주고 있었다` — 사다리와 똑같이 `if (DEV) miss.weight = 30000` 으로 덮어써서, 표가 꽝을 **5.9%** 로 띄웠다(진짜 52.9%). 판당 평균(`EXPECTED_EXP`)도 개발 기준이었다. `prizeWeight` · `PRIZE_WEIGHT_TOTAL_PROD` · `PRIZE_HAS_DEV_WEIGHTS` 로 분리하고 경고 배너를 붙였다. 이로써 원판·울트라·사다리·파칭코 네 표가 모두 같은 규격이 됐다.
