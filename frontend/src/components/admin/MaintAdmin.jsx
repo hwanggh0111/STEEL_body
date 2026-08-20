@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSchedules, saveSchedules } from '../MaintenanceScreen';
 import { toast } from '../Toast';
-import { readLS, saveLS } from '../../data/safeStorage';
+import { saveLS } from '../../data/safeStorage';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -56,7 +56,7 @@ export default function MaintAdmin() {
     toast('점검 스케줄이 삭제됐습니다');
   };
 
-  // 즉시 점검 시작 + 긴급공지 자동 생성
+  // 즉시 점검 시작
   const startNow = (type, durationMin, reason) => {
     const now = new Date();
     const dur = Number(durationMin) || 5;
@@ -70,24 +70,6 @@ export default function MaintAdmin() {
     };
     save([...schedules, entry]);
     saveLS('ironlog_maint_version', JSON.stringify([...schedules, entry]));
-
-    // 긴급공지 자동 저장 (localStorage에 점검 공지 기록)
-    const today = now.toISOString().split('T')[0];
-    const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const endMin = now.getHours() * 60 + now.getMinutes() + dur;
-    const endTime = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
-    const typeLabels = { emergency: '긴급', regular: '정기', server: '서버' };
-    const typeLabel = typeLabels[type] || '서버';
-    const noticeType = type === 'emergency' ? '긴급공지' : '공지';
-    const noticeTitle = `${typeLabel} 서버 점검 (${time}~${endTime})`;
-    const noticeContent = type === 'emergency'
-      ? `긴급 서버 점검이 ${time}부터 약 ${dur}분간 진행됩니다. 사유: ${entry.reason}. 점검 중 서비스 이용이 제한됩니다. 빠른 복구를 위해 최선을 다하겠습니다.`
-      : `${typeLabel} 서버 점검이 ${time}부터 약 ${dur}분간 진행됩니다. 사유: ${entry.reason}. 점검 완료 후 자동으로 서비스가 재개됩니다.`;
-
-    // localStorage에 점검 공지 저장
-    const savedNotices = JSON.parse(readLS('ironlog_maint_notices') || '[]');
-    savedNotices.push({ date: today, title: noticeTitle, type: noticeType, content: noticeContent });
-    saveLS('ironlog_maint_notices', JSON.stringify(savedNotices));
 
     toast(`${type === 'regular' ? '정기' : '긴급'} 점검 시작! (${dur}분간)`);
   };

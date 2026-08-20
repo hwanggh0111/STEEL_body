@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
@@ -8,8 +8,6 @@ import LevelSystem from '../components/LevelSystem';
 import MissionSystem from '../components/MissionSystem';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import CasinoChip from '../components/CasinoChip';
-import NoticeBanner, { NoticePopup } from '../components/NoticeBanner';
-import { NOTICES, getReadNotices, markNoticeRead } from '../data/notices';
 import { isAdmin } from '../data/admin';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 
@@ -61,7 +59,6 @@ const SEARCH_ITEMS = [
   { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: '🔍' },
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
-  { label: '공지사항', keywords: ['공지', '알림', 'notice', '소식', '업데이트', '공'], path: '/notice', icon: '📢' },
   { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
   { label: '미니게임', keywords: ['미니게임', 'minigame', 'game', '게임', '원판', '피하기', 'dodge', 'plate', '티켓', 'ticket', '원판피하기', 'ㅁㄴㄱ'], path: '/minigame', icon: '🥏' },
 
@@ -81,7 +78,7 @@ const SEARCH_ITEMS = [
   { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', icon: '📅' },
 
   // ─── 관리자 (관리자 권한 필요) ───
-  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '공지관리', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
+  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
 ];
 
 export default function HomePage() {
@@ -89,9 +86,6 @@ export default function HomePage() {
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
 
-  // 공지사항 state
-  const [popupNotice, setPopupNotice] = useState(null);
-  const [unreadQueue, setUnreadQueue] = useState([]);
   const [homeSearch, setHomeSearch] = useState('');
   const [searchHistory, setSearchHistory] = useState(() => {
     try { return JSON.parse(readLS('ironlog_search_history')) || []; } catch { return []; }
@@ -124,40 +118,7 @@ export default function HomePage() {
   useEffect(() => {
     fetchWorkouts();
     fetchInbody();
-
-    // 로그인 시 안 읽은 공지 전부 큐에 넣고 첫 번째부터 팝업
-    const readList = getReadNotices();
-    const unread = NOTICES.filter(n => !readList.includes(n.id));
-    if (unread.length > 0) {
-      setPopupNotice(unread[0]);
-      markNoticeRead(unread[0].id);
-      setUnreadQueue(unread.slice(1));
-    }
   }, []);
-
-  const handleOpenPopup = useCallback((notice) => {
-    markNoticeRead(notice.id);
-    setPopupNotice(notice);
-  }, []);
-
-  const handleClosePopup = useCallback(() => {
-    // 큐에 남은 안 읽은 공지가 있으면 다음 공지 바로 표시
-    setUnreadQueue(prev => {
-      if (prev.length > 0) {
-        const next = prev[0];
-        markNoticeRead(next.id);
-        setPopupNotice(next);
-        return prev.slice(1);
-      }
-      setPopupNotice(null);
-      return prev;
-    });
-  }, []);
-
-  const handleGoNotice = useCallback(() => {
-    setPopupNotice(null);
-    navigate('/notice');
-  }, [navigate]);
 
   const today = new Date().toISOString().split('T')[0];
   const todayWorkouts = workouts[today] || [];
@@ -348,12 +309,6 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          {/* 공지사항 배너 */}
-          <NoticeBanner onOpenPopup={handleOpenPopup} onGoNotice={handleGoNotice} />
-
-
-
-
           {/* 오늘의 요약 */}
           <div className="section-title">
             <div className="accent-bar" />
@@ -486,14 +441,6 @@ export default function HomePage() {
           </div>
         </>
       )}
-
-      {/* 공지사항 팝업 */}
-      <NoticePopup
-        notice={popupNotice}
-        onClose={handleClosePopup}
-        onGoNotice={handleGoNotice}
-        remaining={unreadQueue.length}
-      />
     </div>
   );
 }

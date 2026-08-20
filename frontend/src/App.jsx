@@ -18,7 +18,6 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
 const MeasurePage = lazy(() => import('./pages/MeasurePage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
-const NoticePage = lazy(() => import('./pages/NoticePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const PachinkoPage = lazy(() => import('./pages/PachinkoPage'));
 const MiniGamePage = lazy(() => import('./pages/MiniGamePage'));
@@ -60,7 +59,6 @@ export default function App() {
               <Route path="homeworkout" element={<HomeworkoutPage />} />
               <Route path="measure" element={<MeasurePage />} />
               <Route path="history" element={<HistoryPage />} />
-              <Route path="notice" element={<NoticePage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="pachinko" element={<PachinkoPage />} />
               <Route path="minigame" element={<MiniGamePage />} />

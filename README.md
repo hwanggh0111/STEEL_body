@@ -75,6 +75,23 @@ cd backend  && npm start       # http://localhost:4000
 
 최신이 위. 날짜 하나에 그날 한 일을 묶는다.
 
+## 2026-08-20
+
+**공지사항 기능 제거 — 안 쓰는 기능이었다**
+
+없애기로 결정했다. 그 자리(`더보기` 안)에는 나중에 새 페이지를 만들어 붙인다 — **시안을 따로 만들어 확인한 뒤** 연결하는 순서로 간다. 오늘은 제거만 했다.
+
+- **지운 파일 6개, 1,897줄** — `pages/NoticePage.jsx`(454) · `components/AiNoticeWriter.jsx`(718) · `components/NoticeBanner.jsx`(140) · `components/admin/NoticeAdmin.jsx`(208) · `data/aiNoticeTemplates.js`(261) · `data/notices.js`(116)
+- **물려 있던 곳** — `App.jsx`(lazy import + `/notice` 라우트) · `TabBar.jsx`(더보기 항목) · `HomePage.jsx`(배너 · 팝업 · 안 읽은 공지 큐 · 검색 항목) · `AdminPage.jsx`(`공지사항 관리` · `AI 공지` 탭)
+- `AdminPage` 의 기본 탭이 `notice` 였다. `maint`(점검 스케줄)로 바꿨다 — 안 그러면 관리자 페이지가 빈 화면으로 열린다
+- `MaintAdmin` 이 점검을 걸 때마다 `ironlog_maint_notices` 에 공지를 만들어 저장하고 있었는데, **읽는 쪽이 아무 데도 없었다.** 공지 페이지가 사라지면 영영 안 읽히므로 그 블록(16줄)을 지웠다. 점검 화면에 뜨는 안내는 이것과 무관하게 `MaintenanceScreen` 이 따로 그린다
+- 안 쓰게 된 import 도 같이 정리했다 (`HomePage` 의 `useCallback`, `MaintAdmin` 의 `readLS`)
+- 옛 `/notice` 북마크는 `App.jsx` 의 `path="*"` 폴백이 받아서 홈으로 보낸다. 따로 리다이렉트를 두지 않았다
+
+**백엔드는 남겼다.** `routes/notices.js`(113줄) 와 `db.js` 의 notices 테이블은 "레코드 목록 + 관리자 조회" 라는 모양이 다음에 만들 **버그 제보함**과 같다. 새로 만드는 것보다 이걸 제보용으로 돌리는 게 싸다. 쓰기는 전부 `adminAuth` 뒤에 있어 그대로 둬도 열려 있지 않다.
+
+- 확인: 운영 빌드 통과. 헤드리스 Chrome 으로 홈 진입(로그인 유지) · 화면 어디에도 `공지` 없음 · `/notice` → `/home` 폴백 · `더보기` 여섯 항목(미니게임 · 홈트레이닝 · 운동 검색 · 측정 시스템 · 히스토리 · 관리자) · 관리자 탭 5개로 줄고 `점검 스케줄` 이 기본으로 열림 · **콘솔 에러 0건**
+
 ## 2026-08-19
 
 **회원가입 버튼이 왜 안 눌리는지 화면에 아무 말이 없었다**

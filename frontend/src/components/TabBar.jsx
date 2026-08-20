@@ -19,7 +19,6 @@ const MORE_ITEMS_ALL = [
   { path: '/search',     label: '운동 검색',  icon: '🔍' },
   { path: '/measure',    label: '측정 시스템', icon: '📐' },
   { path: '/history',    label: '히스토리',   icon: '📅' },
-  { path: '/notice',     label: '공지사항',   icon: '📢' },
   { path: '/admin',      label: '관리자',     icon: '⚙️', adminOnly: true },
 ];
 

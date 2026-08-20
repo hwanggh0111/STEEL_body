@@ -4,8 +4,6 @@ import { useAuthStore } from '../store/authStore';
 import SecurityPanel from '../components/SecurityPanel';
 import HackingSecurityPanel from '../components/HackingSecurityPanel';
 import AiAdminPanel from '../components/AiAdminPanel';
-import AiNoticeWriter from '../components/AiNoticeWriter';
-import NoticeAdmin from '../components/admin/NoticeAdmin';
 import MaintAdmin from '../components/admin/MaintAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 
@@ -14,7 +12,7 @@ import { isAdmin as checkAdmin } from '../data/admin';
 export default function AdminPage() {
   const { nickname } = useAuthStore();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('notice');
+  const [tab, setTab] = useState('maint');
 
   const isAdmin = checkAdmin();
 
@@ -47,19 +45,17 @@ export default function AdminPage() {
           letterSpacing: 2, color: 'var(--accent)', margin: 0, marginBottom: 4,
         }}>ADMIN</h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-          공지사항 · 점검 · 보안 · 해킹보안 관리
+          점검 · 보안 · 해킹보안 관리
         </p>
       </div>
 
       {/* 탭 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
-          { key: 'notice', label: '공지사항 관리', icon: '📢' },
           { key: 'maint', label: '점검 스케줄', icon: '🔧' },
           { key: 'security', label: '보안 관리', icon: '🛡️' },
           { key: 'hacking', label: '해킹 보안', icon: '🔒' },
           { key: 'ai', label: 'AI 관리자', icon: '🤖' },
-          { key: 'ainotice', label: 'AI 공지', icon: '📝' },
           { key: 'scan', label: '보안 검사', icon: '🔍' },
         ].map(t => (
           <button
@@ -80,12 +76,10 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {tab === 'notice' && <NoticeAdmin />}
       {tab === 'maint' && <MaintAdmin />}
       {tab === 'security' && <SecurityPanel />}
       {tab === 'hacking' && <HackingSecurityPanel />}
       {tab === 'ai' && <AiAdminPanel />}
-      {tab === 'ainotice' && <AiNoticeWriter />}
       {tab === 'scan' && <SecurityScan />}
     </div>
   );
