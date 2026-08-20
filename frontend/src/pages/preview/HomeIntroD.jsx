@@ -145,6 +145,23 @@ export default function HomeIntroD() {
         }}
       >기록하러 가기 →</button>
 
+      {/* 최근 바뀐 것 — 기능 소개보다 위에 둔다.
+          오랜만에 들어온 사람이 제일 먼저 궁금해하는 건 그동안 뭐가 달라졌나다.
+          앱이 뭘 하는지는 이미 쓰고 있으니 알고 있다 */}
+      <div style={{ marginBottom: 40 }}>
+        <Sec>최근 바뀐 것</Sec>
+        <FeedList items={FEED.slice(0, CHANGES_SHOWN)} />
+
+        {/* 여기 여섯 줄만 보여준다. 나머지는 공지함에 있다 */}
+        <button
+          onClick={() => navigate('/preview/notices')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            marginTop: 16, color: 'var(--accent)', fontSize: 13.5,
+          }}
+        >공지함에서 전부 보기 ({FEED.length}) →</button>
+      </div>
+
       {/* 기능 — 번호 매긴 목록 */}
       <div style={{ marginBottom: 40 }}>
         <div style={{
@@ -216,21 +233,6 @@ export default function HomeIntroD() {
           운동을 계속할 이유를 하나 더 만들어 두는 장치다.
           확률표는 언제나 운영 확률을 그대로 보여준다.
         </p>
-      </div>
-
-      {/* 최근 바뀐 것 — 공지사항이 하던 일 중 쓸모 있던 부분 */}
-      <div style={{ marginBottom: 40 }}>
-        <Sec>최근 바뀐 것</Sec>
-        <FeedList items={FEED.slice(0, CHANGES_SHOWN)} />
-
-        {/* 여기 여섯 줄만 보여준다. 나머지는 공지함에 있다 */}
-        <button
-          onClick={() => navigate('/preview/notices')}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            marginTop: 16, color: 'var(--accent)', fontSize: 13.5,
-          }}
-        >공지함에서 전부 보기 ({FEED.length}) →</button>
       </div>
 
       {/* 자주 묻는 것 — 같은 질문이 문의로 반복되면 여기로 올린다 */}

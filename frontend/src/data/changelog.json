@@ -2,6 +2,15 @@
   "generated": "2026-08-20",
   "items": [
     {
+      "hash": "f5870c3",
+      "date": "2026-08-20",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "시안",
+      "text": "공지 자리에 들어갈 새 페이지 시안 5종 + 제보함 + 공지함",
+      "detail": "앱에는 아직 붙이지 않았다. 탭에도 검색에도 이름이 없고 주소로만 열린다.\nimport.meta.env.DEV 로 갈라 두어 운영 번들에는 통째로 담기지 않는다\n(빌드 후 dist 에 문자열 0건 확인).\n\n/preview 목록 · homepage(A 소개+제보함) · -b(깔끔) · -c(대시보드) ·\n-d(문장형 ← 결정) · -e(타일) · /preview/report(제보함) · /preview/notices(공지함).\n\n제보함은 유형마다 다음이 달라진다. 버그는 어느 화면인지 · 다시 해도 그런지를\n묻고 기기 정보를 기본으로 붙인다. 문의는 제목만 있으면 되고 기기 정보를 안 붙인다.\n건의는 \"지금은 어떻게 하고 계신지\" 를 묻는다 — 대안이 있는지가 순서를 정한다.\n막는 것은 유형과 제목뿐이고 나머지는 회색 안내로만 권한다. 넷을 다 요구했더니\n제목을 쓰고도 버튼이 죽어 있었다.\n\n최근 바뀐 것은 손으로 적지 않는다. scripts/gen-changelog.mjs 가 git 커밋에서\nfeat·fix·perf 만 뽑아 changelog.json 을 만들고 predev·prebuild 로 자동 실행된다.\n커밋 본문(%b)이 화면에서 펼쳐 보는 세부 내용이 된다. 커밋으로 설명이 안 되는 것은\ndata/notices.json 에 손으로 적고, 둘은 feed.jsx 에서 한 목록으로 합쳐진다\n(공지는 오렌지, 커밋에서 온 것은 회색). 스크립트는 git 이 없어도 실패로 끝나지 않는다.\n\n숫자는 손으로 적지 않는다 — 레벨 상한 · 등급 이름 · 등급 수 · 티켓 규칙 · 교환비 ·\n앱 버전을 전부 실제 상수와 등급표, package.json 에서 읽는다. 일반 만렙 등급을\n'신화' 로 적어뒀었는데 실제로는 '이름 없는 것' 이었다.\n\n확인: 운영 빌드 통과, dist 에 시안 흔적 0건. 헤드리스 Chrome 으로 일곱 화면 전부\n렌더 · 제보 세 흐름 · 지우기 두 곳 · 공지 세부 펼침 · 공지함 거르기까지 확인,\n콘솔 에러 0건.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01KUfmE9MMXmC86Kp4Ej1GP5"
+    },
+    {
       "hash": "c999306",
       "date": "2026-08-20",
       "type": "feat",
@@ -63,15 +72,6 @@
       "scope": null,
       "text": "60fps 루프의 프레임당 할당과 추첨 합계 재계산 제거",
       "detail": "원판 피하기의 배경 그라디언트를 프레임마다 새로 만들고 있었다. 높이에만\n의존하는데 60fps 루프 안에 있어 초당 60개를 만들어 버렸다. bgRef 에 캐시하고\n높이가 바뀔 때만 다시 만든다.\n\ndrawPrize · drawLadderPrize · drawUlPrize 셋 다 호출할 때마다 가중치 합계를\nreduce 로 다시 더했다. 모듈 상수로 바꿨다 (\"모두 쓰기\"처럼 수백만 번 도는\n경로가 있다).\n\nUltraPachinko 안에 따로 두던 UL_WEIGHT_TOTAL_DEV 중복도 지웠다 — 추첨과\n확률표가 같은 값을 봐야 한다.\n\n캔버스 60fps 유지 확인 (평균 16.7ms · 중앙값 16.7ms · 최악 16.8ms).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
-    },
-    {
-      "hash": "468122f",
-      "date": "2026-08-19",
-      "type": "fix",
-      "label": "고침",
-      "scope": "파칭코",
-      "text": "확률표가 개발 확률을 진짜처럼 보여주던 것",
-      "detail": "사다리와 똑같이 `if (DEV) miss.weight = 30000` 으로 운영 가중치를 덮어써서,\n표가 꽝을 5.9% 로 띄웠다 — 진짜는 52.9% 다. 판당 평균(EXPECTED_EXP)도 같은\n이유로 개발 기준이었다.\n\nprizeWeight · PRIZE_WEIGHT_TOTAL_PROD · PRIZE_HAS_DEV_WEIGHTS 로 분리하고,\n다른 표들과 같은 경고 배너를 붙였다. 이로써 원판 · 울트라 · 사다리 · 파칭코\n네 표가 모두 같은 규격이 됐다.\n\n30만 판 몬테카를로로 확인했다.\n  drawPrize        실측 꽝 5.95% / 개발 이론 5.97%\n  drawPrizeCounts  합계가 요청 판 수와 정확히 일치, 분포도 일치\n  표에 뜨는 값     운영 기준 52.86%\n\n덤으로 티켓당 기대 EXP 정합이 드러났다 — 파칭코 997,495,663 vs\n사다리 997,493,493 (판당 99,749,349,303 ÷ 100) = 1.000배. LADDER.cost 100 이\n맞게 잡혀 있다. 개발 가중치로 계산되던 동안에는 확인할 수가 없던 값이다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
     }
   ]
 }
