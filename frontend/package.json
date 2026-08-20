@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "changelog": "node scripts/gen-changelog.mjs",
+    "predev": "node scripts/gen-changelog.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/gen-changelog.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
