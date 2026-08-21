@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getSchedules, saveSchedules } from '../MaintenanceScreen';
 import { toast } from '../Toast';
 import { saveLS } from '../../data/safeStorage';
+import { dateKey } from '../../data/dateKey';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -32,7 +33,11 @@ export default function MaintAdmin() {
       toast('점검 사유를 입력하세요');
       return;
     }
+    // 수정 폼은 시각·요일·사유만 다룬다. 원래 항목의 date·type 은 그대로 들고 간다 —
+    // 안 그러면 '8월 25일 하루' 짜리가 수정 한 번에 '매일' 로 바뀐다
+    const base = editing === 'new' ? {} : (schedules[editing] || {});
     const entry = {
+      ...base,
       startHour: Number(form.startHour),
       startMin: Number(form.startMin),
       durationMin: Number(form.durationMin),
@@ -56,26 +61,57 @@ export default function MaintAdmin() {
     toast('점검 스케줄이 삭제됐습니다');
   };
 
-  // 즉시 점검 시작
-  const startNow = (type, durationMin, reason) => {
-    const now = new Date();
+  const TYPE_LABEL = { regular: '정기', server: '서버', emergency: '긴급' };
+
+  // 관리자가 고른 날짜와 시작 시간에 점검을 잡는다.
+  //
+  // 전에는 이 함수가 입력을 통째로 무시하고 now 로 시작했다. 화면에는
+  // '8월 25일 03:00 ~ 04:00' 이라고 적혀 있는데 버튼을 누르는 순간 사이트가 닫혔다.
+  // 날짜·시간 칸과 요약 줄이 전부 거짓말을 하고 있었다.
+  //
+  // 날짜를 함께 저장하는 것도 중요하다 — 예전 항목은 date 없이 days: [] 라
+  // '매일' 로 읽혀서, 5분짜리 긴급 점검이 다음 날 같은 시각에 또 걸렸다.
+  const scheduleMaint = (type, dateStr, timeStr, durationMin, reason) => {
     const dur = Number(durationMin) || 5;
+    const [h, m] = String(timeStr).split(':').map(Number);
+    if (!/^d{4}-d{2}-d{2}$/.test(dateStr) || !Number.isInteger(h) || !Number.isInteger(m)) {
+      toast('날짜와 시작 시간을 확인해 주세요');
+      return;
+    }
+    const start = new Date(`${dateStr}T${timeStr}:00`);
+    if (isNaN(start.getTime())) {
+      toast('날짜와 시작 시간을 확인해 주세요');
+      return;
+    }
+    // 이미 끝난 시각으로 잡으면 아무 일도 안 일어난다. 걸린 줄 알고 기다리게 두지 않는다
+    if (start.getTime() + dur * 60000 <= Date.now()) {
+      toast('이미 지난 시각이에요');
+      return;
+    }
     const entry = {
-      startHour: now.getHours(),
-      startMin: now.getMinutes(),
+      date: dateStr,
+      startHour: h, startMin: m,
       durationMin: dur,
       days: [],
-      reason: reason || (type === 'regular' ? '정기 시스템 점검' : '긴급 시스템 점검'),
-      type: type,
+      reason: reason || `${TYPE_LABEL[type] || '정기'} 시스템 점검`,
+      type,
     };
-    save([...schedules, entry]);
-    saveLS('ironlog_maint_version', JSON.stringify([...schedules, entry]));
+    const updated = [...schedules, entry];
+    save(updated);
+    saveLS('ironlog_maint_version', JSON.stringify(updated));
+    toast(start.getTime() <= Date.now()
+      ? `${TYPE_LABEL[type]} 점검 시작! (${dur}분간)`
+      : `${TYPE_LABEL[type]} 점검 예약됨 — ${dateStr} ${timeStr} 부터 ${dur}분간`);
+  };
 
-    toast(`${type === 'regular' ? '정기' : '긴급'} 점검 시작! (${dur}분간)`);
+  // 버튼 글자를 실제 동작에 맞춘다. 지금이면 '시작', 나중이면 '예약'
+  const startsNow = (dateStr, timeStr) => {
+    const t = new Date(`${dateStr}T${timeStr}:00`).getTime();
+    return !isNaN(t) && t <= Date.now();
   };
 
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = dateKey(now);
   const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
   const [regularDate, setRegularDate] = useState(todayStr);
@@ -111,9 +147,10 @@ export default function MaintAdmin() {
     }));
   };
 
+  // 자정을 넘기면 시가 24 를 넘는다. 그대로 찍으면 '24:50' 이 뜬다
   const endHour = (s) => {
     const end = s.startHour * 60 + s.startMin + s.durationMin;
-    return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+    return `${String(Math.floor(end / 60) % 24).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
   };
 
   return (
@@ -149,11 +186,11 @@ export default function MaintAdmin() {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)' }}>
             {getDateLabel(regularDate)} {regularTime} ~ {getEndTime(regularTime, regularMin)} ({regularMin}분간)
           </div>
-          <button onClick={() => startNow('regular', regularMin, regularReason)} style={{
+          <button onClick={() => scheduleMaint('regular', regularDate, regularTime, regularMin, regularReason)} style={{
             background: 'var(--accent)', border: 'none', color: '#000',
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
             borderRadius: 'var(--radius)', cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>정기 점검 시작</button>
+          }}>정기 점검 {startsNow(regularDate, regularTime) ? '시작' : '예약'}</button>
         </div>
       </div>
 
@@ -188,11 +225,11 @@ export default function MaintAdmin() {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)' }}>
             {getDateLabel(serverDate)} {serverTime} ~ {getEndTime(serverTime, serverMin)} ({serverMin}분간)
           </div>
-          <button onClick={() => startNow('server', serverMin, serverReason)} style={{
+          <button onClick={() => scheduleMaint('server', serverDate, serverTime, serverMin, serverReason)} style={{
             background: 'var(--info)', border: 'none', color: '#000',
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
             borderRadius: 'var(--radius)', cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>서버 점검 시작</button>
+          }}>서버 점검 {startsNow(serverDate, serverTime) ? '시작' : '예약'}</button>
         </div>
       </div>
 
@@ -227,11 +264,11 @@ export default function MaintAdmin() {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)' }}>
             {getDateLabel(emergencyDate)} {emergencyTime} ~ {getEndTime(emergencyTime, emergencyMin)} ({emergencyMin}분간) · 강제 로그아웃
           </div>
-          <button onClick={() => startNow('emergency', emergencyMin, emergencyReason)} style={{
+          <button onClick={() => scheduleMaint('emergency', emergencyDate, emergencyTime, emergencyMin, emergencyReason)} style={{
             background: 'var(--danger)', border: 'none', color: '#fff',
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
             borderRadius: 'var(--radius)', cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>긴급 점검 시작</button>
+          }}>긴급 점검 {startsNow(emergencyDate, emergencyTime) ? '시작' : '예약'}</button>
         </div>
       </div>
 
@@ -358,9 +395,11 @@ export default function MaintAdmin() {
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>({s.durationMin}분)</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                      {s.days && s.days.length > 0 && s.days.length < 7
-                        ? s.days.map(d => DAY_LABELS[d]).join(', ')
-                        : '매일'}
+                      {s.date
+                        ? `${s.date} 하루`
+                        : s.days && s.days.length > 0 && s.days.length < 7
+                          ? `매주 ${s.days.map(d => DAY_LABELS[d]).join(', ')}`
+                          : '매일'}
                     </div>
                   </div>
                 </div>

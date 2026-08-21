@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 // 이 컴포넌트는 App 전체를 감싼다. 쿠키를 막아둔 브라우저에서 localStorage 가
 // 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
 import { readLS, saveLS } from '../data/safeStorage';
+import { dateKey } from '../data/dateKey';
 
 const MAINT_KEY = 'ironlog_maintenance';
 
@@ -37,25 +38,50 @@ export function saveSchedules(schedules) {
   saveLS(MAINT_KEY, JSON.stringify(schedules));
 }
 
+// 이 스케줄이 그 날 도는가.
+//   date 가 있으면 그 하루만 도는 일회성이다 — 관리자가 날짜를 찍어 잡은 점검.
+//   date 가 없으면 요일 반복이다. days 가 비어 있으면 매일.
+//   type 은 있는데 date 가 없는 것은 옛 '즉시 시작' 이 남긴 찌꺼기다.
+//   그때는 날짜를 안 적고 days 를 비워둬서, 5분짜리 긴급 점검이 매일 같은 시각에
+//   되살아났다. 그런 항목은 돌리지 않는다 (목록에는 남으니 관리자가 지우면 된다).
+function runsOn(schedule, dateStr, weekday) {
+  if (schedule.date) return schedule.date === dateStr;
+  if (schedule.type) return false;
+  if (schedule.days && schedule.days.length > 0) return schedule.days.includes(weekday);
+  return true;
+}
+
 function getMaintenanceInfo() {
   const schedules = getSchedules();
   const now = new Date();
-  const day = now.getDay();
   const nowMin = now.getHours() * 60 + now.getMinutes();
+  const day = now.getDay();
+  const today = dateKey(now);
+  const yesterday = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
 
   for (const schedule of schedules) {
-    if (schedule.days && schedule.days.length > 0 && !schedule.days.includes(day)) continue;
     const startMin = schedule.startHour * 60 + schedule.startMin;
     const endMin = startMin + schedule.durationMin;
-    if (nowMin >= startMin && nowMin < endMin) {
-      const remainSec = (endMin - nowMin) * 60 - now.getSeconds();
-      const endHour = Math.floor(endMin / 60);
-      const endMinute = endMin % 60;
+
+    // 자정을 넘기는 점검이 있다. 23:30 에 60분을 걸면 endMin 이 1470 이라
+    // 00:15 (nowMin 15) 에는 어느 조건에도 안 걸려서 점검이 저 혼자 풀렸다.
+    // 오늘 시작한 창과, 어제 시작해 오늘로 넘어온 창을 둘 다 본다.
+    // offset 1440 은 어제 것을 오늘 시각 축으로 끌어온 값이다 (어제 23:30 → -30).
+    for (const offset of [0, 1440]) {
+      const onDate = offset ? yesterday : today;
+      const onDay = offset ? (day + 6) % 7 : day;
+      if (!runsOn(schedule, onDate, onDay)) continue;
+
+      const s = startMin - offset;
+      const e = endMin - offset;
+      if (nowMin < s || nowMin >= e) continue;
+
       return {
         active: true,
-        remainSec,
+        remainSec: (e - nowMin) * 60 - now.getSeconds(),
         startTime: `${String(schedule.startHour).padStart(2, '0')}:${String(schedule.startMin).padStart(2, '0')}`,
-        endTime: `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`,
+        // 자정을 넘으면 시가 24 를 넘는다. 그대로 찍으면 '24:30' 이 뜬다
+        endTime: `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`,
         durationMin: schedule.durationMin,
         reason: schedule.reason || '정기 시스템 점검',
         type: schedule.type || 'regular',
