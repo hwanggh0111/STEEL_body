@@ -179,10 +179,6 @@ app.use('/api/routines', (req, res, next) => {
   res.set('Cache-Control', 'public, max-age=3600'); // 1시간
   next();
 });
-app.use('/api/notices', (req, res, next) => {
-  if (req.method === 'GET') res.set('Cache-Control', 'public, max-age=300'); // 5분
-  next();
-});
 
 // 라우터 연결
 app.use('/api/auth',        require('./routes/auth'));
@@ -193,7 +189,7 @@ app.use('/api/oauth',       require('./routes/oauth'));
 app.use('/api/security',    require('./routes/security'));
 app.use('/api/measures',    require('./routes/measures'));
 app.use('/api/my-routines', require('./routes/myRoutines'));
-app.use('/api/notices',     require('./routes/notices'));
+app.use('/api/reports',     require('./routes/reports'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/export',      require('./routes/export'));
 

@@ -10,11 +10,13 @@ const DEFAULT_DATA = {
   inbody: [],
   measures: [],
   myRoutines: [],
-  notices: [],
+  // 제보함. 공지사항 기능을 없애면서 notices 자리를 이쪽으로 돌렸다 —
+  // "레코드 목록 + 본인 것만 조회 + 관리자 전체 조회" 라는 모양이 같다.
+  reports: [],
   photos: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, notices: 1, photos: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, photos: 1, suspensions: 1, blacklist: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -319,39 +321,66 @@ const db = {
     return { changes: 1 };
   },
 
-  // notices
-  getNotices() {
+  // reports — 제보함 (버그 · 문의 · 건의)
+  //
+  // 최신이 위다. 목록을 그리는 쪽에서 매번 세우지 않게 여기서 한 번만 세운다.
+  // id 로 세운다 — 같은 날 여러 건이 들어와도 순서가 흔들리지 않는다.
+  getReports(userId) {
     const data = load();
-    return (data.notices || []).sort((a, b) => a.id - b.id);
+    return (data.reports || []).filter(r => r.user_id === userId).sort((a, b) => b.id - a.id);
   },
-  createNotice(date, title, type, content) {
-    const id = nextId('notices');
+  getAllReports() {
     const data = load();
-    if (!data.notices) data.notices = [];
-    const record = { id, date, title, type, content, created_at: new Date().toISOString() };
-    data.notices.push(record);
+    return (data.reports || []).sort((a, b) => b.id - a.id);
+  },
+  createReport(userId, fields) {
+    const id = nextId('reports');
+    const data = load();
+    if (!data.reports) data.reports = [];
+    const now = new Date().toISOString();
+    const record = {
+      id,
+      user_id: userId,
+      kind: fields.kind,
+      title: fields.title,
+      body: fields.body || '',
+      meta: fields.meta || {},
+      device: fields.device || null,
+      status: 'received',
+      reply: null,
+      reply_at: null,
+      created_at: now,
+      updated_at: now,
+    };
+    data.reports.push(record);
     save(data);
-    return { lastInsertRowid: id };
+    return record;
   },
-  updateNotice(id, title, type, content) {
+  deleteReport(id, userId) {
     const data = load();
-    if (!data.notices) return { changes: 0 };
-    const notice = data.notices.find(n => n.id === id);
-    if (!notice) return { changes: 0 };
-    if (title !== undefined) notice.title = title;
-    if (type !== undefined) notice.type = type;
-    if (content !== undefined) notice.content = content;
-    save(data);
-    return { changes: 1 };
-  },
-  deleteNotice(id) {
-    const data = load();
-    if (!data.notices) return { changes: 0 };
-    const idx = data.notices.findIndex(n => n.id === id);
+    if (!data.reports) return { changes: 0 };
+    // 본인 것만 지운다. 관리자라도 남의 제보를 목록에서 없애지는 않는다 —
+    // 답을 달아야 할 대상이 조용히 사라지면 안 된다
+    const idx = data.reports.findIndex(r => r.id === id && r.user_id === userId);
     if (idx === -1) return { changes: 0 };
-    data.notices.splice(idx, 1);
+    data.reports.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+  // 관리자용 — 상태와 답변만 바꾼다. 사용자가 쓴 내용은 건드리지 않는다
+  updateReport(id, fields) {
+    const data = load();
+    if (!data.reports) return { changes: 0 };
+    const report = data.reports.find(r => r.id === id);
+    if (!report) return { changes: 0 };
+    if (fields.status !== undefined) report.status = fields.status;
+    if (fields.reply !== undefined) {
+      report.reply = fields.reply;
+      report.reply_at = fields.reply ? new Date().toISOString() : null;
+    }
+    report.updated_at = new Date().toISOString();
+    save(data);
+    return { changes: 1, report };
   },
 
   // photos (profile + compare)
