@@ -67,6 +67,20 @@ export const TICKET_RULE = {
 // 9,999,999 는 개발 보너스로 이미 쓰던 규모라 다회 뽑기 경로가 검증돼 있다.
 export const UNLIMITED_TICKETS = 9999999;
 
+// 기록분은 저장하지 않고 매번 계산한다. purchased 는 원판 피하기로 산 티켓이라
+// 저장할 수밖에 없고, 정직하게 플레이할 때의 벌이는 하루 판 수 제한(PLATE_RULE.dailyPlays)이
+// 묶는다. localStorage 조작까지 막지는 않는다 — 의도된 선택이다 (pachinkoData.js 상단 주석).
+// 호출부가 객체/undefined를 넘겨도 NaN이 조용히 퍼지지 않도록 방어한다.
+export function earnedTickets(totalWorkouts, totalInbody, purchased = 0) {
+  const w = Number.isFinite(+totalWorkouts) ? Math.max(0, +totalWorkouts) : 0;
+  const i = Number.isFinite(+totalInbody) ? Math.max(0, +totalInbody) : 0;
+  const b = Number.isFinite(+purchased) ? Math.max(0, +purchased) : 0;
+  return Math.floor(w / TICKET_RULE.perWorkouts)
+       + Math.floor(i / TICKET_RULE.perInbody)
+       + Math.floor(b)
+       + (TICKET_RULE.bonus || 0);
+}
+
 // 지금 쓸 수 있는 티켓. 세 화면(파칭코/사다리/미니게임)이 같은 식을 쓰도록 모아둔다.
 export function ticketsAvailable({ earned, used, unlimited }) {
   if (unlimited) return UNLIMITED_TICKETS;

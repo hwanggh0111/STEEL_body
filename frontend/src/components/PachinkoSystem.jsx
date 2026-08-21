@@ -9,7 +9,7 @@ import {
   TICKET_RULE, PRIZES, REEL, REEL_TOTAL_MS, LS, MAX_BATCH,
   drawPrize, drawPrizeCounts, readInt, EXPECTED_EXP, MEGA_ID, SUPERNOVA_ID, BIG_HIT_EXP, LADDER_PRIZES,
   prizeWeight, PRIZE_WEIGHT_TOTAL_PROD, PRIZE_WEIGHT_TOTAL_DEV, PRIZE_HAS_DEV_WEIGHTS,
-  compactExp, ticketsAvailable, ticketText,
+  compactExp, ticketsAvailable, ticketText, earnedTickets,
 } from '../data/pachinkoData';
 
 const T = {
@@ -77,19 +77,10 @@ const T = {
 };
 
 // 기록 수 → 발급된 총 티켓.
-// 기록분은 저장하지 않고 매번 계산한다. purchased 는 원판 피하기로 산 티켓이라
-// 저장할 수밖에 없고, 정직하게 플레이할 때의 벌이는 하루 판 수 제한(PLATE_RULE.dailyPlays)이
-// 묶는다. localStorage 조작까지 막지는 않는다 — 의도된 선택이다 (pachinkoData.js 상단 주석).
-// 호출부가 객체/undefined를 넘겨도 NaN이 조용히 퍼지지 않도록 방어한다.
-export function earnedTickets(totalWorkouts, totalInbody, purchased = 0) {
-  const w = Number.isFinite(+totalWorkouts) ? Math.max(0, +totalWorkouts) : 0;
-  const i = Number.isFinite(+totalInbody) ? Math.max(0, +totalInbody) : 0;
-  const b = Number.isFinite(+purchased) ? Math.max(0, +purchased) : 0;
-  return Math.floor(w / TICKET_RULE.perWorkouts)
-       + Math.floor(i / TICKET_RULE.perInbody)
-       + Math.floor(b)
-       + (TICKET_RULE.bonus || 0);
-}
+// 티켓 발급량 계산은 data/pachinkoData.js 로 옮겼다.
+// 제보함이 기기 정보에 티켓 수를 담으려고 이 함수 하나 때문에 파칭코 화면을
+// 통째로 끌어오게 둘 수는 없어서다. 부르던 곳들을 위해 이름은 여기서도 내보낸다.
+export { earnedTickets };
 
 // 파칭코로 획득한 누적 EXP (레벨 계산에 합산됨)
 export function getPachinkoExp() {

@@ -1,5 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { dateKey } from '../../data/dateKey';
+import client from '../../api/client';
+import { useIntroStats } from './introData';
+import { usePachinkoStore } from '../../store/pachinkoStore';
+import { usePlateStore } from '../../store/plateStore';
+import { earnedTickets, ticketsAvailable, ticketText } from '../../data/pachinkoData';
+import pkg from '../../../package.json';
 
 // ─────────────────────────────────────────────────────────────
 // 제보함 시안
@@ -7,7 +12,8 @@ import { dateKey } from '../../data/dateKey';
 // 아직 앱에 붙이지 않았다. /preview/report 로 따로 보거나,
 // 홈페이지 시안 안에 embedded 로 얹힌다. 개발 빌드 전용.
 //
-// 저장은 전부 이 컴포넌트의 state 다 — 서버로 아무것도 안 보낸다.
+// 저장은 서버가 한다. GET/POST/DELETE /api/reports 를 쓰고, 답변과 상태는
+// 관리자만 바꾼다. 로그인해야 열린다 — 누가 보냈는지 모르면 답을 달 곳이 없다.
 //
 // 유형을 고르면 그 다음이 달라진다.
 //   버그 — 찾으려면 재현 정보가 필요하다. 어느 화면인지 · 다시 해도 그런지를 묻고,
@@ -73,29 +79,26 @@ const STATUS = {
   held:     { label: '보류',     color: 'var(--text-muted)', dim: 'var(--bg-tertiary)' },
 };
 
-const SEED = [
-  {
-    id: 24, kind: 'bug', status: 'done', date: '2026-08-18',
-    title: '파칭코 결과창이 가끔 안 닫혀요',
-    body: '연속으로 10판 돌리다가 결과창 확인 버튼이 안 먹었습니다. 새로고침하니까 티켓은 그대로였어요.',
-    meta: { screen: '파칭코', freq: 'sometimes' },
-    reply: { date: '2026-08-19', text: '연출 중에 페이지를 벗어나면 정산이 두 번 걸리던 문제였습니다. 고쳐서 올렸어요. 티켓은 정상 차감된 게 맞습니다.' },
-  },
-  {
-    id: 23, kind: 'bug', status: 'checking', date: '2026-08-19',
-    title: '교환소에서 최대를 꾹 누르면 안 멈춰요',
-    body: '무한 티켓 상태에서 최대 버튼을 누르고 있으면 울트라 티켓이 계속 늘어납니다.',
-    meta: { screen: '파칭코', freq: 'always' },
-    reply: null,
-  },
-  {
-    id: 22, kind: 'idea', status: 'received', date: '2026-08-20',
-    title: '루틴에 메모를 남길 수 있으면 좋겠어요',
-    body: '그날 컨디션이나 통증 같은 걸 세트 옆에 적어두고 싶습니다.',
-    meta: { workaround: 'clumsy' },
-    reply: null,
-  },
-];
+// 서버가 주는 날짜는 ISO 문자열이다. 화면에는 날짜만 쓴다
+const dayOf = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
+
+// 제보에 붙는 기기 정보. 체크했을 때만 보낸다.
+// 재현에 실제로 쓰는 것만 담는다 — 무엇을 보내는지 화면에 그대로 적어둔다.
+function useDeviceInfo() {
+  const stats = useIntroStats();
+  const used = usePachinkoStore(s => s.used);
+  const purchased = usePlateStore(s => s.purchased);
+  const unlimited = usePlateStore(s => s.unlimited);
+  return useMemo(() => {
+    const earned = earnedTickets(stats.totalWorkouts, stats.totalInbody, purchased);
+    return {
+      appVersion: pkg.version,
+      browser: `${navigator.userAgent} · ${window.innerWidth}x${window.innerHeight}`,
+      level: String(stats.lv?.level ?? ''),
+      tickets: ticketText(ticketsAvailable({ earned, used, unlimited }), unlimited),
+    };
+  }, [stats.totalWorkouts, stats.totalInbody, stats.lv, used, purchased, unlimited]);
+}
 
 // embedded — 홈페이지 시안 안에 한 섹션으로 얹을 때 쓴다.
 export default function ReportPreview({ embedded = false }) {
@@ -106,12 +109,27 @@ export default function ReportPreview({ embedded = false }) {
   const [freq, setFreq] = useState('');
   const [workaround, setWorkaround] = useState('');
   const [attach, setAttach] = useState(true);
-  const [items, setItems] = useState(SEED);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [sending, setSending] = useState(false);
+  const device = useDeviceInfo();
   const [open, setOpen] = useState(null);
   const [filter, setFilter] = useState('all');
   const [sent, setSent] = useState(false);
 
   const k = kind ? kindOf(kind) : null;
+
+  // 내 제보를 받아온다. 실패하면 빈 목록 대신 실패했다고 말한다 —
+  // 보낸 게 있는데 아무것도 없는 화면이 뜨면 지워진 줄 안다
+  useEffect(() => {
+    let alive = true;
+    client.get('/reports')
+      .then(({ data }) => { if (alive) { setItems(Array.isArray(data) ? data : []); setLoadFailed(false); } })
+      .catch(() => { if (alive) setLoadFailed(true); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
 
   // 유형을 바꾸면 그 유형에만 있던 답은 버린다.
   // 남겨두면 버그로 골랐다가 문의로 바꿨을 때 엉뚱한 화면 이름이 같이 간다.
@@ -154,33 +172,56 @@ export default function ReportPreview({ embedded = false }) {
   // 보낸 제보 지우기. 한 번 더 묻는다 — 되돌릴 수 없고, 카드를 누르면 펼쳐지는
   // 화면이라 손가락이 스칠 자리다
   const [confirmDel, setConfirmDel] = useState(null);
-  const removeItem = (id) => {
-    setItems(prev => prev.filter(i => i.id !== id));
+  const [sendError, setSendError] = useState('');
+
+  // 먼저 화면에서 지우고 서버에 알린다. 실패하면 되돌린다 —
+  // 지운 줄 알았는데 새로고침하면 살아 있는 것이 제일 나쁘다
+  const removeItem = async (id) => {
+    const prev = items;
+    setItems(prev.filter(i => i.id !== id));
     setConfirmDel(null);
     if (open === id) setOpen(null);
+    try {
+      await client.delete(`/reports/${id}`);
+    } catch {
+      setItems(prev);
+      setSendError('지우지 못했어요. 잠시 뒤에 다시 해주세요');
+      setTimeout(() => setSendError(''), 4000);
+    }
   };
 
-  const submit = () => {
-    if (blockReason) return;
-    const next = {
-      id: (items[0]?.id || 0) + 1,
-      kind, status: 'received',
-      date: dateKey(),
-      title: title.trim(), body: body.trim(), reply: null,
-      meta: kind === 'bug' ? { screen, freq } : kind === 'idea' ? { workaround } : {},
-    };
-    setItems([next, ...items]);
-    setKind(''); setTitle(''); setBody('');
-    setOpen(next.id);
-    setSent(true);
-    setTimeout(() => setSent(false), 2600);
+  // 서버가 id 와 날짜를 정한다. 화면에서 미리 만들어 붙였다가 나중에 맞춰 넣으면
+  // 실패했을 때 목록에 유령이 남는다 — 돌아온 레코드를 그대로 쓴다
+  const submit = async () => {
+    if (blockReason || sending) return;
+    setSending(true);
+    try {
+      const { data } = await client.post('/reports', {
+        kind,
+        title: title.trim(),
+        body: body.trim(),
+        meta: kind === 'bug' ? { screen, freq } : kind === 'idea' ? { workaround } : {},
+        device: attach ? device : undefined,
+      });
+      setItems(prev => [data, ...prev]);
+      setKind(''); setTitle(''); setBody('');
+      setOpen(data.id);
+      setSent(true);
+      setTimeout(() => setSent(false), 2600);
+      setLoadFailed(false);
+    } catch (err) {
+      setSendError(err.response?.data?.error || '보내지 못했어요. 잠시 뒤에 다시 눌러주세요');
+      setTimeout(() => setSendError(''), 4000);
+    } finally {
+      setSending(false);
+    }
   };
 
   // 목록은 최신이 위다. 예시 세 건이 날짜 오름차순으로 적혀 있는데 새 제보는 맨 위에 붙어서,
   // 하나만 보내도 순서가 섞였다. 보여줄 때 한 번 세운다 — 서버에 붙이면 서버가 정렬해 준다.
   const shown = useMemo(() => {
     const list = filter === 'all' ? items : items.filter(i => i.status === filter);
-    return [...list].sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
+    return [...list].sort((a, b) => b.id - a.id);
   }, [items, filter]);
   const counts = useMemo(() => {
     const c = { all: items.length };
@@ -207,7 +248,7 @@ export default function ReportPreview({ embedded = false }) {
             borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 18,
             fontSize: 12, color: 'var(--warning)', lineHeight: 1.6,
           }}>
-            ⚠️ <b>시안입니다.</b> 아직 앱에 붙어 있지 않고, 여기서 보낸 제보는 서버로 가지 않습니다 (새로고침하면 사라집니다).
+            ⚠️ <b>시안입니다.</b> 아직 앱의 탭에는 없고 주소로만 열립니다. 보낸 제보는 서버에 실제로 저장됩니다.
           </div>
           <div style={{ marginBottom: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -374,8 +415,8 @@ export default function ReportPreview({ embedded = false }) {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >지우기</button>
               )}
-              <button className="btn-primary" onClick={submit} disabled={!!blockReason} style={{ flex: 1 }}>
-                {sent ? '보냈습니다' : k.send}
+              <button className="btn-primary" onClick={submit} disabled={!!blockReason || sending} style={{ flex: 1 }}>
+                {sending ? '보내는 중…' : sent ? '보냈습니다' : k.send}
               </button>
             </div>
           </>
@@ -383,7 +424,11 @@ export default function ReportPreview({ embedded = false }) {
 
         {/* 보내고 나면 폼이 비워지므로 blockReason 이 곧바로 다시 켜진다.
             그대로 두면 성공한 직후에 "유형을 고르세요" 가 떠서 실패한 것처럼 읽힌다. */}
-        {sent ? (
+        {sendError ? (
+          <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', marginTop: 9, lineHeight: 1.6 }}>
+            {sendError}
+          </div>
+        ) : sent ? (
           <div style={{ fontSize: 12, color: 'var(--success)', textAlign: 'center', marginTop: 9 }}>
             접수됐습니다. 확인하면 아래 목록에 답이 달립니다.
           </div>
@@ -432,7 +477,18 @@ export default function ReportPreview({ embedded = false }) {
         })}
       </div>
 
-      {shown.length === 0 ? (
+      {loading ? (
+        <div className="card" style={{ textAlign: 'center', padding: '34px 20px', fontSize: 13, color: 'var(--text-muted)' }}>
+          불러오는 중…
+        </div>
+      ) : loadFailed ? (
+        <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
+          <div style={{ fontSize: 30, marginBottom: 10, opacity: 0.4 }}>📡</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+            제보를 불러오지 못했습니다.<br />없어진 게 아니라 못 가져온 것이니, 새로고침해 주세요.
+          </div>
+        </div>
+      ) : shown.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
           <div style={{ fontSize: 30, marginBottom: 10, opacity: 0.4 }}>📭</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
@@ -469,7 +525,7 @@ export default function ReportPreview({ embedded = false }) {
                     background: st.dim, color: st.color, border: `1px solid ${st.color}`,
                   }}>{st.label}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{kd.icon} {kd.label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{item.date}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{dayOf(item.created_at)}</span>
                   {/* 펼치지 않고도 지울 수 있게 카드 줄에 둔다.
                       카드 클릭이 접기/펼치기라 stopPropagation 이 필요하다 */}
                   <button
@@ -550,10 +606,10 @@ export default function ReportPreview({ embedded = false }) {
                             fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
                             letterSpacing: 1.5, color: 'var(--accent)',
                           }}>답변</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.reply.date}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dayOf(item.reply_at)}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.75 }}>
-                          {item.reply.text}
+                        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+                          {item.reply}
                         </div>
                       </div>
                     ) : (
