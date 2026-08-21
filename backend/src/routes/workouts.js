@@ -2,6 +2,19 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
+const { sanitize } = require('../utils/sanitize');
+
+// 무게는 자유 입력 칸이다 — '60', '20kg', '맨몸', '밴드' 가 다 들어온다.
+// 그래서 더더욱 형식을 정해둬야 하는데 지금까지 아무 검사 없이 body 값을 그대로 저장했다.
+// 운동명은 100자 제한에 새니타이즈까지 하면서 바로 옆 칸만 무방비였다.
+//   - 객체나 배열을 보내면 목록을 그리는 React 가 통째로 죽는다
+//   - 길이 제한이 없어 아주 긴 문자열이 그대로 DB 에 눌러앉는다
+function normalizeWeight(raw) {
+  if (raw === undefined || raw === null || raw === '') return { ok: true, value: '맨몸' };
+  if (typeof raw !== 'string' && typeof raw !== 'number') return { ok: false };
+  const value = sanitize(String(raw)).slice(0, 30).trim();
+  return { ok: true, value: value || '맨몸' };
+}
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
@@ -50,10 +63,11 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
   }
 
-  const { sanitize } = require('../utils/sanitize');
+  const w = normalizeWeight(weight);
+  if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
+
   const sanitizedExercise = sanitize(exercise);
-  const safeWeight = (weight !== undefined && weight !== null && weight !== '') ? weight : '맨몸';
-  const result = db.createWorkout(req.userId, date, sanitizedExercise, safeWeight, numSets, numReps);
+  const result = db.createWorkout(req.userId, date, sanitizedExercise, w.value, numSets, numReps);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 
@@ -92,14 +106,15 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
   }
 
-  const { sanitize } = require('../utils/sanitize');
+  const w = normalizeWeight(weight);
+  if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
+
   const sanitizedExercise = sanitize(exercise);
-  const safeWeight = (weight !== undefined && weight !== null && weight !== '') ? weight : '맨몸';
 
   const result = db.updateWorkout(id, req.userId, {
     date,
     exercise: sanitizedExercise,
-    weight: safeWeight,
+    weight: w.value,
     sets: numSets,
     reps: numReps,
   });
