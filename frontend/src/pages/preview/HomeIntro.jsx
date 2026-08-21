@@ -6,6 +6,7 @@ import { usePachinkoStore } from '../../store/pachinkoStore';
 import { calcExp, getLevelInfo, MAX_LEVEL, TRANSCEND, GENESIS, TRANSCEND_TIERS, GENESIS_TIERS } from '../../components/LevelSystem';
 import { TICKET_RULE, LADDER, UL_TICKET } from '../../data/pachinkoData';
 import ReportPreview from './ReportPreview';
+import { dateKey } from '../../data/dateKey';
 
 // ─────────────────────────────────────────────────────────────
 // STEEL BODY 홈페이지 시안
@@ -94,7 +95,7 @@ export default function HomeIntro() {
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      const key = d.toISOString().split('T')[0];
+      const key = dateKey(d);
       if (workouts[key]?.length) n++;
     }
     return n;

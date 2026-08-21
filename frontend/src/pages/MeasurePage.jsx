@@ -10,6 +10,7 @@ import HeartRateSection from '../components/measure/HeartRateSection';
 import StopwatchSection from '../components/measure/StopwatchSection';
 import FlexibilitySection from '../components/measure/FlexibilitySection';
 import ShoulderSection from '../components/measure/ShoulderSection';
+import { dateKey } from '../data/dateKey';
 
 const TABS = [
   { key: 'size', label: '전신 사이즈' },
@@ -45,7 +46,7 @@ export default function MeasurePage() {
 
   const handleSave = async (type, data) => {
     try {
-      const date = data.date || new Date().toISOString().split('T')[0];
+      const date = data.date || dateKey();
       const payload = { type, date, data };
       await client.post('/measures', payload);
       const { data: refreshed } = await client.get('/measures');

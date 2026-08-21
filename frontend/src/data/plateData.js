@@ -233,8 +233,6 @@ export const PLS = {
   unlimited: 'steelbody_plate_unlimited', // 무한 티켓 획득 여부 ('1')
 };
 
-// 로컬 기준 날짜 문자열. toISOString 은 UTC라 한국 시간 오전 9시 이전에 날짜가 밀린다.
-export function todayKey(d = new Date()) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+// 로컬 기준 날짜 문자열. 같은 헬퍼가 세 군데에 따로 있었어서 data/dateKey.js 하나로 합쳤다.
+// 이름은 부르던 곳들을 위해 그대로 둔다.
+export { dateKey as todayKey } from './dateKey';

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLangStore } from '../store/langStore';
+import { dateKey } from '../data/dateKey';
 
 const T = {
   ko: {
@@ -209,7 +210,7 @@ export default function MissionSystem({ workouts, records, weekDates }) {
   const { lang } = useLangStore();
   const t = T[lang] || T.ko;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = dateKey();
   const todayWorkouts = workouts[today] || [];
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
   const totalInbody = records.length;

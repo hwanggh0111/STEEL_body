@@ -10,6 +10,7 @@ import { usePachinkoStore } from '../store/pachinkoStore';
 import CasinoChip from '../components/CasinoChip';
 import { isAdmin } from '../data/admin';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
+import { dateKey } from '../data/dateKey';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -22,7 +23,7 @@ function getWeekDates() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    dates.push(d.toISOString().split('T')[0]);
+    dates.push(dateKey(d));
   }
   return dates;
 }
@@ -120,7 +121,7 @@ export default function HomePage() {
     fetchInbody();
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = dateKey();
   const todayWorkouts = workouts[today] || [];
   const weekDates = getWeekDates();
   const weekWorkoutDays = useMemo(() => weekDates.filter(d => workouts[d] && workouts[d].length > 0).length, [weekDates, workouts]);

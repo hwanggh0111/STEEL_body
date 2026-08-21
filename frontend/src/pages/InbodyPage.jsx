@@ -5,6 +5,7 @@ import InbodyCard from '../components/InbodyCard';
 import BodyAnalysis from '../components/BodyAnalysis';
 import ComparePage from './ComparePage';
 import { toast } from '../components/Toast';
+import { dateKey } from '../data/dateKey';
 
 // ── 체성분 비율 파이차트 (컴포넌트 외부 — 매 렌더 재생성 방지) ──
 function getCompositionData(record) {
@@ -25,7 +26,7 @@ function getCompositionData(record) {
 
 export default function InbodyPage() {
   const [tab, setTab] = useState('record');
-  const today = new Date().toISOString().split('T')[0];
+  const today = dateKey();
   const [date, setDate] = useState(today);
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');

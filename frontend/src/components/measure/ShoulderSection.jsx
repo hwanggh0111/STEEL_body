@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
+import { dateKey } from '../../data/dateKey';
 
 function getShoulderType(width) {
   if (width < 38) return { label: '좁은 어깨', color: 'var(--info)', emoji: '📐' };
@@ -19,7 +20,7 @@ function getRatioGrade(ratio) {
 }
 
 export default function ShoulderSection({ records, onSave, onDelete }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = dateKey();
   const [date, setDate] = useState(today);
   const [shoulderWidth, setShoulderWidth] = useState('');
   const [waist, setWaist] = useState('');

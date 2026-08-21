@@ -20,9 +20,6 @@ const BADGE_DEFS = [
   { id: 'immortal', icon: '🔱', name: '불멸의 리프터', desc: '전설을 넘어선 자. 시간과 고통을 초월한 강철의 의지. 이 칭호를 가진 자는 영원히 기억된다.', isImmortal: true },
 ];
 
-function toLocalDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function getWeekDates() {
   const now = new Date();
@@ -54,6 +51,7 @@ function getStreak(workouts) {
 
 import { isAdmin } from '../data/admin';
 import { readLS, saveLS } from '../data/safeStorage';
+import { dateKey as toLocalDate } from '../data/dateKey';
 
 export default function Badges({ workouts, inbodyRecords }) {
   const [showAll, setShowAll] = useState(false);

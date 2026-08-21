@@ -7,6 +7,7 @@ import {
   TRANSCEND, GENESIS, TRANSCEND_TIERS, GENESIS_TIERS,
 } from '../../components/LevelSystem';
 import { TICKET_RULE, LADDER, UL_TICKET } from '../../data/pachinkoData';
+import { dateKey } from '../../data/dateKey';
 
 // 시안들이 같은 숫자를 보게 하는 곳.
 // 버전마다 따로 계산하면 어느 순간 한 판만 옛날 값을 보여주게 된다.
@@ -76,7 +77,7 @@ export function useIntroStats() {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      const key = d.toISOString().split('T')[0];
+      const key = dateKey(d);
       return { key, done: !!workouts[key]?.length };
     });
   }, [workouts]);
@@ -88,6 +89,6 @@ export function useIntroStats() {
     latest: records[0] || null,
     week, weekDays: week.filter(d => d.done).length,
     lv, maxLevel: MAX_LEVEL,
-    todayDone: !!workouts[new Date().toISOString().split('T')[0]]?.length,
+    todayDone: !!workouts[dateKey()]?.length,
   };
 }
