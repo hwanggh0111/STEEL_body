@@ -15,7 +15,10 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../src/data/changelog.json');
-const KEEP = 8;          // json 에 담을 개수. 화면에서 몇 개를 보여줄지는 화면이 정한다
+// json 에 담을 개수. 화면에서 몇 개를 보여줄지는 화면이 정한다 (홈페이지는 6줄).
+// 8 이었는데, 하루에 커밋 일곱 개를 올리니 어제 것이 통째로 밀려났다.
+// 공지함은 "전부 보기" 라고 해놓고 최근 8건만 들고 있었다.
+const KEEP = 40;
 const SCAN = 120;        // 훑을 커밋 수
 
 // 사용자가 볼 이유가 있는 것만. chore·docs·refactor·test·style 은 화면이 안 바뀐다
@@ -24,6 +27,19 @@ const SHOWN = {
   fix:  { label: '고침',   weight: 2 },
   perf: { label: '빨라짐', weight: 1 },
 };
+
+// feat 을 그대로 '새 기능' 으로 쓰면 어긋난다 — '공지사항 기능 제거' 가 새 기능으로 떴다.
+// 커밋 종류는 무엇을 한 코드인지를 말할 뿐이고, 읽는 사람이 알고 싶은 건 없어졌는지 달라졌는지다.
+// 제목으로 판단한다. 애매하면 원래 라벨을 그대로 둔다 — 틀린 라벨보다 밋밋한 라벨이 낫다.
+const REMOVED = /(제거|삭제|없앴|없앤|없앰|빼냈|들어냈|정리했)/;
+const CHANGED = /(바꿨|바꾼|바꿈|바뀐|바뀜|옮겼|옮긴|옮김|이동|변경|교체|개편|합쳤|나눴)/;
+
+function labelFor(type, text) {
+  if (type !== 'feat') return SHOWN[type].label;
+  if (REMOVED.test(text)) return '제거';
+  if (CHANGED.test(text)) return '바뀜';
+  return SHOWN.feat.label;
+}
 
 function git(args) {
   return execFileSync('git', args, {
@@ -57,7 +73,7 @@ function build() {
     if (scope === 'dev' || /^\(?dev\)?/.test(scope || '')) continue;
 
     entries.push({
-      hash, date, type, label: kind.label,
+      hash, date, type, label: labelFor(type, text),
       scope: scope || null, text: text.trim(),
       detail: body || null,
     });
