@@ -179,6 +179,7 @@ export default function WorkoutPage() {
         toast(lang === 'en' ? 'Updated!' : '수정 완료!');
         setEditingId(null);
         setEditingOriginalDate(null);
+        setDate(today);
       } else {
         await addWorkout(payload);
         toast(t.saved);
@@ -211,6 +212,7 @@ export default function WorkoutPage() {
   const cancelEdit = () => {
     setEditingId(null);
     setEditingOriginalDate(null);
+    setDate(today);
     setExercise('');
     setWeight('');
     setSets('');
