@@ -45,6 +45,25 @@ function sanitize(str) {
   return clean;
 }
 
+// 여러 줄을 받는 칸용.
+//
+// 위의 sanitize 는 3단계에서 연속 공백을 하나로 눌러버린다. 한 줄짜리 이름에는
+// 맞지만 여러 줄에는 안 맞는다 — 버그 재현 절차를 줄로 나눠 적으면 한 덩어리가 되고,
+// 관리자 답변도 문단이 통째로 뭉개진다. 화면은 줄바꿈을 살려 그리고 있는데
+// 저장하는 쪽에서 지우고 있었다.
+//
+// 줄 단위로 sanitize 를 돌리고 줄바꿈만 되살린다. 빈 줄이 세 줄 넘게 이어지면
+// 두 줄로 줄인다 — 여백으로 목록을 밀어내지 못하게.
+function sanitizeMultiline(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .split(/\r?\n/)
+    .map(line => sanitize(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function sanitizeObj(obj) {
   if (typeof obj === 'string') return sanitize(obj);
   if (Array.isArray(obj)) return obj.map(sanitizeObj);
@@ -60,4 +79,4 @@ function sanitizeObj(obj) {
   return obj;
 }
 
-module.exports = { sanitize, sanitizeObj };
+module.exports = { sanitize, sanitizeMultiline, sanitizeObj };
