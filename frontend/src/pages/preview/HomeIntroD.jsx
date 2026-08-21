@@ -79,14 +79,15 @@ export default function HomeIntroD() {
           fontSize: 27, lineHeight: 1.45, color: 'var(--text-primary)',
           fontWeight: 300, margin: 0, letterSpacing: -0.3,
         }}>
-          오늘 든 무게를 적으면<br />
-          그게 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>경험치</span>가 된다.
+          쉬웠던 날은 없었다.<br />
+          그래서 전부 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>값</span>이 있다.
         </p>
         <p style={{
           fontSize: 14.5, lineHeight: 1.85, color: 'var(--text-secondary)',
           margin: '20px 0 0', maxWidth: 380,
         }}>
-          운동과 인바디를 기록하는 앱이다. 그게 전부다.
+          빠진 날까지 전부 남는다.<br />
+          언젠가 처음부터 읽게 된다.
         </p>
       </div>
 
@@ -118,8 +119,12 @@ export default function HomeIntroD() {
       }}>
         {s.totalWorkouts > 0 ? (
           <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 300 }}>
-            <div style={{ lineHeight: 1.9 }}>지금까지 <Num>{s.totalWorkouts.toLocaleString()}</Num>회 기록했다.</div>
-            <div style={{ lineHeight: 1.9 }}>이번 주는 <Num>{s.weekDays}</Num>일 했다.</div>
+            <div style={{ lineHeight: 1.9 }}>지금까지 <Num>{s.totalWorkouts.toLocaleString()}</Num>회 적었다.</div>
+            <div style={{ lineHeight: 1.9 }}>
+              {s.weekDays > 0
+                ? <>이번 주만 <Num>{s.weekDays}</Num>일 나왔다.</>
+                : <>이번 주는 오늘이 첫 날이 된다.</>}
+            </div>
             <div style={{ lineHeight: 1.9 }}>
               레벨은 <Num>{s.lv.level}</Num>
               {s.lv.tierInfo?.name?.ko && (
@@ -130,7 +135,7 @@ export default function HomeIntroD() {
           </div>
         ) : (
           <p style={{ fontSize: 16, lineHeight: 1.95, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>
-            아직 기록이 없다.<br />오늘 한 세트만 남겨도 여기에 문장이 생긴다.
+            누구의 첫 줄도 대단하지 않았다.<br />한 세트면 충분하다.
           </p>
         )}
       </div>

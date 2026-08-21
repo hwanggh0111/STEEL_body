@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { dateKey } from '../../data/dateKey';
 
 // ─────────────────────────────────────────────────────────────
 // 제보함 시안
@@ -164,7 +165,7 @@ export default function ReportPreview({ embedded = false }) {
     const next = {
       id: (items[0]?.id || 0) + 1,
       kind, status: 'received',
-      date: new Date().toISOString().split('T')[0],
+      date: dateKey(),
       title: title.trim(), body: body.trim(), reply: null,
       meta: kind === 'bug' ? { screen, freq } : kind === 'idea' ? { workaround } : {},
     };
@@ -175,7 +176,12 @@ export default function ReportPreview({ embedded = false }) {
     setTimeout(() => setSent(false), 2600);
   };
 
-  const shown = filter === 'all' ? items : items.filter(i => i.status === filter);
+  // 목록은 최신이 위다. 예시 세 건이 날짜 오름차순으로 적혀 있는데 새 제보는 맨 위에 붙어서,
+  // 하나만 보내도 순서가 섞였다. 보여줄 때 한 번 세운다 — 서버에 붙이면 서버가 정렬해 준다.
+  const shown = useMemo(() => {
+    const list = filter === 'all' ? items : items.filter(i => i.status === filter);
+    return [...list].sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
+  }, [items, filter]);
   const counts = useMemo(() => {
     const c = { all: items.length };
     for (const key of Object.keys(STATUS)) c[key] = items.filter(i => i.status === key).length;
