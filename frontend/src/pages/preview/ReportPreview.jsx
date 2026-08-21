@@ -194,6 +194,7 @@ export default function ReportPreview({ embedded = false }) {
   // 실패했을 때 목록에 유령이 남는다 — 돌아온 레코드를 그대로 쓴다
   const submit = async () => {
     if (blockReason || sending) return;
+    setSendError('');
     setSending(true);
     try {
       const { data } = await client.post('/reports', {
@@ -210,8 +211,11 @@ export default function ReportPreview({ embedded = false }) {
       setTimeout(() => setSent(false), 2600);
       setLoadFailed(false);
     } catch (err) {
-      setSendError(err.response?.data?.error || '보내지 못했어요. 잠시 뒤에 다시 눌러주세요');
-      setTimeout(() => setSendError(''), 4000);
+      const data = err.response?.data;
+      setSendError(data?.error || '보내지 못했어요. 잠시 뒤에 다시 눌러주세요');
+      // 욕설로 걸린 안내는 길고, 읽고 고쳐야 하는 글이다. 4초 만에 지우면 못 읽는다.
+      // 다음에 다시 누를 때까지 남겨둔다
+      if (!data?.abuse) setTimeout(() => setSendError(''), 4000);
     } finally {
       setSending(false);
     }
@@ -425,7 +429,11 @@ export default function ReportPreview({ embedded = false }) {
         {/* 보내고 나면 폼이 비워지므로 blockReason 이 곧바로 다시 켜진다.
             그대로 두면 성공한 직후에 "유형을 고르세요" 가 떠서 실패한 것처럼 읽힌다. */}
         {sendError ? (
-          <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', marginTop: 9, lineHeight: 1.6 }}>
+          <div style={{
+            fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.75,
+            background: 'var(--danger-dim)', border: '1px solid var(--danger)',
+            borderRadius: 'var(--radius)', padding: '10px 13px', whiteSpace: 'pre-wrap',
+          }}>
             {sendError}
           </div>
         ) : sent ? (

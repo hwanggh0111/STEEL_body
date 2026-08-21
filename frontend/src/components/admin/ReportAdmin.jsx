@@ -28,6 +28,125 @@ const WORKAROUND = { none: '방법이 없어요', clumsy: '불편하게 돌려�
 
 const day = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
 
+const ABUSE_LEVEL = {
+  mild:   { label: '짜증', color: 'var(--text-muted)', note: '막지 않았습니다' },
+  severe: { label: '욕설', color: 'var(--warning)',    note: '보내지 못하게 막았습니다' },
+  hate:   { label: '비하', color: 'var(--danger)',     note: '첫 번에 7일 정지입니다' },
+};
+
+// ── 욕설 · 비하 기록 ──
+//
+// 판정은 자동이지만 확인은 사람이 한다. 사전은 완전할 수 없고,
+// 잘못 잡히면 그 사람은 앱을 못 쓴다. 되돌릴 길이 없으면 자동 처벌을 걸면 안 된다.
+//   확인함     — 봤다는 표시. 목록에서 흐려진다
+//   사전이 틀렸음 — 누적에서 빼고, 그 때문에 걸린 정지도 같이 푼다
+function AbuseLogs() {
+  const [logs, setLogs] = useState([]);
+  const [openList, setOpenList] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    client.get('/reports/abuse')
+      .then(({ data }) => setLogs(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  };
+  useEffect(load, []);
+
+  const mark = async (id, fields, msg) => {
+    setBusy(true);
+    try {
+      const { data } = await client.patch('/reports/abuse/' + id, fields);
+      setLogs(prev => prev.map(a => (a.id === data.id ? { ...a, ...data } : a)));
+      toast(data.unsuspended > 0 ? msg + ' · 정지도 풀었습니다' : msg);
+      if (data.unsuspended > 0) load();
+    } catch (err) {
+      toast(err.response?.data?.error || '바꾸지 못했어요', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 확인 안 한 것 중에 막힌 것만 센다. 짜증은 처벌이 아니라 참고다
+  const pending = logs.filter(a => !a.reviewed && a.level !== 'mild').length;
+  if (logs.length === 0) return null;
+
+  return (
+    <div className="card" style={{
+      padding: '13px 15px', marginBottom: 14,
+      borderColor: pending > 0 ? 'var(--danger)' : 'var(--border)',
+    }}>
+      <div
+        onClick={() => setOpenList(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexWrap: 'wrap' }}
+      >
+        <span style={{ fontSize: 15 }}>🚫</span>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>욕설 · 비하 기록</span>
+        {pending > 0 && (
+          <span style={{
+            fontSize: 10.5, padding: '1px 7px', borderRadius: 'var(--radius)',
+            color: 'var(--danger)', border: '1px solid var(--danger)',
+          }}>확인 안 함 {pending}</span>
+        )}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+          전체 {logs.length} · {openList ? '접기' : '펼치기'}
+        </span>
+      </div>
+
+      {openList && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {logs.map(a => {
+            const lv = ABUSE_LEVEL[a.level] || ABUSE_LEVEL.severe;
+            return (
+              <div key={a.id} style={{
+                borderTop: '1px solid var(--border)', paddingTop: 10,
+                opacity: a.reviewed ? 0.5 : 1,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: lv.color }}>{lv.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.action}</span>
+                  {a.dismissed && <span style={{ fontSize: 10.5, color: 'var(--success)' }}>오탐 처리됨</span>}
+                  {a.suspended && !a.dismissed && <span style={{ fontSize: 10.5, color: 'var(--danger)' }}>정지 중</span>}
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                    {a.nickname || ('회원 ' + a.user_id)} · {day(a.created_at)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, wordBreak: 'break-all' }}>
+                  {a.text}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  걸린 말: {(a.hits || []).join(', ')} · {lv.note}
+                </div>
+                {!a.dismissed && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    {!a.reviewed && (
+                      <button
+                        disabled={busy}
+                        onClick={() => mark(a.id, { reviewed: true }, '확인함으로 표시했습니다')}
+                        style={{
+                          background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                          padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
+                        }}
+                      >확인함</button>
+                    )}
+                    <button
+                      disabled={busy}
+                      onClick={() => mark(a.id, { dismissed: true, reviewed: true }, '오탐으로 처리했습니다')}
+                      style={{
+                        background: 'none', border: '1px solid var(--success)', color: 'var(--success)',
+                        padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
+                      }}
+                    >사전이 틀렸음 (정지 해제)</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportAdmin() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +213,10 @@ export default function ReportAdmin() {
 
   return (
     <div>
+      {/* 욕설·비하로 걸린 기록. 자동으로 처리되지만 사람이 한 번 봐야 한다 —
+          사전은 완전할 수 없고, 잘못 잡힌 사람은 앱을 못 쓴다 */}
+      <AbuseLogs />
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           전체 {counts.all}건 · 안 끝난 것 <b style={{ color: 'var(--accent)' }}>{counts.open}</b>건
@@ -155,6 +278,10 @@ export default function ReportAdmin() {
                       color: st.color, background: st.dim, border: '1px solid ' + st.color,
                     }}>{st.label}</span>
                     {r.reply && <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>답변함</span>}
+                    {/* 짜증 섞인 말로 통과한 제보. 처벌한 게 아니라 눈에만 띄게 한다 */}
+                    {r.flagged === 'mild' && (
+                      <span style={{ fontSize: 10.5, color: 'var(--warning)' }}>말이 거칠음</span>
+                    )}
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                       #{r.id} · 회원 {r.user_id} · {day(r.created_at)}
                     </span>
