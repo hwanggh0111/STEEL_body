@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Rada
 import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
+import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 
 const PHOTO_KEY = 'ironlog_photos';
 
@@ -52,17 +53,27 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast('5MB 이하 사진만 가능해요');
+    // 5MB 를 받아놓고 서버는 base64 2MB 까지만 받았다. 1.5MB 넘는 사진은 전부 서버에서 튕겼다
+    if (file.size > PHOTO_MAX_FILE) {
+      toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`);
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      const updated = { ...photos, [photoKey]: reader.result };
+      const data = reader.result;
+      if (typeof data !== 'string' || data.length > PHOTO_MAX_BASE64) {
+        toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`);
+        return;
+      }
+      const updated = { ...photos, [photoKey]: data };
       savePhotos(updated);
       setPhotos(updated);
-      client.post('/photos', { type: photoKey, data: reader.result }).catch(() => {});
-      toast('사진 저장!');
+      // 서버 저장 실패를 삼키고 '사진 저장!' 을 띄우고 있었다.
+      // 이 기기 localStorage 에만 남으므로 기기를 바꾸면 사진이 사라지는데,
+      // 사용자는 저장된 줄 안다. 어디에 저장됐는지를 그대로 말한다
+      client.post('/photos', { type: photoKey, data })
+        .then(() => toast('사진 저장!'))
+        .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다'));
     };
     reader.readAsDataURL(file);
   };

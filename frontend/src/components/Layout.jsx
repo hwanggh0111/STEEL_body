@@ -8,6 +8,7 @@ import { toast } from './Toast';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
+import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 
 const PROFILE_KEY = 'ironlog_profile_photo';
 
@@ -75,13 +76,19 @@ export default function Layout() {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast('파일 크기는 2MB 이하만 가능해요', 'error');
+    // 서버가 보는 건 base64 길이다. 파일 크기로만 재면 1.9MB 사진이 여기를 통과하고
+    // 서버에서 2.5MB 가 돼 거절당한다 — 한도를 지켰는데 실패하는 것처럼 보인다
+    if (file.size > PHOTO_MAX_FILE) {
+      toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`, 'error');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       const photoData = reader.result;
+      if (typeof photoData !== 'string' || photoData.length > PHOTO_MAX_BASE64) {
+        toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`, 'error');
+        return;
+      }
       setProfilePhoto(photoData);
       client.post('/photos', { type: 'profile', data: photoData }).then(() => {
         saveLS(PROFILE_KEY, photoData);
