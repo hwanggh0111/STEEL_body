@@ -39,7 +39,10 @@ module.exports = (req, res, next) => {
     if (user.is_banned) {
       return res.status(403).json({ error: '계정이 영구 정지되었습니다.', message: '보안 정책 위반으로 모든 데이터가 삭제되었습니다.' });
     }
-    const suspension = db.getSuspension(decoded.userId);
+    // 관리자는 정지에 걸리지 않는다.
+    // 자동 판정이 관리자를 정지시키면 관리자 화면에 못 들어가고, 자기 정지를 자기가
+    // 풀 수 없다. 관리자가 한 명뿐이면 서비스가 통째로 잠긴다.
+    const suspension = user.role === 'admin' ? null : db.getSuspension(decoded.userId);
     if (suspension) {
       const resp = { error: '계정이 정지되었습니다.', level: suspension.level, reason: suspension.ai_reason };
       if (suspension.expires_at !== 'permanent') {

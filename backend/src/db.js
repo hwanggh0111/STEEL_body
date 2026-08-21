@@ -13,10 +13,12 @@ const DEFAULT_DATA = {
   // 제보함. 공지사항 기능을 없애면서 notices 자리를 이쪽으로 돌렸다 —
   // "레코드 목록 + 본인 것만 조회 + 관리자 전체 조회" 라는 모양이 같다.
   reports: [],
+  // 욕설·비하로 걸린 기록. 처벌 수위를 올리려면 누적이 서버 재시작을 넘어 남아야 한다
+  abuseLogs: [],
   photos: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, photos: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, suspensions: 1, blacklist: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -346,6 +348,8 @@ const db = {
       body: fields.body || '',
       meta: fields.meta || {},
       device: fields.device || null,
+      // 짜증 섞인 말로 통과한 것 표시. 처벌 대상이 아니라 관리자 눈에 띄게만 한다
+      flagged: fields.flagged || null,
       status: 'received',
       reply: null,
       reply_at: null,
@@ -434,6 +438,64 @@ const db = {
   getSuspensions() {
     const data = load();
     return data.suspensions || [];
+  },
+
+  // abuseLogs — 욕설·비하로 걸린 기록
+  //
+  // 메모리에 두면 서버가 다시 뜰 때마다 초회로 돌아간다. Render 는 자주 다시 뜬다.
+  // 처벌 수위를 올리려면 누적이 남아 있어야 한다.
+  // 원문도 같이 남긴다 — 사전이 잘못 잡은 건지 사람이 판단할 수 있어야 한다.
+  addAbuseLog(userId, fields) {
+    const id = nextId('abuseLogs');
+    const data = load();
+    if (!data.abuseLogs) data.abuseLogs = [];
+    const record = {
+      id,
+      user_id: userId,
+      level: fields.level,
+      hits: fields.hits || [],
+      where: fields.where || '',
+      text: String(fields.text || '').slice(0, 500),
+      action: fields.action || '',
+      days: fields.days || 0,
+      reviewed: false,
+      created_at: new Date().toISOString(),
+    };
+    data.abuseLogs.push(record);
+    save(data);
+    return record;
+  },
+  // 사다리에 쓰는 누적 횟수. 짜증 섞인 말(mild)은 세지 않는다 —
+  // 그건 막지도 않았으니 벌점으로 쌓으면 안 된다.
+  // 관리자가 '사전이 잘못 잡았다' 고 표시한 것도 빼준다.
+  countAbuse(userId) {
+    const data = load();
+    return (data.abuseLogs || []).filter(
+      a => a.user_id === userId && a.level !== 'mild' && !a.dismissed
+    ).length;
+  },
+  getAbuseLogs() {
+    const data = load();
+    return (data.abuseLogs || []).sort((a, b) => b.id - a.id);
+  },
+  // 사전이 잘못 잡아 정지된 사람을 풀어준다. 되돌릴 길이 없으면 자동 처벌을 걸 수 없다
+  clearSuspensions(userId) {
+    const data = load();
+    if (!data.suspensions) return { changes: 0 };
+    const before = data.suspensions.length;
+    data.suspensions = data.suspensions.filter(s => s.user_id !== userId);
+    save(data);
+    return { changes: before - data.suspensions.length };
+  },
+  updateAbuseLog(id, fields) {
+    const data = load();
+    if (!data.abuseLogs) return { changes: 0 };
+    const log = data.abuseLogs.find(a => a.id === id);
+    if (!log) return { changes: 0 };
+    if (fields.reviewed !== undefined) log.reviewed = !!fields.reviewed;
+    if (fields.dismissed !== undefined) log.dismissed = !!fields.dismissed;
+    save(data);
+    return { changes: 1, log };
   },
 
   // blacklist

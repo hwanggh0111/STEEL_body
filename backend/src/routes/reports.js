@@ -4,6 +4,8 @@ const adminAuth = require('../middleware/adminAuth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
 const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
+const { inspect } = require('../utils/profanity');
+const { punish } = require('../utils/abusePolicy');
 
 // ─────────────────────────────────────────────────────────────
 // 제보함 — 버그 · 문의 · 건의
@@ -57,6 +59,38 @@ router.get('/all', adminAuth, (req, res) => {
   res.json(db.getAllReports());
 });
 
+// 관리자 — 욕설·비하로 걸린 기록.
+//
+// 사전은 완전할 수 없다. 잘못 잡은 것을 되돌릴 길이 없으면 자동 처벌을 걸면 안 된다.
+// 그래서 두 가지를 둔다 — 확인함(reviewed) 과 사전이 틀렸음(dismissed).
+// dismissed 는 누적에서 빼고, 그 때문에 걸린 정지도 같이 푼다.
+router.get('/abuse', adminAuth, (req, res) => {
+  const logs = db.getAbuseLogs();
+  res.json(logs.map(a => ({
+    ...a,
+    nickname: db.findUserById(a.user_id)?.nickname || null,
+    suspended: !!db.getSuspension(a.user_id),
+  })));
+});
+
+router.patch('/abuse/:id', adminAuth, (req, res) => {
+  if (badId(req) !== null) return res.status(400).json({ error: '잘못된 ID에요' });
+  const { reviewed, dismissed } = req.body;
+  if (reviewed === undefined && dismissed === undefined) {
+    return res.status(400).json({ error: '바꿀 내용이 없어요' });
+  }
+
+  const result = db.updateAbuseLog(Number(req.params.id), { reviewed, dismissed });
+  if (result.changes === 0) return res.status(404).json({ error: '기록을 찾을 수 없어요' });
+
+  // 사전이 틀렸다고 표시하면 그 사람의 정지도 푼다.
+  // 표시만 해두고 정지가 남아 있으면 되돌린 게 아니다
+  let unsuspended = 0;
+  if (dismissed) unsuspended = db.clearSuspensions(result.log.user_id).changes;
+
+  res.json({ ...result.log, unsuspended });
+});
+
 // 제보 등록
 router.post('/', auth, spamCheck, (req, res) => {
   const { kind, title, body, meta, device } = req.body;
@@ -74,12 +108,28 @@ router.post('/', auth, spamCheck, (req, res) => {
   // 줄바꿈은 살린다 — 재현 절차를 줄로 나눠 적는 게 제일 읽기 쉽다
   const cleanBody = typeof body === 'string' ? sanitizeMultiline(body).slice(0, 2000).trim() : '';
 
+  // 욕설 · 비하 판정. 제목과 내용을 같이 본다 — 제목에만 쓰는 사람이 있다.
+  //
+  // 짜증 섞인 말(mild)은 통과시킨다. 안 되는 걸 겪고 화가 난 사람을 문법으로
+  // 걸러내면 제보 자체가 안 들어온다. 대신 기록은 남겨서 흐름을 볼 수 있게 한다.
+  const verdict = inspect(cleanTitle + '\n' + cleanBody);
+  const result = punish(req.userId, verdict, 'report', cleanTitle + ' / ' + cleanBody);
+  if (result.blocked) {
+    return res.status(400).json({
+      error: result.message,
+      abuse: { level: verdict.level, days: result.days, count: result.count },
+    });
+  }
+
   const record = db.createReport(req.userId, {
     kind,
     title: cleanTitle,
     body: cleanBody,
     meta: pick(meta, META_FIELDS),
     device: Object.keys(pick(device, DEVICE_FIELDS)).length ? pick(device, DEVICE_FIELDS) : null,
+    // 짜증 섞인 말로 통과한 제보. 관리자 목록에서 눈에 띄게 하려고 표시만 해둔다 —
+    // 처벌 대상이 아니다
+    flagged: verdict.level === 'mild' ? 'mild' : null,
   });
 
   res.status(201).json(record);
