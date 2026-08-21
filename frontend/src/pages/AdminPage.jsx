@@ -5,6 +5,7 @@ import SecurityPanel from '../components/SecurityPanel';
 import HackingSecurityPanel from '../components/HackingSecurityPanel';
 import AiAdminPanel from '../components/AiAdminPanel';
 import MaintAdmin from '../components/admin/MaintAdmin';
+import ReportAdmin from '../components/admin/ReportAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -12,6 +13,8 @@ import { isAdmin as checkAdmin } from '../data/admin';
 export default function AdminPage() {
   const { nickname } = useAuthStore();
   const navigate = useNavigate();
+  // 기본 탭은 점검이다. 제보함이 아직 앱에 안 붙어 있어 제보가 들어올 수 없다 —
+  // 지금 기본으로 두면 관리자 화면이 빈 목록으로 열린다. 붙이는 날 바꾼다
   const [tab, setTab] = useState('maint');
 
   const isAdmin = checkAdmin();
@@ -45,13 +48,14 @@ export default function AdminPage() {
           letterSpacing: 2, color: 'var(--accent)', margin: 0, marginBottom: 4,
         }}>ADMIN</h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-          점검 · 보안 · 해킹보안 관리
+          제보 · 점검 · 보안 관리
         </p>
       </div>
 
       {/* 탭 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
+          { key: 'report', label: '제보 관리', icon: '📮' },
           { key: 'maint', label: '점검 스케줄', icon: '🔧' },
           { key: 'security', label: '보안 관리', icon: '🛡️' },
           { key: 'hacking', label: '해킹 보안', icon: '🔒' },
@@ -76,6 +80,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {tab === 'report' && <ReportAdmin />}
       {tab === 'maint' && <MaintAdmin />}
       {tab === 'security' && <SecurityPanel />}
       {tab === 'hacking' && <HackingSecurityPanel />}
