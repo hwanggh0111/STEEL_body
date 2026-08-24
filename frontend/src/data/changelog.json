@@ -2,6 +2,33 @@
   "generated": "2026-08-24",
   "items": [
     {
+      "hash": "5a11648",
+      "date": "2026-08-24",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "관리자",
+      "text": "차단한 계정을 지울 수 있게 한다",
+      "detail": "자동 판정이 계정을 지우던 경로를 없애면서 사람이 지우는 길을 열어뒀는데,\n버튼을 안 만들어서 아무도 지울 수 없었습니다.\n\n보안 관리 탭의 회원 목록에 넣었습니다. 차단된 분에게만 보입니다 — 멀쩡한 분\n옆에 삭제 버튼이 늘 붙어 있으면 언젠가 눌립니다.\n\n'정말요?' 한 번으로 끝내지 않습니다. 지울 계정의 이메일을 그대로 적어야\n버튼이 살아납니다. 무엇이 사라지는지(운동 기록 · 인바디 · 측정 · 루틴 · 사진 ·\n제보)도 그대로 적어뒀습니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
+    {
+      "hash": "89c7065",
+      "date": "2026-08-24",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "계정",
+      "text": "비밀번호를 바꿀 수 있게 한다",
+      "detail": "지금까지 로그인한 채로 비밀번호를 바꿀 방법이 없었습니다. 서버는 처음부터\n있었는데 누를 곳이 없었습니다. 로그인 화면의 '비밀번호를 잊으셨나요?' 는\n찾기(이메일 인증)라서 다른 것입니다.\n\n프로필 메뉴, 닉네임 바꾸는 자리에 넣었습니다.\n\n바꾸면 다른 기기에서도 모두 로그아웃됩니다 — 비밀번호를 바꾸는 이유가 보통\n그것이라 그게 맞습니다. 미리 알려드리고, 바꾸신 뒤에는 로그인 화면으로\n모셔다드립니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
+    {
+      "hash": "1832164",
+      "date": "2026-08-24",
+      "type": "fix",
+      "label": "고침",
+      "scope": "알림",
+      "text": "알림과 물음 창이 통째로 벙어리가 될 수 있던 것",
+      "detail": "알림(Toast)과 물음 창은 전역에 함수를 하나 걸어두고 그걸로 띄웁니다. 그런데\n정리할 때 자기 것인지 보지 않고 그냥 지웠습니다 — 같은 컴포넌트가 두 번\n올라갔다가 하나가 빠지면 남아 있는 쪽까지 죽어서 알림이 아예 안 떴습니다.\n\n내가 걸어둔 것일 때만 치웁니다. progress.md 에 '배포 전 수정 권장' 으로\n남아 있던 항목입니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
+    {
       "hash": "8203ecb",
       "date": "2026-08-24",
       "type": "fix",
@@ -18,15 +45,6 @@
       "scope": "점검",
       "text": "점검을 잡아도 아무에게도 안 뜨던 것",
       "detail": "점검 일정이 관리자 브라우저에만 저장되고 있었습니다. 서버에는 관련 코드가\n한 줄도 없었습니다.\n\n그래서 관리자가 점검을 잡아도 다른 분들께는 점검 화면이 뜨지 않았고,\n고객센터의 '점검 예정' 도 영영 비어 있었습니다. 관리자가 브라우저를 바꾸면\n자기 설정도 사라졌습니다. 기능이 있는 것처럼 보였을 뿐입니다.\n\n이제 서버에 저장되어 모두에게 같이 보입니다. 화면은 마지막으로 받아둔 것으로\n먼저 그리고 서버에서 받아 갱신합니다 — 목록을 못 받은 것 때문에 앱이 안 열리면\n안 되니까요. 하루를 넘는 점검은 받지 않습니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
-    },
-    {
-      "hash": "222c666",
-      "date": "2026-08-24",
-      "type": "fix",
-      "label": "고침",
-      "scope": "계정",
-      "text": "대문자로 가입하면 계정이 둘로 갈리던 것",
-      "detail": "'Kevin@Gmail.com' 으로 가입하신 분이 'kevin@gmail.com' 으로 로그인하면\n없는 계정이 되고, 게다가 그 주소로 또 가입이 됐습니다. 같은 사람의 계정이\n둘로 갈리고 기록도 갈립니다 — 본인에게는 '기록이 사라졌다' 로 보입니다.\n\n이메일은 이제 대소문자를 가리지 않습니다.\n\n관리자 화면의 '차단 해제' 가 대상이 누구든 역할을 일반 사용자로 덮어써서,\n관리자에게 실수로 누르면 그 자리에서 권한이 사라졌습니다. 차단된 분만\n풀도록 막고, 마지막 관리자는 강등할 수 없게 했습니다.\n\n사진 자리에 사진이 아닌 것을 넣을 수 있던 것도 막았습니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
     },
     {
       "hash": "db2dac7",
@@ -342,24 +360,6 @@
       "scope": null,
       "text": "원판표가 개발용 확률을 진짜 확률처럼 보여주던 것",
       "detail": "원판표에 슈퍼울트라 4.1%, 무한 6.6%, 울트라 무한 6.6% 이 떴다.\n전부 테스트하려고 부풀린 개발 가중치인데 화면에 그 표시가 없어서\n실제 확률로 읽혔다. 운영값은 각각 0.0999% / 0.000999% / 0.0000999% 다.\n\n원인\n  weight: import.meta.env.DEV ? 8 : 0.001\n  이렇게 삼항으로 섞어두면 개발 빌드에서 운영값이 아예 사라진다.\n  화면이 운영 확률을 보여주고 싶어도 알 방법이 없다.\n\n고친 것\n  weight(운영) 와 devWeight(개발) 를 별도 필드로 분리하고,\n  실제 적용 가중치는 plateWeight(p) 하나를 거치게 했다.\n  drawPlate 도 이걸 쓴다.\n\n  원판표는 개발 빌드에서\n    - 상단에 경고 배너를 띄우고\n    - 부풀린 줄마다 \"(운영 N%)\" 를 함께 보여준다\n  운영 빌드에서는 HAS_DEV_WEIGHTS 가 false 라 통째로 사라진다.\n\n  하단 평균값은 개발이든 운영이든 항상 운영 가중치로 계산한다.\n  개발 가중치로 계산하면 743 / 687386 같은 숫자가 뜨는데\n  밸런싱에도 안내에도 쓸모가 없다. 이제 2.74 / 12.73 이 나온다.\n\n확률 자체는 안 바꿨다 — 표시만 바로잡았다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01BGBg6w5M1uDjC6PQf75BB4"
-    },
-    {
-      "hash": "e9f6bcb",
-      "date": "2026-08-17",
-      "type": "fix",
-      "label": "고침",
-      "scope": null,
-      "text": "미니게임 버그 3건 (M1~M3)",
-      "detail": "M1 게임 중 원판표를 열 수 있었다\n  교환창은 playing/revive 를 막아뒀는데 원판표 버튼에만 그 가드가 없었다.\n  모달이 화면을 덮어도 rAF 루프는 계속 돌고, pointermove 가 window 에\n  붙어 있어 가려진 채로 캐릭터가 움직이다 죽었다.\n  두 버튼이 같은 조건(inRun)을 쓰게 묶고 원판표에도 disabled 를 걸었다.\n  판을 시작할 때 열려 있던 창도 닫는다.\n\nM2 게임 중 새로고침하면 그 판이 통째로 날아갔다\n  판 수는 시작할 때 깎는 게 맞다(지기 직전 새로고침으로 무한히 도는 걸 막는다).\n  그래서 이탈 정산이 붙어 있었는데 React 언마운트에만 걸려 있어서,\n  새로고침·탭 닫기에서는 판 수만 깎이고 번 원판이 0 이 됐다.\n  정산을 settleRun() 으로 빼고 pagehide 에도 붙였다. beforeunload 가 아닌\n  이유는 모바일 사파리에서도 뜨고 bfcache 진입에도 뜨기 때문이다.\n  경로가 셋(죽음/이탈/종료)이 되었으므로 settledRef 로 중복을 막는다 —\n  endRun 도 이 플래그를 세운다. setPhase('over') 는 다음 렌더에나 반영돼서\n  그 사이 pagehide 가 뜨면 phaseRef 가 아직 'playing' 이라 두 번 들어온다.\n\nM3 회원가입으로 계정을 갈아타면 앞 계정 지갑이 넘어왔다\n  파칭코 EXP 와 원판 지갑은 localStorage 에 계정 구분 없이 저장된다.\n  login 에는 이메일이 바뀌면 비우는 가드가 있는데 register 에만 없었고,\n  /register 는 PrivateRoute 밖이라 로그인한 채로도 들어갈 수 있었다.\n  가입은 언제나 새 계정이라 물려받을 진행도가 없으므로 조건 없이 비운다.\n\n검증\n  M1, M2 는 헤드리스 Chrome 으로 재현했던 절차를 다시 돌려 통과를 확인했다.\n    M1  게임 중 원판표 버튼: disabled\n    M2  새로고침 후 plates=\"4\" (판 수 소모 1, 얻은 원판 4)\n  M3 은 코드 확인만 했다 — 확인하려면 DB 에 테스트 계정을 남겨야 한다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01BGBg6w5M1uDjC6PQf75BB4"
-    },
-    {
-      "hash": "be17538",
-      "date": "2026-08-17",
-      "type": "feat",
-      "label": "새 기능",
-      "scope": null,
-      "text": "원판 피하기에 무한 / 울트라 무한 원판 추가",
-      "detail": "상위 두 등급을 새로 뒀다. 확률은 잔인하게, 보상은 판을 뒤집을 만큼.\n\n무한 (value 9,999 = 티켓 999장)\n  운영 weight 0.002 — 원판 하나당 0.00199%\n  한 판(원판 120개)에 0.24% → 하루 5판이면 약 84일에 한 번\n\n울트라 무한 (value 99,999 = 티켓 9,999장, 화면에는 ∞)\n  운영 weight 0.0005 — 원판 하나당 0.000498%\n  한 판에 0.06% → 하루 5판이면 약 335일, 대략 1년에 한 번\n\n값이 아니라 표시만 ∞ 다\n  value 에 Infinity 를 넣으면 String(Infinity) 가 \"Infinity\" 로 저장되고\n  readInt 의 Number.isFinite 가드에 걸려 다음 접속에 지갑이 0 이 된다\n  (best 도 같이 날아간다). 그래서 값은 유한하게 두고 display 필드로\n  보여줄 때만 ∞ 로 바꾼다. 지갑·점수·교환 계산은 전부 진짜 숫자다.\n\n울트라 무한은 즉사다 (lethal)\n  맞으면 부활 횟수가 남아 있어도 그 자리에서 끝난다.\n  이 게임에서 유일하게 목숨을 무시하는 원판이다. 그래서 획득 경로가\n  \"제대로 피한 다음 되돌아가서 줍기\" 하나뿐이 된다.\n  부활 버튼이 안 뜬 게 버그로 보이지 않도록 세 군데에 알린다 —\n  원판표의 빨간 ☠️ 즉사 태그, 떨어질 때 깜빡이는 붉은 테,\n  결과 화면의 안내 문구.\n\n  크기는 제일 크지만 속도는 일부러 느리다. 즉사라 맞으면 판이 끝나면서\n  그 원판도 같이 사라지는데, 1년에 한 번 뜨는 걸 손도 못 대고 날리면\n  보상이 아니라 벌이다.\n\n확률 표기 수정\n  toFixed(1) 이라 0.00199% 와 0.000498% 가 둘 다 \"0.0%\" 로 보였다.\n  1% 아래는 유효숫자 3자리로 찍는다. 막대에는 최소 폭을 주고,\n  큰 수에는 천 단위 구분을 넣었다.\n\n밸런스: 주울 때 평균 6.21 → 6.91 (+11%).\n파칭코·사다리 확률은 안 건드리므로 LADDER.cost 정합에는 영향 없다.\n\n개발 중에는 두 등급 모두 weight 8 로 올려 바로 테스트된다 (운영에는 안 나감).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01BGBg6w5M1uDjC6PQf75BB4"
     }
   ]
 }
