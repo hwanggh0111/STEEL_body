@@ -22,7 +22,8 @@ cd backend  && npm start       # http://localhost:4000
 | [docs/project-plan.md](docs/project-plan.md) | 기술 스택 · 기능 목록 |
 | [docs/api-spec.md](docs/api-spec.md) | API 명세 |
 | [docs/design-system.md](docs/design-system.md) | 디자인 토큰 · 컴포넌트 규칙 |
-| [docs/BUGS.md](docs/BUGS.md) | 버그 목록과 처리 내역 |
+| [docs/BUGS.md](docs/BUGS.md) | 버그 목록과 처리 내역 — 파칭코 · 사다리 · 미니게임 (2026-08-17) |
+| [docs/BUGS-2026-08-24.md](docs/BUGS-2026-08-24.md) | 앱 전체 훑기 · 보안 점검 (2026-08-24) |
 | [docs/qa-report.md](docs/qa-report.md) | QA 검토 결과 |
 | **이 문서** | 날짜별 개발 일지 (아래) |
 
