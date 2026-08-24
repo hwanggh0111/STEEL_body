@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE } from './introData';
-import ReportPreview from './ReportPreview';
+import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE, PLATE_LINE, EXP_LINE, PLAY_LINE } from './introData';
+import ReportBox from './ReportBox';
 import { getSchedules } from '../../components/MaintenanceScreen';
 import pkg from '../../../package.json';
 
@@ -18,19 +18,33 @@ const CHANGES_SHOWN = 6;
 const FAQ = [
   {
     q: '티켓은 어떻게 모으나요',
-    a: '운동 3회당 1장, 인바디 1회당 1장 나옵니다. 미니게임에서 원판을 주워 모아도 바꿀 수 있습니다.',
+    a: `${TICKET_LINE} 나옵니다. 미니게임(원판 피하기)에서 ${PLATE_LINE}으로 바꿀 수도 있습니다.`,
   },
   {
     q: '초월 · 개벽은 언제 열리나요',
     a: '일반 LV 149 를 찍으면 초월이 열리고, 초월 만렙에서 개벽이 열립니다. 단계가 열리면 레벨은 0부터 다시 시작합니다.',
   },
   {
-    q: '확률표에 뜨는 숫자를 믿어도 되나요',
-    a: '표에 뜨는 값은 언제나 실제로 돌아가는 운영 확률입니다. 개발용으로 부풀린 값이 있을 때는 경고와 함께 따로 적습니다.',
+    q: '확률표에 뜨는 숫자는 무엇인가요',
+    a: '파칭코 · 사다리 화면의 확률표는 실제로 돌아가는 값을 그대로 읽어 그립니다. 따로 적어둔 숫자가 아닙니다.',
+  },
+  {
+    q: '레벨은 어떻게 오르나요',
+    a: `기록을 남기면 EXP 가 들어옵니다. ${EXP_LINE} 입니다. 파칭코 · 사다리에서 받은 EXP 도 여기에 더해집니다.`,
+  },
+  {
+    q: '미니게임은 하루 몇 판인가요',
+    a: `원판 피하기는 ${PLAY_LINE}입니다. 판 수를 막아두는 이유는, 여기서 얻는 티켓만 기록이 아니라 저장된 값이기 때문입니다.`,
   },
   {
     q: '기록이 사라지면 어떻게 하나요',
     a: '기록은 서버에 저장됩니다. 기기를 바꿔도 같은 계정으로 로그인하면 그대로 있습니다. 안 보이면 아래 제보함에 남겨주세요.',
+  },
+  // 정지 규칙은 backend/src/utils/abusePolicy.js 가 갖고 있다. 서버에서 내려받는 값이 아니라
+  // 여기 문장으로 풀어 적은 것이라, 규칙을 바꾸면 이 답도 같이 고쳐야 한다
+  {
+    q: '정지당했는데 언제 풀리나요',
+    a: '제보에 욕설이 들어가면 처음에는 경고만 하고, 되풀이하면 1일 → 3일 → 7일로 늘어납니다. 남을 깎아내리는 말은 처음부터 7일입니다. 가장 긴 것이 7일이고 계정이나 운동 기록을 지우는 일은 없습니다. 잘못 걸렸다고 생각되시면 풀린 뒤에 제보함으로 알려주세요 — 확인해서 되돌리고 걸린 말도 빼둡니다.',
   },
 ];
 
@@ -43,10 +57,13 @@ function Sec({ children }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// D안 — 문장형 (에디토리얼)
+// 고객센터
+//
+// 앱을 처음 여는 사람에게는 소개고, 오래 쓴 사람에게는 무엇이 바뀌었는지와
+// 안 되는 것을 말할 곳이다. 한 페이지에 둘 다 둔다 — 나눠 놓으면 둘 다 안 본다.
 //
 // 표도 카드도 거의 쓰지 않는다. 큰 글씨와 문장으로 읽히게 한다.
-// 내 숫자를 칸에 넣지 않고 문장 안에 박아 넣는 게 이 안의 성격이다.
+// 내 숫자를 칸에 넣지 않고 문장 안에 박아 넣는 게 이 페이지의 성격이다.
 // ─────────────────────────────────────────────────────────────
 
 const Num = ({ children }) => (
@@ -56,7 +73,7 @@ const Num = ({ children }) => (
   }}>{children}</span>
 );
 
-export default function HomeIntroD() {
+export default function SupportPage() {
   const navigate = useNavigate();
   const s = useIntroStats();
   const [openFaq, setOpenFaq] = useState(null);
@@ -68,11 +85,6 @@ export default function HomeIntroD() {
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <div style={{
-        fontSize: 11.5, color: 'var(--text-muted)',
-        borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 40,
-      }}>시안 D · 문장형 — 아직 앱에 붙어 있지 않습니다</div>
-
       {/* 한 문장으로 여는 히어로 */}
       <div style={{ marginBottom: 40 }}>
         <p style={{
@@ -159,7 +171,7 @@ export default function HomeIntroD() {
 
         {/* 여기 여섯 줄만 보여준다. 나머지는 공지함에 있다 */}
         <button
-          onClick={() => navigate('/preview/notices')}
+          onClick={() => navigate('/support/notices')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
             marginTop: 16, color: 'var(--accent)', fontSize: 13.5,
@@ -236,7 +248,7 @@ export default function HomeIntroD() {
         <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.9, margin: 0 }}>
           {TICKET_LINE}. 모아서 파칭코나 사다리를 돌리면 EXP 가 한 번에 크게 들어온다.
           운동을 계속할 이유를 하나 더 만들어 두는 장치다.
-          확률표는 언제나 운영 확률을 그대로 보여준다.
+          확률표는 실제로 돌아가는 값을 그대로 읽어 그린다.
         </p>
       </div>
 
@@ -288,7 +300,7 @@ export default function HomeIntroD() {
           안 되는 게 있으면 알려주세요.<br />
           확인하고 여기에 답을 답니다.
         </p>
-        <ReportPreview embedded />
+        <ReportBox embedded />
       </div>
 
       {/* 앱 정보 — 표로 벌려두면 세 줄짜리가 여섯 줄이 된다. 한 줄로 붙인다.

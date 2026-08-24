@@ -7,10 +7,10 @@ import { earnedTickets, ticketsAvailable, ticketText } from '../../data/pachinko
 import pkg from '../../../package.json';
 
 // ─────────────────────────────────────────────────────────────
-// 제보함 시안
+// 제보함
 //
-// 아직 앱에 붙이지 않았다. /preview/report 로 따로 보거나,
-// 홈페이지 시안 안에 embedded 로 얹힌다. 개발 빌드 전용.
+// 고객센터(/support) 맨 아래에 embedded 로 얹힌다. embedded 를 빼면
+// 제목을 달고 혼자 선다.
 //
 // 저장은 서버가 한다. GET/POST/DELETE /api/reports 를 쓰고, 답변과 상태는
 // 관리자만 바꾼다. 로그인해야 열린다 — 누가 보냈는지 모르면 답을 달 곳이 없다.
@@ -100,8 +100,8 @@ function useDeviceInfo() {
   }, [stats.totalWorkouts, stats.totalInbody, stats.lv, used, purchased, unlimited]);
 }
 
-// embedded — 홈페이지 시안 안에 한 섹션으로 얹을 때 쓴다.
-export default function ReportPreview({ embedded = false }) {
+// embedded — 고객센터 안에 한 섹션으로 얹을 때 쓴다.
+export default function ReportBox({ embedded = false }) {
   const [kind, setKind] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -247,13 +247,6 @@ export default function ReportPreview({ embedded = false }) {
     <div>
       {!embedded && (
         <>
-          <div style={{
-            background: 'var(--warning-dim)', border: '1px solid var(--warning)',
-            borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 18,
-            fontSize: 12, color: 'var(--warning)', lineHeight: 1.6,
-          }}>
-            ⚠️ <b>시안입니다.</b> 아직 앱의 탭에는 없고 주소로만 열립니다. 보낸 제보는 서버에 실제로 저장됩니다.
-          </div>
           <div style={{ marginBottom: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span style={{ fontSize: 26 }}>📮</span>

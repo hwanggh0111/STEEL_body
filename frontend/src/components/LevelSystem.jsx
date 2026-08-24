@@ -423,8 +423,12 @@ export function expForLevel(level) {
 
 export const MAX_LEVEL = LEVEL_TABLE[LEVEL_TABLE.length - 1].level;
 
+// 기록 하나가 주는 EXP. 고객센터 FAQ 가 이 값을 읽어 문장으로 푼다 —
+// 밸런스를 바꾸면 설명이 저절로 따라온다
+export const EXP_PER = { workout: 15, inbody: 30 };
+
 export function calcExp(totalWorkouts, totalInbody, bonusExp = 0) {
-  const total = (totalWorkouts * 15) + (totalInbody * 30) + bonusExp;
+  const total = (totalWorkouts * EXP_PER.workout) + (totalInbody * EXP_PER.inbody) + bonusExp;
   return Math.min(total, MAX_EXP);
 }
 

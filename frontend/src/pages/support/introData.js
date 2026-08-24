@@ -3,15 +3,16 @@ import { useWorkoutStore } from '../../store/workoutStore';
 import { useInbodyStore } from '../../store/inbodyStore';
 import { usePachinkoStore } from '../../store/pachinkoStore';
 import {
-  calcExp, getLevelInfo, expForLevel, MAX_LEVEL,
+  calcExp, getLevelInfo, expForLevel, MAX_LEVEL, EXP_PER,
   TRANSCEND, GENESIS, TRANSCEND_TIERS, GENESIS_TIERS,
 } from '../../components/LevelSystem';
 import { TICKET_RULE, LADDER, UL_TICKET } from '../../data/pachinkoData';
+import { PLATE_RULE, BASE_DAILY_PLAYS } from '../../data/plateData';
 import { dateKey } from '../../data/dateKey';
 
-// 시안들이 같은 숫자를 보게 하는 곳.
-// 버전마다 따로 계산하면 어느 순간 한 판만 옛날 값을 보여주게 된다.
-// 상한·비용·교환비는 전부 실제 상수에서 읽는다 — 밸런스를 바꾸면 시안이 따라온다.
+// 고객센터가 보여주는 숫자를 한 군데서 만든다.
+// 화면마다 따로 계산하면 어느 순간 한 곳만 옛날 값을 보여주게 된다.
+// 상한·비용·교환비는 전부 실제 상수에서 읽는다 — 밸런스를 바꾸면 화면이 따라온다.
 
 export const FEATURES = [
   { name: '운동 기록',   path: '/workout',     icon: '🏋️', short: '무게 · 횟수 · 세트',      long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다' },
@@ -59,6 +60,11 @@ export const TICKET_ROWS = [
 ];
 
 export const TICKET_LINE = `운동 ${TICKET_RULE.perWorkouts}회당 1장, 인바디 ${TICKET_RULE.perInbody}회당 1장`;
+// 원판 피하기로도 티켓을 산다. 하루 판 수(dailyPlays)는 개발 빌드에서 풀려 있어 여기 적지 않는다
+export const PLATE_LINE = `원판 ${PLATE_RULE.perTicket}개를 모으면 티켓 1장`;
+export const EXP_LINE = `운동 기록 하나에 ${EXP_PER.workout}, 인바디 하나에 ${EXP_PER.inbody}`;
+// 하루 판 수는 운영 값을 읽는다 (PLATE_RULE.dailyPlays 는 개발 빌드에서 풀려 있다)
+export const PLAY_LINE = `하루 ${BASE_DAILY_PLAYS}판, 한 판에 부활 ${PLATE_RULE.revives}번`;
 
 export function useIntroStats() {
   const { workouts, fetchAll: fetchWorkouts } = useWorkoutStore();

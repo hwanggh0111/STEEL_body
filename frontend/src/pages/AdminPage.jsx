@@ -13,9 +13,9 @@ import { isAdmin as checkAdmin } from '../data/admin';
 export default function AdminPage() {
   const { nickname } = useAuthStore();
   const navigate = useNavigate();
-  // 기본 탭은 점검이다. 제보함이 아직 앱에 안 붙어 있어 제보가 들어올 수 없다 —
-  // 지금 기본으로 두면 관리자 화면이 빈 목록으로 열린다. 붙이는 날 바꾼다
-  const [tab, setTab] = useState('maint');
+  // 기본 탭은 제보다. 사람이 기다리고 있는 목록이라 먼저 열려야 한다
+  // (8/24 에 고객센터를 앱에 붙이면서 maint 에서 바꿨다)
+  const [tab, setTab] = useState('report');
 
   const isAdmin = checkAdmin();
 

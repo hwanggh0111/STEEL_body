@@ -4,12 +4,16 @@
 // 주워서 모은 원판으로 티켓을 산다.
 // 티켓은 원래 "기록에서 매번 계산"이라 조작이 불가능했는데, 구매분은 저장해야 하므로
 // 이 값만은 localStorage 에 남는다. 그래서 하루 상한으로 벌이를 묶는다.
+// 운영에서 하루에 돌릴 수 있는 판 수. dailyPlays 는 개발 빌드에서 풀리기 때문에
+// 화면에 "하루 몇 판" 을 설명할 때는 이쪽을 읽는다 — 개발 화면에 9999 판이라고 뜨면 안 된다
+export const BASE_DAILY_PLAYS = 5;
+
 export const PLATE_RULE = {
   perTicket: 10,     // 원판 N개 = 티켓 1장
   // 하루에 돌릴 수 있는 판 수 (무한 파밍 방지).
   // 개발 중에는 판 수를 세는 게 테스트에 방해만 되므로 사실상 풀어둔다.
   // import.meta.env.DEV 는 빌드 시 false 로 치환되므로 프로덕션에는 5만 남는다.
-  dailyPlays: import.meta.env.DEV ? 9999 : 5,
+  dailyPlays: import.meta.env.DEV ? 9999 : BASE_DAILY_PLAYS,
   needWorkoutToday: false,  // true 면 오늘 운동 기록이 있어야 도전 가능
   revives: 3,               // 한 판에 쓸 수 있는 부활 횟수
 };

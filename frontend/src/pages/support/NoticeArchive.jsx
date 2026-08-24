@@ -5,7 +5,7 @@ import { FEED, FeedList } from './feed';
 // ─────────────────────────────────────────────────────────────
 // 공지함 — 지금까지 올라온 것을 전부 본다.
 //
-// 홈페이지의 '최근 바뀐 것' 은 여섯 줄만 보여준다. 그 아래 '공지함' 으로 들어오면
+// 고객센터의 '최근 바뀐 것' 은 여섯 줄만 보여준다. 그 아래 '공지함' 으로 들어오면
 // 전부 있고, 종류로 걸러 볼 수 있다. 두 화면이 같은 목록(feed.jsx)을 본다.
 // ─────────────────────────────────────────────────────────────
 
@@ -43,13 +43,8 @@ export default function NoticeArchive() {
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <div style={{
-        fontSize: 11.5, color: 'var(--text-muted)',
-        borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 30,
-      }}>시안 · 공지함 — 아직 앱에 붙어 있지 않습니다</div>
-
       <button
-        onClick={() => navigate('/preview/homepage-d')}
+        onClick={() => navigate('/support')}
         style={{
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
           color: 'var(--text-muted)', fontSize: 12.5, marginBottom: 18,

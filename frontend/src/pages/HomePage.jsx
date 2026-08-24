@@ -62,6 +62,8 @@ const SEARCH_ITEMS = [
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
   { label: '미니게임', keywords: ['미니게임', 'minigame', 'game', '게임', '원판', '피하기', 'dodge', 'plate', '티켓', 'ticket', '원판피하기', 'ㅁㄴㄱ'], path: '/minigame', icon: '🥏' },
+  { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: '📮' },
+  { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: '📰' },
 
   // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
   { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
