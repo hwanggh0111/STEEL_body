@@ -22,7 +22,14 @@ export default function ConfirmModalHost() {
   const confirmBtnRef = useRef(null);
 
   useEffect(() => {
-    _showConfirm = (next) => setState(next);
+    // 이미 열려 있으면 덮어쓰지 않고 줄을 세운다.
+    //
+    // 예전에는 그냥 setState(next) 였다. 그러면 앞의 물음이 화면에서 사라지면서
+    // 그 promise 가 영영 안 풀린다 — 그것을 기다리던 await 가 그 자리에서 멈춘다.
+    _showConfirm = (next) => setState(prev => {
+      if (prev) { _pendingQueue.push(next); return prev; }
+      return next;
+    });
     // 마운트 직후 큐에 쌓인 요청 처리
     if (_pendingQueue.length > 0) {
       const next = _pendingQueue.shift();
