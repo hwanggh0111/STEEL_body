@@ -26,16 +26,18 @@ export default function ConfirmModalHost() {
     //
     // 예전에는 그냥 setState(next) 였다. 그러면 앞의 물음이 화면에서 사라지면서
     // 그 promise 가 영영 안 풀린다 — 그것을 기다리던 await 가 그 자리에서 멈춘다.
-    _showConfirm = (next) => setState(prev => {
+    const show = (next) => setState(prev => {
       if (prev) { _pendingQueue.push(next); return prev; }
       return next;
     });
+    _showConfirm = show;
     // 마운트 직후 큐에 쌓인 요청 처리
     if (_pendingQueue.length > 0) {
       const next = _pendingQueue.shift();
       setState(next);
     }
-    return () => { _showConfirm = null; };
+    // Toast 와 같은 이유로, 내가 걸어둔 것일 때만 치운다
+    return () => { if (_showConfirm === show) _showConfirm = null; };
   }, []);
 
   const close = useCallback((result) => {
