@@ -1,0 +1,6 @@
+{
+  "//": "ironlog.json 은 DB 파일이다. backend/ 안에 있고 확장자가 .json 이라, 아무 설정 없이 두면 nodemon 이 감시 대상으로 잡는다 — 기록 하나 저장할 때마다 서버가 재시작한다. db.js 는 500ms 지연 저장이라, 그 사이에 재시작이 걸리면 방금 쓴 것이 통째로 사라진다. 실제로 '차단했습니다' 라고 답해놓고 차단이 안 되는 것을 봤다.",
+  "watch": ["src"],
+  "ext": "js,mjs,cjs,json",
+  "ignore": ["ironlog.json", "security.log", "*.log"]
+}
