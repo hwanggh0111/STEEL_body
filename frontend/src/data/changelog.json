@@ -2,6 +2,15 @@
   "generated": "2026-08-24",
   "items": [
     {
+      "hash": "404591a",
+      "date": "2026-08-24",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "알림",
+      "text": "제보가 들어오면 바로 알아챌 수 있게 한다",
+      "detail": "지금까지는 관리자가 화면을 열어봐야만 제보가 온 걸 알 수 있었습니다. 며칠 안\n들어가면 며칠 동안 답이 안 달리고, 욕설로 걸리신 분은 그동안 앱을 못 쓴 채\n방치됐습니다.\n\n**화면 배지** — 손볼 제보가 있으면 아래 탭과 관리자 항목에 빨간 숫자가 붙습니다.\n안 끝난 제보 + 확인 안 한 욕설 기록입니다. 3분마다, 그리고 다른 탭에서 답을 달고\n돌아오면 그 즉시 다시 셉니다. 숫자 둘만 받아오는 가벼운 경로를 따로 뒀습니다.\n\n**메일** — 제보가 들어오거나 욕설로 걸리면 관리자 메일로 보냅니다. 제보는 10분에\n한 통으로 묶고, 욕설은 묶지 않습니다 — 사전이 잘못 잡았을 수 있고 묶어서 늦게\n보내면 그만큼 늦게 풀립니다.\n\n메일이 안 나가도 앱은 아무 영향이 없습니다. 설정이 없으면 조용히 건너뛰고,\n실패해도 삼키고, 기다리지도 않습니다 — 알림 때문에 제보 접수가 실패하면 본말이\n전도됩니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
+    {
       "hash": "5a11648",
       "date": "2026-08-24",
       "type": "feat",
@@ -18,15 +27,6 @@
       "scope": "계정",
       "text": "비밀번호를 바꿀 수 있게 한다",
       "detail": "지금까지 로그인한 채로 비밀번호를 바꿀 방법이 없었습니다. 서버는 처음부터\n있었는데 누를 곳이 없었습니다. 로그인 화면의 '비밀번호를 잊으셨나요?' 는\n찾기(이메일 인증)라서 다른 것입니다.\n\n프로필 메뉴, 닉네임 바꾸는 자리에 넣었습니다.\n\n바꾸면 다른 기기에서도 모두 로그아웃됩니다 — 비밀번호를 바꾸는 이유가 보통\n그것이라 그게 맞습니다. 미리 알려드리고, 바꾸신 뒤에는 로그인 화면으로\n모셔다드립니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
-    },
-    {
-      "hash": "1832164",
-      "date": "2026-08-24",
-      "type": "fix",
-      "label": "고침",
-      "scope": "알림",
-      "text": "알림과 물음 창이 통째로 벙어리가 될 수 있던 것",
-      "detail": "알림(Toast)과 물음 창은 전역에 함수를 하나 걸어두고 그걸로 띄웁니다. 그런데\n정리할 때 자기 것인지 보지 않고 그냥 지웠습니다 — 같은 컴포넌트가 두 번\n올라갔다가 하나가 빠지면 남아 있는 쪽까지 죽어서 알림이 아예 안 떴습니다.\n\n내가 걸어둔 것일 때만 치웁니다. progress.md 에 '배포 전 수정 권장' 으로\n남아 있던 항목입니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
     },
     {
       "hash": "8203ecb",

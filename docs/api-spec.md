@@ -120,10 +120,14 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 | DELETE | `/reports/:id` 🔒 | 내 것만 |
 | GET | `/reports/all` 🛡 | 전체 |
 | PATCH | `/reports/:id` 🛡 | `{ status?, reply? }` — `status` 는 `received` · `checking` · `done` · `held`. **관리자도 내용은 못 고치고 못 지운다** |
+| GET | `/reports/pending` 🛡 | 손볼 건수만 `{ open, abuse }` — 화면 구석 표시용이라 가볍다 |
 | GET | `/reports/abuse` 🛡 | 욕설·비하로 걸린 기록 |
 | PATCH | `/reports/abuse/:id` 🛡 | `{ reviewed?, dismissed? }` — `dismissed` 면 누적에서 빼고 그 때문에 걸린 정지도 푼다 |
 
 욕설 판정은 `utils/profanity.js`, 처벌은 `utils/abusePolicy.js`. **최대 7일이고 계정 삭제는 없다.**
+
+제보가 들어오거나 욕설로 걸리면 `ADMIN_EMAIL` 로 메일이 나간다 (`SMTP_HOST`·`SMTP_USER`·`SMTP_PASS` 설정 시).
+안 나가도 앱은 영향이 없다.
 
 ## 만족도 `/ratings`
 
