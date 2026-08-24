@@ -202,6 +202,7 @@ app.use('/api/measures',    require('./routes/measures'));
 app.use('/api/my-routines', require('./routes/myRoutines'));
 app.use('/api/reports',     require('./routes/reports'));
 app.use('/api/ratings',     require('./routes/ratings'));
+app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/export',      require('./routes/export'));
 

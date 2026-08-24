@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { getSchedules, saveSchedules } from '../MaintenanceScreen';
+import { useState, useEffect } from 'react';
+import { getSchedules, fetchSchedules, pushSchedules } from '../MaintenanceScreen';
 import { toast } from '../Toast';
 import { saveLS } from '../../data/safeStorage';
 import { dateKey } from '../../data/dateKey';
@@ -13,9 +13,21 @@ export default function MaintAdmin() {
     startHour: 4, startMin: 0, durationMin: 60, days: [1, 2, 3, 4, 5], reason: '정기 시스템 점검',
   });
 
-  const save = (updated) => {
+  // 열 때 서버에서 최신 목록을 받아온다 — 다른 기기에서 잡아둔 것도 보여야 한다
+  useEffect(() => { fetchSchedules().then(list => setSchedules(list)); }, []);
+
+  // 서버에 올린다. 실패하면 화면을 되돌린다 —
+  // 저장한 줄 알았는데 다른 사람에게 안 걸려 있는 것이 제일 나쁘다
+  const save = async (updated) => {
+    const prev = schedules;
     setSchedules(updated);
-    saveSchedules(updated);
+    try {
+      const saved = await pushSchedules(updated);
+      setSchedules(saved);
+    } catch (e) {
+      setSchedules(prev);
+      toast(e?.response?.data?.error || '점검 설정을 저장하지 못했어요', 'error');
+    }
   };
 
   const startNew = () => {

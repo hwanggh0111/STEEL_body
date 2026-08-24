@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 // 이 컴포넌트는 App 전체를 감싼다. 쿠키를 막아둔 브라우저에서 localStorage 가
 // 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
 import { readLS, saveLS } from '../data/safeStorage';
+import client from '../api/client';
+import { isAdmin as isAdminUser } from '../data/admin';
 import { dateKey } from '../data/dateKey';
 
+// 서버가 진짜다. localStorage 는 마지막으로 받아온 것을 담아두는 자리일 뿐이다 —
+// 첫 화면을 그리는 순간과 네트워크가 없을 때 쓴다.
+//
+// 예전에는 이 목록이 localStorage 에만 있었다. 관리자가 점검을 잡아도 그 브라우저에만
+// 저장돼서 **다른 사람에게는 아무 일도 일어나지 않았다.** 점검 화면도 안 뜨고,
+// 고객센터의 '점검 예정' 도 영영 비어 있었다.
 const MAINT_KEY = 'ironlog_maintenance';
 
 const DEFAULT_SCHEDULE = [];
@@ -11,13 +19,29 @@ const DEFAULT_SCHEDULE = [];
 export function getSchedules() {
   try {
     const saved = JSON.parse(readLS(MAINT_KEY));
-    // localStorage에 저장된 스케줄이 없으면 기본값 사용하고 저장
-    if (!saved || saved.length === 0) {
-      saveLS(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
-      return DEFAULT_SCHEDULE;
-    }
-    return saved;
+    return Array.isArray(saved) ? saved : DEFAULT_SCHEDULE;
   } catch { return DEFAULT_SCHEDULE; }
+}
+
+// 서버에서 받아 캐시를 갱신한다. 실패하면 마지막으로 받아둔 것을 그대로 쓴다 —
+// 점검 목록을 못 받은 것 때문에 앱이 안 열리면 안 된다
+export async function fetchSchedules() {
+  try {
+    const { data } = await client.get('/maintenance');
+    const list = Array.isArray(data) ? data : [];
+    saveLS(MAINT_KEY, JSON.stringify(list));
+    return list;
+  } catch {
+    return getSchedules();
+  }
+}
+
+// 관리자 화면에서 저장할 때. 서버에 올리고 캐시도 맞춰둔다
+export async function pushSchedules(schedules) {
+  const { data } = await client.put('/maintenance', { schedules });
+  const list = Array.isArray(data) ? data : schedules;
+  saveLS(MAINT_KEY, JSON.stringify(list));
+  return list;
 }
 
 // 기본 스케줄 강제 적용 (테스트용)
@@ -32,10 +56,6 @@ const CURRENT_VERSION = JSON.stringify(DEFAULT_SCHEDULE);
 if (DEFAULT_SCHEDULE.length > 0 && readLS(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
   saveLS(MAINT_KEY, CURRENT_VERSION);
   saveLS(MAINT_VERSION_KEY, CURRENT_VERSION);
-}
-
-export function saveSchedules(schedules) {
-  saveLS(MAINT_KEY, JSON.stringify(schedules));
 }
 
 // 이 스케줄이 그 날 도는가.
@@ -99,13 +119,24 @@ function formatTime(sec) {
   return `${m}분 ${String(s).padStart(2, '0')}초`;
 }
 
-import { isAdmin as isAdminUser } from '../data/admin';
-
 export default function MaintenanceScreen({ children }) {
   const [info, setInfo] = useState(() => getMaintenanceInfo());
   const [kicked, setKicked] = useState(false);
 
   const admin = isAdminUser();
+
+  // 서버에서 목록을 받아온다. 열자마자 한 번, 그 뒤로는 5분마다.
+  //
+  // 관리자가 방금 잡은 점검이 이미 열어둔 화면에도 곧 반영돼야 한다.
+  // 1초마다 부르면 서버가 상한다 — 시각 계산은 1초마다 하되 목록만 5분마다 받는다.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const pull = () => fetchSchedules().then(() => { if (alive) setTick(t => t + 1); });
+    pull();
+    const id = setInterval(pull, 5 * 60 * 1000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {

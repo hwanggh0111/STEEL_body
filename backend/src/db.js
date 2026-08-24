@@ -16,6 +16,12 @@ const DEFAULT_DATA = {
   // 욕설·비하로 걸린 기록. 처벌 수위를 올리려면 누적이 서버 재시작을 넘어 남아야 한다
   abuseLogs: [],
   photos: [],
+  // 점검 스케줄.
+  //
+  // 예전에는 관리자 브라우저의 localStorage 에만 있었다. 그래서 점검을 잡아도
+  // **다른 사람에게는 아무 일도 일어나지 않았다** — 점검 화면도 안 뜨고 고객센터의
+  // '점검 예정' 도 영영 비어 있었다. 관리자가 브라우저를 바꾸면 자기 설정도 사라졌다.
+  maintenance: [],
   // 만족도 — 한 사람당 한 줄만 남는다 (다시 매기면 덮어쓴다).
   // 점수만 받는다. 이유는 제보함이 받는다 — 두 곳에서 같은 것을 물으면 둘 다 부실해진다
   ratings: [],
@@ -344,6 +350,18 @@ const db = {
     data.myRoutines.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+
+  // maintenance — 점검 스케줄
+  getMaintenance() {
+    const data = load();
+    return Array.isArray(data.maintenance) ? data.maintenance : [];
+  },
+  saveMaintenance(list) {
+    const data = load();
+    data.maintenance = list;
+    save(data);
+    return data.maintenance;
   },
 
   // ratings — 만족도

@@ -4,7 +4,7 @@ import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE } from './introData';
 import ReportBox from './ReportBox';
 import { useReportStore } from '../../store/reportStore';
 import { readLS, saveLS } from '../../data/safeStorage';
-import { getSchedules } from '../../components/MaintenanceScreen';
+import { getSchedules, fetchSchedules } from '../../components/MaintenanceScreen';
 import pkg from '../../../package.json';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -88,9 +88,12 @@ export default function SupportPage() {
   };
 
   // 점검은 진짜 스케줄을 읽는다. 잡힌 게 없으면 이 구역 자체가 안 나온다 —
-  // "예정된 점검 없음" 을 굳이 알릴 이유가 없다
-  let schedules = [];
-  try { schedules = getSchedules() || []; } catch { schedules = []; }
+  // "예정된 점검 없음" 을 굳이 알릴 이유가 없다.
+  //
+  // 캐시로 먼저 그리고 서버에서 받아 갱신한다. 캐시만 읽으면 이 기기에서 한 번도
+  // 받아본 적 없을 때 영영 비어 있다
+  const [schedules, setSchedules] = useState(() => { try { return getSchedules() || []; } catch { return []; } });
+  useEffect(() => { fetchSchedules().then(list => setSchedules(list || [])); }, []);
 
   return (
     <div style={{ paddingBottom: 20 }}>
