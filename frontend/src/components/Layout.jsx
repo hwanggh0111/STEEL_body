@@ -455,6 +455,10 @@ export default function Layout() {
               { label: '측정 시스템', path: '/measure' },
               { label: '히스토리', path: '/history' },
             ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
+            <MenuCategory label="도움" items={[
+              { label: '고객센터', path: '/support' },
+              { label: '공지함', path: '/support/notices' },
+            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
             {checkAdmin() && (
               <MenuCategory label="관리" items={[
                 { label: '관리자', path: '/admin' },

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import client from '../../api/client';
+import { useReportStore } from '../../store/reportStore';
 import { useIntroStats } from './introData';
 import { usePachinkoStore } from '../../store/pachinkoStore';
 import { usePlateStore } from '../../store/plateStore';
@@ -109,9 +110,14 @@ export default function ReportBox({ embedded = false }) {
   const [freq, setFreq] = useState('');
   const [workaround, setWorkaround] = useState('');
   const [attach, setAttach] = useState(true);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
+  // 목록은 store 가 들고 있다 — 접혀 있을 때 제목줄이 「새 답변」을 보여주려면
+  // 고객센터도 같은 목록을 봐야 한다. 각자 부르면 요청이 두 번 나간다
+  const items = useReportStore(s => s.items);
+  const loading = useReportStore(s => s.loading);
+  const loadFailed = useReportStore(s => s.failed);
+  const setItems = useReportStore(s => s.setItems);
+  const setLoadFailed = useReportStore(s => s.setFailed);
+  const fetchReports = useReportStore(s => s.fetchAll);
   const [sending, setSending] = useState(false);
   const device = useDeviceInfo();
   const [open, setOpen] = useState(null);
@@ -120,16 +126,8 @@ export default function ReportBox({ embedded = false }) {
 
   const k = kind ? kindOf(kind) : null;
 
-  // 내 제보를 받아온다. 실패하면 빈 목록 대신 실패했다고 말한다 —
-  // 보낸 게 있는데 아무것도 없는 화면이 뜨면 지워진 줄 안다
-  useEffect(() => {
-    let alive = true;
-    client.get('/reports')
-      .then(({ data }) => { if (alive) { setItems(Array.isArray(data) ? data : []); setLoadFailed(false); } })
-      .catch(() => { if (alive) setLoadFailed(true); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, []);
+  // 고객센터가 이미 불러왔으면 진행 중인 요청에 얹힌다 (store 가 하나로 묶는다)
+  useEffect(() => { fetchReports(); }, [fetchReports]);
 
   // 유형을 바꾸면 그 유형에만 있던 답은 버린다.
   // 남겨두면 버그로 골랐다가 문의로 바꿨을 때 엉뚱한 화면 이름이 같이 간다.

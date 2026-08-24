@@ -71,7 +71,13 @@ export function useIntroStats() {
   const { records, fetchAll: fetchInbody } = useInbodyStore();
   const pachinkoExp = usePachinkoStore(s => s.gained);
 
-  useEffect(() => { fetchWorkouts(); fetchInbody(); }, []);
+  // 한 화면에서 이 훅을 두 곳이 쓴다 — 고객센터 본문과 제보함의 기기 정보.
+  // 각자 부르면 /workouts · /inbody 가 두 번씩 나가고, 늦게 온 응답이 먼저 온 것을 덮는다.
+  // fetchAll 은 시작하면서 loading 을 켜므로, 켜져 있으면 진행 중인 요청에 얹힌다
+  useEffect(() => {
+    if (!useWorkoutStore.getState().loading) fetchWorkouts();
+    if (!useInbodyStore.getState().loading) fetchInbody();
+  }, []);
 
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
   const totalInbody = records.length;

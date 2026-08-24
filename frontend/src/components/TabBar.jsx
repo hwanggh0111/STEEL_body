@@ -81,9 +81,13 @@ export default function TabBar() {
     navigate(path);
   };
 
+  // 하위 주소도 그 항목으로 친다 — /support/notices(공지함)에서 더보기가 꺼져 있으면
+  // 지금 어디에 있는지가 아무 데도 안 뜬다
+  const onPath = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+
   const isActive = (path) => {
-    if (path === '/more') return showMore || moreItems.some(m => location.pathname === m.path);
-    return location.pathname === path;
+    if (path === '/more') return showMore || moreItems.some(m => onPath(m.path));
+    return onPath(path);
   };
 
   // ─── 공통 셀 컴포넌트 (모양/크기 통일) ───
@@ -197,7 +201,7 @@ export default function TabBar() {
                 <NavCell
                   key={item.path}
                   item={item}
-                  active={location.pathname === item.path}
+                  active={onPath(item.path)}
                   onClick={() => navigate(item.path)}
                   layout="horizontal"
                 />
@@ -240,7 +244,7 @@ export default function TabBar() {
                 <NavCell
                   key={item.path}
                   item={item}
-                  active={location.pathname === item.path}
+                  active={onPath(item.path)}
                   onClick={() => { setShowMore(false); navigate(item.path); }}
                   layout="vertical"
                 />

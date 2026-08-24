@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE, PLATE_LINE, EXP_LINE, PLAY_LINE } from './introData';
 import ReportBox from './ReportBox';
+import { useReportStore } from '../../store/reportStore';
+import { readLS, saveLS } from '../../data/safeStorage';
 import { getSchedules } from '../../components/MaintenanceScreen';
 import pkg from '../../../package.json';
 
@@ -13,6 +15,9 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 import { FEED, FeedList } from './feed';
 
 const CHANGES_SHOWN = 6;
+
+// 어디까지 읽었는지. 답변이 달린 시각(ISO)을 그대로 넣어두고 그보다 새 것이 있으면 알린다
+const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
 
 // 자주 묻는 것 — 문의로 같은 질문이 반복되면 여기로 올린다
 const FAQ = [
@@ -77,6 +82,41 @@ export default function SupportPage() {
   const navigate = useNavigate();
   const s = useIntroStats();
   const [openFaq, setOpenFaq] = useState(null);
+  // 제보함은 접어둔다. 펼쳐두면 폼과 목록이 페이지의 절반을 먹어서,
+  // 그 위의 FAQ 와 바뀐 것까지 내려가 안 읽힌다
+  const [reportOpen, setReportOpen] = useState(false);
+  const reportRef = useRef(null);
+
+  // 접어두는 대신, 답변이 온 것을 놓치지 않게 목록을 여기서도 본다.
+  // store 가 진행 중인 요청을 하나로 묶으므로 제보함과 같이 열려도 요청은 한 번이다
+  const reports = useReportStore(r => r.items);
+  const fetchReports = useReportStore(r => r.fetchAll);
+  useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  const latestReply = useMemo(
+    () => reports.reduce((max, i) => (i.reply_at && i.reply_at > max ? i.reply_at : max), ''),
+    [reports],
+  );
+  const [seenReply, setSeenReply] = useState(() => readLS(SEEN_REPLY_KEY) || '');
+  const hasNewReply = !!latestReply && latestReply > seenReply;
+
+  // 답을 달아놓고 접힌 채로 두면 답한 게 아니다. 새 답변이 있으면 저절로 펼친다
+  useEffect(() => { if (hasNewReply) setReportOpen(true); }, [hasNewReply]);
+
+  // 펼쳐서 볼 수 있게 된 시점에 읽은 것으로 표시한다
+  useEffect(() => {
+    if (!reportOpen || !latestReply || latestReply === seenReply) return;
+    saveLS(SEEN_REPLY_KEY, latestReply);
+    setSeenReply(latestReply);
+  }, [reportOpen, latestReply, seenReply]);
+
+  // FAQ 아래에서도, 제보함 제목에서도 같은 길로 연다.
+  // 이미 열려 있으면 닫지 않고 그 자리로 데려다만 준다 — 쓰던 글이 사라지면 안 된다
+  const openReport = () => {
+    setReportOpen(true);
+    // 펼쳐진 뒤에 스크롤해야 자리가 맞는다
+    requestAnimationFrame(() => reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   // 점검은 진짜 스케줄을 읽는다. 잡힌 게 없으면 이 구역 자체가 안 나온다 —
   // "예정된 점검 없음" 을 굳이 알릴 이유가 없다
@@ -285,22 +325,63 @@ export default function SupportPage() {
           );
         })}
         <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.7 }}>
-          찾는 게 없으면 아래 제보함에 <b style={{ color: 'var(--text-secondary)' }}>문의</b>로 남겨주세요.
+          찾는 게 없으면{' '}
+          <button
+            onClick={openReport}
+            style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              font: 'inherit', color: 'var(--accent)', borderBottom: '1px solid var(--accent)',
+            }}
+          >제보함</button>
+          에 <b style={{ color: 'var(--text-secondary)' }}>문의</b>로 남겨주세요.
         </div>
       </div>
 
       {/* 제보함 — 이 페이지의 본래 첫 내용이라 링크로 내보내지 않는다.
           다만 펼쳐두면 폼과 목록이 페이지의 절반을 먹는다. 필요할 때만 연다 */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 26 }}>
+      <div ref={reportRef} style={{ borderTop: '1px solid var(--border)', paddingTop: 26 }}>
         <Sec>제보함</Sec>
         <p style={{
           fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.85,
-          margin: '0 0 22px', fontWeight: 300,
+          margin: '0 0 18px', fontWeight: 300,
         }}>
           안 되는 게 있으면 알려주세요.<br />
           확인하고 여기에 답을 답니다.
         </p>
-        <ReportBox embedded />
+
+        {/* 닫을 때만 토글이다. 여는 것은 openReport 를 거친다 —
+            FAQ 아래에서 눌러도 같은 자리로 오게 하려고 */}
+        <button
+          onClick={() => (reportOpen ? setReportOpen(false) : openReport())}
+          style={{
+            background: 'none', border: '1px solid var(--border)', cursor: 'pointer',
+            borderRadius: 'var(--radius)', padding: '11px 16px', width: '100%',
+            display: 'flex', alignItems: 'center', gap: 10,
+            color: 'var(--text-secondary)', fontSize: 13.5,
+            marginBottom: reportOpen ? 22 : 0, transition: 'all 0.15s',
+          }}
+        >
+          <span style={{ color: 'var(--accent)' }}>📮</span>
+          <span>{reportOpen ? '제보함 닫기' : '버그 · 문의 · 건의 남기기'}</span>
+          {/* 접혀 있어도 보낸 게 몇 건인지, 답이 왔는지는 여기서 보인다 */}
+          {!reportOpen && hasNewReply ? (
+            <span style={{
+              marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#000',
+              background: 'var(--accent)', borderRadius: 'var(--radius)', padding: '2px 8px',
+            }}>새 답변</span>
+          ) : !reportOpen && reports.length > 0 ? (
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
+              내 제보 {reports.length}건
+            </span>
+          ) : null}
+          <span style={{
+            marginLeft: reportOpen || (!hasNewReply && !reports.length) ? 'auto' : 0,
+            color: 'var(--text-muted)', fontSize: 15,
+            transform: reportOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
+          }}>+</span>
+        </button>
+
+        {reportOpen && <ReportBox embedded />}
       </div>
 
       {/* 앱 정보 — 표로 벌려두면 세 줄짜리가 여섯 줄이 된다. 한 줄로 붙인다.
