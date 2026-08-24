@@ -9,6 +9,7 @@ import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
 
 const PROFILE_KEY = 'ironlog_profile_photo';
@@ -23,6 +24,7 @@ export default function Layout() {
   const [newNick, setNewNick] = useState('');
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
+  const [changingPw, setChangingPw] = useState(false);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const location = useLocation();
   const navType = useNavigationType();
@@ -307,6 +309,20 @@ export default function Layout() {
         <MiniSplash onDone={() => { setShowMiniSplash(false); navigate('/home'); }} />
       )}
 
+      {/* 비밀번호 변경.
+          바꾸면 서버가 모든 기기의 로그인을 끊는다 — 그래서 여기서도 로그아웃하고 로그인으로 보낸다.
+          그대로 두면 다음 요청에서 401 을 맞고 영문 모른 채 튕긴다 */}
+      {changingPw && (
+        <PasswordChangeModal
+          onClose={() => setChangingPw(false)}
+          onChanged={async () => {
+            setChangingPw(false);
+            await logout();
+            navigate('/login');
+          }}
+        />
+      )}
+
       {/* 이미지 확대 모달 */}
       {zoomImg && (
         <div
@@ -430,6 +446,20 @@ export default function Layout() {
                 </div>
               )}
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>STEEL BODY 회원</div>
+
+              {/* 비밀번호 변경.
+                  로그인 화면의 '비밀번호를 잊으셨나요?' 는 찾기(이메일 인증)라서 다른 것이다.
+                  로그인한 채로 바꾸는 자리는 지금까지 어디에도 없었다 */}
+              <button
+                onClick={() => { setSideMenu(false); setChangingPw(true); }}
+                style={{
+                  marginTop: 10, background: 'none', border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)', padding: '4px 12px', cursor: 'pointer',
+                  fontSize: 11, borderRadius: 'var(--radius)', transition: 'all 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              >비밀번호 변경</button>
               {profilePhoto && (
                 <button
                   onClick={handlePhotoDelete}
