@@ -184,6 +184,7 @@ app.use('/api/security',    require('./routes/security'));
 app.use('/api/measures',    require('./routes/measures'));
 app.use('/api/my-routines', require('./routes/myRoutines'));
 app.use('/api/reports',     require('./routes/reports'));
+app.use('/api/ratings',     require('./routes/ratings'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/export',      require('./routes/export'));
 

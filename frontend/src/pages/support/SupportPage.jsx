@@ -14,6 +14,7 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 // 커밋으로 설명이 안 되는 것은 data/notices.json 에 손으로 적는다. 둘은 feed.jsx 에서 한 목록으로 합쳐진다.
 import { FEED } from './feedData';
 import FeedList from './FeedList';
+import Satisfaction from './Satisfaction';
 
 const CHANGES_SHOWN = 6;
 
@@ -143,6 +144,10 @@ export default function SupportPage() {
           언젠가 처음부터 읽게 된다.
         </p>
       </div>
+
+      {/* 만족도 — 히어로 바로 아래. 한 번 매기면 다음부터는 이 자리가 아예 안 나온다.
+          제보함은 할 말이 있는 사람만 쓴다 — 그냥 쓰고 있는 사람의 온도는 여기로 온다 */}
+      <Satisfaction onOpenReport={openReport} />
 
       {/* 점검 예정 — 잡혀 있을 때만 나온다 */}
       {schedules.length > 0 && (

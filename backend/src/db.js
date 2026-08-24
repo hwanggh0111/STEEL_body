@@ -16,9 +16,12 @@ const DEFAULT_DATA = {
   // 욕설·비하로 걸린 기록. 처벌 수위를 올리려면 누적이 서버 재시작을 넘어 남아야 한다
   abuseLogs: [],
   photos: [],
+  // 만족도 — 한 사람당 한 줄만 남는다 (다시 매기면 덮어쓴다).
+  // 점수만 받는다. 이유는 제보함이 받는다 — 두 곳에서 같은 것을 물으면 둘 다 부실해진다
+  ratings: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, suspensions: 1, blacklist: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -334,6 +337,53 @@ const db = {
     data.myRoutines.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+
+  // ratings — 만족도
+  //
+  // 한 사람당 한 줄이다. 여러 줄을 쌓으면 자주 누른 사람이 평균을 끌고 간다.
+  // 다시 매기면 덮어쓰고 시각만 갱신한다.
+  getRating(userId) {
+    const data = load();
+    return (data.ratings || []).find(r => r.user_id === userId) || null;
+  },
+
+  saveRating(userId, score) {
+    const data = load();
+    if (!data.ratings) data.ratings = [];
+    const now = new Date().toISOString();
+    const found = data.ratings.find(r => r.user_id === userId);
+    if (found) {
+      found.score = score;
+      found.updated_at = now;
+      save(data);
+      return found;
+    }
+    const record = { id: nextId('ratings'), user_id: userId, score, created_at: now, updated_at: now };
+    data.ratings.push(record);
+    save(data);
+    return record;
+  },
+
+  // 관리자가 보는 것은 분포뿐이다. 누가 몇 점을 줬는지는 돌려주지 않는다 —
+  // 점수를 보고 사람을 대하게 되면 솔직한 점수가 안 들어온다
+  getRatingStats() {
+    const data = load();
+    const list = data.ratings || [];
+    const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+    for (const r of list) {
+      if (dist[r.score] === undefined) continue;
+      dist[r.score] += 1;
+      sum += r.score;
+    }
+    const count = list.length;
+    return {
+      count,
+      avg: count ? Number((sum / count).toFixed(2)) : 0,
+      dist,
+      updatedAt: list.reduce((max, r) => (r.updated_at > max ? r.updated_at : max), ''),
+    };
   },
 
   // reports — 제보함 (버그 · 문의 · 건의)

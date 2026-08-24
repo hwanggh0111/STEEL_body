@@ -147,6 +147,75 @@ function AbuseLogs() {
   );
 }
 
+// ── 만족도 ──
+//
+// 점수 분포만 본다. 누가 몇 점을 줬는지는 서버가 아예 돌려주지 않는다 —
+// 점수를 보고 사람을 대하기 시작하면 솔직한 점수가 안 들어온다.
+//
+// 평균 하나만 크게 띄우지 않는다. 4.2 라는 숫자보다 "1점이 몇 명인가" 가 할 일을 정한다.
+function Ratings() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    client.get('/ratings/stats')
+      .then(({ data }) => setStats(data))
+      .catch(() => {});
+  }, []);
+
+  if (!stats) return null;
+
+  if (!stats.count) {
+    return (
+      <div className="card" style={{ marginBottom: 16, padding: 14, fontSize: 12.5, color: 'var(--text-muted)' }}>
+        만족도 — 아직 아무도 매기지 않았습니다
+      </div>
+    );
+  }
+
+  const max = Math.max(...Object.values(stats.dist), 1);
+  const low = (stats.dist[1] || 0) + (stats.dist[2] || 0);
+
+  return (
+    <div className="card" style={{ marginBottom: 16, padding: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          만족도
+        </span>
+        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'var(--text-primary)' }}>
+          {stats.avg}
+        </span>
+        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{stats.count}명</span>
+        {low > 0 && (
+          <span style={{ fontSize: 11.5, color: 'var(--danger)', marginLeft: 'auto' }}>
+            2점 이하 {low}명
+          </span>
+        )}
+      </div>
+
+      {[5, 4, 3, 2, 1].map(n => {
+        const v = stats.dist[n] || 0;
+        return (
+          <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 26, flexShrink: 0 }}>★{n}</span>
+            <div style={{ flex: 1, height: 6, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)' }}>
+              <div style={{
+                width: `${(v / max) * 100}%`, height: 6, borderRadius: 'var(--radius)',
+                background: n <= 2 ? 'var(--danger)' : n === 3 ? 'var(--warning)' : 'var(--accent)',
+                transition: 'width 0.4s ease',
+              }} />
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 26, textAlign: 'right', flexShrink: 0 }}>{v}</span>
+          </div>
+        );
+      })}
+
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
+        점수만 받습니다. 아쉬웠던 이유는 제보함으로 옵니다 — 낮은 점수를 준 사람에게 화면이 제보함을 열어줍니다.
+      </div>
+    </div>
+  );
+}
+
 export default function ReportAdmin() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,6 +285,8 @@ export default function ReportAdmin() {
       {/* 욕설·비하로 걸린 기록. 자동으로 처리되지만 사람이 한 번 봐야 한다 —
           사전은 완전할 수 없고, 잘못 잡힌 사람은 앱을 못 쓴다 */}
       <AbuseLogs />
+
+      <Ratings />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
