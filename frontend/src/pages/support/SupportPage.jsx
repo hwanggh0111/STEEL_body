@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE, PLATE_LINE, EXP_LINE, PLAY_LINE } from './introData';
+import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE } from './introData';
 import ReportBox from './ReportBox';
 import { useReportStore } from '../../store/reportStore';
 import { readLS, saveLS } from '../../data/safeStorage';
@@ -15,45 +15,12 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 import { FEED } from './feedData';
 import FeedList from './FeedList';
 import Satisfaction from './Satisfaction';
+import { FAQ } from './faq';
 
 const CHANGES_SHOWN = 6;
 
 // 어디까지 읽었는지. 답변이 달린 시각(ISO)을 그대로 넣어두고 그보다 새 것이 있으면 알린다
 const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
-
-// 자주 묻는 것 — 문의로 같은 질문이 반복되면 여기로 올린다
-const FAQ = [
-  {
-    q: '티켓은 어떻게 모으나요',
-    a: `${TICKET_LINE} 나옵니다. 미니게임(원판 피하기)에서 ${PLATE_LINE}으로 바꿀 수도 있습니다.`,
-  },
-  {
-    q: '초월 · 개벽은 언제 열리나요',
-    a: '일반 LV 149 를 찍으면 초월이 열리고, 초월 만렙에서 개벽이 열립니다. 단계가 열리면 레벨은 0부터 다시 시작합니다.',
-  },
-  {
-    q: '확률표에 뜨는 숫자는 무엇인가요',
-    a: '파칭코 · 사다리 화면의 확률표는 실제로 돌아가는 값을 그대로 읽어 그립니다. 따로 적어둔 숫자가 아닙니다.',
-  },
-  {
-    q: '레벨은 어떻게 오르나요',
-    a: `기록을 남기면 EXP 가 들어옵니다. ${EXP_LINE} 입니다. 파칭코 · 사다리에서 받은 EXP 도 여기에 더해집니다.`,
-  },
-  {
-    q: '미니게임은 하루 몇 판인가요',
-    a: `원판 피하기는 ${PLAY_LINE}입니다. 판 수를 막아두는 이유는, 여기서 얻는 티켓만 기록이 아니라 저장된 값이기 때문입니다.`,
-  },
-  {
-    q: '기록이 사라지면 어떻게 하나요',
-    a: '기록은 서버에 저장됩니다. 기기를 바꿔도 같은 계정으로 로그인하면 그대로 있습니다. 안 보이면 아래 제보함에 남겨주세요.',
-  },
-  // 정지 규칙은 backend/src/utils/abusePolicy.js 가 갖고 있다. 서버에서 내려받는 값이 아니라
-  // 여기 문장으로 풀어 적은 것이라, 규칙을 바꾸면 이 답도 같이 고쳐야 한다
-  {
-    q: '정지당했는데 언제 풀리나요',
-    a: '제보에 욕설이 들어가면 처음에는 경고만 하고, 되풀이하면 1일 → 3일 → 7일로 늘어납니다. 남을 깎아내리는 말은 처음부터 7일입니다. 가장 긴 것이 7일이고 계정이나 운동 기록을 지우는 일은 없습니다. 잘못 걸렸다고 생각되시면 풀린 뒤에 제보함으로 알려주세요 — 확인해서 되돌리고 걸린 말도 빼둡니다.',
-  },
-];
 
 function Sec({ children }) {
   return (

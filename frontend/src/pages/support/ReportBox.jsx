@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
+import { FAQ, matchFaq } from './faq';
 import { useIntroStats } from './introData';
 import { usePachinkoStore } from '../../store/pachinkoStore';
 import { usePlateStore } from '../../store/plateStore';
@@ -101,6 +102,88 @@ function useDeviceInfo() {
   }, [stats.totalWorkouts, stats.totalInbody, stats.lv, used, purchased, unlimited]);
 }
 
+
+// ── 먼저 물어본다 ──
+//
+// 유형을 고르기 전에 한 번 묻는다. 답이 이미 있는 질문을 제보로 받으면 물어본 사람은
+// 며칠을 기다리고, 답하는 쪽은 같은 답을 또 쓴다. 여기서 끝나면 둘 다 안 한다.
+//
+// 막지는 않는다 — 답을 못 찾았으면 그대로 유형을 골라 적으면 된다.
+// 「찾는 게 없다」 를 누르게 하지도 않는다. 그런 관문은 사람을 돌려보내는 데만 쓰인다.
+function AskFirst() {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const typed = q.trim().length >= 2;
+  const hits = typed ? matchFaq(q) : [];
+  const list = typed ? hits : (showAll ? FAQ : []);
+
+  return (
+    <div style={{ paddingTop: 18 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>
+        무엇이 궁금하세요?
+      </div>
+      <input
+        className="input"
+        value={q}
+        onChange={e => setQ(e.target.value.slice(0, 40))}
+        placeholder="예) 티켓, 레벨, 기록이 사라졌어요"
+        style={{ marginBottom: 10 }}
+      />
+
+      {typed && hits.length === 0 && (
+        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, padding: '4px 0 8px' }}>
+          여기에는 답이 없네요. 위에서 유형을 고르고 적어주시면 확인하고 답을 답니다.
+        </div>
+      )}
+
+      {list.map((f) => {
+        const on = open === f.q;
+        return (
+          <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
+            <div
+              onClick={() => setOpen(on ? null : f.q)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
+            >
+              <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
+                {f.q}
+              </span>
+              <span style={{
+                color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
+                transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
+              }}>+</span>
+            </div>
+            {on && (
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85, padding: '0 0 14px' }}>
+                {f.a}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {!typed && (
+        <button
+          onClick={() => setShowAll(v => !v)}
+          style={{
+            background: 'none', border: 'none', padding: '6px 0 0', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: 12.5,
+          }}
+        >{showAll ? '접기' : `자주 묻는 것 ${FAQ.length}가지 펼쳐보기`}</button>
+      )}
+
+      <div style={{
+        fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75,
+        borderTop: '1px solid var(--border)', marginTop: 14, paddingTop: 12,
+      }}>
+        여기서 못 찾으셨으면 위에서 유형을 골라주세요.<br />
+        버그는 재현할 정보를, 문의는 질문만, 건의는 아쉬웠던 상황을 받습니다.
+      </div>
+    </div>
+  );
+}
+
 // embedded — 고객센터 안에 한 섹션으로 얹을 때 쓴다.
 export default function ReportBox({ embedded = false }) {
   const [kind, setKind] = useState('');
@@ -123,8 +206,14 @@ export default function ReportBox({ embedded = false }) {
   const [open, setOpen] = useState(null);
   const [filter, setFilter] = useState('all');
   const [sent, setSent] = useState(false);
+  // 제목을 치는 동안 답이 이미 있는 질문인지 찾아본다
+  const [openHint, setOpenHint] = useState(null);
 
   const k = kind ? kindOf(kind) : null;
+
+  // 제목에서 자주 묻는 것을 찾는다. 두 개까지만 — 세 개가 넘으면 폼 위에 답이 쌓여
+  // 무엇을 적으러 왔는지가 가려진다
+  const titleHits = useMemo(() => matchFaq(title, 2), [title]);
 
   // 고객센터가 이미 불러왔으면 진행 중인 요청에 얹힌다 (store 가 하나로 묶는다)
   useEffect(() => { fetchReports(); }, [fetchReports]);
@@ -298,13 +387,7 @@ export default function ReportBox({ embedded = false }) {
 
         {/* 유형을 고르기 전에는 아래를 열지 않는다 — 무엇을 물을지가 유형마다 다르다 */}
         {!kind ? (
-          <div style={{
-            textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5,
-            padding: '22px 10px 6px', lineHeight: 1.7,
-          }}>
-            고르시면 그에 맞춰 물어봅니다.<br />
-            버그는 재현할 정보를, 문의는 질문만, 건의는 아쉬웠던 상황을 받습니다.
-          </div>
+          <AskFirst />
         ) : (
           <>
             <label className="label">{k.titleLabel}</label>
@@ -313,8 +396,46 @@ export default function ReportBox({ embedded = false }) {
               value={title}
               onChange={e => setTitle(e.target.value.slice(0, 60))}
               placeholder={k.titleHint}
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: titleHits.length ? 10 : 16 }}
             />
+
+            {/* 치는 동안 답이 이미 있는 질문인지 알려준다.
+                막지는 않는다 — 답이 아니면 그대로 마저 적으면 된다 */}
+            {titleHits.length > 0 && (
+              <div style={{
+                border: '1px solid var(--border)', borderLeft: '2px solid var(--accent)',
+                borderRadius: 'var(--radius)', padding: '10px 12px', marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 11.5, color: 'var(--accent)', marginBottom: 4 }}>
+                  혹시 이걸 찾으시나요?
+                </div>
+                {titleHits.map(f => {
+                  const on = openHint === f.q;
+                  return (
+                    <div key={f.q}>
+                      <div
+                        onClick={() => setOpenHint(on ? null : f.q)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '5px 0', cursor: 'pointer',
+                        }}
+                      >
+                        <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1 }}>{f.q}</span>
+                        <span style={{
+                          color: 'var(--text-muted)', fontSize: 13, flexShrink: 0,
+                          transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
+                        }}>+</span>
+                      </div>
+                      {on && (
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '0 0 8px' }}>
+                          {f.a}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* ── 버그 전용 ── */}
             {kind === 'bug' && (
