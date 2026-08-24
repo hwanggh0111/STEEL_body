@@ -103,13 +103,16 @@ function useDeviceInfo() {
 }
 
 
-// ── 먼저 물어본다 ──
+// ── 먼저 여쭤보는 자리 ──
 //
-// 유형을 고르기 전에 한 번 묻는다. 답이 이미 있는 질문을 제보로 받으면 물어본 사람은
+// 유형을 고르기 전에 한 번 묻는다. 답이 이미 있는 질문을 제보로 받으면 물어보신 분은
 // 며칠을 기다리고, 답하는 쪽은 같은 답을 또 쓴다. 여기서 끝나면 둘 다 안 한다.
 //
-// 막지는 않는다 — 답을 못 찾았으면 그대로 유형을 골라 적으면 된다.
-// 「찾는 게 없다」 를 누르게 하지도 않는다. 그런 관문은 사람을 돌려보내는 데만 쓰인다.
+// 두 가지를 지킨다.
+//   1. 막지 않는다 — 「찾는 게 없다」를 눌러야 폼이 열리는 관문은 사람을 돌려보내는 데만 쓰인다
+//   2. 몰아세우지 않는다 — 처음 화면은 사무적인 안내문이었다. 무엇을 쳐야 할지 모르는
+//      사람에게 빈 칸만 들이밀고 "못 찾으면 위에서 고르세요" 라고 하면 쫓아내는 말로 읽힌다.
+//      그래서 주제를 눌러서 바로 볼 수 있게 두고, 문장도 여쭙는 말로 바꿨다
 function AskFirst() {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null);
@@ -119,66 +122,105 @@ function AskFirst() {
   const hits = typed ? matchFaq(q) : [];
   const list = typed ? hits : (showAll ? FAQ : []);
 
+  // 주제를 누르면 그 자리에서 답까지 펼친다 — 한 번 더 누르게 하지 않는다
+  const pickTopic = (item) => {
+    setQ(item.topic);
+    setOpen(item.q);
+    setShowAll(false);
+  };
+
   return (
-    <div style={{ paddingTop: 18 }}>
-      <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>
-        무엇이 궁금하세요?
-      </div>
-      <input
-        className="input"
-        value={q}
-        onChange={e => setQ(e.target.value.slice(0, 40))}
-        placeholder="예) 티켓, 레벨, 기록이 사라졌어요"
-        style={{ marginBottom: 10 }}
-      />
-
-      {typed && hits.length === 0 && (
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, padding: '4px 0 8px' }}>
-          여기에는 답이 없네요. 위에서 유형을 고르고 적어주시면 확인하고 답을 답니다.
-        </div>
-      )}
-
-      {list.map((f) => {
-        const on = open === f.q;
-        return (
-          <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
-            <div
-              onClick={() => setOpen(on ? null : f.q)}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
-            >
-              <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
-                {f.q}
-              </span>
-              <span style={{
-                color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
-                transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
-              }}>+</span>
-            </div>
-            {on && (
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85, padding: '0 0 14px' }}>
-                {f.a}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {!typed && (
-        <button
-          onClick={() => setShowAll(v => !v)}
-          style={{
-            background: 'none', border: 'none', padding: '6px 0 0', cursor: 'pointer',
-            color: 'var(--text-muted)', fontSize: 12.5,
-          }}
-        >{showAll ? '접기' : `자주 묻는 것 ${FAQ.length}가지 펼쳐보기`}</button>
-      )}
-
+    <div style={{ paddingTop: 20 }}>
       <div style={{
-        fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75,
-        borderTop: '1px solid var(--border)', marginTop: 14, paddingTop: 12,
+        background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
+        borderLeft: '2px solid var(--accent)', padding: '16px 16px 14px',
       }}>
-        여기서 못 찾으셨으면 위에서 유형을 골라주세요.<br />
-        버그는 재현할 정보를, 문의는 질문만, 건의는 아쉬웠던 상황을 받습니다.
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+          <span style={{ fontSize: 15 }}>💬</span>
+          <span style={{ fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 500 }}>
+            먼저 하나만 여쭐게요
+          </span>
+        </div>
+        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' }}>
+          궁금해서 오신 거라면 여기서 바로 답을 드릴 수 있어요.<br />
+          기다리지 않으셔도 되니까요.
+        </p>
+
+        <input
+          className="input"
+          value={q}
+          onChange={e => { setQ(e.target.value.slice(0, 40)); setOpen(null); }}
+          placeholder="어떤 게 궁금하신가요?"
+          style={{ marginBottom: 10, background: 'var(--bg-secondary)' }}
+        />
+
+        {/* 무엇을 쳐야 할지 모르는 사람이 대부분이다. 눌러서 바로 볼 수 있게 둔다 */}
+        {!typed && !showAll && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            {FAQ.map(f => (
+              <button
+                key={f.q}
+                onClick={() => pickTopic(f)}
+                style={{
+                  padding: '6px 11px', fontSize: 12, cursor: 'pointer',
+                  borderRadius: 'var(--radius)', border: '1px solid var(--border-hover)',
+                  background: 'transparent', color: 'var(--text-secondary)',
+                }}
+              >{f.topic}</button>
+            ))}
+          </div>
+        )}
+
+        {typed && hits.length === 0 && (
+          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '2px 0 6px' }}>
+            여기에는 딱 맞는 답이 없네요.<br />
+            <span style={{ color: 'var(--text-muted)' }}>
+              그 이야기는 제가 직접 듣는 게 낫겠습니다 — 위에서 유형만 골라주세요.
+            </span>
+          </div>
+        )}
+
+        {list.map((f) => {
+          const on = open === f.q;
+          return (
+            <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
+              <div
+                onClick={() => setOpen(on ? null : f.q)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
+              >
+                <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
+                  {f.q}
+                </span>
+                <span style={{
+                  color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
+                  transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
+                }}>+</span>
+              </div>
+              {on && (
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85, padding: '0 0 14px' }}>
+                  {f.a}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {!typed && (
+          <button
+            onClick={() => { setShowAll(v => !v); setOpen(null); }}
+            style={{
+              background: 'none', border: 'none', padding: '10px 0 0', cursor: 'pointer',
+              color: 'var(--text-muted)', fontSize: 12.5,
+            }}
+          >{showAll ? '접기' : `자주 묻는 것 ${FAQ.length}가지 모두 보기`}</button>
+        )}
+      </div>
+
+      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.85, padding: '14px 2px 0' }}>
+        찾으시는 게 없어도 괜찮습니다. 위에서 유형만 골라주시면 나머지는 제가 여쭤볼게요 —
+        버그는 <b style={{ color: 'var(--text-secondary)' }}>어떻게 하면 그렇게 되는지</b>,
+        문의는 <b style={{ color: 'var(--text-secondary)' }}>궁금하신 것만</b>,
+        건의는 <b style={{ color: 'var(--text-secondary)' }}>어떤 게 아쉬우셨는지</b> 여쭙습니다.
       </div>
     </div>
   );
