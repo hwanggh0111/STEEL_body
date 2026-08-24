@@ -155,7 +155,7 @@ export default function InbodyPage() {
       await deleteRecord(id);
       toast('삭제 완료!');
     } catch {
-      toast('삭제 실패');
+      toast('삭제하지 못했어요', 'error');
     }
   };
 

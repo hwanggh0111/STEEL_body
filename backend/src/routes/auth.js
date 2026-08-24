@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
+const { JWT, BCRYPT_ROUNDS } = require('../config/security');
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
@@ -36,10 +37,10 @@ function issueTokens(res, user) {
   const accessToken = jwt.sign(
     { userId: user.id, role: user.role || 'user' },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', algorithm: 'HS256' }
+    { expiresIn: JWT.accessExpiry, algorithm: JWT.algorithm }
   );
   const refreshToken = crypto.randomBytes(48).toString('hex');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + JWT.refreshMs).toISOString();
   db.saveRefreshToken(user.id, refreshToken, expiresAt);
 
   const csrfToken = crypto.randomBytes(24).toString('hex');
@@ -187,7 +188,7 @@ router.post('/register', async (req, res) => {
   }
 
   const safeNickname = sanitize(nickname);
-  const hashed = await bcrypt.hash(password, 12);
+  const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
   if (!hashed || !hashed.startsWith('$2')) {
     return res.status(500).json({ error: '서버 오류가 발생했어요. 다시 시도해주세요' });
   }
@@ -376,7 +377,7 @@ router.post('/reset-password', async (req, res) => {
   delete verifyAttempts[email];
 
   if (user) {
-    const hashed = await bcrypt.hash(newPassword, 12);
+    const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     if (!hashed || !hashed.startsWith('$2')) {
       return res.status(500).json({ error: '서버 오류. 다시 시도해주세요' });
     }
@@ -406,7 +407,7 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   const valid = await bcrypt.compare(currentPassword, user.password);
   if (!valid) return res.status(401).json({ error: '현재 비밀번호가 틀렸어요' });
-  const hashed = await bcrypt.hash(newPassword, 12);
+  const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   if (!hashed || !hashed.startsWith('$2')) {
     return res.status(500).json({ error: '서버 오류. 다시 시도해주세요' });
   }

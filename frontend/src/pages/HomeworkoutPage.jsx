@@ -57,6 +57,9 @@ const PROGRAMS = {
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
+// 고르기 전 빈 목록. 매 렌더 새로 만들면 effect 가 그때마다 다시 돈다
+const EMPTY = [];
+
 export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
   const [running, setRunning] = useState(false);
@@ -64,71 +67,76 @@ export default function HomeworkoutPage() {
   const [isRest, setIsRest] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [finished, setFinished] = useState(false);
-  const timerRef = useRef(null);
   const navigate = useNavigate();
 
-  const exercises = selected ? PROGRAMS[selected] : [];
+  const exercises = selected ? PROGRAMS[selected] : EMPTY;
   const current = exercises[currentIdx];
 
-  // 타이머 로직
-  useEffect(() => {
-    if (!running) return;
+  // 지금 어느 단계인지. 화면 상태와 따로 ref 로도 들고 있는다 —
+  // 1초마다 도는 타이머가 옛 렌더의 값을 붙잡고 있으면 안 된다
+  const phaseRef = useRef({ idx: 0, rest: false, done: true });
+  // 끝나는 시각. 남은 초를 1씩 빼는 대신 시계로 계산한다.
+  // 빼는 방식은 화면을 내리거나 다른 탭을 보는 동안 브라우저가 타이머를 늦춰서,
+  // 30초 플랭크가 1분이 되고 그동안 숫자는 멈춰 있다
+  const deadlineRef = useRef(0);
 
-    if (timeLeft <= 0) {
-      // 다음 단계로
-      if (isRest) {
-        // 휴식 끝 → 다음 운동
-        setIsRest(false);
-        setCurrentIdx(prev => prev + 1);
-      } else {
-        // 운동 끝
-        if (current?.rest > 0 && currentIdx < exercises.length - 1) {
-          // 휴식 시작
-          setIsRest(true);
-          setTimeLeft(current.rest);
-          return;
-        } else {
-          // 마지막 운동이거나 휴식 없음
-          const nextIdx = currentIdx + 1;
-          if (nextIdx >= exercises.length) {
-            // 프로그램 완료
-            setRunning(false);
-            setFinished(true);
-            toast('홈트 완료!');
-            return;
-          }
-          setCurrentIdx(nextIdx);
-        }
-      }
+  // 단계 전환은 여기 한 곳에서만 한다.
+  //
+  // 예전에는 effect 두 개가 각자 timeLeft 를 건드렸다. 휴식이 끝나 다음 운동으로
+  // 넘어가는 commit 에서 둘이 같이 돌면서 서로를 덮어썼고, 그 결과 두 번째 운동부터는
+  // 운동 단계가 통째로 사라지고 휴식만 운동 시간만큼 이어졌다.
+  const beginPhase = (idx, rest) => {
+    const step = exercises[idx];
+    if (!step) return;
+    const seconds = rest ? step.rest : step.duration;
+    phaseRef.current = { idx, rest, done: false };
+    deadlineRef.current = Date.now() + seconds * 1000;
+    setCurrentIdx(idx);
+    setIsRest(rest);
+    setTimeLeft(seconds);
+  };
+
+  const advance = () => {
+    const { idx, rest } = phaseRef.current;
+    // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
+    if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
+      beginPhase(idx, true);
       return;
     }
-
-    timerRef.current = setTimeout(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-
-    return () => clearTimeout(timerRef.current);
-  }, [running, timeLeft, isRest, currentIdx]);
-
-  // currentIdx 변경 시 운동 시간 세팅
-  useEffect(() => {
-    if (running && !isRest && exercises[currentIdx]) {
-      setTimeLeft(exercises[currentIdx].duration);
+    const next = idx + 1;
+    if (next >= exercises.length) {
+      phaseRef.current = { idx, rest, done: true };
+      setRunning(false);
+      setFinished(true);
+      toast('홈트 완료!');
+      return;
     }
-  }, [currentIdx, running, isRest, exercises]);
+    beginPhase(next, false);
+  };
+
+  useEffect(() => {
+    if (!running) return;
+    // 250ms 마다 시계를 다시 본다. 1초 간격으로 재면 백그라운드에서 흐르지 않는다
+    const id = setInterval(() => {
+      if (phaseRef.current.done) return;
+      const remain = deadlineRef.current - Date.now();
+      // 올림으로 센다. 반올림하면 마지막 0.5초가 잘려 단계마다 조금씩 짧아진다
+      setTimeLeft(Math.max(0, Math.ceil(remain / 1000)));
+      if (remain <= 0) advance();
+    }, 250);
+    return () => clearInterval(id);
+  }, [running, selected]);
 
   const startProgram = () => {
     if (!exercises.length) return;
-    setCurrentIdx(0);
-    setIsRest(false);
     setFinished(false);
-    setTimeLeft(exercises[0].duration);
     setRunning(true);
+    beginPhase(0, false);
   };
 
   const stopProgram = () => {
+    phaseRef.current = { ...phaseRef.current, done: true };
     setRunning(false);
-    clearTimeout(timerRef.current);
   };
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);

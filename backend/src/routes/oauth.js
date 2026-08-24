@@ -3,6 +3,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
+const { JWT, BCRYPT_ROUNDS } = require('../config/security');
 const { sanitize } = require('../utils/sanitize');
 
 const crypto = require('crypto');
@@ -37,16 +38,16 @@ function setAuthCookies(res, user) {
   const accessToken = jwt.sign(
     { userId: user.id, role: user.role || 'user' },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', algorithm: 'HS256' }
+    { expiresIn: JWT.accessExpiry, algorithm: JWT.algorithm }
   );
   const refreshToken = crypto.randomBytes(48).toString('hex');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + JWT.refreshMs).toISOString();
   db.saveRefreshToken(user.id, refreshToken, expiresAt);
   const csrfToken = crypto.randomBytes(24).toString('hex');
 
   res.cookie('sb_access', accessToken, { httpOnly: true, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/', maxAge: 15 * 60 * 1000 });
-  res.cookie('sb_refresh', refreshToken, { httpOnly: true, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/api/auth', maxAge: 7 * 24 * 60 * 60 * 1000 });
-  res.cookie('sb_csrf', csrfToken, { httpOnly: false, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('sb_refresh', refreshToken, { httpOnly: true, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/api/auth', maxAge: JWT.refreshMs });
+  res.cookie('sb_csrf', csrfToken, { httpOnly: false, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/', maxAge: JWT.refreshMs });
 }
 
 // 요청 기반으로 백엔드/프론트엔드 URL 결정 (모바일/터널 지원)
@@ -74,7 +75,7 @@ async function findOrCreateUser(email, rawNickname, provider) {
   const safeNickname = (sanitize(String(rawNickname || '')).slice(0, 30) || (provider + '_user'));
   let user = db.findUserByEmail(email);
   if (!user) {
-    const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 12);
+    const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
     const username = provider + '_' + crypto.randomBytes(4).toString('hex');
     db.createUser(email, randomPw, safeNickname, username);
     user = db.findUserByEmail(email);
@@ -88,14 +89,22 @@ async function findOrCreateUser(email, rawNickname, provider) {
 }
 
 // ─── Google ───────────────────────────
-function generateState() {
+// state 를 만들면서 곧바로 등록까지 한다.
+//
+// 예전에는 만들기만 하고 등록은 부르는 쪽이 따로 했다. 구글만 그 줄을 갖고 있었고
+// 네이버 · 페이스북 · 인스타그램은 빠져 있어서, 콜백의 validateState 가 언제나
+// 'has(state) === false' 로 떨어졌다 — 세 곳 모두 invalid_state 로 100% 실패했다.
+// 등록을 발급 안으로 넣어 빠뜨릴 수 없게 한다.
+function generateState(referer = '') {
   // Map 크기 제한
   if (oauthStates.size >= MAX_OAUTH_STATES) {
     const oldest = oauthStates.keys().next().value;
     oauthStates.delete(oldest);
   }
   const s = crypto.randomBytes(16).toString('hex');
-  setTimeout(() => oauthStates.delete(s), 10 * 60 * 1000);
+  oauthStates.set(s, { time: Date.now(), referer });
+  // 10분이 지나면 스스로 사라진다. 타이머가 프로세스를 붙잡지 않게 unref 한다
+  setTimeout(() => oauthStates.delete(s), 10 * 60 * 1000).unref?.();
   return s;
 }
 
@@ -114,10 +123,8 @@ function validateState(state) {
 // Google 리다이렉트 방식 (요청 호스트 기반 — 터널/localhost 모두 지원)
 router.get('/google', (req, res) => {
   const { backendUrl } = getUrls(req);
-  const state = generateState();
-  // state에 프론트엔드 referer 저장 (콜백에서 사용)
-  const referer = req.get('referer') || '';
-  oauthStates.set(state, { time: Date.now(), referer });
+  // state 에 프론트엔드 referer 를 같이 담아둔다 (콜백에서 돌아갈 곳을 정하는 데 쓴다)
+  const state = generateState(req.get('referer') || '');
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: `${backendUrl}/api/oauth/google/callback`,

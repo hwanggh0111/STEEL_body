@@ -313,6 +313,19 @@ const db = {
     save(data);
     return { lastInsertRowid: id };
   },
+  // 루틴에 운동을 더 넣을 때 쓴다. 이름을 바꾸는 데도 같은 자리를 쓴다.
+  // 남의 루틴은 못 고친다 — user_id 까지 맞아야 찾는다
+  updateMyRoutine(id, userId, fields) {
+    const data = load();
+    if (!data.myRoutines) return { changes: 0 };
+    const record = data.myRoutines.find(r => r.id === id && r.user_id === userId);
+    if (!record) return { changes: 0 };
+    if (fields.name !== undefined) record.name = fields.name;
+    if (fields.exercises !== undefined) record.exercises = fields.exercises;
+    record.updated_at = new Date().toISOString();
+    save(data);
+    return { changes: 1, record };
+  },
   deleteMyRoutine(id, userId) {
     const data = load();
     if (!data.myRoutines) return { changes: 0 };

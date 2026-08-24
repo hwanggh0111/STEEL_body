@@ -38,7 +38,7 @@ export default function MeasurePage() {
   useEffect(() => {
     client.get('/measures')
       .then(({ data }) => setMeasures(data))
-      .catch(() => toast('측정 데이터를 불러오지 못했어요'))
+      .catch(() => toast('측정 데이터를 불러오지 못했어요', 'error'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,7 +53,7 @@ export default function MeasurePage() {
       setMeasures(refreshed);
       toast('저장 완료!');
     } catch {
-      toast('저장에 실패했어요');
+      toast('저장에 실패했어요', 'error');
     }
   };
 
@@ -65,7 +65,7 @@ export default function MeasurePage() {
       setMeasures(prev => prev.filter(m => m.id !== Number(id)));
       toast('삭제 완료!');
     } catch {
-      toast('삭제에 실패했어요');
+      toast('삭제에 실패했어요', 'error');
     }
   };
 

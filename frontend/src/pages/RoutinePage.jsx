@@ -25,16 +25,39 @@ export default function RoutinePage() {
   useEffect(() => {
     client.get('/my-routines')
       .then(({ data }) => setMyRoutines(data))
-      .catch(() => toast('루틴을 불러오지 못했어요'));
+      .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
   }, []);
 
   const saveMyRoutine = async (routine) => {
     try {
       const { data: saved } = await client.post('/my-routines', routine);
-      setMyRoutines(prev => [...prev, { id: saved.id, ...routine }]);
+      // 서버가 정한 id 가 뒤에 와야 한다. routine 을 뒤에 펴면 id 가 덮인다
+      setMyRoutines(prev => [...prev, { ...routine, id: saved.id }]);
       toast('루틴이 저장됐습니다!');
     } catch {
-      toast('루틴 저장에 실패했어요');
+      toast('루틴 저장에 실패했어요', 'error');
+    }
+  };
+
+  // 이미 있는 루틴에 운동 하나를 더 넣는다.
+  //
+  // 예전에는 이 길이 없었다. 같은 이름의 루틴이 있으면 "이미 포함된 운동이에요" 라고
+  // 돌려보냈는데, 실제로 그 운동이 들어 있는지는 보지도 않았다. 그래서 `머신 가슴 루틴`을
+  // 한 번 만들고 나면 거기에 두 번째 운동을 영영 못 넣었다.
+  const addToRoutine = async (routine, exercise) => {
+    const id = routine.id ?? routine._id;
+    const list = Array.isArray(routine.exercises) ? routine.exercises : [];
+    if (list.some(e => (typeof e === 'string' ? e : e?.name) === exercise.name)) {
+      toast(`"${routine.name}"에 이미 있는 운동이에요`);
+      return;
+    }
+    const next = [...list, exercise];
+    try {
+      await client.put(`/my-routines/${id}`, { exercises: next });
+      setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, exercises: next } : r)));
+      toast(`"${routine.name}"에 ${exercise.name} 을(를) 넣었어요`);
+    } catch {
+      toast('루틴에 넣지 못했어요', 'error');
     }
   };
 
@@ -42,8 +65,9 @@ export default function RoutinePage() {
     try {
       await client.delete(`/my-routines/${id}`);
       setMyRoutines(prev => prev.filter(r => (r._id || r.id) !== id));
+      toast('루틴을 지웠어요');
     } catch {
-      toast('루틴 삭제에 실패했어요');
+      toast('루틴 삭제에 실패했어요', 'error');
     }
   };
 
@@ -55,7 +79,7 @@ export default function RoutinePage() {
     setPart(PARTS_MAP[type]?.[0] || '가슴');
     client.get(`/routines/${type}`)
       .then(({ data }) => setRoutines(data))
-      .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요'); })
+      .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요', 'error'); })
       .finally(() => setLoading(false));
   }, [type]);
 
@@ -174,11 +198,8 @@ export default function RoutinePage() {
                       const exercise = { name, sets: sets || '3', reps: reps || '10' };
                       const routineName = `${type} ${part} 루틴`;
                       const existing = myRoutines.find(r => r.name === routineName);
-                      if (existing) {
-                        toast(`이미 "${routineName}"에 포함된 운동이에요`);
-                      } else {
-                        saveMyRoutine({ name: routineName, exercises: [exercise] });
-                      }
+                      if (existing) addToRoutine(existing, exercise);
+                      else saveMyRoutine({ name: routineName, exercises: [exercise] });
                     }}
                   >
                     + 내 루틴에 추가

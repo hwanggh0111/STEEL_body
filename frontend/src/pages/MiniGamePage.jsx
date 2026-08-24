@@ -4,9 +4,11 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
 import { usePachinkoStore } from '../store/pachinkoStore';
 import { usePlateStore } from '../store/plateStore';
-import { earnedTickets } from '../components/PachinkoSystem';
 import PlateDodge from '../components/PlateDodge';
-import { TICKET_RULE, ticketsAvailable, ticketText } from '../data/pachinkoData';
+// 티켓 계산은 data/pachinkoData 에서 바로 가져온다.
+// PachinkoSystem 이 재수출하고 있어 거기서도 되지만, 그러면 함수 하나 때문에
+// 파칭코 화면 전체가 이 페이지 번들에 딸려 들어온다 (8/21 에 제보 폼에서 겪은 것과 같다)
+import { TICKET_RULE, ticketsAvailable, ticketText, earnedTickets } from '../data/pachinkoData';
 import { PLATE_RULE, todayKey } from '../data/plateData';
 
 // 미니게임 전용 페이지.

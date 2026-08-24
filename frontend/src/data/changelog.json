@@ -1,6 +1,15 @@
 {
-  "generated": "2026-08-21",
+  "generated": "2026-08-24",
   "items": [
+    {
+      "hash": "1c98ee1",
+      "date": "2026-08-24",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "고객센터",
+      "text": "소개 · 공지함 · 제보함을 한 페이지로 앱에 붙인다",
+      "detail": "더보기 탭에 고객센터가 생겼습니다.\n\n· 무엇이 바뀌었는지 — 최근 여섯 줄을 여기서 보고, 전부 보려면 공지함으로 들어갑니다\n· 자주 묻는 것 — 티켓 · 초월 · 확률표 · 레벨 · 미니게임 판 수 · 기록 보관 · 정지 일곱 가지\n· 제보함 — 버그 · 문의 · 건의를 남기면 확인하고 여기에 답을 답니다\n\n홈 검색창에서 '고객센터' 나 '문의' 로도 바로 열립니다.\n\n설명에 쓰는 숫자는 손으로 적지 않습니다. 티켓 규칙 · EXP · 원판 교환비 ·\n하루 판 수를 전부 실제 상수에서 읽어 오기 때문에, 밸런스를 바꾸면 설명이 따라옵니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
     {
       "hash": "106f018",
       "date": "2026-08-21",
@@ -351,15 +360,6 @@
       "scope": null,
       "text": "홈 검색 항목 대폭 확장 + 측정 탭 자동 선택",
       "detail": "검색 항목 10 → 22개:\n- 페이지: 이벤트, 관리자(adminOnly) 추가\n- 측정 서브 기능 7개 (전신/어깨/1RM/체력/심박수/스톱워치/유연성)\n  → tab 필드로 측정 페이지 진입 시 해당 탭 자동 선택\n- 홈 내부 섹션 4개 (레벨/미션/뱃지/이번주)\n- 키워드 보강 (BMI, 챌린지, 출석, 도장 등)\n\n측정 페이지:\n- useLocation 훅으로 navigate state.tab 읽어서 초기 탭 설정\n- state.tab 변경 감지하여 탭 동기화\n\n검색 결과 필터:\n- adminOnly 항목은 관리자에게만 노출 (isAdmin() 체크)\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
-    },
-    {
-      "hash": "f3c8551",
-      "date": "2026-05-04",
-      "type": "feat",
-      "label": "바뀜",
-      "scope": null,
-      "text": "라이트 모드 이벤트 배너 + 레벨 시스템 50레벨 개편",
-      "detail": "라이트 모드 색상 통일:\n- globals.css에 이벤트용 CSS 변수 추가 (라이트/다크 분기)\n- LaunchEvent.jsx의 다크 가정 하드코딩 색상 (rgba 흰색 투명도 등) 모두 var()로 교체\n- HomePage.jsx의 GRAND LAUNCH EVENT 배너도 같은 변수 사용\n\n레벨 시스템 개편:\n- LEVEL_TABLE 100레벨 → 50레벨 (10티어 × 5레벨)\n- EXP 공식 1.5배 상향: workouts*10+inbody*20 → workouts*15+inbody*30\n- UI 개선: 티어 칩, 큰 레벨 숫자, 다음 티어까지 진행도, 티어별 그룹핑된 전체 레벨 보기\n- authStore의 관리자 자동 만렙 100 → 50으로 동기화\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
     }
   ]
 }

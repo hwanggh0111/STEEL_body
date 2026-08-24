@@ -37,8 +37,12 @@ export default function HistoryPage() {
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
+        // 문서에 붙이지 않은 링크는 클릭해도 아무 일이 안 일어나는 브라우저가 있다.
+        // 그리고 곧바로 revoke 하면 내려받기가 시작되기 전에 주소가 사라져 빈 파일이 된다
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
         toast(`${type === 'inbody' ? '인바디' : '운동'} CSV 내보내기 완료!`);
       })
       .catch(() => toast('내보내기에 실패했어요', 'error'));
@@ -47,6 +51,15 @@ export default function HistoryPage() {
   const allExercises = useMemo(() => [...new Set(Object.values(workouts).flat().map(w => w.exercise).filter(Boolean))].sort(), [workouts]);
 
   const dates = useMemo(() => workouts ? Object.keys(workouts).sort().reverse() : [], [workouts]);
+
+  // 걸러낸 결과를 미리 세운다.
+  // 예전에는 날짜를 돌면서 빈 날을 null 로 건너뛰기만 했다. 그래서 고른 운동이
+  // 한 번도 없으면 목록 자리가 통째로 비어서 화면이 죽은 것처럼 보였다
+  const shownDates = useMemo(() => dates
+    .map(date => [date, filterExercise
+      ? (workouts[date] || []).filter(w => w.exercise === filterExercise)
+      : (workouts[date] || [])])
+    .filter(([, list]) => list.length > 0), [dates, workouts, filterExercise]);
   const totalDays = dates.length;
   const totalWorkouts = useMemo(() => workouts ? Object.values(workouts).flat().length : 0, [workouts]);
 
@@ -55,7 +68,7 @@ export default function HistoryPage() {
       await deleteWorkout(id);
       toast('삭제 완료!');
     } catch {
-      toast('삭제 실패');
+      toast('삭제하지 못했어요', 'error');
     }
   };
 
@@ -124,12 +137,14 @@ export default function HistoryPage() {
           <div className="empty-state-desc">아직 운동 기록이 없어요</div>
           <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/workout')}>+ 첫 운동 기록하기</button>
         </div>
+      ) : shownDates.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-title">해당하는 기록 없음</div>
+          <div className="empty-state-desc">'{filterExercise}' 을(를) 한 기록이 없어요</div>
+          <button className="btn-secondary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => setFilterExercise('')}>전체 운동 보기</button>
+        </div>
       ) : (
-        dates.map((date) => {
-          const filtered = filterExercise
-            ? (workouts[date] || []).filter(w => w.exercise === filterExercise)
-            : (workouts[date] || []);
-          if (filtered.length === 0) return null;
+        shownDates.map(([date, filtered]) => {
           return (
             <div key={date} style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, marginBottom: 6, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.5 }}>

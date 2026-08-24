@@ -4,6 +4,7 @@ const path = require('path');
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
 const aiGuard = require('../middleware/aiGuard');
+const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT } = require('../config/security');
 
 // 보안 로그 (메모리 + 파일 영속화)
 const LOG_PATH = path.join(__dirname, '../../security.log');
@@ -28,19 +29,25 @@ router.get('/dashboard', adminAuth, (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const todaySignups = users.filter(u => u.created_at && u.created_at.slice(0, 10) === today).length;
 
+  // 화면(SecurityPanel)이 읽는 모양 그대로 돌려준다.
+  //
+  // 예전에는 여기서 jwtAccessExpiresIn · helmetEnabled · corsOrigin 처럼 평평한 이름으로
+  // 보냈는데 화면은 jwt.expiry · helmet.enabled · cors.origins 를 읽었다. 그래서 대시보드가
+  // JWT 만료를 빈칸으로, Helmet 을 '비활성화 · 위험' 으로 (실제로는 켜져 있는데) 보여줬다.
+  // 숫자도 손으로 적어둔 값이라 실제와 달랐다 — 이제 config/security.js 를 읽는다.
   res.json({
     totalUsers: users.length,
     todaySignups,
-    rateLimit: {
-      windowMs: 15 * 60 * 1000,
-      max: 100,
+    jwt: {
+      expiry: JWT.accessExpiry,
+      refreshExpiry: JWT.refreshExpiry,
+      algorithm: JWT.algorithm,
     },
-    jwtAccessExpiresIn: '15m',
-    jwtRefreshExpiresIn: '7d',
-    bcryptRounds: 12,
-    helmetEnabled: true,
-    corsOrigin: process.env.FRONTEND_URL || '*',
-    bodyLimit: '3mb',
+    rateLimit: RATE_LIMITS,
+    bcryptRounds: BCRYPT_ROUNDS,
+    helmet: { enabled: true },
+    cors: { origins: (process.env.FRONTEND_URL || '').split(',').map(o => o.trim()).filter(Boolean) },
+    bodyLimit: BODY_LIMIT,
     nodeVersion: process.version,
   });
 });

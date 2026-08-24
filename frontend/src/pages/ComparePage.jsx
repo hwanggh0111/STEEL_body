@@ -73,7 +73,7 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
       // 사용자는 저장된 줄 안다. 어디에 저장됐는지를 그대로 말한다
       client.post('/photos', { type: photoKey, data })
         .then(() => toast('사진 저장!'))
-        .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다'));
+        .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다', 'error'));
     };
     reader.readAsDataURL(file);
   };

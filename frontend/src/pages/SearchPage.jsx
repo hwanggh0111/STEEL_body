@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -181,23 +181,30 @@ export default function SearchPage() {
   const [activeCategory, setActiveCategory] = useState(null);
   const navigate = useNavigate();
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  // 늦게 온 응답이 새 검색을 덮어쓰지 않게 요청에 번호를 매긴다.
+  // 외부 DB 라 8초까지 기다린다 — 두 번 치면 순서가 뒤집힐 시간이 충분하다
+  const seqRef = useRef(0);
+
+  // 글자로 치든 부위 버튼을 누르든 같은 길로 간다.
+  // 두 벌로 나눠 뒀더니 한쪽만 고쳐져서 동작이 갈렸다
+  const runSearch = async (raw, { category = null, translate = true } = {}) => {
+    const term = String(raw || '').trim();
+    if (!term) return;
+
+    const seq = ++seqRef.current;
     setLoading(true);
     setError('');
     setTranslated('');
     setVariations([]);
+    setActiveCategory(category);
 
-    let searchTerm = query.trim();
-
-    // 한국어면 세부 종류 찾기
-    if (lang === 'ko' || (lang === 'auto' && isKorean(searchTerm))) {
-      const vars = findVariations(searchTerm);
+    let searchTerm = term;
+    if (translate && (lang === 'ko' || (lang === 'auto' && isKorean(term)))) {
+      const vars = findVariations(term);
       if (vars.length > 1) setVariations(vars);
 
-      const en = translateQuery(searchTerm);
-      if (en !== searchTerm) {
+      const en = translateQuery(term);
+      if (en !== term) {
         setTranslated(en);
         searchTerm = en;
       }
@@ -208,31 +215,28 @@ export default function SearchPage() {
         `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(searchTerm)}&language=english&format=json`,
         { timeout: 8000 }
       );
+      if (seq !== seqRef.current) return;
       setResults(data.suggestions || []);
     } catch {
+      if (seq !== seqRef.current) return;
+      // 실패했는데 옛 결과가 남아 있으면, 오류 문구 아래 지난 검색이 그대로 붙어
+      // 검색이 된 것처럼 읽힌다
+      setResults([]);
       setError('검색 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   };
 
+  const handleSearch = (e) => {
+    e?.preventDefault();
+    runSearch(query);
+  };
+
+  // 부위 버튼은 이미 영어라 번역을 태우지 않는다
   const handleCategoryClick = (cat) => {
     setQuery(cat.en);
-    setActiveCategory(cat.key);
-    // Trigger search programmatically
-    setTimeout(() => {
-      setLoading(true);
-      setError('');
-      setTranslated('');
-      setVariations([]);
-      axios.get(
-        `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(cat.en)}&language=english&format=json`,
-        { timeout: 8000 }
-      )
-        .then(({ data }) => setResults(data.suggestions || []))
-        .catch(() => setError('검색 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.'))
-        .finally(() => setLoading(false));
-    }, 0);
+    runSearch(cat.en, { category: cat.key, translate: false });
   };
 
   return (

@@ -18,6 +18,7 @@ const cors    = require('cors');
 const helmet  = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const { RATE_LIMITS, BODY_LIMIT } = require('./config/security');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const aiGuard = require('./middleware/aiGuard');
@@ -93,7 +94,7 @@ app.use(cookieParser());
 
 // 요청 바디 크기 제한 + 프로토타입 오염 방지
 app.use(express.json({
-  limit: '3mb',
+  limit: BODY_LIMIT,
   reviver: (key, value) => {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
     return value;
@@ -122,10 +123,9 @@ app.use((req, res, next) => {
 // 만료된 refresh token 정리 (30분마다)
 setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); } }, 30 * 60 * 1000);
 
-// 글로벌 Rate Limit (분당 100회)
+// 글로벌 Rate Limit — 숫자는 config/security.js 에 있다 (보안 대시보드가 같은 값을 읽는다)
 app.use(rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
+  ...RATE_LIMITS.global,
   message: { error: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -133,37 +133,31 @@ app.use(rateLimit({
 
 // 인증 관련 엄격한 Rate Limit
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 20,
+  ...RATE_LIMITS.login,
   message: { error: 'Too many attempts. Try again later.' },
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/send-code', rateLimit({
-  windowMs: 60 * 1000, // 1분
-  max: 3,
+  ...RATE_LIMITS.authCode,
   message: { error: 'Too many requests. Wait a moment.' },
 }));
 app.use('/api/auth/verify-code', rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  ...RATE_LIMITS.verifyCode,
   message: { error: 'Too many attempts.' },
 }));
 app.use('/api/auth/check-username', rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
+  ...RATE_LIMITS.checkName,
   message: { error: 'Too many requests.' },
 }));
 app.use('/api/auth/check-email', rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
+  ...RATE_LIMITS.checkEmail,
   message: { error: 'Too many requests.' },
 }));
 
 // OAuth Rate Limit (IP당 시간당 10회)
 app.use('/api/oauth', rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
+  ...RATE_LIMITS.oauth,
   message: { error: 'Too many OAuth attempts. Try again later.' },
 }));
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLangStore } from '../store/langStore';
 import client from '../api/client';
+import { toast } from './Toast';
 
 const T = {
   ko: {
@@ -95,11 +96,20 @@ function StatusBadge({ status, label }) {
   );
 }
 
+// '15m' · '2h' · '7d' 를 분으로 바꾼다.
+// parseInt 만 쓰면 단위를 못 보고 15분짜리를 15시간으로 읽어, 안전한 설정을 '주의' 로 띄운다
+function expiryMinutes(expiry) {
+  const m = /^(\d+)\s*([smhd])?$/.exec(String(expiry ?? '').trim());
+  if (!m) return null;
+  const per = { s: 1 / 60, m: 1, h: 60, d: 1440 };
+  return Number(m[1]) * per[m[2] || 'm'];
+}
+
 function getJwtStatus(expiry) {
-  if (!expiry) return 'warning';
-  const hours = parseInt(expiry);
-  if (hours <= 1) return 'safe';
-  if (hours <= 24) return 'warning';
+  const mins = expiryMinutes(expiry);
+  if (mins === null) return 'warning';
+  if (mins <= 60) return 'safe';
+  if (mins <= 24 * 60) return 'warning';
   return 'danger';
 }
 
@@ -110,10 +120,13 @@ function getAlgoStatus(algo) {
   return 'danger';
 }
 
+// 횟수만 보면 창 길이를 못 본다 — 15분에 20회와 1분에 20회는 전혀 다르다.
+// 분당 몇 번인지로 판단한다
 function getRateLimitStatus(limit) {
-  if (!limit) return 'danger';
-  if (limit <= 5) return 'safe';
-  if (limit <= 20) return 'warning';
+  if (!limit?.max || !limit?.windowMs) return 'danger';
+  const perMin = limit.max / (limit.windowMs / 60000);
+  if (perMin <= 5) return 'safe';
+  if (perMin <= 30) return 'warning';
   return 'danger';
 }
 
@@ -171,7 +184,8 @@ export default function SecurityPanel() {
       const res = await client.get('/security/users');
       setUsers(res.data);
     } catch (e) {
-      console.error('Action failed:', e);
+      // 조용히 넘어가면 목록이 그대로라 성공한 줄 안다. 사람을 차단하는 자리다
+      toast(e?.response?.data?.error || '처리하지 못했어요', 'error');
     }
   };
 
@@ -260,7 +274,7 @@ export default function SecurityPanel() {
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             {t.rateLimit}
           </span>
-          <StatusBadge status={getRateLimitStatus(rateLimit?.login?.max)} label={t[getRateLimitStatus(rateLimit?.login?.max)]} />
+          <StatusBadge status={getRateLimitStatus(rateLimit?.login)} label={t[getRateLimitStatus(rateLimit?.login)]} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontFamily: "'Barlow', sans-serif" }}>
           {rateLimit && Object.entries(rateLimit).map(([key, val]) => (

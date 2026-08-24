@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
+const { sanitize } = require('../utils/sanitize');
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
@@ -35,12 +36,60 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
   }
 
-  const { sanitize } = require('../utils/sanitize');
   const sanitizedName = sanitize(name);
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
 
   const result = db.createMyRoutine(req.userId, sanitizedName, sanitizedExercises);
   res.status(201).json({ id: result.lastInsertRowid, message: '루틴 저장 완료!' });
+});
+
+// 고치기 — 루틴에 운동을 더 넣거나 이름을 바꾼다.
+//
+// 없을 때는 "이미 있는 루틴에 한 개를 더 넣는" 길이 없었다. 그래서 추천 화면의
+// `내 루틴에 추가` 가 같은 이름을 만나면 "이미 포함된 운동"이라며 돌려보냈고,
+// 두 번째 운동은 영영 못 넣었다.
+router.put('/:id', auth, spamCheck, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: '잘못된 ID에요' });
+  }
+
+  const { name, exercises } = req.body;
+  const fields = {};
+
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: '루틴명은 비어있을 수 없어요' });
+    }
+    if (name.length > 100) {
+      return res.status(400).json({ error: '루틴명이 너무 길어요' });
+    }
+    fields.name = sanitize(name);
+  }
+
+  if (exercises !== undefined) {
+    if (!Array.isArray(exercises) || exercises.length === 0) {
+      return res.status(400).json({ error: '운동 목록은 비어있을 수 없어요' });
+    }
+    if (exercises.length > 50) {
+      return res.status(400).json({ error: '운동은 최대 50개까지 가능해요' });
+    }
+    const valid = exercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
+    if (valid.length === 0) {
+      return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
+    }
+    fields.exercises = valid.map(ex => ({ ...ex, name: sanitize(ex.name) }));
+  }
+
+  if (Object.keys(fields).length === 0) {
+    return res.status(400).json({ error: '바꿀 내용이 없어요' });
+  }
+
+  const result = db.updateMyRoutine(id, req.userId, fields);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: '루틴을 찾을 수 없어요' });
+  }
+  res.json(result.record);
 });
 
 // 삭제
