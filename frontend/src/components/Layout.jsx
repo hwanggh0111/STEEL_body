@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
 import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -9,19 +9,10 @@ import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { useIsPC } from './useIsPC';
 
 const PROFILE_KEY = 'ironlog_profile_photo';
 
-function useIsPC() {
-  const [isPC, setIsPC] = useState(window.innerWidth >= 768);
-  useEffect(() => {
-    let tid;
-    const handler = () => { clearTimeout(tid); tid = setTimeout(() => setIsPC(window.innerWidth >= 768), 150); };
-    window.addEventListener('resize', handler);
-    return () => { clearTimeout(tid); window.removeEventListener('resize', handler); };
-  }, []);
-  return isPC;
-}
 
 export default function Layout() {
   const { nickname, logout } = useAuthStore();
@@ -34,8 +25,19 @@ export default function Layout() {
   const [zoomImg, setZoomImg] = useState(null);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const location = useLocation();
+  const navType = useNavigationType();
   const isPC = useIsPC();
   const [showTopBtn, setShowTopBtn] = useState(false);
+
+  // 다른 화면으로 가면 맨 위에서 시작한다.
+  //
+  // 없으면 스크롤 위치가 그대로 남아, 히스토리를 한참 내려보다 루틴으로 넘어가면
+  // 루틴 화면이 한가운데부터 보인다. 뒤로 가기(POP)일 때는 건드리지 않는다 —
+  // 보던 자리로 돌아가는 게 맞다.
+  useEffect(() => {
+    if (navType === 'POP') return;
+    window.scrollTo(0, 0);
+  }, [location.pathname, navType]);
   const isImmortal = useMemo(() => readLS('steelbody_immortal') === 'true', []);
   const isLegend = useMemo(() => readLS('steelbody_legend') === 'true', []);
   const hasFrame = isImmortal || isLegend;
@@ -291,7 +293,11 @@ export default function Layout() {
       </header>
 
       <main className="content-area" style={{ paddingTop: 22, paddingBottom: isPC ? 30 : 80 }}>
-        <Outlet />
+        {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
+            여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}
+        <div key={location.pathname} className="page-enter">
+          <Outlet />
+        </div>
       </main>
 
       <TabBar />

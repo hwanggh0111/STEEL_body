@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@1,700;1,800;1,900&family=Great+Vibes&family=Oswald:wght@400;500;600;700&display=swap');
+/* 폰트는 index.html 의 <link> 에서 부른다 — @import 는 요청이 한 단계 더 붙는다 */
 
 /* ─── CSS Variables (다크 모드 - 기본) ── */
 :root {
@@ -85,6 +85,25 @@
 
 /* ─── 공통 리셋 ────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── 누르는 느낌 ──────────────────── */
+/* 모바일에는 hover 가 없다. hover 만 두면 눌러도 화면이 그대로라 먹었는지 알 수 없어
+   같은 자리를 두 번 누르게 된다. 눌린 순간 살짝 들어가게 해서 바로 알게 한다. */
+button,
+.card.clickable,
+.tab-item,
+.delete-btn,
+[role="button"] {
+  /* 누를 때 파랗게 번쩍이던 사각형 */
+  -webkit-tap-highlight-color: transparent;
+  /* 더블탭 확대를 기다리느라 생기던 300ms 지연 */
+  touch-action: manipulation;
+}
+button:active:not(:disabled),
+.card.clickable:active,
+.tab-item:active {
+  transform: scale(0.985);
+}
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
@@ -130,7 +149,7 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   width: 100%;
-  transition: all 0.2s;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
 .btn-primary:hover    { background: var(--accent-hover); transform: translateY(-1px); }
 .btn-primary:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; transform: none; }
@@ -145,7 +164,7 @@ body {
   padding: 8px 20px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
 .btn-secondary.active,
 .btn-secondary:hover { background: var(--accent); border-color: var(--accent); color: #000; }
@@ -171,10 +190,18 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s ease, transform 0.08s ease;
 }
 .card.clickable       { cursor: pointer; }
 .card.clickable:hover { border-color: var(--accent); }
+
+/* 긴 목록에 붙인다 (히스토리 · 인바디 기록 · 제보 목록).
+   화면 밖에 있는 카드는 그리기를 건너뛴다 — 기록이 몇 백 개 쌓이면 스크롤이 끊긴다.
+   높이를 미리 일러두지 않으면 스크롤바가 튀므로 대략의 크기를 같이 준다. */
+.card.list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
 
 /* ─── 뱃지 ─────────────────────────── */
 .badge {
@@ -210,7 +237,7 @@ body {
   border-top: none;
   border-left: none;
   border-right: none;
-  transition: all 0.2s;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
 }
 .tab-item:hover  { color: var(--accent); }
 .tab-item.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -306,11 +333,15 @@ body {
 .page-wrapper { min-height: 100vh; background: var(--bg-primary); color: var(--text-primary); }
 .content-area {
   padding: var(--padding-x); max-width: var(--max-width); margin: 0 auto;
-  animation: pageIn 0.3s ease;
 }
 
+/* 화면을 옮길 때마다 짧게 떠오른다. 예전에는 이 애니메이션이 .content-area 에
+   걸려 있었는데, 그 껍데기는 라우트가 바뀌어도 남아 있어서 앱을 처음 열 때
+   한 번 돌고 그 뒤로는 아무 일도 없었다. */
+.page-enter { animation: pageIn 0.22s ease-out; }
+
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -361,5 +392,19 @@ body {
 @media (min-width: 1200px) {
   :root {
     --max-width: 1100px;
+  }
+}
+
+/* ─── 움직임 줄이기 ───────────────────
+   OS 에서 '동작 줄이기' 를 켠 사람에게는 애니메이션을 걷어낸다.
+   멀미가 나서 켠 설정이라 지켜야 한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
