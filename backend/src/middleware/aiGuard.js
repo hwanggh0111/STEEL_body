@@ -19,6 +19,13 @@ const blockedIPs = new Map();       // IP → { until, level, reason }
 const loginFailures = new Map();    // IP → { count, lastFailure }
 const notFoundCounts = new Map();   // IP → { count, firstHit }
 const spamCounts = new Map();       // userId → { count, firstCreate }
+
+// 1분에 이만큼 넘게 POST 하면 되돌려 보낸다.
+//
+// 예전에는 10건이었다. 그런데 운동은 기록 하나가 POST 하나다 — 운동을 끝내고 앉아서
+// 몰아 적으면 5개 종목 × 3세트만 해도 15건이다. **정상적으로 쓰는 사람이 걸렸다.**
+// 그리고 걸리면 7일 정지였고, 두 번 걸리면 계정이 지워졌다.
+const SPAM_PER_MINUTE = 60;
 const warningCounts = new Map();    // IP → count
 const suspensionCounts = new Map(); // userId → count
 const aiLogs = [];                  // max 500
@@ -129,30 +136,38 @@ function addLog(type, message, ip, userId) {
 
 addLog('system', 'AI Guard v2 (제로 톨러런스) 활성화', null);
 
-// ── LEVEL 4: 계정 즉시 삭제 ──
+// ── LEVEL 4: 영구 정지 ──
+//
+// 예전에는 여기서 계정과 모든 데이터를 지웠다(deleteUserCompletely). 자동 판정이
+// 틀렸을 때 되돌릴 방법이 전혀 없는 동작이다 — 몇 년치 운동 기록이 통째로 사라진다.
+// 8/21 에 욕설 경로에서 이 함수를 떼어낸 것과 같은 이유로, 자동 경로에서는 지우지 않는다.
+//
+// 지우는 것은 관리자가 화면에서 확인하고 직접 한다. 막는 것(영구 정지 + 차단)은
+// 자동으로 하되, 없애는 것은 사람이 한다.
 function executeLevel4(userId, ip, triggerType, details) {
   threats.level4++;
   const aiReason = generateAiReason(4, triggerType, details);
-  addLog('CRITICAL', `LEVEL 4 — ${triggerType}: 계정 삭제 실행 (userId=${userId})`, ip, userId);
+  addLog('CRITICAL', `LEVEL 4 — ${triggerType}: 영구 정지 (userId=${userId})`, ip, userId);
+
+  // 관리자는 자동 처벌 대상이 아니다.
+  // 관리자가 잠기면 자기 정지를 자기가 못 풀어 서비스가 통째로 멎는다
+  const user = db.findUserById(userId);
+  if (user?.role === 'admin') {
+    addLog('ALERT', `LEVEL 4 대상이 관리자라 건너뜀 (userId=${userId})`, ip, userId);
+    return aiReason;
+  }
 
   // 정지 기록
   db.createSuspension(userId, 4, triggerType, aiReason, 'permanent');
 
-  // 유저 정보 가져오기 (블랙리스트용)
-  const user = db.findUserById(userId);
-
-  // 즉시 비활성화 + 삭제
+  // 로그인 자체를 막는다. 데이터는 남긴다 — 오판이면 되돌려야 한다
   if (user) db.banUser(userId);
-  db.deleteUserCompletely(userId);
-  addLog('CRITICAL', `계정 데이터 완전 삭제 완료 (userId=${userId})`, ip, userId);
 
-  // 블랙리스트
+  // 블랙리스트.
+  // IP 대역(/24)까지 자동으로 막지 않는다 — 통신사 NAT 뒤에 있는 사람들이
+  // 통째로 걸린다. 대역 차단이 필요하면 관리자가 보고 직접 넣는다
   if (user?.email) db.addBlacklist('email', user.email, aiReason);
-  if (ip) {
-    db.addBlacklist('ip', ip, aiReason);
-    const ipRange = ip.replace(/\.\d+$/, '.0/24');
-    db.addBlacklist('ip_range', ipRange, aiReason);
-  }
+  if (ip) db.addBlacklist('ip', ip, aiReason);
 
   // 정지 횟수 기록
   suspensionCounts.set(userId, (suspensionCounts.get(userId) || 0) + 1);
@@ -166,8 +181,15 @@ function executeLevel4(userId, ip, triggerType, details) {
 // ── LEVEL 3: 정지 ──
 function executeLevel3(userId, ip, triggerType, details, days) {
   threats.level3++;
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   const aiReason = generateAiReason(3, triggerType, details);
+
+  // 관리자는 자동 처벌 대상이 아니다 (LEVEL 4 와 같은 이유)
+  if (db.findUserById(userId)?.role === 'admin') {
+    addLog('ALERT', `LEVEL 3 대상이 관리자라 건너뜀 (userId=${userId})`, ip, userId);
+    return aiReason;
+  }
+
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   addLog('WARNING', `LEVEL 3 — ${triggerType}: ${days}일 정지 (userId=${userId})`, ip, userId);
 
   db.createSuspension(userId, 3, triggerType, aiReason, expiresAt);
@@ -249,7 +271,7 @@ function checkSpam(userId) {
     return false;
   }
   record.count++;
-  return record.count >= 10; // 10건/분 이상 = 스팸
+  return record.count >= SPAM_PER_MINUTE;
 }
 
 // ── 로그인 실패 ──
@@ -413,7 +435,7 @@ function aiGuardMiddleware(req, res, next) {
       const reason = executeLevel4(req.userId, ip, threat.type, threat.pattern);
       return res.status(403).json({
         error: '보안 정책 위반이 감지되었습니다.',
-        message: '계정이 영구 정지되었습니다. 모든 데이터가 삭제됩니다.',
+        message: '계정이 영구 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 관리자에게 알려주세요.',
         reason: reason,
       });
     }
@@ -436,11 +458,14 @@ function spamCheck(req, res, next) {
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
   if (req.userId && req.method === 'POST') {
     if (checkSpam(req.userId)) {
-      const reason = executeLevel3(req.userId, ip, 'spam', `${spamCounts.get(req.userId)?.count || 10}건/분`, 7);
-      return res.status(403).json({
-        error: '스팸 활동이 감지되었습니다.',
-        message: '7일간 정지되었습니다.',
-        reason,
+      // 정지를 걸지 않는다. 너무 빠른 것과 나쁜 뜻으로 하는 것은 다르고,
+      // 이 판정만으로 사람을 일주일 막아 세우기에는 근거가 약하다.
+      // 잠깐 되돌려 보내고 기록만 남긴다 — 진짜 공격은 IP 차단과 rate limit 이 잡는다
+      const count = spamCounts.get(req.userId)?.count || SPAM_PER_MINUTE;
+      addLog('INFO', `요청이 너무 빠름: ${count}건/분 (userId=${req.userId})`, ip, req.userId);
+      return res.status(429).json({
+        error: '조금 빠릅니다. 잠시 뒤에 다시 해주세요',
+        retryAfterSec: 60,
       });
     }
   }
