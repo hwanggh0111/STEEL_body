@@ -226,7 +226,7 @@ export default function WorkoutPage() {
       await deleteWorkout(id);
       toast(t.deleted);
     } catch {
-      toast(t.deleteFail);
+      toast(t.deleteFail, 'error');
     }
   };
 

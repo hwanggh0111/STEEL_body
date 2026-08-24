@@ -216,7 +216,9 @@ export default function PachinkoSystem({ totalWorkouts = 0, totalInbody = 0, bas
       // 티켓은 돌릴 때 이미 나갔다. 여기서는 보상만 반영한다.
       // actualExp = 누적 상한에 잘린 뒤의 실제 증가분 — 획득 배너가 이전 레벨을
       // 역산하는 데 쓴다. prize.exp(자르기 전 원본)를 쓰면 만렙에서 어긋난다.
-      const { actualExp, exact } = settleInFlight();
+      // 이미 정산된 뒤에 이 타이머가 도는 길이 있으면 null 이 온다.
+      // 그대로 구조분해하면 그 자리에서 앱이 죽는다 — 티켓이 오가는 자리라 더 조심한다
+      const { actualExp, exact } = settleInFlight() || { actualExp: 0, exact: true };
 
       if (n === 1) {
         if (prize.exp > 0) toast(`${prize.icon} ${prize.label[lang] || prize.label.ko} +${compactExp(prize.exp)} EXP`);

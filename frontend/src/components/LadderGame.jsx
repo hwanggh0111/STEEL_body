@@ -200,6 +200,9 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
   const inFlightRef = useRef(null);
   // 배수판을 깔기 직전의 도착 칸 — 그만두기를 누르면 이걸로 되돌린다
   const boardBeforeGambleRef = useRef(null);
+  // 배수판을 깔면서 지운 가로줄 — 그만두기를 누르면 이것도 같이 되돌린다.
+  // 안 되돌리면 사다리에서 가로줄만 사라진 빈 판이 다음 출발까지 남아 있다
+  const rungsBeforeGambleRef = useRef(null);
   // 언마운트 cleanup 이 한 번만 걸리도록 참조를 고정한다. 스토어 함수는 zustand 가
   // 만들 때 한 번 만들어져 계속 같은 참조이므로 getState() 로 꺼내 쓴다.
   const settleInFlight = useCallback(() => {
@@ -322,6 +325,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
   const enterGamble = () => {
     if (!stake || tracing) return;
     boardBeforeGambleRef.current = slots;   // 그만두면 되돌린다
+    rungsBeforeGambleRef.current = rungs;
     const heldExp = stake.prize.exp * stake.mult;
     setSlots(shuffle(GAMBLE_MULTS).map(m => gambleSlot(m, heldExp)));
     setRungs([]);      // 가로줄은 출발할 때 만든다 — 미리 보이면 눈으로 따라가 이길 수 있다
@@ -335,6 +339,7 @@ export default function LadderGame({ available = 0, baseExp = 0 }) {
   const cancelGamble = () => {
     if (tracing) return;
     if (boardBeforeGambleRef.current) setSlots(boardBeforeGambleRef.current);
+    if (rungsBeforeGambleRef.current) setRungs(rungsBeforeGambleRef.current);
     setGambleMode(false);
   };
 
