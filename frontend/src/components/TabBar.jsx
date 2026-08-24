@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
 import CasinoChip from './CasinoChip';
 import { isAdmin } from '../data/admin';
+import { useIsPC } from './useIsPC';
 
 const TABS = [
   { path: '/home',    label: '홈',    icon: '🏠' },
@@ -35,16 +36,6 @@ const NAV_TOKENS = {
   activeBarSize: 24,
 };
 
-function useIsPC() {
-  const [isPC, setIsPC] = useState(window.innerWidth >= 768);
-  useEffect(() => {
-    let tid;
-    const handler = () => { clearTimeout(tid); tid = setTimeout(() => setIsPC(window.innerWidth >= 768), 100); };
-    window.addEventListener('resize', handler);
-    return () => { clearTimeout(tid); window.removeEventListener('resize', handler); };
-  }, []);
-  return isPC;
-}
 
 export default function TabBar() {
   const [showMore, setShowMore] = useState(false);

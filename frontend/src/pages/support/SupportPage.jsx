@@ -12,7 +12,8 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 // 최근 바뀐 것 — 손으로 적지 않는다.
 // scripts/gen-changelog.mjs 가 git 커밋에서 뽑아 changelog.json 을 만들고, dev·build 앞에서 자동으로 돈다.
 // 커밋으로 설명이 안 되는 것은 data/notices.json 에 손으로 적는다. 둘은 feed.jsx 에서 한 목록으로 합쳐진다.
-import { FEED, FeedList } from './feed';
+import { FEED } from './feedData';
+import FeedList from './FeedList';
 
 const CHANGES_SHOWN = 6;
 

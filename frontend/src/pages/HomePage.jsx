@@ -125,7 +125,8 @@ export default function HomePage() {
 
   const today = dateKey();
   const todayWorkouts = workouts[today] || [];
-  const weekDates = getWeekDates();
+  // 매 렌더 새 배열을 만들면 아래 useMemo 의 deps 가 늘 달라져 memo 가 무의미해진다
+  const weekDates = useMemo(() => getWeekDates(), []);
   const weekWorkoutDays = useMemo(() => weekDates.filter(d => workouts[d] && workouts[d].length > 0).length, [weekDates, workouts]);
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
   const latestInbody = records[0] || null;

@@ -1,11 +1,29 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import InbodyCard from '../components/InbodyCard';
 import BodyAnalysis from '../components/BodyAnalysis';
-import ComparePage from './ComparePage';
+
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
+
+// 무거운 것은 필요할 때 받는다.
+// 그래프(recharts)와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
+// 예전에는 둘 다 위에서 import 해서, 입력 폼과 기록 목록이 그것들을 기다렸다.
+const CompositionChart = lazy(() => import('../components/InbodyCharts').then(m => ({ default: m.CompositionChart })));
+const WeightTrend = lazy(() => import('../components/InbodyCharts').then(m => ({ default: m.WeightTrend })));
+const BodyTrend = lazy(() => import('../components/InbodyCharts').then(m => ({ default: m.BodyTrend })));
+const ComparePage = lazy(() => import('./ComparePage'));
+
+// 자리를 미리 잡아둔다. 안 그러면 도착하는 순간 아래 내용이 밀려 내려간다
+function ChartLoading({ height }) {
+  return (
+    <div style={{
+      height, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--text-muted)', fontSize: 12,
+    }}>불러오는 중…</div>
+  );
+}
+
 
 // ── 체성분 비율 파이차트 (컴포넌트 외부 — 매 렌더 재생성 방지) ──
 function getCompositionData(record) {
@@ -189,7 +207,9 @@ export default function InbodyPage() {
           onClick={() => setTab('compare')} style={{ fontSize: 12, padding: '6px 16px' }}>비교</button>
       </div>
 
-      {tab === 'compare' && <ComparePage />}
+      {tab === 'compare' && (
+        <Suspense fallback={<ChartLoading height={200} />}><ComparePage /></Suspense>
+      )}
       {tab === 'record' && <>
 
       {editingId && (
@@ -290,39 +310,9 @@ export default function InbodyPage() {
             체성분 비율
           </div>
           <div className="card" style={{ marginBottom: 16, padding: 12 }}>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={compositionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={105}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, value }) => `${name} ${value}kg`}
-                >
-                  {compositionData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }}
-                  formatter={(value, name) => [`${value}kg`, name]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            {/* 범례 */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap', marginTop: 4 }}>
-              {compositionData.map((entry, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: entry.color }} />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {entry.name} {entry.value}kg ({(entry.value / latestRecord.weight * 100).toFixed(1)}%)
-                  </span>
-                </div>
-              ))}
-            </div>
+            <Suspense fallback={<ChartLoading height={280} />}>
+              <CompositionChart data={compositionData} total={latestRecord?.weight} />
+            </Suspense>
           </div>
         </>
       )}
@@ -358,33 +348,21 @@ export default function InbodyPage() {
             체중 변화 추이
           </div>
           <div className="card" style={{ marginBottom: 16, padding: 12 }}>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={chartData}>
-                <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={['auto', 'auto']} />
-                <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
-                <Line type="monotone" dataKey="체중" stroke="#ff6b1a" strokeWidth={2} dot={{ fill: '#ff6b1a', r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<ChartLoading height={180} />}>
+              <WeightTrend data={chartData} />
+            </Suspense>
           </div>
 
-          {chartData.some(d => d.체지방 != null) && (
+          {chartData.some(d => d.체지방 != null || d.골격근 != null) && (
             <>
               <div className="section-title">
                 <div className="accent-bar" />
                 체지방 / 골격근 변화
               </div>
               <div className="card" style={{ marginBottom: 16, padding: 12 }}>
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={chartData}>
-                    <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-                    <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={['auto', 'auto']} />
-                    <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
-                    <Legend formatter={(v) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{v}</span>} />
-                    {chartData.some(d => d.체지방 != null) && <Line type="monotone" dataKey="체지방" stroke="#e84040" strokeWidth={2} dot={{ fill: '#e84040', r: 3 }} />}
-                    {chartData.some(d => d.골격근 != null) && <Line type="monotone" dataKey="골격근" stroke="#3a9e3a" strokeWidth={2} dot={{ fill: '#3a9e3a', r: 3 }} />}
-                  </LineChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<ChartLoading height={180} />}>
+                  <BodyTrend data={chartData} />
+                </Suspense>
               </div>
             </>
           )}

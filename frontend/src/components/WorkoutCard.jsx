@@ -2,7 +2,7 @@ import { confirmDialog } from './ConfirmModal';
 
 export default function WorkoutCard({ workout, onDelete, onEdit }) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <div className="card list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
       <div>
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
           {workout.exercise}

@@ -12,7 +12,7 @@ export default function InbodyCard({ record, onDelete, onEdit }) {
   const bmiInfo = getBmiInfo(record.bmi);
 
   return (
-    <div className="card" style={{ marginBottom: 8 }}>
+    <div className="card list-item" style={{ marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{record.date}</div>

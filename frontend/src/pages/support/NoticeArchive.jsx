@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FEED, FeedList } from './feed';
+import { FEED } from './feedData';
+import FeedList from './FeedList';
 
 // ─────────────────────────────────────────────────────────────
 // 공지함 — 지금까지 올라온 것을 전부 본다.
