@@ -73,13 +73,26 @@ app.disable('x-powered-by');
 app.use(aiGuard);
 
 // CORS
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
+//
+// 예전에는 `*.onrender.com` 을 통째로 허용했다. Render 는 누구나 무료로 배포할 수 있는
+// 곳이다 — 아무나 evil-xxx.onrender.com 을 띄우고 그 페이지에서 credentials 를 실어
+// 이 API 를 부를 수 있었다는 뜻이다. 로그인해 있는 사람이 그 페이지를 열기만 하면
+// 그 사람 자격으로 요청이 나가고 응답까지 읽힌다.
+//
+// 허용 목록은 이미 FRONTEND_URL 에 정확한 주소가 들어 있으므로 와일드카드는 필요 없다.
+// Render 가 넣어주는 RENDER_EXTERNAL_URL 도 같이 받아, 배포 이름을 바꿔도 끊기지 않게 한다.
+const allowedOrigins = [
+  ...(process.env.FRONTEND_URL || 'http://localhost:5173').split(','),
+  ...(process.env.BACKEND_URL || '').split(','),
+  process.env.RENDER_EXTERNAL_URL || '',
+]
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
     // 같은 서버 (프록시, SSR) 또는 허용 목록
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    // Render 도메인 (*.onrender.com)
-    if (origin.endsWith('.onrender.com')) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) return callback(null, true);
     // 개발 환경: 같은 네트워크 허용
     if (process.env.NODE_ENV !== 'production' && /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin)) {
       return callback(null, true);
@@ -109,8 +122,12 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/oauth/')) return next();
   // 공개 API는 생략
   if (req.path === '/api/health') return next();
-  // Bearer 토큰 사용 시 CSRF 불필요 (브라우저가 자동 전송하지 않음)
-  if (req.headers.authorization?.startsWith('Bearer ')) return next();
+  // Bearer 토큰만 쓰는 요청은 CSRF 가 필요 없다 — 브라우저가 알아서 붙이지 않기 때문이다.
+  //
+  // 다만 "Bearer 헤더가 있으면 통과" 로 두면 안 된다. 인증 쿠키가 같이 붙어 있으면
+  // auth 미들웨어가 쿠키를 먼저 쓰기 때문에, 아무 값이나 담은 Bearer 헤더 하나로
+  // CSRF 검사만 건너뛰고 남의 자격으로 요청이 나간다. 쿠키가 없을 때만 건너뛴다.
+  if (!req.cookies?.sb_access && req.headers.authorization?.startsWith('Bearer ')) return next();
   // 쿠키 인증일 때만 CSRF 검증: sb_csrf 쿠키와 X-CSRF-Token 헤더 비교
   const cookieToken = req.cookies?.sb_csrf;
   const headerToken = req.headers['x-csrf-token'];

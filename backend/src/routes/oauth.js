@@ -15,21 +15,28 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 // 허용된 frontend origin 목록 (open redirect 방지)
 const ALLOWED_FRONTENDS = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',').map(s => s.trim()).filter(Boolean);
+  .split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+// Render 가 넣어주는 배포 주소. 배포 이름을 바꿔도 로그인이 끊기지 않게 같이 받는다
+const RENDER_ORIGIN = (process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
 
+// 로그인이 끝난 뒤 돌려보낼 곳. 여기가 헐거우면 열린 리다이렉트가 된다.
+//
+// 예전에는 `*.onrender.com` 을 통째로 허용했다. Render 는 누구나 배포할 수 있는 곳이라,
+// 아무나 띄운 페이지로 로그인한 사람을 실어 보낼 수 있었다는 뜻이다.
+// 허용 목록에는 이미 정확한 주소가 들어 있으므로 와일드카드는 필요 없다.
 function isAllowedFrontendOrigin(origin) {
   if (!origin) return false;
-  if (ALLOWED_FRONTENDS.includes(origin)) return true;
-  // *.onrender.com 허용 (프로덕션 배포)
-  try {
-    const url = new URL(origin);
-    if (url.hostname.endsWith('.onrender.com')) return true;
-    // 개발 환경: localhost / 같은 네트워크 IP
-    if (!IS_PROD) {
+  const clean = String(origin).replace(/\/$/, '');
+  if (ALLOWED_FRONTENDS.includes(clean)) return true;
+  if (RENDER_ORIGIN && clean === RENDER_ORIGIN) return true;
+  // 개발 환경: localhost / 같은 네트워크 IP
+  if (!IS_PROD) {
+    try {
+      const url = new URL(clean);
       if (url.hostname === 'localhost' || /^127\./.test(url.hostname)) return true;
       if (/^192\.168\.\d+\.\d+$/.test(url.hostname)) return true;
-    }
-  } catch {}
+    } catch {}
+  }
   return false;
 }
 
@@ -58,7 +65,9 @@ function getUrls(req) {
   if (IS_PROD) {
     try {
       const backendHost = new URL(process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`).host;
-      if (host !== backendHost && !host.endsWith('.onrender.com')) {
+      // 여기도 `*.onrender.com` 을 통째로 믿고 있었다. 실제 배포 호스트만 본다
+      const renderHost = RENDER_ORIGIN ? new URL(RENDER_ORIGIN).host : '';
+      if (host !== backendHost && (!renderHost || host !== renderHost)) {
         return { backendUrl: process.env.BACKEND_URL || FRONTEND, frontendUrl: FRONTEND };
       }
     } catch { return { backendUrl: FRONTEND, frontendUrl: FRONTEND }; }
@@ -81,7 +90,7 @@ async function findOrCreateUser(email, rawNickname, provider) {
     user = db.findUserByEmail(email);
   }
   // ADMIN_EMAIL이면 자동 관리자 승격
-  if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
+  if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL) && user.role !== 'admin') {
     db.updateUserRole(user.id, 'admin');
     user.role = 'admin';
   }
