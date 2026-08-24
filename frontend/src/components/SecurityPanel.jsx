@@ -32,6 +32,7 @@ const T = {
     actions: '관리',
     block: '차단',
     unblock: '해제',
+    remove: '삭제',
     grantAdmin: '관리자 부여',
     loading: '로딩 중...',
     error: '데이터를 불러올 수 없습니다.',
@@ -65,6 +66,7 @@ const T = {
     actions: 'Actions',
     block: 'Block',
     unblock: 'Unblock',
+    remove: 'Delete',
     grantAdmin: 'Grant Admin',
     loading: 'Loading...',
     error: 'Failed to load data.',
@@ -149,6 +151,10 @@ export default function SecurityPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // 지울 대상. 이메일을 그대로 적어야 지워진다
+  const [deleting, setDeleting] = useState(null);
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -168,6 +174,26 @@ export default function SecurityPanel() {
       setError(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 계정과 모든 기록을 지운다. 되돌릴 수 없다.
+  //
+  // 서버가 세 가지를 요구한다 — 관리자가 아닐 것, 이미 막혀 있을 것,
+  // 이메일을 정확히 적을 것. 화면도 같은 순서로 막는다.
+  const removeUser = async () => {
+    if (!deleting || removing) return;
+    setRemoving(true);
+    try {
+      await client.delete(`/security/user/${deleting.id}`, { data: { confirmEmail } });
+      setUsers(prev => prev.filter(u => u.id !== deleting.id));
+      toast(`${deleting.email} 계정과 기록을 모두 지웠어요`);
+      setDeleting(null);
+      setConfirmEmail('');
+    } catch (e) {
+      toast(e?.response?.data?.error || '지우지 못했어요', 'error');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -449,6 +475,25 @@ export default function SecurityPanel() {
                         {t.unblock}
                       </button>
                     )}
+                    {/* 지우기는 이미 막아둔 사람에게만 보인다.
+                        멀쩡한 사람 옆에 삭제 버튼이 늘 붙어 있으면 언젠가 눌린다 */}
+                    {user.role === 'blocked' && (
+                      <button
+                        onClick={() => { setDeleting(user); setConfirmEmail(''); }}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          border: '1px solid #ff174450',
+                          borderRadius: 'var(--radius)',
+                          background: 'transparent',
+                          color: '#ff1744',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t.remove}
+                      </button>
+                    )}
                     {user.role !== 'admin' && (
                       <button
                         onClick={() => handleAction(user.id, 'grant-admin')}
@@ -473,6 +518,78 @@ export default function SecurityPanel() {
           </tbody>
         </table>
       </div>
+
+      {/* ── 계정 삭제 확인 ──
+          되돌릴 수 없다. 그래서 '정말요?' 한 번으로 끝내지 않고 이메일을 그대로 적게 한다.
+          누구를 지우는지 눈으로 보고 손으로 옮겨 적어야 버튼이 살아난다. */}
+      {deleting && (
+        <div
+          onClick={() => !removing && setDeleting(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', zIndex: 99999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="계정 삭제"
+            style={{
+              background: 'var(--bg-secondary)', border: '1px solid var(--danger)',
+              borderRadius: 'var(--radius-lg)', padding: 22, maxWidth: 400, width: '100%',
+            }}
+          >
+            <h3 style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+              color: 'var(--danger)', marginBottom: 10,
+            }}>계정 삭제</h3>
+
+            <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.8, margin: '0 0 6px' }}>
+              <b>{deleting.nickname}</b>
+              <span style={{ color: 'var(--text-muted)' }}> · {deleting.email}</span>
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, margin: '0 0 14px' }}>
+              이 사람의 <b style={{ color: 'var(--danger)' }}>운동 기록 · 인바디 · 측정 · 루틴 · 사진 · 제보</b>가
+              전부 사라집니다. <b style={{ color: 'var(--danger)' }}>되돌릴 수 없습니다.</b>
+            </p>
+
+            <label className="label">확인을 위해 이메일을 그대로 적어주세요</label>
+            <input
+              className="input"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              placeholder={deleting.email}
+              autoFocus
+              style={{ marginBottom: 14 }}
+            />
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setDeleting(null)}
+                disabled={removing}
+                style={{
+                  flex: 1, background: 'none', border: '1px solid var(--border-hover)',
+                  color: 'var(--text-secondary)', padding: '10px 14px',
+                  borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13,
+                }}
+              >그만두기</button>
+              <button
+                onClick={removeUser}
+                disabled={removing || confirmEmail.trim().toLowerCase() !== String(deleting.email).toLowerCase()}
+                style={{
+                  flex: 1, border: '1px solid var(--danger)',
+                  background: confirmEmail.trim().toLowerCase() === String(deleting.email).toLowerCase() ? 'var(--danger)' : 'transparent',
+                  color: confirmEmail.trim().toLowerCase() === String(deleting.email).toLowerCase() ? '#fff' : 'var(--text-muted)',
+                  padding: '10px 14px', borderRadius: 'var(--radius)',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                }}
+              >{removing ? '지우는 중…' : '지웁니다'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
