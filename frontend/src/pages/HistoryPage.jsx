@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
@@ -63,14 +63,15 @@ export default function HistoryPage() {
   const totalDays = dates.length;
   const totalWorkouts = useMemo(() => workouts ? Object.values(workouts).flat().length : 0, [workouts]);
 
-  const handleDelete = async (id) => {
+  // 카드가 memo 라, 이 함수가 매 렌더 새로 만들어지면 memo 가 아무 일도 못 한다
+  const handleDelete = useCallback(async (id) => {
     try {
       await deleteWorkout(id);
       toast('삭제 완료!');
     } catch {
       toast('삭제하지 못했어요', 'error');
     }
-  };
+  }, [deleteWorkout]);
 
   const loading = wLoading || iLoading;
 

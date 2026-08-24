@@ -6,7 +6,7 @@ import {
   calcExp, getLevelInfo, expForLevel, MAX_LEVEL, EXP_PER,
   TRANSCEND, GENESIS, TRANSCEND_TIERS, GENESIS_TIERS,
 } from '../../components/LevelSystem';
-import { TICKET_RULE, LADDER, UL_TICKET } from '../../data/pachinkoData';
+import { TICKET_RULE } from '../../data/pachinkoData';
 import { PLATE_RULE, BASE_DAILY_PLAYS } from '../../data/plateData';
 import { dateKey } from '../../data/dateKey';
 
@@ -52,12 +52,6 @@ export const LEVEL_ROWS = [
   },
 ];
 
-export const TICKET_ROWS = [
-  { name: '파칭코',   cost: '🎫 1',                  desc: '한 판씩. 낮은 확률로 크게 터진다' },
-  { name: '사다리',   cost: `🎫 ${LADDER.cost}`,     desc: '판돈이 큰 대신 기대값은 파칭코와 같다' },
-  { name: '미니게임', cost: '무료',                  desc: '원판을 주워 모으면 티켓으로 바꾼다' },
-  { name: '교환소',   cost: `🎫 ${UL_TICKET.rate}`,  desc: '울트라 티켓으로 바꿔 개벽 파칭코를 돌린다' },
-];
 
 export const TICKET_LINE = `운동 ${TICKET_RULE.perWorkouts}회당 1장, 인바디 ${TICKET_RULE.perInbody}회당 1장`;
 // 원판 피하기로도 티켓을 산다. 하루 판 수(dailyPlays)는 개발 빌드에서 풀려 있어 여기 적지 않는다

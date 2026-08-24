@@ -537,14 +537,6 @@ const menuStyle = {
   transition: 'background 0.15s',
 };
 
-function MenuItem({ label, onClick }) {
-  return (
-    <div onClick={onClick} style={menuStyle} onMouseEnter={hIn} onMouseLeave={hOut}>
-      {label}
-    </div>
-  );
-}
-
 function MenuCategory({ label, items, nav, close, loc }) {
   const [open, setOpen] = useState(false);
   return (

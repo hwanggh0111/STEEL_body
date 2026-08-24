@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { confirmDialog } from './ConfirmModal';
 
 function getBmiInfo(bmi) {
@@ -8,7 +9,7 @@ function getBmiInfo(bmi) {
   return { label: '비만', color: 'var(--danger)' };
 }
 
-export default function InbodyCard({ record, onDelete, onEdit }) {
+function InbodyCard({ record, onDelete, onEdit }) {
   const bmiInfo = getBmiInfo(record.bmi);
 
   return (
@@ -50,3 +51,8 @@ export default function InbodyCard({ record, onDelete, onEdit }) {
     </div>
   );
 }
+
+// 목록에 몇 백 개가 늘어선다. 부모가 한 번 다시 그려질 때마다 카드가 전부 따라 그려지면
+// 스크롤이 끊긴다 — 받은 것이 그대로면 그리지 않는다.
+// (부모 쪽 핸들러도 useCallback 으로 고정해야 이게 실제로 걸린다)
+export default memo(InbodyCard);

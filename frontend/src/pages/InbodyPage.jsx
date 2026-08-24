@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
 import InbodyCard from '../components/InbodyCard';
 import BodyAnalysis from '../components/BodyAnalysis';
@@ -141,7 +141,8 @@ export default function InbodyPage() {
     }
   };
 
-  const handleEdit = (record) => {
+  // 카드가 memo 라 핸들러가 매 렌더 바뀌면 memo 가 걸리지 않는다
+  const handleEdit = useCallback((record) => {
     // 수정 진입 전 quickMode 백업 (수정 종료 시 복원)
     if (savedQuickMode === null) setSavedQuickMode(quickMode);
     setEditingId(record.id);
@@ -154,7 +155,7 @@ export default function InbodyPage() {
     setQuickMode(false);
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [savedQuickMode, quickMode]);
 
   const cancelEdit = () => {
     setEditingId(null);
@@ -168,14 +169,14 @@ export default function InbodyPage() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
       await deleteRecord(id);
       toast('삭제 완료!');
     } catch {
       toast('삭제하지 못했어요', 'error');
     }
-  };
+  }, [deleteRecord]);
 
   // 그래프용 데이터 (날짜 오래된순)
   const chartData = useMemo(() => [...records].reverse().map(r => ({

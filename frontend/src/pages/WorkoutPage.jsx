@@ -5,6 +5,7 @@ import { useLangStore } from '../store/langStore';
 import WorkoutCard from '../components/WorkoutCard';
 import RestTimer from '../components/RestTimer';
 import { toast } from '../components/Toast';
+import { dateKey } from '../data/dateKey';
 
 const TEXT = {
   ko: {
@@ -64,8 +65,8 @@ export default function WorkoutPage() {
   const { lang } = useLangStore();
   const t = TEXT[lang] || TEXT.ko;
 
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // 같은 식을 손으로 또 적지 않는다 — 이 자리가 8/21 에 새벽 기록이 사라지던 버그의 출처였다
+  const today = dateKey();
   const [date, setDate] = useState(today);
   const [exercise, setExercise] = useState(location.state?.exercise || '');
   const [weight, setWeight] = useState('');
@@ -195,7 +196,8 @@ export default function WorkoutPage() {
     }
   };
 
-  const handleEdit = (w) => {
+  // 카드가 memo 라 핸들러가 매 렌더 바뀌면 memo 가 걸리지 않는다
+  const handleEdit = useCallback((w) => {
     setEditingId(w.id);
     setEditingOriginalDate(w.date);
     setDate(w.date);
@@ -207,7 +209,7 @@ export default function WorkoutPage() {
     setError('');
     setSuggestions([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [t]);
 
   const cancelEdit = () => {
     setEditingId(null);
@@ -221,14 +223,14 @@ export default function WorkoutPage() {
     setError('');
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
       await deleteWorkout(id);
       toast(t.deleted);
     } catch {
       toast(t.deleteFail, 'error');
     }
-  };
+  }, [deleteWorkout, t]);
 
   return (
     <div>

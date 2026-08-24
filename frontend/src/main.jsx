@@ -59,7 +59,8 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
-      .then((reg) => console.log('SW registered:', reg.scope))
-      .catch((err) => console.warn('SW registration failed:', err));
+      // 로그는 개발 빌드에서만. 운영 콘솔에 남길 이유가 없다
+      .then((reg) => { if (import.meta.env.DEV) console.log('SW registered:', reg.scope); })
+      .catch((err) => { if (import.meta.env.DEV) console.warn('SW registration failed:', err); });
   });
 }

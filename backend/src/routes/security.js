@@ -96,6 +96,40 @@ router.post('/unblock-user/:id', adminAuth, (req, res) => {
   res.json({ message: '유저 차단이 해제되었어요' });
 });
 
+// DELETE /api/security/user/:id - 계정과 모든 데이터를 지운다
+//
+// 되돌릴 수 없다. 그래서 자동 판정에서는 절대 부르지 않는다 —
+// 예전에는 AI Guard 가 이걸 직접 불렀고, 판정이 틀리면 몇 년치 운동 기록이 사라졌다.
+// 그 경로를 없애면서 대신 여기를 열었다. 사람이 보고, 사람이 지운다.
+//
+// 세 가지를 요구한다.
+//   1. 관리자는 못 지운다
+//   2. 이미 막혀 있는 사람만 지울 수 있다 (영구 정지 · is_banned · 차단)
+//      — 목록에서 잘못 눌러 멀쩡한 사람이 사라지는 일이 없어야 한다
+//   3. 지울 대상의 이메일을 본문에 그대로 적어야 한다 — 누구를 지우는지 보고 누르게
+router.delete('/user/:id', adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const user = db.findUserById(id);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  if (user.role === 'admin') return res.status(400).json({ error: '관리자는 지울 수 없어요' });
+
+  const blocked = user.role === 'blocked' || user.is_banned ||
+    db.getSuspension(id)?.expires_at === 'permanent';
+  if (!blocked) {
+    return res.status(400).json({
+      error: '먼저 차단하거나 영구 정지한 뒤에 지울 수 있어요',
+    });
+  }
+
+  if (String(req.body?.confirmEmail || '').trim().toLowerCase() !== String(user.email).toLowerCase()) {
+    return res.status(400).json({ error: '지울 계정의 이메일을 정확히 적어주세요' });
+  }
+
+  db.deleteUserCompletely(id);
+  addLog('CRITICAL', `계정 완전 삭제 (관리자 ${req.userId} → userId=${id}, ${user.email})`);
+  res.json({ message: '계정과 기록을 모두 지웠어요' });
+});
+
 // POST /api/security/make-admin/:id - 관리자 권한 부여
 router.post('/make-admin/:id', adminAuth, (req, res) => {
   const id = Number(req.params.id);

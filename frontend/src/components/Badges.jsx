@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import LegendCeremony from './LegendCeremony';
 import ImmortalCeremony from './ImmortalCeremony';
 import client from '../api/client';
+import { isAdmin } from '../data/admin';
+import { readLS, saveLS } from '../data/safeStorage';
+import { dateKey as toLocalDate } from '../data/dateKey';
 
 const BADGE_DEFS = [
   { id: 'first_workout', icon: '🏋️', name: '첫 운동', desc: '첫 운동 기록 완료', condition: (w) => Object.values(w).flat().length >= 1 },
@@ -49,9 +52,6 @@ function getStreak(workouts) {
   return streak;
 }
 
-import { isAdmin } from '../data/admin';
-import { readLS, saveLS } from '../data/safeStorage';
-import { dateKey as toLocalDate } from '../data/dateKey';
 
 export default function Badges({ workouts, inbodyRecords }) {
   const [showAll, setShowAll] = useState(false);
