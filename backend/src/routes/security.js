@@ -77,10 +77,19 @@ router.post('/block-user/:id', adminAuth, (req, res) => {
 });
 
 // POST /api/security/unblock-user/:id - 유저 차단 해제
+//
+// 차단된 사람만 푼다.
+//
+// 예전에는 누구에게 걸든 역할을 'user' 로 덮어썼다. 관리자에게 실수로 누르면
+// 그 자리에서 관리자 권한이 사라진다 — revoke-admin 에는 자기 자신을 지키는 장치가
+// 있는데 이쪽으로는 그냥 통과했다. 관리자가 한 명이면 서비스가 통째로 잠긴다.
 router.post('/unblock-user/:id', adminAuth, (req, res) => {
   const id = Number(req.params.id);
   const user = db.findUserById(id);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  if (user.role !== 'blocked') {
+    return res.status(400).json({ error: '차단된 사용자가 아니에요' });
+  }
 
   db.updateUserRole(id, 'user');
   addLog('unblock', `유저 차단 해제: id=${id}, email=${user.email}`);
@@ -104,6 +113,11 @@ router.post('/revoke-admin/:id', adminAuth, (req, res) => {
   const user = db.findUserById(id);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   if (user.id === req.userId) return res.status(400).json({ error: '자신의 관리자 권한은 해제할 수 없어요' });
+  // 마지막 관리자를 내리면 아무도 관리자 화면에 못 들어간다.
+  // 자기 자신만 막아두면 관리자 둘이 서로를 내리는 길이 남는다
+  if (db.getAllUsers().filter(u => u.role === 'admin').length <= 1) {
+    return res.status(400).json({ error: '관리자가 한 명뿐이라 해제할 수 없어요' });
+  }
 
   db.updateUserRole(id, 'user');
   addLog('revoke-admin', `관리자 권한 해제: id=${id}, email=${user.email}`);

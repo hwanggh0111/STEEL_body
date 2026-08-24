@@ -199,7 +199,7 @@ router.post('/register', async (req, res) => {
 
     // 가입 직후 자동 로그인 — 토큰/쿠키 발급
     const newUser = db.findUserByEmail(email);
-    if (process.env.ADMIN_EMAIL && newUser.email === process.env.ADMIN_EMAIL && newUser.role !== 'admin') {
+    if (process.env.ADMIN_EMAIL && db.emailKey(newUser.email) === db.emailKey(process.env.ADMIN_EMAIL) && newUser.role !== 'admin') {
       db.updateUserRole(newUser.id, 'admin');
       newUser.role = 'admin';
     }
@@ -256,7 +256,7 @@ router.post('/login', async (req, res) => {
   delete loginAttempts[key];
 
   // ADMIN_EMAIL이면 자동 관리자 승격
-  if (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL && user.role !== 'admin') {
+  if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL) && user.role !== 'admin') {
     db.updateUserRole(user.id, 'admin');
     user.role = 'admin';
   }

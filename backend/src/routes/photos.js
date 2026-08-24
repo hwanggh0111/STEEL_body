@@ -13,6 +13,11 @@ router.post('/', auth, (req, res) => {
   const { type, data } = req.body;
   if (!type || !data) return res.status(400).json({ error: '타입과 데이터는 필수에요' });
   if (!['profile', 'before', 'after'].includes(type)) return res.status(400).json({ error: '올바른 사진 타입이 아니에요' });
+  // 사진인지 확인한다. 예전에는 아무 문자열이나 2MB 까지 받아 그대로 돌려줬다 —
+  // 사진 자리에 사진이 아닌 것을 넣어둘 수 있으면 안 된다
+  if (typeof data !== 'string' || !/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(data)) {
+    return res.status(400).json({ error: '사진 파일만 올릴 수 있어요' });
+  }
   // Limit size: base64 image max ~2MB
   if (data.length > 2 * 1024 * 1024) return res.status(400).json({ error: '사진이 너무 커요 (최대 2MB)' });
 

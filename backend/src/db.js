@@ -113,6 +113,13 @@ function invalidateQueryCache() { _queryCache.clear(); }
 // ── 인덱스 캐시 (O(n) → O(1) 조회) ──
 const _index = { userById: null, userByEmail: null, userByUsername: null };
 
+// 이메일은 대소문자를 가리지 않는다.
+//
+// 예전에는 그대로 비교했다. 그래서 `Kevin@Gmail.com` 으로 가입한 사람이
+// `kevin@gmail.com` 으로 로그인하면 "없는 계정" 이 되고, 게다가 그 주소로 **또 가입이 됐다.**
+// 같은 사람의 계정이 둘로 갈리고 기록도 갈린다. 저장은 적은 그대로 두고, 찾고 비교할 때만 낮춘다.
+const emailKey = (email) => String(email || '').trim().toLowerCase();
+
 function rebuildIndex() {
   const data = load();
   _index.userById = new Map();
@@ -120,7 +127,7 @@ function rebuildIndex() {
   _index.userByUsername = new Map();
   for (const u of data.users) {
     _index.userById.set(u.id, u);
-    _index.userByEmail.set(u.email, u);
+    _index.userByEmail.set(emailKey(u.email), u);
     if (u.username) _index.userByUsername.set(u.username, u);
   }
 }
@@ -131,7 +138,7 @@ const db = {
   // users (인덱스 기반 O(1) 조회)
   findUserByEmail(email) {
     if (!_index.userById) rebuildIndex();
-    return _index.userByEmail.get(email) || null;
+    return _index.userByEmail.get(emailKey(email)) || null;
   },
   findUserById(id) {
     if (!_index.userById) rebuildIndex();
@@ -143,7 +150,7 @@ const db = {
   },
   createUser(email, password, nickname, username) {
     const data = load();
-    if (data.users.some(u => u.email === email)) {
+    if (data.users.some(u => emailKey(u.email) === emailKey(email))) {
       throw new Error('DUPLICATE_EMAIL');
     }
     if (username && data.users.some(u => u.username === username)) {
@@ -151,7 +158,7 @@ const db = {
     }
     const id = data._nextId.users || 1;
     data._nextId.users = id + 1;
-    const role = (process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL) ? 'admin' : 'user';
+    const role = (process.env.ADMIN_EMAIL && emailKey(email) === emailKey(process.env.ADMIN_EMAIL)) ? 'admin' : 'user';
     const user = { id, email, password, nickname, username: username || null, role, created_at: new Date().toISOString() };
     data.users.push(user);
     invalidateUserIndex();
@@ -671,5 +678,7 @@ const db = {
     return { changes: 1 };
   },
 };
+
+db.emailKey = emailKey;
 
 module.exports = db;
