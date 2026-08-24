@@ -2,6 +2,15 @@
   "generated": "2026-08-24",
   "items": [
     {
+      "hash": "b0f4fe5",
+      "date": "2026-08-24",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "제보함",
+      "text": "쓰기 전에 '무엇이 궁금하세요?' 로 먼저 찾아준다",
+      "detail": "유형(버그 · 문의 · 건의)을 고르기 전 자리에서 먼저 묻습니다. 치는 대로 자주\n묻는 것에서 찾아, 답을 그 자리에서 펼쳐 보여줍니다.\n\n답이 이미 있는 질문을 제보로 받으면 물어보신 분은 며칠을 기다리고, 답하는\n쪽은 같은 답을 또 씁니다. 여기서 끝나면 둘 다 안 합니다.\n\n제목을 적는 동안에도 '혹시 이걸 찾으시나요?' 로 알려드립니다.\n\n막지는 않습니다. '찾는 게 없다' 를 눌러야 폼이 열리는 식으로 만들지 않았습니다 —\n그런 관문은 사람을 돌려보내는 데만 쓰입니다. 답이 없으면 그대로 유형을 골라\n적으시면 됩니다.\n\n'초 월' 도 '초월' 로 찾고, '렙업' · '폰바꿈' · '차단당했어요' 처럼 실제로 치는\n말로도 찾습니다. 진짜 버그 제목에는 엉뚱한 제안이 뜨지 않습니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01G9ferRDrf4N7WCaFySgxpy"
+    },
+    {
       "hash": "26c2e1a",
       "date": "2026-08-24",
       "type": "feat",
@@ -351,15 +360,6 @@
       "scope": null,
       "text": "사다리타기 모드 추가 (티켓 공유) + 파칭코 확률 조정",
       "detail": "두 번째 모드 — 사다리타기 (하이리스크):\n- components/LadderGame.jsx — 세로 5줄 x 가로 9층 SVG 사다리\n- 시작점을 고른 뒤 '출발' 버튼으로 실행 (티켓 3장이 한 번에 나가므로\n  숫자만 눌러도 바로 소모되던 오탭 위험을 없앰)\n- 경로가 2.8초에 걸쳐 빛나며 내려가고, 그동안 도착 칸은 ❓로 가림\n\n티켓 공유:\n- store/pachinkoStore.js 신설 — used/gained/log를 zustand로 끌어올려\n  파칭코와 사다리가 같은 티켓 지갑과 기록을 사용\n- PachinkoSystem의 로컬 state/persist 제거, 스토어로 이관\n- 최근 결과 목록에 사다리 결과는 🪜로 구분 표시\n\n밸런스 — 유불리 없이 분산만 다르게:\n- 티켓당 기대 EXP를 파칭코와 1.000배로 일치시킴\n- 파칭코: 티켓 1장 / 꽝 8% / 최고보상 1%\n- 사다리: 티켓 3장 / 꽝 30% / 최고보상 3%\n- 파칭코 초신성(15자리) 2% -> 1%로 하향, 줄어든 1%는 일반으로\n\n버그 수정:\n- 사다리 경로선이 애니메이션 없이 튀어나오던 문제\n  tracing이 false가 되는 순간 transition 속성 자체가\n  stroke-dashoffset -> stroke로 교체돼 트랜지션이 걸릴 곳이 없었음.\n  drawn 상태를 분리하고 rAF 2프레임 뒤 그리기 시작하도록 수정\n\n기타:\n- 티켓 최대 보유량 60 -> 600\n- 라벨의 티켓 수 하드코딩 제거, LADDER.cost에서 읽도록\n- 쓰이지 않는 onExpChange prop 제거\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012uVYKDT77eATYYGwuG1kgV"
-    },
-    {
-      "hash": "21cdaa2",
-      "date": "2026-08-12",
-      "type": "feat",
-      "label": "새 기능",
-      "scope": null,
-      "text": "파칭코 시스템 추가 + 레벨 50→100 확장",
-      "detail": "파칭코 (신규):\n- data/pachinkoData.js — 확률/보상/릴 설정 분리\n- components/PachinkoSystem.jsx — 15자리 슬롯 릴, 왼쪽부터 순차 정지\n- components/CasinoChip.jsx — 카지노 칩 인라인 SVG (이모지에 칩 없음)\n- pages/PachinkoPage.jsx — /pachinko 전용 페이지\n- 확률표 모달 (등급별 색 막대, 낮은 확률도 최소 너비 보장)\n\n티켓 수급 — 조작 불가 구조:\n- 발급량은 기록 수에서 매번 계산 (저장 안 함), 사용량만 localStorage 누적\n- 운동 3회당 1개, 인바디 1회당 1개, 최대 60개까지 적립\n\n보상 사다리 (자릿수가 곧 등급):\n- 꽝 8% ~ 초신성 2% (999,999,999,999,999 = 15자리 전부 9)\n- 5자리 이상은 글로우, 15자리는 전용 배너 + 2배 글로우\n\n레벨 확장:\n- LEVEL_TABLE 50 → 100레벨, TIER_INFO 10 → 20티어\n- 51~100은 레벨당 +61% 지수 곡선 (44,550 → 999조)\n- T10 '만렙' → '정점' (만렙이 100이 되어 표기가 틀어짐)\n- LV96 칭호 중복 회피: '절대자' → '절대 영역'\n\n버그 수정:\n- calcExp/파칭코 누적에 MAX_EXP 상한 — 초신성 9회 누적 시\n  2^53을 넘어 정수 정밀도가 깨지던 문제\n- earnedTickets가 객체/undefined를 받으면 NaN이 퍼지던 문제 방어\n\n연결:\n- LevelSystem에 bonusExp 파라미터 추가 (파칭코 EXP 합산)\n- TabBar 메인 탭에 파칭코 배치, 홈 검색 항목 추가\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_012uVYKDT77eATYYGwuG1kgV"
     }
   ]
 }
