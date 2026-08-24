@@ -1,4 +1,5 @@
 const db = require('../db');
+const { notifyAdmin } = require('./mailer');
 
 // ─────────────────────────────────────────────────────────────
 // 욕설 · 비하에 대한 처벌.
@@ -117,6 +118,27 @@ function punish(userId, verdict, where, text) {
   if (days > 0) {
     suspend(userId, verdict, days, count, isHate);
   }
+
+  // 관리자에게 알린다.
+  //
+  // 이건 간격을 두지 않는다(always). 사전이 잘못 잡았을 수 있고, 그러면 그 사람은
+  // 앱을 못 쓰는 채로 방치된다. 묶어서 나중에 보내면 그만큼 늦게 풀린다.
+  notifyAdmin(
+    'abuse',
+    days > 0 ? `${isHate ? '비하' : '욕설'}로 ${days}일 정지` : '욕설로 차단 (경고)',
+    [
+      `판정: ${verdict.level}`,
+      `걸린 말: ${verdict.hits.join(', ')}`,
+      `회원 번호: ${userId}`,
+      days > 0 ? `조치: ${days}일 정지` : '조치: 차단 + 경고 (정지 없음)',
+      '',
+      '원문:',
+      String(text || '').slice(0, 300),
+      '',
+      '사전이 잘못 잡았다면 관리자 화면에서 「사전이 틀렸음」 을 누르면 누적에서 빠지고 정지도 같이 풀립니다.',
+    ],
+    true,
+  );
 
   return { blocked: true, days, count, message };
 }

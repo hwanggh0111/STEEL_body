@@ -4,6 +4,7 @@ import MiniSplash from './MiniSplash';
 import CasinoChip from './CasinoChip';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
+import { usePendingReports } from './usePendingReports';
 
 const TABS = [
   { path: '/home',    label: '홈',    icon: '🏠' },
@@ -44,6 +45,8 @@ export default function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isPC = useIsPC();
+  // 손볼 제보가 있으면 관리자 항목에 숫자를 붙인다 — 화면을 열어봐야만 알던 것이다
+  const pending = usePendingReports();
 
   // 관리자 권한 변경 감지 (다른 탭에서 로그인/로그아웃 시)
   useEffect(() => {
@@ -54,8 +57,10 @@ export default function TabBar() {
 
   // 권한 기반 메뉴 필터링
   const moreItems = useMemo(
-    () => MORE_ITEMS_ALL.filter(i => !i.adminOnly || isAdminUser),
-    [isAdminUser]
+    () => MORE_ITEMS_ALL
+      .filter(i => !i.adminOnly || isAdminUser)
+      .map(i => (i.path === '/admin' ? { ...i, badge: pending.total } : i)),
+    [isAdminUser, pending.total]
   );
 
   const handleTab = (path) => {
@@ -115,7 +120,19 @@ export default function TabBar() {
         transition: 'opacity 0.15s, transform 0.15s',
         transform: active ? 'scale(1.05)' : 'scale(1)',
         lineHeight: 1,
-      }}>{item.icon}</span>
+        position: 'relative',
+      }}>
+        {item.icon}
+        {item.badge > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -8,
+            minWidth: 16, height: 16, padding: '0 4px',
+            borderRadius: 8, background: 'var(--danger)', color: '#fff',
+            fontSize: 10, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
+            fontFamily: "'Barlow', sans-serif",
+          }}>{item.badge > 99 ? '99+' : item.badge}</span>
+        )}
+      </span>
       <span style={{
         fontFamily: NAV_TOKENS.labelFont,
         fontSize: NAV_TOKENS.labelSize,
@@ -259,7 +276,7 @@ export default function TabBar() {
           {TABS.map(tab => (
             <div key={tab.path} style={{ flex: 1 }}>
               <NavCell
-                item={tab}
+                item={tab.path === '/more' ? { ...tab, badge: pending.total } : tab}
                 active={isActive(tab.path)}
                 onClick={() => handleTab(tab.path)}
                 layout="vertical"

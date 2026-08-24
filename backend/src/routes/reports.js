@@ -6,6 +6,7 @@ const db = require('../db');
 const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
 const { inspect } = require('../utils/profanity');
 const { punish } = require('../utils/abusePolicy');
+const { notifyAdmin } = require('../utils/mailer');
 
 // ─────────────────────────────────────────────────────────────
 // 제보함 — 버그 · 문의 · 건의
@@ -57,6 +58,17 @@ router.get('/', auth, (req, res) => {
 // '/:id' 보다 위에 둔다. 아래에 두면 'all' 이 id 로 잡힌다
 router.get('/all', adminAuth, (req, res) => {
   res.json(db.getAllReports());
+});
+
+// 관리자 — 손볼 게 몇 건인지만.
+//
+// 전체 목록(`/all`)은 무겁다. 화면 구석의 표시 하나 때문에 제보를 통째로 받아올 수는 없다.
+// 관리자가 앱을 켜 두는 동안 주기적으로 부르는 자리라 가벼워야 한다.
+router.get('/pending', adminAuth, (req, res) => {
+  const reports = db.getAllReports();
+  const open = reports.filter(r => r.status === 'received' || r.status === 'checking').length;
+  const abuse = db.getAbuseLogs().filter(a => !a.reviewed && !a.dismissed).length;
+  res.json({ open, abuse });
 });
 
 // 관리자 — 욕설·비하로 걸린 기록.
@@ -131,6 +143,22 @@ router.post('/', auth, spamCheck, (req, res) => {
     // 처벌 대상이 아니다
     flagged: verdict.level === 'mild' ? 'mild' : null,
   });
+
+  // 관리자에게 알린다. 기다리지 않는다 — 알림이 늦거나 실패해도 제보는 이미 받았다.
+  // 제목까지만 보낸다. 본문을 통째로 메일에 넣으면 메일함이 제보함이 된다
+  const KIND_LABEL = { bug: '버그', ask: '문의', idea: '건의' };
+  notifyAdmin(
+    'report',
+    `새 제보 — ${KIND_LABEL[kind] || kind}`,
+    [
+      `유형: ${KIND_LABEL[kind] || kind}`,
+      `제목: ${cleanTitle}`,
+      record.meta?.screen ? `화면: ${record.meta.screen}` : '',
+      `회원 번호: ${req.userId}`,
+      '',
+      '관리자 화면 > 제보 관리 에서 확인하고 답을 달 수 있습니다.',
+    ].filter(Boolean),
+  );
 
   res.status(201).json(record);
 });
