@@ -130,6 +130,20 @@ function validateState(state) {
 }
 
 // Google 리다이렉트 방식 (요청 호스트 기반 — 터널/localhost 모두 지원)
+// 어느 소셜 로그인이 쓸 수 있는 상태인가.
+//
+// 제공자마다 열쇠가 따로 있고, 없으면 눌러봐야 `?error=..._not_configured` 로
+// 되돌아온다. **못 하는 것을 누를 수 있게 두지 않으려고** 화면이 먼저 물어본다.
+// 열쇠 값은 안 돌려준다 — 설정됐는지 여부만이다.
+router.get('/providers', (req, res) => {
+  res.json({
+    google: !!process.env.GOOGLE_CLIENT_ID,
+    naver: !!process.env.NAVER_CLIENT_ID,
+    facebook: !!process.env.FACEBOOK_APP_ID,
+    instagram: !!process.env.INSTAGRAM_APP_ID,
+  });
+});
+
 router.get('/google', (req, res) => {
   const { backendUrl } = getUrls(req);
   // state 에 프론트엔드 referer 를 같이 담아둔다 (콜백에서 돌아갈 곳을 정하는 데 쓴다)

@@ -40,8 +40,21 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${BACKEND_BASE}/api/oauth/google`;
+  // 소셜 로그인 — 서버는 넷을 다 지원하는데 화면에는 구글 하나뿐이었다.
+  // 8/24 에 네 곳의 state 등록 버그를 고쳐놓고도 버튼을 안 만들었다.
+  //
+  // 제공자마다 열쇠가 따로 있어서, 없는 것을 누르면 오류로 되돌아온다.
+  // **못 하는 것을 누를 수 있게 두지 않는다** — 서버에 물어서 되는 것만 그린다
+  const [providers, setProviders] = useState(null);
+  useEffect(() => {
+    client.get('/oauth/providers')
+      .then(({ data }) => setProviders(data))
+      // 못 물어봤으면 구글만 보여준다. 하나도 안 보여주는 것보다 낫다
+      .catch(() => setProviders({ google: true }));
+  }, []);
+
+  const startOauth = (provider) => {
+    window.location.href = `${BACKEND_BASE}/api/oauth/${provider}`;
   };
 
   // 자동 로그인 (쿠키 기반 + /auth/me 검증)
@@ -62,7 +75,26 @@ export default function LoginPage() {
     }
   }, []);
 
-  // OAuth 콜백 처리 (쿠키 기반 — 서버가 httpOnly 쿠키를 설정해서 리다이렉트)
+  // 소셜 로그인이 실패해서 되돌아왔을 때 뭐라고 할까.
+//
+// 예전에는 무엇이 잘못됐든 「다시 시도해주세요」였다. 그런데 열쇠가 설정 안 된
+// 제공자는 **다시 시도해도 영영 안 된다** — 될 것처럼 말하면 안 된다.
+function oauthErrorText(code) {
+  const PROVIDER = { google: '구글', naver: '네이버', facebook: '페이스북', instagram: '인스타그램' };
+  const [name, kind] = String(code || '').split(/_(.+)/);
+  const label = PROVIDER[name] || '소셜';
+
+  if (kind === 'not_configured') {
+    return `${label} 로그인은 아직 준비 중이에요. 다른 방법으로 들어와 주세요.`;
+  }
+  if (code === 'invalid_state') {
+    // state 는 1회용이라, 뒤로 가기나 오래된 링크로 다시 오면 여기로 떨어진다
+    return '로그인 링크가 만료됐어요. 처음부터 다시 눌러주세요.';
+  }
+  return `${label} 로그인에 실패했어요. 다시 시도해주세요.`;
+}
+
+// OAuth 콜백 처리 (쿠키 기반 — 서버가 httpOnly 쿠키를 설정해서 리다이렉트)
   useEffect(() => {
     const oauthSuccess = searchParams.get('oauth');
     const nick = searchParams.get('nickname');
@@ -82,7 +114,7 @@ export default function LoginPage() {
       setOauthNickStep(true);
     }
     if (err) {
-      setError('소셜 로그인에 실패했어요. 다시 시도해주세요.');
+      setError(oauthErrorText(err));
     }
   }, [searchParams, navigate]);
 
@@ -184,39 +216,72 @@ export default function LoginPage() {
           당신의 운동을 기록하세요
         </p>
 
-        {/* Google 로그인 */}
+        {/* 소셜 로그인 — 서버가 쓸 수 있다고 한 것만 그린다 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              width: '100%',
-              padding: '12px 16px',
-              border: '1px solid #dadce0',
-              borderRadius: 'var(--radius)',
-              background: '#ffffff',
-              color: '#3c4043',
-              fontSize: 14,
-              fontWeight: 600,
-              fontFamily: "'Barlow', sans-serif",
-              cursor: 'pointer',
-              transition: 'opacity 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(60,64,67,0.2)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = 'none'; }}
-          >
-            <svg width="18" height="18" viewBox="0 0 48 48">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-              <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/>
-              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-            </svg>
-            Google으로 로그인
-          </button>
+          {providers?.google && (
+            <button
+              onClick={() => startOauth('google')}
+              disabled={loading}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                width: '100%', padding: '12px 16px',
+                border: '1px solid #dadce0', borderRadius: 'var(--radius)',
+                background: '#ffffff', color: '#3c4043',
+                fontSize: 14, fontWeight: 600, fontFamily: "'Barlow', sans-serif",
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              </svg>
+              Google 로 계속하기
+            </button>
+          )}
+
+          {/* 나머지 셋은 한 줄에 나란히. 세로로 쌓으면 로그인 칸이 화면 밖으로 밀린다 */}
+          {(providers?.naver || providers?.facebook || providers?.instagram) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {providers?.naver && (
+                <button
+                  onClick={() => startOauth('naver')}
+                  disabled={loading}
+                  style={{
+                    flexGrow: 1, padding: '11px 0', border: 'none', borderRadius: 'var(--radius)',
+                    background: '#03C75A', color: '#ffffff',
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', sans-serif",
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >네이버</button>
+              )}
+              {providers?.facebook && (
+                <button
+                  onClick={() => startOauth('facebook')}
+                  disabled={loading}
+                  style={{
+                    flexGrow: 1, padding: '11px 0', border: 'none', borderRadius: 'var(--radius)',
+                    background: '#1877F2', color: '#ffffff',
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', sans-serif",
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >페이스북</button>
+              )}
+              {providers?.instagram && (
+                <button
+                  onClick={() => startOauth('instagram')}
+                  disabled={loading}
+                  style={{
+                    flexGrow: 1, padding: '11px 0', border: 'none', borderRadius: 'var(--radius)',
+                    background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#ffffff',
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', sans-serif",
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >인스타그램</button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 구분선 */}
