@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
-import { alertRestDone } from '../data/restAlert';
+import { beepDone } from '../data/alertSound';
 
 // 휴식 중일 때 탭 바 바로 위에 뜨는 띠.
 //
@@ -22,7 +22,7 @@ export default function RestBar({ bottom = 58 }) {
     if (!finished) { alerted.current = false; return; }
     if (alerted.current) return;
     alerted.current = true;
-    alertRestDone(sound, vibrate);
+    beepDone(sound, vibrate);
     // 다 됐다는 표시를 잠깐 두고 스스로 걷는다 — 누르지 않아도 사라진다
     const t = setTimeout(() => ackFinished(), 6000);
     return () => clearTimeout(t);

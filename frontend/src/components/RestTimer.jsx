@@ -1,5 +1,5 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
-import { primeAudio } from '../data/restAlert';
+import { primeAudio } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useState } from 'react';
 

@@ -12,7 +12,7 @@ import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useRestTimerStore } from '../store/restTimerStore';
-import { primeAudio } from '../data/restAlert';
+import { primeAudio } from '../data/alertSound';
 
 const TEXT = {
   ko: {

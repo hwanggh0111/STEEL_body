@@ -1,4 +1,6 @@
-// 휴식이 끝났을 때 알리는 소리와 진동.
+// 시간이 다 됐을 때 알리는 소리와 진동.
+//
+// 휴식 타이머와 측정 시스템의 타이머, 두 곳이 쓴다.
 //
 // 예전에는 **진동뿐이었다.** 그런데 `navigator.vibrate` 는 아이폰 사파리가 아예 지원하지
 // 않는다 — 아이폰에서는 휴식이 끝나도 화면 깜빡임 말고는 아무 일도 없었다.
@@ -41,13 +43,13 @@ function beep(at, freq, seconds) {
 }
 
 /**
- * 휴식이 끝났다고 알린다.
+ * 시간이 다 됐다고 알린다.
  *
  * 소리와 진동 둘 다 **안 될 수 있다** — 소리는 브라우저가 막을 수 있고,
  * 진동은 아이폰이 지원하지 않는다. 그래서 화면 쪽 표시(띠가 초록으로 바뀌고
  * 「휴식 끝」이 뜨는 것)를 언제나 같이 둔다. 이것만 믿지 않는다.
  */
-export function alertRestDone(withSound = true, withVibrate = true) {
+export function beepDone(withSound = true, withVibrate = true) {
   if (withSound && ctx && ctx.state === 'running') {
     try {
       const now = ctx.currentTime;

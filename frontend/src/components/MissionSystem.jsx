@@ -8,7 +8,6 @@ const T = {
     weekly: '주간 미션',
     challenge: '도전 미션',
     completed: '완료',
-    reward: '보상',
     progress: '진행',
   },
   en: {
@@ -16,7 +15,6 @@ const T = {
     weekly: 'Weekly Missions',
     challenge: 'Challenge',
     completed: 'Done',
-    reward: 'Reward',
     progress: 'Progress',
   },
 };
@@ -32,7 +30,6 @@ function getDailyMissions(lang, todayWorkouts, todayInbody) {
       id: 'd1',
       title: lang === 'ko' ? '오늘 운동 1회 기록' : 'Log 1 workout today',
       icon: '💪',
-      exp: 10,
       current: workoutCount,
       goal: 1,
       done: workoutCount >= 1,
@@ -41,7 +38,6 @@ function getDailyMissions(lang, todayWorkouts, todayInbody) {
       id: 'd2',
       title: lang === 'ko' ? '오늘 운동 3회 기록' : 'Log 3 workouts today',
       icon: '🔥',
-      exp: 20,
       current: workoutCount,
       goal: 3,
       done: workoutCount >= 3,
@@ -50,7 +46,6 @@ function getDailyMissions(lang, todayWorkouts, todayInbody) {
       id: 'd3',
       title: lang === 'ko' ? '총 10세트 이상' : 'Complete 10+ sets',
       icon: '🏋️',
-      exp: 15,
       current: totalSets,
       goal: 10,
       done: totalSets >= 10,
@@ -59,7 +54,6 @@ function getDailyMissions(lang, todayWorkouts, todayInbody) {
       id: 'd4',
       title: lang === 'ko' ? '2가지 이상 운동' : '2+ different exercises',
       icon: '🎯',
-      exp: 15,
       current: parts.size,
       goal: 2,
       done: parts.size >= 2,
@@ -77,7 +71,6 @@ function getWeeklyMissions(lang, workouts, records, weekDates) {
       id: 'w1',
       title: lang === 'ko' ? '이번 주 3일 운동' : 'Work out 3 days this week',
       icon: '📅',
-      exp: 30,
       current: weekWorkoutDays,
       goal: 3,
       done: weekWorkoutDays >= 3,
@@ -86,7 +79,6 @@ function getWeeklyMissions(lang, workouts, records, weekDates) {
       id: 'w2',
       title: lang === 'ko' ? '이번 주 5일 운동' : 'Work out 5 days this week',
       icon: '⭐',
-      exp: 50,
       current: weekWorkoutDays,
       goal: 5,
       done: weekWorkoutDays >= 5,
@@ -95,7 +87,6 @@ function getWeeklyMissions(lang, workouts, records, weekDates) {
       id: 'w3',
       title: lang === 'ko' ? '이번 주 운동 15회 기록' : '15 workouts this week',
       icon: '🏆',
-      exp: 40,
       current: weekTotalWorkouts,
       goal: 15,
       done: weekTotalWorkouts >= 15,
@@ -104,7 +95,6 @@ function getWeeklyMissions(lang, workouts, records, weekDates) {
       id: 'w4',
       title: lang === 'ko' ? '이번 주 인바디 측정' : 'Measure InBody this week',
       icon: '📊',
-      exp: 20,
       current: thisWeekInbody,
       goal: 1,
       done: thisWeekInbody >= 1,
@@ -118,7 +108,6 @@ function getChallengeMissions(lang, totalWorkouts, totalInbody) {
       id: 'c1',
       title: lang === 'ko' ? '총 운동 50회 달성' : 'Reach 50 total workouts',
       icon: '🎖️',
-      exp: 100,
       current: totalWorkouts,
       goal: 50,
       done: totalWorkouts >= 50,
@@ -127,7 +116,6 @@ function getChallengeMissions(lang, totalWorkouts, totalInbody) {
       id: 'c2',
       title: lang === 'ko' ? '총 운동 100회 달성' : 'Reach 100 total workouts',
       icon: '💎',
-      exp: 200,
       current: totalWorkouts,
       goal: 100,
       done: totalWorkouts >= 100,
@@ -136,7 +124,6 @@ function getChallengeMissions(lang, totalWorkouts, totalInbody) {
       id: 'c3',
       title: lang === 'ko' ? '총 운동 300회 달성' : 'Reach 300 total workouts',
       icon: '👑',
-      exp: 500,
       current: totalWorkouts,
       goal: 300,
       done: totalWorkouts >= 300,
@@ -145,7 +132,6 @@ function getChallengeMissions(lang, totalWorkouts, totalInbody) {
       id: 'c4',
       title: lang === 'ko' ? '인바디 5회 측정' : 'Measure InBody 5 times',
       icon: '📈',
-      exp: 100,
       current: totalInbody,
       goal: 5,
       done: totalInbody >= 5,
@@ -197,8 +183,10 @@ function MissionItem({ mission, t }) {
           <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>
             {mission.current}/{mission.goal}
           </span>
-          <span style={{ fontSize: 9, color: mission.done ? 'var(--success)' : 'var(--accent)' }}>
-            {mission.done ? t.completed : `+${mission.exp} EXP`}
+          {/* 예전에는 여기에 「+N EXP」가 있었다. 레벨을 없앤 뒤로는 줄 것이 없는데
+              계속 약속하고 있었다. 남은 개수만 말한다 */}
+          <span style={{ fontSize: 9, color: mission.done ? 'var(--success)' : 'var(--text-muted)' }}>
+            {mission.done ? t.completed : `${Math.max(0, mission.goal - mission.current)} 남음`}
           </span>
         </div>
       </div>
