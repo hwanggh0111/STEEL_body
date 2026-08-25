@@ -5,6 +5,7 @@ import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
 import Badges from '../components/Badges';
 import MissionSystem from '../components/MissionSystem';
+import WeeklyReport from '../components/WeeklyReport';
 import { isAdmin } from '../data/admin';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { dateKey } from '../data/dateKey';
@@ -383,6 +384,8 @@ export default function HomePage() {
               })}
             </div>
           </div>
+
+          <WeeklyReport workouts={workouts} />
 
           {/* 성취 뱃지 */}
           <div className="section-title">
