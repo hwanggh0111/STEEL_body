@@ -4,8 +4,11 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useLangStore } from '../store/langStore';
 import WorkoutCard from '../components/WorkoutCard';
 import RestTimer from '../components/RestTimer';
+import PersonalRecordBanner from '../components/PersonalRecordBanner';
+import BestRecords from '../components/BestRecords';
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
+import { bestRecords, checkRecord } from '../data/personalRecord';
 
 const TEXT = {
   ko: {
@@ -78,6 +81,8 @@ export default function WorkoutPage() {
   const [suggestions, setSuggestions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingOriginalDate, setEditingOriginalDate] = useState(null);
+  // 방금 넘긴 최고 기록. 저장 직후 한 번 띄우고, 근거가 된 기록이 바뀌면 내린다
+  const [record, setRecord] = useState(null);
   const blurTimerRef = useRef(null);
 
   const { workouts, loading, fetchAll, addWorkout, updateWorkout, deleteWorkout } = useWorkoutStore();
@@ -178,12 +183,17 @@ export default function WorkoutPage() {
       if (editingId) {
         await updateWorkout(editingId, payload);
         toast(lang === 'en' ? 'Updated!' : '수정 완료!');
+        setRecord(null);
         setEditingId(null);
         setEditingOriginalDate(null);
         setDate(today);
       } else {
+        // 최고 기록은 **넣기 전** 의 것과 견뎌야 한다. 저장한 뒤에 세면 방금 넣은
+        // 것이 이미 목록에 있어서 무엇을 넣어도 경신이 아니게 된다.
+        const before = bestRecords(workouts);
         await addWorkout(payload);
         toast(t.saved);
+        setRecord(checkRecord(before, payload));
       }
       setWeight('');
       setSets('');
@@ -227,6 +237,7 @@ export default function WorkoutPage() {
     try {
       await deleteWorkout(id);
       toast(t.deleted);
+      setRecord(null);
     } catch {
       toast(t.deleteFail, 'error');
     }
@@ -238,6 +249,8 @@ export default function WorkoutPage() {
         <div className="accent-bar" />
         {t.title}
       </div>
+
+      <PersonalRecordBanner record={record} onClose={() => setRecord(null)} />
 
       {editingId && (
         <div style={{
@@ -366,6 +379,8 @@ export default function WorkoutPage() {
           <WorkoutCard key={w.id} workout={w} onDelete={handleDelete} onEdit={handleEdit} />
         ))
       )}
+
+      <BestRecords workouts={workouts} />
 
     </div>
   );

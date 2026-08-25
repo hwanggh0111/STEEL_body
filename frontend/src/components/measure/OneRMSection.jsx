@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
+import { estimate1RM, RM_MAX_REPS } from '../../data/personalRecord';
 
 export default function OneRMSection({ records, onSave }) {
   const [weight, setWeight] = useState('');
@@ -10,10 +11,11 @@ export default function OneRMSection({ records, onSave }) {
     if (!weight || !reps) return;
     const w = Number(weight);
     const r = Number(reps);
-    if (r < 1 || r > 36) { toast('횟수는 1~36 범위여야 해요', 'error'); return; }
+    if (r < 1 || r > RM_MAX_REPS) { toast(`횟수는 1~${RM_MAX_REPS} 범위여야 해요`, 'error'); return; }
     if (r > 10) { toast('10회 초과 시 정확도가 낮아요', 'warning'); }
-    // Brzycki 공식
-    const orm = r === 1 ? w : Math.round(w * (36 / (37 - r)));
+    // 식은 data/personalRecord.js 한 곳에 있다. 최고 기록 판정도 같은 것을 쓴다
+    const orm = estimate1RM(w, r);
+    if (orm === null) { toast('계산할 수 없는 값이에요', 'error'); return; }
     setResult(orm);
   };
 
