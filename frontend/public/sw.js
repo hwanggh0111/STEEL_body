@@ -75,3 +75,50 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// ─── 운동 알림 ──────────────────────
+//
+// 서버가 정한 시각에 보낸다. 브라우저가 닫혀 있어도 이 워커가 깨어나 받는다.
+
+self.addEventListener('push', (event) => {
+  // 몸통이 깨져 있어도 알림은 띄운다 — 소리만 나고 아무것도 안 뜨는 게 제일 나쁘다
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+
+  const title = payload.title || 'STEEL BODY';
+  const options = {
+    body: payload.body || '',
+    // 이 앱이 가진 아이콘은 svg 하나뿐이다 (manifest 와 같은 것을 쓴다).
+    // 안드로이드는 svg 를 알림 아이콘으로 못 쓰는 경우가 있는데, 그때는
+    // 아이콘 없이 기본 모양으로 뜬다 — 알림 자체는 뜬다
+    icon: '/icons/icon.svg',
+    badge: '/icons/icon.svg',
+    // 같은 tag 로 오면 덮어쓴다. 알림이 줄줄이 쌓이지 않게 한다
+    tag: payload.tag || 'steelbody',
+    data: { url: payload.url || '/home' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || '/home';
+
+  // 이미 열려 있는 창이 있으면 그 창을 쓴다. 누를 때마다 새 창이 뜨면 창이 쌓인다
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          client.navigate(target).catch(() => {});
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});

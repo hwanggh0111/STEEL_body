@@ -205,6 +205,7 @@ app.use('/api/ratings',     require('./routes/ratings'));
 app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/faq-gaps',    require('./routes/faqGaps'));
+app.use('/api/reminders',   require('./routes/reminders'));
 app.use('/api/export',      require('./routes/export'));
 
 // 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)
@@ -268,6 +269,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  // 운동 알림 — VAPID 키가 없으면 스스로 안 뜬다 (설정이 없다고 서버가 못 뜨면 안 된다)
+  require('./utils/reminderRunner').start();
 });
 
 // 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)

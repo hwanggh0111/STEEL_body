@@ -59,6 +59,7 @@ const SEARCH_ITEMS = [
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
   { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: '📮' },
+  { label: '운동 알림', keywords: ['알림', '알람', '리마인더', '푸시', 'push', 'notification', '노티', '깨워', '까먹', '잊어', '요일', '시간', 'ㅇㄷㅇㄹ'], path: '/reminders', icon: '🔔' },
   { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: '📰' },
 
   // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───

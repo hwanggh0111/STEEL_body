@@ -29,9 +29,15 @@ const DEFAULT_DATA = {
   // FAQ 를 무엇으로 늘릴지 감으로 정하지 않으려고 남긴다.
   // 친 말과 횟수·날짜만 남긴다 — 누가 쳤는지는 남기지 않는다
   faqGaps: [],
+  // 운동 알림 설정. 한 사람당 한 줄.
+  // **서버가 들고 있어야 한다** — 기기를 바꾸면 설정이 사라지면 안 되고,
+  // 정해진 시각에 보내는 것도 서버가 한다
+  reminders: [],
+  // 웹 푸시 구독. 한 사람이 기기마다 하나씩 갖는다 (폰과 PC 는 다른 구독이다)
+  pushSubs: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -723,6 +729,82 @@ const db = {
     const idx = data.faqGaps.findIndex(g => g.id === id);
     if (idx === -1) return { changes: 0 };
     data.faqGaps.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
+  // ── 운동 알림 ──
+  getReminder(userId) {
+    const data = load();
+    return (data.reminders || []).find(r => r.user_id === userId) || null;
+  },
+
+  saveReminder(userId, patch) {
+    const data = load();
+    if (!data.reminders) data.reminders = [];
+    const now = new Date().toISOString();
+    let row = data.reminders.find(r => r.user_id === userId);
+    if (!row) {
+      row = { user_id: userId, created_at: now };
+      data.reminders.push(row);
+    }
+    Object.assign(row, patch, { updated_at: now });
+    save(data);
+    return row;
+  },
+
+  getEnabledReminders() {
+    const data = load();
+    return (data.reminders || []).filter(r => r.enabled);
+  },
+
+  // 같은 날 두 번 보내지 않으려고 보낸 날을 적어둔다.
+  // **사용자 기준 날짜**다 — 서버가 UTC 로 돌아도 사람은 자기 시간대로 산다
+  markReminderSent(userId, localDate) {
+    const data = load();
+    const row = (data.reminders || []).find(r => r.user_id === userId);
+    if (!row) return;
+    row.last_sent_date = localDate;
+    save(data);
+  },
+
+  // ── 웹 푸시 구독 ──
+  //
+  // endpoint 가 곧 그 기기다. 같은 endpoint 가 다시 오면 새 줄을 만들지 않는다 —
+  // 앱을 열 때마다 구독을 다시 보내므로, 안 그러면 기기 하나가 수십 줄이 된다
+  savePushSub(userId, sub) {
+    const data = load();
+    if (!data.pushSubs) data.pushSubs = [];
+    const found = data.pushSubs.find(s => s.endpoint === sub.endpoint);
+    if (found) {
+      found.user_id = userId;
+      found.keys = sub.keys;
+      found.seen_at = new Date().toISOString();
+      save(data);
+      return found;
+    }
+    const record = {
+      id: nextId('pushSubs'), user_id: userId,
+      endpoint: sub.endpoint, keys: sub.keys,
+      created_at: new Date().toISOString(), seen_at: new Date().toISOString(),
+    };
+    data.pushSubs.push(record);
+    save(data);
+    return record;
+  },
+
+  getPushSubs(userId) {
+    const data = load();
+    return (data.pushSubs || []).filter(s => s.user_id === userId);
+  },
+
+  // 브라우저가 404/410 을 돌려주면 그 구독은 죽은 것이다. 그대로 두면 매번 실패한다
+  deletePushSubByEndpoint(endpoint) {
+    const data = load();
+    if (!data.pushSubs) return { changes: 0 };
+    const idx = data.pushSubs.findIndex(s => s.endpoint === endpoint);
+    if (idx === -1) return { changes: 0 };
+    data.pushSubs.splice(idx, 1);
     save(data);
     return { changes: 1 };
   },

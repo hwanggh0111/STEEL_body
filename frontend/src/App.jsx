@@ -21,6 +21,7 @@ const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 const SupportPage = lazy(() => import('./pages/support/SupportPage'));
+const RemindersPage = lazy(() => import('./pages/RemindersPage'));
 const NoticeArchive = lazy(() => import('./pages/support/NoticeArchive'));
 
 function Loading() {
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="history" element={<HistoryPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="support" element={<SupportPage />} />
+              <Route path="reminders" element={<RemindersPage />} />
               <Route path="support/notices" element={<NoticeArchive />} />
               {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
                   이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면
