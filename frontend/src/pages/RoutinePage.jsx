@@ -125,6 +125,21 @@ export default function RoutinePage() {
         나만의 루틴
       </div>
 
+      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.7 }}>
+        루틴을 만들어두면 <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>순서를 따라가며 기록</b>할 수 있어요.
+        지난번에 든 무게를 미리 채워둡니다.
+      </p>
+
+      {myRoutines.length === 0 && !showCreate && (
+        <div className="empty-state" style={{ padding: '28px 0' }}>
+          <div className="empty-state-title">루틴 없음</div>
+          <div className="empty-state-desc">
+            아직 만든 루틴이 없어요.<br />
+            아래 추천에서 골라 담거나, 직접 만들 수 있습니다.
+          </div>
+        </div>
+      )}
+
       {myRoutines.length > 0 && myRoutines.map((r, i) => (
         <div key={r._id || r.id || i} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>

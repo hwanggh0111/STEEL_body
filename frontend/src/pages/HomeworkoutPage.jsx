@@ -62,6 +62,8 @@ const EMPTY = [];
 
 export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
+  // 시작하기 전에 무엇을 하는지 펼쳐 보는 자리
+  const [preview, setPreview] = useState(null);
   const [running, setRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isRest, setIsRest] = useState(false);
@@ -142,6 +144,10 @@ export default function HomeworkoutPage() {
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
 
   // 프로그램 선택 화면
+  //
+  // 예전에는 이름 · 개수 · 걸리는 시간만 보여줬다. **무엇을 하는지는 시작해봐야 알았다.**
+  // 8개짜리 프로그램을 고르면서 그 안에 뭐가 들었는지 모르고 누르는 셈이었다.
+  // 이제 눌러서 미리 볼 수 있다.
   if (!selected) {
     return (
       <div>
@@ -154,23 +160,42 @@ export default function HomeworkoutPage() {
         </p>
         {PROGRAM_NAMES.map((name) => {
           const exs = PROGRAMS[name];
-          const total = exs.reduce((s, e) => s + e.duration + e.rest, 0);
+          const total = exs.reduce((sum, e) => sum + e.duration + e.rest, 0);
+          const open = preview === name;
           return (
-            <div
-              key={name}
-              className="card clickable"
-              style={{ marginBottom: 8 }}
-              onClick={() => setSelected(name)}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
+            <div key={name} className="card" style={{ marginBottom: 8 }}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPreview(open ? null : name)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreview(open ? null : name); } }}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 10 }}
+              >
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2 }}>{name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {exs.length}개 운동 · 약 {Math.ceil(total / 60)}분
+                    {exs.length}개 운동 · 약 {Math.ceil(total / 60)}분 · {open ? '접기' : '눌러서 미리 보기'}
                   </div>
                 </div>
-                <span className="badge badge-accent">{exs.length}SET</span>
+                <span className="badge badge-accent" style={{ flexShrink: 0 }}>{exs.length}개</span>
               </div>
+
+              {open && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                    {exs.map((e, i) => (
+                      <div key={`${e.name}-${i}`} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
+                        <span style={{ width: 18, color: 'var(--text-muted)', flexShrink: 0, fontSize: 11 }}>{i + 1}</span>
+                        <span style={{ flexGrow: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12, flexShrink: 0 }}>
+                          {e.duration}초{e.rest > 0 ? ` · 쉬는 ${e.rest}초` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="btn-primary" onClick={() => setSelected(name)}>시작하기</button>
+                </div>
+              )}
             </div>
           );
         })}
