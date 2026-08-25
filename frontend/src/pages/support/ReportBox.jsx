@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { FAQ, matchFaq } from './faq';
@@ -108,6 +108,26 @@ function AskFirst() {
   const typed = q.trim().length >= 2;
   const hits = typed ? matchFaq(q) : [];
   const list = typed ? hits : (showAll ? FAQ : []);
+
+  // 답이 하나도 안 나온 말을 남긴다. FAQ 를 무엇으로 늘릴지 감으로 정하지 않으려고.
+  //
+  // 치는 동안 스쳐 지나가는 글자까지 보내면 목록이 쓰레기가 된다. 그래서 **2초 멈춘 뒤**
+  // 에 보낸다 — 그 정도 멈췄다는 것은 「여기에는 답이 없네요」를 읽었다는 뜻이다.
+  // 같은 말은 이 화면이 살아 있는 동안 한 번만 보낸다.
+  //
+  // 남기는 것은 친 말뿐이다. 누가 쳤는지는 서버도 안 남긴다.
+  // 실패해도 아무 일도 하지 않는다 — 이것 때문에 제보를 못 쓰게 되면 본말이 전도된다.
+  const sentRef = useRef(new Set());
+  useEffect(() => {
+    if (!typed || hits.length > 0) return;
+    const term = q.trim();
+    if (sentRef.current.has(term)) return;
+    const timer = setTimeout(() => {
+      sentRef.current.add(term);
+      client.post('/faq-gaps', { term }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [q, typed, hits.length]);
 
   // 주제를 누르면 그 자리에서 답까지 펼친다 — 한 번 더 누르게 하지 않는다
   const pickTopic = (item) => {

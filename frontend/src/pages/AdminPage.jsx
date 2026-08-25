@@ -7,6 +7,7 @@ import AiAdminPanel from '../components/AiAdminPanel';
 import MaintAdmin from '../components/admin/MaintAdmin';
 import ReportAdmin from '../components/admin/ReportAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
+import FaqGapAdmin from '../components/admin/FaqGapAdmin';
 
 import { isAdmin as checkAdmin } from '../data/admin';
 
@@ -57,6 +58,7 @@ export default function AdminPage() {
         {[
           { key: 'report', label: '제보 관리', icon: '📮' },
           { key: 'maint', label: '점검 스케줄', icon: '🔧' },
+          { key: 'faqgap', label: '못 찾은 말', icon: '🔎' },
           { key: 'security', label: '보안 관리', icon: '🛡️' },
           { key: 'hacking', label: '해킹 보안', icon: '🔒' },
           { key: 'ai', label: 'AI 관리자', icon: '🤖' },
@@ -82,6 +84,7 @@ export default function AdminPage() {
 
       {tab === 'report' && <ReportAdmin />}
       {tab === 'maint' && <MaintAdmin />}
+      {tab === 'faqgap' && <FaqGapAdmin />}
       {tab === 'security' && <SecurityPanel />}
       {tab === 'hacking' && <HackingSecurityPanel />}
       {tab === 'ai' && <AiAdminPanel />}

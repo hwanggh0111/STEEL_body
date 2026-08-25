@@ -25,9 +25,13 @@ const DEFAULT_DATA = {
   // 만족도 — 한 사람당 한 줄만 남는다 (다시 매기면 덮어쓴다).
   // 점수만 받는다. 이유는 제보함이 받는다 — 두 곳에서 같은 것을 물으면 둘 다 부실해진다
   ratings: [],
+  // 고객센터 「무엇이 궁금하세요?」에서 쳤는데 **답이 하나도 안 나온 말**.
+  // FAQ 를 무엇으로 늘릴지 감으로 정하지 않으려고 남긴다.
+  // 친 말과 횟수·날짜만 남긴다 — 누가 쳤는지는 남기지 않는다
+  faqGaps: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, suspensions: 1, blacklist: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -679,6 +683,48 @@ const db = {
     const now = new Date().toISOString();
     data.refreshTokens = data.refreshTokens.filter(t => t.expires_at > now);
     save(data);
+  },
+
+  // ── 답이 안 나온 말 ──
+  //
+  // 같은 말은 한 줄에 모으고 횟수만 올린다. 줄마다 쌓으면 목록이 금세 못 읽게 되고,
+  // 무엇이 자주 묻는 것인지도 안 보인다.
+  //
+  // key 는 공백·기호를 지운 소문자다 ('비 번' 과 '비번' 은 같은 말이다).
+  // 화면에 보여주는 것은 처음 친 그대로의 term 이다.
+  recordFaqGap(term, key) {
+    const data = load();
+    if (!data.faqGaps) data.faqGaps = [];
+    const now = new Date().toISOString();
+    const found = data.faqGaps.find(g => g.key === key);
+    if (found) {
+      found.count += 1;
+      found.last_at = now;
+      save(data);
+      return found;
+    }
+    const record = { id: nextId('faqGaps'), key, term, count: 1, first_at: now, last_at: now };
+    data.faqGaps.push(record);
+    save(data);
+    return record;
+  },
+
+  getFaqGaps(sinceIso) {
+    const data = load();
+    const all = data.faqGaps || [];
+    const rows = sinceIso ? all.filter(g => g.last_at >= sinceIso) : all;
+    // 자주 물은 것이 위로. 같은 횟수면 최근에 물은 것이 위로
+    return [...rows].sort((a, b) => (b.count - a.count) || (a.last_at < b.last_at ? 1 : -1));
+  },
+
+  deleteFaqGap(id) {
+    const data = load();
+    if (!data.faqGaps) return { changes: 0 };
+    const idx = data.faqGaps.findIndex(g => g.id === id);
+    if (idx === -1) return { changes: 0 };
+    data.faqGaps.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
   },
 
   // security
