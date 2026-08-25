@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 import { saveLS } from '../data/safeStorage';
 
 // 백엔드와 동일한 비밀번호 정책
@@ -156,6 +157,16 @@ export default function RegisterPage() {
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
           회원가입
         </p>
+
+        {/* 소셜로 들어오면 계정이 저절로 만들어진다. 예전에는 이 자리가 비어 있어서,
+            구글로 가입하려면 「로그인」 쪽으로 가야 한다는 걸 알아내야 했다 */}
+        <SocialLoginButtons disabled={loading} googleLabel="Google 로 가입하기" />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 직접 만들기</span>
+          <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+        </div>
 
         <form onSubmit={handleSubmit} autoComplete="on">
           {/* 아이디 */}

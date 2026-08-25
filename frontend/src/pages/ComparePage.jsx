@@ -195,12 +195,6 @@ export default function ComparePage() {
     <div>
       <div className="section-title">
         <div className="accent-bar" />
-        몸 변화 비교
-      </div>
-
-      {/* 사진 비교 */}
-      <div className="section-title">
-        <div className="accent-bar" />
         사진 비교
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
@@ -298,17 +292,26 @@ export default function ComparePage() {
         </>
       )}
 
-      {/* ── 그래프 영역 (항상 표시) ── */}
-      {isExample && (
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 8 }}>
-          * 인바디 기록이 없어서 예시 데이터로 표시 중
-        </div>
-      )}
-
+      {/* ── 그래프 ──
+          기록이 두 개 미만이면 예시 숫자로 그린다. **그건 내 몸이 아니다.**
+          예전에는 그래프를 다 그린 **뒤에** 작게 「예시」라고 붙였다 —
+          다 보고 나서야 남의 숫자였다는 것을 알게 된다. 위로 올리고 분명히 적는다 */}
       <div className="section-title">
         <div className="accent-bar" />
-        과거 vs 현재 수치 비교
+        {isExample ? '이렇게 보입니다 (예시)' : '과거 vs 현재 수치 비교'}
       </div>
+
+      {isExample && (
+        <div className="card" style={{ borderLeft: '3px solid var(--warning)', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
+            아래 숫자는 제 것이 아닙니다
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+            인바디를 두 번 이상 넣으시면 실제 기록으로 바뀝니다.
+            지금은 화면이 어떻게 보이는지만 보여드리는 예시입니다.
+          </div>
+        </div>
+      )}
       <div className="card" style={{ marginBottom: 20, padding: 12 }}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={[
