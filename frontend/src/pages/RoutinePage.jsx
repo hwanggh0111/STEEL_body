@@ -119,130 +119,8 @@ export default function RoutinePage() {
 
   return (
     <div>
-      <div className="section-title">
-        <div className="accent-bar" />
-        운동 루틴 추천
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {['머신', '맨몸', '홈트'].map((t) => (
-          <button
-            key={t}
-            className={`btn-secondary${type === t ? ' active' : ''}`}
-            onClick={() => setType(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
-        {parts.map((p) => (
-          <button
-            key={p}
-            className={`btn-secondary${part === p ? ' active' : ''}`}
-            onClick={() => setPart(p)}
-            style={{ fontSize: 12, padding: '6px 14px' }}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-          <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-          로딩 중...
-        </div>
-      ) : exercises.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-title">데이터 없음</div>
-          <div className="empty-state-desc">루틴 데이터가 없어요</div>
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>다른 운동 유형이나 부위를 선택해 보세요</div>
-        </div>
-      ) : (
-        exercises.map((ex, idx) => {
-          const name = typeof ex === 'string' ? ex : ex.name;
-          const sets = ex.sets || null;
-          const reps = ex.reps || null;
-          const tip = ex.tip || null;
-          const desc = ex.desc || null;
-          const isOpen = openIdx === idx;
-
-          return (
-            <div
-              key={name}
-              className="card"
-              style={{ marginBottom: 8, borderColor: isOpen ? 'var(--accent)' : 'var(--border)', cursor: 'pointer' }}
-            >
-              {/* 헤더 (클릭 시 설명 토글) */}
-              <div
-                onClick={() => setOpenIdx(isOpen ? null : idx)}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5 }}>{name}</span>
-                    <span style={{ fontSize: 11, color: isOpen ? 'var(--accent)' : 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-                  </div>
-                  {sets && reps && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                      <span className="badge badge-accent">{sets}</span>
-                      <span className="badge badge-accent">{reps}</span>
-                    </div>
-                  )}
-                  {tip && (
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                      💡 {tip}
-                    </div>
-                  )}
-                </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: 8 }}>{type} · {part}</span>
-              </div>
-
-              {/* 운동 설명 (펼쳤을 때) */}
-              {isOpen && desc && (
-                <div style={{
-                  marginTop: 12,
-                  paddingTop: 12,
-                  borderTop: '1px solid var(--border)',
-                }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>
-                    운동 방법
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                    {desc}
-                  </div>
-                  <button
-                    className="btn-primary"
-                    style={{ marginTop: 12, fontSize: 14, padding: '10px 20px' }}
-                    onClick={(e) => { e.stopPropagation(); navigate('/workout', { state: { exercise: name } }); }}
-                  >
-                    이 운동 기록하기
-                  </button>
-                  <button
-                    className="btn-secondary"
-                    style={{ marginTop: 8, fontSize: 13, padding: '8px 16px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const exercise = { name, sets: sets || '3', reps: reps || '10' };
-                      const routineName = `${type} ${part} 루틴`;
-                      const existing = myRoutines.find(r => r.name === routineName);
-                      if (existing) addToRoutine(existing, exercise);
-                      else saveMyRoutine({ name: routineName, exercises: [exercise] });
-                    }}
-                  >
-                    + 내 루틴에 추가
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })
-      )}
-
       {/* ─── 나만의 루틴 ─── */}
-      <div className="section-title" style={{ marginTop: 28 }}>
+      <div className="section-title">
         <div className="accent-bar" />
         나만의 루틴
       </div>
@@ -378,6 +256,128 @@ export default function RoutinePage() {
         </div>
       )}
 
+      {/* 추천은 아래다. 내가 만든 것을 먼저 본다 */}
+      <div className="section-title" style={{ marginTop: 32 }}>
+        <div className="accent-bar" />
+        운동 루틴 추천
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {['머신', '맨몸', '홈트'].map((t) => (
+          <button
+            key={t}
+            className={`btn-secondary${type === t ? ' active' : ''}`}
+            onClick={() => setType(t)}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
+        {parts.map((p) => (
+          <button
+            key={p}
+            className={`btn-secondary${part === p ? ' active' : ''}`}
+            onClick={() => setPart(p)}
+            style={{ fontSize: 12, padding: '6px 14px' }}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+          <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+          로딩 중...
+        </div>
+      ) : exercises.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-title">데이터 없음</div>
+          <div className="empty-state-desc">루틴 데이터가 없어요</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>다른 운동 유형이나 부위를 선택해 보세요</div>
+        </div>
+      ) : (
+        exercises.map((ex, idx) => {
+          const name = typeof ex === 'string' ? ex : ex.name;
+          const sets = ex.sets || null;
+          const reps = ex.reps || null;
+          const tip = ex.tip || null;
+          const desc = ex.desc || null;
+          const isOpen = openIdx === idx;
+
+          return (
+            <div
+              key={name}
+              className="card"
+              style={{ marginBottom: 8, borderColor: isOpen ? 'var(--accent)' : 'var(--border)', cursor: 'pointer' }}
+            >
+              {/* 헤더 (클릭 시 설명 토글) */}
+              <div
+                onClick={() => setOpenIdx(isOpen ? null : idx)}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5 }}>{name}</span>
+                    <span style={{ fontSize: 11, color: isOpen ? 'var(--accent)' : 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                  </div>
+                  {sets && reps && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      <span className="badge badge-accent">{sets}</span>
+                      <span className="badge badge-accent">{reps}</span>
+                    </div>
+                  )}
+                  {tip && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                      💡 {tip}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: 8 }}>{type} · {part}</span>
+              </div>
+
+              {/* 운동 설명 (펼쳤을 때) */}
+              {isOpen && desc && (
+                <div style={{
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTop: '1px solid var(--border)',
+                }}>
+                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>
+                    운동 방법
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                    {desc}
+                  </div>
+                  <button
+                    className="btn-primary"
+                    style={{ marginTop: 12, fontSize: 14, padding: '10px 20px' }}
+                    onClick={(e) => { e.stopPropagation(); navigate('/workout', { state: { exercise: name } }); }}
+                  >
+                    이 운동 기록하기
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    style={{ marginTop: 8, fontSize: 13, padding: '8px 16px' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const exercise = { name, sets: sets || '3', reps: reps || '10' };
+                      const routineName = `${type} ${part} 루틴`;
+                      const existing = myRoutines.find(r => r.name === routineName);
+                      if (existing) addToRoutine(existing, exercise);
+                      else saveMyRoutine({ name: routineName, exercises: [exercise] });
+                    }}
+                  >
+                    + 내 루틴에 추가
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
 
     </div>
   );
