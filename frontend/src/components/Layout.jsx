@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
 import { useAuthStore } from '../store/authStore';
@@ -40,9 +40,6 @@ export default function Layout() {
     if (navType === 'POP') return;
     window.scrollTo(0, 0);
   }, [location.pathname, navType]);
-  const isImmortal = useMemo(() => readLS('steelbody_immortal') === 'true', []);
-  const isLegend = useMemo(() => readLS('steelbody_legend') === 'true', []);
-  const hasFrame = isImmortal || isLegend;
 
   useEffect(() => {
     const handleScroll = () => setShowTopBtn(window.scrollY > 300);
@@ -204,73 +201,11 @@ export default function Layout() {
           {/* 헤더 오른쪽 닉네임 + 로그아웃 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {(() => {
-                return (
-                  <div style={{
-                    position: 'relative', width: hasFrame ? 34 : 26, height: hasFrame ? 34 : 26,
-                    flexShrink: 0,
-                  }}>
-                    {/* 삼지창 */}
-                    {isImmortal && (
-                      <div style={{
-                        position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                        fontSize: 14, zIndex: 2,
-                        filter: 'drop-shadow(0 0 4px rgba(100,50,255,0.6))',
-                      }}>🔱</div>
-                    )}
-                    {isLegend && !isImmortal && (
-                      <div style={{
-                        position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                        fontSize: 14, zIndex: 2,
-                        filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))',
-                      }}>⚜️</div>
-                    )}
-                    {hasFrame && (
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                        borderRadius: '50%',
-                        background: isImmortal
-                          ? 'conic-gradient(#6040cc, #8060ff, #c0a0ff, #ffffff, #c0a0ff, #8060ff, #6040cc)'
-                          : 'conic-gradient(#ffd700, #ff6b1a, #ffd700, #ffe44d, #ffd700, #ff6b1a, #ffd700)',
-                        animation: 'borderSpin 3s linear infinite',
-                        boxShadow: isImmortal
-                          ? '0 0 10px rgba(100,50,255,0.5), 0 0 20px rgba(100,50,255,0.2)'
-                          : '0 0 10px rgba(255,215,0,0.5), 0 0 20px rgba(255,215,0,0.2)',
-                      }} />
-                    )}
-                    <div style={{
-                      position: hasFrame ? 'absolute' : 'relative',
-                      top: hasFrame ? 3 : 0, left: hasFrame ? 3 : 0,
-                      width: hasFrame ? 28 : 26, height: hasFrame ? 28 : 26,
-                      borderRadius: '50%', overflow: 'hidden',
-                      background: 'var(--bg-primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <Avatar size={hasFrame ? 24 : 26} fontSize={hasFrame ? 12 : 13} />
-                    </div>
-                  </div>
-                );
-              })()}
+              <Avatar size={26} fontSize={13} />
               <span style={{
                 fontFamily: "'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
-                color: isImmortal ? '#c0a0ff' : isLegend ? '#ffd700' : 'var(--text-secondary)',
-                textShadow: isImmortal ? '0 0 6px rgba(100,50,255,0.4)' : isLegend ? '0 0 6px rgba(255,215,0,0.4)' : 'none',
+                color: 'var(--text-secondary)',
               }}>{nickname}</span>
-              {isImmortal ? (
-                <span style={{
-                  fontSize: 8, fontWeight: 700, color: '#fff',
-                  background: 'linear-gradient(135deg, #6040cc, #8060ff)',
-                  padding: '2px 8px', borderRadius: 'var(--radius)', letterSpacing: 0.5,
-                  boxShadow: '0 0 6px rgba(100,50,255,0.4)',
-                }}>𓆩🔱𓆪 불멸</span>
-              ) : isLegend ? (
-                <span style={{
-                  fontSize: 8, fontWeight: 700, color: '#000',
-                  background: 'linear-gradient(135deg, #ffd700, #ff6b1a)',
-                  padding: '2px 8px', borderRadius: 'var(--radius)', letterSpacing: 0.5,
-                  boxShadow: '0 0 6px rgba(255,215,0,0.4)',
-                }}>𓆩⚜️𓆪 전설</span>
-              ) : null}
               {checkAdmin() && (
                 <span style={{
                   fontSize: 9, fontWeight: 700, color: '#000', background: 'var(--accent)',
@@ -279,7 +214,7 @@ export default function Layout() {
               )}
             </div>
             <button
-              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
+              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
@@ -511,7 +446,7 @@ export default function Layout() {
                 로그인
               </div>
               <div
-                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','steelbody_legend','steelbody_immortal','steelbody_level','steelbody_exp','steelbody_title','steelbody_badges','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
+                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
                 style={{ ...menuStyle, flex: 1, textAlign: 'center', color: 'var(--danger)' }}
                 onMouseEnter={hIn} onMouseLeave={hOut}
               >

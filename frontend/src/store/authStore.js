@@ -12,21 +12,15 @@ function hasCsrfCookie() {
   return readCookies().includes('sb_csrf=');
 }
 
-// 관리자도 다른 계정과 동일하게 기록대로 레벨/뱃지가 오르도록 특전을 두지 않는다.
-// 이전 버전에서 심어둔 값이 남아 있으면 만렙 취급이 유지되므로 로그인 시 걷어낸다.
-const LEGACY_ADMIN_PERK_KEYS = [
-  'steelbody_legend', 'steelbody_immortal', 'steelbody_level',
-  'steelbody_exp', 'steelbody_title', 'steelbody_badges',
-];
 
-function clearLegacyAdminPerks() {
-  LEGACY_ADMIN_PERK_KEYS.forEach(k => removeLS(k));
-}
-
-// 파칭코 · 미니게임을 걷어내면서 남은 localStorage 키들.
+// 파칭코 · 미니게임 · 레벨 · 성취 뱃지를 걷어내면서 남은 localStorage 키들.
 // 진행도는 전부 브라우저에만 있었으므로 서버에는 지울 것이 없지만,
 // 안 지우면 이미 쓰던 사람의 브라우저에 죽은 값이 영영 남는다. 앱이 뜰 때 한 번 쓸어낸다.
 const REMOVED_GAME_KEYS = [
+  // 레벨 · 칭호 (8/25 오전에 걷어냄) · 성취 뱃지 (8/25 오후)
+  'steelbody_legend', 'steelbody_immortal', 'steelbody_level',
+  'steelbody_exp', 'steelbody_title', 'steelbody_badges',
+  'steelbody_legend_seen', 'steelbody_immortal_seen', 'steelbody_first_date',
   'steelbody_pachinko_used', 'steelbody_pachinko_exp', 'steelbody_pachinko_log',
   'steelbody_pachinko_best', 'steelbody_pachinko_best_exp',
   'steelbody_ul_tickets', 'steelbody_ul_exp',
@@ -46,7 +40,6 @@ export const useAuthStore = create((set) => ({
     saveLS('nickname', data.nickname);
     if (data.email) saveLS('ironlog_email', data.email);
     if (data.role) saveLS('ironlog_role', data.role);
-    clearLegacyAdminPerks();
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -57,7 +50,6 @@ export const useAuthStore = create((set) => ({
     if (data?.nickname) saveLS('nickname', data.nickname);
     if (data?.email) saveLS('ironlog_email', data.email);
     if (data?.role) saveLS('ironlog_role', data.role);
-    clearLegacyAdminPerks();
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
     return data;
   },
@@ -86,8 +78,7 @@ export const useAuthStore = create((set) => ({
       const { data } = await client.get('/auth/me');
       saveLS('nickname', data.nickname);
       if (data.role) saveLS('ironlog_role', data.role);
-      clearLegacyAdminPerks();
-      set({ nickname: data.nickname, isLoggedIn: true });
+        set({ nickname: data.nickname, isLoggedIn: true });
       return true;
     } catch {
       set({ isLoggedIn: false });

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
-import Badges from '../components/Badges';
 import MissionSystem from '../components/MissionSystem';
 import WeeklyReport from '../components/WeeklyReport';
 import { isAdmin } from '../data/admin';
@@ -73,7 +72,6 @@ const SEARCH_ITEMS = [
 
   // ─── 홈 내부 섹션 (현재 페이지 스크롤) ───
   { label: '미션', keywords: ['미션', 'mission', '목표', '주간', 'weekly'], path: '/home', icon: '🎯' },
-  { label: '성취 뱃지', keywords: ['뱃지', '배지', 'badge', '성취', '업적', 'achievement', '연속', '스트릭', 'streak'], path: '/home', icon: '🏅' },
   { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', icon: '📅' },
 
   // ─── 관리자 (관리자 권한 필요) ───
@@ -387,15 +385,6 @@ export default function HomePage() {
           </div>
 
           <WeeklyReport workouts={workouts} />
-
-          {/* 성취 뱃지 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            성취 뱃지
-          </div>
-          <div className="card" style={{ marginBottom: 20 }}>
-            <Badges workouts={workouts} inbodyRecords={records} />
-          </div>
 
           {/* 퀵 액션 */}
           <div className="section-title">
