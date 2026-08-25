@@ -399,6 +399,7 @@ export default function HomePage() {
               { icon: '🏠', label: '홈트', path: '/homeworkout' },
               { icon: '📐', label: '측정', path: '/measure' },
               { icon: '📅', label: '히스토리', path: '/history' },
+              { icon: '📮', label: '고객센터', path: '/support' },
             ].map((q, i) => (
               <div key={q.label} className="card clickable" onClick={() => {
                 if (q.scroll) {
