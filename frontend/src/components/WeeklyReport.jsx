@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { buildWeekly } from '../data/weeklyReport';
 
 // 이번 주 요약.
@@ -26,7 +26,7 @@ function Bar({ label, ratio, warn }) {
   );
 }
 
-export default function WeeklyReport({ workouts }) {
+function WeeklyReport({ workouts }) {
   const r = useMemo(() => buildWeekly(workouts), [workouts]);
 
   if (r.empty) return null;
@@ -122,3 +122,6 @@ export default function WeeklyReport({ workouts }) {
     </>
   );
 }
+
+// 같은 이유로 (홈 검색창 타자마다 다시 그리지 않는다)
+export default memo(WeeklyReport);

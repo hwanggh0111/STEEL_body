@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import LegendCeremony from './LegendCeremony';
 import ImmortalCeremony from './ImmortalCeremony';
 import client from '../api/client';
@@ -53,7 +53,7 @@ function getStreak(workouts) {
 }
 
 
-export default function Badges({ workouts, inbodyRecords }) {
+function Badges({ workouts, inbodyRecords }) {
   const [showAll, setShowAll] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
   const admin = isAdmin();
@@ -62,9 +62,11 @@ export default function Badges({ workouts, inbodyRecords }) {
   const legendBadge = BADGE_DEFS.find(b => b.isLegend);
   const immortalBadge = BADGE_DEFS.find(b => b.isImmortal);
 
-  const earnedNormal = admin ? normalBadges : normalBadges.filter(b =>
+  // 뱃지 판정은 기록 전체를 훑는다. 홈 화면은 검색창에 한 글자 칠 때마다 다시 그려지는데,
+  // 그때마다 이걸 다 세면 기록이 쌓일수록 타자가 밀린다. 기록이 바뀔 때만 센다
+  const earnedNormal = useMemo(() => (admin ? normalBadges : normalBadges.filter(b =>
     b.condition ? b.condition(workouts || {}) : b.conditionInbody ? b.conditionInbody(inbodyRecords || []) : false
-  );
+  )), [admin, workouts, inbodyRecords]);
 
   // 전설 조건: 모든 뱃지 + 1000일 경과 + 12월 31일 운동
   const [firstDate] = useState(() => {
@@ -83,20 +85,31 @@ export default function Badges({ workouts, inbodyRecords }) {
     now.setHours(0, 0, 0, 0);
     return Math.floor((now - start) / 86400000);
   })() : 0;
-  const hasNewYearsEve = Object.keys(workouts || {}).some(d => d.endsWith('-12-31') && workouts[d]?.length > 0);
+  const hasNewYearsEve = useMemo(
+    () => Object.keys(workouts || {}).some(d => d.endsWith('-12-31') && workouts[d]?.length > 0),
+    [workouts],
+  );
   const legendEarned = admin || (earnedNormal.length === normalBadges.length && daysSinceStart >= 1000 && hasNewYearsEve);
 
   // 불멸 조건
-  const allWorkouts = Object.values(workouts || {}).flat();
+  const allWorkouts = useMemo(() => Object.values(workouts || {}).flat(), [workouts]);
   const totalCount = allWorkouts.length;
-  const hasNewYears = Object.keys(workouts || {}).some(d => d.endsWith('-01-01') && workouts[d]?.length > 0);
+  const hasNewYears = useMemo(
+    () => Object.keys(workouts || {}).some(d => d.endsWith('-01-01') && workouts[d]?.length > 0),
+    [workouts],
+  );
   const [myRoutines, setMyRoutines] = useState([]);
   useEffect(() => { client.get('/my-routines').then(({ data }) => setMyRoutines(data)).catch(() => {}); }, []);
-  const exerciseCounts = {};
-  allWorkouts.forEach(w => { if (w.exercise) exerciseCounts[w.exercise] = (exerciseCounts[w.exercise] || 0) + 1; });
-  const maxExerciseCount = Math.max(0, ...Object.values(exerciseCounts));
+  const maxExerciseCount = useMemo(() => {
+    const counts = new Map();
+    allWorkouts.forEach(w => { if (w.exercise) counts.set(w.exercise, (counts.get(w.exercise) || 0) + 1); });
+    // 예전에는 Math.max(0, ...values) 였다. 종목이 아주 많아지면 인자를 그만큼 펴게 된다
+    let max = 0;
+    counts.forEach(n => { if (n > max) max = n; });
+    return max;
+  }, [allWorkouts]);
   // 한 달 개근 횟수 계산
-  const monthlyPerfect = (() => {
+  const monthlyPerfect = useMemo(() => {
     const months = {};
     Object.keys(workouts || {}).forEach(d => {
       if (workouts[d]?.length > 0) {
@@ -109,9 +122,9 @@ export default function Badges({ workouts, inbodyRecords }) {
       const daysInMonth = new Date(y, m, 0).getDate();
       return cnt >= daysInMonth;
     }).length;
-  })();
+  }, [workouts]);
   // 최장 연속 기록
-  const maxStreak = (() => {
+  const maxStreak = useMemo(() => {
     const dates = Object.keys(workouts || {}).filter(d => workouts[d]?.length > 0).sort();
     if (dates.length === 0) return 0;
     let max = 1, cur = 1;
@@ -122,7 +135,7 @@ export default function Badges({ workouts, inbodyRecords }) {
       else cur = 1;
     }
     return max;
-  })();
+  }, [workouts]);
 
   const immortalChecks = {
     legend: legendEarned,
@@ -302,3 +315,7 @@ export default function Badges({ workouts, inbodyRecords }) {
     </div>
   );
 }
+
+// 홈 화면은 검색창에 한 글자 칠 때마다 다시 그려진다. workouts · inbodyRecords 는
+// 스토어에서 오는 값이라 기록이 바뀌지 않는 한 그대로다 — 그럴 때는 아예 안 그린다
+export default memo(Badges);
