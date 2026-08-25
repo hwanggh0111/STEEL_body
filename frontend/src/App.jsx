@@ -19,8 +19,6 @@ const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
 const MeasurePage = lazy(() => import('./pages/MeasurePage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-const PachinkoPage = lazy(() => import('./pages/PachinkoPage'));
-const MiniGamePage = lazy(() => import('./pages/MiniGamePage'));
 
 const SupportPage = lazy(() => import('./pages/support/SupportPage'));
 const NoticeArchive = lazy(() => import('./pages/support/NoticeArchive'));
@@ -63,8 +61,6 @@ export default function App() {
               <Route path="measure" element={<MeasurePage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="admin" element={<AdminPage />} />
-              <Route path="pachinko" element={<PachinkoPage />} />
-              <Route path="minigame" element={<MiniGamePage />} />
               <Route path="support" element={<SupportPage />} />
               <Route path="support/notices" element={<NoticeArchive />} />
               {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.

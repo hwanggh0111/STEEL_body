@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIntroStats, FEATURES, LEVEL_ROWS, TICKET_LINE } from './introData';
+import { useIntroStats, FEATURES } from './introData';
 import ReportBox from './ReportBox';
 import { useReportStore } from '../../store/reportStore';
 import { readLS, saveLS } from '../../data/safeStorage';
@@ -153,13 +153,9 @@ export default function SupportPage() {
                 ? <>이번 주만 <Num>{s.weekDays}</Num>일 나왔다.</>
                 : <>이번 주는 오늘이 첫 날이 된다.</>}
             </div>
-            <div style={{ lineHeight: 1.9 }}>
-              레벨은 <Num>{s.lv.level}</Num>
-              {s.lv.tierInfo?.name?.ko && (
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}> · {s.lv.tierInfo.name.ko}</span>
-              )}
-              {s.latest && <>, 최근 체중은 <Num>{s.latest.weight}</Num>kg.</>}
-            </div>
+            {s.latest && (
+              <div style={{ lineHeight: 1.9 }}>최근 체중은 <Num>{s.latest.weight}</Num>kg.</div>
+            )}
           </div>
         ) : (
           <p style={{ fontSize: 16, lineHeight: 1.95, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>
@@ -217,55 +213,6 @@ export default function SupportPage() {
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto', textAlign: 'right' }}>{f.short}</span>
           </div>
         ))}
-      </div>
-
-      {/* 레벨 — 문장 + 얇은 표 */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{
-          fontSize: 11, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 20,
-        }}>레벨은 세 단계로 쌓인다</div>
-        {LEVEL_ROWS.map(r => (
-          <div key={r.name} style={{
-            padding: '14px 0', borderBottom: '1px solid var(--border)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-              <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 2,
-                color: 'var(--text-primary)', width: 52, flexShrink: 0,
-              }}>{r.name}</span>
-              <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1, color: 'var(--accent)',
-              }}>{r.lo}–{r.hi}</span>
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 'auto' }}>{r.opens}</span>
-            </div>
-            {/* 등급 이름 — 이 앱에서 제일 분위기 있는 재료라 빼지 않는다.
-                이름과 개수 모두 실제 등급표에서 읽는다 */}
-            <div style={{
-              fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 7, letterSpacing: 0.3,
-            }}>
-              {r.first}
-              <span style={{ color: 'var(--text-muted)', margin: '0 7px' }}>—</span>
-              {r.last}
-              <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}> · {r.tiers}등급</span>
-            </div>
-          </div>
-        ))}
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, marginTop: 16 }}>
-          단계가 열리면 0부터 다시 시작한다.
-          한 숫자로 끝까지 세면 자릿수가 뭉개져서, 마지막 단계는 아예 다른 값으로 센다.
-        </p>
-      </div>
-
-      {/* 티켓 — 한 문단 */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{
-          fontSize: 11, letterSpacing: 3, color: 'var(--text-muted)', marginBottom: 20,
-        }}>기록하면 티켓이 나온다</div>
-        <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.9, margin: 0 }}>
-          {TICKET_LINE}. 모아서 파칭코나 사다리를 돌리면 EXP 가 한 번에 크게 들어온다.
-          운동을 계속할 이유를 하나 더 만들어 두는 장치다.
-          확률표는 실제로 돌아가는 값을 그대로 읽어 그린다.
-        </p>
       </div>
 
       {/* 자주 묻는 것 — 같은 질문이 문의로 반복되면 여기로 올린다 */}

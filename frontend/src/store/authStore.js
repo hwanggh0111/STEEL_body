@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import client from '../api/client';
 import { useWorkoutStore } from './workoutStore';
 import { useInbodyStore } from './inbodyStore';
-import { usePachinkoStore } from './pachinkoStore';
-import { usePlateStore } from './plateStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -24,25 +22,30 @@ function clearLegacyAdminPerks() {
   LEGACY_ADMIN_PERK_KEYS.forEach(k => removeLS(k));
 }
 
+// 파칭코 · 미니게임을 걷어내면서 남은 localStorage 키들.
+// 진행도는 전부 브라우저에만 있었으므로 서버에는 지울 것이 없지만,
+// 안 지우면 이미 쓰던 사람의 브라우저에 죽은 값이 영영 남는다. 앱이 뜰 때 한 번 쓸어낸다.
+const REMOVED_GAME_KEYS = [
+  'steelbody_pachinko_used', 'steelbody_pachinko_exp', 'steelbody_pachinko_log',
+  'steelbody_pachinko_best', 'steelbody_pachinko_best_exp',
+  'steelbody_ul_tickets', 'steelbody_ul_exp',
+  'steelbody_plates', 'steelbody_plate_tickets', 'steelbody_plate_best',
+  'steelbody_plate_plays', 'steelbody_plate_unlimited',
+];
+REMOVED_GAME_KEYS.forEach(k => removeLS(k));
+
 export const useAuthStore = create((set) => ({
   token: readLS('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: readLS('nickname'),
   isLoggedIn: !!readLS('token') || hasCsrfCookie(),
 
   login: async (email, password) => {
-    const prevEmail = readLS('ironlog_email');
     const { data } = await client.post('/auth/login', { email, password });
     if (data.token) saveLS('token', data.token);
     saveLS('nickname', data.nickname);
     if (data.email) saveLS('ironlog_email', data.email);
     if (data.role) saveLS('ironlog_role', data.role);
     clearLegacyAdminPerks();
-    // 파칭코/원판 진행도는 localStorage 에 계정 구분 없이 저장된다.
-    // 다른 계정으로 갈아타면 앞 사람의 EXP 와 원판·티켓이 내 것으로 넘어오므로 여기서 끊는다.
-    if (prevEmail && data.email && prevEmail !== data.email) {
-      usePachinkoStore.getState().reset();
-      usePlateStore.getState().reset();
-    }
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
   },
 
@@ -54,12 +57,6 @@ export const useAuthStore = create((set) => ({
     if (data?.email) saveLS('ironlog_email', data.email);
     if (data?.role) saveLS('ironlog_role', data.role);
     clearLegacyAdminPerks();
-    // 가입은 언제나 새 계정이다. 그런데 /register 는 PrivateRoute 밖이라
-    // 로그인한 채로도 들어올 수 있어서, 안 비우면 앞 계정의 파칭코 EXP 와
-    // 원판·구매 티켓이 그대로 새 계정 것이 된다 (login 에는 있는 가드가 여기만 없었다).
-    // 새 계정이 물려받을 진행도는 없으므로 조건 없이 비운다.
-    usePachinkoStore.getState().reset();
-    usePlateStore.getState().reset();
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
     return data;
   },
@@ -77,10 +74,6 @@ export const useAuthStore = create((set) => ({
     // 다른 스토어 초기화
     useWorkoutStore.setState({ workouts: {}, loading: false });
     useInbodyStore.setState({ records: [], loading: false });
-    // 파칭코 EXP/티켓도 비운다 — 안 지우면 다음에 로그인한 계정의 레벨에 얹힌다
-    usePachinkoStore.getState().reset();
-    // 원판 지갑(원판·구매 티켓·오늘 판 수)도 같이 비운다
-    usePlateStore.getState().reset();
     removeLS('ironlog_email');
   },
 

@@ -2,10 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { FAQ, matchFaq } from './faq';
-import { useIntroStats } from './introData';
-import { usePachinkoStore } from '../../store/pachinkoStore';
-import { usePlateStore } from '../../store/plateStore';
-import { earnedTickets, ticketsAvailable, ticketText } from '../../data/pachinkoData';
 import pkg from '../../../package.json';
 
 // ─────────────────────────────────────────────────────────────
@@ -31,14 +27,14 @@ const KINDS = [
     titleLabel: '무슨 일이 있었나요',
     titleHint: '한 줄로 요약해 주세요',
     bodyLabel: '어떻게 하면 그렇게 되나요',
-    bodyHint: '언제, 어디서, 무엇을 했더니 어떻게 됐는지 적어주시면 훨씬 빨리 찾습니다.\n예) 파칭코에서 10판 연속으로 돌리다가 결과창 확인 버튼이 안 먹었어요',
+    bodyHint: '언제, 어디서, 무엇을 했더니 어떻게 됐는지 적어주시면 훨씬 빨리 찾습니다.\n예) 기록에서 무게를 넣고 저장했는데 히스토리에 안 보여요',
     minBody: 10, send: '버그 보내기', attachDefault: true,
     attachNote: '기기와 화면 정보가 있으면 재현이 훨씬 빠릅니다',
   },
   {
     key: 'ask', label: '문의', icon: '💬', desc: '어떻게 쓰는지 모르겠는 것',
     titleLabel: '무엇이 궁금한가요',
-    titleHint: '예) 초월 레벨은 어떻게 여나요?',
+    titleHint: '예) 기록한 운동을 나중에 고칠 수 있나요?',
     bodyLabel: '덧붙일 말 (없으면 비워두세요)',
     bodyHint: '더 설명할 게 있으면 적어주세요. 없으면 비워두셔도 됩니다.',
     minBody: 0, send: '문의 보내기', attachDefault: false,
@@ -58,7 +54,7 @@ const KINDS = [
 const kindOf = key => KINDS.find(k => k.key === key) || KINDS[0];
 
 // 버그 전용 — 어느 화면인지
-const SCREENS = ['홈', '기록', '인바디', '루틴', '홈트', '측정', '히스토리', '파칭코', '미니게임', '그 밖에'];
+const SCREENS = ['홈', '기록', '인바디', '루틴', '홈트', '측정', '히스토리', '고객센터', '그 밖에'];
 
 // 버그 전용 — 다시 해도 그런지. 한 번뿐이면 우선순위가 다르다
 const FREQ = [
@@ -87,19 +83,10 @@ const dayOf = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
 // 제보에 붙는 기기 정보. 체크했을 때만 보낸다.
 // 재현에 실제로 쓰는 것만 담는다 — 무엇을 보내는지 화면에 그대로 적어둔다.
 function useDeviceInfo() {
-  const stats = useIntroStats();
-  const used = usePachinkoStore(s => s.used);
-  const purchased = usePlateStore(s => s.purchased);
-  const unlimited = usePlateStore(s => s.unlimited);
-  return useMemo(() => {
-    const earned = earnedTickets(stats.totalWorkouts, stats.totalInbody, purchased);
-    return {
-      appVersion: pkg.version,
-      browser: `${navigator.userAgent} · ${window.innerWidth}x${window.innerHeight}`,
-      level: String(stats.lv?.level ?? ''),
-      tickets: ticketText(ticketsAvailable({ earned, used, unlimited }), unlimited),
-    };
-  }, [stats.totalWorkouts, stats.totalInbody, stats.lv, used, purchased, unlimited]);
+  return useMemo(() => ({
+    appVersion: pkg.version,
+    browser: `${navigator.userAgent} · ${window.innerWidth}x${window.innerHeight}`,
+  }), []);
 }
 
 
@@ -551,7 +538,7 @@ export default function ReportBox({ embedded = false }) {
                   기기 정보를 같이 보냅니다
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                  {k.attachNote} · 앱 버전 · 브라우저 · 레벨 · 티켓 수
+                  {k.attachNote} · 앱 버전 · 브라우저
                 </div>
               </div>
             </div>

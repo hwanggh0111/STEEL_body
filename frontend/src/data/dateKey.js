@@ -4,7 +4,7 @@
 // 하루 전 날짜가 나온다. 기록은 WorkoutPage 가 로컬 날짜로 저장하는데 홈이 UTC 로 조회하면,
 // 새벽에 남긴 운동이 홈에서 사라지고 주간 표와 미션도 하루씩 밀린다.
 //
-// 같은 헬퍼가 Badges.jsx 와 plateData.js 에도 따로 있었다. 새로 쓰는 곳은 여기를 쓴다.
+// 같은 헬퍼가 여러 곳에 따로 있었다. 새로 쓰는 곳은 여기를 쓴다.
 export function dateKey(d = new Date()) {
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;

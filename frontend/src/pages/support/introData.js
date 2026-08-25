@@ -1,18 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { useWorkoutStore } from '../../store/workoutStore';
 import { useInbodyStore } from '../../store/inbodyStore';
-import { usePachinkoStore } from '../../store/pachinkoStore';
-import {
-  calcExp, getLevelInfo, expForLevel, MAX_LEVEL, EXP_PER,
-  TRANSCEND, GENESIS, TRANSCEND_TIERS, GENESIS_TIERS,
-} from '../../components/LevelSystem';
-import { TICKET_RULE } from '../../data/pachinkoData';
-import { PLATE_RULE, BASE_DAILY_PLAYS } from '../../data/plateData';
 import { dateKey } from '../../data/dateKey';
 
 // 고객센터가 보여주는 숫자를 한 군데서 만든다.
 // 화면마다 따로 계산하면 어느 순간 한 곳만 옛날 값을 보여주게 된다.
-// 상한·비용·교환비는 전부 실제 상수에서 읽는다 — 밸런스를 바꾸면 화면이 따라온다.
 
 export const FEATURES = [
   { name: '운동 기록',   path: '/workout',     icon: '🏋️', short: '무게 · 횟수 · 세트',      long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다' },
@@ -23,47 +15,9 @@ export const FEATURES = [
   { name: '히스토리',    path: '/history',     icon: '📅', short: '달력으로 되짚기',         long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다' },
 ];
 
-// 등급 이름도 표에서 읽는다. 손으로 적으면 어긋난다 —
-// 일반 만렙 등급을 '신화' 로 적어뒀었는데 실제로는 '이름 없는 것' 이었다.
-const firstGeneralTier = getLevelInfo(0);
-const lastGeneralTier = getLevelInfo(expForLevel(MAX_LEVEL));
-const last = arr => arr[arr.length - 1];
-
-export const LEVEL_ROWS = [
-  {
-    name: '일반', lo: 0, hi: MAX_LEVEL, unit: 'EXP', opens: '처음부터',
-    tiers: lastGeneralTier.tier,
-    first: firstGeneralTier.tierInfo?.name?.ko,
-    last: lastGeneralTier.tierInfo?.name?.ko,
-  },
-  {
-    name: TRANSCEND.name.ko, lo: 0, hi: TRANSCEND.maxLevel, unit: 'EXP',
-    opens: `LV ${MAX_LEVEL} 도달`,
-    tiers: TRANSCEND_TIERS.length,
-    first: TRANSCEND_TIERS[0].name.ko,
-    last: last(TRANSCEND_TIERS).name.ko,
-  },
-  {
-    name: GENESIS.name.ko, lo: 0, hi: GENESIS.maxLevel, unit: 'UL EXP',
-    opens: `${TRANSCEND.name.ko} 만렙`,
-    tiers: GENESIS_TIERS.length,
-    first: GENESIS_TIERS[0].name.ko,
-    last: last(GENESIS_TIERS).name.ko,
-  },
-];
-
-
-export const TICKET_LINE = `운동 ${TICKET_RULE.perWorkouts}회당 1장, 인바디 ${TICKET_RULE.perInbody}회당 1장`;
-// 원판 피하기로도 티켓을 산다. 하루 판 수(dailyPlays)는 개발 빌드에서 풀려 있어 여기 적지 않는다
-export const PLATE_LINE = `원판 ${PLATE_RULE.perTicket}개를 모으면 티켓 1장`;
-export const EXP_LINE = `운동 기록 하나에 ${EXP_PER.workout}, 인바디 하나에 ${EXP_PER.inbody}`;
-// 하루 판 수는 운영 값을 읽는다 (PLATE_RULE.dailyPlays 는 개발 빌드에서 풀려 있다)
-export const PLAY_LINE = `하루 ${BASE_DAILY_PLAYS}판, 한 판에 부활 ${PLATE_RULE.revives}번`;
-
 export function useIntroStats() {
   const { workouts, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, fetchAll: fetchInbody } = useInbodyStore();
-  const pachinkoExp = usePachinkoStore(s => s.gained);
 
   // 한 화면에서 이 훅을 두 곳이 쓴다 — 고객센터 본문과 제보함의 기기 정보.
   // 각자 부르면 /workouts · /inbody 가 두 번씩 나가고, 늦게 온 응답이 먼저 온 것을 덮는다.
@@ -88,13 +42,10 @@ export function useIntroStats() {
     });
   }, [workouts]);
 
-  const lv = getLevelInfo(calcExp(totalWorkouts, totalInbody, pachinkoExp));
-
   return {
     totalWorkouts, totalInbody,
     latest: records[0] || null,
     week, weekDays: week.filter(d => d.done).length,
-    lv, maxLevel: MAX_LEVEL,
     todayDone: !!workouts[dateKey()]?.length,
   };
 }

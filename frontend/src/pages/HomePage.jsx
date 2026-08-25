@@ -4,10 +4,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
 import Badges from '../components/Badges';
-import LevelSystem from '../components/LevelSystem';
 import MissionSystem from '../components/MissionSystem';
-import { usePachinkoStore } from '../store/pachinkoStore';
-import CasinoChip from '../components/CasinoChip';
 import { isAdmin } from '../data/admin';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { dateKey } from '../data/dateKey';
@@ -60,8 +57,6 @@ const SEARCH_ITEMS = [
   { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: '🔍' },
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
-  { label: '파칭코', keywords: ['파칭코', 'pachinko', '뽑기', '가챠', 'gacha', '슬롯', 'slot', '티켓', 'ticket', '잭팟', 'jackpot', '확률', '운', '파'], path: '/pachinko', icon: <CasinoChip size={18} /> },
-  { label: '미니게임', keywords: ['미니게임', 'minigame', 'game', '게임', '원판', '피하기', 'dodge', 'plate', '티켓', 'ticket', '원판피하기', 'ㅁㄴㄱ'], path: '/minigame', icon: '🥏' },
   { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: '📮' },
   { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: '📰' },
 
@@ -75,7 +70,6 @@ const SEARCH_ITEMS = [
   { label: '유연성 측정', keywords: ['유연성', 'flexibility', '앉아 앞으로 굽히기', '스트레칭', '스쿼트 깊이'], path: '/measure', tab: 'flex', icon: '🧘' },
 
   // ─── 홈 내부 섹션 (현재 페이지 스크롤) ───
-  { label: '레벨 시스템', keywords: ['레벨', 'level', '경험치', 'exp', '티어', 'tier', '랭크', 'rank', '입문', '초보', '중급', '상급', '엘리트', '전설', '불멸', '신화', '초월', '만렙'], path: '/home', icon: '⭐' },
   { label: '미션', keywords: ['미션', 'mission', '목표', '주간', 'weekly'], path: '/home', icon: '🎯' },
   { label: '성취 뱃지', keywords: ['뱃지', '배지', 'badge', '성취', '업적', 'achievement', '연속', '스트릭', 'streak'], path: '/home', icon: '🏅' },
   { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', icon: '📅' },
@@ -94,12 +88,6 @@ export default function HomePage() {
     try { return JSON.parse(readLS('ironlog_search_history')) || []; } catch { return []; }
   });
   const [searchFocused, setSearchFocused] = useState(false);
-
-  // 파칭코로 획득한 누적 EXP (파칭코는 /pachinko 전용 페이지에 있고, 홈은 레벨 합산에만 사용).
-  // 스토어를 구독한다 — useState 로 마운트 때 한 번만 읽으면, 홈이 언마운트되지 않는
-  // 구조로 바뀌는 순간 파칭코를 돌려도 홈 레벨이 옛날 값에 멈춘다.
-  const pachinkoExp = usePachinkoStore(s => s.gained);
-  const pachinkoUlExp = usePachinkoStore(s => s.ulExp);
 
   const addSearchHistory = (label) => {
     const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
@@ -350,18 +338,6 @@ export default function HomePage() {
             <StatBox number={totalWorkouts} label="총 운동" />
             <StatBox number={latestInbody ? `${latestInbody.weight}` : '-'} label="최근 체중(kg)" />
           </div>
-
-          {/* 레벨 시스템 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            MY LEVEL
-          </div>
-          <LevelSystem
-            totalWorkouts={totalWorkouts}
-            totalInbody={records.length}
-            bonusExp={pachinkoExp}
-            ulExp={pachinkoUlExp}
-          />
 
           {/* 미션 */}
           <div className="section-title">

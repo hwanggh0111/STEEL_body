@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
-import CasinoChip from './CasinoChip';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
@@ -11,12 +10,10 @@ const TABS = [
   { path: '/workout', label: '기록',  icon: '🏋️' },
   { path: '/inbody',  label: '인바디', icon: '📊' },
   { path: '/routine', label: '루틴',  icon: '📋' },
-  { path: '/pachinko', label: '파칭코', icon: <CasinoChip size={22} /> },
   { path: '/more',    label: '더보기', icon: '⋯' },
 ];
 
 const MORE_ITEMS_ALL = [
-  { path: '/minigame',   label: '미니게임',   icon: '🥏' },
   { path: '/homeworkout', label: '홈트레이닝', icon: '🏠' },
   { path: '/search',     label: '운동 검색',  icon: '🔍' },
   { path: '/measure',    label: '측정 시스템', icon: '📐' },

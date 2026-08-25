@@ -29,7 +29,7 @@ const STATUSES = ['received', 'checking', 'done', 'held'];
 const META_FIELDS = { screen: 20, freq: 20, workaround: 20 };
 
 // 기기 정보. 사용자가 체크했을 때만 온다. 재현에 쓰는 값이라 짧게만 받는다
-const DEVICE_FIELDS = { appVersion: 20, browser: 200, level: 20, tickets: 20 };
+const DEVICE_FIELDS = { appVersion: 20, browser: 200 };
 
 function pick(raw, spec) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
