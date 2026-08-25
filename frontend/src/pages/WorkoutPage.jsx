@@ -11,6 +11,8 @@ import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
+import { useRestTimerStore } from '../store/restTimerStore';
+import { primeAudio } from '../data/restAlert';
 
 const TEXT = {
   ko: {
@@ -250,6 +252,15 @@ export default function WorkoutPage() {
         toast(t.saved);
         setRecord(checkRecord(before, payload));
         cameForExerciseRef.current = false;
+
+        // 세트를 저장했으니 휴식이 시작된다. 타이머를 안 쓰는 제일 큰 이유는
+        // 부정확해서가 아니라 **누르는 걸 잊어서**다 — 저장은 어차피 누른다.
+        // 소리는 사람이 누른 이 순간에 준비해야 브라우저가 막지 않는다
+        primeAudio();
+        useRestTimerStore.getState().autoStartAfterSet(
+          `${payload.exercise} ${payload.sets}세트`
+        );
+
         await advanceRoutine('done', payload.exercise);
       }
       setWeight('');

@@ -2,13 +2,13 @@
   "generated": "2026-08-25",
   "items": [
     {
-      "hash": "ca2ac6b",
+      "hash": "870d442",
       "date": "2026-08-25",
-      "type": "perf",
-      "label": "빨라짐",
+      "type": "feat",
+      "label": "바뀜",
       "scope": "홈",
-      "text": "검색창에 한 글자 칠 때마다 기록 전체를 다시 세던 것",
-      "detail": "홈 화면은 검색창을 칠 때마다 다시 그려진다. 그때마다 성취 뱃지가 **기록 전체를\n처음부터 다시 셌다** — 뱃지 판정, 최장 연속, 한 달 개근, 종목별 횟수까지 전부.\n기록이 쌓일수록 타자가 밀린다.\n\n· 기록에서 뽑아내는 값들을 기록이 바뀔 때만 세게 했다\n· 뱃지와 이번 주 요약은 아예 다시 그리지 않는다 (memo). 두 화면 다 스토어에서\n  오는 값을 받으므로, 기록이 그대로면 그릴 것도 그대로다\n· 종목별 최다 횟수를 `Math.max(0, ...values)` 로 구하던 것을 한 번 훑는 것으로\n  바꿨다. 종목이 아주 많아지면 인자를 그만큼 펴게 된다\n\n주간 미션은 이미 이렇게 되어 있었다. 뱃지만 빠져 있었다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01MC1tD24M17tMymd5Yw8iZn"
+      "text": "빠른 이동에 고객센터를 넣는다",
+      "detail": "더보기 탭과 홈 검색에는 있었지만 빠른 이동에는 없었다. 뭔가 안 될 때 찾는 곳이라\n한 번에 닿는 자리가 하나 더 있어야 한다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01MC1tD24M17tMymd5Yw8iZn"
     },
     {
       "hash": "cf0d8e7",

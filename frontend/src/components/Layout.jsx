@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
+import RestBar from './RestBar';
+import { useRestTimerStore } from '../store/restTimerStore';
 import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
@@ -29,6 +31,10 @@ export default function Layout() {
   const location = useLocation();
   const navType = useNavigationType();
   const isPC = useIsPC();
+  // 휴식 띠가 떠 있으면 그만큼 아래를 비워둔다 — 안 그러면 마지막 줄이 띠에 가린다
+  const restShowing = useRestTimerStore(
+    s => s.deadline != null || s.pausedLeft != null || s.finished,
+  );
   const [showTopBtn, setShowTopBtn] = useState(false);
 
   // 다른 화면으로 가면 맨 위에서 시작한다.
@@ -229,13 +235,16 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="content-area" style={{ paddingTop: 22, paddingBottom: isPC ? 30 : 80 }}>
+      <main className="content-area" style={{ paddingTop: 22, paddingBottom: (isPC ? 30 : 80) + (restShowing ? 58 : 0) }}>
         {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
             여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}
         <div key={location.pathname} className="page-enter">
           <Outlet />
         </div>
       </main>
+
+      {/* 휴식 띠 — 탭 바 바로 위. PC 는 아래 탭 바가 없으므로 바닥에 붙는다 */}
+      <RestBar bottom={isPC ? 0 : 60} />
 
       <TabBar />
 
