@@ -23,6 +23,21 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # 나머지 소셜 로그인. 서버는 넷을 다 지원한다.
+      # **넣은 것만 로그인 화면에 버튼으로 나온다** — 안 넣으면 아예 안 보인다.
+      # 인스타그램만 이름이 APP_ID 다 (CLIENT_ID 가 아니다)
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_APP_ID
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+      - key: INSTAGRAM_APP_ID
+        sync: false
+      - key: INSTAGRAM_APP_SECRET
+        sync: false
       # 운동 알림(웹 푸시). `node backend/scripts/gen-vapid.js` 로 만들어 대시보드에서 넣는다.
       # 없어도 서버는 그대로 뜬다 — 알림만 안 나간다.
       # **한 번 정하면 바꾸지 않는다.** 바꾸면 지금 있는 알림 구독이 전부 끊긴다

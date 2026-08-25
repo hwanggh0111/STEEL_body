@@ -2,6 +2,15 @@
   "generated": "2026-08-25",
   "items": [
     {
+      "hash": "82c966b",
+      "date": "2026-08-25",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "로그인",
+      "text": "소셜 로그인 넷을 다 보여준다. 실패 이유를 갈라서 말한다",
+      "detail": "**서버는 넷을 다 지원하는데 화면에는 구글 하나뿐이었다.** 8/24 에 네 곳의\nstate 등록 버그를 고쳐놓고도 버튼을 안 만들었다 — 고쳐도 누를 데가 없었다.\n「화면이 없던 기능」이 또 있었던 셈이다.\n\n**되는 것만 그린다.** 제공자마다 열쇠가 따로 있고 없는 것을 누르면 오류로\n되돌아온다. `GET /api/oauth/providers` 를 새로 두고, 서버가 쓸 수 있다고 한 것만\n버튼으로 그린다. 열쇠 값은 안 돌려준다 — 설정됐는지 여부만이다.\n못 물어봤으면 구글만 보여준다. 하나도 안 보여주는 것보다 낫다.\n\n만들면서 하나 찾았다 — 인스타그램 열쇠 이름이 `INSTAGRAM_APP_ID` 인데 새로 쓴\n곳에서 `INSTAGRAM_CLIENT_ID` 를 봤다. 그대로 뒀으면 설정을 해도 버튼이 영영\n안 나왔다.\n\n구글은 한 줄, 나머지 셋은 나란히 뒀다. 넷을 세로로 쌓으면 로그인 칸이 화면\n밖으로 밀린다.\n\n**실패 이유를 갈랐다.** 예전에는 무엇이 잘못됐든 「다시 시도해주세요」였다.\n그런데 열쇠가 설정 안 된 제공자는 **다시 시도해도 영영 안 된다** —\n될 것처럼 말하면 안 된다.\n· 준비 안 됨 → 「아직 준비 중이에요. 다른 방법으로 들어와 주세요」\n· state 만료 → 「로그인 링크가 만료됐어요. 처음부터 다시 눌러주세요」\n  (state 는 1회용이라 뒤로 가기나 오래된 링크로 오면 여기로 떨어진다)\n· 그 밖에는 어느 제공자가 실패했는지 이름을 붙여 말한다\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01MC1tD24M17tMymd5Yw8iZn"
+    },
+    {
       "hash": "9adf896",
       "date": "2026-08-25",
       "type": "fix",
@@ -351,15 +360,6 @@
       "scope": "minigame",
       "text": "원판은 주워야만 점수가 된다 — 피하기 보상 폐지",
       "detail": "원판이 바닥에 닿을 때마다 자동으로 붙던 +1(DODGE.dodgeReward)을 없앴다.\n이제 바닥 원판을 밟아 주운 값만 점수가 된다.\n\n가만히 피하는 게 가장 안전한데 벌이도 같이 따라와서, \"낙하 구간으로 다시\n들어가 줍는다\"는 이 게임의 유일한 판단이 있으나 마나였다. 한 판에 원판\n120개가 떨어지니 피하기만으로 티켓 12장이 들어왔다.\n\ndodged 는 그대로 센다 — 낙하 속도·생성 간격이 여기 걸려 있고 결과창의\n\"피함 N\" 에도 쓴다. 난이도 곡선은 전과 같다.\n\n착지 처리의 setScore 도 뺐다. 점수가 안 변하는데 원판이 떨어질 때마다\n리렌더를 한 번씩 일으키고 있었다.\n\n원판표의 \"피하면 🥏 +1\" 은 \"피하기만 하면 🥏 0\" 으로 바꿔 규칙을 못 보고\n지나칠 수 없게 했다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
-    },
-    {
-      "hash": "c31b224",
-      "date": "2026-08-18",
-      "type": "fix",
-      "label": "고침",
-      "scope": null,
-      "text": "교환소 확정 연타로 티켓이 두 번 나가던 것",
-      "detail": "같은 프레임에 확정이 두 번 들어오면 두 번째 호출이 첫 번째가 반영되기 전의\navailable 을 그대로 들고 들어와 검사를 통과했다. 모바일 더블탭이면 쉽게 난다.\n\n받는 울트라 티켓 수는 제값이라 손익은 없지만, used 가 earned 를 넘어\n\"아직 못 번 티켓을 미리 쓴\" 상태가 된다. available 은 max(0, ...) 으로\n잘리므로 화면에는 0 으로만 보이고 원인이 드러나지 않는다.\n\n성공했을 때만 잠그고, 리렌더될 때마다 푼다. 실패는 스토어를 안 건드려\n리렌더가 없으므로 그때 잠그면 버튼이 영영 잠긴다.\n\n검증: 확정 3연타 → used +200, 울트라 티켓 +1 (고치기 전이면 +600 / +3).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VYT3HJWF3tawHPx5VHyaKP"
     }
   ]
 }
