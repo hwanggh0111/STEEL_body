@@ -22,7 +22,11 @@ export const useWorkoutStore = create((set, get) => ({
 
   addWorkout: async (workout) => {
     const { data } = await client.post('/workouts', workout);
-    get().fetchAll().catch(() => {});
+    // **다시 받아오는 것을 기다린다.** 안 기다리면 저장 직후의 workouts 가 방금 넣은
+    // 것을 모르는 상태로 잠깐 남는다. 최고 기록은 「넣기 전」의 목록과 견주는데,
+    // 그 사이에 한 번 더 저장하면 앞의 것을 못 보고 견줘서 최고 기록이 잘못 뜬다.
+    // (벤치 85 를 넣고 곧바로 82 를 넣으면 82 가 최고 기록이라고 뜬다)
+    await get().fetchAll().catch(() => {});
     return data;
   },
 

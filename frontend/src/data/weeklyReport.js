@@ -64,13 +64,26 @@ function volumeOf(records) {
   return { kg: Math.round(kg), bodyweightSets };
 }
 
-/** 이번 주를 포함해 거슬러 올라가며 운동이 있는 주가 몇 주 이어졌나. */
+/**
+ * 이번 주를 포함해 거슬러 올라가며 운동이 있는 주가 몇 주 이어졌나.
+ *
+ * 한 주씩 거슬러 가며 7일을 다시 만들어 보면, 기록이 없는 사람도 5년치(260주 × 7일)를
+ * 헛돈다. 운동한 날을 **주 단위로 한 번 접어두고** 이어지는 만큼만 센다.
+ */
 function streakWeeks(workouts, monday) {
+  const weeks = new Set();
+  Object.entries(workouts || {}).forEach(([key, list]) => {
+    if (!list || list.length === 0) return;
+    const d = new Date(`${key}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    weeks.add(dateKey(mondayOf(d)));
+  });
+
   let n = 0;
-  for (let i = 0; i < 260; i++) {          // 5년치에서 멈춘다. 무한히 거슬러 갈 이유가 없다
-    const keys = weekKeys(weekAgo(monday, i));
-    if (doneDays(workouts, keys) === 0) break;
-    n++;
+  const cur = new Date(monday);
+  while (weeks.has(dateKey(cur))) {
+    n += 1;
+    cur.setDate(cur.getDate() - 7);
   }
   return n;
 }
@@ -81,7 +94,7 @@ function streakWeeks(workouts, monday) {
  * **없는 말을 지어내지 않는다.** 기록이 적으면 할 말이 없는 게 맞다 —
  * 빈 주에 「좋아요!」 같은 말을 붙이면 그건 응원이 아니라 소음이다.
  */
-function notesOf({ days, prevDays, parts, prevParts, daysDone }) {
+function notesOf({ prevDays, parts, prevParts, daysDone }) {
   const notes = [];
 
   if (daysDone === 0) {
@@ -145,7 +158,7 @@ export function buildWeekly(workouts, ref = new Date()) {
     streak: streakWeeks(workouts, monday),
     parts,
     last4,
-    notes: notesOf({ days, prevDays, parts, prevParts, daysDone }),
+    notes: notesOf({ prevDays, parts, prevParts, daysDone }),
     empty: records.length === 0 && prevRecords.length === 0,
   };
 }

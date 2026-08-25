@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { bestList, daysBetween } from '../data/personalRecord';
+import { bestList, bestRecords, daysBetween } from '../data/personalRecord';
 import { dateKey } from '../data/dateKey';
 
 // 종목별 최고 기록.
@@ -26,12 +26,14 @@ export default function BestRecords({ workouts }) {
   const [open, setOpen] = useState(false);
   const today = dateKey();
 
-  const list = useMemo(() => bestList(workouts).map(e => ({
-    ...e,
-    days: daysBetween(e.date, today),
-  })), [workouts, today]);
+  // 접혀 있으면 세지 않는다. 기록이 몇 백 개면 열지도 않을 목록을 매번 훑게 된다.
+  // 다만 **몇 종목인지는 접힌 채로도 보여준다** — 그것까지 숨기면 펼칠 이유가 안 보인다.
+  const count = useMemo(() => bestRecords(workouts).size, [workouts]);
+  const list = useMemo(() => (open
+    ? bestList(workouts).map(e => ({ ...e, days: daysBetween(e.date, today) }))
+    : []), [open, workouts, today]);
 
-  if (list.length === 0) return null;
+  if (count === 0) return null;
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -51,7 +53,7 @@ export default function BestRecords({ workouts }) {
           color: 'var(--text-primary)',
         }}>종목별 최고 기록</span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {list.length}종목
+          {count}종목
         </span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{open ? '접기' : '펼치기'}</span>
       </div>
@@ -79,9 +81,9 @@ export default function BestRecords({ workouts }) {
             </div>
           ))}
 
-          {list.length > SHOWN && (
+          {count > SHOWN && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', paddingTop: 2 }}>
-              최근에 세운 {SHOWN}종목만 보여줍니다. 나머지 {list.length - SHOWN}종목은 히스토리에 있습니다.
+              최근에 세운 {SHOWN}종목만 보여줍니다. 나머지 {count - SHOWN}종목은 히스토리에 있습니다.
             </div>
           )}
 

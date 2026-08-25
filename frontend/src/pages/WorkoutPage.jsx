@@ -74,6 +74,9 @@ export default function WorkoutPage() {
   const today = dateKey();
   const [date, setDate] = useState(today);
   const [exercise, setExercise] = useState(location.state?.exercise || '');
+  // 운동을 지정해서 들어왔나 (운동 검색 · 홈트의 「이 운동 기록하기」).
+  // 한 번 저장하고 나면 풀어준다 — 그다음부터는 루틴을 따라가면 된다
+  const cameForExerciseRef = useRef(!!location.state?.exercise);
   const [weight, setWeight] = useState('');
   const [sets, setSets] = useState('');
   const [reps, setReps] = useState('');
@@ -124,9 +127,15 @@ export default function WorkoutPage() {
   // 지난번에 실제로 든 무게가 오늘 쓸모 있다. 지난 기록이 없으면 루틴 값을 쓴다.
   //
   // 같은 칸은 한 번만 채운다. 안 그러면 사용자가 고쳐놓은 값을 다시 덮어쓴다.
-  // 고치는 중일 때도 손대지 않는다 — 수정하던 폼을 루틴이 빼앗으면 안 된다.
+  //
+  // 손대지 않는 자리가 둘 있다.
+  //   1. 고치는 중 — 수정하던 폼을 루틴이 빼앗으면 안 된다
+  //   2. **운동을 지정해서 들어온 경우** — 운동 검색이나 홈트에서 「이 운동 기록하기」로
+  //      들어오면 그 운동을 적으러 온 것이다. 루틴이 있다고 그 칸을 바꿔 놓으면,
+  //      누른 것과 다른 운동이 적혀 있게 된다
   useEffect(() => {
     if (editingId) return;
+    if (cameForExerciseRef.current) return;
     const idx = session?.current;
     if (session == null || idx == null || idx < 0) { filledForRef.current = null; return; }
 
@@ -240,6 +249,7 @@ export default function WorkoutPage() {
         await addWorkout(payload);
         toast(t.saved);
         setRecord(checkRecord(before, payload));
+        cameForExerciseRef.current = false;
         await advanceRoutine('done', payload.exercise);
       }
       setWeight('');
