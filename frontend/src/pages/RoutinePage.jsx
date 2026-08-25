@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
+import { useRoutineSessionStore } from '../store/routineSessionStore';
 
 const PARTS_MAP = {
   '머신': ['가슴', '등', '어깨', '하체', '팔'],
@@ -20,6 +21,35 @@ export default function RoutinePage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoutine, setNewRoutine] = useState({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
   const navigate = useNavigate();
+  const session = useRoutineSessionStore(s => s.session);
+  const startSession = useRoutineSessionStore(s => s.start);
+  const fetchSession = useRoutineSessionStore(s => s.fetch);
+
+  useEffect(() => { fetchSession(); }, [fetchSession]);
+
+  // 루틴을 시작하면 기록 화면으로 데려간다 — 시작해놓고 아무 데도 안 가면
+  // 무엇이 달라졌는지 알 수 없다.
+  //
+  // 하던 것이 있으면 먼저 물어본다. 서버는 그냥 덮어쓰지만, 사람에게는
+  // 하던 걸 지운다고 말해야 한다
+  const runRoutine = async (routine) => {
+    const id = routine._id || routine.id;
+    if (session && session.routineId !== id) {
+      const ok = await confirmDialog(
+        `지금 「${session.name}」을 ${session.done}/${session.total} 까지 하고 계세요.
+
+그걸 그만두고 「${routine.name}」을 시작합니다. 저장한 운동 기록은 그대로 남습니다.`,
+        { title: '하던 루틴을 바꿀까요', confirmText: '바꾸기' },
+      );
+      if (!ok) return;
+    }
+    try {
+      await startSession(id);
+      navigate('/workout');
+    } catch (err) {
+      toast(err.response?.data?.error || '루틴을 시작하지 못했어요', 'error');
+    }
+  };
 
   // Fetch my routines from server
   useEffect(() => {
@@ -236,6 +266,19 @@ export default function RoutinePage() {
               {ex.name} {ex.sets && `· ${ex.sets}세트`} {ex.reps && `· ${ex.reps}회`}
             </div>
           ))}
+          {session && session.routineId === (r._id || r.id) ? (
+            <button
+              className="btn-secondary active"
+              style={{ width: '100%', marginTop: 10 }}
+              onClick={() => navigate('/workout')}
+            >이어서 하기 · {session.done}/{session.total}</button>
+          ) : (
+            <button
+              className="btn-primary"
+              style={{ marginTop: 10, fontSize: 14, padding: '10px 20px' }}
+              onClick={() => runRoutine(r)}
+            >이 루틴으로 운동 시작</button>
+          )}
         </div>
       ))}
 

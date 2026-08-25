@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import client from '../api/client';
 import { useWorkoutStore } from './workoutStore';
 import { useInbodyStore } from './inbodyStore';
+import { useRoutineSessionStore } from './routineSessionStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -74,6 +75,8 @@ export const useAuthStore = create((set) => ({
     // 다른 스토어 초기화
     useWorkoutStore.setState({ workouts: {}, loading: false });
     useInbodyStore.setState({ records: [], loading: false });
+    // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
+    useRoutineSessionStore.getState().reset();
     removeLS('ironlog_email');
   },
 

@@ -5,10 +5,12 @@ import { useLangStore } from '../store/langStore';
 import WorkoutCard from '../components/WorkoutCard';
 import RestTimer from '../components/RestTimer';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
+import RoutineRun from '../components/RoutineRun';
 import BestRecords from '../components/BestRecords';
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
+import { useRoutineSessionStore } from '../store/routineSessionStore';
 
 const TEXT = {
   ko: {
@@ -83,11 +85,20 @@ export default function WorkoutPage() {
   const [editingOriginalDate, setEditingOriginalDate] = useState(null);
   // 방금 넘긴 최고 기록. 저장 직후 한 번 띄우고, 근거가 된 기록이 바뀌면 내린다
   const [record, setRecord] = useState(null);
+
+  // 진행 중인 루틴
+  const session = useRoutineSessionStore(s => s.session);
+  const fetchSession = useRoutineSessionStore(s => s.fetch);
+  const markItem = useRoutineSessionStore(s => s.mark);
+  // 폼을 미리 채운 자리를 기억해 둔다 — 같은 칸을 두 번 채우면
+  // 사용자가 고친 값을 도로 덮어쓴다
+  const filledForRef = useRef(null);
   const blurTimerRef = useRef(null);
 
   const { workouts, loading, fetchAll, addWorkout, updateWorkout, deleteWorkout } = useWorkoutStore();
 
   useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchSession(); }, [fetchSession]);
   useEffect(() => () => { if (blurTimerRef.current) clearTimeout(blurTimerRef.current); }, []);
 
   // 운동별 최근 기록 인덱스 (O(1) 조회)
@@ -106,6 +117,41 @@ export default function WorkoutPage() {
     if (!name) return null;
     return exerciseIndex.get(name.trim().toLowerCase()) || null;
   }, [exerciseIndex]);
+
+  // 루틴이 가리키는 칸이 바뀌면 폼을 미리 채운다.
+  //
+  // 채우는 값은 **지난 기록이 먼저**다 — 루틴에 적힌 '4세트 10~12회' 보다
+  // 지난번에 실제로 든 무게가 오늘 쓸모 있다. 지난 기록이 없으면 루틴 값을 쓴다.
+  //
+  // 같은 칸은 한 번만 채운다. 안 그러면 사용자가 고쳐놓은 값을 다시 덮어쓴다.
+  // 고치는 중일 때도 손대지 않는다 — 수정하던 폼을 루틴이 빼앗으면 안 된다.
+  useEffect(() => {
+    if (editingId) return;
+    const idx = session?.current;
+    if (session == null || idx == null || idx < 0) { filledForRef.current = null; return; }
+
+    const key = `${session.startedAt}#${idx}`;
+    if (filledForRef.current === key) return;
+    filledForRef.current = key;
+
+    const item = session.items[idx];
+    if (!item) return;
+
+    setExercise(item.name);
+    setSuggestions([]);
+    const last = findLastRecord(item.name);
+    if (last) {
+      setWeight(last.weight === (lang === 'en' ? 'Bodyweight' : '맨몸') ? '' : String(last.weight));
+      setSets(String(last.sets));
+      setReps(String(last.reps));
+      setAutofilled(true);
+    } else {
+      setWeight('');
+      setSets(item.sets != null ? String(item.sets) : '');
+      setReps(item.reps != null ? String(item.reps) : '');
+      setAutofilled(false);
+    }
+  }, [session, editingId, findLastRecord, lang]);
 
   // 운동명 자동완성 후보 (workouts 변경 시에만 재계산)
   const allExercises = useMemo(
@@ -194,6 +240,7 @@ export default function WorkoutPage() {
         await addWorkout(payload);
         toast(t.saved);
         setRecord(checkRecord(before, payload));
+        await advanceRoutine('done', payload.exercise);
       }
       setWeight('');
       setSets('');
@@ -204,6 +251,36 @@ export default function WorkoutPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  /**
+   * 루틴의 지금 칸을 끝냄(done)이나 건너뜀(skip)으로 넘긴다.
+   *
+   * 저장한 운동 이름이 루틴의 그 칸과 **다르면 넘기지 않는다.** 루틴을 하다가
+   * 중간에 다른 운동을 하나 적을 수 있는데, 그걸로 칸이 넘어가면 안 한 운동이
+   * 끝난 것이 된다.
+   *
+   * 실패해도 조용히 넘어간다 — 기록은 이미 저장됐다. 진행표가 한 칸 안 넘어간 것
+   * 때문에 「저장 실패」라고 하면 거짓말이다.
+   */
+  const advanceRoutine = async (state, savedExercise) => {
+    const s = useRoutineSessionStore.getState().session;
+    if (!s || s.current < 0) return;
+    const item = s.items[s.current];
+    if (!item) return;
+    if (savedExercise != null && item.name.trim() !== String(savedExercise).trim()) return;
+    try {
+      const res = await markItem(s.current, state);
+      if (res?.finished) {
+        toast(`${res.name} 완료! ${res.total}개를 마쳤어요`);
+      }
+    } catch {
+      /* 진행표만 못 넘겼다. 기록은 저장됐다 */
+    }
+  };
+
+  const skipRoutineItem = async () => {
+    await advanceRoutine('skip', null);
   };
 
   // 카드가 memo 라 핸들러가 매 렌더 바뀌면 memo 가 걸리지 않는다
@@ -249,6 +326,8 @@ export default function WorkoutPage() {
         <div className="accent-bar" />
         {t.title}
       </div>
+
+      <RoutineRun onSkip={skipRoutineItem} />
 
       <PersonalRecordBanner record={record} onClose={() => setRecord(null)} />
 

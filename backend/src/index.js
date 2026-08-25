@@ -206,6 +206,7 @@ app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/photos',      require('./routes/photos'));
 app.use('/api/faq-gaps',    require('./routes/faqGaps'));
 app.use('/api/reminders',   require('./routes/reminders'));
+app.use('/api/routine-session', require('./routes/routineSession'));
 app.use('/api/export',      require('./routes/export'));
 
 // 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)

@@ -35,6 +35,9 @@ const DEFAULT_DATA = {
   reminders: [],
   // 웹 푸시 구독. 한 사람이 기기마다 하나씩 갖는다 (폰과 PC 는 다른 구독이다)
   pushSubs: [],
+  // 진행 중인 루틴. 한 사람당 한 줄 — 한 번에 한 운동을 한다.
+  // 서버에 두는 이유는 폰으로 시작해서 다른 기기로 이어갈 수 있어야 해서다
+  routineSessions: [],
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
   _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1 },
@@ -805,6 +808,49 @@ const db = {
     const idx = data.pushSubs.findIndex(s => s.endpoint === endpoint);
     if (idx === -1) return { changes: 0 };
     data.pushSubs.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
+  // ── 진행 중인 루틴 ──
+  getRoutineSession(userId) {
+    const data = load();
+    return (data.routineSessions || []).find(s => s.user_id === userId) || null;
+  },
+
+  // 시작하면 루틴의 운동 목록을 **베껴 담는다.**
+  // 진행 중에 루틴을 고쳐도 하던 것이 흔들리지 않게 하려는 것이다
+  startRoutineSession(userId, routineId, name, items) {
+    const data = load();
+    if (!data.routineSessions) data.routineSessions = [];
+    const now = new Date().toISOString();
+    const row = {
+      user_id: userId, routine_id: routineId, name, items,
+      started_at: now, updated_at: now,
+    };
+    const idx = data.routineSessions.findIndex(s => s.user_id === userId);
+    if (idx === -1) data.routineSessions.push(row);
+    else data.routineSessions[idx] = row;
+    save(data);
+    return row;
+  },
+
+  setRoutineItemState(userId, index, state) {
+    const data = load();
+    const row = (data.routineSessions || []).find(s => s.user_id === userId);
+    if (!row || !row.items[index]) return null;
+    row.items[index].state = state;
+    row.updated_at = new Date().toISOString();
+    save(data);
+    return row;
+  },
+
+  endRoutineSession(userId) {
+    const data = load();
+    if (!data.routineSessions) return { changes: 0 };
+    const idx = data.routineSessions.findIndex(s => s.user_id === userId);
+    if (idx === -1) return { changes: 0 };
+    data.routineSessions.splice(idx, 1);
     save(data);
     return { changes: 1 };
   },
