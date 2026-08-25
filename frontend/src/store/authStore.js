@@ -32,6 +32,9 @@ REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 export const useAuthStore = create((set) => ({
   token: readLS('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: readLS('nickname'),
+  // 인바디 참고 범위에만 쓴다. null 이면 범위를 안 그리고 숫자만 보여준다.
+  // 서버가 들고 있고 checkAuth 때 받아온다 — 기기를 바꿔도 다시 안 물어본다
+  sex: null,
   isLoggedIn: !!readLS('token') || hasCsrfCookie(),
 
   login: async (email, password) => {
@@ -54,6 +57,12 @@ export const useAuthStore = create((set) => ({
     return data;
   },
 
+  setSex: async (sex) => {
+    const { data } = await client.put('/auth/sex', { sex });
+    set({ sex: data.sex ?? null });
+    return data.sex ?? null;
+  },
+
   logout: async () => {
     try {
       await client.post('/auth/logout');
@@ -63,7 +72,7 @@ export const useAuthStore = create((set) => ({
     removeLS('ironlog_role');
     // CSRF 쿠키 클라이언트에서도 삭제 (서버 실패 대비)
     try { document.cookie = 'sb_csrf=; Max-Age=0; path=/'; } catch { /* 쿠키를 막아둔 브라우저 */ }
-    set({ token: null, nickname: null, isLoggedIn: false });
+    set({ token: null, nickname: null, sex: null, isLoggedIn: false });
     // 다른 스토어 초기화
     useWorkoutStore.setState({ workouts: {}, loading: false });
     useInbodyStore.setState({ records: [], loading: false });

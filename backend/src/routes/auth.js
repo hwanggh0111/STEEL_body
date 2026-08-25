@@ -314,6 +314,21 @@ router.get('/me', require('../middleware/auth'), (req, res) => {
   res.json(safeUser);
 });
 
+// 성별 — 인바디 참고 범위에만 쓴다.
+//
+// 'male' · 'female' · null(안 알려줌) 셋뿐이다. 안 알려줘도 인바디 화면은 그대로
+// 돌아간다 — 범위를 안 그리고 숫자와 변화만 보여준다.
+// 나이는 안 받는다. 범위를 조금 더 정밀하게 하자고 개인정보를 늘릴 이유가 없다.
+router.put('/sex', require('../middleware/auth'), (req, res) => {
+  const { sex } = req.body;
+  if (sex !== 'male' && sex !== 'female' && sex !== null) {
+    return res.status(400).json({ error: '성별 값이 올바르지 않아요' });
+  }
+  const result = db.updateUserSex(req.userId, sex);
+  if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  res.json({ sex });
+});
+
 // 닉네임 변경
 router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const { nickname } = req.body;

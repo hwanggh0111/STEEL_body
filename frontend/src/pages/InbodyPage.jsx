@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
 import InbodyCard from '../components/InbodyCard';
-import BodyAnalysis from '../components/BodyAnalysis';
+import BodyReading from '../components/BodyReading';
+import BodyChange from '../components/BodyChange';
 
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
@@ -292,12 +293,19 @@ export default function InbodyPage() {
         <>
           <div className="section-title">
             <div className="accent-bar" />
-            신체 분석
+            내 몸 상태
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
-            인바디 측정 결과를 기반으로 부위별 상태를 분석합니다. 신체 부위를 터치하면 상세 설명을 볼 수 있어요.
+            일반적으로 알려진 범위 안에서 지금 어디쯤인지 보여드립니다.
           </div>
-          <BodyAnalysis record={latestRecord} />
+          <BodyReading record={latestRecord} />
+          <div style={{ height: 24 }} />
+
+          <div className="section-title">
+            <div className="accent-bar" />
+            얼마나 달라졌나
+          </div>
+          <BodyChange records={records} />
           <div style={{ height: 16 }} />
         </>
       )}

@@ -282,6 +282,21 @@ const db = {
   },
 
   // user updates
+  // 성별. 참고 범위를 그리는 데만 쓴다.
+  //
+  // **안 고를 수 있다.** null 이면 화면이 범위를 안 그리고 숫자만 보여준다 —
+  // 필수로 받으면, 알려주기 싫은 사람이 인바디 화면을 아예 못 쓰게 된다.
+  updateUserSex(id, sex) {
+    const data = load();
+    const user = data.users.find(u => u.id === id);
+    if (!user) return { changes: 0 };
+    if (sex === null) delete user.sex;
+    else user.sex = sex;
+    invalidateUserIndex();
+    save(data);
+    return { changes: 1 };
+  },
+
   updateUserNickname(id, nickname) {
     const data = load();
     const user = data.users.find(u => u.id === id);
