@@ -1,5 +1,6 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
 import { primeAudio } from '../data/restAlert';
+import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useState } from 'react';
 
 // 휴식 타이머 — 기록 화면에 붙는 자리.
@@ -67,9 +68,15 @@ function Toggle({ on, onClick, label, desc }) {
 export default function RestTimer() {
   const {
     duration, leftMs, deadline, pausedLeft, label,
-    autoStart, sound, setDuration, setAutoStart, setSound,
+    autoStart, sound, vibrate, setDuration, setAutoStart, setSound, setVibrate,
     start, add, pause, resume, stop,
   } = useRestTimerStore();
+
+  // 루틴을 따라가는 중이면 다음에 무엇을 하는지 쉬면서 알려준다
+  const session = useRoutineSessionStore(s => s.session);
+  const nextName = session && session.current >= 0
+    ? session.items[session.current]?.name
+    : null;
 
   const [custom, setCustom] = useState('');
   const [showCustom, setShowCustom] = useState(false);
@@ -112,16 +119,28 @@ export default function RestTimer() {
                   {label}
                 </div>
               )}
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{duration}초 중</div>
+              {nextName ? (
+                <div style={{
+                  fontSize: 12.5, color: 'var(--text-secondary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>다음 · {nextName}</div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{duration}초 중</div>
+              )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <button className="btn-secondary" style={{ flexGrow: 1 }} onClick={() => add(30)}>+30초</button>
             <button className="btn-secondary" style={{ flexGrow: 1 }} onClick={paused ? resume : pause}>
               {paused ? '이어서' : '일시정지'}
             </button>
-            <button className="btn-secondary" style={{ flexGrow: 1 }} onClick={stop}>그만</button>
+            {/* 다 쉬었으면 기다리지 않는다. 휴식을 끝내고 다음 세트로 간다 */}
+            <button
+              className="btn-primary"
+              style={{ flexGrow: 1, width: 'auto', fontSize: 14, padding: '9px 0' }}
+              onClick={stop}
+            >바로 시작</button>
           </div>
         </>
       ) : (
@@ -174,7 +193,12 @@ export default function RestTimer() {
           on={sound}
           onClick={() => { primeAudio(); setSound(!sound); }}
           label="끝나면 소리로 알리기"
-          desc="아이폰은 진동이 안 옵니다. 소리로 알립니다"
+        />
+        <Toggle
+          on={vibrate}
+          onClick={() => setVibrate(!vibrate)}
+          label="끝나면 진동으로 알리기"
+          desc="아이폰은 진동을 지원하지 않습니다. 소리로 알립니다"
         />
       </div>
     </div>

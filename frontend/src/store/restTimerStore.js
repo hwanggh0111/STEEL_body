@@ -15,6 +15,7 @@ import { readLS, saveLS } from '../data/safeStorage';
 const LS_DURATION = 'steelbody_rest_duration';
 const LS_AUTO = 'steelbody_rest_auto';
 const LS_SOUND = 'steelbody_rest_sound';
+const LS_VIBRATE = 'steelbody_rest_vibrate';
 
 export const PRESETS = [30, 60, 90, 120, 180];
 export const MIN_SEC = 5;
@@ -48,6 +49,7 @@ export const useRestTimerStore = create((set, get) => ({
   label: '',
   autoStart: readFlag(LS_AUTO),
   sound: readFlag(LS_SOUND),
+  vibrate: readFlag(LS_VIBRATE),
 
   setDuration: (sec) => {
     const n = Math.min(MAX_SEC, Math.max(MIN_SEC, Math.round(Number(sec) || 0)));
@@ -57,6 +59,7 @@ export const useRestTimerStore = create((set, get) => ({
 
   setAutoStart: (on) => { saveLS(LS_AUTO, on ? '1' : '0'); set({ autoStart: !!on }); },
   setSound: (on) => { saveLS(LS_SOUND, on ? '1' : '0'); set({ sound: !!on }); },
+  setVibrate: (on) => { saveLS(LS_VIBRATE, on ? '1' : '0'); set({ vibrate: !!on }); },
 
   start: (sec, label = '') => {
     const seconds = Math.min(MAX_SEC, Math.max(MIN_SEC, Math.round(Number(sec) || get().duration)));

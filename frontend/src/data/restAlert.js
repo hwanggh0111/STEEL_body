@@ -47,7 +47,7 @@ function beep(at, freq, seconds) {
  * 진동은 아이폰이 지원하지 않는다. 그래서 화면 쪽 표시(띠가 초록으로 바뀌고
  * 「휴식 끝」이 뜨는 것)를 언제나 같이 둔다. 이것만 믿지 않는다.
  */
-export function alertRestDone(withSound = true) {
+export function alertRestDone(withSound = true, withVibrate = true) {
   if (withSound && ctx && ctx.state === 'running') {
     try {
       const now = ctx.currentTime;
@@ -56,7 +56,9 @@ export function alertRestDone(withSound = true) {
       beep(now + 0.36, 1174, 0.2);
     } catch { /* 소리가 안 나도 넘어간다 */ }
   }
-  try {
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
-  } catch { /* 지원 안 하는 브라우저 */ }
+  if (withVibrate) {
+    try {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+    } catch { /* 지원 안 하는 브라우저 */ }
+  }
 }
