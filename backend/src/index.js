@@ -147,6 +147,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// 본체에 같이 들어 있던 사진을 photos.json 으로 옮긴다.
+//
+// 사진은 크고(한 장 최대 2MB) 드물게 바뀌는데, 본체는 기록 하나마다 통째로 다시 쓰인다.
+// 같이 두면 세트 하나 저장할 때마다 사진 전부를 다시 쓰는 셈이었다 —
+// 사람 열 명이 세 장씩 채우면 60MB 짜리 파일을 매번 다시 쓴다 (힙은 256MB 다)
+try {
+  const moved = db.migratePhotos();
+  if (moved > 0) console.log(`[DB] 사진 ${moved}장을 photos.json 으로 옮겼습니다`);
+} catch (e) { console.error('[DB] 사진 옮기기 실패:', e.message); }
+
 // 있는 그대로 적혀 있던 옛 refresh token 을 걷어낸다.
 //
 // 이제 해시로 담는다. 옛 줄은 못 알아보므로 그냥 두면 만료될 때까지 파일에 남는데,

@@ -4,6 +4,19 @@ const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, '../ironlog.json');
 
+// ── 사진은 따로 담는다 ──
+//
+// 사진은 base64 로 들어온다 — 한 장에 최대 2MB, 사람마다 세 장(프로필 · 전 · 후).
+// 그런데 이 앱은 **바뀔 때마다 파일을 통째로 다시 쓴다.** 사진이 본체에 같이 있으면
+// 세트 하나를 저장할 때마다 사진 전부를 다시 문자열로 만들어 디스크에 붓는 셈이다.
+//
+// 재보면 이렇다 — 사람 10명이 세 장씩 채우면 파일이 **60MB** 다. 그걸 기록 하나마다
+// 다시 쓴다. 게다가 그 60MB 는 캐시로 램에 늘 떠 있는데, 서버는
+// `--max-old-space-size=256` 으로 돈다. 서른 명이면 문자열로 만드는 도중에 죽는다.
+//
+// 사진은 **드물게 바뀌고 크다.** 나머지는 자주 바뀌고 작다. 갈라 두면 서로를 안 건드린다.
+const PHOTOS_PATH = path.join(__dirname, '../photos.json');
+
 // 기본 데이터 구조
 const DEFAULT_DATA = {
   users: [],
@@ -45,6 +58,42 @@ const DEFAULT_DATA = {
 };
 
 // In-memory cache + debounced writes + write lock
+let _photoCache = null;
+let _photoDirty = false;
+let _photoTimer = null;
+
+function loadPhotos() {
+  if (_photoCache) return _photoCache;
+  try {
+    if (fs.existsSync(PHOTOS_PATH)) {
+      _photoCache = JSON.parse(fs.readFileSync(PHOTOS_PATH, 'utf-8'));
+      if (!Array.isArray(_photoCache.photos)) _photoCache.photos = [];
+      return _photoCache;
+    }
+  } catch (err) {
+    console.error('[DB] photos.json 파싱 실패, 초기화합니다:', err.message);
+  }
+  _photoCache = { photos: [], _nextId: 1 };
+  return _photoCache;
+}
+
+function _flushPhotos() {
+  if (!_photoDirty || !_photoCache) return;
+  try {
+    fs.writeFileSync(PHOTOS_PATH, JSON.stringify(_photoCache), 'utf-8');
+    _photoDirty = false;
+  } catch (err) {
+    console.error('[DB] 사진 저장 실패:', err.message);
+  }
+}
+
+// 들여쓰기를 넣지 않는다. 사람이 읽을 파일이 아니고, base64 덩어리라 줄바꿈만 늘어난다
+function savePhotoStore() {
+  _photoDirty = true;
+  if (_photoTimer) clearTimeout(_photoTimer);
+  _photoTimer = setTimeout(_flushPhotos, 500);
+}
+
 let _cache = null;
 let _dirty = false;
 let _saveTimer = null;
@@ -113,9 +162,9 @@ function _flushImmediate() {
     }
   }
 }
-process.on('exit', _flushImmediate);
-process.on('SIGINT', () => { _flushImmediate(); process.exit(); });
-process.on('SIGTERM', () => { _flushImmediate(); process.exit(); });
+process.on('exit', () => { _flushImmediate(); _flushPhotos(); });
+process.on('SIGINT', () => { _flushImmediate(); _flushPhotos(); process.exit(); });
+process.on('SIGTERM', () => { _flushImmediate(); _flushPhotos(); process.exit(); });
 
 // 다음 ID 가져오기
 function nextId(table) {
@@ -506,34 +555,60 @@ const db = {
 
   // photos (profile + compare)
   getPhotos(userId) {
-    const data = load();
-    return (data.photos || []).filter(p => p.user_id === userId);
+    return loadPhotos().photos.filter(p => p.user_id === userId);
   },
   savePhoto(userId, type, dataUrl) {
     // type: 'profile' | 'before' | 'after'
-    const data = load();
-    if (!data.photos) data.photos = [];
+    const store = loadPhotos();
     // For profile/before/after: replace existing of same type
-    const idx = data.photos.findIndex(p => p.user_id === userId && p.type === type);
+    const idx = store.photos.findIndex(p => p.user_id === userId && p.type === type);
     if (idx !== -1) {
-      data.photos[idx].data = dataUrl;
-      data.photos[idx].updated_at = new Date().toISOString();
+      store.photos[idx].data = dataUrl;
+      store.photos[idx].updated_at = new Date().toISOString();
     } else {
-      const id = data._nextId.photos || 1;
-      data._nextId.photos = id + 1;
-      data.photos.push({ id, user_id: userId, type, data: dataUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      const id = store._nextId || 1;
+      store._nextId = id + 1;
+      store.photos.push({ id, user_id: userId, type, data: dataUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
-    save(data);
+    savePhotoStore();
     return { changes: 1 };
   },
   deletePhoto(userId, type) {
-    const data = load();
-    if (!data.photos) return { changes: 0 };
-    const idx = data.photos.findIndex(p => p.user_id === userId && p.type === type);
+    const store = loadPhotos();
+    const idx = store.photos.findIndex(p => p.user_id === userId && p.type === type);
     if (idx === -1) return { changes: 0 };
-    data.photos.splice(idx, 1);
-    save(data);
+    store.photos.splice(idx, 1);
+    savePhotoStore();
     return { changes: 1 };
+  },
+
+  // 계정을 지울 때 사진도 같이 지운다 (본체와 파일이 갈렸으니 따로 불러야 한다)
+  deleteUserPhotos(userId) {
+    const store = loadPhotos();
+    const before = store.photos.length;
+    store.photos = store.photos.filter(p => p.user_id !== userId);
+    if (store.photos.length !== before) savePhotoStore();
+    return { changes: before - store.photos.length };
+  },
+
+  // 본체에 남아 있던 사진을 새 파일로 옮긴다. 서버가 뜰 때 한 번 부른다
+  migratePhotos() {
+    const data = load();
+    if (!Array.isArray(data.photos) || data.photos.length === 0) return 0;
+    const store = loadPhotos();
+    const known = new Set(store.photos.map(p => `${p.user_id}:${p.type}`));
+    let moved = 0;
+    for (const p of data.photos) {
+      if (known.has(`${p.user_id}:${p.type}`)) continue;
+      store.photos.push(p);
+      store._nextId = Math.max(store._nextId || 1, (p.id || 0) + 1);
+      moved += 1;
+    }
+    data.photos = [];
+    save(data);
+    savePhotoStore();
+    _flushPhotos();
+    return moved;
   },
 
   // suspensions
@@ -671,10 +746,11 @@ const db = {
     data.inbody = (data.inbody || []).filter(r => r.user_id !== userId);
     data.measures = (data.measures || []).filter(m => m.user_id !== userId);
     data.myRoutines = (data.myRoutines || []).filter(r => r.user_id !== userId);
-    data.photos = (data.photos || []).filter(p => p.user_id !== userId);
     data.refreshTokens = (data.refreshTokens || []).filter(t => t.user_id !== userId);
     invalidateUserIndex();
     save(data);
+    // 사진은 다른 파일에 있다. 여기서 안 부르면 지운 계정의 사진이 남는다
+    this.deleteUserPhotos(userId);
     return { changes: 1 };
   },
 

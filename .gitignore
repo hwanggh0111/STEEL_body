@@ -10,6 +10,7 @@ frontend/dist/
 
 # Database
 backend/ironlog.json
+backend/photos.json
 
 # IDE
 .vscode/
