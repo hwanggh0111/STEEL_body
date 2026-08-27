@@ -183,11 +183,13 @@ router.post('/register', async (req, res) => {
   if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
     return res.status(400).json({ error: '비밀번호는 영문+숫자 조합이어야 해요' });
   }
-  if (nickname.length > 30) {
-    return res.status(400).json({ error: '닉네임은 30자 이하여야 해요' });
+  // 새니타이즈까지 끝낸 뒤에 본다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이 되는데,
+  // 길이만 재고 넘기면 **이름 없는 계정**이 만들어진다 — 닉네임은 홈 인사부터
+  // 관리자 사용자 목록까지 온 앱에 나오는 이름이다
+  const safeNickname = cleanName(nickname, 30);
+  if (!safeNickname) {
+    return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
-
-  const safeNickname = sanitize(nickname);
   const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
   if (!hashed || !hashed.startsWith('$2')) {
     return res.status(500).json({ error: '서버 오류가 발생했어요. 다시 시도해주세요' });
