@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, '../ironlog.json');
 
@@ -677,23 +678,57 @@ const db = {
     return { changes: 1 };
   },
 
-  // refresh tokens
+  // ── refresh token ──
+  //
+  // **해시로 담는다.** 예전에는 있는 그대로 적어뒀다. 그 파일 한 줄만 읽으면 그 줄의
+  // 주인으로 그대로 로그인할 수 있다 — 비밀번호를 몰라도, 바꿔도 그렇다.
+  // 백업 파일 · 로그 · 실수로 올라간 덤프까지 전부 열쇠 꾸러미가 된다.
+  //
+  // 비밀번호처럼 bcrypt 를 쓰지는 않는다. 이건 사람이 지은 말이 아니라 48바이트 난수라
+  // 사전 대입이 통하지 않고, 요청마다 확인해야 해서 느리면 안 된다. SHA-256 이면 된다.
+  //
+  // **바꾸는 값이라 옛 줄은 못 알아본다** — 지금 로그인해 있는 사람은 한 번 다시
+  // 로그인해야 한다. 배포 전에 하는 이유가 그것이다. 나중에 하면 그 값이 쓰는 사람 수만큼
+  // 커진다. 옛 줄은 시작할 때 걷어낸다 (`dropLegacyRefreshTokens`).
+  refreshHash(token) {
+    return crypto.createHash('sha256').update(String(token)).digest('hex');
+  },
   saveRefreshToken(userId, token, expiresAt) {
     const data = load();
     if (!data.refreshTokens) data.refreshTokens = [];
-    data.refreshTokens.push({ user_id: userId, token, expires_at: expiresAt, created_at: new Date().toISOString() });
+    data.refreshTokens.push({
+      user_id: userId,
+      token_hash: this.refreshHash(token),
+      expires_at: expiresAt,
+      created_at: new Date().toISOString(),
+    });
     save(data);
   },
   findRefreshToken(token) {
     const data = load();
     if (!data.refreshTokens) return null;
-    return data.refreshTokens.find(t => t.token === token && t.expires_at > new Date().toISOString()) || null;
+    const hash = this.refreshHash(token);
+    return data.refreshTokens.find(t => t.token_hash === hash && t.expires_at > new Date().toISOString()) || null;
   },
   deleteRefreshToken(token) {
     const data = load();
     if (!data.refreshTokens) return;
-    data.refreshTokens = data.refreshTokens.filter(t => t.token !== token);
+    const hash = this.refreshHash(token);
+    data.refreshTokens = data.refreshTokens.filter(t => t.token_hash !== hash);
     save(data);
+  },
+
+  // 있는 그대로 적혀 있던 옛 줄을 걷어낸다. 그대로 두면 못 알아보는 줄이 만료될 때까지
+  // 파일에 남는데, 그 줄들이 바로 새면 안 되는 값이다. 몇 줄이었는지는 적어둔다 —
+  // 그만큼의 사람이 다시 로그인해야 한다는 뜻이다
+  dropLegacyRefreshTokens() {
+    const data = load();
+    if (!data.refreshTokens) return 0;
+    const before = data.refreshTokens.length;
+    data.refreshTokens = data.refreshTokens.filter(t => t && t.token_hash);
+    const dropped = before - data.refreshTokens.length;
+    if (dropped > 0) save(data);
+    return dropped;
   },
   deleteUserRefreshTokens(userId) {
     const data = load();

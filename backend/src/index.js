@@ -137,6 +137,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// 있는 그대로 적혀 있던 옛 refresh token 을 걷어낸다.
+//
+// 이제 해시로 담는다. 옛 줄은 못 알아보므로 그냥 두면 만료될 때까지 파일에 남는데,
+// 그 줄들이 바로 새면 안 되는 값이다. 몇 줄이었는지 적어둔다 — 그만큼의 사람이
+// 한 번 다시 로그인해야 한다는 뜻이다
+try {
+  const dropped = db.dropLegacyRefreshTokens();
+  if (dropped > 0) console.log(`[DB] 옛 방식으로 저장돼 있던 로그인 유지 ${dropped}건을 걷어냈습니다 (그만큼 다시 로그인해야 합니다)`);
+} catch (e) { console.error('[DB] 옛 토큰 정리 실패:', e.message); }
+
 // 만료된 refresh token 정리 (30분마다)
 setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); } }, 30 * 60 * 1000);
 
