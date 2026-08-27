@@ -4,7 +4,7 @@ const path = require('path');
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
 const aiGuard = require('../middleware/aiGuard');
-const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT } = require('../config/security');
+const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY } = require('../config/security');
 
 // 보안 로그 (메모리 + 파일 영속화)
 const LOG_PATH = path.join(__dirname, '../../security.log');
@@ -414,8 +414,10 @@ router.get('/report', adminAuth, (req, res) => {
     defense: {
       aiGuard: 'v2 (4-level threat system)',
       xssSanitize: 'HTML tags + event handlers + javascript URI',
-      sqlInjection: 'Pattern detection + JSON DB (no SQL)',
-      nosqlInjection: 'Type validation + pattern detection',
+      // 이 앱에는 SQL 도 몽고도 없다 — 저장소는 JSON 파일 하나다.
+      // 없는 것을 노리는 패턴은 오탐만 냈다 (`---` 한 줄에 영구 정지). 8/27 에 걷어냈다
+      sqlInjection: 'JSON 파일 DB — SQL 을 아예 안 쓴다',
+      nosqlInjection: '몽고를 안 쓴다. 입력은 타입·범위로 검사한다',
       prototypePollution: 'JSON reviver + aiGuard scan',
       rateLimiting: 'Global 100/min + Auth 20/15min',
       botDetection: 'User-Agent pattern matching',
@@ -429,7 +431,9 @@ router.get('/report', adminAuth, (req, res) => {
       xFrameOptions: 'SAMEORIGIN',
       xContentType: 'nosniff',
       referrerPolicy: 'strict-origin-when-cross-origin',
-      permissionsPolicy: 'camera=none, microphone=none, geolocation=none',
+      // 화면이 「설정됨」이라고 읽는 자리다. 진짜로 나가는 값을 그대로 보낸다 —
+      // 8/27 까지는 helmet 이 모르는 옵션이라 무시돼서, 안 나가는 헤더를 있다고 적고 있었다
+      permissionsPolicy: PERMISSIONS_POLICY,
     },
     recentLogs: securityLogs.slice(-20).reverse(),
   });

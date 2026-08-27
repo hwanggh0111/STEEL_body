@@ -18,7 +18,7 @@ const cors    = require('cors');
 const helmet  = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const { RATE_LIMITS, BODY_LIMIT } = require('./config/security');
+const { RATE_LIMITS, BODY_LIMIT, PERMISSIONS_POLICY } = require('./config/security');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const aiGuard = require('./middleware/aiGuard');
@@ -48,14 +48,21 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   hsts: { maxAge: 31536000, includeSubDomains: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  permissionsPolicy: {
-    features: {
-      camera: ["'none'"],
-      microphone: ["'none'"],
-      geolocation: ["'none'"],
-    },
-  },
 }));
+
+// 카메라 · 마이크 · 위치를 막는다.
+//
+// 예전에는 이걸 helmet 설정 안에 `permissionsPolicy: { features: {...} }` 로 적어뒀다.
+// **helmet 에는 그런 옵션이 없다** — 모르는 옵션이라 조용히 무시됐고, 헤더는 한 번도
+// 나간 적이 없다. 그런데 관리자 보안 보고서는 「camera=none, microphone=none,
+// geolocation=none」이라고 적고 있었다. 있지도 않은 방어를 있다고 읽는 쪽이 더 나쁘다.
+//
+// 이 앱은 셋 다 안 쓴다. 안 쓰는 것은 막아둔다 — 나중에 끼어드는 스크립트가 있어도
+// 브라우저가 먼저 거절한다.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+  next();
+});
 
 // gzip compression (1KB 미만은 압축 생략)
 app.use(compression({
