@@ -15,15 +15,18 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const navTimerRef = useRef(null);
   const emailCheckTimerRef = useRef(null);
+  const usernameCheckTimerRef = useRef(null);
   useEffect(() => () => {
     if (navTimerRef.current) clearTimeout(navTimerRef.current);
     if (emailCheckTimerRef.current) clearTimeout(emailCheckTimerRef.current);
+    if (usernameCheckTimerRef.current) clearTimeout(usernameCheckTimerRef.current);
   }, []);
 
   const [username, setUsername] = useState('');
   const [usernameOk, setUsernameOk] = useState(false);
   const [usernameMsg, setUsernameMsg] = useState('');
   const [usernameHint, setUsernameHint] = useState('');
+  const [usernameChecking, setUsernameChecking] = useState(false);
   const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [emailOk, setEmailOk] = useState(false);
@@ -81,33 +84,40 @@ export default function RegisterPage() {
   const pwStrength = getPasswordStrength();
 
   // ── 아이디 ──
+  //
+  // 같은 화면에서 **이메일은 치는 대로 알아서 확인**하는데 아이디만 「중복확인」 단추를
+  // 눌러야 했다. 안 누르면 가입 단추가 영영 안 눌렸고, 그것 하나 때문에 「아이디 옆
+  // 중복확인을 눌러주세요」라는 안내를 따로 적어둬야 했다.
+  //
+  // 안내로 메울 것이 아니라 이메일과 같게 만든다 — 치면 알아서 확인한다.
   const updateUsernameHint = (val) => {
-    setUsername(val.toLowerCase());
+    const next = val.toLowerCase();
+    setUsername(next);
     setUsernameOk(false);
     setUsernameMsg('');
     if (error) setError('');
-    if (!val) { setUsernameHint(''); return; }
-    if (val.length < 4) { setUsernameHint('4자 이상 입력해주세요'); return; }
-    if (val.length > 20) { setUsernameHint('20자 이하로 입력해주세요'); return; }
-    if (!/^[a-zA-Z0-9!@#$%^&*._-]+$/.test(val)) { setUsernameHint('영문, 숫자, 특수문자(!@#$%^&*._-)만 가능'); return; }
-    setUsernameHint('중복확인 버튼을 눌러주세요');
-  };
+    if (usernameCheckTimerRef.current) clearTimeout(usernameCheckTimerRef.current);
+    setUsernameChecking(false);
 
-  const checkUsername = async () => {
-    if (!username) return;
-    if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(username)) {
-      setUsernameMsg('영문+숫자+특수문자 4~20자');
-      setUsernameOk(false);
-      return;
-    }
-    try {
-      const { data } = await client.post('/auth/check-username', { username });
-      setUsernameOk(data.available);
-      setUsernameMsg(data.message);
-    } catch (err) {
-      setUsernameMsg(err.response?.data?.error || '확인 실패');
-      setUsernameOk(false);
-    }
+    if (!next) { setUsernameHint(''); return; }
+    if (next.length < 4) { setUsernameHint('4자 이상 입력해주세요'); return; }
+    if (next.length > 20) { setUsernameHint('20자 이하로 입력해주세요'); return; }
+    if (!/^[a-zA-Z0-9!@#$%^&*._-]+$/.test(next)) { setUsernameHint('영문, 숫자, 특수문자(!@#$%^&*._-)만 가능'); return; }
+
+    setUsernameHint('');
+    usernameCheckTimerRef.current = setTimeout(async () => {
+      setUsernameChecking(true);
+      try {
+        const { data } = await client.post('/auth/check-username', { username: next });
+        setUsernameOk(data.available);
+        setUsernameMsg(data.message);
+      } catch (err) {
+        setUsernameMsg(err.response?.data?.error || '확인 실패');
+        setUsernameOk(false);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 600);
   };
 
   const pwMatch = password && passwordConfirm && password === passwordConfirm;
@@ -120,7 +130,8 @@ export default function RegisterPage() {
   // 누르지 않은 경우 아무 표시 없이 영영 안 눌렸다 — 무엇이 남았는지 알 방법이 없었다.
   const blockReason = loading ? null
     : !username.trim() ? '아이디를 입력하세요'
-    : !usernameOk ? '아이디 옆 중복확인을 눌러주세요'
+    : usernameChecking ? '아이디를 확인하는 중이에요'
+    : !usernameOk ? '아이디를 확인하는 중이거나 쓸 수 없는 아이디예요'
     : !nickname.trim() ? '닉네임을 입력하세요'
     : !email.trim() ? '이메일을 입력하세요'
     : !emailOk ? '이메일을 확인하는 중이거나 쓸 수 없는 주소예요'
@@ -171,42 +182,36 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} autoComplete="on">
           {/* 아이디 */}
           <label className="label" htmlFor="reg-username">아이디</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-            <input
-              id="reg-username"
-              name="username"
-              autoComplete="username"
-              className="input"
-              type="text"
-              placeholder="영문+숫자 4~20자"
-              value={username}
-              onChange={(e) => updateUsernameHint(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button
-              type="button"
-              onClick={checkUsername}
-              disabled={usernameOk || !username}
-              className="btn-primary"
-              style={{
-                width: 'auto', padding: '10px 14px', fontSize: 12, whiteSpace: 'nowrap',
-                background: usernameOk ? 'var(--success)' : undefined,
-              }}
-            >
-              {usernameOk ? '확인완료' : '중복확인'}
-            </button>
-          </div>
-          {usernameMsg && (
+          <input
+            id="reg-username"
+            name="username"
+            autoComplete="username"
+            className="input"
+            type="text"
+            placeholder="영문+숫자 4~20자"
+            value={username}
+            onChange={(e) => updateUsernameHint(e.target.value)}
+            style={{
+              marginBottom: 4,
+              borderColor: username
+                ? (usernameOk ? 'var(--success)' : usernameMsg ? 'var(--danger)' : 'var(--border)')
+                : 'var(--border)',
+            }}
+          />
+          {usernameChecking && (
+            <div style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-muted)' }}>중복 확인 중...</div>
+          )}
+          {!usernameChecking && usernameMsg && (
             <div style={{ fontSize: 12, marginBottom: 8, color: usernameOk ? 'var(--success)' : 'var(--danger)' }}>
               {usernameMsg}
             </div>
           )}
-          {!usernameMsg && usernameHint && (
+          {!usernameChecking && !usernameMsg && usernameHint && (
             <div style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-muted)' }}>
               {usernameHint}
             </div>
           )}
-          {!usernameMsg && !usernameHint && <div style={{ marginBottom: 8 }} />}
+          {!usernameChecking && !usernameMsg && !usernameHint && <div style={{ marginBottom: 8 }} />}
 
           {/* 닉네임 */}
           <label className="label" htmlFor="reg-nickname">닉네임</label>
@@ -267,10 +272,16 @@ export default function RegisterPage() {
               maxLength={PW_MAX}
               style={{ paddingRight: 40 }}
             />
-            <button type="button" onClick={() => setShowPw(!showPw)} aria-label="비밀번호 표시 토글" style={{
-              position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
-            }}>{showPw ? '🙈' : '👁'}</button>
+            <button
+              type="button"
+              onClick={() => setShowPw(!showPw)}
+              aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+              style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', fontSize: 12, padding: 4,
+              }}
+            >{showPw ? '숨기기' : '보기'}</button>
           </div>
           {pwStrength && (
             <div style={{ fontSize: 12, marginBottom: 4, marginTop: -8, display: 'flex', alignItems: 'center', gap: 8 }}>

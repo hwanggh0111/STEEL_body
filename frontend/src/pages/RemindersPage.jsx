@@ -11,6 +11,16 @@ import { toast } from '../components/Toast';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
+// 흔한 조합. 일곱 개를 하나씩 누르게 두지 않는다
+const DAY_PRESETS = [
+  { label: '매일', days: [0, 1, 2, 3, 4, 5, 6] },
+  { label: '평일', days: [1, 2, 3, 4, 5] },
+  { label: '월·수·금', days: [1, 3, 5] },
+  { label: '주말', days: [0, 6] },
+];
+
+const sameDays = (a, b) => Array.isArray(a) && a.length === b.length && b.every(d => a.includes(d));
+
 // 서버가 준 base64url 공개키를 브라우저가 요구하는 바이트 배열로.
 // atob 는 표준 base64 만 받는다 — '-' 와 '_' 를 되돌리고 '=' 를 채워야 한다
 function urlBase64ToUint8Array(base64) {
@@ -132,6 +142,32 @@ export default function RemindersPage() {
     }
   };
 
+  // 이 기기를 뺀다.
+  //
+  // 서버에는 `DELETE /reminders/subscribe` 가 처음부터 있었는데 **화면이 한 번도
+  // 부르지 않았다.** 켤 수는 있고 끌 수는 없는 상태였다 — 기기를 바꾸거나 잘못 켠
+  // 사람은 브라우저 설정까지 들어가서 권한을 막는 수밖에 없었다.
+  const disableHere = async () => {
+    if (!canNotify) return;
+    setBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) { toast('이 기기는 이미 꺼져 있어요'); return; }
+      const endpoint = sub.endpoint;
+      // 브라우저에서 먼저 끊고 서버에 알린다. 순서가 반대면 서버에서 지운 뒤
+      // 브라우저 구독이 남아 「알 수 없는 기기」로 계속 붙어 있는다
+      await sub.unsubscribe();
+      const { data } = await client.delete('/reminders/subscribe', { data: { endpoint } });
+      setDevices(data.devices);
+      toast('이 기기의 알림을 껐어요');
+    } catch {
+      toast('끄지 못했어요', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sendTest = async () => {
     setBusy(true);
     try {
@@ -220,6 +256,42 @@ export default function RemindersPage() {
         </div>
       )}
 
+      {/* 이 기기 — 맨 위로 올렸다.
+          예전에는 요일과 시간을 다 만진 다음에야 「이 기기에서 알림 켜기」가 나왔다.
+          **켜지 않으면 나머지를 아무리 정해도 아무 일도 안 일어난다** — 켜는 것이 먼저다 */}
+      {canNotify && serverReady && (
+        <div className="card" style={{ marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {!registered ? (
+            <>
+              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이 기기는 아직 알림을 안 받습니다</div>
+              <button className="btn-primary" disabled={busy} onClick={enableHere}>
+                이 기기에서 알림 켜기
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--success)' }}>
+                이 기기는 알림을 받습니다{devices > 1 ? ` · 이 계정에 켠 기기 ${devices}대` : ''}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary" disabled={busy} onClick={sendTest} style={{ flexGrow: 1 }}>
+                  지금 한 통 보내보기
+                </button>
+                <button className="btn-secondary" disabled={busy} onClick={disableHere} style={{ flexGrow: 1 }}>
+                  이 기기 끄기
+                </button>
+              </div>
+            </>
+          )}
+          {permission === 'denied' && (
+            <div style={{ fontSize: 12, color: 'var(--danger)', lineHeight: 1.7 }}>
+              이 브라우저에서 알림을 막아두셨어요. 주소창 왼쪽의 자물쇠에서 다시 허락해주셔야 합니다 —
+              한 번 막으면 앱이 다시 물어볼 수 없습니다.
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
         <Toggle
           on={settings.enabled}
@@ -238,7 +310,7 @@ export default function RemindersPage() {
       </div>
 
       <div className="label">요일</div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
         {DAY_LABELS.map((label, d) => {
           const on = settings.days.includes(d);
           return (
@@ -252,6 +324,24 @@ export default function RemindersPage() {
           );
         })}
       </div>
+      {/* 흔한 조합은 한 번에. 일곱 개를 하나씩 누르게 두지 않는다 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+        {DAY_PRESETS.map(p => {
+          const on = sameDays(settings.days, p.days);
+          return (
+            <button
+              key={p.label}
+              className="btn-secondary"
+              disabled={busy}
+              onClick={() => patch({ days: p.days })}
+              style={{
+                width: 'auto', padding: '5px 12px', fontSize: 11.5,
+                ...(on ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : null),
+              }}
+            >{p.label}</button>
+          );
+        })}
+      </div>
 
       <div className="label">시간</div>
       <input
@@ -262,31 +352,6 @@ export default function RemindersPage() {
         onChange={(e) => patch({ time: e.target.value })}
         style={{ marginBottom: 18 }}
       />
-
-      {canNotify && serverReady && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-          {!registered ? (
-            <button className="btn-primary" disabled={busy} onClick={enableHere}>
-              이 기기에서 알림 켜기
-            </button>
-          ) : (
-            <>
-              <div style={{ fontSize: 12.5, color: 'var(--success)' }}>
-                이 계정에 알림을 켠 기기가 {devices}대 있습니다.
-              </div>
-              <button className="btn-secondary" disabled={busy} onClick={sendTest} style={{ width: '100%' }}>
-                지금 한 통 보내보기
-              </button>
-            </>
-          )}
-          {permission === 'denied' && (
-            <div style={{ fontSize: 12, color: 'var(--danger)', lineHeight: 1.7 }}>
-              이 브라우저에서 알림을 막아두셨어요. 주소창 왼쪽의 자물쇠에서 다시 허락해주셔야 합니다 —
-              한 번 막으면 앱이 다시 물어볼 수 없습니다.
-            </div>
-          )}
-        </div>
-      )}
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
         정한 시각에 서버가 보냅니다. 그 시각에 서버가 쉬고 있었다면 그날은 건너뜁니다 —

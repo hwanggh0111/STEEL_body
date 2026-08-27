@@ -272,7 +272,7 @@ router.post('/login', async (req, res) => {
 router.post('/refresh', (req, res) => {
   const refreshToken = req.cookies?.sb_refresh;
   if (!refreshToken) {
-    return res.status(401).json({ error: 'Refresh token required' });
+    return res.status(401).json({ error: '로그인이 만료됐어요. 다시 로그인해주세요' });
   }
   const stored = db.findRefreshToken(refreshToken);
   if (!stored) {
@@ -280,12 +280,12 @@ router.post('/refresh', (req, res) => {
     res.clearCookie('sb_access', { path: '/' });
     res.clearCookie('sb_refresh', { path: '/api/auth' });
     res.clearCookie('sb_csrf', { path: '/' });
-    return res.status(401).json({ error: 'Invalid refresh token' });
+    return res.status(401).json({ error: '로그인이 만료됐어요. 다시 로그인해주세요' });
   }
   const user = db.findUserById(stored.user_id);
   if (!user || user.is_banned) {
     db.deleteRefreshToken(refreshToken);
-    return res.status(401).json({ error: 'User not found or banned' });
+    return res.status(401).json({ error: '계정을 찾을 수 없거나 정지된 계정이에요' });
   }
   // 기존 refresh token 삭제 (rotation)
   db.deleteRefreshToken(refreshToken);

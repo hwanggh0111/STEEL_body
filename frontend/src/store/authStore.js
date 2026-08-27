@@ -29,6 +29,15 @@ const REMOVED_GAME_KEYS = [
 ];
 REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 
+// 로그아웃할 때 브라우저에서 지울 것.
+//
+// 「기억해둔 것」과 「누구인지」 둘 다다. 남겨두면 다음에 그 기기를 쓰는 사람의
+// 로그인 화면에 앞 사람의 아이디와 닉네임이 미리 채워진다.
+const LOGOUT_KEYS = [
+  'token', 'nickname', 'ironlog_role', 'ironlog_email',
+  'auto_login', 'saved_id', 'saved_nickname',
+];
+
 export const useAuthStore = create((set) => ({
   token: readLS('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: readLS('nickname'),
@@ -67,9 +76,13 @@ export const useAuthStore = create((set) => ({
     try {
       await client.post('/auth/logout');
     } catch {}
-    removeLS('token');
-    removeLS('nickname');
-    removeLS('ironlog_role');
+    // 나갈 때 지울 것을 여기 한 군데에 모은다.
+    //
+    // Layout 이 헤더와 프로필 메뉴 두 곳에서 `['auto_login','ironlog_email', …]` 를
+    // **손으로 나열**하고 있었다. 한 곳만 고치면 다른 쪽에 남는다 —
+    // 8/25 에 죽은 게임 키를 정리하면서 「나열은 한 군데에만 있으면 된다」고 적어놓고
+    // 이 둘을 못 봤다
+    LOGOUT_KEYS.forEach(k => removeLS(k));
     // CSRF 쿠키 클라이언트에서도 삭제 (서버 실패 대비)
     try { document.cookie = 'sb_csrf=; Max-Age=0; path=/'; } catch { /* 쿠키를 막아둔 브라우저 */ }
     set({ token: null, nickname: null, sex: null, isLoggedIn: false });
@@ -78,7 +91,6 @@ export const useAuthStore = create((set) => ({
     useInbodyStore.setState({ records: [], loading: false });
     // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
     useRoutineSessionStore.getState().reset();
-    removeLS('ironlog_email');
   },
 
   // 쿠키 기반 인증 상태 확인 (앱 시작 시 호출)

@@ -197,7 +197,7 @@ router.get('/google/callback', async (req, res) => {
 // Google 클라이언트 사이드 방식 (모바일 지원 — authorization code 교환)
 router.post('/google/code', async (req, res) => {
   const { code } = req.body;
-  if (!code) return res.status(400).json({ error: 'code required' });
+  if (!code) return res.status(400).json({ error: '인증 코드가 없어요' });
   try {
     const { data: tokens } = await axios.post('https://oauth2.googleapis.com/token', {
       code,
@@ -214,7 +214,7 @@ router.post('/google/code', async (req, res) => {
     res.json({ nickname, email });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('Google code error:', err.message);
-    res.status(401).json({ error: 'google_login_failed' });
+    res.status(401).json({ error: '구글 로그인에 실패했어요. 잠시 뒤에 다시 해주세요' });
   }
 });
 

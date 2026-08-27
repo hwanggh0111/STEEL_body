@@ -190,33 +190,54 @@ function oauthErrorText(code) {
     return <SplashScreen onDone={() => navigate('/home')} />;
   }
 
+  // 돌아온 사람인가.
+  //
+  // 예전에는 누구에게나 **소셜 버튼 넷이 먼저**였고, 아이디·비밀번호는 「OR」 아래였다.
+  // 「돌아오셨군요! 근호」라는 인사도 그 아래에 파묻혀서, 늘 쓰던 사람이 매번
+  // 소셜 넷을 지나 아래로 내려가야 했다.
+  //
+  // 전에 들어온 적이 있으면 **쓰던 길을 위로** 올린다. 처음 온 사람에게는 소셜이
+  // 위다 — 가입까지 한 번에 끝나기 때문이다. 없애는 것은 없고 순서만 바꾼다.
+  const returning = !!savedNickname || !!email;
+
+  const social = <SocialLoginButtons disabled={loading} />;
+  const divider = (label) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: label === 'OR' ? 0 : 24 }}>
+      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      <span style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+    </div>
+  );
+
+  const blockReason = !email ? '아이디 또는 이메일을 적어주세요'
+    : !password ? '비밀번호를 적어주세요'
+      : '';
+
   return (
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
         <h1 className="display-xl" style={{ textAlign: 'center', color: 'var(--accent)', marginBottom: 8 }}>
           STEEL BODY
         </h1>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: returning ? 24 : 32 }}>
           당신의 운동을 기록하세요
         </p>
 
-        <SocialLoginButtons disabled={loading} />
-
-        {/* 구분선 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 1 }}>OR</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-        </div>
-
-        {/* 닉네임 표시 (이전 로그인 기록 있을 때) */}
+        {/* 인사는 폼 바로 위에. 예전에는 소셜 버튼 넷 아래에 있었다 */}
         {savedNickname && (
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>돌아오셨군요!</div>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)', marginTop: 4 }}>
               {savedNickname}
             </div>
           </div>
+        )}
+
+        {!returning && (
+          <>
+            {social}
+            {divider('OR')}
+          </>
         )}
 
         {/* 로그인 폼 */}
@@ -251,21 +272,35 @@ function oauthErrorText(code) {
               onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
               style={{ paddingRight: 40 }}
             />
-            <button type="button" onClick={() => setShowPw(!showPw)} aria-label="비밀번호 표시 토글" style={{
-              position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
-            }}>{showPw ? '🙈' : '👁'}</button>
+            {/* 🙈 / 👁 은 지금 보이는 상태를 말하는지 누르면 될 상태를 말하는지가
+                사람마다 반대로 읽힌다. 누르면 무엇이 되는지를 글자로 적는다 */}
+            <button
+              type="button"
+              onClick={() => setShowPw(!showPw)}
+              aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+              style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', fontSize: 12, padding: 4,
+              }}
+            >{showPw ? '숨기기' : '보기'}</button>
           </div>
 
-          {/* 자동 로그인 */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer' }}>
+          {/* 자동 로그인 — 켜면 이 기기에 남는다는 말을 적어둔다.
+              체크박스 이름만으로는 공용 기기에서 켜도 되는지 알 수 없다 */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={autoLogin}
               onChange={(e) => setAutoLogin(e.target.checked)}
-              style={{ accentColor: 'var(--accent)', width: 16, height: 16, cursor: 'pointer' }}
+              style={{ accentColor: 'var(--accent)', width: 16, height: 16, cursor: 'pointer', marginTop: 2, flexShrink: 0 }}
             />
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>자동 로그인</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)' }}>자동 로그인</span>
+              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+                다음부터 이 기기에서는 바로 들어옵니다. 공용 기기에서는 꺼주세요.
+              </span>
+            </span>
           </label>
 
           {error && (
@@ -275,7 +310,20 @@ function oauthErrorText(code) {
           <button className="btn-primary" type="submit" disabled={loading || !email || !password} style={{ marginTop: 8 }}>
             {loading ? '처리 중...' : '로그인'}
           </button>
+          {/* 왜 안 눌리는지 적는다 — 죽어 있는 단추만 보고 이유를 짐작하게 두지 않는다 */}
+          {blockReason && !loading && (
+            <div style={{ marginTop: 6, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+              {blockReason}
+            </div>
+          )}
         </form>
+
+        {returning && (
+          <>
+            {divider('다른 방법으로')}
+            {social}
+          </>
+        )}
 
         <div style={{ textAlign: 'center', marginTop: 12 }}>
           <button
