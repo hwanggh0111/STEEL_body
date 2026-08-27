@@ -8,6 +8,7 @@
 import { dateKey } from './dateKey';
 import { parseWeight } from './personalRecord';
 import { partDistribution } from './bodyPart';
+import { i } from './particle';
 
 /** 그 날이 속한 주의 월요일. Date 를 돌려준다. */
 export function mondayOf(d = new Date()) {
@@ -121,7 +122,9 @@ function notesOf({ prevDays, parts, prevParts, daysDone }) {
   const didPrev = new Set(prevParts.map(p => p.part));
   const missing = ['하체', '등', '가슴', '어깨'].filter(p => !didThis.has(p) && !didPrev.has(p));
   if (missing.length && notes.length < 2) {
-    notes.push(`${missing.slice(0, 2).join(' · ')}가 2주째 없어요.`);
+    // 「등가」가 아니라 「등이」. 두 개를 나열하면 뒤엣것에 맞춘다
+    const parts2 = missing.slice(0, 2);
+    notes.push(`${i(parts2.join(' · '))} 2주째 없어요.`);
   }
 
   return notes.slice(0, 2);

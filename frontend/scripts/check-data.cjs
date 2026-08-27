@@ -28,6 +28,7 @@ const change = bundle('src/data/bodyChange.js', '.t4.cjs');
 const part = bundle('src/data/bodyPart.js', '.t5.cjs');
 const faq = bundle('src/pages/support/faq.js', '.t6.cjs');
 const boundary = bundle('src/components/ErrorBoundary.jsx', '.t7.cjs');
+const josa = bundle('src/data/particle.js', '.t8.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -82,6 +83,20 @@ ok('모르는 것 → 기타', part.bodyPartOf('아무거나'), '기타');
 // 이번 주부터 세면 월요일마다 「10주 연속」이 0 으로 떨어졌다
 // 배포 직후 옛 조각을 못 받아오는 것. 브라우저마다 말이 달라서, 실제로 나오는
 // 문구들을 그대로 넣어 본다 — 못 알아보면 「앱이 바뀌었어요」 대신 오류 화면이 뜬다
+// 조사. 앞 글자에 받침이 있느냐로 갈린다 — 「등이」 · 「하체가」
+console.log('\n── 조사 (주간 요약 · 히스토리 · 루틴이 같이 쓴다) ──');
+for (const [word, want] of [['등', '등이'], ['하체', '하체가'], ['가슴', '가슴이'], ['어깨', '어깨가']]) {
+  ok(word, josa.i(word), want);
+}
+for (const [word, want] of [['스쿼트', '스쿼트를'], ['풀업', '풀업을'], ['바벨 컬', '바벨 컬을']]) {
+  ok(word, josa.eul(word), want);
+}
+// 숫자로 끝나면 읽는 소리로 본다 — 100 은 '백'(받침 ㄱ), 3 은 '삼'(받침 ㅁ)
+ok('숫자로 끝나는 것', josa.eul('스쿼트 100'), '스쿼트 100을');
+ok('영문으로 끝나는 것', josa.eul('bench row'), 'bench row를');
+// 둘을 나열하면 뒤엣것에 맞춘다
+ok('나열은 뒤에 맞춘다', josa.i('하체 · 등'), '하체 · 등이');
+
 console.log('\n── 오래된 조각 알아보기 (에러 경계) ──');
 for (const [label, msg] of [
   ['크롬', 'Failed to fetch dynamically imported module: https://x/assets/HomePage-abc.js'],

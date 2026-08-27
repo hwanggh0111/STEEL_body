@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 
@@ -113,7 +114,7 @@ export default function RoutinePage() {
     try {
       await client.put(`/my-routines/${id}`, { exercises: next });
       setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, exercises: next } : r)));
-      toast(`"${routine.name}"에 ${exercise.name} 을(를) 넣었어요`);
+      toast(`"${routine.name}"에 ${eul(exercise.name)} 넣었어요`);
     } catch {
       toast('루틴에 넣지 못했어요', 'error');
     }

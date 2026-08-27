@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
+import { eul } from '../data/particle';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
@@ -242,7 +243,7 @@ export default function HistoryPage() {
           <div className="empty-state-title">기록 없음</div>
           <div className="empty-state-desc">
             {filterExercise
-              ? `여기서는 '${filterExercise}' 을(를) 한 기록이 없어요`
+              ? `여기서는 ${eul(`'${filterExercise}'`)} 한 기록이 없어요`
               : selectedDate ? '이 날은 쉬셨네요' : '이 달에는 기록이 없어요'}
           </div>
           {filterExercise && (
