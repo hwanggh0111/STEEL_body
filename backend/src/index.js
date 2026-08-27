@@ -143,7 +143,7 @@ setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch (e) { console.
 // 글로벌 Rate Limit — 숫자는 config/security.js 에 있다 (보안 대시보드가 같은 값을 읽는다)
 app.use(rateLimit({
   ...RATE_LIMITS.global,
-  message: { error: 'Too many requests' },
+  message: { error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요' },
   standardHeaders: true,
   legacyHeaders: false,
 }));
@@ -151,31 +151,31 @@ app.use(rateLimit({
 // 인증 관련 엄격한 Rate Limit
 const authLimiter = rateLimit({
   ...RATE_LIMITS.login,
-  message: { error: 'Too many attempts. Try again later.' },
+  message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/send-code', rateLimit({
   ...RATE_LIMITS.authCode,
-  message: { error: 'Too many requests. Wait a moment.' },
+  message: { error: '요청이 너무 잦아요. 잠깐만 기다려주세요' },
 }));
 app.use('/api/auth/verify-code', rateLimit({
   ...RATE_LIMITS.verifyCode,
-  message: { error: 'Too many attempts.' },
+  message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));
 app.use('/api/auth/check-username', rateLimit({
   ...RATE_LIMITS.checkName,
-  message: { error: 'Too many requests.' },
+  message: { error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요' },
 }));
 app.use('/api/auth/check-email', rateLimit({
   ...RATE_LIMITS.checkEmail,
-  message: { error: 'Too many requests.' },
+  message: { error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요' },
 }));
 
 // OAuth Rate Limit (IP당 시간당 10회)
 app.use('/api/oauth', rateLimit({
   ...RATE_LIMITS.oauth,
-  message: { error: 'Too many OAuth attempts. Try again later.' },
+  message: { error: '로그인을 너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));
 
 // API 보안 헤더 (JSON 응답에 추가 보호)
@@ -250,7 +250,7 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   spaCSP(req, res, () => {
     res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
-      if (err) res.status(500).json({ error: 'Frontend not found' });
+      if (err) res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
     });
   });
 });
@@ -259,12 +259,12 @@ app.get('*', (req, res, next) => {
 app.use((err, req, res, next) => {
   // CORS 에러는 403으로
   if (err.message === 'CORS not allowed') {
-    return res.status(403).json({ error: 'Origin not allowed' });
+    return res.status(403).json({ error: '허용되지 않은 곳에서 온 요청이에요' });
   }
   if (process.env.NODE_ENV !== 'production') {
     console.error(err.message);
   }
-  res.status(500).json({ error: 'Internal server error' });
+  res.status(500).json({ error: '서버에 문제가 생겼어요. 잠시 뒤에 다시 해주세요' });
 });
 
 const PORT = process.env.PORT || 4000;

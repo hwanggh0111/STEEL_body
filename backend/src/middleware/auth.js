@@ -1,21 +1,25 @@
+// 여기서 돌려주는 error 문구는 **그대로 사용자 화면의 토스트에 뜬다**
+// (프론트가 err.response.data.error 를 그대로 띄운다).
+// 그런데 「Invalid token」 · 「User not found」 처럼 영문이 섞여 있었다 —
+// 앱의 다른 모든 글자는 한국어다. 무엇을 해야 하는지도 안 적혀 있었다.
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 
 module.exports = (req, res, next) => {
   if (!process.env.JWT_SECRET) {
-    return res.status(500).json({ error: 'Server configuration error' });
+    return res.status(500).json({ error: '서버 설정에 문제가 있어요. 잠시 뒤에 다시 해주세요' });
   }
 
   // 토큰 읽기: httpOnly 쿠키 우선, Bearer 헤더 폴백
   const token = req.cookies?.sb_access || req.headers.authorization?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ error: '로그인이 필요해요' });
   }
 
   // 토큰 길이 제한 (DoS 방지)
   if (token.length > 2000) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: '로그인 정보가 올바르지 않아요. 다시 로그인해주세요' });
   }
 
   try {
@@ -23,16 +27,16 @@ module.exports = (req, res, next) => {
       algorithms: ['HS256'],
     });
     if (!decoded.userId) {
-      return res.status(401).json({ error: 'Invalid token payload' });
+      return res.status(401).json({ error: '로그인 정보가 올바르지 않아요. 다시 로그인해주세요' });
     }
 
     // 차단된 유저 체크
     const user = db.findUserById(decoded.userId);
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: '계정을 찾을 수 없어요. 다시 로그인해주세요' });
     }
     if (user.role === 'blocked') {
-      return res.status(403).json({ error: 'Account blocked' });
+      return res.status(403).json({ error: '차단된 계정이에요. 고객센터로 알려주세요' });
     }
 
     // AI Guard v2: 정지/차단 체크
@@ -60,8 +64,8 @@ module.exports = (req, res, next) => {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
+      return res.status(401).json({ error: '로그인이 만료됐어요. 다시 로그인해주세요' });
     }
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: '로그인 정보가 올바르지 않아요. 다시 로그인해주세요' });
   }
 };
