@@ -278,7 +278,11 @@ router.post('/scan', adminAuth, async (req, res) => {
   const noPassword = users.filter(u => !u.password);
   if (noPassword.length === 0) pass(cat2, '모든 유저 비밀번호 해시 존재');
   else fail(cat2, '비밀번호 누락', 'CRITICAL', noPassword.length + '명');
-  const duplicateEmails = users.filter((u, i) => users.findIndex(x => x.email === u.email) !== i);
+  // **대소문자를 가리지 않고 본다.** 앱이 이미 그렇게 다룬다 (`db.emailKey`) —
+  // 예전에 `Kevin@x.com` 과 `kevin@x.com` 이 각각 가입돼 같은 사람의 기록이 갈린 적이 있다.
+  // 그걸 잡으라고 있는 검사가 정작 대소문자만 다르면 못 잡고 있었다
+  const emailKey = (e) => String(e || '').trim().toLowerCase();
+  const duplicateEmails = users.filter((u, i) => users.findIndex(x => emailKey(x.email) === emailKey(u.email)) !== i);
   if (duplicateEmails.length === 0) pass(cat2, '이메일 중복 없음');
   else fail(cat2, '이메일 중복', 'HIGH', duplicateEmails.map(u => u.email).join(', '));
   const admins = users.filter(u => u.role === 'admin');
@@ -304,6 +308,12 @@ router.post('/scan', adminAuth, async (req, res) => {
   else fail(cat3, 'X-Frame-Options', 'MEDIUM', '미설정');
   if (headerCheck['referrer-policy']) pass(cat3, 'Referrer-Policy');
   else fail(cat3, 'Referrer-Policy', 'LOW', '미설정');
+  // 아래 둘은 안 보고 있었다. CSP 는 XSS 를 막는 마지막 벽이고,
+  // Permissions-Policy 는 8/27 까지 **적혀만 있고 안 나가던** 헤더다 — 그래서 더 봐야 한다
+  if (headerCheck['content-security-policy']) pass(cat3, 'Content-Security-Policy');
+  else fail(cat3, 'Content-Security-Policy', 'HIGH', '미설정');
+  if (headerCheck['permissions-policy']) pass(cat3, 'Permissions-Policy');
+  else fail(cat3, 'Permissions-Policy', 'LOW', '미설정');
 
   // 4. AI Guard 상태
   const cat4 = 'AI_GUARD';
