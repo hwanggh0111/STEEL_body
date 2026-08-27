@@ -1,6 +1,24 @@
 {
-  "generated": "2026-08-25",
+  "generated": "2026-08-27",
   "items": [
+    {
+      "hash": "bf26da5",
+      "date": "2026-08-27",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "고객센터",
+      "text": "자주 묻는 것을 둘에서 열다섯으로 채운다",
+      "detail": "두 개(기록 보관 · 정지)뿐이라 대부분의 질문이 제보로 들어왔다. 물어본 사람은\n며칠을 기다리고, 답하는 쪽은 같은 답을 또 쓴다.\n\n앱에 실제로 있는 것만 적었다 — 알림은 열쇠가 없어 지금은 안 나간다고,\n소셜은 아직 안 붙은 것이 있다고, 계정은 화면에서 지우는 길이 없어 제보함으로\n받는다고 그대로 썼다. 없는 기능을 있는 것처럼 적으면 제보가 늘 뿐이다.\n\n제보함 앞의 단추는 여섯 개만 내놓는다. 열다섯을 다 늘어놓으면 네 줄이 되어\n제보하러 온 사람의 길을 막는다 — 나머지는 「모두 보기」로 간다.\n\n확인 — npm run check 에 자주 묻는 것을 넣었다. 항목을 늘릴 때마다 키워드가\n서로 걸려들기 쉬워서다. 열 가지 말이 제 답으로 가는 것, topic 이 안 겹치는 것,\n한 글자로는 안 찾는 것.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
+    },
+    {
+      "hash": "36bda2a",
+      "date": "2026-08-27",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "서버",
+      "text": "측정 기록만 꺼낼 길 · 영어로 말하던 응답",
+      "detail": "내보내기에 측정 기록이 없었다. 빈 값과 null 은 빠지고 date 가 첫 칸에\n오는 것까지 만드는 부분만 떼어 node 로 확인했다.\n\n서버가 사람에게 영어로 말하던 자리들을 우리말로 바꿨다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
+    },
     {
       "hash": "82c966b",
       "date": "2026-08-25",
@@ -342,24 +360,6 @@
       "scope": "개벽",
       "text": "100 → 250레벨, 등급 15개 추가",
       "detail": "\"하나\"(90~99) 위로 15등급을 얹었다 — 무 · 현 · 태허 · 불이 · 진여 · 법계 ·\n화엄 · 원융 · 무량 · 겁외 · 적광 · 상주 · 묘각 · 대원 · 무위(240~250).\n모든 것이 하나가 되는 데서 끝나던 자리라, 그 위는 하나마저 지워지는 쪽으로\n갔다. 등급당 10레벨은 그대로고 총 25등급이 0~250 까지 구멍 없이 이어진다.\n\n1레벨당 비용은 80조 → 32조로 내렸다. 취향이 아니라 강제다.\n  80조 × 250 = 20,000조  2^53(9,007조)을 넘겨 정수 정밀도가 깨진다\n  36조 × 250 =  9,000조  들어가지만 여유가 7조뿐이라 위험하다\n  32조 × 250 =  8,000조  여유 1,007조. 누적 상한이 예전과 정확히 같다\n\n울트라 파칭코 보상은 L = GENESIS.expPerLevel 의 배수라 같이 줄어든다.\n그래서 판당 오르는 레벨 수는 그대로고, 250레벨을 다 오르는 데 드는 판 수만\n2.5배가 된다. 레벨을 늘린다는 건 그만큼 더 오래 오른다는 뜻이므로 맞는\n방향이고, \"개벽 30레벨분\" 같은 상품 문구도 계속 맞는다.\n\n이미 UL EXP 를 모아둔 계정은 EXP 가 그대로인 채 레벨 표시만 2.5배가 된다\n(개벽 40 → 100). 잃는 것은 없고 앞으로 판당 오르는 속도도 같다.\n\n최고 상품 \"태초의 빛\"(100 × L)은 더 이상 만렙이 아니므로 문구를\n\"개벽 100레벨분\" 으로 고쳤다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
-    },
-    {
-      "hash": "1c9efdb",
-      "date": "2026-08-19",
-      "type": "feat",
-      "label": "새 기능",
-      "scope": "교환",
-      "text": "수량 버튼을 꾹 누르면 계속 오른다 — 최대는 꾹 누르면 바로 교환",
-      "detail": "교환소에서 100장을 담으려면 +10 을 열 번 눌러야 했다. \"최대\"는 지갑을\n통째로 담는 것뿐이라 그 사이 값은 연타밖에 방법이 없었다.\n\nuseHoldRepeat 훅을 새로 만들어 두 화면이 같이 쓴다.\n  - 교환소        +1 · +5 · +10\n  - 미니게임 교환  − · +\n\n380ms 누르면 반복이 시작되고 간격이 170ms → 40ms 로 짧아진다(×0.85).\n짧게 탭하면 전과 똑같이 1만 움직인다 — pointerdown 에서 한 번 실행하고,\n키보드(Enter·Space)는 click.detail === 0 으로만 받아 두 번 세지 않는다.\n상한에 닿으면 동작이 false 를 돌려주어 그 자리에서 멈춘다.\n\n손 떼는 것은 window 에서 받는다. 반복 중에 버튼이 disabled 되면 그 요소로는\npointerup 이 오지 않아, 버튼에만 걸어두면 손을 떼도 계속 올라간다.\n앱을 나갔을 때(visibilitychange)와 창이 포커스를 잃을 때도 멈춘다.\n\n교환소 \"최대\" 는 두 가지가 더 바뀌었다.\n  - 담아둔 수량이 꽉 찼다고 잠그지 않는다. 바꿀 티켓이 하나라도 있으면\n    언제나 눌린다 (확정하고 다시 누르는 흐름에서 회색으로 죽어 보였다).\n  - 꾹 누르고 있으면 담기 + 확정이 반복돼 지갑이 빌 때까지 교환된다.\n    짧게 탭하면 지금까지처럼 담기만 한다 — 한 방향 교환이라 되돌릴 수\n    없는데, 스친 손가락 한 번에 지갑이 비면 확정 단계를 둔 뜻이 없어진다.\n\n이를 위해 useHoldRepeat 이 동작에 isRepeat 을 넘긴다 (첫 누름 false,\n반복 중 true). 반복 교환은 확정 버튼과 같은 busyRef 연타 방어를 공유하되,\n아직 반영 전이면 그 tick 만 거른다 — 거기서 멈추면 손은 누르고 있는데\n아무 일도 안 일어난 채로 끝난다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
-    },
-    {
-      "hash": "dafd823",
-      "date": "2026-08-19",
-      "type": "feat",
-      "label": "새 기능",
-      "scope": "minigame",
-      "text": "원판은 주워야만 점수가 된다 — 피하기 보상 폐지",
-      "detail": "원판이 바닥에 닿을 때마다 자동으로 붙던 +1(DODGE.dodgeReward)을 없앴다.\n이제 바닥 원판을 밟아 주운 값만 점수가 된다.\n\n가만히 피하는 게 가장 안전한데 벌이도 같이 따라와서, \"낙하 구간으로 다시\n들어가 줍는다\"는 이 게임의 유일한 판단이 있으나 마나였다. 한 판에 원판\n120개가 떨어지니 피하기만으로 티켓 12장이 들어왔다.\n\ndodged 는 그대로 센다 — 낙하 속도·생성 간격이 여기 걸려 있고 결과창의\n\"피함 N\" 에도 쓴다. 난이도 곡선은 전과 같다.\n\n착지 처리의 setScore 도 뺐다. 점수가 안 변하는데 원판이 떨어질 때마다\n리렌더를 한 번씩 일으키고 있었다.\n\n원판표의 \"피하면 🥏 +1\" 은 \"피하기만 하면 🥏 0\" 으로 바꿔 규칙을 못 보고\n지나칠 수 없게 했다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01LmCCEGXVLmWRgf8v7gegJp"
     }
   ]
 }
