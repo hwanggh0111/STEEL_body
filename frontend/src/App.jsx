@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import Toast from './components/Toast';
 import ConfirmModalHost from './components/ConfirmModal';
@@ -46,33 +47,37 @@ export default function App() {
     <MaintenanceScreen>
       <Toast />
       <ConfirmModalHost />
-      <BrowserRouter>
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-              <Route index element={<Navigate to="/home" />} />
-              <Route path="home" element={<HomePage />} />
-              <Route path="routine" element={<RoutinePage />} />
-              <Route path="workout" element={<WorkoutPage />} />
-              <Route path="inbody" element={<InbodyPage />} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="homeworkout" element={<HomeworkoutPage />} />
-              <Route path="measure" element={<MeasurePage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="admin" element={<AdminPage />} />
-              <Route path="support" element={<SupportPage />} />
-              <Route path="reminders" element={<RemindersPage />} />
-              <Route path="support/notices" element={<NoticeArchive />} />
-              {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
-                  이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면
-                  Layout 안이 통째로 비어서 앱이 죽은 것처럼 보인다. */}
-              <Route path="*" element={<Navigate to="/home" replace />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      {/* 화면 하나가 죽어도 앱 전체가 흰 화면이 되지 않게. 배포 직후 옛 조각을
+          못 받아오는 것도 여기서 받는다 — 잘못이 아니라 오래된 것이라 저절로 고친다 */}
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Suspense fallback={<Loading />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+                <Route index element={<Navigate to="/home" />} />
+                <Route path="home" element={<HomePage />} />
+                <Route path="routine" element={<RoutinePage />} />
+                <Route path="workout" element={<WorkoutPage />} />
+                <Route path="inbody" element={<InbodyPage />} />
+                <Route path="search" element={<SearchPage />} />
+                <Route path="homeworkout" element={<HomeworkoutPage />} />
+                <Route path="measure" element={<MeasurePage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="reminders" element={<RemindersPage />} />
+                <Route path="support/notices" element={<NoticeArchive />} />
+                {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
+                    이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면
+                    Layout 안이 통째로 비어서 앱이 죽은 것처럼 보인다. */}
+                <Route path="*" element={<Navigate to="/home" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ErrorBoundary>
     </MaintenanceScreen>
   );
 }

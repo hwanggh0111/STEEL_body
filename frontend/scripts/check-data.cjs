@@ -27,6 +27,7 @@ const pr = bundle('src/data/personalRecord.js', '.t3.cjs');
 const change = bundle('src/data/bodyChange.js', '.t4.cjs');
 const part = bundle('src/data/bodyPart.js', '.t5.cjs');
 const faq = bundle('src/pages/support/faq.js', '.t6.cjs');
+const boundary = bundle('src/components/ErrorBoundary.jsx', '.t7.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -79,6 +80,18 @@ ok('모르는 것 → 기타', part.bodyPartOf('아무거나'), '기타');
 // 쉽다 — 키워드가 겹치면 엉뚱한 답이 위로 온다. 그래서 여기서 한 번에 본다
 // 주 연속. 이번 주가 아직 안 끝났다는 것을 아는지 본다 —
 // 이번 주부터 세면 월요일마다 「10주 연속」이 0 으로 떨어졌다
+// 배포 직후 옛 조각을 못 받아오는 것. 브라우저마다 말이 달라서, 실제로 나오는
+// 문구들을 그대로 넣어 본다 — 못 알아보면 「앱이 바뀌었어요」 대신 오류 화면이 뜬다
+console.log('\n── 오래된 조각 알아보기 (에러 경계) ──');
+for (const [label, msg] of [
+  ['크롬', 'Failed to fetch dynamically imported module: https://x/assets/HomePage-abc.js'],
+  ['사파리', 'Importing a module script failed.'],
+  ['파이어폭스', 'error loading dynamically imported module'],
+  ['웹팩 시절', 'ChunkLoadError: Loading chunk 12 failed.'],
+]) ok(label, boundary.isStaleChunk(new Error(msg)), true);
+ok('그냥 앱 버그는 아니다', boundary.isStaleChunk(new TypeError("x.trim is not a function")), false);
+ok('빈 것도 아니다', boundary.isStaleChunk(null), false);
+
 console.log('\n── 주 연속 (홈 주간 요약) ──');
 const tenWeeks = {};
 {
