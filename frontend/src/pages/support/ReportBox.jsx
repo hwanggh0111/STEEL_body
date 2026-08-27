@@ -54,7 +54,9 @@ const KINDS = [
 const kindOf = key => KINDS.find(k => k.key === key) || KINDS[0];
 
 // 버그 전용 — 어느 화면인지
-const SCREENS = ['홈', '기록', '인바디', '루틴', '홈트', '측정', '히스토리', '고객센터', '그 밖에'];
+// 8/25 에 늘어난 화면들(운동 검색 · 운동 알림)이 빠져 있었다. 없는 화면의 버그는
+// 「그 밖에」로 오는데, 그러면 어느 화면인지를 물어본 뜻이 없어진다
+const SCREENS = ['홈', '기록', '인바디', '루틴', '홈트', '운동 검색', '측정', '히스토리', '운동 알림', '고객센터', '그 밖에'];
 
 // 버그 전용 — 다시 해도 그런지. 한 번뿐이면 우선순위가 다르다
 const FREQ = [
@@ -234,8 +236,11 @@ function AskFirst() {
 }
 
 // embedded — 고객센터 안에 한 섹션으로 얹을 때 쓴다.
-export default function ReportBox({ embedded = false }) {
-  const [kind, setKind] = useState('');
+// initialKind — 고객센터에서 「안 되는 게 있어요」처럼 갈래를 골라 들어오면 그 유형으로 연다.
+// 그러면 유형 고르기 전에 나오는 `무엇이 궁금하세요?`(AskFirst)를 건너뛴다 —
+// 고객센터의 자주 묻는 것을 이미 지나온 사람에게 같은 목록을 또 들이밀지 않는다
+export default function ReportBox({ embedded = false, initialKind = '' }) {
+  const [kind, setKind] = useState(initialKind);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [screen, setScreen] = useState('');
@@ -266,6 +271,10 @@ export default function ReportBox({ embedded = false }) {
 
   // 고객센터가 이미 불러왔으면 진행 중인 요청에 얹힌다 (store 가 하나로 묶는다)
   useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  // 열려 있는 채로 밖에서 다른 갈래를 누르면 그쪽으로 옮겨간다.
+  // 빈 값으로는 되돌리지 않는다 — 고르고 쓰던 것을 밖에서 지워버리면 안 된다
+  useEffect(() => { if (initialKind) setKind(initialKind); }, [initialKind]);
 
   // 유형을 바꾸면 그 유형에만 있던 답은 버린다.
   // 남겨두면 버그로 골랐다가 문의로 바꿨을 때 엉뚱한 화면 이름이 같이 간다.

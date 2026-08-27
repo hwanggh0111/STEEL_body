@@ -13,6 +13,9 @@ export const FEATURES = [
   { name: '홈트레이닝',  path: '/homeworkout', icon: '🏠', short: '기구 없이 맨몸으로',      long: '기구 없이 하는 맨몸 운동. 집에서도 기록이 끊기지 않는다' },
   { name: '측정 시스템', path: '/measure',     icon: '📐', short: '사이즈 · 1RM · 체력',     long: '전신 사이즈 · 1RM · 체력 테스트 · 심박수 존 · 스톱워치까지 한곳에' },
   { name: '히스토리',    path: '/history',     icon: '📅', short: '달력으로 되짚기',         long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다' },
+  // 8/25 에 붙인 둘이 이 목록에 빠져 있었다 — 「무엇을 할 수 있나」가 할 수 있는 것을 다 안 적고 있었다
+  { name: '운동 검색',   path: '/search',      icon: '🔍', short: '이름 · 초성 · 부위로',    long: '앱 안의 운동 사전에서 바로 찾는다. 초성으로도, 부위 이름으로도 찾는다' },
+  { name: '운동 알림',   path: '/reminders',   icon: '🔔', short: '정한 요일과 시각에',      long: '정한 요일과 시각에 알린다. 그날 이미 적었으면 보내지 않는다' },
 ];
 
 export function useIntroStats() {
