@@ -69,9 +69,6 @@ app.use(compression({
 // X-Powered-By 헤더 제거
 app.disable('x-powered-by');
 
-// AI 자동 관리�� (의심 활동 감지/차단)
-app.use(aiGuard);
-
 // CORS
 //
 // 예전에는 `*.onrender.com` 을 통째로 허용했다. Render 는 누구나 무료로 배포할 수 있는
@@ -113,6 +110,19 @@ app.use(express.json({
     return value;
   },
 }));
+
+// AI 자동 관리자 (의심 활동 감지/차단).
+//
+// **`express.json()` 뒤에 있어야 한다.** 예전에는 앞에 있었다. 그러면 여기서 `req.body` 는
+// 아직 `undefined` 라, 몸통을 훑는 코드가
+//
+//     const allInput = { ...req.body, ...req.query, ...req.params };
+//
+// 사실상 `req.query` 하나만 보고 있었다. **입력 스캔이 통째로 죽어 있었다** — 주소창으로
+// 보낸 `<script>` 는 잡히는데 제보 · 운동명 · 닉네임으로 보낸 것은 아무것도 안 잡혔다.
+// 가입 블랙리스트도 `req.body?.email` 을 읽는데 늘 `undefined` 라 같이 죽어 있었다.
+// 관리자 화면의 보안 숫자는 그 죽은 스캔을 세고 있었다.
+app.use(aiGuard);
 
 // CSRF 보호 (쿠키 인증 사용 시에만 double-submit cookie 패턴 적용)
 app.use((req, res, next) => {

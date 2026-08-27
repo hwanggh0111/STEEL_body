@@ -1,7 +1,12 @@
 /**
  * AI Guard v2 — 제로 톨러런스 보안 시스템
- * 4단계 위협 레벨 + 자동 감지/정지/삭제 + AI 사유 생성
+ * 4단계 위협 레벨 + 자동 감지/정지 + AI 사유 생성
+ *
+ * **자동으로 지우지 않는다.** 예전 머리말에 「삭제」가 적혀 있었지만, 8/21 에
+ * 자동 판정에서 계정 삭제를 떼어냈다 — 오판이면 되돌릴 것이 남아 있어야 한다.
+ * 지우는 것은 관리자가 화면에서 보고 직접 한다 (executeLevel4 주석 참고).
  */
+const jwt = require('jsonwebtoken');
 const db = require('../db');
 
 // ── 상태 저장소 (인메모리, 크기 제한) ──
@@ -47,10 +52,25 @@ const XSS_PATTERNS = [
 ];
 
 // ── 인젝션 패턴 ──
+//
+// **이 앱에는 SQL 도 MongoDB 도 없다.** 저장소는 JSON 파일 하나다(`ironlog.json`).
+// 그런데 여기 있던 열두 개 중 열은 SQL 과 몽고를 노린 것이었다 —
+// `' OR ` · `; DROP ` · `UNION SELECT` · `$ne` · `$gt` · `$regex` · `$where` · `{ $` ·
+// 그리고 SQL 주석 `--`.
+//
+// 없는 데이터베이스를 노리는 공격은 막을 것이 없고, 남는 것은 **오탐뿐이다.**
+// 특히 `/--\s*$/m` 은 **줄 끝이 `--` 인 모든 줄**에 걸린다. 제보를 이렇게 적으면
+//
+//     안 되는 화면: 기록
+//     ---
+//     재현 절차
+//
+// 가운데 줄에서 걸린다. 우리가 「재현 절차를 줄로 나눠 적어달라」고 해놓고,
+// 구분선을 그은 사람을 **영구 정지**시키는 셈이었다.
+//
+// 남긴 둘은 이 앱에 실제로 있는 것이다 — 자바스크립트 프로토타입 오염.
 const INJECTION_PATTERNS = [
-  /'\s*OR\s/i, /'\s*AND\s/i, /--\s*$/m, /;\s*DROP\s/i,
-  /UNION\s+SELECT/i, /\$gt/i, /\$ne/i, /\$regex/i,
-  /\$where/i, /\{\s*\$/i, /__proto__/i, /constructor\s*\[/i,
+  /__proto__/i, /constructor\s*\[/i,
 ];
 
 // ── 봇 User-Agent 패턴 ──
@@ -240,6 +260,31 @@ function executeLevel1(ip, triggerType, details) {
   if (count >= 10) {
     executeLevel2(ip, 'accumulated', `경고 ${count}회 누적`, 168); // 7일
     warningCounts.set(ip, 0);
+  }
+}
+
+// 입력 스캔에 걸린 횟수. 첫 번은 막고 경고만, 되풀이하면 올린다.
+// 사람을 알면 사람 단위로, 모르면 IP 단위로 센다
+const inputHits = new Map();
+const inputHitsByIp = new Map();
+
+// 이 요청이 누구인지.
+//
+// **가드는 라우트보다 먼저 돈다.** 그래서 여기서는 `req.userId` 가 아직 없다 —
+// 그것을 채우는 `middleware/auth` 는 라우트 안에서 돈다. 예전 코드는 `req.userId` 를
+// 보고 갈래를 나눴는데, 그 값이 늘 없어서 **로그인한 사람 갈래가 통째로 죽어 있었다.**
+// 걸린 사람이 누구든 전부 IP 를 막는 쪽으로 갔다.
+//
+// 여기서는 토큰만 풀어 본다. 정지·차단 확인은 `middleware/auth` 가 한다 —
+// 이쪽은 「누구인가」만 알면 된다. 못 풀면 모르는 사람으로 친다.
+function userIdOf(req) {
+  try {
+    const token = req.cookies?.sb_access || req.headers.authorization?.split(' ')[1];
+    if (!token || token.length > 2000 || !process.env.JWT_SECRET) return null;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    return decoded?.userId || null;
+  } catch {
+    return null;
   }
 }
 
@@ -439,17 +484,55 @@ function aiGuardMiddleware(req, res, next) {
   } catch {}
   const threat = scanInput(allInput, 0);
   if (threat) {
-    // userId가 있으면 (인증된 요청) → LEVEL 4
-    if (req.userId) {
-      const reason = executeLevel4(req.userId, ip, threat.type, threat.pattern);
+    // 로그인한 사람이면 사다리를 탄다.
+    //
+    // 예전에는 **첫 번에 영구 정지**였다. 그런데 걸리는 자리 중에는 사람이 그냥 쓸 만한
+    // 것도 있다 — 「이 글자를 넣으면 화면이 깨져요: <script>」 라고 적은 제보가 그렇다.
+    // **버그를 알려주러 온 사람을 영구히 잠그는** 것이 된다.
+    //
+    // 욕설에서 이미 같은 판단을 했다(`utils/abusePolicy.js`) — 처음에는 막고 경고만,
+    // 되풀이하면 그때 올린다. 요청은 **어느 쪽이든 막힌다.** 실제로 지키는 것은 그쪽이고,
+    // 정지는 되풀이하는 사람에게만 쓴다.
+    //
+    // 횟수는 메모리에 센다. 서버가 다시 뜨면 초회로 돌아가는데, 그래도 요청은 늘 막히므로
+    // 보호에는 구멍이 없다 — 되돌릴 수 없는 처벌만 늦게 간다. 이 방향의 오차가 맞다.
+    const userId = userIdOf(req);
+    if (userId) {
+      const hits = (inputHits.get(userId) || 0) + 1;
+      limitedSet(inputHits, userId, hits);
+      addLog('WARNING', `입력 스캔 ${hits}회 — ${threat.type} (userId=${userId})`, ip, userId);
+
+      if (hits === 1) {
+        return res.status(403).json({
+          error: '보안 정책 위반이 감지되었습니다.',
+          message: '보낼 수 없는 글자가 들어 있어 막았습니다. 계정은 그대로입니다 — 그 부분을 빼고 다시 보내주세요. 되풀이되면 정지될 수 있습니다.',
+        });
+      }
+
+      const reason = executeLevel3(userId, ip, threat.type, threat.pattern, 3);
       return res.status(403).json({
         error: '보안 정책 위반이 감지되었습니다.',
-        message: '계정이 영구 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 관리자에게 알려주세요.',
+        message: '되풀이되어 계정이 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 관리자에게 알려주세요.',
         reason: reason,
       });
     }
-    // 비인증 → IP 차단
-    executeLevel2(ip, threat.type, threat.pattern, 168);
+
+    // 누구인지 모르면 IP 로 센다.
+    //
+    // 예전에는 **첫 번에 그 IP 를 7일** 막았다. 이 앱에서 IP 는 사람 하나가 아니다 —
+    // 통신사 NAT 뒤에서는 수만 명이 같은 주소로 나온다. 한 사람이 제보에 `<script>` 를
+    // 붙여넣으면 그 뒤의 모두가 일주일 동안 앱을 못 쓴다. 같은 파일의 LEVEL 4 주석이
+    // 대역 차단을 스스로 금지해 둔 것과 같은 이유다.
+    //
+    // 요청은 어느 쪽이든 막힌다. 막는 시간만 되풀이한 만큼 올린다.
+    const ipHits = (inputHitsByIp.get(ip) || 0) + 1;
+    limitedSet(inputHitsByIp, ip, ipHits);
+    addLog('WARNING', `입력 스캔 ${ipHits}회 — ${threat.type} (비로그인)`, ip);
+
+    if (ipHits >= 5) executeLevel2(ip, threat.type, threat.pattern, 168);       // 7일
+    else if (ipHits >= 3) executeLevel2(ip, threat.type, threat.pattern, 24);
+    else if (ipHits >= 2) executeLevel2(ip, threat.type, threat.pattern, 1);
+
     return res.status(403).json({ error: '악성 요청이 차단되었습니다.' });
   }
 
