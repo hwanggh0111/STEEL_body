@@ -61,7 +61,7 @@ const loginAttempts = {};
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
 
-const { sanitize } = require('../utils/sanitize');
+const { sanitize, cleanName } = require('../utils/sanitize');
 const { sendVerificationCode, SMTP_CONFIGURED } = require('../utils/mailer');
 
 // 이메일 형식 검증
@@ -332,12 +332,10 @@ router.put('/sex', require('../middleware/auth'), (req, res) => {
 // 닉네임 변경
 router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const { nickname } = req.body;
-  if (!nickname || !nickname.trim() || nickname.length > 30) {
-    return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
-  }
-  const safeNickname = sanitize(nickname);
+  // 배열이 오면 `.trim()` 이 없어서 여기서 500 이 났다 — 사용자 잘못인데 서버 잘못처럼 답했다
+  const safeNickname = cleanName(nickname, 30);
   if (!safeNickname) {
-    return res.status(400).json({ error: '사용할 수 없는 닉네임이에요' });
+    return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
   const result = db.updateUserNickname(req.userId, safeNickname);
   if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });

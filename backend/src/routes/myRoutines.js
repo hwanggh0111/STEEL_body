@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
-const { sanitize } = require('../utils/sanitize');
+const { sanitize, cleanName } = require('../utils/sanitize');
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
@@ -18,8 +18,11 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '루틴명과 운동 목록은 필수에요' });
   }
 
-  if (name.length > 100) {
-    return res.status(400).json({ error: '루틴명이 너무 길어요' });
+  // 배열도 `.length` 가 있어서 길이 검사를 통과했다. 공백만 친 것도 통과했다.
+  // 둘 다 새니타이즈 뒤에는 빈 문자열이라 **이름 없는 루틴**으로 남았다
+  const safeName = cleanName(name, 100);
+  if (!safeName) {
+    return res.status(400).json({ error: '루틴명을 적어주세요 (100자 이하)' });
   }
 
   if (!Array.isArray(exercises) || exercises.length === 0) {
@@ -36,10 +39,9 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
   }
 
-  const sanitizedName = sanitize(name);
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
 
-  const result = db.createMyRoutine(req.userId, sanitizedName, sanitizedExercises);
+  const result = db.createMyRoutine(req.userId, safeName, sanitizedExercises);
   res.status(201).json({ id: result.lastInsertRowid, message: '루틴 저장 완료!' });
 });
 
@@ -58,13 +60,11 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const fields = {};
 
   if (name !== undefined) {
-    if (typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: '루틴명은 비어있을 수 없어요' });
+    const clean = cleanName(name, 100);
+    if (!clean) {
+      return res.status(400).json({ error: '루틴명을 적어주세요 (100자 이하)' });
     }
-    if (name.length > 100) {
-      return res.status(400).json({ error: '루틴명이 너무 길어요' });
-    }
-    fields.name = sanitize(name);
+    fields.name = clean;
   }
 
   if (exercises !== undefined) {

@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
-const { sanitize } = require('../utils/sanitize');
+const { sanitize, cleanName } = require('../utils/sanitize');
 
 // 무게는 자유 입력 칸이다 — '60', '20kg', '맨몸', '밴드' 가 다 들어온다.
 // 그래서 더더욱 형식을 정해둬야 하는데 지금까지 아무 검사 없이 body 값을 그대로 저장했다.
@@ -13,6 +13,9 @@ function normalizeWeight(raw) {
   if (raw === undefined || raw === null || raw === '') return { ok: true, value: '맨몸' };
   if (typeof raw !== 'string' && typeof raw !== 'number') return { ok: false };
   const value = sanitize(String(raw)).slice(0, 30).trim();
+  // 음수는 막는다. 기록에는 '-50' 이라 뜨는데 볼륨을 세는 쪽은 앞의 부호를 못 보고
+  // 50 으로 세서, 같은 줄의 두 숫자가 서로 다른 말을 하고 있었다
+  if (/^-\s*\d/.test(value)) return { ok: false };
   return { ok: true, value: value || '맨몸' };
 }
 
@@ -35,7 +38,11 @@ router.get('/:date', auth, (req, res) => {
 router.post('/', auth, spamCheck, (req, res) => {
   const { date, exercise, weight, sets, reps } = req.body;
 
-  if (!date || !exercise || !sets || !reps) {
+  // 0 은 빠뜨린 것이 아니라 잘못 적은 것이다. `!sets` 로 묶으면 「필수에요」라고 답하게 되는데,
+  // 친 사람은 칸을 채웠으니 왜 안 되는지 모른다. 아래 「1 이상」 검사로 내려보낸다
+  if (!date || exercise === undefined || exercise === null || exercise === '' ||
+      sets === undefined || sets === null || sets === '' ||
+      reps === undefined || reps === null || reps === '') {
     return res.status(400).json({ error: '날짜, 운동명, 세트, 횟수는 필수에요' });
   }
 
@@ -49,15 +56,18 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '존재하지 않는 날짜에요' });
   }
 
-  // 운동명 길이 제한
-  if (exercise.length > 100) {
-    return res.status(400).json({ error: '운동명이 너무 길어요' });
+  // 운동명. 고치는 쪽(PUT)에는 있던 검사가 여기에는 없어서 공백만 친 것도,
+  // 문자열이 아닌 것도 그대로 통과해 **이름 없는 기록**이 남았다
+  const safeExercise = cleanName(exercise, 100);
+  if (!safeExercise) {
+    return res.status(400).json({ error: '운동명을 적어주세요 (100자 이하)' });
   }
 
+  // 2.5세트는 없다. 화면도 정수로 그린다
   const numSets = Number(sets);
   const numReps = Number(reps);
-  if (isNaN(numSets) || isNaN(numReps) || numSets <= 0 || numReps <= 0) {
-    return res.status(400).json({ error: '세트와 횟수는 1 이상의 숫자여야 해요' });
+  if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
+    return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
   }
   if (numSets > 100 || numReps > 1000) {
     return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
@@ -66,8 +76,7 @@ router.post('/', auth, spamCheck, (req, res) => {
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
 
-  const sanitizedExercise = sanitize(exercise);
-  const result = db.createWorkout(req.userId, date, sanitizedExercise, w.value, numSets, numReps);
+  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 
@@ -93,14 +102,15 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '존재하지 않는 날짜에요' });
   }
 
-  if (typeof exercise !== 'string' || exercise.length > 100 || exercise.trim() === '') {
-    return res.status(400).json({ error: '운동명이 올바르지 않아요' });
+  const safeExercisePut = cleanName(exercise, 100);
+  if (!safeExercisePut) {
+    return res.status(400).json({ error: '운동명을 적어주세요 (100자 이하)' });
   }
 
   const numSets = Number(sets);
   const numReps = Number(reps);
-  if (isNaN(numSets) || isNaN(numReps) || numSets <= 0 || numReps <= 0) {
-    return res.status(400).json({ error: '세트와 횟수는 1 이상의 숫자여야 해요' });
+  if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
+    return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
   }
   if (numSets > 100 || numReps > 1000) {
     return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
@@ -109,11 +119,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
 
-  const sanitizedExercise = sanitize(exercise);
-
   const result = db.updateWorkout(id, req.userId, {
     date,
-    exercise: sanitizedExercise,
+    exercise: safeExercisePut,
     weight: w.value,
     sets: numSets,
     reps: numReps,

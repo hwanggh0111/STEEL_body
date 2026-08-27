@@ -64,6 +64,25 @@ function sanitizeMultiline(str) {
     .trim();
 }
 
+// 사람이 붙이는 이름 한 줄 — 운동명 · 루틴명 · 닉네임.
+//
+// 이 칸들은 저마다 `!name` 과 `name.length > N` 으로만 막고 있었다. 셋 다 샌다:
+//   - `'   '` 는 `!name` 을 통과하고, 새니타이즈가 빈 문자열로 만들어 **이름 없는 기록**이 남는다
+//   - 배열은 `.length` 가 있어서 길이 검사도 통과한다 (`['a','b'].length === 2`)
+//   - `.trim()` 을 먼저 부르는 자리(닉네임)는 배열을 받으면 그대로 **500** 이 났다
+//   - `'<<<>>>'` 처럼 새니타이즈하면 아무것도 안 남는 글자도 빈 이름이 된다
+//
+// 바로 옆의 무게 칸은 같은 이유로 이미 막아뒀는데(`normalizeWeight`) 이름 칸만 무방비였다.
+// 새니타이즈까지 끝낸 뒤에 비었는지 보는 것이 요점이다 — 검사와 저장이 같은 값을 봐야 한다.
+//
+// 쓸 수 있으면 다듬은 이름을, 아니면 null 을 준다. 부르는 쪽이 왜 안 되는지를 말한다.
+function cleanName(raw, maxLen) {
+  if (typeof raw !== 'string') return null;
+  if (raw.length > maxLen) return null;
+  const clean = sanitize(raw);
+  return clean || null;
+}
+
 function sanitizeObj(obj) {
   if (typeof obj === 'string') return sanitize(obj);
   if (Array.isArray(obj)) return obj.map(sanitizeObj);
@@ -79,4 +98,4 @@ function sanitizeObj(obj) {
   return obj;
 }
 
-module.exports = { sanitize, sanitizeMultiline, sanitizeObj };
+module.exports = { sanitize, sanitizeMultiline, sanitizeObj, cleanName };

@@ -31,7 +31,7 @@ const TEXT = {
     deleteFail: '삭제 실패',
     saveFail: '저장 실패',
     required: '운동명, 세트, 횟수를 입력해주세요',
-    minVal: '세트와 횟수는 1 이상이어야 해요',
+    minVal: '세트와 횟수는 1 이상의 정수여야 해요',
     records: '기록',
     loading: '로딩 중...',
     noRecords: '이 날짜의 운동 기록이 없어요',
@@ -74,7 +74,7 @@ const TEXT = {
     deleteFail: 'Delete failed',
     saveFail: 'Save failed',
     required: 'Please enter exercise, sets and reps',
-    minVal: 'Sets and reps must be at least 1',
+    minVal: 'Sets and reps must be whole numbers, at least 1',
     records: 'Records',
     loading: 'Loading...',
     noRecords: 'No workout records for this date',
@@ -308,11 +308,15 @@ export default function WorkoutPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!exercise || !sets || !reps) {
+    // 공백만 친 것은 안 친 것이다. `!exercise` 로만 보면 '   ' 가 통과해서
+    // **이름 없는 기록**이 목록에 남는다
+    const trimmedExercise = exercise.trim();
+    if (!trimmedExercise || !sets || !reps) {
       setError(t.required);
       return;
     }
-    if (Number(sets) < 1 || Number(reps) < 1) {
+    if (!Number.isInteger(Number(sets)) || !Number.isInteger(Number(reps))
+        || Number(sets) < 1 || Number(reps) < 1) {
       setError(t.minVal);
       return;
     }
@@ -322,7 +326,7 @@ export default function WorkoutPage() {
     }
     setSaving(true);
     try {
-      const payload = { date, exercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) };
+      const payload = { date, exercise: trimmedExercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) };
       if (editingId) {
         await updateWorkout(editingId, payload);
         toast(t.updated);
@@ -492,11 +496,11 @@ export default function WorkoutPage() {
               </div>
               <div>
                 <label className="label">{t.sets}</label>
-                <input className="input" type="number" inputMode="numeric" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
+                <input className="input" type="number" inputMode="numeric" step="1" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
               </div>
               <div>
                 <label className="label">{t.reps}</label>
-                <input className="input" type="number" inputMode="numeric" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
+                <input className="input" type="number" inputMode="numeric" step="1" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
               </div>
             </div>
 
@@ -627,11 +631,11 @@ export default function WorkoutPage() {
           </div>
           <div style={{ flex: 1 }}>
             <label className="label">{t.sets}</label>
-            <input className="input" type="number" inputMode="numeric" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
+            <input className="input" type="number" inputMode="numeric" step="1" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
           </div>
           <div style={{ flex: 1 }}>
             <label className="label">{t.reps}</label>
-            <input className="input" type="number" inputMode="numeric" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
+            <input className="input" type="number" inputMode="numeric" step="1" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
           </div>
         </div>
 
