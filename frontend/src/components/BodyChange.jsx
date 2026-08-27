@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { buildChange, SPANS } from '../data/bodyChange';
+import { buildChange, SPANS, trainingIn } from '../data/bodyChange';
 
 // 인바디 값이 **얼마나 달라졌나**.
 //
@@ -38,9 +38,14 @@ function Row({ row, max }) {
   );
 }
 
-export default function BodyChange({ records }) {
+export default function BodyChange({ records, workouts }) {
   const [span, setSpan] = useState('last');
   const change = useMemo(() => buildChange(records, span), [records, span]);
+  // 같은 기간에 운동을 얼마나 했나 — 시안 C 의 「그동안 운동은」이다
+  const training = useMemo(
+    () => (change ? trainingIn(workouts, change.from, change.to) : null),
+    [workouts, change],
+  );
 
   // 어느 기간으로도 견줄 것이 없으면 아예 안 그린다
   const any = useMemo(() => !!buildChange(records, 'last'), [records]);
@@ -87,6 +92,28 @@ export default function BodyChange({ records }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {change.rows.map(r => <Row key={r.key} row={r} max={change.max} />)}
           </div>
+
+          {/* 그동안 운동은 — 몸이 달라진 것 옆에 그동안 한 것을 같이 둔다.
+              체중이 3kg 줄었다는 말 옆에 「38회」가 있는 것과 없는 것은 다르다.
+              여기서도 좋고 나쁨은 안 매긴다 — 몇 번 했고 얼마를 들었는지만 센다 */}
+          {training && (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="label" style={{ marginBottom: 0 }}>그동안 운동은</div>
+              <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                {training.spanDays}일간 <span style={{ color: 'var(--accent)' }}>{training.days}일</span> 나와서
+                {' '}{training.count}번 적었어요
+                {training.perWeek != null && <> · 주 {training.perWeek.toFixed(1)}일</>}
+              </div>
+              {training.volumeKg > 0 && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  총 볼륨 {training.volumeKg >= 1000
+                    ? `${(training.volumeKg / 1000).toFixed(1)}톤`
+                    : `${training.volumeKg.toLocaleString()}kg`}
+                  {' · 무게를 적은 것만 셉니다'}
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
             좋고 나쁨을 매기지 않습니다. 무엇이 어느 쪽으로 갔는지만 보여드립니다.

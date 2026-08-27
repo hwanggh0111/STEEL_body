@@ -1,12 +1,23 @@
 import { memo } from 'react';
 import { confirmDialog } from './ConfirmModal';
+import { scaleFor, positionOn } from '../data/bodyRanges';
 
+// BMI 를 뭐라고 부를지.
+//
+// 여기도 「저체중 · 정상 · 과체중 · **비만**」이라고 부르고 있었다.
+// 8/25 에 인바디 분석에서 몸에 등급을 안 매기기로 했고 오늘 입력 폼도 고쳤는데,
+// **목록 카드만 그대로**였다 — 같은 화면 안에서 위는 「일반적인 범위」라고 하고
+// 아래 목록은 「비만」이라고 하는 상태였다. 눈금을 한 군데서 가져와 말을 맞춘다
 function getBmiInfo(bmi) {
   if (!bmi) return { label: '-', color: 'var(--text-muted)' };
-  if (bmi < 18.5) return { label: '저체중', color: 'var(--info)' };
-  if (bmi < 23) return { label: '정상', color: 'var(--success)' };
-  if (bmi < 25) return { label: '과체중', color: 'var(--warning)' };
-  return { label: '비만', color: 'var(--danger)' };
+  const scale = scaleFor('bmi');
+  const pos = scale ? positionOn(scale, Number(bmi)) : null;
+  if (!pos?.band) return { label: '-', color: 'var(--text-muted)' };
+  const tone = pos.band.tone;
+  return {
+    label: pos.band.label,
+    color: tone === 'low' ? 'var(--info)' : tone === 'high' ? 'var(--warning)' : 'var(--success)',
+  };
 }
 
 function InbodyCard({ record, onDelete, onEdit }) {

@@ -5,6 +5,7 @@ import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { scaleFor, positionOn } from '../data/bodyRanges';
 
 const PHOTO_KEY = 'ironlog_photos';
 
@@ -15,21 +16,39 @@ function savePhotos(photos) {
   saveLS(PHOTO_KEY, JSON.stringify(photos));
 }
 
+// BMI 를 뭐라고 부를지.
+//
+// 「저체중 · 정상 · 과체중 · 비만」이 앱 안에 **네 군데** 복붙돼 있었다 —
+// 인바디 입력 폼 · 인바디 목록 카드 · 여기, 그리고 눈금(`data/bodyRanges.js`).
+// 8/25 에 몸에 등급을 안 매기기로 하고 눈금만 고쳤더니 나머지 셋이 다른 말을 했다.
+// 이제 넷 다 눈금 하나를 본다.
 function getBmiInfo(bmi) {
   if (!bmi) return { label: '-', color: 'var(--text-muted)' };
-  if (bmi < 18.5) return { label: '저체중', color: 'var(--info)' };
-  if (bmi < 23) return { label: '정상', color: 'var(--success)' };
-  if (bmi < 25) return { label: '과체중', color: 'var(--warning)' };
-  return { label: '비만', color: 'var(--danger)' };
+  const scale = scaleFor('bmi');
+  const pos = scale ? positionOn(scale, Number(bmi)) : null;
+  if (!pos?.band) return { label: '-', color: 'var(--text-muted)' };
+  const tone = pos.band.tone;
+  return {
+    label: pos.band.label,
+    color: tone === 'low' ? 'var(--info)' : tone === 'high' ? 'var(--warning)' : 'var(--success)',
+  };
 }
 
-function DiffValue({ label, before, after, unit, reverse }) {
+// 늘고 줆에 좋고 나쁨을 매기지 않는다. **방향만** 색으로 나눈다.
+//
+// 예전에는 항목마다 `reverse` 를 줘서 좋은 쪽 초록 · 나쁜 쪽 빨강으로 칠했다.
+// 그런데 **체중은 `reverse={false}`** 였다 — 체중이 늘면 초록, 줄면 빨강이라는 뜻이다.
+// 빼려고 오신 분에게는 정확히 거꾸로 말하고 있었다.
+//
+// 인바디 「얼마나 달라졌나」는 8/25 에 이미 방향만 칠하기로 했는데, 같은 앱의 「비교」가
+// 반대로 하고 있었다. 무엇이 어느 쪽으로 갔는지만 보여준다.
+function DiffValue({ label, before, after, unit }) {
   if (before == null || after == null) return null;
   const diff = (after - before).toFixed(1);
   const num = Number(diff);
   let color = 'var(--text-muted)';
-  if (num > 0) color = reverse ? 'var(--danger)' : 'var(--success)';
-  if (num < 0) color = reverse ? 'var(--success)' : 'var(--danger)';
+  if (num > 0) color = 'var(--accent)';
+  if (num < 0) color = 'var(--info)';
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -83,8 +102,12 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
     delete updated[photoKey];
     savePhotos(updated);
     setPhotos(updated);
-    client.delete(`/photos/${photoKey}`).catch(() => {});
-    toast('사진 삭제!');
+    // 올릴 때는 「이 기기에만 저장됐어요」라고 정직하게 말하면서, 지울 때는
+    // 서버 실패를 삼키고 「삭제!」만 띄우고 있었다. 서버에 남아 있으면
+    // **다음에 열 때 사진이 되살아난다** — 지운 줄 알았는데 그대로다
+    client.delete(`/photos/${photoKey}`)
+      .then(() => toast('사진 삭제!'))
+      .catch(() => toast('이 기기에서만 지워졌어요 — 다시 열면 되살아납니다', 'error'));
   };
 
   return (
@@ -246,11 +269,11 @@ export default function ComparePage() {
                 상세 비교
               </div>
               <div className="card" style={{ marginBottom: 20 }}>
-                <DiffValue label="체중" before={before.weight} after={after.weight} unit="kg" reverse={false} />
-                <DiffValue label="체지방률" before={before.fat_pct} after={after.fat_pct} unit="%" reverse={true} />
-                <DiffValue label="골격근량" before={before.muscle_kg} after={after.muscle_kg} unit="kg" reverse={false} />
-                <DiffValue label="체수분" before={before.water_l} after={after.water_l} unit="L" reverse={false} />
-                <DiffValue label="BMI" before={before.bmi} after={after.bmi} unit="" reverse={true} />
+                <DiffValue label="체중" before={before.weight} after={after.weight} unit="kg" />
+                <DiffValue label="체지방률" before={before.fat_pct} after={after.fat_pct} unit="%" />
+                <DiffValue label="골격근량" before={before.muscle_kg} after={after.muscle_kg} unit="kg" />
+                <DiffValue label="체수분" before={before.water_l} after={after.water_l} unit="L" />
+                <DiffValue label="BMI" before={before.bmi} after={after.bmi} unit="" />
               </div>
 
               <div className="section-title">

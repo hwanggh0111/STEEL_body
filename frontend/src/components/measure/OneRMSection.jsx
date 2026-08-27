@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { toast } from '../Toast';
 import { estimate1RM, RM_MAX_REPS } from '../../data/personalRecord';
 
-export default function OneRMSection({ records, onSave }) {
+// 계산 기록도 지울 수 없었다 — 측정 화면에 삭제가 있는데 안 넘겨줬다.
+// 날짜는 안 받는다. 지금 계산해서 그 자리에 저장하는 것이라 오늘이 맞다
+export default function OneRMSection({ records, onSave, onDelete }) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [result, setResult] = useState(null);
@@ -19,10 +21,13 @@ export default function OneRMSection({ records, onSave }) {
     setResult(orm);
   };
 
+  // 알리는 것은 측정 화면(onSave)이 한다.
+  //
+  // 여기서 또 띄우면 토스트가 두 번 뜨고, **서버 저장이 실패해도 「저장!」이 먼저**
+  // 번쩍인다 — onSave 는 async 인데 await 없이 부르고 있었다.
   const handleSave = (exercise) => {
     if (!result) return;
     onSave({ exercise, weight: Number(weight), reps: Number(reps), orm: result });
-    toast(`${exercise} 1RM ${result}kg 저장!`);
   };
 
   return (
@@ -63,7 +68,10 @@ export default function OneRMSection({ records, onSave }) {
                 <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1 }}>{r.data?.exercise}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>{r.data?.weight}kg × {r.data?.reps}회</span>
               </div>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: 'var(--accent)' }}>{r.data?.orm}kg</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: 'var(--accent)' }}>{r.data?.orm}kg</span>
+                {onDelete && <button className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>}
+              </div>
             </div>
           ))}
         </>

@@ -11,6 +11,7 @@ import StopwatchSection from '../components/measure/StopwatchSection';
 import FlexibilitySection from '../components/measure/FlexibilitySection';
 import ShoulderSection from '../components/measure/ShoulderSection';
 import { dateKey } from '../data/dateKey';
+import { readLS } from '../data/safeStorage';
 
 // 일곱 가지 도구.
 //
@@ -52,6 +53,31 @@ export default function MeasurePage() {
   }, []);
 
   const filterByType = (type) => measures.filter(m => m.type === type);
+
+  // 히스토리의 CSV 내보내기와 같은 방식이다 — 쿠키 인증이라 fetch 로 받아
+  // blob 으로 내려받는다. 문서에 붙이지 않은 링크는 클릭해도 아무 일이 안 일어나는
+  // 브라우저가 있고, 곧바로 revoke 하면 내려받기 전에 주소가 사라져 빈 파일이 된다
+  const exportMeasures = () => {
+    const baseURL = import.meta.env.VITE_API_URL || '/api';
+    const token = readLS('token');
+    fetch(`${baseURL}/export/measures`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    })
+      .then(res => { if (!res.ok) throw new Error('export failed'); return res.blob(); })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'steelbody_measures.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        toast('측정 기록 CSV 내보내기 완료!');
+      })
+      .catch(() => toast('내보내기에 실패했어요', 'error'));
+  };
 
   const handleSave = async (type, data) => {
     try {
@@ -119,6 +145,23 @@ export default function MeasurePage() {
               </button>
             ))}
           </div>
+
+          {/* 내보내기.
+              운동과 인바디는 히스토리에서 CSV 로 뽑을 수 있는데 **측정만 길이 없었다.**
+              전신 사이즈를 1년 재둔 사람이 그것만 못 꺼낸다.
+              종류마다 칸이 달라서 한 줄에 한 항목으로 길게 편다 */}
+          {measures.length > 0 && (
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                지금까지 {measures.length}건 재두셨어요
+              </span>
+              <button
+                className="btn-secondary"
+                onClick={exportMeasures}
+                style={{ width: 'auto', padding: '6px 14px', fontSize: 12, marginLeft: 'auto' }}
+              >CSV 로 내보내기</button>
+            </div>
+          )}
         </>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -132,11 +175,11 @@ export default function MeasurePage() {
 
       {tab === 'size' && <BodySizeSection records={filterByType('bodySize')} onSave={(data) => handleSave('bodySize', data)} onDelete={handleDelete} />}
       {tab === 'shoulder' && <ShoulderSection records={filterByType('shoulder')} onSave={(data) => handleSave('shoulder', data)} onDelete={handleDelete} />}
-      {tab === 'orm' && <OneRMSection records={filterByType('oneRM')} onSave={(data) => handleSave('oneRM', data)} />}
-      {tab === 'fitness' && <FitnessTestSection records={filterByType('fitness')} onSave={(data) => handleSave('fitness', data)} />}
+      {tab === 'orm' && <OneRMSection records={filterByType('oneRM')} onSave={(data) => handleSave('oneRM', data)} onDelete={handleDelete} />}
+      {tab === 'fitness' && <FitnessTestSection records={filterByType('fitness')} onSave={(data) => handleSave('fitness', data)} onDelete={handleDelete} />}
       {tab === 'heart' && <HeartRateSection />}
       {tab === 'stopwatch' && <StopwatchSection onSave={(data) => handleSave('stopwatch', data)} />}
-      {tab === 'flex' && <FlexibilitySection records={filterByType('flexibility')} onSave={(data) => handleSave('flexibility', data)} />}
+      {tab === 'flex' && <FlexibilitySection records={filterByType('flexibility')} onSave={(data) => handleSave('flexibility', data)} onDelete={handleDelete} />}
     </div>
   );
 }

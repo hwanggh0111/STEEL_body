@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
@@ -21,6 +21,7 @@ import { dateKey } from '../data/dateKey';
 // 거르기와 CSV 내보내기는 그대로 뒀다 — 되던 것을 없애지 않는다.
 export default function HistoryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts, deleteWorkout } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
 
@@ -63,10 +64,23 @@ export default function HistoryPage() {
 
   const dates = useMemo(() => workouts ? Object.keys(workouts).sort().reverse() : [], [workouts]);
 
-  // 보고 있는 달. 처음에는 이번 달을 연다
-  const now = new Date();
+  // 보고 있는 달. 처음에는 이번 달을 연다.
+  //
+  // 홈의 주간 달력에서 날짜를 눌러 오면 그 날을 들고 온다 (`state.date`).
+  // 데려다 놓고 이번 달 전체를 펴주면 무엇을 눌렀는지가 사라진다
+  const incoming = location.state?.date || null;
+  const now = incoming ? new Date(`${incoming}T00:00:00`) : new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(incoming);
+
+  useEffect(() => {
+    const date = location.state?.date;
+    if (!date) return;
+    const d = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    setYm({ year: d.getFullYear(), month: d.getMonth() + 1 });
+    setSelectedDate(date);
+  }, [location.state?.date]);
 
   const summary = useMemo(() => monthSummary(workouts, ym.year, ym.month), [workouts, ym]);
   // 기록이 있는 달만 안다. 텅 빈 달을 화살표로 계속 넘기지 않게 「기록이 있는 달로」를 준다

@@ -10,6 +10,7 @@ import BestRecords from '../components/BestRecords';
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
+import { volumeOf } from '../data/weeklyReport';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { primeAudio } from '../data/alertSound';
@@ -39,6 +40,24 @@ const TEXT = {
     placeholderWeight: '60kg',
     placeholderSets: '4',
     placeholderReps: '12',
+    today: '오늘',
+    yesterday: '어제',
+    otherDay: '다른 날',
+    backToToday: '오늘로',
+    todayRecords: '오늘 기록',
+    noRecordsTitle: '기록 없음',
+    addRecord: '+ 운동 기록하기',
+    clearExercise: '운동 이름 지우기',
+    editingOne: '수정 중',
+    cancel: '취소',
+    update: '수정 완료',
+    updating: '수정 중...',
+    updated: '수정 완료!',
+    dateMove: '날짜가 옮겨져요',
+    tooBig: '세트는 100 이하, 횟수는 1000 이하여야 해요',
+    sets_: '세트',
+    saveAndNext: '기록하고 다음',
+    otherExercise: '다른 운동 적기',
   },
   en: {
     title: 'Workout Log',
@@ -64,6 +83,24 @@ const TEXT = {
     placeholderWeight: '60kg',
     placeholderSets: '4',
     placeholderReps: '12',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    otherDay: 'Other day',
+    backToToday: 'Back to today',
+    todayRecords: "Today's records",
+    noRecordsTitle: 'No records',
+    addRecord: '+ Log a workout',
+    clearExercise: 'Clear exercise',
+    editingOne: 'Editing',
+    cancel: 'Cancel',
+    update: 'Update',
+    updating: 'Updating...',
+    updated: 'Updated!',
+    dateMove: 'Date will be moved',
+    tooBig: 'Sets max 100, reps max 1000',
+    sets_: 'sets',
+    saveAndNext: 'Save and next',
+    otherExercise: 'Log a different exercise',
   },
 };
 
@@ -80,8 +117,11 @@ export default function WorkoutPage() {
   // 한 번 저장하고 나면 풀어준다 — 그다음부터는 루틴을 따라가면 된다
   const cameForExerciseRef = useRef(!!location.state?.exercise);
   const [weight, setWeight] = useState('');
-  const [sets, setSets] = useState('');
-  const [reps, setReps] = useState('');
+  // 홈트를 끝내고 넘어오면 세트·횟수도 같이 온다.
+  // 예전에는 운동명만 넘어와서, 시간으로 한 운동에 **세트와 횟수를 지어내야** 했다
+  // (둘 다 필수 칸이다). 홈트는 「한 운동 = 한 세트」로 세서 미리 채운다
+  const [sets, setSets] = useState(location.state?.sets || '');
+  const [reps, setReps] = useState(location.state?.reps || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
@@ -211,6 +251,52 @@ export default function WorkoutPage() {
 
   const todayWorkouts = workouts[date] || [];
 
+  // 어느 날을 적고 있는지.
+  //
+  // 예전에는 날짜 칸이 **폼 맨 아래**에 있었다. 어제 것을 적으려면 운동 · 무게 ·
+  // 세트 · 횟수를 다 적고 나서야 날짜를 만났고, 그 값이 아래 목록의 날짜까지 겸해서
+  // **바꾸는 순간 오늘 목록이 통째로 사라졌다.** 무슨 일이 일어난 건지 알 수 없다.
+  //
+  // 날짜를 폼 맨 위로 올리고, 오늘이 아니면 그렇다고 적고 돌아갈 길을 준다.
+  const yesterday = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return dateKey(d);
+  }, []);
+  const isToday = date === today;
+  const [pickDay, setPickDay] = useState(false);
+  const exerciseInputRef = useRef(null);
+
+  // 그 날 한 것 한 줄. 기록이 없으면 안 그린다
+  const dayStat = useMemo(() => {
+    const list = workouts[date] || [];
+    if (list.length === 0) return null;
+    const setCount = list.reduce((n, w) => n + (Number(w.sets) || 0), 0);
+    return { count: list.length, sets: setCount, kg: volumeOf(list).kg };
+  }, [workouts, date]);
+
+  const dayLabel = (d) => {
+    if (d === today) return t.today;
+    if (d === yesterday) return t.yesterday;
+    return d;
+  };
+
+  // 쉬는 중인가. 쉬는 동안에는 타이머가 맨 위로 오고, 폼은 「다음 운동」 한 장으로 줄어든다.
+  //
+  // 8/25 시안 C 에 있던 것인데 안 넣었던 자리다. 쉬는 동안 화면에 있어야 할 것은
+  // 남은 시간과 **다음에 뭘 몇 개 할지**뿐이다 — 운동명 · 날짜 · 자동완성까지 다 펼친
+  // 폼을 그대로 두면 쉬는 사이에 볼 것이 아니라 지나칠 것이 된다.
+  const restDeadline = useRestTimerStore(s => s.deadline);
+  const restPausedLeft = useRestTimerStore(s => s.pausedLeft);
+  const resting = restDeadline != null || restPausedLeft != null;
+
+  // 쉬는 중에도 다른 운동을 적을 수 있어야 한다. 누르면 원래 폼으로 돌아간다
+  const [freeForm, setFreeForm] = useState(false);
+  useEffect(() => { if (!resting) setFreeForm(false); }, [resting]);
+
+  const nextItem = session && session.current >= 0 ? session.items?.[session.current] : null;
+  const showNextCard = resting && !editingId && !freeForm && !!nextItem && !!exercise;
+
   // 수정 중인데 폼 날짜를 바꾼 경우, 수정 카드를 list에서 잃지 않도록 원본 날짜의 카드도 노출
   const displayedWorkouts = useMemo(() => {
     if (!editingId || !editingOriginalDate || date === editingOriginalDate) return todayWorkouts;
@@ -231,7 +317,7 @@ export default function WorkoutPage() {
       return;
     }
     if (Number(sets) > 100 || Number(reps) > 1000) {
-      setError(lang === 'en' ? 'Sets max 100, reps max 1000' : '세트는 100 이하, 횟수는 1000 이하여야 해요');
+      setError(t.tooBig);
       return;
     }
     setSaving(true);
@@ -239,7 +325,7 @@ export default function WorkoutPage() {
       const payload = { date, exercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) };
       if (editingId) {
         await updateWorkout(editingId, payload);
-        toast(lang === 'en' ? 'Updated!' : '수정 완료!');
+        toast(t.updated);
         setRecord(null);
         setEditingId(null);
         setEditingOriginalDate(null);
@@ -359,35 +445,149 @@ export default function WorkoutPage() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-              ✎ {lang === 'en' ? `Editing: ${exercise}` : `수정 중: ${exercise}`}
+              ✎ {t.editingOne}: {exercise}
             </span>
             <button
               onClick={cancelEdit}
               style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '4px 10px', cursor: 'pointer', fontSize: 11, borderRadius: 'var(--radius)' }}
-            >{lang === 'en' ? 'Cancel' : '취소'}</button>
+            >{t.cancel}</button>
           </div>
           {editingOriginalDate && date !== editingOriginalDate && (
             <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 6 }}>
-              ⚠ {lang === 'en'
-                ? `Date will be moved: ${editingOriginalDate} → ${date}`
-                : `날짜가 이동돼요: ${editingOriginalDate} → ${date}`}
+              ⚠ {t.dateMove}: {editingOriginalDate} → {date}
             </div>
           )}
         </div>
       )}
 
+      {/* 그 날 한 것 — 폼 위에 한 줄. 홈에서 「기록 더하기」로 들어와도
+          지금까지 뭘 했는지 목록까지 내려가지 않고 알 수 있다 */}
+      {dayStat && !editingId && (
+        <div style={{
+          fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 12,
+          display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
+        }}>
+          <span style={{ color: 'var(--text-secondary)' }}>{dayLabel(date)}</span>
+          <span>{dayStat.count}개 · {dayStat.sets}{t.sets_}{dayStat.kg > 0 ? ` · ${dayStat.kg.toLocaleString()}kg` : ''}</span>
+        </div>
+      )}
+
+      {/* 쉬는 중이면 타이머가 맨 위다 — 지금 보고 있어야 할 것이 그것이다 */}
+      {resting && <RestTimer />}
+
+      {showNextCard ? (
+        <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+          <div className="label">다음 운동</div>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{
+              fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{exercise}</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+              <div>
+                <label className="label">{t.weight}</label>
+                <input className="input" inputMode="decimal" placeholder={t.placeholderWeight} value={weight} onChange={(e) => { setWeight(e.target.value); setAutofilled(false); }} />
+              </div>
+              <div>
+                <label className="label">{t.sets}</label>
+                <input className="input" type="number" inputMode="numeric" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
+              </div>
+              <div>
+                <label className="label">{t.reps}</label>
+                <input className="input" type="number" inputMode="numeric" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
+              </div>
+            </div>
+
+            {autofilled && (
+              <div style={{ fontSize: 11.5, color: 'var(--accent)' }}>↻ {t.autofilled}</div>
+            )}
+            {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
+
+            <button className="btn-primary" type="submit" disabled={saving}>
+              {saving ? t.saving : t.saveAndNext}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFreeForm(true)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontSize: 12.5, color: 'var(--text-muted)',
+              }}
+            >{t.otherExercise}</button>
+          </div>
+        </form>
+      ) : (
       <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+        {/* 날짜가 맨 위다. 대부분은 오늘을 적으므로 누를 일이 없고,
+            어제 것을 적으러 온 사람은 시작하자마자 고른다 */}
+        <label className="label">{t.date}</label>
+        <div style={{ display: 'flex', gap: 6, marginBottom: pickDay || !isToday ? 8 : 14, flexWrap: 'wrap' }}>
+          {[today, yesterday].map(d => (
+            <button
+              key={d}
+              type="button"
+              className="btn-secondary"
+              onClick={() => { setDate(d); setPickDay(false); }}
+              style={{
+                width: 'auto', padding: '7px 14px', fontSize: 12.5,
+                ...(date === d ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#000' } : null),
+              }}
+            >{dayLabel(d)}</button>
+          ))}
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setPickDay(v => !v)}
+            style={{
+              width: 'auto', padding: '7px 14px', fontSize: 12.5,
+              ...(date !== today && date !== yesterday
+                ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#000' }
+                : null),
+            }}
+          >{t.otherDay}</button>
+        </div>
+        {(pickDay || (date !== today && date !== yesterday)) && (
+          <input
+            className="input"
+            type="date"
+            value={date}
+            max={today}
+            onChange={(e) => setDate(e.target.value)}
+            style={{ marginBottom: 14 }}
+          />
+        )}
+
         <label className="label">{t.exerciseName}</label>
         <div style={{ position: 'relative' }}>
           <input
+            ref={exerciseInputRef}
             className="input"
             placeholder={t.placeholderExercise}
             value={exercise}
             onChange={handleExerciseChange}
             onBlur={handleExerciseBlur}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 4, paddingRight: exercise ? 36 : undefined }}
           />
+          {/* 예전에는 입력칸 아래에 「다른 운동」이라는 단추가 따로 있었다.
+              하는 일은 이 칸을 비우는 것뿐인데 이름만 봐서는 알 수 없다.
+              지우는 자리는 칸 안이 제자리다 */}
+          {exercise && (
+            <button
+              type="button"
+              onClick={() => {
+                setExercise(''); setAutofilled(false); setSuggestions([]);
+                exerciseInputRef.current?.focus();
+              }}
+              aria-label={t.clearExercise}
+              style={{
+                position: 'absolute', right: 8, top: 'calc(50% - 2px)', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: 14, padding: 6, lineHeight: 1,
+              }}
+            >✕</button>
+          )}
           {suggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
@@ -419,48 +619,47 @@ export default function WorkoutPage() {
           </div>
         )}
         {!autofilled && <div style={{ marginBottom: 10 }} />}
-        {exercise && (
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => { setExercise(''); setAutofilled(false); }}
-            style={{ fontSize: 11, padding: '4px 10px', marginBottom: 10 }}
-          >{lang === 'en' ? 'Different exercise' : '다른 운동'}</button>
-        )}
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1 }}>
             <label className="label">{t.weight}</label>
-            <input className="input" placeholder={t.placeholderWeight} value={weight} onChange={(e) => { setWeight(e.target.value); setAutofilled(false); }} />
+            <input className="input" inputMode="decimal" placeholder={t.placeholderWeight} value={weight} onChange={(e) => { setWeight(e.target.value); setAutofilled(false); }} />
           </div>
           <div style={{ flex: 1 }}>
             <label className="label">{t.sets}</label>
-            <input className="input" type="number" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
+            <input className="input" type="number" inputMode="numeric" min="1" max="100" placeholder={t.placeholderSets} value={sets} onChange={(e) => { setSets(e.target.value); setAutofilled(false); }} />
           </div>
           <div style={{ flex: 1 }}>
             <label className="label">{t.reps}</label>
-            <input className="input" type="number" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
+            <input className="input" type="number" inputMode="numeric" min="1" max="1000" placeholder={t.placeholderReps} value={reps} onChange={(e) => { setReps(e.target.value); setAutofilled(false); }} />
           </div>
         </div>
-
-        <label className="label">{t.date}</label>
-        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 10 }} />
 
         {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
         <button className="btn-primary" type="submit" disabled={saving}>
           {saving
-            ? (editingId ? (lang === 'en' ? 'Updating...' : '수정 중...') : t.saving)
-            : (editingId ? (lang === 'en' ? 'Update' : '수정 완료') : t.save)}
+            ? (editingId ? t.updating : t.saving)
+            : (editingId ? t.update : t.save)}
         </button>
       </form>
+      )}
 
-      {/* 휴식 타이머 */}
-      <RestTimer />
+      {/* 쉬는 중이 아니면 폼 아래에 둔다 — 고르고 누르는 자리다 */}
+      {!resting && <RestTimer />}
 
+      {/* 목록의 날짜는 폼의 날짜와 같은 값이다. 그래서 오늘이 아니면
+          그렇다고 적고 돌아갈 길을 준다 — 예전에는 날짜만 바뀌고 아무 말이 없었다 */}
       <div className="section-title">
         <div className="accent-bar" />
-        {date} {t.records}
+        {isToday ? t.todayRecords : `${date} ${t.records}`}
+        {!isToday && (
+          <button
+            className="btn-secondary"
+            onClick={() => { setDate(today); setPickDay(false); }}
+            style={{ width: 'auto', padding: '5px 12px', fontSize: 11.5, marginLeft: 'auto' }}
+          >{t.backToToday}</button>
+        )}
       </div>
 
       {loading ? (
@@ -470,9 +669,18 @@ export default function WorkoutPage() {
         </div>
       ) : displayedWorkouts.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-title">기록 없음</div>
+          <div className="empty-state-title">{t.noRecordsTitle}</div>
           <div className="empty-state-desc">{t.noRecords}</div>
-          <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => { document.querySelector('form input')?.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>+ 운동 기록하기</button>
+          {/* 예전에는 `document.querySelector('form input')` 으로 첫 칸을 찾았다.
+              폼 맨 위에 날짜 칸이 생기면 엉뚱한 곳에 초점이 간다 — ref 로 짚는다 */}
+          <button
+            className="btn-primary"
+            style={{ marginTop: 12, fontSize: 13, width: 'auto', padding: '10px 20px' }}
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              exerciseInputRef.current?.focus();
+            }}
+          >{t.addRecord}</button>
         </div>
       ) : (
         displayedWorkouts.map((w) => (

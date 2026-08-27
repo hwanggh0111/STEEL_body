@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
+import { dateKey } from '../../data/dateKey';
 
 const SIZE_FIELDS = [
   { key: 'chest', label: '가슴둘레', unit: 'cm', placeholder: '95' },
@@ -13,14 +14,17 @@ const SIZE_FIELDS = [
   { key: 'neck', label: '목둘레', unit: 'cm', placeholder: '38' },
 ];
 
+// 여기도 날짜 칸이 없었다 — 어제 잰 것을 오늘 적으면 오늘 날짜로 들어간다.
+// 일곱 도구 중 날짜를 받던 것은 어깨 하나뿐이었다.
 export default function BodySizeSection({ records, onSave, onDelete }) {
   const [values, setValues] = useState({});
   const [openIdx, setOpenIdx] = useState(null);
+  const [date, setDate] = useState(dateKey());
 
   const handleSave = () => {
     const filled = Object.entries(values).filter(([, v]) => v);
     if (filled.length === 0) { toast('최소 1개 항목을 입력해주세요'); return; }
-    onSave({ ...values });
+    onSave({ ...values, date });
     setValues({});
   };
 
@@ -28,6 +32,8 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
     <div style={{ marginBottom: 24 }}>
       <div className="section-title"><div className="accent-bar" />전신 사이즈 측정</div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>줄자로 각 부위의 둘레를 측정하세요</div>
+      <label className="label">날짜</label>
+      <input className="input" type="date" value={date} max={dateKey()} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 12 }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 6, marginBottom: 10 }}>
         {SIZE_FIELDS.map(f => (
           <div key={f.key}>

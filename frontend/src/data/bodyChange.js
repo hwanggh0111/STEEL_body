@@ -6,6 +6,7 @@
 // 견줄 것이 없으면(기록이 하나면) 아무것도 돌려주지 않는다 — 화면이 안 나온다.
 
 import { muscleRatio } from './bodyRanges';
+import { volumeOf } from './weeklyReport';
 
 export const SPANS = [
   { key: 'last', label: '지난번', days: null },
@@ -137,5 +138,40 @@ export function buildChange(records, spanKey = 'last') {
     // 막대 길이를 맞추는 데 쓴다. 0 이면 아무것도 안 움직인 것이다
     max,
     headline: headlineOf(rows),
+  };
+}
+
+/**
+ * 그 기간에 운동을 얼마나 했나.
+ *
+ * 8/25 시안 C 에 「그동안 운동은 — 3개월간 38회 · 주 3.0회 · 총 볼륨 142톤」이라는
+ * 줄이 있었는데 안 넣었었다. **몸이 달라진 것과 그동안 한 것을 같은 화면에서 봐야
+ * 무슨 일이 있었는지가 이어진다** — 체중이 3kg 줄었다는 말 옆에 「3개월간 38회」가
+ * 있는 것과 없는 것은 다르다.
+ *
+ * 좋고 나쁨은 여기서도 안 매긴다. 몇 번 했고 얼마를 들었는지만 센다.
+ * 볼륨은 무게를 적은 것만 센다 (weeklyReport 와 같은 규칙).
+ */
+export function trainingIn(workouts, from, to) {
+  if (!workouts || !from || !to) return null;
+  const list = [];
+  let days = 0;
+  Object.entries(workouts).forEach(([key, recs]) => {
+    if (!recs || recs.length === 0) return;
+    if (key < from || key > to) return;
+    days += 1;
+    list.push(...recs);
+  });
+  if (list.length === 0) return null;
+
+  const spanDays = daysBetween(from, to) || 0;
+  const weeks = spanDays > 0 ? spanDays / 7 : 0;
+  const { kg } = volumeOf(list);
+  return {
+    count: list.length,
+    days,
+    spanDays,
+    perWeek: weeks >= 1 ? Math.round((days / weeks) * 10) / 10 : null,
+    volumeKg: kg,
   };
 }
