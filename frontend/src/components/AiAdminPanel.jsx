@@ -15,10 +15,10 @@ const pulseKeyframes = `
 `;
 
 const LOG_STYLES = {
-  block:      { icon: '\uD83D\uDEAB', color: '#ff1744', bg: '#ff174412', label: 'BLOCK' },
-  warning:    { icon: '\u26A0\uFE0F', color: '#ffab00', bg: '#ffab0012', label: 'WARNING' },
-  suspicious: { icon: '\uD83D\uDD0D', color: '#448aff', bg: '#448aff12', label: 'SUSPECT' },
-  system:     { icon: '\u2699\uFE0F', color: '#888', bg: '#88888812', label: 'SYSTEM' },
+  block:      { icon: '\uD83D\uDEAB', color: 'var(--danger)', bg: 'var(--danger-dim)', label: 'BLOCK' },
+  warning:    { icon: '\u26A0\uFE0F', color: 'var(--warning)', bg: 'var(--warning-dim)', label: 'WARNING' },
+  suspicious: { icon: '\uD83D\uDD0D', color: 'var(--info)', bg: 'var(--info-dim)', label: 'SUSPECT' },
+  system:     { icon: '\u2699\uFE0F', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', label: 'SYSTEM' },
 };
 
 export default function AiAdminPanel() {
@@ -95,7 +95,7 @@ export default function AiAdminPanel() {
             { label: '총 요청', value: stats.totalRequests || 0, color: 'var(--accent)' },
             { label: '차단', value: stats.totalBlocks || 0, color: 'var(--danger)' },
             { label: '경고', value: stats.totalWarnings || 0, color: 'var(--warning)' },
-            { label: 'IP 잠금', value: stats.activeLocks || 0, color: '#448aff' },
+            { label: 'IP 잠금', value: stats.activeLocks || 0, color: 'var(--info)' },
           ].map(s => (
             <div key={s.label}>
               <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: s.color, textShadow: `0 0 8px ${s.color}` }}>
@@ -111,7 +111,7 @@ export default function AiAdminPanel() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
         {[
           { label: 'L1 경고', value: threats.level1 || 0, color: 'var(--warning)' },
-          { label: 'L2 잠금', value: threats.level2 || 0, color: '#ff6b1a' },
+          { label: 'L2 잠금', value: threats.level2 || 0, color: 'var(--accent)' },
           { label: 'L3 정지', value: threats.level3 || 0, color: 'var(--danger)' },
           // 「L4 삭제」라고 적혀 있었다. L4 는 지우는 것이 아니라 영구 정지다
           { label: 'L4 영구정지', value: threats.level4 || 0, color: 'var(--danger)' },
@@ -142,12 +142,12 @@ export default function AiAdminPanel() {
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
             {[
-              { label: '차단 IP', value: threats.blockedIpCount || 0, color: '#ff1744' },
-              { label: '의심 IP', value: threats.suspiciousIpCount || 0, color: '#448aff' },
+              { label: '차단 IP', value: threats.blockedIpCount || 0, color: 'var(--danger)' },
+              { label: '의심 IP', value: threats.suspiciousIpCount || 0, color: 'var(--info)' },
               { label: '활성 정지', value: threats.activeSuspensions || 0, color: 'var(--danger)' },
-              { label: '영구 차단', value: threats.bannedUsers || 0, color: '#ff0040' },
+              { label: '영구 차단', value: threats.bannedUsers || 0, color: 'var(--danger)' },
               { label: '블랙리스트', value: threats.blacklistEntries || 0, color: 'var(--warning)' },
-              { label: '차단 유저', value: threats.blockedUsers || 0, color: '#ff6b1a' },
+              { label: '차단 유저', value: threats.blockedUsers || 0, color: 'var(--accent)' },
             ].map(s => (
               <div key={s.label} className="card" style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</span>
@@ -210,9 +210,9 @@ export default function AiAdminPanel() {
                 <tbody>
                   {blockedIps.map(item => (
                     <tr key={item.ip} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: 8, color: '#ff1744', fontFamily: "'Courier New', monospace", fontWeight: 600 }}>{item.ip}</td>
+                      <td style={{ padding: 8, color: 'var(--danger)', fontFamily: "'Courier New', monospace", fontWeight: 600 }}>{item.ip}</td>
                       <td style={{ padding: 8 }}>
-                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 2, background: item.level === 4 ? '#ff004020' : item.level === 3 ? '#ff174420' : '#ffab0020', color: item.level >= 3 ? '#ff1744' : '#ffab00' }}>
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 2, background: item.level === 4 ? 'var(--danger-dim)' : item.level === 3 ? 'var(--danger-dim)' : 'var(--warning-dim)', color: item.level >= 3 ? 'var(--danger)' : 'var(--warning)' }}>
                           L{item.level}
                         </span>
                       </td>
@@ -270,7 +270,7 @@ export default function AiAdminPanel() {
           ) : blacklist.map((b, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div>
-                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, background: b.type === 'email' ? '#448aff20' : b.type === 'ip' ? '#ff174420' : '#ffab0020', color: b.type === 'email' ? '#448aff' : b.type === 'ip' ? '#ff1744' : '#ffab00', marginRight: 8 }}>{b.type}</span>
+                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 2, background: b.type === 'email' ? 'var(--info-dim)' : b.type === 'ip' ? 'var(--danger-dim)' : 'var(--warning-dim)', color: b.type === 'email' ? 'var(--info)' : b.type === 'ip' ? 'var(--danger)' : 'var(--warning)', marginRight: 8 }}>{b.type}</span>
                 <span style={{ fontSize: 12, fontFamily: "'Courier New', monospace", color: 'var(--text-secondary)' }}>{b.value}</span>
               </div>
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{b.created_at?.substring(0, 10)}</span>
@@ -285,10 +285,10 @@ export default function AiAdminPanel() {
           {(!suspensions || suspensions.length === 0) ? (
             <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>정지 이력 없음</div>
           ) : suspensions.map((s, i) => (
-            <div key={i} className="card" style={{ padding: 12, marginBottom: 6, borderColor: s.level === 4 ? '#ff0040' : s.level === 3 ? 'var(--danger)' : 'var(--border)' }}>
+            <div key={i} className="card" style={{ padding: 12, marginBottom: 6, borderColor: s.level === 4 ? 'var(--danger)' : s.level === 3 ? 'var(--danger)' : 'var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 2, background: s.level === 4 ? '#ff004030' : '#ff174430', color: s.level === 4 ? '#ff0040' : '#ff1744', fontWeight: 700 }}>LEVEL {s.level}</span>
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 2, background: s.level === 4 ? 'var(--danger-dim)' : 'var(--danger-dim)', color: s.level === 4 ? 'var(--danger)' : 'var(--danger)', fontWeight: 700 }}>LEVEL {s.level}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>User #{s.user_id}</span>
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.expires_at === 'permanent' ? '영구' : s.expires_at?.substring(0, 10)}</span>

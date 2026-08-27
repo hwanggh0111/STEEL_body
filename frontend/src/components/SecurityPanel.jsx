@@ -5,7 +5,7 @@ import { toast } from './Toast';
 
 const T = {
   ko: {
-    title: 'SECURITY DASHBOARD',
+    title: '보안 현황',
     totalUsers: '전체 유저',
     todaySignups: '오늘 가입',
     jwtSettings: 'JWT 설정',
@@ -83,10 +83,12 @@ const ROLE_TABS = [
 ];
 
 function StatusBadge({ status, label }) {
+  // 앱이 쓰는 색으로. 예전에는 `#00c853` · `#ff1744` 처럼 여기에만 있는 초록·빨강을
+  // 박아둬서, 관리자 화면만 다른 앱처럼 보였다. 색 토큰은 `styles/globals.css` 에 있다
   const colors = {
-    safe: { bg: '#00c85320', color: '#00c853', border: '#00c85350' },
-    warning: { bg: '#ffab0020', color: '#ffab00', border: '#ffab0050' },
-    danger: { bg: '#ff174420', color: '#ff1744', border: '#ff174450' },
+    safe: { bg: 'var(--success-dim)', color: 'var(--success)', border: 'var(--success)' },
+    warning: { bg: 'var(--warning-dim)', color: 'var(--warning)', border: 'var(--warning)' },
+    danger: { bg: 'var(--danger-dim)', color: 'var(--danger)', border: 'var(--danger)' },
   };
   const c = colors[status] || colors.safe;
   return (
@@ -237,7 +239,7 @@ export default function SecurityPanel() {
 
   if (error || !dashboard) {
     return (
-      <div className="card" style={{ padding: 32, textAlign: 'center', color: '#ff1744' }}>
+      <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--danger)' }}>
         {t.error}
       </div>
     );
@@ -288,7 +290,7 @@ export default function SecurityPanel() {
           <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'Barlow', sans-serif", marginBottom: 4 }}>
             {t.todaySignups}
           </div>
-          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", color: '#4a9aff', letterSpacing: 1 }}>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", color: 'var(--info)', letterSpacing: 1 }}>
             {todaySignups ?? '-'}
           </div>
         </div>
@@ -419,10 +421,10 @@ export default function SecurityPanel() {
                           padding: '3px 8px',
                           fontSize: 10,
                           fontWeight: 600,
-                          border: '1px solid #ff174450',
+                          border: '1px solid var(--danger)',
                           borderRadius: 'var(--radius)',
-                          background: '#ff174415',
-                          color: '#ff1744',
+                          background: 'var(--danger-dim)',
+                          color: 'var(--danger)',
                           cursor: 'pointer',
                         }}
                       >
@@ -435,10 +437,10 @@ export default function SecurityPanel() {
                           padding: '3px 8px',
                           fontSize: 10,
                           fontWeight: 600,
-                          border: '1px solid #00c85350',
+                          border: '1px solid var(--success)',
                           borderRadius: 'var(--radius)',
-                          background: '#00c85315',
-                          color: '#00c853',
+                          background: 'var(--success-dim)',
+                          color: 'var(--success)',
                           cursor: 'pointer',
                         }}
                       >
@@ -454,10 +456,10 @@ export default function SecurityPanel() {
                           padding: '3px 8px',
                           fontSize: 10,
                           fontWeight: 600,
-                          border: '1px solid #ff174450',
+                          border: '1px solid var(--danger)',
                           borderRadius: 'var(--radius)',
                           background: 'transparent',
-                          color: '#ff1744',
+                          color: 'var(--danger)',
                           cursor: 'pointer',
                         }}
                       >
@@ -471,10 +473,10 @@ export default function SecurityPanel() {
                           padding: '3px 8px',
                           fontSize: 10,
                           fontWeight: 600,
-                          border: '1px solid #ffd70050',
+                          border: '1px solid var(--warning)',
                           borderRadius: 'var(--radius)',
-                          background: '#ffd70015',
-                          color: '#ffd700',
+                          background: 'var(--warning-dim)',
+                          color: 'var(--warning)',
                           cursor: 'pointer',
                         }}
                       >
@@ -518,7 +520,7 @@ export default function SecurityPanel() {
         <div style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: "'Barlow', sans-serif" }}>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>{t.expiry}: </span>
-            <span style={{ color: getJwtStatus(jwt?.expiry) === 'safe' ? '#00c853' : getJwtStatus(jwt?.expiry) === 'warning' ? '#ffab00' : '#ff1744', fontWeight: 600 }}>
+            <span style={{ color: getJwtStatus(jwt?.expiry) === 'safe' ? 'var(--success)' : getJwtStatus(jwt?.expiry) === 'warning' ? 'var(--warning)' : 'var(--danger)', fontWeight: 600 }}>
               {jwt?.expiry || '-'}
             </span>
           </div>
@@ -559,7 +561,7 @@ export default function SecurityPanel() {
             </span>
             <StatusBadge status={getHelmetStatus(helmet?.enabled)} label={t[getHelmetStatus(helmet?.enabled)]} />
           </div>
-          <div style={{ fontSize: 12, fontFamily: "'Barlow', sans-serif", color: helmet?.enabled ? '#00c853' : '#ff1744', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, fontFamily: "'Barlow', sans-serif", color: helmet?.enabled ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
             {helmet?.enabled ? t.enabled : t.disabled}
           </div>
         </div>

@@ -38,7 +38,7 @@ export default function SecurityScan() {
 
   const sevColor = (s) => {
     if (s === 'CRITICAL') return 'var(--danger)';
-    if (s === 'HIGH') return '#ff6b1a';
+    if (s === 'HIGH') return 'var(--accent)';
     if (s === 'MEDIUM') return 'var(--warning)';
     return 'var(--text-muted)';
   };
