@@ -2,7 +2,7 @@
 
 ## 기술 스택
 - Frontend: React 18 + Vite + Zustand + Recharts
-- Backend: Node.js + Express + SQLite
+- Backend: Node.js + Express + JSON 파일 DB (`backend/ironlog.json`) — SQLite 가 아니다. docs/api-spec.md 참고
 - 스타일: CSS Variables (디자인 시스템 기반)
 - 인증: JWT
 
