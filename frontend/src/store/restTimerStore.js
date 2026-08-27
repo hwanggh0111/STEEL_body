@@ -90,10 +90,15 @@ export const useRestTimerStore = create((set, get) => ({
 
   add: (sec) => {
     const { deadline, pausedLeft, runSec } = get();
-    const ms = sec * 1000;
+    // **여기도 최대치를 지킨다.** `start` 는 10분에서 잘랐는데 이쪽은 안 잘라서,
+    // +30초를 스무 번 누르면 20분짜리 휴식이 됐다. 시작할 때는 못 하는 것을
+    // 누르기만 하면 되게 두면 규칙이 아니다
+    const grown = Math.min(MAX_SEC, runSec + sec);
+    const added = grown - runSec;
+    if (added <= 0) return;
+    const ms = added * 1000;
     // 늘린 만큼 「몇 초짜리인가」도 같이 늘어난다.
     // 안 그러면 120초를 쉬면서 「90초 중」이라고 적고 링이 100% 를 넘는다
-    const grown = runSec + sec;
     if (pausedLeft != null) { set({ pausedLeft: pausedLeft + ms, leftMs: pausedLeft + ms, runSec: grown }); return; }
     if (deadline == null) return;
     const next = deadline + ms;

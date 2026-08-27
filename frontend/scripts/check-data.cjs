@@ -29,6 +29,9 @@ const part = bundle('src/data/bodyPart.js', '.t5.cjs');
 const faq = bundle('src/pages/support/faq.js', '.t6.cjs');
 const boundary = bundle('src/components/ErrorBoundary.jsx', '.t7.cjs');
 const josa = bundle('src/data/particle.js', '.t8.cjs');
+// 휴식 타이머는 localStorage 를 읽는다. node 에는 없으니 빈 것으로 세워준다
+global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -84,6 +87,23 @@ ok('모르는 것 → 기타', part.bodyPartOf('아무거나'), '기타');
 // 배포 직후 옛 조각을 못 받아오는 것. 브라우저마다 말이 달라서, 실제로 나오는
 // 문구들을 그대로 넣어 본다 — 못 알아보면 「앱이 바뀌었어요」 대신 오류 화면이 뜬다
 // 조사. 앞 글자에 받침이 있느냐로 갈린다 — 「등이」 · 「하체가」
+// 휴식 타이머. 「시작할 때는 막는데 눌러서 늘리면 되는」 자리가 있었다
+console.log('\n── 휴식 타이머 ──');
+const timer = rest.useRestTimerStore.getState();
+timer.start(90, '벤치프레스');
+ok('90초로 시작', rest.useRestTimerStore.getState().runSec, 90);
+rest.useRestTimerStore.getState().add(30);
+ok('+30초는 도는 것도 같이 늘린다', rest.useRestTimerStore.getState().runSec, 120);
+for (let n = 0; n < 30; n += 1) rest.useRestTimerStore.getState().add(30);
+ok('아무리 눌러도 최대치를 안 넘는다', rest.useRestTimerStore.getState().runSec, rest.MAX_SEC);
+rest.useRestTimerStore.getState().stop();
+ok('그만두면 비워진다', rest.useRestTimerStore.getState().runSec, 0);
+rest.useRestTimerStore.getState().start(9999);
+ok('시작할 때도 최대치에서 자른다', rest.useRestTimerStore.getState().runSec, rest.MAX_SEC);
+rest.useRestTimerStore.getState().stop();
+ok('남은 시간 표기', rest.formatLeft(90 * 1000), '1:30');
+ok('0 이하는 0:00', rest.formatLeft(-5), '0:00');
+
 console.log('\n── 조사 (주간 요약 · 히스토리 · 루틴이 같이 쓴다) ──');
 for (const [word, want] of [['등', '등이'], ['하체', '하체가'], ['가슴', '가슴이'], ['어깨', '어깨가']]) {
   ok(word, josa.i(word), want);
