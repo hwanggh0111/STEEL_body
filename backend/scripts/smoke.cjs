@@ -78,14 +78,55 @@ function cleanup() {
       });
     }
     fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-    console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
-    console.log('※ 서버가 켜져 있으면 캐시가 되살릴 수 있습니다 — 그때는 서버를 한 번 내렸다 올리세요.');
+
+    // **지웠다고 믿지 않는다.** 서버는 DB 를 램에 들고 있다가 나중에 파일로 흘린다.
+    // 이 검사는 서버가 떠 있어야 돌아가므로, 지운 직후에 서버가 옛 내용을 덮어쓰면
+    // 계정이 되살아난다. 실제로 그렇게 몇 개가 쌓였다.
+    //
+    // 그래서 잠깐 뒤에 다시 읽어보고, 살아 있으면 그렇다고 말한다.
+    // 「지웠습니다」라고 해놓고 안 지워지는 것이 제일 나쁘다.
+    setTimeout(() => {
+      let back = false;
+      try {
+        back = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8')).users.some(u => u.email === EMAIL);
+      } catch { /* 못 읽으면 아래에서 안내한다 */ }
+      console.log('');
+      if (back) {
+        console.log(`검사 계정 ${EMAIL} 이 서버 쪽에서 되살아났습니다.`);
+        console.log('서버를 내리고 `npm run smoke:clean` 을 돌리면 한 번에 지워집니다.');
+      } else {
+        console.log(`검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
+      }
+    }, 1200);
   } catch (err) {
     console.log(`\n검사 계정을 못 지웠습니다 (${err.message}). ${EMAIL} 을 직접 지워주세요.`);
   }
 }
 
+// 쌓인 검사 계정을 한 번에 지운다 (`npm run smoke:clean`). **서버를 내리고 쓴다.**
+function cleanAll() {
+  try {
+    const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const ids = new Set(db.users.filter(u => String(u.email || '').endsWith('@smoke.local')).map(u => u.id));
+    if (ids.size === 0) { console.log('쌓인 검사 계정이 없습니다.'); return; }
+    for (const key of Object.keys(db)) {
+      if (!Array.isArray(db[key])) continue;
+      db[key] = db[key].filter(row => {
+        if (!row || typeof row !== 'object') return true;
+        if (String(row.email || '').endsWith('@smoke.local')) return false;
+        const uid = row.user_id ?? row.userId;
+        return !(uid !== undefined && ids.has(uid));
+      });
+    }
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    console.log(`검사 계정 ${ids.size}개와 그 기록을 지웠습니다.`);
+  } catch (err) {
+    console.log(`못 지웠습니다 (${err.message}).`);
+  }
+}
+
 (async () => {
+  if (process.argv.includes('--clean-all')) { cleanAll(); return; }
   console.log(`두들길 곳: ${BASE}\n`);
 
   console.log('── 가입하고 들어온다 ──');

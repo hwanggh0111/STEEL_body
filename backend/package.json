@@ -8,7 +8,8 @@
     "check": "node scripts/check-reminder.cjs",
     "smoke": "node scripts/smoke.cjs",
     "seed": "node scripts/seed.cjs",
-    "seed:clear": "node scripts/seed.cjs --clear"
+    "seed:clear": "node scripts/seed.cjs --clear",
+    "smoke:clean": "node scripts/smoke.cjs --clean-all"
   },
   "engines": {
     "node": ">=18.0.0"

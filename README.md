@@ -14,6 +14,7 @@ cd backend  && npm run check   # 알림을 언제 보낼지 (시간대 · 몇 �
 cd backend  && npm run smoke   # 서버를 띄워두고 앱 한 바퀴 (가입~알림, 검사 계정은 스스로 지운다)
 cd backend  && npm run seed    # 화면을 눈으로 보려고 석 달치 시연 데이터 (seed@demo.local / seed12345)
 cd backend  && npm run seed:clear   # 시연 데이터 지우기 (서버를 내리고)
+cd backend  && npm run smoke:clean  # 쌓인 검사 계정 한 번에 지우기 (서버를 내리고)
 ```
 
 ---
