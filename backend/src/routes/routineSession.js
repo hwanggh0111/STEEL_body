@@ -94,7 +94,19 @@ router.patch('/', auth, (req, res) => {
   }
 
   const row = db.setRoutineItemState(req.userId, index, state);
-  if (!row) return res.status(404).json({ error: '진행 중인 루틴이 없어요' });
+  if (!row) {
+    // 진행표가 아예 없는 것과, 있는데 자리가 어긋난 것은 다른 일이다.
+    //
+    // 이 진행표는 서버에 둔다 — 폰으로 시작해서 다른 기기로 이어가라고. 그러면 한쪽에서
+    // 다른 루틴을 시작했을 때 다른 쪽 화면에는 **옛 진행표의 자리 번호**가 남는다.
+    // 둘을 묶어 「진행 중인 루틴이 없어요」라고 답하면, 화면에 버젓이 떠 있는 것을 두고
+    // 거짓말을 하는 것이고, 화면은 고칠 방법도 못 받는다.
+    //
+    // 있으면 지금 것을 같이 준다. 화면이 그걸로 갈아끼우면 그 자리에서 이어갈 수 있다
+    const current = db.getRoutineSession(req.userId);
+    if (!current) return res.status(404).json({ error: '진행 중인 루틴이 없어요' });
+    return res.status(409).json({ error: '진행표가 바뀌었어요. 새로 불러왔습니다', session: shape(current) });
+  }
 
   const finished = row.items.every(i => i.state !== 'todo');
   if (finished) {
