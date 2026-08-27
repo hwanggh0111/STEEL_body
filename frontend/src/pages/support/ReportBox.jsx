@@ -163,10 +163,12 @@ function AskFirst() {
           style={{ marginBottom: 10, background: 'var(--bg-secondary)' }}
         />
 
-        {/* 무엇을 쳐야 할지 모르는 사람이 대부분이다. 눌러서 바로 볼 수 있게 둔다 */}
+        {/* 무엇을 쳐야 할지 모르는 사람이 대부분이다. 눌러서 바로 볼 수 있게 둔다.
+            다 늘어놓으면 네 줄이 되어 제보하러 온 사람의 길을 막는다 — 앞의 여섯 개만
+            보여주고, 나머지는 아래 '모두 보기' 로 간다 */}
         {!typed && !showAll && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-            {FAQ.map(f => (
+            {FAQ.slice(0, 6).map(f => (
               <button
                 key={f.q}
                 onClick={() => pickTopic(f)}

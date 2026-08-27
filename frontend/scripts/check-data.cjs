@@ -26,6 +26,7 @@ const ranges = bundle('src/data/bodyRanges.js', '.t2.cjs');
 const pr = bundle('src/data/personalRecord.js', '.t3.cjs');
 const change = bundle('src/data/bodyChange.js', '.t4.cjs');
 const part = bundle('src/data/bodyPart.js', '.t5.cjs');
+const faq = bundle('src/pages/support/faq.js', '.t6.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -73,6 +74,23 @@ ok('기록 없는 기간은 null', change.trainingIn(workouts, '2026-01-01', '20
 console.log('\n── 부위 (홈 · 히스토리 · 주간 요약이 같이 쓴다) ──');
 ok('벤치프레스 → 가슴', part.bodyPartOf('벤치프레스'), '가슴');
 ok('모르는 것 → 기타', part.bodyPartOf('아무거나'), '기타');
+
+// 자주 묻는 것은 고객센터와 제보함이 같이 본다. 항목을 늘릴 때마다 서로 걸려들기
+// 쉽다 — 키워드가 겹치면 엉뚱한 답이 위로 온다. 그래서 여기서 한 번에 본다
+console.log('\n── 자주 묻는 것 (고객센터 · 제보함이 같이 본다) ──');
+// 개수를 못박으면 항목을 늘릴 때마다 여기부터 고쳐야 한다. 줄어든 것만 잡는다
+ok('항목이 줄지 않았다', faq.FAQ.length >= 15, true);
+ok('topic 이 겹치지 않는다', new Set(faq.FAQ.map(f => f.topic)).size, faq.FAQ.length);
+const firstFaq = (q) => (faq.matchFaq(q)[0] || {}).topic || null;
+for (const [q, want] of [
+  ['푸시', '알림'], ['탈퇴', '계정 삭제'], ['비번', '비밀번호'], ['csv', '내보내기'],
+  ['등급', '인바디 판정'], ['홈트', '홈트'], ['점검', '점검'], ['구글', '소셜 로그인'],
+  ['날아갔', '기록 보관'], ['차단', '정지'],
+]) ok(q + ' → ' + want, firstFaq(q), want);
+ok('한 글자로는 안 찾는다', faq.matchFaq('ㅇ'), []);
+
+// 제보함은 앞의 여섯 개만 단추로 내놓는다. 다 늘어놓으면 제보하러 온 사람의 길을 막는다
+ok('단추로 내놓는 여섯 개에 답이 다 있다', faq.FAQ.slice(0, 6).every(f => f.topic && f.a), true);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
