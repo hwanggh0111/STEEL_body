@@ -79,8 +79,18 @@ function streakWeeks(workouts, monday) {
     weeks.add(dateKey(mondayOf(d)));
   });
 
-  let n = 0;
+  // **이번 주는 아직 안 끝났다.** 지금 비어 있다고 해서 끊긴 것이 아니다.
+  //
+  // 이번 주부터 세면 월요일 0시에 「10주 연속」이 **0** 이 됐다가, 그 주 첫 기록에
+  // 11 로 돌아왔다. 이어온 것을 지키라고 있는 숫자가 주가 바뀔 때마다 먼저 사라져서,
+  // 화면은 한 주의 앞부분 내내 「이미 끊겼다」고 말하고 있었다.
+  //
+  // 이번 주에 기록이 있으면 이번 주부터, 없으면 지난주부터 센다.
+  // 그 주가 기록 없이 끝나면 다음 월요일에 0 이 된다 — 그때는 정말 끊긴 것이다.
   const cur = new Date(monday);
+  if (!weeks.has(dateKey(cur))) cur.setDate(cur.getDate() - 7);
+
+  let n = 0;
   while (weeks.has(dateKey(cur))) {
     n += 1;
     cur.setDate(cur.getDate() - 7);

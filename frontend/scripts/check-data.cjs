@@ -77,6 +77,25 @@ ok('모르는 것 → 기타', part.bodyPartOf('아무거나'), '기타');
 
 // 자주 묻는 것은 고객센터와 제보함이 같이 본다. 항목을 늘릴 때마다 서로 걸려들기
 // 쉽다 — 키워드가 겹치면 엉뚱한 답이 위로 온다. 그래서 여기서 한 번에 본다
+// 주 연속. 이번 주가 아직 안 끝났다는 것을 아는지 본다 —
+// 이번 주부터 세면 월요일마다 「10주 연속」이 0 으로 떨어졌다
+console.log('\n── 주 연속 (홈 주간 요약) ──');
+const tenWeeks = {};
+{
+  const base = new Date('2026-06-01T00:00:00'); // 월요일
+  for (let i = 0; i < 10; i += 1) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i * 7 + 2); // 매주 수요일
+    tenWeeks[d.toISOString().slice(0, 10)] = [{ exercise: '벤치프레스', weight: 60, sets: 3, reps: 10 }];
+  }
+}
+const streakAt = (day) => weekly.buildWeekly(tenWeeks, new Date(day + 'T00:00:00')).streak;
+ok('기록한 그 주 안', streakAt('2026-08-05'), 10);
+ok('다음 주 월요일 아침에도 그대로', streakAt('2026-08-10'), 10);
+ok('그 주 일요일까지 그대로', streakAt('2026-08-16'), 10);
+ok('한 주를 통째로 쉬면 끊긴다', streakAt('2026-08-17'), 0);
+ok('기록이 아예 없으면 0', weekly.buildWeekly({}, new Date('2026-08-10T00:00:00')).streak, 0);
+
 console.log('\n── 자주 묻는 것 (고객센터 · 제보함이 같이 본다) ──');
 // 개수를 못박으면 항목을 늘릴 때마다 여기부터 고쳐야 한다. 줄어든 것만 잡는다
 ok('항목이 줄지 않았다', faq.FAQ.length >= 15, true);
