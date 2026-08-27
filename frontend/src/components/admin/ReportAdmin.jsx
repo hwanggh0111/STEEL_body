@@ -118,7 +118,7 @@ function AbuseLogs() {
                 </div>
                 {!a.dismissed && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                    {!a.reviewed && (
+                    {!a.reviewed ? (
                       <button
                         disabled={busy}
                         onClick={() => mark(a.id, { reviewed: true }, '확인함으로 표시했습니다')}
@@ -127,6 +127,18 @@ function AbuseLogs() {
                           padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
                         }}
                       >확인함</button>
+                    ) : (
+                      // 「확인함」을 실수로 누르면 목록에서 흐려지고 「확인 안 함」 수에서도
+                      // 빠진다. **되돌릴 길이 없었다** — 서버는 reviewed:false 를 받는데
+                      // 화면에 그 단추가 없었다. 사람이 판단하는 자리라 되돌리기가 있어야 한다
+                      <button
+                        disabled={busy}
+                        onClick={() => mark(a.id, { reviewed: false }, '확인 표시를 되돌렸습니다')}
+                        style={{
+                          background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                          padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
+                        }}
+                      >확인 취소</button>
                     )}
                     <button
                       disabled={busy}
@@ -386,11 +398,12 @@ export default function ReportAdmin() {
                         background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
                         padding: '8px 11px', marginBottom: 12, wordBreak: 'break-all',
                       }}>
-                        {[
-                          r.device.appVersion && ('v' + r.device.appVersion),
-                          r.device.level && ('LV ' + r.device.level),
-                          r.device.tickets && ('🎫 ' + r.device.tickets),
-                        ].filter(Boolean).join(' · ')}
+                        {/* 예전에는 여기에 「LV 32 · 🎫 5」가 같이 찍혔다.
+                            8/25 에 레벨과 티켓을 걷어내면서 보내는 쪽과 서버의
+                            `DEVICE_FIELDS`(appVersion · browser)는 줄였는데, **받아서
+                            그리는 이 자리만 그대로** 남아 있었다. 오는 값이 없으니
+                            화면에는 안 보였지만, 지운 기능을 아직 기다리는 코드였다 */}
+                        {r.device.appVersion && ('v' + r.device.appVersion)}
                         {r.device.browser && <div style={{ marginTop: 4 }}>{r.device.browser}</div>}
                       </div>
                     )}

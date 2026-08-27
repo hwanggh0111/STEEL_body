@@ -70,20 +70,32 @@ export default function SecurityScan() {
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{result.scannedAt}</div>
           </div>
 
-          {result.results.map((r, i) => (
+          {/* 걸린 것을 위로 올린다. 통과한 것 스무 줄 사이에 섞어두면 못 찾는다 */}
+          {[...result.results].sort((a, b) => (a.status === b.status ? 0 : a.status === 'VULN' ? -1 : 1)).map((r, i) => (
             <div key={i} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '8px 12px', borderBottom: '1px solid var(--border)',
+              padding: '9px 12px', borderBottom: '1px solid var(--border)',
               background: r.status === 'VULN' ? 'var(--danger-dim)' : 'transparent',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 70 }}>[{r.category}]</span>
-                <span style={{ fontSize: 13, color: r.status === 'SAFE' ? 'var(--text-secondary)' : 'var(--danger)' }}>{r.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 62, flexShrink: 0 }}>[{r.category}]</span>
+                  <span style={{ fontSize: 13, color: r.status === 'SAFE' ? 'var(--text-secondary)' : 'var(--danger)' }}>{r.name}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {r.severity && <span style={{ fontSize: 10, color: sevColor(r.severity), fontWeight: 700 }}>{r.severity}</span>}
+                  <span style={{ fontSize: 12, color: r.status === 'SAFE' ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+                    {r.status === 'SAFE' ? '통과' : '걸림'}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {r.severity && <span style={{ fontSize: 10, color: sevColor(r.severity), fontWeight: 700 }}>{r.severity}</span>}
-                <span style={{ fontSize: 12, color: r.status === 'SAFE' ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>{r.status}</span>
-              </div>
+              {/* **서버는 왜 걸렸는지를 `detail` 로 같이 보내는데 화면이 버리고 있었다.**
+                  「NODE_ENV · HIGH · VULN」만 보고는 무엇을 고쳐야 하는지 알 수 없다 —
+                  「production 이 아님: development」가 있어야 손을 댈 수 있다 */}
+              {r.detail && (
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 5, paddingLeft: 70, lineHeight: 1.6, wordBreak: 'break-all' }}>
+                  {r.detail}
+                </div>
+              )}
             </div>
           ))}
         </div>

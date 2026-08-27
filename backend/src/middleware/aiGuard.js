@@ -60,42 +60,51 @@ const BOT_PATTERNS = [
 ];
 
 // ── AI 사유 생성 ──
+//
+// **여기 적히는 말이 사용자에게 그대로 간다.** 그런데 일곱 자리가
+// 「즉시 계정이 삭제되었습니다. 복구할 수 없습니다」라고 통보하고 있었다.
+//
+// 8/21 과 8/24 에 자동 판정에서 계정 삭제를 떼어냈다 — LEVEL 4 는 이제
+// **영구 정지 + 로그인 차단**이고 데이터는 그대로 남긴다 (executeLevel4 주석 참고).
+// 동작은 바꿨는데 **사람에게 하는 말을 안 바꿨다.** 지우지도 않고서 지웠다고
+// 통보하면, 되돌릴 수 있는 사람도 포기하고 떠난다.
+const L4_NOTE = '로그인이 영구히 막혔습니다. **적어두신 운동 기록은 지우지 않았습니다** — 잘못 걸렸다고 생각되시면 고객센터 제보함으로 알려주세요. 확인해서 되돌립니다.';
 function generateAiReason(level, triggerType, details) {
   const reasons = {
     xss: {
       title: 'XSS(크로스 사이트 스크립팅) 공격 시도',
       detail: `요청 데이터에서 악성 스크립트 패턴이 감지되었습니다. 패턴: ${details || 'N/A'}. 이는 다른 사용자의 브라우저에서 악성 코드를 실행하려는 시도로 판단됩니다.`,
-      verdict: '서비스 보안을 심각하게 위협하는 행위로, 즉시 계정이 삭제되었습니다.',
+      verdict: `서비스 보안을 위협하는 행위로 판단했습니다. ${L4_NOTE}`,
     },
     injection: {
       title: 'SQL/NoSQL 인젝션 공격 시도',
       detail: `요청에서 데이터베이스 조작을 시도하는 패턴이 감지되었습니다. 패턴: ${details || 'N/A'}. 데이터베이스에 무단 접근하거나 데이터를 탈취하려는 시도로 판단됩니다.`,
-      verdict: '즉시 계정이 삭제되었습니다. 복구할 수 없습니다.',
+      verdict: L4_NOTE,
     },
     token_forge: {
       title: 'JWT 토큰 위조 시도',
       detail: `유효하지 않은 서명의 JWT 토큰이 ${details || '다수'} 감지되었습니다. 다른 사용자의 계정에 무단 접근하려는 시도로 판단됩니다.`,
-      verdict: '즉시 계정이 삭제되었습니다.',
+      verdict: L4_NOTE,
     },
     unauthorized_access: {
       title: '다른 사용자 데이터 무단 접근 시도',
       detail: '본인 소유가 아닌 데이터에 접근하거나 수정/삭제를 시도했습니다. 이는 개인정보 침해에 해당합니다.',
-      verdict: '즉시 계정이 삭제되었습니다.',
+      verdict: L4_NOTE,
     },
     admin_access: {
       title: '관리자 API 무단 접근 시도',
       detail: '관리자 권한이 없는 상태에서 관리자 전용 API에 접근을 시도했습니다.',
-      verdict: '즉시 계정이 삭제되었습니다.',
+      verdict: L4_NOTE,
     },
     bypass: {
       title: '정지 우회 시도',
       detail: '계정 정지 상태에서 다른 계정 또는 방법으로 서비스에 접근을 시도했습니다.',
-      verdict: '즉시 계정이 삭제되었습니다.',
+      verdict: L4_NOTE,
     },
     rate_limit: {
       title: '비정상적인 대량 요청',
       detail: `1분 내 ${details || 'N/A'}회의 요청이 감지되었습니다. 자동화된 도구를 사용한 공격으로 판단됩니다.`,
-      verdict: level === 4 ? '계정이 삭제되었습니다.' : `${details}간 정지되었습니다.`,
+      verdict: level === 4 ? L4_NOTE : `${details}간 정지되었습니다.`,
     },
     scan_attack: {
       title: 'API 스캔 공격',
@@ -105,7 +114,7 @@ function generateAiReason(level, triggerType, details) {
     spam: {
       title: '스팸 데이터 대량 생성',
       detail: `1분 내 ${details || 'N/A'}건의 데이터가 생성되었습니다. 서비스 방해를 목적으로 한 스팸으로 판단됩니다.`,
-      verdict: '7일간 정지되었습니다. 스팸 데이터는 자동 삭제되었습니다.',
+      verdict: '7일간 정지되었습니다. 적어두신 기록은 그대로 있습니다.',
     },
     bot: {
       title: '봇/크롤러 접근 감지',
@@ -115,7 +124,7 @@ function generateAiReason(level, triggerType, details) {
     accumulated: {
       title: '누적 위반에 의한 영구 정지',
       detail: `이전 정지 ${details || 'N/A'}회 누적으로 영구 정지 기준에 도달했습니다.`,
-      verdict: '계정이 삭제되었습니다. 복구할 수 없습니다.',
+      verdict: L4_NOTE,
     },
     login_lock: {
       title: '로그인 실패 횟수 초과',
@@ -479,11 +488,15 @@ function suspensionCheck(req, res, next) {
   const user = db.findUserById(req.userId);
   if (!user) return next();
 
-  // banned 유저
+  // banned 유저.
+  //
+  // 여기도 「계정 및 모든 데이터가 삭제되었습니다. 되돌릴 수 없습니다」라고 말하고
+  // 있었다. **데이터는 그대로 있고 되돌릴 수도 있다** — `banUser` 는 로그인을 막을
+  // 뿐이고, 지우는 것은 관리자가 화면에서 직접 할 때만 일어난다.
   if (user.is_banned) {
     return res.status(403).json({
       error: '계정이 영구 정지되었습니다.',
-      message: '보안 정책 위반으로 계정 및 모든 데이터가 삭제되었습니다. 이 결정은 되돌릴 수 없습니다.',
+      message: L4_NOTE,
     });
   }
 

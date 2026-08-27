@@ -74,6 +74,14 @@ const T = {
   },
 };
 
+// 역할 거르기. 서버가 쓰는 값은 셋뿐이다 (user · admin · blocked)
+const ROLE_TABS = [
+  { key: 'all', label: '전체' },
+  { key: 'user', label: '일반' },
+  { key: 'admin', label: '관리자' },
+  { key: 'blocked', label: '차단됨' },
+];
+
 function StatusBadge({ status, label }) {
   const colors = {
     safe: { bg: '#00c85320', color: '#00c853', border: '#00c85350' },
@@ -155,6 +163,10 @@ export default function SecurityPanel() {
   const [deleting, setDeleting] = useState(null);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [removing, setRemoving] = useState(false);
+  // 찾기 · 역할 거르기 · 서버 설정 접기
+  const [q, setQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -233,23 +245,33 @@ export default function SecurityPanel() {
 
   const { totalUsers, todaySignups, jwt, rateLimit, helmet, cors, bodyLimit, nodeVersion } = dashboard;
 
+  // 역할 색. 금색(#ffd700)은 지운 게임이 쓰던 색이라 토큰으로 바꿨다
   const roleColor = (role) => {
-    if (role === 'admin') return '#ffd700';
-    if (role === 'blocked') return '#ff1744';
+    if (role === 'admin') return 'var(--accent)';
+    if (role === 'blocked') return 'var(--danger)';
     return 'var(--text-secondary)';
   };
 
+  const needle = q.trim().toLowerCase();
+  const shownUsers = users.filter(u => {
+    if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+    if (!needle) return true;
+    return [u.email, u.nickname, u.username, String(u.id)]
+      .some(v => String(v || '').toLowerCase().includes(needle));
+  });
+
   return (
     <div>
-      {/* Title */}
+      {/* 제목. 앱의 다른 모든 화면이 한국어인데 여기만 영문이었다 —
+          관리자 화면의 탭 이름도 「보안 관리」다 */}
       <h2 style={{
         fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: 22,
+        fontSize: 20,
         letterSpacing: 2,
         color: 'var(--accent)',
-        marginBottom: 16,
+        marginBottom: 14,
       }}>
-        {t.title}
+        보안 관리
       </h2>
 
       {/* Stats Cards Row */}
@@ -272,6 +294,219 @@ export default function SecurityPanel() {
         </div>
       </div>
 
+      {/* 가입자 — 맨 위로 올렸다.
+          여기 오는 이유는 거의 **사람을 찾아 막거나 풀거나 권한을 주려고**다.
+          그런데 JWT 만료 · Rate Limit · Helmet · Node 버전 · CORS · Body 한도 여섯 카드를
+          다 지나야 목록이 나왔다. 서버 설정은 배포할 때 한 번 보는 것이고,
+          목록은 올 때마다 보는 것이다 */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        <h2 style={{
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2,
+          color: 'var(--accent)', margin: 0,
+        }}>가입자</h2>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {shownUsers.length === users.length ? `${users.length}명` : `${users.length}명 중 ${shownUsers.length}명`}
+        </span>
+      </div>
+
+      {/* 찾기 — 예전에는 표를 통째로 뿌리기만 했다. 사람이 늘면 못 찾는다 */}
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <input
+          className="input"
+          type="text"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="이메일 · 닉네임 · 아이디로 찾기"
+          style={{ fontSize: 13, paddingRight: q ? 34 : undefined }}
+        />
+        {q && (
+          <button
+            onClick={() => setQ('')}
+            aria-label="찾기 지우기"
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-muted)', fontSize: 13, padding: 6, lineHeight: 1,
+            }}
+          >✕</button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {ROLE_TABS.map(r => {
+          const n = r.key === 'all' ? users.length : users.filter(u => u.role === r.key).length;
+          const on = roleFilter === r.key;
+          return (
+            <button
+              key={r.key}
+              onClick={() => setRoleFilter(r.key)}
+              style={{
+                padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+                borderRadius: 'var(--radius)',
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                background: on ? 'var(--accent)' : 'transparent',
+                color: on ? '#000' : 'var(--text-secondary)',
+                fontWeight: on ? 700 : 400, transition: 'all 0.15s',
+              }}
+            >{r.label} {n}</button>
+          );
+        })}
+      </div>
+
+      {shownUsers.length === 0 && (
+        <div className="card" style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
+          찾으시는 사람이 없습니다.
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto', display: shownUsers.length === 0 ? 'none' : 'block' }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: 12,
+          fontFamily: "'Barlow', sans-serif",
+        }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {[t.id, t.email, t.nickname, t.role, t.joinDate, t.actions].map((h, i) => (
+                <th key={i} style={{
+                  padding: '8px 6px',
+                  textAlign: 'left',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {shownUsers.map((user) => (
+              <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '8px 6px', color: 'var(--text-muted)' }}>{user.id}</td>
+                <td style={{ padding: '8px 6px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.email}
+                </td>
+                <td style={{ padding: '8px 6px' }}>{user.nickname}</td>
+                <td style={{ padding: '8px 6px' }}>
+                  <span style={{
+                    fontWeight: 700,
+                    color: roleColor(user.role),
+                    fontSize: 11,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    {user.role}
+                  </span>
+                </td>
+                {/* 서버가 주는 이름은 `created_at` 인데 화면은 `createdAt` 을 읽고 있었다.
+                    그래서 **가입일 열이 언제나 「-」**였다. 바로 위 「오늘 가입」 숫자는
+                    서버가 `created_at` 으로 세서 맞게 나오니, 숫자는 맞는데 열만
+                    비어 있는 상태였다. 오늘 고친 보안 로그와 같은 종류다 */}
+                <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: 11 }}>
+                  {user.created_at ? String(user.created_at).slice(0, 10) : '-'}
+                </td>
+                <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {user.role !== 'blocked' ? (
+                      <button
+                        onClick={() => handleAction(user.id, 'block')}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          border: '1px solid #ff174450',
+                          borderRadius: 'var(--radius)',
+                          background: '#ff174415',
+                          color: '#ff1744',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t.block}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAction(user.id, 'unblock')}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          border: '1px solid #00c85350',
+                          borderRadius: 'var(--radius)',
+                          background: '#00c85315',
+                          color: '#00c853',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t.unblock}
+                      </button>
+                    )}
+                    {/* 지우기는 이미 막아둔 사람에게만 보인다.
+                        멀쩡한 사람 옆에 삭제 버튼이 늘 붙어 있으면 언젠가 눌린다 */}
+                    {user.role === 'blocked' && (
+                      <button
+                        onClick={() => { setDeleting(user); setConfirmEmail(''); }}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          border: '1px solid #ff174450',
+                          borderRadius: 'var(--radius)',
+                          background: 'transparent',
+                          color: '#ff1744',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t.remove}
+                      </button>
+                    )}
+                    {user.role !== 'admin' && (
+                      <button
+                        onClick={() => handleAction(user.id, 'grant-admin')}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          border: '1px solid #ffd70050',
+                          borderRadius: 'var(--radius)',
+                          background: '#ffd70015',
+                          color: '#ffd700',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t.grantAdmin}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 서버 설정 — 접어서 아래로. 배포할 때 한 번 보는 것들이다 */}
+      <button
+        onClick={() => setSettingsOpen(v => !v)}
+        aria-expanded={settingsOpen}
+        style={{
+          width: '100%', marginTop: 20, marginBottom: settingsOpen ? 12 : 0,
+          background: 'none', border: '1px solid var(--border)', cursor: 'pointer',
+          borderRadius: 'var(--radius)', padding: '11px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          color: 'var(--text-secondary)', fontSize: 13,
+        }}
+      >
+        <span>서버 설정</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 15, transform: settingsOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s' }}>+</span>
+      </button>
+
+      {settingsOpen && (
+        <div style={{ marginBottom: 20 }}>
       {/* JWT Settings */}
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -382,142 +617,8 @@ export default function SecurityPanel() {
         </div>
       </div>
 
-      {/* User List */}
-      <h2 style={{
-        fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: 20,
-        letterSpacing: 2,
-        color: 'var(--accent)',
-        marginBottom: 12,
-      }}>
-        {t.userList}
-      </h2>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: 12,
-          fontFamily: "'Barlow', sans-serif",
-        }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              {[t.id, t.email, t.nickname, t.role, t.joinDate, t.actions].map((h, i) => (
-                <th key={i} style={{
-                  padding: '8px 6px',
-                  textAlign: 'left',
-                  color: 'var(--text-muted)',
-                  fontWeight: 600,
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '8px 6px', color: 'var(--text-muted)' }}>{user.id}</td>
-                <td style={{ padding: '8px 6px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.email}
-                </td>
-                <td style={{ padding: '8px 6px' }}>{user.nickname}</td>
-                <td style={{ padding: '8px 6px' }}>
-                  <span style={{
-                    fontWeight: 700,
-                    color: roleColor(user.role),
-                    fontSize: 11,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                  }}>
-                    {user.role}
-                  </span>
-                </td>
-                <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: 11 }}>
-                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
-                </td>
-                <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {user.role !== 'blocked' ? (
-                      <button
-                        onClick={() => handleAction(user.id, 'block')}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          border: '1px solid #ff174450',
-                          borderRadius: 'var(--radius)',
-                          background: '#ff174415',
-                          color: '#ff1744',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {t.block}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleAction(user.id, 'unblock')}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          border: '1px solid #00c85350',
-                          borderRadius: 'var(--radius)',
-                          background: '#00c85315',
-                          color: '#00c853',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {t.unblock}
-                      </button>
-                    )}
-                    {/* 지우기는 이미 막아둔 사람에게만 보인다.
-                        멀쩡한 사람 옆에 삭제 버튼이 늘 붙어 있으면 언젠가 눌린다 */}
-                    {user.role === 'blocked' && (
-                      <button
-                        onClick={() => { setDeleting(user); setConfirmEmail(''); }}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          border: '1px solid #ff174450',
-                          borderRadius: 'var(--radius)',
-                          background: 'transparent',
-                          color: '#ff1744',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {t.remove}
-                      </button>
-                    )}
-                    {user.role !== 'admin' && (
-                      <button
-                        onClick={() => handleAction(user.id, 'grant-admin')}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          border: '1px solid #ffd70050',
-                          borderRadius: 'var(--radius)',
-                          background: '#ffd70015',
-                          color: '#ffd700',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {t.grantAdmin}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        </div>
+      )}
 
       {/* ── 계정 삭제 확인 ──
           되돌릴 수 없다. 그래서 '정말요?' 한 번으로 끝내지 않고 이메일을 그대로 적게 한다.

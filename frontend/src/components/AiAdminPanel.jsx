@@ -113,7 +113,8 @@ export default function AiAdminPanel() {
           { label: 'L1 경고', value: threats.level1 || 0, color: 'var(--warning)' },
           { label: 'L2 잠금', value: threats.level2 || 0, color: '#ff6b1a' },
           { label: 'L3 정지', value: threats.level3 || 0, color: 'var(--danger)' },
-          { label: 'L4 삭제', value: threats.level4 || 0, color: '#ff0040' },
+          // 「L4 삭제」라고 적혀 있었다. L4 는 지우는 것이 아니라 영구 정지다
+          { label: 'L4 영구정지', value: threats.level4 || 0, color: 'var(--danger)' },
         ].map(t => (
           <div key={t.label} className="card" style={{ padding: 12, textAlign: 'center', borderColor: t.value > 0 ? t.color : 'var(--border)' }}>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: t.value > 0 ? t.color : 'var(--text-muted)' }}>{t.value}</div>
@@ -156,19 +157,31 @@ export default function AiAdminPanel() {
           </div>
 
           {/* AI 기능 설명 */}
+          {/* 무엇을 자동으로 하는가.
+              예전 목록은 **「즉시 계정 삭제 (LEVEL 4)」 · 「영구 삭제」**라고 적혀 있었다.
+              8/21 과 8/24 에 자동 판정에서 계정 삭제를 떼어냈는데(되돌릴 방법이 없어서),
+              이 목록만 그대로였다 — **AI 가 안 하는 일을 한다고 적어둔 채** 관리자가
+              이걸 보고 판단하고 있었다. 지금 실제로 하는 것으로 고쳤다 */}
           <div className="card" style={{ padding: 16, border: '1px solid var(--accent)' }}>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 2, color: 'var(--accent)', marginBottom: 10 }}>AI GUARD CAPABILITIES</div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 2, color: 'var(--accent)', marginBottom: 4 }}>
+              자동으로 하는 것
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.6 }}>
+              <b style={{ color: 'var(--text-secondary)' }}>계정과 기록을 지우는 일은 자동으로 하지 않습니다.</b>
+              {' '}막는 것까지가 자동이고, 없애는 것은 「보안 관리」에서 사람이 확인하고 합니다.
+            </div>
             {[
-              '비정상 대량 요청 감지 → IP 자동 잠금 (15/30/50회)',
-              '로그인 브루트포스 → 3/5/10회 차단 (1시간/24시간/7일)',
-              'XSS/SQL/NoSQL 인젝션 → 즉시 계정 삭제 (LEVEL 4)',
-              '프로토타입 오염 → 즉시 계정 삭제 (LEVEL 4)',
+              '비정상 대량 요청 → IP 자동 잠금 (15/30/50회)',
+              '로그인 브루트포스 → 3/5/10회 차단 (1시간 / 24시간 / 7일)',
+              'XSS · SQL/NoSQL 인젝션 → 영구 정지 + 로그인 차단 (LEVEL 4, 기록은 남김)',
+              '프로토타입 오염 → 영구 정지 + 로그인 차단 (LEVEL 4)',
               'API 스캔 공격 (404 반복) → 3일 잠금',
               '스팸 데이터 생성 (10건/분) → 7일 정지',
-              '봇/크롤러 User-Agent → 3일 잠금',
-              '정지 2회 누적 → 영구 삭제 (자동 에스컬레이션)',
-              '블랙리스트: 이메일 + IP + IP 대역 + User-Agent',
+              '봇 · 크롤러 User-Agent → 3일 잠금',
+              '정지 2회 누적 → 영구 정지 (자동 에스컬레이션)',
+              '블랙리스트: 이메일 · IP · IP 대역 · User-Agent',
               'URL 인코딩 우회 시도 자동 감지',
+              '관리자 계정은 자동 처벌 대상에서 뺀다 (자기 정지를 자기가 못 푼다)',
             ].map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />

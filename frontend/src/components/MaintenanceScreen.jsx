@@ -71,6 +71,30 @@ function runsOn(schedule, dateStr, weekday) {
   return true;
 }
 
+/**
+ * 이 스케줄이 **지금** 도는가.
+ *
+ * 관리자 화면의 목록이 「지금 도는 중」을 표시하려면 같은 판단이 필요하다.
+ * 판단을 두 곳에 적으면 언젠가 갈라진다 — 여기 하나만 쓴다.
+ */
+export function runningNow(schedule, ref = new Date()) {
+  if (!schedule) return false;
+  const nowMin = ref.getHours() * 60 + ref.getMinutes();
+  const day = ref.getDay();
+  const today = dateKey(ref);
+  const yesterday = dateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() - 1));
+  const startMin = schedule.startHour * 60 + schedule.startMin;
+  const endMin = startMin + schedule.durationMin;
+
+  for (const offset of [0, 1440]) {
+    const onDate = offset ? yesterday : today;
+    const onDay = offset ? (day + 6) % 7 : day;
+    if (!runsOn(schedule, onDate, onDay)) continue;
+    if (nowMin >= startMin - offset && nowMin < endMin - offset) return true;
+  }
+  return false;
+}
+
 function getMaintenanceInfo() {
   const schedules = getSchedules();
   const now = new Date();
@@ -119,6 +143,15 @@ function formatTime(sec) {
   return `${m}분 ${String(s).padStart(2, '0')}초`;
 }
 
+// 점검 종류별로 부르는 이름. 문단은 따로 두지 않는다 —
+// 예전에는 제목 · 안내문 · 뱃지 · 문단 · 꼬리말이 **전부 같은 말**을 했다
+const KINDS = {
+  emergency: { icon: '🚨', title: '긴급 점검 중', color: 'var(--danger)' },
+  server:    { icon: '🖥️', title: '서버 점검 중', color: 'var(--info)' },
+  regular:   { icon: '🔧', title: '정기 점검 중', color: 'var(--accent)' },
+};
+const kindOf = (t) => KINDS[t] || KINDS.regular;
+
 export default function MaintenanceScreen({ children }) {
   const [info, setInfo] = useState(() => getMaintenanceInfo());
   const [kicked, setKicked] = useState(false);
@@ -138,172 +171,136 @@ export default function MaintenanceScreen({ children }) {
     return () => { alive = false; clearInterval(id); };
   }, []);
 
+  // 시각을 다시 재는 주기.
+  //
+  // 예전에는 **언제나 1초마다** 돌면서 `setInfo` 를 불렀다. 이 컴포넌트가 앱 전체를
+  // 감싸고 있으니, 점검이 없는 평소에도 1초에 한 번씩 앱 꼭대기가 다시 그려졌다.
+  // 남은 시간을 초 단위로 세어야 하는 것은 **점검 중일 때뿐**이다.
   useEffect(() => {
+    const period = info.active ? 1000 : 30000;
     const timer = setInterval(() => {
       const newInfo = getMaintenanceInfo();
       setInfo(newInfo);
 
-      // 관리자는 강제 로그아웃 안 함
+      // 관리자는 막지 않는다
       if (admin) return;
-
-      // 점검 시작되면 차단 (로그아웃은 하지 않음 - 토큰 유지)
-      if (newInfo.active && !kicked) {
-        setKicked(true);
-      }
-      // 점검 끝나면 자동 복구
+      if (newInfo.active && !kicked) setKicked(true);
+      // 점검이 끝나면 저절로 되살아난다
       if (!newInfo.active && kicked) {
         setKicked(false);
         window.location.reload();
       }
-    }, 1000);
+    }, period);
     return () => clearInterval(timer);
-  }, [kicked, admin]);
+  }, [kicked, admin, info.active]);
 
-  // 관리자는 점검 중에도 통과
-  if (admin) return children;
+  // 관리자는 점검 중에도 앱을 쓴다. 다만 **지금 막혀 있다는 것을 알아야 한다** —
+  // 예전에는 관리자에게 아무 표시가 없어서, 점검을 걸어두고 잊으면 자기만 멀쩡한 앱을
+  // 보면서 사용자는 막혀 있는 상태가 이어졌다
+  if (admin) {
+    if (!info.active) return children;
+    const kind = kindOf(info.type);
+    return (
+      <>
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 99999,
+          background: kind.color, color: '#000',
+          padding: '7px 14px', fontSize: 12.5, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+        }}>
+          <span aria-hidden="true">{kind.icon}</span>
+          <span>{kind.title} — 사용자는 지금 앱을 못 씁니다</span>
+          <span style={{ marginLeft: 'auto', fontWeight: 500 }}>
+            {info.endTime} 까지 · {formatTime(Math.max(0, info.remainSec))} 남음
+          </span>
+        </div>
+        {children}
+      </>
+    );
+  }
 
   if (!info.active) return children;
+
+  const kind = kindOf(info.type);
+  // 남은 만큼 줄어드는 바. 예전에는 **지나간 만큼 차오르는** 바를 「남은 시간」 아래에
+  // 뒀다 — 숫자는 줄고 바는 늘어서 서로 반대로 움직였다
+  const leftRatio = info.durationMin > 0
+    ? Math.max(0, Math.min(1, info.remainSec / (info.durationMin * 60)))
+    : 0;
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 999999, padding: 20,
+      zIndex: 999999, padding: 20, overflow: 'auto',
     }}>
-      <div style={{ textAlign: 'center', maxWidth: 420 }}>
-        {/* 로고 */}
+      <div style={{ textAlign: 'center', maxWidth: 380, width: '100%' }}>
+        {/* 앱 이름은 작게. 여기 온 사람은 어느 앱인지 안다 */}
         <div style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: 38,
-          fontWeight: 700,
-          letterSpacing: 6,
+          fontSize: 18, fontWeight: 700, letterSpacing: 4,
           background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 12px rgba(255,107,26,0.3))',
-          marginBottom: 32,
+          marginBottom: 28,
         }}>
           STEEL BODY
         </div>
 
-        {/* 아이콘 */}
-        <div style={{ fontSize: 64, marginBottom: 20 }}>
-          {info.type === 'emergency' ? '🚨' : info.type === 'server' ? '🖥️' : '🔧'}
-        </div>
+        <div style={{ fontSize: 40, marginBottom: 14 }} aria-hidden="true">{kind.icon}</div>
 
-        {/* 제목 */}
         <div style={{
           fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: 28, letterSpacing: 3,
-          color: info.type === 'emergency' ? 'var(--danger)' : info.type === 'server' ? 'var(--info)' : 'var(--accent)',
-          marginBottom: 12,
+          fontSize: 24, letterSpacing: 3, color: kind.color, marginBottom: 26,
         }}>
-          {info.type === 'emergency' ? '긴급 점검 중' : info.type === 'server' ? '서버 점검 중' : '정기 점검 중'}
+          {kind.title}
         </div>
 
-        <div style={{
-          fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8,
-          marginBottom: 16,
-        }}>
-          잠시 후 다시 이용해주세요.
-        </div>
-
-        {/* 점검 공지 */}
-        <div style={{
-          background: info.type === 'emergency' ? 'rgba(232,64,64,0.1)' : info.type === 'server' ? 'rgba(74,154,255,0.1)' : 'rgba(255,107,26,0.1)',
-          border: '1px solid',
-          borderColor: info.type === 'emergency' ? 'var(--danger)' : info.type === 'server' ? 'var(--info)' : 'var(--accent)',
-          borderRadius: 'var(--radius)',
-          padding: '14px 16px',
-          marginBottom: 20,
-          textAlign: 'left',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 8px',
-              borderRadius: 'var(--radius)',
-              background: info.type === 'emergency' ? 'var(--danger)' : info.type === 'server' ? 'var(--info)' : 'var(--accent)',
-              color: info.type === 'emergency' ? '#fff' : '#000',
-            }}>{info.type === 'emergency' ? '긴급공지' : info.type === 'server' ? '서버공지' : '점검공지'}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-              {info.type === 'emergency' ? '긴급 서버 점검 안내' : info.type === 'server' ? '서버 점검 안내' : '정기 서버 점검 안내'}
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-            {info.type === 'emergency'
-              ? '현재 긴급 서버 점검이 진행 중입니다. 서비스 안정화를 위해 일시적으로 이용이 제한됩니다. 빠른 시간 내에 복구하겠습니다.'
-              : info.type === 'server'
-              ? '서버 점검이 진행 중입니다. 서버 재시작, 배포, 패치 적용 등의 작업이 이루어지고 있습니다. 잠시만 기다려주세요.'
-              : '더 나은 서비스를 위해 정기 점검을 진행하고 있습니다. 점검 완료 후 자동으로 서비스가 재개됩니다.'}
-          </div>
-          <div style={{
-            fontSize: 12, marginTop: 8, padding: '6px 10px',
-            background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
-            color: info.type === 'emergency' ? 'var(--danger)' : 'var(--accent)',
-          }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 6 }}>사유:</span>
-            {info.reason}
-          </div>
-        </div>
-
-        {/* 점검 시간 */}
+        {/* 여기 온 사람이 알고 싶은 것은 **언제 끝나나** 하나다. 제일 크게 둔다.
+            예전에는 이 숫자가 맨 아래에 있었고, 그 위로 제목 · 안내문 · 뱃지 · 문단이
+            전부 같은 말을 네 번 하고 있었다 */}
         <div style={{
           background: 'var(--bg-secondary)',
-          border: '1px solid var(--border)',
+          border: `1px solid ${kind.color}`,
           borderRadius: 'var(--radius)',
-          padding: '16px 24px',
-          marginBottom: 20,
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>점검 시간</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
-            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-          </div>
-          <div style={{
-            fontFamily: "'Bebas Neue', sans-serif",
-            fontSize: 24, letterSpacing: 2,
-            color: 'var(--text-primary)',
-          }}>
-            {info.startTime} ~ {info.endTime}
-            <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 8 }}>
-              ({info.durationMin}분)
-            </span>
-          </div>
-        </div>
-
-        {/* 남은 시간 */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--accent)',
-          borderRadius: 'var(--radius)',
-          padding: '16px 24px',
+          padding: '20px 18px', marginBottom: 14,
         }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>남은 시간</div>
           <div style={{
             fontFamily: "'Bebas Neue', sans-serif",
-            fontSize: 28, letterSpacing: 2,
-            color: 'var(--accent)',
+            fontSize: 34, letterSpacing: 2, color: kind.color, lineHeight: 1,
           }}>
             {formatTime(Math.max(0, info.remainSec))}
           </div>
-
-          {/* 프로그레스 바 */}
-          <div style={{
-            marginTop: 12, height: 4, background: 'var(--bg-tertiary)',
-            borderRadius: 2, overflow: 'hidden',
-          }}>
+          <div className="progress-bg" style={{ marginTop: 14, height: 5 }}>
             <div style={{
-              height: '100%',
-              width: `${Math.max(0, (1 - info.remainSec / (info.durationMin * 60)) * 100)}%`,
-              background: 'linear-gradient(90deg, var(--accent), #ffd700)',
-              borderRadius: 2,
+              height: 5, width: `${leftRatio * 100}%`,
+              background: kind.color, borderRadius: 'var(--radius)',
               transition: 'width 1s linear',
             }} />
           </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 12 }}>
+            {info.startTime} ~ {info.endTime}
+            <span style={{ color: 'var(--text-muted)' }}> · {info.durationMin}분</span>
+          </div>
         </div>
 
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 16 }}>
-          점검이 끝나면 자동으로 복구됩니다
+        {/* 사유는 관리자가 적은 그 말이다. 앱이 지어낸 문단은 없앴다 */}
+        <div style={{
+          background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)', padding: '12px 14px',
+          fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7,
+          textAlign: 'left', marginBottom: 16,
+        }}>
+          <span style={{ color: 'var(--text-muted)', marginRight: 6 }}>사유</span>
+          {info.reason}
+        </div>
+
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          끝나면 저절로 다시 열립니다. 새로고침하지 않으셔도 됩니다.
+          <br />
+          <b style={{ color: 'var(--text-secondary)' }}>적어두신 기록은 그대로 있습니다.</b>
         </div>
       </div>
     </div>

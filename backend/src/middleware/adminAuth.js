@@ -6,7 +6,7 @@ module.exports = (req, res, next) => {
   auth(req, res, () => {
     const user = db.findUserById(req.userId);
     if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return res.status(403).json({ error: '관리자만 쓸 수 있어요' });
     }
     req.isAdmin = true;
     next();
