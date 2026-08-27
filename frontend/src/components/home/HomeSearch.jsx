@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SEARCH_HISTORY_KEY } from '../../data/localKeys';
 import { isAdmin } from '../../data/admin';
 import { readLS, removeLS, saveLS } from '../../data/safeStorage';
 
@@ -67,7 +68,7 @@ export const SEARCH_ITEMS = [
   { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
 ];
 
-const HISTORY_KEY = 'ironlog_search_history';
+const HISTORY_KEY = SEARCH_HISTORY_KEY;
 const HISTORY_MAX = 10;
 
 export default function HomeSearch() {

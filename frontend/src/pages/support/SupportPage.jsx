@@ -17,11 +17,12 @@ import { FEED } from './feedData';
 import FeedList from './FeedList';
 import Satisfaction from './Satisfaction';
 import { FAQ, matchFaq } from './faq';
+import { SEEN_REPLY_KEY as SEEN_REPLY_LS_KEY } from '../../data/localKeys';
 
 const CHANGES_SHOWN = 6;
 
 // 어디까지 읽었는지. 답변이 달린 시각(ISO)을 그대로 넣어두고 그보다 새 것이 있으면 알린다
-const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
+const SEEN_REPLY_KEY = SEEN_REPLY_LS_KEY;
 
 function Sec({ children }) {
   return (

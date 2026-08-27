@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MAINT_KEY as MAINT_LS_KEY, MAINT_VERSION_KEY as MAINT_VERSION_LS_KEY } from '../data/localKeys';
 // 이 컴포넌트는 App 전체를 감싼다. 쿠키를 막아둔 브라우저에서 localStorage 가
 // 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
 import { readLS, saveLS } from '../data/safeStorage';
@@ -12,7 +13,7 @@ import { dateKey } from '../data/dateKey';
 // 예전에는 이 목록이 localStorage 에만 있었다. 관리자가 점검을 잡아도 그 브라우저에만
 // 저장돼서 **다른 사람에게는 아무 일도 일어나지 않았다.** 점검 화면도 안 뜨고,
 // 고객센터의 '점검 예정' 도 영영 비어 있었다.
-const MAINT_KEY = 'ironlog_maintenance';
+const MAINT_KEY = MAINT_LS_KEY;
 
 const DEFAULT_SCHEDULE = [];
 
@@ -51,7 +52,7 @@ export function forceDefaultSchedule() {
 
 // 앱 시작 시 기본 스케줄과 localStorage 동기화
 // DEFAULT_SCHEDULE이 코드에서 바뀌면 자동 반영 (빈 배열이면 건너뜀 — 사용자 설정 보존)
-const MAINT_VERSION_KEY = 'ironlog_maint_version';
+const MAINT_VERSION_KEY = MAINT_VERSION_LS_KEY;
 const CURRENT_VERSION = JSON.stringify(DEFAULT_SCHEDULE);
 if (DEFAULT_SCHEDULE.length > 0 && readLS(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
   saveLS(MAINT_KEY, CURRENT_VERSION);

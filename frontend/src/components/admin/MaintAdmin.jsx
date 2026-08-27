@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MAINT_VERSION_KEY } from '../../data/localKeys';
 import { getSchedules, fetchSchedules, pushSchedules, runningNow } from '../MaintenanceScreen';
 import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
@@ -248,7 +249,7 @@ export default function MaintAdmin() {
     // 서버가 받아준 뒤에 알린다. 여기가 특히 중요하다 —
     // 「점검 시작!」을 보고 나갔는데 실제로는 안 걸려 있으면 아무도 모른다
     if (!(await save(updated))) return;
-    saveLS('ironlog_maint_version', JSON.stringify(updated));
+    saveLS(MAINT_VERSION_KEY, JSON.stringify(updated));
     toast(soon
       ? `${TYPE_LABEL[type]} 점검 시작! (${dur}분간)`
       : `${TYPE_LABEL[type]} 점검 예약됨 — ${dateStr} ${timeStr} 부터 ${dur}분간`);

@@ -4,7 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Rada
 import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
-import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL, COMPARE_PHOTOS_KEY } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 

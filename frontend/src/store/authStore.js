@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PROFILE_PHOTO_KEY, COMPARE_PHOTOS_KEY } from '../data/photoLimit';
+import { PER_USER_KEYS } from '../data/localKeys';
 import client from '../api/client';
 import { useWorkoutStore } from './workoutStore';
 import { useInbodyStore } from './inbodyStore';
@@ -34,12 +34,10 @@ REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 //
 // 「기억해둔 것」과 「누구인지」 둘 다다. 남겨두면 다음에 그 기기를 쓰는 사람의
 // 로그인 화면에 앞 사람의 아이디와 닉네임이 미리 채워진다.
-const LOGOUT_KEYS = [
-  'token', 'nickname', 'ironlog_role', 'ironlog_email',
-  'auto_login', 'saved_id', 'saved_nickname',
-  // 사진도 지운다. 안 지우면 다음 사람에게 **앞 사람의 몸 사진**이 그대로 뜬다
-  PROFILE_PHOTO_KEY, COMPARE_PHOTOS_KEY,
-];
+// 목록은 `data/localKeys.js` 가 갖고 있다. 저장하는 쪽과 지우는 쪽이 **같은 목록**을
+// 봐야 한다 — 따로 적어두면 새 키를 만든 사람이 여기에 넣는 것을 잊는다. 실제로
+// 사진 · 검색 기록 · 답변 확인 시각이 그렇게 빠져 있었다
+const LOGOUT_KEYS = PER_USER_KEYS;
 
 export const useAuthStore = create((set) => ({
   token: readLS('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
