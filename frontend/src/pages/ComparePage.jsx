@@ -4,11 +4,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Rada
 import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
-import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL, COMPARE_PHOTOS_KEY } from '../data/photoLimit';
 import { shrinkImage } from '../data/shrinkImage';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 
-const PHOTO_KEY = 'ironlog_photos';
+const PHOTO_KEY = COMPARE_PHOTOS_KEY;
 
 function loadPhotos() {
   try { return JSON.parse(readLS(PHOTO_KEY)) || {}; } catch { return {}; }
@@ -176,6 +176,13 @@ export default function ComparePage() {
   useEffect(() => { fetchAll(); }, []);
 
   useEffect(() => {
+    // **서버가 답했으면 서버가 진실이다** — 「한 장도 없다」는 답도 답이다.
+    //
+    // 예전에는 사진이 하나라도 있을 때만 맞췄다. 그래서 다른 기기에서 전 · 후를 둘 다
+    // 지우면, 이쪽은 브라우저에 남은 옛 사진을 **계속 띄웠다.** 지운 줄 아는데 그대로
+    // 보이는 것은 몸 사진에서 특히 나쁘다.
+    //
+    // 못 불러왔을 때(catch)만 있던 것을 지킨다 — 인터넷이 끊긴 것과 지운 것은 다르다
     client.get('/photos').then(({ data }) => {
       if (!Array.isArray(data)) return;
       const before = data.find(p => p.type === 'before');
@@ -183,10 +190,8 @@ export default function ComparePage() {
       const serverPhotos = {};
       if (before) serverPhotos.before = before.data;
       if (after) serverPhotos.after = after.data;
-      if (Object.keys(serverPhotos).length > 0) {
-        setPhotos(serverPhotos);
-        savePhotos(serverPhotos);
-      }
+      setPhotos(serverPhotos);
+      savePhotos(serverPhotos);
     }).catch(() => {});
   }, []);
 

@@ -10,12 +10,12 @@ import { toast } from './Toast';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
-import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL, PROFILE_PHOTO_KEY } from '../data/photoLimit';
 import { shrinkImage } from '../data/shrinkImage';
 import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
 
-const PROFILE_KEY = 'ironlog_profile_photo';
+const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
 
 export default function Layout() {
@@ -62,12 +62,15 @@ export default function Layout() {
   const fileRef = useRef(null);
 
   useEffect(() => {
+    // **서버가 답했으면 서버가 진실이다** — 「없다」는 답도 답이다.
+    // 예전에는 사진이 있을 때만 맞췄다. 다른 기기에서 지우면 이쪽은 브라우저에
+    // 남은 옛 사진을 계속 띄웠다. 못 불러왔을 때(catch)만 있던 것을 지킨다
     client.get('/photos').then(({ data }) => {
-      const profile = data.find(p => p.type === 'profile');
-      if (profile) {
-        setProfilePhoto(profile.data);
-        saveLS(PROFILE_KEY, profile.data);
-      }
+      const list = Array.isArray(data) ? data : [];
+      const profile = list.find(p => p.type === 'profile');
+      setProfilePhoto(profile ? profile.data : '');
+      if (profile) saveLS(PROFILE_KEY, profile.data);
+      else removeLS(PROFILE_KEY);
     }).catch(() => {});
   }, []);
 

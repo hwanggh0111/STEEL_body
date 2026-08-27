@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { PROFILE_PHOTO_KEY, COMPARE_PHOTOS_KEY } from '../data/photoLimit';
 import client from '../api/client';
 import { useWorkoutStore } from './workoutStore';
 import { useInbodyStore } from './inbodyStore';
@@ -36,6 +37,8 @@ REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 const LOGOUT_KEYS = [
   'token', 'nickname', 'ironlog_role', 'ironlog_email',
   'auto_login', 'saved_id', 'saved_nickname',
+  // 사진도 지운다. 안 지우면 다음 사람에게 **앞 사람의 몸 사진**이 그대로 뜬다
+  PROFILE_PHOTO_KEY, COMPARE_PHOTOS_KEY,
 ];
 
 export const useAuthStore = create((set) => ({

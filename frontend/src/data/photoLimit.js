@@ -14,3 +14,12 @@ export const PHOTO_MAX_BASE64 = 2 * 1024 * 1024;
 export const PHOTO_MAX_FILE = Math.floor(PHOTO_MAX_BASE64 * 3 / 4) - 1024;
 
 export const PHOTO_MAX_LABEL = '1.5MB';
+
+// 브라우저에 사진을 캐싱해두는 자리.
+//
+// **로그아웃할 때 반드시 지워야 한다** (`store/authStore.js` 의 LOGOUT_KEYS).
+// 안 지우면 같은 기기에서 다음 사람이 로그인했을 때 **앞 사람의 몸 사진**이 그대로
+// 뜬다. 하필 제일 안 보여도 되는 것이다. 그래서 키 이름을 여기 한 곳에 두고
+// 쓰는 쪽과 지우는 쪽이 같은 것을 본다 — 두 곳에 적어두면 언젠가 갈린다.
+export const PROFILE_PHOTO_KEY = 'ironlog_profile_photo';
+export const COMPARE_PHOTOS_KEY = 'ironlog_photos';
