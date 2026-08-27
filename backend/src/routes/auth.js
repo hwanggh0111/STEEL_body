@@ -291,9 +291,16 @@ router.post('/refresh', (req, res) => {
   }
   // 기존 refresh token 삭제 (rotation)
   db.deleteRefreshToken(refreshToken);
-  // 새 토큰 발급
-  issueTokens(res, user);
-  res.json({ nickname: user.nickname, role: user.role || 'user' });
+  // 새 토큰 발급.
+  //
+  // **새 access token 을 몸통에도 담아 보낸다.** 예전에는 쿠키로만 줬다.
+  // 미들웨어는 쿠키를 먼저 보므로 보통은 그걸로 돌아가지만, 쿠키가 막힌 브라우저
+  // (사파리 ITP · 시크릿 창 · 서드파티 쿠키 차단)에서는 화면이 계속 **옛 토큰**을
+  // 헤더로 보낸다. 그러면 갱신은 200 인데 다음 요청이 또 401 이고, 갱신이 실패한
+  // 것이 아니니 실패 횟수도 안 올라간다 — **API 를 부를 때마다 갱신이 나가는 고리**에
+  // 갇힌다. 화면은 아무것도 안 되고 서버만 두들겨 맞는다.
+  const { accessToken } = issueTokens(res, user);
+  res.json({ token: accessToken, nickname: user.nickname, role: user.role || 'user' });
 });
 
 // 로그아웃

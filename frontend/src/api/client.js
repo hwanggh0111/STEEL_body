@@ -67,11 +67,15 @@ client.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post(
+        const { data } = await axios.post(
           (import.meta.env.VITE_API_URL || '/api') + '/auth/refresh',
           {},
           { withCredentials: true }
         );
+        // **새 토큰을 받아 적는다.** 안 적으면 쿠키가 막힌 브라우저에서 요청 인터셉터가
+        // 계속 옛 토큰을 헤더로 보내고, 갱신은 200 인데 다음 요청이 또 401 이 된다.
+        // 갱신이 실패한 것이 아니라 실패 횟수도 안 올라가서 고리에서 못 빠져나온다
+        if (data?.token) saveLS('token', data.token);
         // 갱신 성공: 카운터 리셋 + 큐 복사 후 초기화
         refreshFailCount = 0;
         isRefreshing = false;
