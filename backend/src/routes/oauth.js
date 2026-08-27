@@ -1,10 +1,10 @@
 const router = require('express').Router();
 const axios = require('axios');
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
-const { JWT, BCRYPT_ROUNDS } = require('../config/security');
+const { BCRYPT_ROUNDS } = require('../config/security');
 const { sanitize } = require('../utils/sanitize');
+const { issueTokens } = require('../utils/tokens');
 
 const crypto = require('crypto');
 const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -40,22 +40,12 @@ function isAllowedFrontendOrigin(origin) {
   return false;
 }
 
-// OAuth용 쿠키 설정 헬퍼
-function setAuthCookies(res, user) {
-  const accessToken = jwt.sign(
-    { userId: user.id, role: user.role || 'user' },
-    process.env.JWT_SECRET,
-    { expiresIn: JWT.accessExpiry, algorithm: JWT.algorithm }
-  );
-  const refreshToken = crypto.randomBytes(48).toString('hex');
-  const expiresAt = new Date(Date.now() + JWT.refreshMs).toISOString();
-  db.saveRefreshToken(user.id, refreshToken, expiresAt);
-  const csrfToken = crypto.randomBytes(24).toString('hex');
-
-  res.cookie('sb_access', accessToken, { httpOnly: true, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/', maxAge: 15 * 60 * 1000 });
-  res.cookie('sb_refresh', refreshToken, { httpOnly: true, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/api/auth', maxAge: JWT.refreshMs });
-  res.cookie('sb_csrf', csrfToken, { httpOnly: false, secure: IS_PROD, sameSite: IS_PROD ? 'strict' : 'lax', path: '/', maxAge: JWT.refreshMs });
-}
+// 소셜로 들어온 사람에게도 이메일로 들어온 사람과 **똑같이** 쥐여준다.
+//
+// 예전에는 이 파일에 쿠키 설정이 통째로 복붙돼 있었다. 값이 같아 보여도 한쪽만 고치는
+// 날 두 길이 갈린다 — 「이메일로는 유지되는데 구글로 들어오면 자꾸 풀린다」 같은,
+// 원인이 안 보이는 버그가 된다. `utils/tokens.js` 한 곳에서 만든다
+const setAuthCookies = issueTokens;
 
 // 요청 기반으로 백엔드/프론트엔드 URL 결정 (모바일/터널 지원)
 function getUrls(req) {

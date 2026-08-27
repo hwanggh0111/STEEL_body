@@ -1,56 +1,10 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
-const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const db     = require('../db');
-const { JWT, BCRYPT_ROUNDS } = require('../config/security');
+const { BCRYPT_ROUNDS } = require('../config/security');
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
-
-const IS_PROD = process.env.NODE_ENV === 'production';
-
-// 쿠키 옵션
-const ACCESS_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: IS_PROD,
-  sameSite: IS_PROD ? 'strict' : 'lax',
-  path: '/',
-  maxAge: 15 * 60 * 1000, // 15분
-};
-const REFRESH_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: IS_PROD,
-  sameSite: IS_PROD ? 'strict' : 'lax',
-  path: '/api/auth',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-};
-const CSRF_COOKIE_OPTS = {
-  httpOnly: false, // 프론트에서 읽을 수 있어야 함
-  secure: IS_PROD,
-  sameSite: IS_PROD ? 'strict' : 'lax',
-  path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-};
-
-// 토큰 생성 + 쿠키 설정 헬퍼
-function issueTokens(res, user) {
-  const accessToken = jwt.sign(
-    { userId: user.id, role: user.role || 'user' },
-    process.env.JWT_SECRET,
-    { expiresIn: JWT.accessExpiry, algorithm: JWT.algorithm }
-  );
-  const refreshToken = crypto.randomBytes(48).toString('hex');
-  const expiresAt = new Date(Date.now() + JWT.refreshMs).toISOString();
-  db.saveRefreshToken(user.id, refreshToken, expiresAt);
-
-  const csrfToken = crypto.randomBytes(24).toString('hex');
-
-  res.cookie('sb_access', accessToken, ACCESS_COOKIE_OPTS);
-  res.cookie('sb_refresh', refreshToken, REFRESH_COOKIE_OPTS);
-  res.cookie('sb_csrf', csrfToken, CSRF_COOKIE_OPTS);
-
-  return { accessToken, refreshToken, csrfToken };
-}
 
 // 인증번호 저장소 (메모리) + 실패 횟수 추적
 const verifyStore = {};
@@ -62,6 +16,7 @@ const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
 
 const { sanitize, cleanName } = require('../utils/sanitize');
+const { issueTokens } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED } = require('../utils/mailer');
 
 // 이메일 형식 검증
