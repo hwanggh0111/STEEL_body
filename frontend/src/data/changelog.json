@@ -2,6 +2,15 @@
   "generated": "2026-08-27",
   "items": [
     {
+      "hash": "b70dfba",
+      "date": "2026-08-27",
+      "type": "fix",
+      "label": "고침",
+      "scope": "확인",
+      "text": "「지웠습니다」라고 해놓고 안 지워지던 것",
+      "detail": "`npm run smoke` 는 검사 계정을 만들고 끝나면 지운다. 그런데 이 검사는 **서버가 떠\n있어야** 돌아가고, 서버는 DB 를 램에 들고 있다가 나중에 파일로 흘린다. 지운 직후에\n서버가 옛 내용을 덮어쓰면 계정이 되살아난다. 실제로 그렇게 몇 개가 쌓였다.\n\n「지웠습니다」라고 해놓고 안 지워지는 것이 제일 나쁘다. **지웠다고 믿지 않는다** —\n잠깐 뒤에 다시 읽어보고, 살아 있으면 그렇다고 말하고 다음에 뭘 하면 되는지 알려준다.\n\n`npm run smoke:clean` 을 만들었다. `@smoke.local` 로 끝나는 것을 한 번에 지운다\n(서버를 내리고 쓴다).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
+    },
+    {
       "hash": "0ffd02b",
       "date": "2026-08-27",
       "type": "feat",
@@ -54,15 +63,6 @@
       "scope": "보안",
       "text": "카메라 · 마이크 · 위치 차단이 코드에만 있고 헤더로는 안 나가던 것",
       "detail": "helmet 설정 안에 이렇게 적혀 있었다.\n\n    permissionsPolicy: { features: { camera: [\"'none'\"], ... } }\n\n**helmet 에는 그런 옵션이 없다.** 모르는 옵션이라 조용히 무시됐고, `Permissions-Policy`\n헤더는 한 번도 나간 적이 없다. 응답을 받아보면 그 자리가 비어 있다.\n\n그런데 관리자 보안 보고서는 「camera=none, microphone=none, geolocation=none」이라고\n적고 있었다. **있지도 않은 방어를 있다고 읽는 쪽이, 없는 것을 아는 것보다 나쁘다.**\n오늘 아침 입력 스캔에서 겪은 것과 같은 종류다 — 코드는 있는데 안 도는 것.\n\n직접 내보낸다. 값은 `config/security.js` 한 곳에 두고 서버와 보고서가 같이 읽는다 —\n두 곳에 따로 적어두면 또 갈린다.\n\n같이 고친 것 — 보고서의 SQL · NoSQL 줄. 오늘 「없는 데이터베이스를 노리는 패턴」을\n걷어냈는데 보고서에는 「Pattern detection」이 그대로 남아 있었다. 이 앱은 SQL 도\n몽고도 안 쓴다고 그대로 적었다.\n\n확인 — API 응답에도 정적 파일 응답에도 헤더가 붙는다. `npm run smoke` 통과.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
-    },
-    {
-      "hash": "1c06d55",
-      "date": "2026-08-27",
-      "type": "feat",
-      "label": "새 기능",
-      "scope": "확인",
-      "text": "화면을 눈으로 볼 수 있게 시연 데이터 — npm run seed",
-      "detail": "갓 가입한 계정으로는 **화면 절반이 빈칸이다.** 달력도, 그래프도, 주간 요약도,\n최고 기록도, 연속 주도 쌓인 것이 있어야 보인다. 그 상태로 화면을 하나씩 눌러봐야\n「잘 나오는지」를 확인할 수가 없다.\n\n석 달치를 넣는다. **아무렇게나 넣지 않았다** — 주 3~4회, 무게가 두 주마다\n2.5kg 씩 늘고, 부위가 돌아가고, **한 주는 통째로 쉰다.** 그래야 화면이 실제로 하는\n말을 볼 수 있다. 넣고 나면 이렇게 나온다.\n\n    이번 주 3일 · 총 볼륨 9,400kg · 주 연속 5주\n    부위: 가슴 12세트 · 어깨 8세트 · 팔 4세트\n    최고 기록 12종목 (레그프레스 1RM 177kg …)\n    「지난주보다 1일 적어요」 「등이 2주째 없어요」\n\n만들면서 나온 것 둘.\n\n**1. 날짜를 「며칠 전」으로 잡았더니 쉰 주가 안 생겼다.** 연속 주가 13주로 나왔다 —\n앱은 한 주를 월요일에 시작하는데 「며칠 전」 묶음이 그 경계와 안 맞아 쉰 자리가\n앞뒤로 흩어진 것이다. 월요일 기준으로 다시 잡으니 5주로 제대로 끊긴다.\n\n**2. 지우고 다시 넣었더니 105건이 아니라 108건이 됐다.** 서버가 DB 를 램에 들고\n있다가 나중에 파일로 흘리는데, 켜진 채로 파일을 지우면 옛 내용이 되살아난다.\n이제 서버가 떠 있으면 **지우지 않고 멈춘다** — 조용히 반만 지우는 것보다 낫다.\n넣는 쪽도 이미 있는 것은 건너뛴다.\n\n도배 방지(분당 60건)에 걸리면 기다렸다 이어 넣는다. 가드가 제대로 도는 것이라\n스크립트가 속도를 맞추는 게 맞다.\n\n    로그인: seed@demo.local / seed12345\n    지울 때: npm run seed:clear (서버를 내리고)\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
     },
     {
       "hash": "8eb120b",
