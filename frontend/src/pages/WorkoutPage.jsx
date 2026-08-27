@@ -129,6 +129,8 @@ export default function WorkoutPage() {
   const [saving, setSaving] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  // 키보드로 훑을 때 어디에 있나. -1 은 아직 아무것도 안 고른 것
+  const [suggestIdx, setSuggestIdx] = useState(-1);
   const [editingId, setEditingId] = useState(null);
   const [editingOriginalDate, setEditingOriginalDate] = useState(null);
   // 방금 넘긴 최고 기록. 저장 직후 한 번 띄우고, 근거가 된 기록이 바뀌면 내린다
@@ -230,6 +232,32 @@ export default function WorkoutPage() {
     setAutofilled(false);
     const filtered = allExercises.filter(ex => ex.toLowerCase().includes(val.toLowerCase()));
     setSuggestions(val ? filtered.slice(0, 5) : []);
+    setSuggestIdx(-1);
+  };
+
+  // 자동완성을 **키보드로도** 고를 수 있게.
+  //
+  // 예전에는 `<div onClick>` 다섯 줄이 전부였다. 폰에서는 되지만 컴퓨터로 치는
+  // 사람은 손을 자판에서 떼야 했고, 화면 읽기 프로그램에는 그냥 글자 덩어리였다.
+  // 이 앱의 다른 자리(휴식 타이머 토글)는 이미 키보드를 받는다 — 여기만 남아 있었다.
+  //
+  // ↓↑ 로 훑고 Enter 로 고른다. Esc 로 닫는다. 아무것도 안 골랐을 때(-1) 의 Enter 는
+  // 그대로 두어 폼이 저장되게 한다 — 치자마자 저장하는 사람의 길을 막지 않는다
+  const handleExerciseKeyDown = (e) => {
+    if (suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSuggestIdx(n => (n + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSuggestIdx(n => (n <= 0 ? suggestions.length : n) - 1);
+    } else if (e.key === 'Enter' && suggestIdx >= 0) {
+      e.preventDefault();
+      handleSuggestionClick(suggestions[suggestIdx]);
+    } else if (e.key === 'Escape') {
+      setSuggestions([]);
+      setSuggestIdx(-1);
+    }
   };
 
   const handleExerciseBlur = () => {
@@ -252,6 +280,7 @@ export default function WorkoutPage() {
   const handleSuggestionClick = (name) => {
     setExercise(name);
     setSuggestions([]);
+    setSuggestIdx(-1);
     // 자동 채우기 트리거
     const last = findLastRecord(name);
     if (last && !weight && !sets && !reps) {
@@ -585,6 +614,12 @@ export default function WorkoutPage() {
             value={exercise}
             onChange={handleExerciseChange}
             onBlur={handleExerciseBlur}
+            onKeyDown={handleExerciseKeyDown}
+            role="combobox"
+            aria-expanded={suggestions.length > 0}
+            aria-controls="exercise-suggestions"
+            aria-activedescendant={suggestIdx >= 0 ? `exercise-suggestion-${suggestIdx}` : undefined}
+            autoComplete="off"
             style={{ marginBottom: 4, paddingRight: exercise ? 36 : undefined }}
           />
           {/* 예전에는 입력칸 아래에 「다른 운동」이라는 단추가 따로 있었다.
@@ -606,16 +641,30 @@ export default function WorkoutPage() {
             >✕</button>
           )}
           {suggestions.length > 0 && (
-            <div style={{
+            <div
+              id="exercise-suggestions"
+              role="listbox"
+              style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
               background: 'var(--bg-secondary)', border: '1px solid var(--accent)',
               borderRadius: 'var(--radius)', overflow: 'hidden', marginTop: 2,
             }}>
-              {suggestions.map(s => (
-                <div key={s} onClick={() => handleSuggestionClick(s)}
-                  style={{ padding: '10px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              {suggestions.map((s, idx) => (
+                <div
+                  key={s}
+                  id={`exercise-suggestion-${idx}`}
+                  role="option"
+                  aria-selected={idx === suggestIdx}
+                  // 누르는 순간 입력칸이 포커스를 잃으면 blur 가 목록을 닫아 클릭이 샌다.
+                  // mousedown 을 막아 포커스를 잡아두고, 클릭은 그대로 받는다
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSuggestionClick(s)}
+                  onMouseEnter={() => setSuggestIdx(idx)}
+                  style={{
+                    padding: '10px 12px', cursor: 'pointer', fontSize: 13,
+                    borderBottom: '1px solid var(--border)',
+                    background: idx === suggestIdx ? 'var(--bg-tertiary)' : 'transparent',
+                  }}
                 >{s}</div>
               ))}
             </div>

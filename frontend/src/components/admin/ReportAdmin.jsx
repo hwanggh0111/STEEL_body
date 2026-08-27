@@ -352,7 +352,13 @@ export default function ReportAdmin() {
 
             return (
               <div key={r.id} className="card" style={{ padding: '13px 15px' }}>
-                <div onClick={() => openItem(r)} style={{ cursor: 'pointer' }}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openItem(r)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(r); } }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 15 }}>{kd.icon}</span>
                     <span style={{ fontSize: 11.5, color: kd.color }}>{kd.label}</span>

@@ -71,7 +71,14 @@ function BodyLine({ records, onGo }) {
   const stale = gap !== null && gap >= INBODY_STALE_DAYS;
 
   return (
-    <div className="card clickable" onClick={() => onGo(stale)} style={{
+    // 눌리는 카드는 단추처럼 다뤄야 한다 — 안 그러면 자판만 쓰는 사람은 닿을 수가 없다
+    <div
+      className="card clickable"
+      role="button"
+      tabIndex={0}
+      onClick={() => onGo(stale)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(stale); } }}
+      style={{
       marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
