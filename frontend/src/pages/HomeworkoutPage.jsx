@@ -129,17 +129,64 @@ export default function HomeworkoutPage() {
     return () => clearInterval(id);
   }, [running, selected]);
 
+  // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
+  const pausedLeftRef = useRef(0);
+
+  // 처음부터 시작한다. 멈춰뒀던 자리는 버린다
   const startProgram = () => {
     if (!exercises.length) return;
+    pausedLeftRef.current = 0;
     setFinished(false);
     setRunning(true);
     beginPhase(0, false);
   };
 
-  const stopProgram = () => {
+  // 일시정지.
+  //
+  // 예전에는 이 자리가 「중지」였고, 누르면 `running` 만 끄고 끝이었다.
+  // 그런데 다시 「시작하기」를 누르면 `beginPhase(0, false)` 라 **처음부터** 돌았다.
+  // 8개짜리를 하다가 5번째에서 전화를 받으면 **다섯 개를 다시 해야 했다.**
+  //
+  // 이제 멈춘 자리를 기억한다. 남은 초까지 그대로 들고 있다가 이어서 센다.
+  const pauseProgram = () => {
+    pausedLeftRef.current = Math.max(0, deadlineRef.current - Date.now());
     phaseRef.current = { ...phaseRef.current, done: true };
     setRunning(false);
   };
+
+  const resumeProgram = () => {
+    const left = pausedLeftRef.current;
+    if (left <= 0) { startProgram(); return; }
+    deadlineRef.current = Date.now() + left;
+    phaseRef.current = { ...phaseRef.current, done: false };
+    setTimeLeft(Math.ceil(left / 1000));
+    setRunning(true);
+  };
+
+  // 그만두기 — 처음으로 되돌린다
+  const quitProgram = () => {
+    pausedLeftRef.current = 0;
+    phaseRef.current = { idx: 0, rest: false, done: true };
+    setRunning(false);
+    setCurrentIdx(0);
+    setIsRest(false);
+    setTimeLeft(0);
+  };
+
+  // 어디까지 했나. 끝냈으면 전부, 중간에 멈췄으면 지나온 것까지
+  const doneCount = finished ? exercises.length : currentIdx;
+  const doneSeconds = exercises
+    .slice(0, doneCount)
+    .reduce((sum, e) => sum + e.duration, 0);
+
+  // 기록 화면으로 넘길 값.
+  //
+  // 예전에는 운동명만 넘겨서, 빈 폼에 이름만 적힌 채 **세트와 횟수를 지어내야** 했다
+  // (둘 다 필수 칸이다). 홈트는 시간으로 하는 것이라 「한 운동 = 한 세트」로 세고,
+  // 횟수는 1 로 둔다. 고치고 싶으면 그 자리에서 고치면 된다
+  const goRecord = (count) => navigate('/workout', {
+    state: { exercise: `홈트 - ${selected}`, sets: String(Math.max(1, count)), reps: '1' },
+  });
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
 
@@ -203,25 +250,39 @@ export default function HomeworkoutPage() {
     );
   }
 
-  // 완료 화면
+  // 완료 화면.
+  //
+  // 예전에는 「COMPLETE!」 한 줄이 전부였다 — **무엇을 얼마나 했는지가 없었다.**
+  // 방금 한 것을 적어주고, 다시 할 길과 기록할 길을 같이 둔다.
   if (finished) {
     return (
       <div>
-        <div className="empty-state" style={{ color: 'var(--accent)' }}>
-          <div className="empty-state-title" style={{ color: 'var(--accent)' }}>COMPLETE!</div>
-          <div className="empty-state-desc" style={{ color: 'var(--text-secondary)' }}>
-            {selected} 프로그램을 완료했어요
+        <div style={{ textAlign: 'center', padding: '40px 0 28px' }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">💪</div>
+          <div style={{
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, letterSpacing: 3,
+            color: 'var(--accent)', marginBottom: 8,
+          }}>다 했어요</div>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+            {selected}
+            <br />
+            <span style={{ color: 'var(--text-primary)' }}>
+              {exercises.length}개 운동 · 움직인 시간 {Math.round(doneSeconds / 60)}분
+            </span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
-          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSelected(null); setFinished(false); }}>
+
+        <button className="btn-primary" onClick={() => goRecord(exercises.length)}>
+          운동 기록에 남기기
+        </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setFinished(false); startProgram(); }}>
+            다시 하기
+          </button>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSelected(null); setFinished(false); quitProgram(); }}>
             목록으로
           </button>
-          <button className="btn-primary" style={{ flex: 1 }} onClick={() => navigate('/workout', { state: { exercise: `홈트 - ${selected}` } })}>
-            기록 저장
-          </button>
         </div>
-  
       </div>
     );
   }
@@ -234,7 +295,7 @@ export default function HomeworkoutPage() {
           <div className="accent-bar" />
           {selected}
         </div>
-        <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => { stopProgram(); setSelected(null); }}>
+        <button className="btn-secondary" style={{ width: 'auto', fontSize: 12, padding: '4px 12px' }} onClick={() => { quitProgram(); setSelected(null); }}>
           목록
         </button>
       </div>
@@ -256,22 +317,41 @@ export default function HomeworkoutPage() {
           <button
             className="btn-secondary"
             style={{ marginTop: 16 }}
-            onClick={stopProgram}
+            onClick={pauseProgram}
           >
-            중지
+            일시정지
           </button>
         </div>
       )}
 
-      {/* 시작 버튼 */}
+      {/* 시작 · 이어서 하기 */}
       {!running && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-            총 {exercises.length}개 운동 · 약 {Math.ceil(totalTime / 60)}분
-          </div>
-          <button className="btn-primary" onClick={startProgram}>
-            시작하기
-          </button>
+          {pausedLeftRef.current > 0 ? (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                {currentIdx + 1}번째 {isRest ? '휴식' : '운동'}에서 멈췄어요 · {Math.ceil(pausedLeftRef.current / 1000)}초 남음
+              </div>
+              <button className="btn-primary" onClick={resumeProgram}>이어서 하기</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={startProgram}>처음부터</button>
+                {/* 중간에 멈춘 만큼도 기록할 수 있어야 한다 —
+                    예전에는 끝까지 해야만 「기록 저장」이 나왔다 */}
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => goRecord(currentIdx)} disabled={currentIdx < 1}>
+                  여기까지 기록하기
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                총 {exercises.length}개 운동 · 약 {Math.ceil(totalTime / 60)}분
+              </div>
+              <button className="btn-primary" onClick={startProgram}>
+                시작하기
+              </button>
+            </>
+          )}
         </div>
       )}
 

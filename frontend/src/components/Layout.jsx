@@ -70,13 +70,20 @@ export default function Layout() {
     }).catch(() => {});
   }, []);
 
+  // 바깥을 누르면 닫는 일은 **뒤에 깔린 판**이 한다.
+  //
+  // 예전에는 `document` 의 mousedown 을 듣고 시트 밖이면 닫았다. 시트를 머리의
+  // 아바타 아래로 옮기고 나면 그 방식이 깨진다 — 아바타를 눌러 닫으려 하면
+  // mousedown 이 먼저 닫고 click 이 다시 열어서 영영 안 닫힌다.
+  // 판이 아바타를 덮고 있으니 판만 있으면 된다.
+
+  // 열려 있는 동안 Esc 로도 닫는다
   useEffect(() => {
-    function handleClick(e) {
-      if (sideRef.current && !sideRef.current.contains(e.target)) setSideMenu(false);
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+    if (!sideMenu) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSideMenu(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [sideMenu]);
 
   const initial = nickname ? nickname.charAt(0).toUpperCase() : '?';
 
@@ -149,89 +156,74 @@ export default function Layout() {
 
   return (
     <div className="page-wrapper">
+      {/* 머리.
+          예전에는 52px 로고 + 36px 워드마크 + 「Forge Your Body · Break Your Limits」
+          태그라인이 **모든 화면 위에** 있었다. 앱 이름은 매일 오는 사람이 이미 알고,
+          태그라인은 고객센터 소개에 있다. 한 줄로 줄여 본문에 자리를 내준다 */}
       <header style={{
         background: 'var(--bg-primary)',
         borderBottom: '1px solid var(--border)',
-        padding: '16px 20px 0',
+        padding: '12px 20px',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          {/* PC 에서는 왼쪽 사이드바가 이미 STEEL BODY 를 크게 달고 있다.
+              머리에도 그대로 두면 **같은 워드마크 두 개가 나란히** 놓인다.
+              PC 는 사이드바가 이름과 길찾기를, 머리가 계정을 맡는다 */}
           <div
             onClick={goHome}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{
+              cursor: 'pointer', display: isPC ? 'none' : 'flex',
+              alignItems: 'center', gap: 8, minWidth: 0,
+            }}
           >
-            {/* 덤벨 로고 */}
-            <svg width="52" height="52" viewBox="0 0 60 60" fill="none">
+            <svg width="30" height="30" viewBox="0 0 60 60" fill="none" aria-hidden="true">
               <defs><linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
-              {/* 바 */}
               <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#dbGrad)"/>
-              {/* 왼쪽 플레이트 */}
               <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#dbGrad)"/>
               <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#dbGrad)" opacity="0.7"/>
-              {/* 오른쪽 플레이트 */}
               <rect x="46" y="18" width="8" height="24" rx="3" fill="url(#dbGrad)"/>
               <rect x="52" y="22" width="7" height="16" rx="2.5" fill="url(#dbGrad)" opacity="0.7"/>
-              {/* 광택 */}
-              <rect x="14" y="28" width="32" height="2" rx="1" fill="#fff" opacity="0.15"/>
-              <rect x="8" y="20" width="4" height="8" rx="1.5" fill="#fff" opacity="0.1"/>
-              <rect x="48" y="20" width="4" height="8" rx="1.5" fill="#fff" opacity="0.1"/>
             </svg>
-            <div>
-              <div style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 36,
-                fontWeight: 700,
-                letterSpacing: 5,
-                lineHeight: 1,
-                background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 8px rgba(255,107,26,0.3))',
-              }}>
-                STEEL BODY
-              </div>
-              <div style={{
-                fontFamily: "'Barlow', sans-serif",
-                fontSize: 8,
-                letterSpacing: 3,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                borderTop: '1px solid var(--border)',
-                paddingTop: 3,
-                marginTop: 3,
-              }}>
-                Forge Your Body · Break Your Limits
-              </div>
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 21, fontWeight: 700, letterSpacing: 3, lineHeight: 1,
+              background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              whiteSpace: 'nowrap',
+            }}>
+              STEEL BODY
             </div>
           </div>
 
-          {/* 헤더 오른쪽 닉네임 + 로그아웃 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Avatar size={26} fontSize={13} />
+          {/* 내 계정 — 누르면 시트가 열린다.
+              예전에는 이 자리가 「아바타 + 닉네임 + 로그아웃 단추」였고, 계정을 손보려면
+              화면 **오른쪽 아래에 떠 있는 56px 원형 버튼**을 따로 눌러야 했다.
+              같은 사람에 대한 것이 두 자리에 있었고, 떠 있는 쪽은 화면 모서리를 늘 가렸다 */}
+          <button
+            onClick={() => setSideMenu(v => !v)}
+            aria-label="내 계정"
+            aria-expanded={sideMenu}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
+              background: 'none', cursor: 'pointer', padding: '3px 8px 3px 3px',
+              border: `1px solid ${sideMenu ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: 999, transition: 'border-color 0.15s',
+            }}
+          >
+            <Avatar size={26} fontSize={13} />
+            <span style={{
+              fontFamily: "'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
+              color: 'var(--text-secondary)', maxWidth: 90,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{nickname}</span>
+            {checkAdmin() && (
               <span style={{
-                fontFamily: "'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
-                color: 'var(--text-secondary)',
-              }}>{nickname}</span>
-              {checkAdmin() && (
-                <span style={{
-                  fontSize: 9, fontWeight: 700, color: '#000', background: 'var(--accent)',
-                  padding: '1px 6px', borderRadius: 'var(--radius)', letterSpacing: 0.5,
-                }}>관리자</span>
-              )}
-            </div>
-            <button
-              onClick={async () => { ['auto_login','ironlog_email','ironlog_role','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
-              style={{
-                background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-                padding: '3px 8px', cursor: 'pointer', fontSize: 10, borderRadius: 'var(--radius)',
-                fontFamily: "'Barlow', sans-serif", transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--danger)'; e.currentTarget.style.color = 'var(--danger)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-            >
-              로그아웃
-            </button>
-          </div>
+                fontSize: 9, fontWeight: 700, color: '#000', background: 'var(--accent)',
+                padding: '1px 6px', borderRadius: 'var(--radius)', letterSpacing: 0.5, flexShrink: 0,
+              }}>관리자</span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -304,27 +296,37 @@ export default function Layout() {
         </div>
       )}
 
-      {/* 오른쪽 하단 고정 프로필 위젯 */}
+      {/* 내 계정 시트 — 머리의 아바타 아래에 붙는다.
+          **길찾기는 여기 없다.** 예전에는 이 안에 「홈 / 운동 / 기록·분석 / 도움 / 관리」
+          다섯 무리 열한 줄이 들어 있었다. 아래 탭바와 더보기가 이미 같은 곳을 전부
+          담고 있어서, 앱의 세 번째 메뉴였다. 여기는 **나에 대한 것**만 한다 —
+          사진 · 닉네임 · 비밀번호 · 로그아웃 */}
+      {sideMenu && (
+        <div
+          onClick={() => setSideMenu(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'rgba(0,0,0,0.35)' }}
+        />
+      )}
       <div ref={sideRef} style={{
         position: 'fixed',
-        bottom: isPC ? 30 : 90,
-        right: 20,
+        top: 58,
+        right: 12,
         zIndex: 9998,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+        display: sideMenu ? 'flex' : 'none',
+        flexDirection: 'column', alignItems: 'flex-end',
       }}>
         {sideMenu && (
           <div style={{
-            marginBottom: 12,
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
-            minWidth: 220,
-            maxHeight: '70vh',
+            minWidth: 240,
+            maxHeight: '75vh',
             overflow: 'auto',
             boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
           }}>
             {/* 프로필 사진 영역 */}
-            <div style={{ padding: '20px 18px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ padding: '20px 18px', textAlign: 'center' }}>
               <div
                 onClick={() => fileRef.current?.click()}
                 style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
@@ -389,7 +391,8 @@ export default function Layout() {
                   {nickname} ✎
                 </div>
               )}
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>STEEL BODY 회원</div>
+              {/* 「STEEL BODY 회원」이라고 적혀 있던 자리다. 아무 것도 말하지 않는
+                  줄이라 없앴다 — 여기 온 사람은 자기가 회원인 것을 안다 */}
 
               {/* 비밀번호 변경.
                   로그인 화면의 '비밀번호를 잊으셨나요?' 는 찾기(이메일 인증)라서 다른 것이다.
@@ -420,69 +423,19 @@ export default function Layout() {
               )}
             </div>
 
-            {/* 카테고리별 전체 메뉴 */}
-            <MenuCategory label="홈" items={[
-              { label: '홈', path: '/home' },
-            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            <MenuCategory label="운동" items={[
-              { label: '루틴 추천', path: '/routine' },
-              { label: '운동 기록', path: '/workout' },
-              { label: '홈트레이닝', path: '/homeworkout' },
-              { label: '운동 검색', path: '/search' },
-            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            <MenuCategory label="기록 / 분석" items={[
-              { label: '인바디', path: '/inbody' },
-              { label: '측정 시스템', path: '/measure' },
-              { label: '히스토리', path: '/history' },
-            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            <MenuCategory label="도움" items={[
-              { label: '고객센터', path: '/support' },
-              { label: '공지함', path: '/support/notices' },
-            ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            {checkAdmin() && (
-              <MenuCategory label="관리" items={[
-                { label: '관리자', path: '/admin' },
-              ]} nav={navigate} close={() => setSideMenu(false)} loc={location.pathname} />
-            )}
-
-            {/* 로그인 / 로그아웃 */}
-            <div style={{ borderTop: '1px solid var(--border)', display: 'flex' }}>
-              <div
-                onClick={() => { setSideMenu(false); navigate('/login'); }}
-                style={{ ...menuStyle, flex: 1, textAlign: 'center', color: 'var(--accent)', borderRight: '1px solid var(--border)' }}
-                onMouseEnter={hIn} onMouseLeave={hOut}
-              >
-                로그인
-              </div>
-              <div
-                onClick={async () => { setSideMenu(false); ['auto_login','ironlog_email','ironlog_role','saved_id','saved_nickname'].forEach(k=>removeLS(k)); await logout(); navigate('/login'); }}
-                style={{ ...menuStyle, flex: 1, textAlign: 'center', color: 'var(--danger)' }}
-                onMouseEnter={hIn} onMouseLeave={hOut}
-              >
-                로그아웃
-              </div>
+            {/* 나가기 하나.
+                예전에는 여기 「로그인」과 「로그아웃」이 나란히 있었다.
+                **이미 로그인한 사람에게 로그인 단추**를 준 셈이고, 그걸 누르면
+                로그아웃도 없이 로그인 화면으로 갔다. 헤더에도 로그아웃이 또 있었다 */}
+            <div
+              onClick={async () => { setSideMenu(false); await logout(); navigate('/login'); }}
+              style={{ ...menuStyle, borderTop: '1px solid var(--border)', textAlign: 'center', color: 'var(--danger)' }}
+              onMouseEnter={hIn} onMouseLeave={hOut}
+            >
+              로그아웃
             </div>
           </div>
         )}
-
-        <button
-          onClick={() => setSideMenu(!sideMenu)}
-          aria-label="프로필 메뉴"
-          aria-expanded={sideMenu}
-          style={{
-            width: 56, height: 56, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-secondary)',
-            border: `2px solid ${sideMenu ? 'var(--accent)' : 'var(--border)'}`,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            transition: 'border-color 0.15s, transform 0.15s',
-            padding: 0,
-            transform: sideMenu ? 'scale(0.95)' : 'scale(1)',
-          }}
-        >
-          <Avatar size={42} fontSize={18} />
-        </button>
       </div>
 
       {showTopBtn && (
@@ -510,51 +463,6 @@ const menuStyle = {
   cursor: 'pointer',
   transition: 'background 0.15s',
 };
-
-function MenuCategory({ label, items, nav, close, loc }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ borderTop: '1px solid var(--border)' }}>
-      <div
-        onClick={() => setOpen(!open)}
-        style={{
-          padding: '10px 18px',
-          fontSize: 12,
-          fontFamily: "'Bebas Neue', sans-serif",
-          letterSpacing: 1.5,
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-        onMouseEnter={hIn} onMouseLeave={hOut}
-      >
-        {label}
-        <span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
-      </div>
-      {open && items.map(item => (
-        <div
-          key={item.path}
-          onClick={() => { close(); nav(item.path); }}
-          style={{
-            padding: '9px 18px 9px 28px',
-            fontSize: 13,
-            color: loc === item.path ? 'var(--accent)' : 'var(--text-secondary)',
-            cursor: 'pointer',
-            transition: 'background 0.15s',
-            borderLeft: loc === item.path ? '3px solid var(--accent)' : '3px solid transparent',
-            background: loc === item.path ? 'var(--accent-dim)' : 'none',
-            fontWeight: loc === item.path ? 600 : 400,
-          }}
-          onMouseEnter={hIn} onMouseLeave={hOut}
-        >
-          {item.label}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function hIn(e) { e.currentTarget.style.background = 'var(--bg-tertiary)'; }
 function hOut(e) { e.currentTarget.style.background = 'none'; }

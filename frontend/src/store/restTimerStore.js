@@ -37,7 +37,13 @@ function stopTicker() {
 }
 
 export const useRestTimerStore = create((set, get) => ({
+  // 다음 휴식에 쓸 기본값. 사람이 프리셋으로 고르는 것이 이것이다
   duration: readInt(LS_DURATION, 90),
+  // **지금 도는 휴식이 몇 초짜리인가.** 위의 duration 과 다르다 —
+  // 쉬는 중에 프리셋을 바꾸면 다음 것부터 그 값을 쓰고, 도는 것은 그대로 둔다.
+  // 그리고 +30초를 누르면 여기가 늘어난다. 예전에는 링과 「90초 중」이 둘 다
+  // duration 을 봐서, 120초를 쉬면서 「90초 중」이라고 적고 링은 100% 를 넘겼다
+  runSec: 0,
   // 끝나는 시각(ms). null 이면 안 돌고 있다
   deadline: null,
   // 일시정지했을 때 남은 밀리초
@@ -66,6 +72,7 @@ export const useRestTimerStore = create((set, get) => ({
     stopTicker();
     set({
       deadline: Date.now() + seconds * 1000,
+      runSec: seconds,
       pausedLeft: null,
       leftMs: seconds * 1000,
       finished: false,
@@ -82,12 +89,15 @@ export const useRestTimerStore = create((set, get) => ({
   },
 
   add: (sec) => {
-    const { deadline, pausedLeft } = get();
+    const { deadline, pausedLeft, runSec } = get();
     const ms = sec * 1000;
-    if (pausedLeft != null) { set({ pausedLeft: pausedLeft + ms, leftMs: pausedLeft + ms }); return; }
+    // 늘린 만큼 「몇 초짜리인가」도 같이 늘어난다.
+    // 안 그러면 120초를 쉬면서 「90초 중」이라고 적고 링이 100% 를 넘는다
+    const grown = runSec + sec;
+    if (pausedLeft != null) { set({ pausedLeft: pausedLeft + ms, leftMs: pausedLeft + ms, runSec: grown }); return; }
     if (deadline == null) return;
     const next = deadline + ms;
-    set({ deadline: next, leftMs: Math.max(0, next - Date.now()), finished: false });
+    set({ deadline: next, leftMs: Math.max(0, next - Date.now()), finished: false, runSec: grown });
   },
 
   pause: () => {
@@ -108,7 +118,7 @@ export const useRestTimerStore = create((set, get) => ({
 
   stop: () => {
     stopTicker();
-    set({ deadline: null, pausedLeft: null, leftMs: null, finished: false, label: '' });
+    set({ deadline: null, pausedLeft: null, leftMs: null, finished: false, label: '', runSec: 0 });
   },
 
   tick: () => {

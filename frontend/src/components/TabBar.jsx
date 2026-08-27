@@ -202,7 +202,7 @@ export default function TabBar() {
                 fontFamily: "'Bebas Neue', sans-serif",
                 fontSize: 11, letterSpacing: 1.5,
                 color: 'var(--text-muted)',
-              }}>MORE</div>
+              }}>더보기</div>
               {moreItems.map(item => (
                 <NavCell
                   key={item.path}

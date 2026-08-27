@@ -19,6 +19,8 @@ export default function RoutinePage() {
   const [openIdx, setOpenIdx] = useState(null);
   const [myRoutines, setMyRoutines] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
+  // 고치는 중인 루틴 id. null 이면 새로 만드는 중
+  const [editingId, setEditingId] = useState(null);
   const [newRoutine, setNewRoutine] = useState({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
   const navigate = useNavigate();
   const session = useRoutineSessionStore(s => s.session);
@@ -58,14 +60,40 @@ export default function RoutinePage() {
       .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
   }, []);
 
+  // 저장 · 수정 · 삭제는 **여기서만 알린다.**
+  //
+  // 예전에는 이 함수가 성공/실패를 알리고, 부르는 쪽에서 또 `toast('저장됐습니다')` 를
+  // 띄웠다. 토스트 자리는 하나라 나중 것이 앞 것을 덮는데, **부르는 쪽 것이 먼저**
+  // 뜬다 — `await` 없이 부르고 바로 성공을 띄웠기 때문이다.
+  // 그래서 서버 저장이 실패해도 「저장됐습니다!」가 한 번 번쩍이고 나서
+  // 「실패했어요」로 바뀌었다. 알리는 자리를 하나로 모은다.
   const saveMyRoutine = async (routine) => {
     try {
       const { data: saved } = await client.post('/my-routines', routine);
       // 서버가 정한 id 가 뒤에 와야 한다. routine 을 뒤에 펴면 id 가 덮인다
       setMyRoutines(prev => [...prev, { ...routine, id: saved.id }]);
       toast('루틴이 저장됐습니다!');
-    } catch {
-      toast('루틴 저장에 실패했어요', 'error');
+      return true;
+    } catch (err) {
+      toast(err.response?.data?.error || '루틴 저장에 실패했어요', 'error');
+      return false;
+    }
+  };
+
+  // 루틴 고치기.
+  //
+  // **만들고 지우는 것만 있었다.** 운동 하나를 빼거나 세트 수를 바꾸려면 통째로 지우고
+  // 다시 만들어야 했다 — 매일 쓰는 것인데 그렇다. 서버에는 `PUT /my-routines/:id` 가
+  // 처음부터 있었고, 화면에서 부르는 곳은 「루틴에 운동 하나 더 넣기」 하나뿐이었다.
+  const updateMyRoutine = async (id, routine) => {
+    try {
+      await client.put(`/my-routines/${id}`, { name: routine.name, exercises: routine.exercises });
+      setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, ...routine } : r)));
+      toast('루틴을 고쳤습니다');
+      return true;
+    } catch (err) {
+      toast(err.response?.data?.error || '고치지 못했어요', 'error');
+      return false;
     }
   };
 
@@ -144,15 +172,33 @@ export default function RoutinePage() {
         <div key={r._id || r.id || i} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
+            <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                setEditingId(r.id ?? r._id);
+                setNewRoutine({
+                  name: r.name,
+                  exercises: (Array.isArray(r.exercises) ? r.exercises : []).map(ex => (
+                    typeof ex === 'string'
+                      ? { name: ex, sets: '', reps: '' }
+                      : { name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
+                  )),
+                });
+                setShowCreate(true);
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
+            >수정</button>
             <button
               onClick={async () => {
                 const ok = await confirmDialog(`"${r.name}" 루틴을 삭제할까요?`, { title: '루틴 삭제', confirmText: '삭제' });
                 if (!ok) return;
+                // 알리는 것은 deleteMyRoutine 이 한다. 여기서 또 띄우면
+                // 실패해도 「삭제 완료」가 먼저 번쩍인다
                 deleteMyRoutine(r._id || r.id);
-                toast('루틴 삭제 완료');
               }}
               style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer' }}
             >삭제</button>
+            </span>
           </div>
           {r.exercises.map((ex, j) => (
             <div key={j} style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '3px 0' }}>
@@ -177,14 +223,14 @@ export default function RoutinePage() {
 
       {!showCreate ? (
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={() => { setEditingId(null); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); setShowCreate(true); }}
           className="btn-primary"
           style={{ width: '100%', marginTop: 8 }}
         >+ 새 루틴 만들기</button>
       ) : (
         <div className="card" style={{ marginTop: 8, borderColor: 'var(--accent)' }}>
           <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 12 }}>
-            새 루틴 만들기
+            {editingId ? '루틴 고치기' : '새 루틴 만들기'}
           </div>
 
           <label className="label">루틴 이름</label>
@@ -248,20 +294,24 @@ export default function RoutinePage() {
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!newRoutine.name.trim()) { toast('루틴 이름을 입력하세요'); return; }
                 if (!newRoutine.exercises.some(e => e.name.trim())) { toast('운동을 하나 이상 입력하세요'); return; }
                 const filtered = { ...newRoutine, exercises: newRoutine.exercises.filter(e => e.name.trim()) };
-                saveMyRoutine(filtered);
+                // 성공했을 때만 폼을 닫는다. 실패했는데 닫히면 쓰던 것이 통째로 사라진다
+                const ok = editingId
+                  ? await updateMyRoutine(editingId, filtered)
+                  : await saveMyRoutine(filtered);
+                if (!ok) return;
                 setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
+                setEditingId(null);
                 setShowCreate(false);
-                toast('나만의 루틴이 저장됐습니다!');
               }}
               className="btn-primary"
               style={{ flex: 1 }}
-            >저장</button>
+            >{editingId ? '고치기' : '저장'}</button>
             <button
-              onClick={() => { setShowCreate(false); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); }}
+              onClick={() => { setShowCreate(false); setEditingId(null); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '10px 16px', cursor: 'pointer', fontSize: 13, borderRadius: 'var(--radius)',
