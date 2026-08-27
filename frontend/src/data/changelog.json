@@ -2,6 +2,24 @@
   "generated": "2026-08-27",
   "items": [
     {
+      "hash": "c4fe8f9",
+      "date": "2026-08-27",
+      "type": "perf",
+      "label": "빨라짐",
+      "scope": "사진",
+      "text": "세트 하나를 저장할 때마다 사진 전부를 다시 쓰던 것",
+      "detail": "사진은 base64 로 들어온다 — 한 장에 최대 2MB, 사람마다 세 장(프로필 · 전 · 후).\n그런데 이 앱은 **뭐가 바뀌든 DB 파일을 통째로 다시 쓴다.** 사진이 본체에 같이\n있으니, 세트 하나를 저장할 때마다 사진 전부를 다시 문자열로 만들어 디스크에 붓고\n있었다.\n\n재봤다.\n\n    사람  1명 → 파일  6MB\n    사람  5명 → 파일 30MB\n    사람 10명 → 파일 60MB\n\n**이걸 기록 하나마다 다시 쓴다.** 게다가 그 60MB 는 캐시로 램에 늘 떠 있는데\n서버는 `--max-old-space-size=256` 으로 돈다. 서른 명쯤이면 문자열로 만드는 도중에\n죽는다. 아직 사람이 없어서 안 터졌을 뿐이다.\n\n사진은 **드물게 바뀌고 크다.** 나머지는 자주 바뀌고 작다. `photos.json` 으로\n갈랐다. 서로를 안 건드린다.\n\n본체에 남아 있던 사진은 서버가 뜰 때 한 번 옮긴다. 계정을 지울 때 사진도 같이\n지우도록 `deleteUserCompletely` 에 한 줄 붙였다 — 파일이 갈렸으니 따로 불러야 한다.\n\n확인 — 700KB 짜리 세 장을 올렸다. 본체는 **3.5KB 그대로**, 사진은 `photos.json`\n2.1MB 로 갔다. 꺼내 보면 세 장 다 나오고 내용도 그대로다. 한 장 지우면 두 장이\n남는다. 옛 사진을 본체에 심고 서버를 다시 띄우니 「사진 1장을 옮겼습니다」와 함께\n넘어갔다. `npm run smoke` 한 바퀴도 그대로 통과한다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
+    },
+    {
+      "hash": "6b4ccb0",
+      "date": "2026-08-27",
+      "type": "feat",
+      "label": "새 기능",
+      "scope": "확인",
+      "text": "앱 한 바퀴를 스크립트로 — npm run smoke",
+      "detail": "화면을 하나씩 눌러보기 전에 **서버가 실제로 답하는지**를 먼저 본다. 안 되는 것이\n화면 문제인지 서버 문제인지 그 자리에서 갈린다.\n\n`npm run check` 는 서버 없이 도는 순수 계산을 본다. 이쪽은 사람이 실제로 하는\n순서 그대로 두들긴다 — 가입 · 성별 · 인바디(BMI 계산까지) · 루틴 짜기 ·\n진행표 따라가기 · 기록 · 측정 · 내보내기 셋(줄 수까지) · 제보 · 별점 · 알림.\n\n**막아야 할 것이 막히는지도 같이 본다.** 오늘 고친 자리들이다 — 운동명 공백만 ·\n2.5세트 · 음수 무게 · 루틴명 공백만 · 닉네임이 배열(500 이 나던 자리). 제보에는\n`---` 구분선을 일부러 넣는다. 오늘 아침까지는 그 줄 때문에 정지될 수 있었다.\n\n검사 계정을 하나 만들고 **끝나면 스스로 지운다.** 배포된 곳을 두들기려면\n`SMOKE_BASE` 를 바꾸고 `--keep` 을 준다 (그때는 계정이 남으니 관리자 화면에서 지운다).\n\n확인 — 33가지 전부 통과. 계정도 지워졌다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_016YcWyJtePG2RiEhRwmJmD6"
+    },
+    {
       "hash": "1e2a110",
       "date": "2026-08-27",
       "type": "fix",
@@ -342,24 +360,6 @@
       "scope": "홈",
       "text": "새벽에 남긴 기록이 홈에서 사라지던 것",
       "detail": "날짜 키를 만드는 방법이 저장하는 쪽과 읽는 쪽에서 서로 달랐습니다.\n\n기록은 로컬 날짜로 저장하는데, 홈과 미션은 UTC 날짜로 찾고 있었습니다.\n한국은 UTC+9 라 새벽 0시부터 8시 59분 사이에 둘이 하루 어긋납니다.\n새벽 1시 30분에 운동을 적으면 8월 21일에 저장되는데 홈은 8월 20일을 뒤집니다.\n\n그래서 새벽에 남긴 기록은 홈에 안 뜨고, 주간 표의 요일 칸도 하루씩 밀리고,\n일일 미션도 안 채워진 것으로 나왔습니다. 낮에는 멀쩡해서 안 보이던 버그입니다.\n\n홈 밖에도 같은 게 있었습니다 — 인바디 기록 폼, 측정 저장, 점검 예약의\n기본 날짜가 새벽에는 전부 어제로 채워졌습니다.\n\n날짜 키를 만드는 곳을 data/dateKey.js 하나로 합쳤습니다. 같은 헬퍼가 세 군데에\n따로 있었는데, 셋이 따로 있으면 넷째가 또 생깁니다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
-    },
-    {
-      "hash": "2d90a47",
-      "date": "2026-08-20",
-      "type": "feat",
-      "label": "바뀜",
-      "scope": "시안",
-      "text": "최근 바뀐 것을 기능 소개 위로 — 오랜만에 들어오면 그게 먼저다",
-      "detail": "기능 소개보다 위에 둔다. 오랜만에 들어온 사람이 제일 먼저 궁금해하는 건\n그동안 뭐가 달라졌나지 앱이 뭘 하는지가 아니다 — 그건 이미 쓰고 있어서 안다.\n\n순서: 히어로 → (점검 예정) → 내 기록 → 기록하러 가기 → 최근 바뀐 것 →\n무엇을 할 수 있나 → 레벨 → 티켓 → 자주 묻는 것 → 제보함 → 앱 정보.\n\n공지함 입구도 같이 올라가 히어로 바로 아래에서 들어갈 수 있다.\n\nREADME 개발 일지에 오늘 한 것(시안 5종과 고른 기준 · 제보함의 유형별 흐름 ·\n공지 자동 생성 · 공지함)을 마저 적었다.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01KUfmE9MMXmC86Kp4Ej1GP5"
-    },
-    {
-      "hash": "c999306",
-      "date": "2026-08-20",
-      "type": "feat",
-      "label": "제거",
-      "scope": null,
-      "text": "공지사항 기능 제거 — 안 쓰는 기능이었다",
-      "detail": "공지사항은 실제로 쓰지 않고 있었다. 없애고 그 자리에는 새 페이지를 만든다.\n\n지운 것 6개 파일 1,897줄 — NoticePage(454) · AiNoticeWriter(718) ·\nNoticeBanner(140) · admin/NoticeAdmin(208) · data/aiNoticeTemplates(261) ·\ndata/notices(116). 물려 있던 곳은 App(라우트) · TabBar(더보기 항목) ·\nHomePage(배너 · 팝업 · 안 읽은 공지 큐 · 검색 항목) · AdminPage(공지 관리 ·\nAI 공지 탭)이다.\n\nAdminPage 의 기본 탭이 notice 였다. maint(점검 스케줄)로 바꿨다 — 안 그러면\n관리자 페이지가 빈 화면으로 열린다.\n\nMaintAdmin 이 점검을 걸 때마다 ironlog_maint_notices 에 공지를 만들어\n저장하고 있었는데 읽는 쪽이 아무 데도 없었다. 공지 페이지가 사라지면 영영\n안 읽히므로 그 블록도 지웠다. 점검 화면의 안내는 이것과 무관하게\nMaintenanceScreen 이 따로 그린다.\n\n옛 /notice 북마크는 App 의 path=\"*\" 폴백이 받아 홈으로 보낸다.\n\n백엔드 routes/notices.js 와 db.js 의 notices 테이블은 남겼다. \"레코드 목록 +\n관리자 조회\" 모양이 다음에 만들 제보함과 같아서 제보용으로 돌려 쓴다. 쓰기는\n전부 adminAuth 뒤에 있어 그대로 둬도 열려 있지 않다.\n\n확인: 운영 빌드 통과. 헤드리스 Chrome 으로 홈 진입(로그인 유지) · 화면 어디에도\n공지 없음 · /notice → /home 폴백 · 더보기 여섯 항목 · 관리자 탭 5개로 줄고\n점검 스케줄이 기본으로 열림 · 콘솔 에러 0건.\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01KUfmE9MMXmC86Kp4Ej1GP5"
     }
   ]
 }
