@@ -9,6 +9,7 @@ import RoutineRun from '../components/RoutineRun';
 import BestRecords from '../components/BestRecords';
 import { toast } from '../components/Toast';
 import { dateKey } from '../data/dateKey';
+import { useToday } from '../data/useToday';
 import { bestRecords, checkRecord } from '../data/personalRecord';
 import { volumeOf } from '../data/weeklyReport';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
@@ -110,8 +111,10 @@ export default function WorkoutPage() {
   const t = TEXT[lang] || TEXT.ko;
 
   // 같은 식을 손으로 또 적지 않는다 — 이 자리가 8/21 에 새벽 기록이 사라지던 버그의 출처였다
-  const today = dateKey();
+  const today = useToday();
   const [date, setDate] = useState(today);
+  // 사람이 날짜를 직접 골랐나. 골랐으면 건드리지 않는다 (아래 자정 넘김 처리에서 쓴다)
+  const datePickedRef = useRef(false);
   const [exercise, setExercise] = useState(location.state?.exercise || '');
   // 운동을 지정해서 들어왔나 (운동 검색 · 홈트의 「이 운동 기록하기」).
   // 한 번 저장하고 나면 풀어준다 — 그다음부터는 루틴을 따라가면 된다
@@ -145,6 +148,16 @@ export default function WorkoutPage() {
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { fetchSession(); }, [fetchSession]);
   useEffect(() => () => { if (blurTimerRef.current) clearTimeout(blurTimerRef.current); }, []);
+
+  // 켜둔 채 자정을 넘기면 날짜 칸이 어제에 멈춰 있다. 그대로 저장하면 어제 기록이
+  // 되고, 오늘 목록에 안 보이니 「저장이 안 됐다」고 읽힌다 (useToday 주석 참고).
+  //
+  // 오늘로 맞추되 **사람이 직접 고른 날짜는 건드리지 않는다** — 지난 운동을 몰아
+  // 적는 중일 수 있다. 그건 고른 사람의 뜻이다. 고치는 중일 때도 그대로 둔다.
+  useEffect(() => {
+    if (datePickedRef.current || editingId) return;
+    setDate(prev => (prev === today ? prev : today));
+  }, [today, editingId]);
 
   // 운동별 최근 기록 인덱스 (O(1) 조회)
   const exerciseIndex = useMemo(() => {
@@ -533,7 +546,7 @@ export default function WorkoutPage() {
               key={d}
               type="button"
               className="btn-secondary"
-              onClick={() => { setDate(d); setPickDay(false); }}
+              onClick={() => { datePickedRef.current = true; setDate(d); setPickDay(false); }}
               style={{
                 width: 'auto', padding: '7px 14px', fontSize: 12.5,
                 ...(date === d ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#000' } : null),
@@ -558,7 +571,7 @@ export default function WorkoutPage() {
             type="date"
             value={date}
             max={today}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => { datePickedRef.current = true; setDate(e.target.value); }}
             style={{ marginBottom: 14 }}
           />
         )}
@@ -660,7 +673,7 @@ export default function WorkoutPage() {
         {!isToday && (
           <button
             className="btn-secondary"
-            onClick={() => { setDate(today); setPickDay(false); }}
+            onClick={() => { datePickedRef.current = false; setDate(today); setPickDay(false); }}
             style={{ width: 'auto', padding: '5px 12px', fontSize: 11.5, marginLeft: 'auto' }}
           >{t.backToToday}</button>
         )}

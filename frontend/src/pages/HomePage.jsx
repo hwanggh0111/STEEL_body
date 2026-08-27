@@ -10,6 +10,7 @@ import WeeklyReport from '../components/WeeklyReport';
 import HomeSearch from '../components/home/HomeSearch';
 import TodayCard from '../components/home/TodayCard';
 import { dateKey } from '../data/dateKey';
+import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
 
@@ -114,30 +115,12 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  // 돌아왔을 때 날짜를 다시 본다.
-  //
-  // **이 앱은 폰 홈 화면에 붙여 쓰는 PWA 라 며칠씩 열려 있는다.** 어젯밤에 열어둔
-  // 화면을 오늘 아침에 다시 보면, 다시 그려질 일이 없어서 **어제 날짜 그대로**다.
-  // 「오늘 기록」이 어제 것을 가리키고, 주간 달력의 오늘 칸이 어제에 남아 있다.
-  // 이 앱을 여는 시각이 대개 그때(운동 가기 전, 자고 일어나서)라 더 그렇다.
-  //
-  // 화면으로 돌아오면 한 번 흔들어 준다. 날짜가 그대로면 아무것도 안 바뀐다
-  const [, setDayTick] = useState(0);
-  useEffect(() => {
-    const onWake = () => { if (!document.hidden) setDayTick(n => n + 1); };
-    document.addEventListener('visibilitychange', onWake);
-    return () => document.removeEventListener('visibilitychange', onWake);
-  }, []);
-
-  const today = dateKey();
+  // 켜둔 채 날이 바뀌어도 오늘을 가리킨다 (useToday 주석 참고)
+  const today = useToday();
   const todayWorkouts = workouts[today] || [];
   // 매 렌더 새 배열을 만들면 아래 useMemo 의 deps 가 늘 달라져 memo 가 무의미해진다.
-  //
-  // **deps 는 비워두면 안 된다.** 이 앱은 홈 화면에 추가해 쓰는 PWA 라 며칠씩 켜져
-  // 있는다. 빈 deps 로 두면 마운트할 때의 주를 붙들고 있어서, 일요일 밤에 열어둔 채
-  // 월요일이 되면 **지난주 달력**이 그대로 남는다 — 오늘 칸이 어디에도 없고,
-  // 「이번 주」 미션도 지난주를 센다. `today` 는 날이 바뀌면 달라지므로 그걸 본다
-  // (하루 안에서는 같은 값이라 memo 는 그대로 유지된다).
+  // deps 를 비워두면 마운트할 때의 주를 붙들고 있어 일요일 밤을 못 넘긴다 —
+  // `today` 를 본다 (하루 안에서는 같은 값이라 memo 는 그대로 유지된다)
   const weekDates = useMemo(() => weekKeys(mondayOf()), [today]);
   const weekDone = useMemo(() => weekDates.filter(d => workouts[d]?.length > 0).length, [weekDates, workouts]);
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);

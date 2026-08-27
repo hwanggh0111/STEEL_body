@@ -7,7 +7,7 @@ import BodyReading from '../components/BodyReading';
 import BodyChange from '../components/BodyChange';
 
 import { toast } from '../components/Toast';
-import { dateKey } from '../data/dateKey';
+import { useToday } from '../data/useToday';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
 
@@ -54,7 +54,9 @@ function getCompositionData(record) {
 export default function InbodyPage() {
   const location = useLocation();
   const [tab, setTab] = useState('record');
-  const today = dateKey();
+  // 켜둔 채 날이 바뀌면 날짜 칸의 `max` 도 어제에 멈춰서 **오늘을 아예 못 고른다**
+  // (useToday 주석 참고)
+  const today = useToday();
   const [date, setDate] = useState(today);
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
