@@ -1,19 +1,17 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { csvCell } = require('../utils/csv');
 
 // CSV export - workouts
 router.get('/workouts', auth, (req, res) => {
   const workouts = db.getWorkouts(req.userId);
 
-  // 운동명만 따옴표로 감싸고 무게는 맨몸으로 뒀었다. 무게도 자유 입력이라
-  // 드롭세트를 '20, 30, 40' 으로 적으면 그 줄부터 열이 통째로 밀린다.
   // 숫자 칸(세트·횟수)은 감싸지 않는다 — 감싸면 엑셀이 글자로 읽어 합계가 안 된다.
-  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-
+  // 자유 입력 칸은 `csvCell` 이 맡는다 (따옴표 · 쉼표 · 수식으로 읽히는 앞글자)
   const header = '날짜,운동명,무게,세트,횟수';
   const rows = workouts.map(w =>
-    `${w.date},${cell(w.exercise)},${cell(w.weight)},${w.sets || ''},${w.reps || ''}`
+    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM for Korean Excel support
 
@@ -72,7 +70,6 @@ const FIELD_LABEL = {
 
 router.get('/measures', auth, (req, res) => {
   const records = db.getMeasures(req.userId);
-  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
   const header = '날짜,종류,항목,값';
   const rows = [];
@@ -83,10 +80,10 @@ router.get('/measures', auth, (req, res) => {
       // date 는 이미 첫 칸에 있다. 두 번 적지 않는다
       if (key === 'date' || value === null || value === undefined || value === '') continue;
       const v = typeof value === 'object' ? JSON.stringify(value) : value;
-      rows.push(`${r.date},${cell(label)},${cell(FIELD_LABEL[key] || key)},${cell(v)}`);
+      rows.push(`${r.date},${csvCell(label)},${csvCell(FIELD_LABEL[key] || key)},${csvCell(v)}`);
     }
   }
-  const csv = '﻿' + header + '\n' + rows.join('\n');
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="steelbody_measures.csv"');
