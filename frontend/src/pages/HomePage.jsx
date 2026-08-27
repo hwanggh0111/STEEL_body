@@ -1,380 +1,218 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import client from '../api/client';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
-import StatBox from '../components/StatBox';
+import { useRoutineSessionStore } from '../store/routineSessionStore';
+import { toast } from '../components/Toast';
 import MissionSystem from '../components/MissionSystem';
 import WeeklyReport from '../components/WeeklyReport';
-import { isAdmin } from '../data/admin';
-import { readLS, removeLS, saveLS } from '../data/safeStorage';
+import HomeSearch from '../components/home/HomeSearch';
+import TodayCard from '../components/home/TodayCard';
 import { dateKey } from '../data/dateKey';
+import { daysBetween } from '../data/personalRecord';
+import { mondayOf, weekKeys } from '../data/weeklyReport';
 
-const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+// 홈.
+//
+// 매일 여는 화면인데 **오늘 뭘 할지는 아무 데도 없었다.** 위에서부터 로고 · 검색 ·
+// 오늘의 요약 · 통계 셋 · 미션 · 주간 달력 · 주간 요약 · 빠른 이동 여덟 덩어리가
+// 순서 없이 쌓여 있었다. 다시 짜면서 세 가지를 바꿨다.
+//
+// **1. 하던 것을 안다.** 루틴을 시작해두고 홈에 오면 진행표가 기록 화면에만 있어서
+// 홈은 「아직 오늘 운동 기록이 없어요」라고 했다. 시작해둔 사람에게 시작하라고 하고
+// 있었다. 이제 홈도 `/routine-session` 을 보고 「이어서 하기」를 맨 위에 준다.
+//
+// **2. 같은 주를 세 번 그리지 않는다.** 통계의 「이번 주 n/7」, 주간 달력,
+// 주간 요약의 「운동한 날」이 전부 같은 수였다. WeeklyReport 에는 「같은 주를 두 번
+// 안 그린다」고 주석까지 적혀 있는데 그 위의 통계 상자가 세 번째였다. 상자를 걷어냈다.
+//
+// **3. 아래 탭바를 다시 그리지 않는다.** 「빠른 이동」 일곱 칸 중 기록 · 인바디 ·
+// 루틴은 아래 탭바에 늘 떠 있다 — 한 번에 닿는 것을 홈에서 또 그릴 이유가 없다.
+// 두 번 눌러야 하는 더보기 안의 것만 남겼다 (빠져 있던 운동 알림을 넣었다).
 
-function getWeekDates() {
-  const today = new Date();
-  const day = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((day + 6) % 7));
-  const dates = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    dates.push(dateKey(d));
-  }
-  return dates;
-}
+const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 초성 추출
-function getChosung(str) {
-  const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-  return [...str].map(c => {
-    const code = c.charCodeAt(0) - 0xAC00;
-    if (code < 0 || code > 11171) return c;
-    return CHO[Math.floor(code / 588)];
-  }).join('');
-}
-
-function matchSearch(q, item) {
-  const ql = q.toLowerCase();
-  // 라벨, 키워드 직접 매칭
-  if (item.label.toLowerCase().includes(ql)) return true;
-  if (item.keywords.some(k => k.toLowerCase().includes(ql))) return true;
-  // 초성 매칭
-  const labelChosung = getChosung(item.label);
-  if (labelChosung.includes(ql)) return true;
-  if (item.keywords.some(k => getChosung(k).includes(ql))) return true;
-  return false;
-}
-
-const SEARCH_ITEMS = [
-  // ─── 메인 페이지 ───
-  { label: '홈', keywords: ['홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면'], path: '/home', icon: '🏠' },
-  { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: '📋' },
-  { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: '🏋️' },
-  { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: '📊' },
-  { label: '홈트레이닝', keywords: ['홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: '🏠' },
-  { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: '🔍' },
-  { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
-  { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
-  { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: '📮' },
-  { label: '운동 알림', keywords: ['알림', '알람', '리마인더', '푸시', 'push', 'notification', '노티', '깨워', '까먹', '잊어', '요일', '시간', 'ㅇㄷㅇㄹ'], path: '/reminders', icon: '🔔' },
-  { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: '📰' },
-
-  // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
-  { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
-  { label: '어깨 측정', keywords: ['어깨', 'shoulder', '견봉', '어깨너비', '문짝', '광배', '비율'], path: '/measure', tab: 'shoulder', icon: '💪' },
-  { label: '1RM 계산', keywords: ['1rm', '1RM', '최대중량', 'one rep max', '벤치프레스', '스쿼트', '데드리프트', '숄더프레스', 'brzycki'], path: '/measure', tab: 'orm', icon: '🔢' },
-  { label: '체력 테스트', keywords: ['체력', '테스트', '푸시업', '풀업', '플랭크', '달리기', '윗몸일으키기', '시트업', '스쿼트', 'fitness'], path: '/measure', tab: 'fitness', icon: '🏃' },
-  { label: '심박수 존', keywords: ['심박수', '심박', 'heart rate', '존', 'zone', '최대심박', '안정심박', '유산소', 'bpm'], path: '/measure', tab: 'heart', icon: '❤️' },
-  { label: '스톱워치 / 타이머', keywords: ['스톱워치', 'stopwatch', '타이머', 'timer', '시간', '랩', 'lap'], path: '/measure', tab: 'stopwatch', icon: '⏱️' },
-  { label: '유연성 측정', keywords: ['유연성', 'flexibility', '앉아 앞으로 굽히기', '스트레칭', '스쿼트 깊이'], path: '/measure', tab: 'flex', icon: '🧘' },
-
-  // ─── 홈 내부 섹션 (현재 페이지 스크롤) ───
-  { label: '미션', keywords: ['미션', 'mission', '목표', '주간', 'weekly'], path: '/home', icon: '🎯' },
-  { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', icon: '📅' },
-
-  // ─── 관리자 (관리자 권한 필요) ───
-  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
+// 아래 탭바(홈 · 기록 · 인바디 · 루틴)에 없는 것들. 더보기를 열어야 닿는 자리다
+const SHORTCUTS = [
+  { icon: '🏠', label: '홈트', path: '/homeworkout' },
+  { icon: '🔍', label: '운동 검색', path: '/search' },
+  { icon: '📐', label: '측정', path: '/measure' },
+  { icon: '📅', label: '히스토리', path: '/history' },
+  { icon: '🔔', label: '운동 알림', path: '/reminders' },
+  { icon: '📮', label: '고객센터', path: '/support' },
 ];
+
+// 이 날짜 이후로 인바디를 안 적었으면 한 번 짚어준다
+const INBODY_STALE_DAYS = 14;
+
+function SectionTitle({ id, children }) {
+  return (
+    <div className="section-title" id={id} style={{ scrollMarginTop: 16 }}>
+      <div className="accent-bar" />
+      {children}
+    </div>
+  );
+}
+
+// 최근 체중 한 줄.
+//
+// 예전에는 36px 통계 상자에 「최근 체중」 하나가 들어 있었고, 기록이 없으면 `-` 를
+// 크게 띄웠다. 없는 것을 크게 띄우는 자리는 없앤다 — 기록이 없으면 안 그린다.
+function BodyLine({ records, onGo }) {
+  if (!records || records.length === 0) return null;
+  const latest = records[0];
+  const prev = records[1];
+  const gap = daysBetween(latest.date, dateKey());
+  const delta = prev != null && latest.weight != null && prev.weight != null
+    ? Number((latest.weight - prev.weight).toFixed(1))
+    : null;
+  const stale = gap !== null && gap >= INBODY_STALE_DAYS;
+
+  return (
+    <div className="card clickable" onClick={() => onGo(stale)} style={{
+      marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+        <span className="label" style={{ marginBottom: 0 }}>최근 체중</span>
+        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          {latest.weight}kg
+        </span>
+        {delta !== null && delta !== 0 && (
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            지난 기록보다 {delta > 0 ? '+' : ''}{delta}kg
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: stale ? 'var(--warning)' : 'var(--text-muted)', flexShrink: 0, textAlign: 'right' }}>
+        {gap === 0 ? '오늘' : gap !== null ? `${gap}일 전` : ''}
+        {stale && <><br />기록하러 가기 ›</>}
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
+  const session = useRoutineSessionStore(s => s.session);
+  const fetchSession = useRoutineSessionStore(s => s.fetch);
+  const startSession = useRoutineSessionStore(s => s.start);
 
-  const [homeSearch, setHomeSearch] = useState('');
-  const [searchHistory, setSearchHistory] = useState(() => {
-    try { return JSON.parse(readLS('ironlog_search_history')) || []; } catch { return []; }
-  });
-  const [searchFocused, setSearchFocused] = useState(false);
-
-  const addSearchHistory = (label) => {
-    const updated = [label, ...searchHistory.filter(h => h !== label)].slice(0, 10);
-    setSearchHistory(updated);
-    saveLS('ironlog_search_history', JSON.stringify(updated));
-  };
-
-  const removeSearchHistory = (label) => {
-    const updated = searchHistory.filter(h => h !== label);
-    setSearchHistory(updated);
-    saveLS('ironlog_search_history', JSON.stringify(updated));
-  };
-
-  const clearSearchHistory = () => {
-    setSearchHistory([]);
-    removeLS('ironlog_search_history');
-  };
+  const [myRoutines, setMyRoutines] = useState([]);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     fetchWorkouts();
     fetchInbody();
+    fetchSession();
+    // 홈에서 루틴을 곧바로 시작하려면 목록이 있어야 한다.
+    // 못 받아와도 조용히 넘어간다 — 홈이 토스트로 시끄러워질 자리가 아니다
+    client.get('/my-routines')
+      .then(({ data }) => setMyRoutines(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   const today = dateKey();
   const todayWorkouts = workouts[today] || [];
   // 매 렌더 새 배열을 만들면 아래 useMemo 의 deps 가 늘 달라져 memo 가 무의미해진다
-  const weekDates = useMemo(() => getWeekDates(), []);
-  const weekWorkoutDays = useMemo(() => weekDates.filter(d => workouts[d] && workouts[d].length > 0).length, [weekDates, workouts]);
+  const weekDates = useMemo(() => weekKeys(mondayOf()), []);
+  const weekDone = useMemo(() => weekDates.filter(d => workouts[d]?.length > 0).length, [weekDates, workouts]);
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
-  const latestInbody = records[0] || null;
 
   const loading = wLoading || iLoading;
 
+  // 하던 것이 있으면 TodayCard 가 「이어서 하기」로 갈라지므로 여기까지 오지 않는다.
+  // 그래서 「하던 걸 바꿀까요」를 물을 일이 없다 (루틴 화면은 물어야 한다)
+  const startRoutine = async (routine) => {
+    if (starting) return;
+    setStarting(true);
+    try {
+      await startSession(routine.id ?? routine._id);
+      navigate('/workout');
+    } catch (err) {
+      toast(err.response?.data?.error || '루틴을 시작하지 못했어요', 'error');
+    } finally {
+      setStarting(false);
+    }
+  };
+
   return (
     <div>
-      {/* 오늘 날짜 */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg width="56" height="56" viewBox="0 0 60 60" fill="none">
-            <defs><linearGradient id="hDbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
-            <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#hDbGrad)"/>
-            <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
-            <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
-            <rect x="46" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
-            <rect x="52" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
-            <rect x="14" y="28" width="32" height="2" rx="1" fill="#fff" opacity="0.15"/>
-          </svg>
+      {/* 머리 — 앱 이름은 매일 오는 사람이 이미 안다. 한 줄로 줄이고 자리를 내준다 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <svg width="36" height="36" viewBox="0 0 60 60" fill="none" aria-hidden="true">
+          <defs><linearGradient id="hDbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+          <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#hDbGrad)"/>
+          <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
+          <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
+          <rect x="46" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
+          <rect x="52" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
+        </svg>
+        <div style={{ minWidth: 0 }}>
           <div style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: 42,
-            fontWeight: 700,
-            letterSpacing: 5,
-            lineHeight: 1,
+            fontSize: 24, fontWeight: 700, letterSpacing: 3, lineHeight: 1.1,
             background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(0 0 12px rgba(255,107,26,0.3))',
           }}>
             STEEL BODY
           </div>
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-          {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-        </div>
-      </div>
-
-      {/* 검색 (가운데) */}
-      <div style={{ position: 'relative', marginBottom: 20 }}>
-        <input
-          type="text"
-          className="input"
-          placeholder="검색 후 Enter (예: 1RM, 어깨 측정, 이벤트)"
-          value={homeSearch}
-          onChange={(e) => setHomeSearch(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && homeSearch.trim()) {
-              const admin = isAdmin();
-              const top = SEARCH_ITEMS
-                .filter(item => !item.adminOnly || admin)
-                .find(item => matchSearch(homeSearch, item));
-              if (top) {
-                addSearchHistory(top.label);
-                setHomeSearch('');
-                setSearchFocused(false);
-                e.target.blur();
-                if (top.scroll) {
-                  document.getElementById(top.scroll)?.scrollIntoView({ behavior: 'smooth' });
-                } else if (top.path) {
-                  navigate(top.path, top.tab ? { state: { tab: top.tab } } : undefined);
-                }
-              }
-            } else if (e.key === 'Escape') {
-              setHomeSearch('');
-              setSearchFocused(false);
-              e.target.blur();
-            }
-          }}
-          style={{ paddingLeft: 38, fontSize: 14 }}
-        />
-        <span style={{
-          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 15, pointerEvents: 'none', opacity: 0.7,
-        }}>🔍</span>
-
-        {searchFocused && (homeSearch.trim() || searchHistory.length > 0) && (
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)', maxHeight: 320, overflowY: 'auto',
-            zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-          }}>
-            {homeSearch.trim() ? (() => {
-              const admin = isAdmin();
-              const results = SEARCH_ITEMS
-                .filter(item => !item.adminOnly || admin)
-                .filter(item => matchSearch(homeSearch, item));
-              if (results.length === 0) return (
-                <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                  일치하는 항목이 없어요
-                </div>
-              );
-              return results.map((item, i) => (
-                <div
-                  key={item.label}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    addSearchHistory(item.label);
-                    setHomeSearch('');
-                    setSearchFocused(false);
-                    if (item.scroll) {
-                      document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
-                    } else if (item.path) {
-                      navigate(item.path, item.tab ? { state: { tab: item.tab } } : undefined);
-                    }
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 14px', cursor: 'pointer',
-                    borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span style={{ fontSize: 18 }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{item.label}</span>
-                </div>
-              ));
-            })() : (
-              <>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '8px 14px', borderBottom: '1px solid var(--border)',
-                  fontSize: 11, color: 'var(--text-muted)',
-                }}>
-                  <span>최근 검색</span>
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); clearSearchHistory(); }}
-                    style={{
-                      background: 'none', border: 'none', color: 'var(--text-muted)',
-                      fontSize: 11, cursor: 'pointer',
-                    }}
-                  >전체 삭제</button>
-                </div>
-                {searchHistory.map((label, i) => {
-                  const item = SEARCH_ITEMS.find(s => s.label === label);
-                  return (
-                    <div
-                      key={label}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '8px 14px',
-                        borderBottom: i < searchHistory.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}
-                    >
-                      <div
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          if (item) {
-                            if (item.scroll) document.getElementById(item.scroll)?.scrollIntoView({ behavior: 'smooth' });
-                            else if (item.path) navigate(item.path, item.tab ? { state: { tab: item.tab } } : undefined);
-                          }
-                          setSearchFocused(false);
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }}
-                      >
-                        <span style={{ fontSize: 14 }}>{item?.icon || '🕒'}</span>
-                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
-                      </div>
-                      <button
-                        onMouseDown={(e) => { e.preventDefault(); removeSearchHistory(label); }}
-                        style={{
-                          background: 'none', border: 'none', color: 'var(--text-muted)',
-                          cursor: 'pointer', padding: 4, fontSize: 12,
-                        }}
-                      >✕</button>
-                    </div>
-                  );
-                })}
-              </>
-            )}
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
           </div>
-        )}
+        </div>
       </div>
+
+      <HomeSearch />
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-          <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-          로딩 중...
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--text-muted)' }}>
+          <div style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+          <span style={{ fontSize: 13 }}>기록을 불러오는 중…</span>
         </div>
       ) : (
         <>
-          {/* 오늘의 요약 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            오늘의 요약
-          </div>
+          <SectionTitle id="home-today">오늘</SectionTitle>
+          <TodayCard
+            session={session}
+            todayWorkouts={todayWorkouts}
+            myRoutines={myRoutines}
+            onStartRoutine={startRoutine}
+            starting={starting}
+          />
 
-          {todayWorkouts.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 24, marginBottom: 4 }}>💪</div>
-              <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>아직 오늘 운동 기록이 없어요</div>
-              <button
-                className="btn-primary"
-                style={{ marginTop: 12, fontSize: 14, padding: '10px 20px', width: 'auto' }}
-                onClick={() => navigate('/workout')}
-              >
-                운동 기록하기
-              </button>
-            </div>
-          ) : (
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>
-                오늘 {todayWorkouts.length}개 운동 완료
-              </div>
-              {todayWorkouts.map((w) => (
-                <div key={w.id} style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '3px 0' }}>
-                  {w.exercise} — {w.weight} · {w.sets}세트 · {w.reps}회
-                </div>
-              ))}
-            </div>
-          )}
+          {/* 오래 안 적었으면 인바디에 가서 폼까지 열어준다 —
+              「기록하러 가기」를 눌렀는데 또 단추를 찾게 두지 않는다 */}
+          <BodyLine
+            records={records}
+            onGo={(stale) => navigate('/inbody', stale ? { state: { write: true } } : undefined)}
+          />
 
-          {/* 통계 박스 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
-            <StatBox number={`${weekWorkoutDays}/7`} label="이번 주" />
-            <StatBox number={totalWorkouts} label="총 운동" />
-            <StatBox number={latestInbody ? `${latestInbody.weight}` : '-'} label="최근 체중(kg)" />
-          </div>
-
-          {/* 미션 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            MISSIONS
-          </div>
-          <MissionSystem workouts={workouts} records={records} weekDates={weekDates} />
-
-          {/* 이번 주 달력 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            이번 주 운동
-          </div>
+          <SectionTitle id="home-week">이번 주 운동</SectionTitle>
           <div className="card" style={{ marginBottom: 20 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center' }}>
               {weekDates.map((d, i) => {
-                const dayIdx = new Date(d).getDay();
-                const hasWorkout = workouts[d] && workouts[d].length > 0;
+                const done = workouts[d]?.length > 0;
                 const isToday = d === today;
+                const future = d > today;
                 return (
-                  <div key={d} style={{ padding: '8px 0' }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      {DAYS[dayIdx]}
-                    </div>
+                  <div
+                    key={d}
+                    onClick={() => { if (done) navigate('/history', { state: { date: d } }); }}
+                    style={{ padding: '6px 0', cursor: done ? 'pointer' : 'default' }}
+                    title={done ? `${d} 기록 보기` : undefined}
+                  >
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{DAYS[i]}</div>
                     <div style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto',
-                      fontSize: 13,
-                      fontWeight: isToday ? 700 : 400,
-                      background: hasWorkout ? 'var(--accent)' : isToday ? 'var(--bg-tertiary)' : 'none',
-                      color: hasWorkout ? '#000' : isToday ? 'var(--accent)' : 'var(--text-muted)',
-                      border: isToday && !hasWorkout ? '1px solid var(--accent)' : 'none',
+                      width: 32, height: 32, borderRadius: '50%', margin: '0 auto',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: isToday ? 700 : 400,
+                      background: done ? 'var(--accent)' : isToday ? 'var(--bg-tertiary)' : 'none',
+                      color: done ? '#000' : isToday ? 'var(--accent)' : future ? 'var(--border-hover)' : 'var(--text-muted)',
+                      border: isToday && !done ? '1px solid var(--accent)' : 'none',
                     }}>
                       {d.slice(8)}
                     </div>
@@ -382,34 +220,27 @@ export default function HomePage() {
                 );
               })}
             </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>
+              이번 주 {weekDone}일 · 지금까지 통틀어 {totalWorkouts}회 기록
+            </div>
           </div>
 
           <WeeklyReport workouts={workouts} />
 
-          {/* 퀵 액션 */}
-          <div className="section-title">
-            <div className="accent-bar" />
-            빠른 이동
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {[
-              { icon: '🏋️', label: '기록', path: '/workout' },
-              { icon: '📊', label: '인바디', path: '/inbody' },
-              { icon: '📋', label: '루틴', path: '/routine' },
-              { icon: '🏠', label: '홈트', path: '/homeworkout' },
-              { icon: '📐', label: '측정', path: '/measure' },
-              { icon: '📅', label: '히스토리', path: '/history' },
-              { icon: '📮', label: '고객센터', path: '/support' },
-            ].map((q, i) => (
-              <div key={q.label} className="card clickable" onClick={() => {
-                if (q.scroll) {
-                  document.getElementById(q.scroll)?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  navigate(q.path);
-                }
-              }} style={{ textAlign: 'center', padding: '12px 6px' }}>
-                <div style={{ fontSize: 20, marginBottom: 2 }}>{q.icon}</div>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 11, letterSpacing: 1 }}>{q.label}</div>
+          <SectionTitle id="home-missions">MISSIONS</SectionTitle>
+          <MissionSystem workouts={workouts} records={records} weekDates={weekDates} />
+
+          <SectionTitle>바로 가기</SectionTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {SHORTCUTS.map(s => (
+              <div
+                key={s.path}
+                className="card clickable"
+                onClick={() => navigate(s.path)}
+                style={{ textAlign: 'center', padding: '14px 6px' }}
+              >
+                <div style={{ fontSize: 20, marginBottom: 4 }} aria-hidden="true">{s.icon}</div>
+                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: 1 }}>{s.label}</div>
               </div>
             ))}
           </div>

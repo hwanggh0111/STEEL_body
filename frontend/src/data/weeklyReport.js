@@ -51,7 +51,7 @@ function doneDays(workouts, keys) {
  * 체중을 안 적은 사람은 0이 되고, 적은 사람은 어느 날 체중으로 셀지가 또 문제가 된다.
  * 그래서 무게를 적은 것만 세고, 맨몸이 섞여 있으면 화면에서 그렇다고 밝힌다.
  */
-function volumeOf(records) {
+export function volumeOf(records) {
   let kg = 0;
   let bodyweightSets = 0;
   records.forEach(r => {
