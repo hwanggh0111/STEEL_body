@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-reminder.cjs"
+    "check": "node scripts/check-reminder.cjs",
+    "smoke": "node scripts/smoke.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
