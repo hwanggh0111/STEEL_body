@@ -94,6 +94,15 @@ function savePhotoStore() {
   _photoTimer = setTimeout(_flushPhotos, 500);
 }
 
+// 계정을 지울 때 사진도 같이 지운다
+function deleteUserPhotos(userId) {
+  const store = loadPhotos();
+  const before = store.photos.length;
+  store.photos = store.photos.filter(p => p.user_id !== userId);
+  if (store.photos.length !== before) savePhotoStore();
+  return { changes: before - store.photos.length };
+}
+
 let _cache = null;
 let _dirty = false;
 let _saveTimer = null;
@@ -188,6 +197,11 @@ const _index = { userById: null, userByEmail: null, userByUsername: null };
 // `kevin@gmail.com` 으로 로그인하면 "없는 계정" 이 되고, 게다가 그 주소로 **또 가입이 됐다.**
 // 같은 사람의 계정이 둘로 갈리고 기록도 갈린다. 저장은 적은 그대로 두고, 찾고 비교할 때만 낮춘다.
 const emailKey = (email) => String(email || '').trim().toLowerCase();
+
+// refresh token 은 해시로만 담는다. `this.` 로 부르지 않는다 —
+// 이 파일의 다른 도우미(load · save · emailKey)처럼 모듈 함수로 둬야, 나중에
+// `const { saveRefreshToken } = db` 처럼 떼어 쓰는 사람이 생겨도 안 깨진다
+const refreshHash = (token) => crypto.createHash('sha256').update(String(token)).digest('hex');
 
 function rebuildIndex() {
   const data = load();
@@ -583,13 +597,7 @@ const db = {
   },
 
   // 계정을 지울 때 사진도 같이 지운다 (본체와 파일이 갈렸으니 따로 불러야 한다)
-  deleteUserPhotos(userId) {
-    const store = loadPhotos();
-    const before = store.photos.length;
-    store.photos = store.photos.filter(p => p.user_id !== userId);
-    if (store.photos.length !== before) savePhotoStore();
-    return { changes: before - store.photos.length };
-  },
+  deleteUserPhotos,
 
   // 본체에 남아 있던 사진을 새 파일로 옮긴다. 서버가 뜰 때 한 번 부른다
   migratePhotos() {
@@ -750,7 +758,7 @@ const db = {
     invalidateUserIndex();
     save(data);
     // 사진은 다른 파일에 있다. 여기서 안 부르면 지운 계정의 사진이 남는다
-    this.deleteUserPhotos(userId);
+    deleteUserPhotos(userId);
     return { changes: 1 };
   },
 
@@ -766,15 +774,13 @@ const db = {
   // **바꾸는 값이라 옛 줄은 못 알아본다** — 지금 로그인해 있는 사람은 한 번 다시
   // 로그인해야 한다. 배포 전에 하는 이유가 그것이다. 나중에 하면 그 값이 쓰는 사람 수만큼
   // 커진다. 옛 줄은 시작할 때 걷어낸다 (`dropLegacyRefreshTokens`).
-  refreshHash(token) {
-    return crypto.createHash('sha256').update(String(token)).digest('hex');
-  },
+  refreshHash,
   saveRefreshToken(userId, token, expiresAt) {
     const data = load();
     if (!data.refreshTokens) data.refreshTokens = [];
     data.refreshTokens.push({
       user_id: userId,
-      token_hash: this.refreshHash(token),
+      token_hash: refreshHash(token),
       expires_at: expiresAt,
       created_at: new Date().toISOString(),
     });
@@ -783,13 +789,13 @@ const db = {
   findRefreshToken(token) {
     const data = load();
     if (!data.refreshTokens) return null;
-    const hash = this.refreshHash(token);
+    const hash = refreshHash(token);
     return data.refreshTokens.find(t => t.token_hash === hash && t.expires_at > new Date().toISOString()) || null;
   },
   deleteRefreshToken(token) {
     const data = load();
     if (!data.refreshTokens) return;
-    const hash = this.refreshHash(token);
+    const hash = refreshHash(token);
     data.refreshTokens = data.refreshTokens.filter(t => t.token_hash !== hash);
     save(data);
   },
