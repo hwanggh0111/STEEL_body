@@ -10,7 +10,6 @@ import MonthCalendar from '../components/MonthCalendar';
 import { toast } from '../components/Toast';
 import { readLS } from '../data/safeStorage';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
-import { dateKey } from '../data/dateKey';
 
 // 히스토리.
 //

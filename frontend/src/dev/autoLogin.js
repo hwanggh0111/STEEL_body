@@ -1,6 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 // 개발 도구도 앱이 뜨기 전에 도는 코드다 — 쿠키를 막아둔 브라우저에서 던지면 흰 화면이 된다
-import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
+import { readLS, readCookies } from '../data/safeStorage';
 
 // 개발 중에만 동작하는 자동 로그인.
 // import.meta.env.DEV 는 빌드 시 false 로 치환되므로 프로덕션 번들에서는 통째로 죽는다.
