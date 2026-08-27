@@ -9,7 +9,8 @@
     "dev": "vite",
     "prebuild": "node scripts/gen-changelog.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "node scripts/check-data.cjs"
   },
   "dependencies": {
     "react": "^18.2.0",
