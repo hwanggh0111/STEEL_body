@@ -10,7 +10,8 @@ import { toast } from './Toast';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
-import { PHOTO_MAX_FILE, PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { shrinkImage } from '../data/shrinkImage';
 import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
 
@@ -87,31 +88,30 @@ export default function Layout() {
 
   const initial = nickname ? nickname.charAt(0).toUpperCase() : '?';
 
-  const handlePhotoUpload = (e) => {
+  // **한도를 지키라고 말하는 대신 우리가 줄인다.**
+  // 요즘 폰 사진은 3~8MB 라, 예전에는 앨범에서 고른 것이 거의 다 거절당했다
+  // (shrinkImage 주석 참고). 그래도 안 되는 것만 안내한다
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // 서버가 보는 건 base64 길이다. 파일 크기로만 재면 1.9MB 사진이 여기를 통과하고
-    // 서버에서 2.5MB 가 돼 거절당한다 — 한도를 지켰는데 실패하는 것처럼 보인다
-    if (file.size > PHOTO_MAX_FILE) {
+    let photoData;
+    try {
+      ({ data: photoData } = await shrinkImage(file));
+    } catch {
+      toast('사진을 읽지 못했어요', 'error');
+      return;
+    }
+    if (typeof photoData !== 'string' || photoData.length > PHOTO_MAX_BASE64) {
       toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`, 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const photoData = reader.result;
-      if (typeof photoData !== 'string' || photoData.length > PHOTO_MAX_BASE64) {
-        toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`, 'error');
-        return;
-      }
-      setProfilePhoto(photoData);
-      client.post('/photos', { type: 'profile', data: photoData }).then(() => {
-        saveLS(PROFILE_KEY, photoData);
-      }).catch(() => {
-        setProfilePhoto(readLS(PROFILE_KEY) || '');
-        toast('사진 업로드 실패', 'error');
-      });
-    };
-    reader.readAsDataURL(file);
+    setProfilePhoto(photoData);
+    client.post('/photos', { type: 'profile', data: photoData }).then(() => {
+      saveLS(PROFILE_KEY, photoData);
+    }).catch(() => {
+      setProfilePhoto(readLS(PROFILE_KEY) || '');
+      toast('사진 업로드 실패', 'error');
+    });
   };
 
   const saveNickname = useCallback(() => {

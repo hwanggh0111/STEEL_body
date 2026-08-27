@@ -7,6 +7,10 @@
 export const PHOTO_MAX_BASE64 = 2 * 1024 * 1024;
 
 // base64 로 부풀어도 서버 한도를 안 넘는 원본 크기. 1KB 는 data: 머리말 몫이다.
+//
+// **이제 이 값으로 사람을 돌려보내지 않는다.** 한도를 넘으면 `shrinkImage` 가 줄여서
+// 올린다 — 요즘 폰 사진은 3~8MB 라, 이 값으로 거르면 앨범에서 고른 것이 거의 다
+// 튕겼다. 남겨두는 것은 「줄여도 안 되는」 마지막 경우를 알리기 위해서다.
 export const PHOTO_MAX_FILE = Math.floor(PHOTO_MAX_BASE64 * 3 / 4) - 1024;
 
 export const PHOTO_MAX_LABEL = '1.5MB';
