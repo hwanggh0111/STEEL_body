@@ -41,6 +41,8 @@ async function tick(nowMs = Date.now()) {
     // **보냈다고 먼저 적는다.** 보내기가 오래 걸리는 사이에 다음 tick 이 돌면
     // 같은 사람에게 두 번 간다. 못 보내는 것보다 두 번 보내는 게 나쁘다
     db.markReminderSent(r.user_id, verdict.localDate);
+    // 이 쉼에는 보냈다고 적어둔다. 안 적으면 쉬는 동안 날마다 같은 알림이 간다
+    if (verdict.reason === 'streak') db.markStreakNudged(r.user_id, verdict.streakFor);
 
     const msg = messageOf(verdict.reason, verdict.gap);
     const n = await push.sendToUser(r.user_id, { ...msg, url: '/workout', tag: 'workout-reminder' });

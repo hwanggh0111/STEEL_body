@@ -4,7 +4,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "check": "node scripts/check-reminder.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

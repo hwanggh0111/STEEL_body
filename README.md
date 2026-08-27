@@ -10,6 +10,7 @@
 cd frontend && npm run dev     # http://localhost:5173
 cd backend  && npm start       # http://localhost:4000
 cd frontend && npm run check   # 화면 여럿이 같이 쓰는 계산 확인 (테스트 틀이 없어서 이걸로 본다)
+cd backend  && npm run check   # 알림을 언제 보낼지 (시간대 · 몇 번 보내나)
 ```
 
 ---

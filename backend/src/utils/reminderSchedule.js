@@ -75,9 +75,17 @@ function decide(reminder, nowMs, lastWorkoutDate) {
     return { send: true, reason: 'scheduled', localDate, gap };
   }
 
-  // 정한 요일이 아니어도, 오래 쉬었으면 한 번 알린다
+  // 정한 요일이 아니어도, 오래 쉬었으면 한 번 알린다.
+  //
+  // **정말 한 번이어야 한다.** 예전에는 `gap >= 3` 만 보고 보냈다. 그러면 쉬는 동안
+  // 정한 요일이 아닌 날마다 — 날마다 — 「오래 쉬고 계세요」가 갔다. 앱을 접은 사람은
+  // 영영 그 알림을 받는다. 그건 알림이 아니라 잔소리고, 알림 자체를 꺼버리게 만든다.
+  //
+  // 보낼 때 **그때의 마지막 운동 날짜**를 적어둔다. 같은 날짜면 이미 보낸 쉼이다.
+  // 다시 운동하면 날짜가 바뀌므로, 또 사흘을 쉬면 그때 한 번 더 간다.
   if (reminder.streakGuard && gap !== null && gap >= STREAK_GAP) {
-    return { send: true, reason: 'streak', localDate, gap };
+    if (reminder.last_streak_workout === lastWorkoutDate) return no('streak-already');
+    return { send: true, reason: 'streak', localDate, gap, streakFor: lastWorkoutDate };
   }
 
   return no('not-a-day');

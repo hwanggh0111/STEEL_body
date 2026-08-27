@@ -786,6 +786,16 @@ const db = {
     save(data);
   },
 
+  // 「오래 쉬고 계세요」를 보낸 쉼을 적어둔다 — 그때의 마지막 운동 날짜다.
+  // 같은 쉼에 두 번 보내지 않으려는 것이다. 다시 운동하면 날짜가 바뀌어 풀린다
+  markStreakNudged(userId, lastWorkoutDate) {
+    const data = load();
+    const row = (data.reminders || []).find(r => r.user_id === userId);
+    if (!row) return;
+    row.last_streak_workout = lastWorkoutDate;
+    save(data);
+  },
+
   // ── 웹 푸시 구독 ──
   //
   // endpoint 가 곧 그 기기다. 같은 endpoint 가 다시 오면 새 줄을 만들지 않는다 —
