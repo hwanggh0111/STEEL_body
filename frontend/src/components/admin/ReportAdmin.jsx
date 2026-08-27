@@ -170,7 +170,7 @@ function Ratings() {
 
   useEffect(() => {
     client.get('/ratings/stats')
-      .then(({ data }) => setStats(data))
+      .then(({ data }) => setStats(data && typeof data === 'object' && !Array.isArray(data) ? data : null))
       .catch(() => {});
   }, []);
 

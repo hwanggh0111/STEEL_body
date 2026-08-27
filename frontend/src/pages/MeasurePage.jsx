@@ -47,7 +47,9 @@ export default function MeasurePage() {
 
   useEffect(() => {
     client.get('/measures')
-      .then(({ data }) => setMeasures(data))
+      // 서버가 배열을 준다. 다른 모양이 오면 빈 것으로 친다 —
+      // 목록을 그리는 코드에 객체가 들어가면 화면이 통째로 죽는다
+      .then(({ data }) => setMeasures(Array.isArray(data) ? data : []))
       .catch(() => toast('측정 데이터를 불러오지 못했어요', 'error'))
       .finally(() => setLoading(false));
   }, []);

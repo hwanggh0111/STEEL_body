@@ -56,7 +56,7 @@ export default function RoutinePage() {
   // Fetch my routines from server
   useEffect(() => {
     client.get('/my-routines')
-      .then(({ data }) => setMyRoutines(data))
+      .then(({ data }) => setMyRoutines(Array.isArray(data) ? data : []))
       .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
   }, []);
 
@@ -136,7 +136,8 @@ export default function RoutinePage() {
     setOpenIdx(null);
     setPart(PARTS_MAP[type]?.[0] || '가슴');
     client.get(`/routines/${type}`)
-      .then(({ data }) => setRoutines(data))
+      // 부위별로 묶인 객체다. 배열이나 null 이 오면 빈 것으로 친다
+      .then(({ data }) => setRoutines(data && typeof data === 'object' && !Array.isArray(data) ? data : {}))
       .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요', 'error'); })
       .finally(() => setLoading(false));
   }, [type]);

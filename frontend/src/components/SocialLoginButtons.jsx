@@ -24,7 +24,8 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
 
   useEffect(() => {
     client.get('/oauth/providers')
-      .then(({ data }) => setProviders(data))
+      // 어느 것이 켜져 있는지 담긴 객체다. 다른 모양이면 구글만 보여준다
+      .then(({ data }) => setProviders(data && typeof data === 'object' && !Array.isArray(data) ? data : { google: true }))
       // 못 물어봤으면 구글만 보여준다. 하나도 안 보여주는 것보다 낫다
       .catch(() => setProviders({ google: true }));
   }, []);
