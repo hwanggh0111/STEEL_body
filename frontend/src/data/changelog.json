@@ -2,13 +2,13 @@
   "generated": "2026-08-28",
   "items": [
     {
-      "hash": "1afd30a",
+      "hash": "50d33c1",
       "date": "2026-08-28",
       "type": "feat",
       "label": "새 기능",
       "scope": "모양",
-      "text": "순금은 차가웠다 — 걷어낸 주황을 22% 도로 섞는다",
-      "detail": "붙여놓고 보니 살짝 어색했다. 순금(#e6d8a8)은 노란빛이라 검정 위에서 차갑게\n떨어진다. 오렌지를 22% 섞어 #ecc089 로 데웠다 — 주황이 따로 보이지는 않고\n금이 따뜻해지는 정도다.\n\n카드 윗변의 실 · 위에서 드는 빛 · 로고 그라디언트의 아래쪽 · 앱 아이콘까지\n같이 데웠다. 대비는 그대로 넘는다 (금이 배경 위에서 11.3:1).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+      "text": "주황을 30% 로 — 22% 는 아직 차가웠다",
+      "detail": "섞는 정도 넷(15 · 22 · 30 · 50%)을 홈 화면에 그대로 입혀 나란히 놓고 골랐다.\n30%(#eeb77d)는 금빛이 남아 있으면서 검정 위에서 따뜻하다.\n\n--accent · --accent-hover · --accent-low 세 줄 + 카드 윗변의 금실 · 로고\n그라디언트 · 그래프 · 앱 아이콘. 대비는 그대로 넘는다 (배경 위에서 10.6:1).\n\nCo-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
     },
     {
       "hash": "049406a",

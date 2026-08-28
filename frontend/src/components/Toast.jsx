@@ -32,8 +32,9 @@ export default function Toast() {
 
   if (!visible) return null;
 
-  const bgColor = type === 'error' ? 'var(--danger)' : type === 'warning' ? 'var(--warning)' : 'var(--accent)';
-  const textColor = type === 'error' ? '#fff' : '#000';
+  // 빨강은 통째로 칠하는 자리라 진한 쪽을 쓴다 — 밝은 --danger 에 흰 글자는 3.4:1 이다
+  const bgColor = type === 'error' ? 'var(--danger-strong)' : type === 'warning' ? 'var(--warning)' : 'var(--accent)';
+  const textColor = type === 'error' ? '#fff' : 'var(--on-accent)';
 
   return <div className="toast" style={{ background: bgColor, color: textColor }}>{message}</div>;
 }

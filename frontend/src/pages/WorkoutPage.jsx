@@ -578,7 +578,7 @@ export default function WorkoutPage() {
               onClick={() => { datePickedRef.current = true; setDate(d); setPickDay(false); }}
               style={{
                 width: 'auto', padding: '7px 14px', fontSize: 12.5,
-                ...(date === d ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#000' } : null),
+                ...(date === d ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)' } : null),
               }}
             >{dayLabel(d)}</button>
           ))}
@@ -589,7 +589,7 @@ export default function WorkoutPage() {
             style={{
               width: 'auto', padding: '7px 14px', fontSize: 12.5,
               ...(date !== today && date !== yesterday
-                ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#000' }
+                ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)' }
                 : null),
             }}
           >{t.otherDay}</button>

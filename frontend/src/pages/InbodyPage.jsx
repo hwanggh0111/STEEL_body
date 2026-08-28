@@ -10,6 +10,7 @@ import { toast } from '../components/Toast';
 import { useToday } from '../data/useToday';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
+import { CHART } from '../data/chartColors';
 
 // 무거운 것은 필요할 때 받는다.
 // 그래프(recharts)와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
@@ -42,12 +43,12 @@ function getCompositionData(record) {
   const waterKg = record.water_l || null;
   if (!fatKg && !muscleKg) return null;
   const parts = [];
-  if (muscleKg) parts.push({ name: '골격근', value: Number(muscleKg.toFixed(1)), color: '#3a9e3a' });
-  if (fatKg) parts.push({ name: '체지방', value: Number(fatKg.toFixed(1)), color: '#e84040' });
-  if (waterKg) parts.push({ name: '체수분', value: Number(waterKg.toFixed(1)), color: '#4a9aff' });
+  if (muscleKg) parts.push({ name: '골격근', value: Number(muscleKg.toFixed(1)), color: CHART.muscle });
+  if (fatKg) parts.push({ name: '체지방', value: Number(fatKg.toFixed(1)), color: CHART.fat });
+  if (waterKg) parts.push({ name: '체수분', value: Number(waterKg.toFixed(1)), color: CHART.water });
   const known = parts.reduce((s, p) => s + p.value, 0);
   const etc = record.weight - known;
-  if (etc > 0) parts.push({ name: '기타(뼈·장기)', value: Number(etc.toFixed(1)), color: '#666' });
+  if (etc > 0) parts.push({ name: '기타(뼈·장기)', value: Number(etc.toFixed(1)), color: CHART.muted });
   return parts;
 }
 

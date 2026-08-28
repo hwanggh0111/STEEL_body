@@ -288,7 +288,7 @@ export default function ReportAdmin() {
     padding: '7px 12px', fontSize: 12.5, borderRadius: 'var(--radius)',
     border: '1px solid ' + (on ? (color || 'var(--accent)') : 'var(--border)'),
     background: on ? (color || 'var(--accent)') : 'transparent',
-    color: on ? '#000' : 'var(--text-secondary)',
+    color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
     cursor: 'pointer', transition: 'all 0.15s',
   });
 

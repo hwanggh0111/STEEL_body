@@ -205,7 +205,7 @@ export default function MaintenanceScreen({ children }) {
       <>
         <div style={{
           position: 'sticky', top: 0, zIndex: 99999,
-          background: kind.color, color: '#000',
+          background: kind.color, color: 'var(--on-accent)',
           padding: '7px 14px', fontSize: 12.5, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
         }}>

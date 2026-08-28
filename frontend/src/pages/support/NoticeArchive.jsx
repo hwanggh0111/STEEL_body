@@ -142,7 +142,7 @@ export default function NoticeArchive() {
                 borderRadius: 'var(--radius)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
                 background: on ? 'var(--accent)' : 'transparent',
-                color: on ? '#000' : 'var(--text-secondary)',
+                color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
                 fontWeight: on ? 700 : 400, transition: 'all 0.15s',
               }}
             >{t.label} {counts[t.key]}</button>

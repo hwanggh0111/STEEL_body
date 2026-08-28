@@ -561,7 +561,7 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
                 width: 16, height: 16, flexShrink: 0, marginTop: 1,
                 border: `1px solid ${attach ? 'var(--accent)' : 'var(--border-hover)'}`,
                 background: attach ? 'var(--accent)' : 'transparent',
-                borderRadius: 'var(--radius)', color: '#000',
+                borderRadius: 'var(--radius)', color: 'var(--on-accent)',
                 fontSize: 11, lineHeight: '15px', textAlign: 'center',
               }}>{attach ? '✓' : ''}</div>
               <div>
@@ -647,7 +647,7 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
                 borderRadius: 'var(--radius)',
                 border: `1px solid ${on ? color : 'var(--border)'}`,
                 background: on ? color : 'transparent',
-                color: on ? '#000' : 'var(--text-secondary)',
+                color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
                 fontWeight: on ? 700 : 400, transition: 'all 0.15s',
               }}
             >

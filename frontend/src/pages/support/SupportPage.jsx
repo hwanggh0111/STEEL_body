@@ -184,7 +184,7 @@ export default function SupportPage() {
           </div>
           {hasNewReply && (
             <span style={{
-              flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#000',
+              flexShrink: 0, fontSize: 11, fontWeight: 700, color: 'var(--on-accent)',
               background: 'var(--accent)', borderRadius: 'var(--radius)', padding: '3px 9px',
             }}>새 답변</span>
           )}

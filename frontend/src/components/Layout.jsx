@@ -149,7 +149,7 @@ export default function Layout() {
     ) : (
       <div style={{
         width: size, height: size, borderRadius: '50%',
-        background: 'var(--accent)', color: '#000',
+        background: 'var(--accent)', color: 'var(--on-accent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: "'Bebas Neue', sans-serif", fontSize, fontWeight: 700,
       }}>
@@ -223,7 +223,7 @@ export default function Layout() {
             }}>{nickname}</span>
             {checkAdmin() && (
               <span style={{
-                fontSize: 9, fontWeight: 700, color: '#000', background: 'var(--accent)',
+                fontSize: 9, fontWeight: 700, color: 'var(--on-accent)', background: 'var(--accent)',
                 padding: '1px 6px', borderRadius: 'var(--radius)', letterSpacing: 0.5, flexShrink: 0,
               }}>관리자</span>
             )}
@@ -355,7 +355,7 @@ export default function Layout() {
                 <div style={{
                   position: 'absolute', bottom: 0, right: 0,
                   width: 20, height: 20, borderRadius: '50%',
-                  background: 'var(--accent)', color: '#000',
+                  background: 'var(--accent)', color: 'var(--on-accent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700,
                 }}>✎</div>
@@ -378,7 +378,7 @@ export default function Layout() {
                     onClick={saveNickname}
                     disabled={savingNick}
                     style={{
-                      background: 'var(--accent)', color: '#000', border: 'none',
+                      background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
                       padding: '6px 10px', fontSize: 11, borderRadius: 'var(--radius)',
                       cursor: 'pointer', fontWeight: 700,
                     }}
@@ -448,7 +448,7 @@ export default function Layout() {
           style={{
             position: 'fixed', bottom: isPC ? 30 : 90, left: 20,
             width: 40, height: 40, borderRadius: '50%',
-            background: 'var(--accent)', color: '#000', border: 'none',
+            background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
             fontSize: 18, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 50, transition: 'opacity 0.2s',

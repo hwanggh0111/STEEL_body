@@ -32,6 +32,7 @@ const josa = bundle('src/data/particle.js', '.t8.cjs');
 // 휴식 타이머는 localStorage 를 읽는다. node 에는 없으니 빈 것으로 세워준다
 global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
+const chart = bundle('src/data/chartColors.js', '.t10.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -188,6 +189,16 @@ atLeast('금 단추 위의 글자', token('accent'), token('on-accent'), 4.5);
 atLeast('빨간 단추 위의 흰 글자', token('danger-strong'), '#ffffff', 4.5);
 for (const st of ['success', 'warning', 'danger', 'info']) {
   atLeast(st + ' — 배경 위에서', BG, token(st), 4.5);
+}
+
+// 그래프는 토큰을 못 쓴다 (recharts 가 색을 SVG 속성으로 내보내는데 속성 안에서는
+// var() 가 치환되지 않는다). chartColors.js 에 같은 값을 손으로 적어두므로,
+// 토큰만 고치고 여기를 잊으면 그래프만 옛 색으로 남는다.
+const PAIRS = [['accent', 'accent'], ['success', 'muscle'], ['danger', 'fat'],
+               ['info', 'water'], ['text-muted', 'muted'], ['text-secondary', 'text2'],
+               ['text-primary', 'text'], ['bg-secondary', 'card'], ['border', 'border']];
+for (const [t, c] of PAIRS) {
+  ok('그래프의 ' + c + ' 가 --' + t + ' 와 같다', chart.CHART[c], token(t));
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

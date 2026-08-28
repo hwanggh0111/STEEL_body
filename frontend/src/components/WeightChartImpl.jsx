@@ -1,4 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { CHART, AXIS_TICK, TOOLTIP_STYLE } from '../data/chartColors';
 
 export default function WeightChart({ records }) {
   const data = [...records]
@@ -14,10 +15,10 @@ export default function WeightChart({ records }) {
   return (
     <ResponsiveContainer width="100%" height={180}>
       <LineChart data={data}>
-        <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-        <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={['auto', 'auto']} />
-        <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
-        <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ fill: 'var(--accent)', r: 3 }} />
+        <XAxis dataKey="date" tick={AXIS_TICK} />
+        <YAxis tick={AXIS_TICK} domain={['auto', 'auto']} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Line type="monotone" dataKey="weight" stroke={CHART.accent} strokeWidth={2} dot={{ fill: CHART.accent, r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );

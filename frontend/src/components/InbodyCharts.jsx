@@ -1,18 +1,11 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { CHART, AXIS_TICK, TOOLTIP_STYLE } from '../data/chartColors';
 
 // 인바디 화면의 그래프들.
 //
 // recharts 는 이 앱에서 제일 무거운 덩어리다(gzip 110KB). InbodyPage 가 위에서 그냥
 // import 하고 있어서, 인바디에 들어가면 그 덩어리를 다 받을 때까지 입력 폼도 기록 목록도
 // 안 그려졌다. 그래프만 따로 떼어 나중에 받는다.
-
-const AXIS_TICK = { fill: 'var(--text-muted)', fontSize: 11 };
-const TOOLTIP_STYLE = {
-  background: 'var(--bg-secondary)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-  fontSize: 13,
-};
 
 // 체성분 비율 — 도넛 + 범례
 export function CompositionChart({ data, total }) {
@@ -60,7 +53,7 @@ export function WeightTrend({ data }) {
         <XAxis dataKey="date" tick={AXIS_TICK} />
         <YAxis tick={AXIS_TICK} domain={['auto', 'auto']} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
-        <Line type="monotone" dataKey="체중" stroke="#eeb77d" strokeWidth={2} dot={{ fill: '#eeb77d', r: 3 }} />
+        <Line type="monotone" dataKey="체중" stroke={CHART.accent} strokeWidth={2} dot={{ fill: CHART.accent, r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -77,8 +70,8 @@ export function BodyTrend({ data }) {
         <YAxis tick={AXIS_TICK} domain={['auto', 'auto']} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
         <Legend formatter={(v) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{v}</span>} />
-        {hasFat && <Line type="monotone" dataKey="체지방" stroke="#e84040" strokeWidth={2} dot={{ fill: '#e84040', r: 3 }} />}
-        {hasMuscle && <Line type="monotone" dataKey="골격근" stroke="#3a9e3a" strokeWidth={2} dot={{ fill: '#3a9e3a', r: 3 }} />}
+        {hasFat && <Line type="monotone" dataKey="체지방" stroke={CHART.fat} strokeWidth={2} dot={{ fill: CHART.fat, r: 3 }} />}
+        {hasMuscle && <Line type="monotone" dataKey="골격근" stroke={CHART.muscle} strokeWidth={2} dot={{ fill: CHART.muscle, r: 3 }} />}
       </LineChart>
     </ResponsiveContainer>
   );

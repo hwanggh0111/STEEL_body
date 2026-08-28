@@ -70,7 +70,7 @@ function Toggle({ on, onClick, label, desc, disabled }) {
       }}>
         <div style={{
           width: on ? 16 : 14, height: on ? 16 : 14, borderRadius: 8,
-          background: on ? '#000' : 'var(--text-muted)',
+          background: on ? 'var(--on-accent)' : 'var(--text-muted)',
         }} />
       </div>
     </div>

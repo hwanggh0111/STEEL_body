@@ -15,12 +15,12 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 // 한 곳에 적어두고 세 번 그린다.
 const KINDS = [
   {
-    type: 'regular', icon: '🔧', label: '정기 점검', color: 'var(--accent)', btnText: '#000',
+    type: 'regular', icon: '🔧', label: '정기 점검', color: 'var(--accent)', btnText: 'var(--on-accent)',
     desc: '2~3개월 주기. DB 최적화, 보안 업데이트, 시스템 개선',
     defaultMin: 60, defaultReason: '정기 시스템 점검 (DB 최적화, 보안 업데이트)',
   },
   {
-    type: 'server', icon: '🖥️', label: '서버 점검', color: 'var(--info)', btnText: '#000',
+    type: 'server', icon: '🖥️', label: '서버 점검', color: 'var(--info)', btnText: 'var(--on-accent)',
     desc: '서버 재시작, 배포, 패치 적용 등',
     defaultMin: 30, defaultReason: '서버 점검 (서버 재시작, 배포, 패치 적용)',
   },
@@ -280,7 +280,7 @@ export default function MaintAdmin() {
         <button
           onClick={startNew}
           style={{
-            background: 'var(--accent)', border: 'none', color: '#000',
+            background: 'var(--accent)', border: 'none', color: 'var(--on-accent)',
             padding: '6px 14px', fontSize: 12, fontWeight: 700,
             borderRadius: 'var(--radius)', cursor: 'pointer',
           }}
@@ -336,7 +336,7 @@ export default function MaintAdmin() {
                   border: '1px solid',
                   borderColor: form.days.includes(i) ? 'var(--accent)' : 'var(--border)',
                   background: form.days.includes(i) ? 'var(--accent)' : 'transparent',
-                  color: form.days.includes(i) ? '#000' : 'var(--text-muted)',
+                  color: form.days.includes(i) ? 'var(--on-accent)' : 'var(--text-muted)',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
@@ -357,7 +357,7 @@ export default function MaintAdmin() {
             <button
               onClick={handleSave}
               style={{
-                background: 'var(--accent)', border: 'none', color: '#000',
+                background: 'var(--accent)', border: 'none', color: 'var(--on-accent)',
                 padding: '8px 20px', fontSize: 13, fontWeight: 700,
                 borderRadius: 'var(--radius)', cursor: 'pointer',
               }}

@@ -8,6 +8,7 @@ import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import { scaleFor, positionOn } from '../data/bodyRanges';
+import { CHART, AXIS_TICK, TOOLTIP_STYLE } from '../data/chartColors';
 
 const PHOTO_KEY = COMPARE_PHOTOS_KEY;
 
@@ -351,12 +352,12 @@ export default function ComparePage() {
             ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ name: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
             ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ name: '체수분(L)', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
           ]}>
-            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
+            <XAxis dataKey="name" tick={AXIS_TICK} />
+            <YAxis tick={AXIS_TICK} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} />
             <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value === 'before' ? '과거' : '현재'}</span>} />
-            <Bar dataKey="before" fill="#555" name="before" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="after" fill="#eeb77d" name="after" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="before" fill={CHART.muted} name="before" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="after" fill={CHART.accent} name="after" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -374,13 +375,13 @@ export default function ComparePage() {
             ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ subject: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
             ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ subject: '체수분', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
           ]}>
-            <PolarGrid stroke="var(--border)" />
-            <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-            <PolarRadiusAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
-            <Radar name="과거" dataKey="before" stroke="#555" fill="#555" fillOpacity={0.3} />
-            <Radar name="현재" dataKey="after" stroke="#eeb77d" fill="#eeb77d" fillOpacity={0.3} />
+            <PolarGrid stroke={CHART.border} />
+            <PolarAngleAxis dataKey="subject" tick={{ fill: CHART.text2, fontSize: 11 }} />
+            <PolarRadiusAxis tick={{ fill: CHART.muted, fontSize: 10 }} />
+            <Radar name="과거" dataKey="before" stroke={CHART.muted} fill={CHART.muted} fillOpacity={0.3} />
+            <Radar name="현재" dataKey="after" stroke={CHART.accent} fill={CHART.accent} fillOpacity={0.3} />
             <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value}</span>} />
-            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} />
           </RadarChart>
         </ResponsiveContainer>
       </div>

@@ -222,7 +222,7 @@ export default function HomePage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 13, fontWeight: isToday ? 700 : 400,
                       background: done ? 'var(--accent)' : isToday ? 'var(--bg-tertiary)' : 'none',
-                      color: done ? '#000' : isToday ? 'var(--accent)' : future ? 'var(--border-hover)' : 'var(--text-muted)',
+                      color: done ? 'var(--on-accent)' : isToday ? 'var(--accent)' : future ? 'var(--border-hover)' : 'var(--text-muted)',
                       border: isToday && !done ? '1px solid var(--accent)' : 'none',
                     }}>
                       {d.slice(8)}
