@@ -168,7 +168,7 @@ export default function TabBar() {
               fontWeight: 700,
               letterSpacing: 3,
               lineHeight: 1,
-              background: 'linear-gradient(135deg, #f6cea8, #d18f4a, #f6cea8)',
+              background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               cursor: 'pointer',

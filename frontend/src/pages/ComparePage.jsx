@@ -356,7 +356,7 @@ export default function ComparePage() {
             <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
             <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value === 'before' ? '과거' : '현재'}</span>} />
             <Bar dataKey="before" fill="#555" name="before" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="after" fill="#ecc089" name="after" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="after" fill="#eeb77d" name="after" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -378,7 +378,7 @@ export default function ComparePage() {
             <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
             <PolarRadiusAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
             <Radar name="과거" dataKey="before" stroke="#555" fill="#555" fillOpacity={0.3} />
-            <Radar name="현재" dataKey="after" stroke="#ecc089" fill="#ecc089" fillOpacity={0.3} />
+            <Radar name="현재" dataKey="after" stroke="#eeb77d" fill="#eeb77d" fillOpacity={0.3} />
             <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value}</span>} />
             <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13 }} />
           </RadarChart>

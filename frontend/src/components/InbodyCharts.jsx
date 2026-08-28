@@ -60,7 +60,7 @@ export function WeightTrend({ data }) {
         <XAxis dataKey="date" tick={AXIS_TICK} />
         <YAxis tick={AXIS_TICK} domain={['auto', 'auto']} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
-        <Line type="monotone" dataKey="체중" stroke="#ecc089" strokeWidth={2} dot={{ fill: '#ecc089', r: 3 }} />
+        <Line type="monotone" dataKey="체중" stroke="#eeb77d" strokeWidth={2} dot={{ fill: '#eeb77d', r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );
