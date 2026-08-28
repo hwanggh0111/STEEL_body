@@ -177,7 +177,7 @@ router.get('/', (req, res) => {
 // 타입별 (머신 or 맨몸)
 router.get('/:type', (req, res) => {
   const data = ROUTINES[req.params.type];
-  if (!data) return res.status(400).json({ error: '머신 또는 맨몸만 가능해요' });
+  if (!data) return res.status(400).json({ error: `${Object.keys(ROUTINES).join(' · ')} 중에서 고를 수 있어요` });
   res.json(data);
 });
 

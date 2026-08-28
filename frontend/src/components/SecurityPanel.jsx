@@ -183,7 +183,8 @@ export default function SecurityPanel() {
         client.get('/security/users'),
       ]);
       setDashboard(dashRes.data);
-      setUsers(usersRes.data);
+      // 서버는 배열을 준다. 다른 모양이 오면 빈 것으로 친다 (아래에서 map 으로 돈다)
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (e) {
       setError(true);
     } finally {

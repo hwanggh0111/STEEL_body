@@ -9,7 +9,9 @@ export const useWorkoutStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await client.get('/workouts');
-      const grouped = data.reduce((acc, w) => {
+      // 배열이 아니면 빈 것으로 친다. 아래 reduce 가 터지면 catch 로 빠지면서
+      // 화면은 아무 말 없이 옛 목록을 그대로 들고 있는다
+      const grouped = (Array.isArray(data) ? data : []).reduce((acc, w) => {
         if (!acc[w.date]) acc[w.date] = [];
         acc[w.date].push(w);
         return acc;

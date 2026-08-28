@@ -211,6 +211,55 @@ function cleanAll() {
     (await call('PUT', '/reminders', { enabled: true, days: [1, 3, 5], time: '19:00', tzOffset: -540, streakGuard: true })).status, 200);
   step('끄기', (await call('PUT', '/reminders', { enabled: false })).status, 200);
 
+
+  // ── 화면이 기대하는 모양대로 오는가 ──
+  //
+  // 이 앱에서 세 번 나온 종류다. 서버가 배열을 주는데 화면이 객체로 받으면,
+  // 로그가 100건 와도 늘 「없습니다」 이고 숫자는 전부 0 이다. **에러도 안 나고
+  // 빌드도 통과한다** — 화면이 조용히 아무 말도 안 할 뿐이라 눈으로만 잡힌다.
+  //
+  // 그래서 사람 대신 여기서 본다. 배열인가 · 객체인가 · 화면이 읽는 칸이 있는가.
+  // 관리자만 볼 수 있는 것은 이 계정으로 못 부른다 — 거기는 403 이 맞는지만 본다.
+  console.log('');
+  console.log('── 화면이 기대하는 모양대로 오는가 ──');
+
+  const shapeOf = (v) => (Array.isArray(v) ? '배열' : v === null ? 'null' : typeof v);
+
+  // [부르는 곳, 길, 기대하는 모양, 화면이 읽는 칸들]
+  const SHAPES = [
+    ['운동 기록 (workoutStore)',     '/workouts',        '배열', []],
+    ['인바디 (inbodyStore)',         '/inbody',          '배열', []],
+    ['측정 (MeasurePage)',           '/measures',        '배열', []],
+    ['내 루틴 (홈 · 루틴)',          '/my-routines',     '배열', []],
+    ['사진 (머리 · 비교)',           '/photos',          '배열', []],
+    ['제보함 (reportStore)',         '/reports',         '배열', []],
+    ['점검 (MaintenanceScreen)',     '/maintenance',     '배열', []],
+    ['추천 루틴 · 머신 (RoutinePage)', '/routines/머신',  'object', ['가슴']],
+    ['추천 루틴 · 맨몸',               '/routines/맨몸',  'object', ['가슴']],
+    ['추천 루틴 · 홈트',               '/routines/홈트',  'object', ['전신']],
+    ['소셜 (SocialLoginButtons)',    '/oauth/providers', 'object', ['google']],
+    ['진행표 (routineSessionStore)', '/routine-session', 'object', ['session']],
+    ['알림 (RemindersPage)',         '/reminders',       'object', ['settings', 'vapidPublicKey', 'devices']],
+    ['별점 (Satisfaction)',          '/ratings/me',      'object', ['score']],
+  ];
+
+  for (const [label, urlPath, want, keys] of SHAPES) {
+    const res = await call('GET', urlPath);
+    step(label, res.status, 200);
+    step('  ' + want + ' 로 온다', shapeOf(res.data), want);
+    for (const k of keys) {
+      step('  ' + k + ' 칸이 있다', res.data && k in res.data, true);
+    }
+  }
+
+  // 관리자 것은 이 계정으로 못 본다. 뚫려 있으면 그게 사고다
+  for (const [label, urlPath] of [
+    ['보안 대시보드', '/security/dashboard'], ['사람 목록', '/security/users'],
+    ['보안 기록', '/security/logs'], ['제보 전체', '/reports/all'],
+    ['못 찾은 말', '/faq-gaps'], ['만족도 통계', '/ratings/stats'],
+  ]) {
+    step(label + ' 은 관리자만', (await call('GET', urlPath)).status, 403);
+  }
   console.log('\n' + (bad ? bad + '건 실패' : '한 바퀴 전부 통과'));
   await new Promise(r => setTimeout(r, 700));
   cleanup();

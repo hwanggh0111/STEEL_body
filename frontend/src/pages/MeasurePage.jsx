@@ -87,7 +87,8 @@ export default function MeasurePage() {
       const payload = { type, date, data };
       await client.post('/measures', payload);
       const { data: refreshed } = await client.get('/measures');
-      setMeasures(refreshed);
+      // 위의 첫 로드와 같은 이유로 지킨다
+      setMeasures(Array.isArray(refreshed) ? refreshed : []);
       toast('저장 완료!');
     } catch {
       toast('저장에 실패했어요', 'error');

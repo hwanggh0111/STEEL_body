@@ -9,7 +9,9 @@ export const useInbodyStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await client.get('/inbody');
-      set({ records: data, loading: false });
+      // 서버는 배열을 준다. 다른 모양이 오면 빈 것으로 친다 —
+      // records 는 세 화면이 그대로 map 으로 돌린다
+      set({ records: Array.isArray(data) ? data : [], loading: false });
     } catch {
       set({ loading: false });
     }
