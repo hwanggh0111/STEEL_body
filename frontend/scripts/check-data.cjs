@@ -33,6 +33,7 @@ const josa = bundle('src/data/particle.js', '.t8.cjs');
 global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
 const chart = bundle('src/data/chartColors.js', '.t10.cjs');
+const axis = bundle('src/components/charts/useWidth.js', '.t11.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -201,5 +202,20 @@ for (const [t, c] of PAIRS) {
   ok('그래프의 ' + c + ' 가 --' + t + ' 와 같다', chart.CHART[c], token(t));
 }
 
+
+console.log('');
+console.log('── 그래프 눈금 (직접 그리는 축) ──');
+// 최소~최대를 그냥 3등분하면 「71.33」 같은 눈금이 나온다. 사람이 읽는 숫자로 끊는다.
+// 그래프는 눈으로 보면 「그려졌네」로 끝나서, 눈금이 이상해도 그냥 지나친다
+const sc = (a, b) => axis.niceScale(a, b).values;
+ok('70.4~74.6 은 2 씩 네 칸', sc(70.4, 74.6), [70, 72, 74, 76]);
+ok('0~100 은 25 씩', sc(0, 100), [0, 25, 50, 75, 100]);
+ok('값이 하나뿐이면 위아래로 벌린다', sc(72, 72), [71, 72, 73]);
+ok('소수도 깔끔하게', sc(17.2, 18.9), [17, 17.5, 18, 18.5, 19]);
+ok('눈금이 늘 최소보다 아래에서 시작한다', axis.niceScale(70.4, 74.6).min <= 70.4, true);
+ok('눈금이 늘 최대보다 위에서 끝난다', axis.niceScale(70.4, 74.6).max >= 74.6, true);
+ok('12.0 은 12 로 적는다', axis.fmt(12.0), '12');
+ok('12.34 는 12.3 으로', axis.fmt(12.34), '12.3');
+ok('없는 값은 - 로', axis.fmt(null), '-');
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -13,7 +13,7 @@ import { daysBetween } from '../data/personalRecord';
 import { CHART } from '../data/chartColors';
 
 // 무거운 것은 필요할 때 받는다.
-// 그래프(recharts)와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
+// 그래프와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
 // 예전에는 둘 다 위에서 import 해서, 입력 폼과 기록 목록이 그것들을 기다렸다.
 const CompositionChart = lazy(() => import('../components/InbodyCharts').then(m => ({ default: m.CompositionChart })));
 const WeightTrend = lazy(() => import('../components/InbodyCharts').then(m => ({ default: m.WeightTrend })));

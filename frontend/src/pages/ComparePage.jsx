@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import Bars from '../components/charts/Bars';
+import RadarChart from '../components/charts/Radar';
 import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
@@ -8,7 +9,7 @@ import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import { scaleFor, positionOn } from '../data/bodyRanges';
-import { CHART, AXIS_TICK, TOOLTIP_STYLE } from '../data/chartColors';
+import { CHART } from '../data/chartColors';
 
 const PHOTO_KEY = COMPARE_PHOTOS_KEY;
 
@@ -344,22 +345,20 @@ export default function ComparePage() {
         </div>
       )}
       <div className="card" style={{ marginBottom: 20, padding: 12 }}>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={[
+        <Bars
+          height={220}
+          series={[
+            { key: 'before', label: '과거', color: CHART.muted },
+            { key: 'after', label: '현재', color: CHART.accent },
+          ]}
+          data={[
             { name: '체중(kg)', before: graphBefore.weight, after: graphAfter.weight },
             ...(graphBefore.muscle_kg != null && graphAfter.muscle_kg != null ? [{ name: '골격근(kg)', before: graphBefore.muscle_kg, after: graphAfter.muscle_kg }] : []),
             ...(graphBefore.fat_pct != null && graphAfter.fat_pct != null ? [{ name: '체지방(%)', before: graphBefore.fat_pct, after: graphAfter.fat_pct }] : []),
             ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ name: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
             ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ name: '체수분(L)', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
-          ]}>
-            <XAxis dataKey="name" tick={AXIS_TICK} />
-            <YAxis tick={AXIS_TICK} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} />
-            <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value === 'before' ? '과거' : '현재'}</span>} />
-            <Bar dataKey="before" fill={CHART.muted} name="before" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="after" fill={CHART.accent} name="after" radius={[2, 2, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+          ]}
+        />
       </div>
 
       <div className="section-title">
@@ -367,23 +366,20 @@ export default function ComparePage() {
         밸런스 비교
       </div>
       <div className="card" style={{ marginBottom: 20, padding: 12 }}>
-        <ResponsiveContainer width="100%" height={260}>
-          <RadarChart data={[
+        <RadarChart
+          height={260}
+          series={[
+            { key: 'before', label: '과거', color: CHART.muted },
+            { key: 'after', label: '현재', color: CHART.accent },
+          ]}
+          data={[
             { subject: '체중', before: graphBefore.weight, after: graphAfter.weight },
             ...(graphBefore.muscle_kg != null && graphAfter.muscle_kg != null ? [{ subject: '골격근', before: graphBefore.muscle_kg, after: graphAfter.muscle_kg }] : []),
             ...(graphBefore.fat_pct != null && graphAfter.fat_pct != null ? [{ subject: '체지방', before: graphBefore.fat_pct, after: graphAfter.fat_pct }] : []),
             ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ subject: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
             ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ subject: '체수분', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
-          ]}>
-            <PolarGrid stroke={CHART.border} />
-            <PolarAngleAxis dataKey="subject" tick={{ fill: CHART.text2, fontSize: 11 }} />
-            <PolarRadiusAxis tick={{ fill: CHART.muted, fontSize: 10 }} />
-            <Radar name="과거" dataKey="before" stroke={CHART.muted} fill={CHART.muted} fillOpacity={0.3} />
-            <Radar name="현재" dataKey="after" stroke={CHART.accent} fill={CHART.accent} fillOpacity={0.3} />
-            <Legend formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{value}</span>} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} />
-          </RadarChart>
-        </ResponsiveContainer>
+          ]}
+        />
       </div>
 
 
