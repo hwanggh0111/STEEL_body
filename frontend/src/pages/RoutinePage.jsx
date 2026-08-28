@@ -22,6 +22,8 @@ export default function RoutinePage() {
   const [showCreate, setShowCreate] = useState(false);
   // 고치는 중인 루틴 id. null 이면 새로 만드는 중
   const [editingId, setEditingId] = useState(null);
+  // 저장 중 두 번째 누름을 버린다. 안 막으면 같은 루틴이 두 개 생긴다
+  const [savingRoutine, setSavingRoutine] = useState(false);
   const [newRoutine, setNewRoutine] = useState({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
   const navigate = useNavigate();
   const session = useRoutineSessionStore(s => s.session);
@@ -69,6 +71,8 @@ export default function RoutinePage() {
   // 그래서 서버 저장이 실패해도 「저장됐습니다!」가 한 번 번쩍이고 나서
   // 「실패했어요」로 바뀌었다. 알리는 자리를 하나로 모은다.
   const saveMyRoutine = async (routine) => {
+    if (savingRoutine) return false;
+    setSavingRoutine(true);
     try {
       const { data: saved } = await client.post('/my-routines', routine);
       // 서버가 정한 id 가 뒤에 와야 한다. routine 을 뒤에 펴면 id 가 덮인다
@@ -78,6 +82,8 @@ export default function RoutinePage() {
     } catch (err) {
       toast(err.response?.data?.error || '루틴 저장에 실패했어요', 'error');
       return false;
+    } finally {
+      setSavingRoutine(false);
     }
   };
 
@@ -87,6 +93,8 @@ export default function RoutinePage() {
   // 다시 만들어야 했다 — 매일 쓰는 것인데 그렇다. 서버에는 `PUT /my-routines/:id` 가
   // 처음부터 있었고, 화면에서 부르는 곳은 「루틴에 운동 하나 더 넣기」 하나뿐이었다.
   const updateMyRoutine = async (id, routine) => {
+    if (savingRoutine) return false;
+    setSavingRoutine(true);
     try {
       await client.put(`/my-routines/${id}`, { name: routine.name, exercises: routine.exercises });
       setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, ...routine } : r)));
@@ -95,6 +103,8 @@ export default function RoutinePage() {
     } catch (err) {
       toast(err.response?.data?.error || '고치지 못했어요', 'error');
       return false;
+    } finally {
+      setSavingRoutine(false);
     }
   };
 
@@ -310,8 +320,9 @@ export default function RoutinePage() {
                 setShowCreate(false);
               }}
               className="btn-primary"
+              disabled={savingRoutine}
               style={{ flex: 1 }}
-            >{editingId ? '고치기' : '저장'}</button>
+            >{savingRoutine ? '저장 중…' : (editingId ? '고치기' : '저장')}</button>
             <button
               onClick={() => { setShowCreate(false); setEditingId(null); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); }}
               style={{

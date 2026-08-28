@@ -39,6 +39,7 @@ export default function MeasurePage() {
   const [tab, setTab] = useState(initialTab);
   const [measures, setMeasures] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // location.state.tab 변경 시 탭 동기화 (검색에서 다시 들어올 때)
   useEffect(() => {
@@ -81,7 +82,12 @@ export default function MeasurePage() {
       .catch(() => toast('내보내기에 실패했어요', 'error'));
   };
 
+  // 저장 중에는 두 번째 누름을 버린다.
+  // 여섯 갈래(둘레 · 어깨 · 1RM · 체력 · 스톱워치 · 유연성)가 전부 여기를 지난다 —
+  // 갈래마다 막으면 하나를 빠뜨린다
   const handleSave = async (type, data) => {
+    if (saving) return;
+    setSaving(true);
     try {
       const date = data.date || dateKey();
       const payload = { type, date, data };
@@ -92,6 +98,8 @@ export default function MeasurePage() {
       toast('저장 완료!');
     } catch {
       toast('저장에 실패했어요', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
