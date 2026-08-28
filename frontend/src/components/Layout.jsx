@@ -181,7 +181,7 @@ export default function Layout() {
             }}
           >
             <svg width="30" height="30" viewBox="0 0 60 60" fill="none" aria-hidden="true">
-              <defs><linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+              <defs><linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f3ead0"/><stop offset="100%" stopColor="#bfae7d"/></linearGradient></defs>
               <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#dbGrad)"/>
               <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#dbGrad)"/>
               <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#dbGrad)" opacity="0.7"/>
@@ -191,7 +191,7 @@ export default function Layout() {
             <div style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: 21, fontWeight: 700, letterSpacing: 3, lineHeight: 1,
-              background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+              background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               whiteSpace: 'nowrap',

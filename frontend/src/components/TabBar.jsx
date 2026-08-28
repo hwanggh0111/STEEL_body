@@ -125,7 +125,7 @@ export default function TabBar() {
           <span style={{
             position: 'absolute', top: -4, right: -8,
             minWidth: 16, height: 16, padding: '0 4px',
-            borderRadius: 8, background: 'var(--danger)', color: '#fff',
+            borderRadius: 8, background: 'var(--danger-strong)', color: '#fff',
             fontSize: 10, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
             fontFamily: "'Barlow', sans-serif",
           }}>{item.badge > 99 ? '99+' : item.badge}</span>
@@ -168,7 +168,7 @@ export default function TabBar() {
               fontWeight: 700,
               letterSpacing: 3,
               lineHeight: 1,
-              background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+              background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               cursor: 'pointer',

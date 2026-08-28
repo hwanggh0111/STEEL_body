@@ -1,56 +1,56 @@
 /* 폰트는 index.html 의 <link> 에서 부른다 — @import 는 요청이 한 단계 더 붙는다 */
 
-/* ─── CSS Variables (다크 모드 - 기본) ── */
+/* ─── CSS Variables (다크 모드 - 기본) ──
+
+   검정과 금. 앞서는 「평평한 검정 + 금색 표시」라 금이 얹혀만 있었다.
+   지금은 검정 자체가 금빛을 머금는다 — 배경이 따뜻하고, 금은 실선과
+   작은 글자에만 쓴다. 고급스러움은 색이 아니라 여백과 절제에서 온다. */
 :root {
-  /* 배경 */
-  --bg-primary:    #0a0a0a;
-  --bg-secondary:  #111111;
-  --bg-tertiary:   #1a1a1a;
+  /* 배경 — 평평한 검정이 아니라 금빛이 도는 따뜻한 검정 */
+  --bg-primary:    #12100c;
+  --bg-secondary:  #1b1712;
+  --bg-tertiary:   #282219;
+
+  /* 화면 전체 배경 — 위에서 빛이 든 것처럼 은은한 방사형.
+     읽어 들이지 못하는 곳을 위해 --bg-primary 를 밑에 깐다 */
+  --bg-glow: radial-gradient(120% 85% at 50% -5%, #221e17 0%, #171410 50%, #12100c 100%);
+
+  /* 카드 — 단색이 아니라 위가 살짝 밝다 */
+  --card-bg: linear-gradient(180deg, #1e1a14 0%, #191510 100%);
+  /* 카드 윗변의 금실 한 줄 — 모서리에 빛이 걸린 것 */
+  --card-edge: inset 0 1px 0 rgba(230,216,168,0.14);
 
   /* 텍스트 */
-  --text-primary:  #f0f0f0;
-  --text-secondary:#aaaaaa;
-  --text-muted:    #555555;
+  --text-primary:  #eae4d6;
+  --text-secondary:#aaa28e;
+  --text-muted:    #7a7160;
 
-  /* 포인트 */
-  --accent:        #ff6b1a;
-  --accent-hover:  #ff8c42;
-  --accent-dim:    #1e1200;
+  /* 포인트 — 금. hover 는 더 밝은 금, dim 은 금빛이 도는 어두운 바탕 */
+  --accent:        #e6d8a8;
+  --accent-hover:  #f3ead0;
+  --accent-low:    #bfae7d;
+  --accent-dim:    #221d14;
 
-  /* 상태 */
-  --success:       #3a9e3a;
-  --success-dim:   #0a1a0a;
-  --warning:       #e8a020;
-  --warning-dim:   #1a1000;
-  --danger:        #e84040;
-  --danger-dim:    #1a0000;
-  --info:          #4a9aff;
-  --info-dim:      #0a1020;
+  /* 상태 — 검정이 따뜻해진 만큼 같이 데운다 */
+  --success:       #7fb069;
+  --success-dim:   #14180f;
+  --warning:       #d9a441;
+  --warning-dim:   #1d1710;
+  --danger:        #d96a5c;
+  --danger-dim:    #1d1210;
+  /* 빨강을 통째로 칠하고 흰 글자를 얹는 자리 — 밝은 빨강에 흰 글자는 안 보인다 */
+  --danger-strong: #a83a30;
+  --info:          #7fa8d9;
+  --info-dim:      #111620;
 
   /* 테두리 */
-  --border:        #1e1e1e;
-  --border-hover:  #333333;
-  --border-accent: #ff6b1a;
+  --border:        #332b1e;
+  --border-hover:  #4a3f2c;
+  --border-accent: #e6d8a8;
 
-  /* 이벤트 배너 (다크) */
-  --event-banner-bg: linear-gradient(135deg, #1a0a2e 0%, #16213e 30%, #0f3460 60%, #1a0a2e 100%);
-  --event-banner-overlay: radial-gradient(circle at 20% 30%, rgba(255,215,0,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,107,26,0.08) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(255,255,255,0.03) 0%, transparent 40%);
-  --event-banner-shadow: 0 0 40px rgba(255,107,26,0.15), 0 0 80px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
-  --event-card-bg: rgba(255,255,255,0.02);
-  --event-card-border: rgba(255,255,255,0.05);
-  --event-soft-bg: rgba(255,255,255,0.03);
-  --event-soft-border: rgba(255,255,255,0.06);
-  --event-text-strong: rgba(255,255,255,0.85);
-  --event-text-mid: rgba(255,255,255,0.7);
-  --event-text-soft: rgba(255,255,255,0.55);
-  --event-text-faded: rgba(255,255,255,0.4);
-  --event-text-muted: rgba(255,255,255,0.25);
-  --event-text-ghost: rgba(255,255,255,0.15);
-  --event-progress-track: rgba(255,255,255,0.08);
-  --event-stamp-text-locked: rgba(255,255,255,0.2);
-  --event-mission-divider: rgba(255,255,255,0.04);
-
-  /* 홈 이벤트 배너 (다크) */
+  /* 금·초록·노랑처럼 밝은 색을 통째로 칠했을 때 그 위에 얹는 글자.
+     금이 밝아진 뒤로 흰 글자는 아예 안 보인다 (1.4:1) */
+  --on-accent:     #12100c;
 
   /* 레이아웃 */
   --max-width:     640px;
@@ -93,8 +93,11 @@ body {
   font-size: 15px;
   font-weight: 400;
   color: var(--text-primary);
-  background: var(--bg-primary);
+  background-color: var(--bg-primary);
+  background-image: var(--bg-glow);
+  background-attachment: fixed;
   line-height: 1.6;
+  letter-spacing: 0.1px;
 }
 
 /* 제목 — Bebas Neue */
@@ -118,25 +121,25 @@ body {
 
 /* ─── 버튼 ─────────────────────────── */
 .btn-primary {
-  background: var(--accent);
-  color: #000;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent);
+  color: var(--accent);
   font-family: 'Bebas Neue', sans-serif;
   font-size: 17px;
   letter-spacing: 2px;
   padding: 13px 24px;
-  border: none;
   border-radius: var(--radius);
   cursor: pointer;
   width: 100%;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
-.btn-primary:hover    { background: var(--accent-hover); transform: translateY(-1px); }
-.btn-primary:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; transform: none; }
+.btn-primary:hover    { background: var(--accent-dim); border-color: var(--accent-hover); color: var(--accent-hover); transform: translateY(-1px); }
+.btn-primary:disabled { background: var(--bg-secondary); border-color: var(--border); color: var(--text-muted); cursor: not-allowed; transform: none; }
 
 .btn-secondary {
   background: none;
-  border: 2px solid #333;
-  color: #666;
+  border: 1px solid var(--border-hover);
+  color: var(--text-secondary);
   font-family: 'Bebas Neue', sans-serif;
   font-size: 14px;
   letter-spacing: 1.5px;
@@ -146,7 +149,7 @@ body {
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
 .btn-secondary.active,
-.btn-secondary:hover { background: var(--accent); border-color: var(--accent); color: #000; }
+.btn-secondary:hover { background: var(--accent); border-color: var(--accent); color: #12100c; }
 
 /* ─── 입력 필드 ────────────────────── */
 .input {
@@ -165,9 +168,10 @@ body {
 
 /* ─── 카드 ─────────────────────────── */
 .card {
-  background: var(--bg-secondary);
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--card-edge);
   padding: 16px;
   transition: border-color 0.15s ease, transform 0.08s ease;
 }
@@ -241,9 +245,17 @@ body {
 }
 .accent-bar { width: 3px; height: 18px; background: var(--accent); flex-shrink: 0; }
 
+/* 구분선 — 끝이 사라지고 가운데만 밝다. 곧게 그은 선보다 조용하다 */
+.rule-beam {
+  height: 1px;
+  border: none;
+  background: linear-gradient(90deg, transparent, var(--accent-dim) 20%, var(--accent-low) 50%, var(--accent-dim) 80%, transparent);
+}
+
 /* ─── 통계 박스 ────────────────────── */
 .stat-box {
-  background: var(--bg-secondary);
+  background: var(--card-bg);
+  box-shadow: var(--card-edge);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
@@ -271,7 +283,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent);
-  color: #000;
+  color: #12100c;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 15px;
   letter-spacing: 1.5px;
@@ -309,7 +321,8 @@ body {
 }
 
 /* ─── 공통 레이아웃 ────────────────── */
-.page-wrapper { min-height: 100vh; background: var(--bg-primary); color: var(--text-primary); }
+/* 껍데기는 배경을 덮지 않는다 — body 의 금빛이 그대로 비쳐 보이게 */
+.page-wrapper { min-height: 100vh; background: transparent; color: var(--text-primary); }
 .content-area {
   padding: var(--padding-x); max-width: var(--max-width); margin: 0 auto;
 }

@@ -32,22 +32,22 @@ export default function MiniSplash({ onDone }) {
         transition: 'all 0.2s ease-out',
       }}>
         <svg width="40" height="40" viewBox="0 0 60 60" fill="none" style={{ transform: 'scaleX(-1)' }}>
-          <defs><linearGradient id="msL" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+          <defs><linearGradient id="msL" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f3ead0"/><stop offset="100%" stopColor="#bfae7d"/></linearGradient></defs>
           <path d="M30 52 L28 40 Q24 32 26 26 Q28 20 32 16 L34 14 Q38 16 37 22 Q36 26 34 28 Q38 24 42 26 Q46 29 46 34 Q46 40 42 44 L38 48 Z" fill="url(#msL)"/>
           <rect x="29" y="10" width="8" height="6" rx="2" fill="url(#msL)"/>
         </svg>
         <div style={{
           fontFamily: "'Great Vibes', cursive",
           fontSize: 36,
-          background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+          background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 10px rgba(255,107,26,0.4))',
+          filter: 'drop-shadow(0 0 10px rgba(230,216,168,0.4))',
         }}>
           Steel Body
         </div>
         <svg width="40" height="40" viewBox="0 0 60 60" fill="none">
-          <defs><linearGradient id="msR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+          <defs><linearGradient id="msR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f3ead0"/><stop offset="100%" stopColor="#bfae7d"/></linearGradient></defs>
           <path d="M30 52 L28 40 Q24 32 26 26 Q28 20 32 16 L34 14 Q38 16 37 22 Q36 26 34 28 Q38 24 42 26 Q46 29 46 34 Q46 40 42 44 L38 48 Z" fill="url(#msR)"/>
           <rect x="29" y="10" width="8" height="6" rx="2" fill="url(#msR)"/>
         </svg>

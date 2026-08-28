@@ -1,56 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="redGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff1a1a"/>
-      <stop offset="100%" stop-color="#cc0000"/>
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f3ead0"/>
+      <stop offset="100%" stop-color="#bfae7d"/>
     </linearGradient>
-    <linearGradient id="darkRed" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1a1a1a"/>
-      <stop offset="100%" stop-color="#0d0d0d"/>
+    <linearGradient id="darkGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#221e17"/>
+      <stop offset="100%" stop-color="#12100c"/>
     </linearGradient>
   </defs>
 
   <!-- Background -->
-  <rect width="512" height="512" rx="80" fill="url(#darkRed)"/>
+  <rect width="512" height="512" rx="80" fill="url(#darkGold)"/>
 
   <!-- Wings (left) -->
-  <path d="M100 260 Q60 200 80 140 Q100 180 130 200 Q110 170 100 120 Q130 170 160 200 Q145 160 140 110 Q165 165 185 210 L200 250 Z" fill="url(#redGlow)" opacity="0.8"/>
+  <path d="M100 260 Q60 200 80 140 Q100 180 130 200 Q110 170 100 120 Q130 170 160 200 Q145 160 140 110 Q165 165 185 210 L200 250 Z" fill="url(#goldGlow)" opacity="0.8"/>
 
   <!-- Wings (right) -->
-  <path d="M412 260 Q452 200 432 140 Q412 180 382 200 Q402 170 412 120 Q382 170 352 200 Q367 160 372 110 Q347 165 327 210 L312 250 Z" fill="url(#redGlow)" opacity="0.8"/>
+  <path d="M412 260 Q452 200 432 140 Q412 180 382 200 Q402 170 412 120 Q382 170 352 200 Q367 160 372 110 Q347 165 327 210 L312 250 Z" fill="url(#goldGlow)" opacity="0.8"/>
 
   <!-- Muscular figure silhouette -->
   <!-- Head -->
-  <circle cx="256" cy="155" r="28" fill="#e0e0e0"/>
+  <circle cx="256" cy="155" r="28" fill="#e6e0d2"/>
 
   <!-- Neck -->
-  <rect x="248" y="183" width="16" height="15" fill="#e0e0e0"/>
+  <rect x="248" y="183" width="16" height="15" fill="#e6e0d2"/>
 
   <!-- Shoulders + Torso -->
-  <path d="M200 198 L190 210 L195 250 L210 310 L220 340 L240 345 L256 350 L272 345 L292 340 L302 310 L317 250 L322 210 L312 198 L290 195 L256 193 L222 195 Z" fill="#e0e0e0"/>
+  <path d="M200 198 L190 210 L195 250 L210 310 L220 340 L240 345 L256 350 L272 345 L292 340 L302 310 L317 250 L322 210 L312 198 L290 195 L256 193 L222 195 Z" fill="#e6e0d2"/>
 
   <!-- Arms (posed flex) -->
-  <path d="M200 198 L175 215 L160 245 L165 250 L172 248 L180 225 L195 235 L200 230 Z" fill="#d0d0d0"/>
-  <path d="M160 245 L150 220 L145 200 L152 198 L160 215 L165 240 Z" fill="#d0d0d0"/>
-  <path d="M312 198 L337 215 L352 245 L347 250 L340 248 L332 225 L317 235 L312 230 Z" fill="#d0d0d0"/>
-  <path d="M352 245 L362 220 L367 200 L360 198 L352 215 L347 240 Z" fill="#d0d0d0"/>
+  <path d="M200 198 L175 215 L160 245 L165 250 L172 248 L180 225 L195 235 L200 230 Z" fill="#cfc7b6"/>
+  <path d="M160 245 L150 220 L145 200 L152 198 L160 215 L165 240 Z" fill="#cfc7b6"/>
+  <path d="M312 198 L337 215 L352 245 L347 250 L340 248 L332 225 L317 235 L312 230 Z" fill="#cfc7b6"/>
+  <path d="M352 245 L362 220 L367 200 L360 198 L352 215 L347 240 Z" fill="#cfc7b6"/>
 
   <!-- Legs -->
-  <path d="M230 345 L225 390 L220 430 L235 432 L242 395 L256 350" fill="#e0e0e0"/>
-  <path d="M282 345 L287 390 L292 430 L277 432 L270 395 L256 350" fill="#e0e0e0"/>
+  <path d="M230 345 L225 390 L220 430 L235 432 L242 395 L256 350" fill="#e6e0d2"/>
+  <path d="M282 345 L287 390 L292 430 L277 432 L270 395 L256 350" fill="#e6e0d2"/>
 
   <!-- Dumbbell -->
-  <rect x="216" y="440" width="80" height="6" rx="3" fill="url(#redGlow)"/>
-  <rect x="208" y="434" width="12" height="18" rx="3" fill="url(#redGlow)"/>
-  <rect x="200" y="437" width="10" height="12" rx="2" fill="url(#redGlow)" opacity="0.7"/>
-  <rect x="292" y="434" width="12" height="18" rx="3" fill="url(#redGlow)"/>
-  <rect x="302" y="437" width="10" height="12" rx="2" fill="url(#redGlow)" opacity="0.7"/>
+  <rect x="216" y="440" width="80" height="6" rx="3" fill="url(#goldGlow)"/>
+  <rect x="208" y="434" width="12" height="18" rx="3" fill="url(#goldGlow)"/>
+  <rect x="200" y="437" width="10" height="12" rx="2" fill="url(#goldGlow)" opacity="0.7"/>
+  <rect x="292" y="434" width="12" height="18" rx="3" fill="url(#goldGlow)"/>
+  <rect x="302" y="437" width="10" height="12" rx="2" fill="url(#goldGlow)" opacity="0.7"/>
 
   <!-- Lightning bolts -->
-  <path d="M150 280 L165 280 L158 300 L175 300 L148 335 L155 310 L140 310 Z" fill="#ff3333" opacity="0.9"/>
-  <path d="M362 280 L347 280 L354 300 L337 300 L364 335 L357 310 L372 310 Z" fill="#ff3333" opacity="0.9"/>
+  <path d="M150 280 L165 280 L158 300 L175 300 L148 335 L155 310 L140 310 Z" fill="#e6d8a8" opacity="0.9"/>
+  <path d="M362 280 L347 280 L354 300 L337 300 L364 335 L357 310 L372 310 Z" fill="#e6d8a8" opacity="0.9"/>
 
-  <!-- Red glow -->
-  <circle cx="256" cy="270" r="90" fill="#ff1a1a" opacity="0.06"/>
-  <circle cx="256" cy="270" r="60" fill="#ff1a1a" opacity="0.08"/>
+  <!-- Gold glow -->
+  <circle cx="256" cy="270" r="90" fill="#e6d8a8" opacity="0.06"/>
+  <circle cx="256" cy="270" r="60" fill="#e6d8a8" opacity="0.08"/>
 </svg>

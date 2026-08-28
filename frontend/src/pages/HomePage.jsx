@@ -154,7 +154,7 @@ export default function HomePage() {
       {/* 머리 — 앱 이름은 매일 오는 사람이 이미 안다. 한 줄로 줄이고 자리를 내준다 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <svg width="36" height="36" viewBox="0 0 60 60" fill="none" aria-hidden="true">
-          <defs><linearGradient id="hDbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+          <defs><linearGradient id="hDbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f3ead0"/><stop offset="100%" stopColor="#bfae7d"/></linearGradient></defs>
           <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#hDbGrad)"/>
           <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
           <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
@@ -165,7 +165,7 @@ export default function HomePage() {
           <div style={{
             fontFamily: "'Playfair Display', serif",
             fontSize: 24, fontWeight: 700, letterSpacing: 3, lineHeight: 1.1,
-            background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+            background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>

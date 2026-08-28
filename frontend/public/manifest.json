@@ -4,8 +4,8 @@
   "description": "당신의 운동을 기록하세요",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#ff1a1a",
+  "background_color": "#12100c",
+  "theme_color": "#12100c",
   "orientation": "portrait",
   "categories": ["fitness", "health"],
   "icons": [

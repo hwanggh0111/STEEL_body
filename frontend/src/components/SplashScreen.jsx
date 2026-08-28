@@ -50,7 +50,7 @@ export default function SplashScreen({ onDone }) {
             opacity: phase === 0 ? 0 : 1,
           }}
         >
-          <defs><linearGradient id="splDb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b1a"/></linearGradient></defs>
+          <defs><linearGradient id="splDb" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f3ead0"/><stop offset="100%" stopColor="#bfae7d"/></linearGradient></defs>
           <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#splDb)"/>
           <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#splDb)"/>
           <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#splDb)" opacity="0.7"/>
@@ -67,10 +67,10 @@ export default function SplashScreen({ onDone }) {
             fontWeight: 700,
             letterSpacing: phase >= 2 ? 4 : 8,
             lineHeight: 1,
-            background: 'linear-gradient(135deg, #ffd700, #ff6b1a, #ffd700)',
+            background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            filter: `drop-shadow(0 0 ${phase === 1 ? '20' : '8'}px rgba(255,107,26,${phase === 1 ? '0.6' : '0.3'}))`,
+            filter: `drop-shadow(0 0 ${phase === 1 ? '20' : '8'}px rgba(230,216,168,${phase === 1 ? '0.6' : '0.3'}))`,
             transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
             STEEL BODY
@@ -96,7 +96,7 @@ export default function SplashScreen({ onDone }) {
         width: 300,
         height: 300,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,107,26,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(230,216,168,0.15) 0%, transparent 70%)',
         opacity: phase === 1 ? 1 : 0,
         transition: 'opacity 1s ease',
         pointerEvents: 'none',
