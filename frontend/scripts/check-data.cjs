@@ -159,5 +159,36 @@ ok('한 글자로는 안 찾는다', faq.matchFaq('ㅇ'), []);
 // 제보함은 앞의 여섯 개만 단추로 내놓는다. 다 늘어놓으면 제보하러 온 사람의 길을 막는다
 ok('단추로 내놓는 여섯 개에 답이 다 있다', faq.FAQ.slice(0, 6).every(f => f.topic && f.a), true);
 
+console.log('\n── 색 대비 (globals.css 토큰) ──');
+// 색은 눈으로 보면 「예쁘다」로 끝나서, 안 보이는 글자를 그냥 지나친다.
+// 금을 밝게 하면 그 위의 흰 글자가, 검정을 밝게 하면 흐린 글자가 먼저 죽는다.
+const css = fs.readFileSync('src/styles/globals.css', 'utf8');
+const token = (n) => (css.match(new RegExp('--' + n + ':\\s*(#[0-9a-fA-F]{6})')) || [])[1];
+const lum = (h) => {
+  const v = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+    .map(c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+};
+const contrast = (a, b) => {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+const atLeast = (name, a, b, want) => {
+  const got = contrast(a, b);
+  ok(name + ' (' + got.toFixed(1) + ':1)', got >= want, true);
+};
+const BG = token('bg-primary'), CARD = token('bg-secondary');
+atLeast('본문이 배경 위에서', BG, token('text-primary'), 7);
+atLeast('둘째 글자가 배경 위에서', BG, token('text-secondary'), 4.5);
+atLeast('흐린 글자가 카드 위에서', CARD, token('text-muted'), 3);
+atLeast('금이 배경 위에서', BG, token('accent'), 4.5);
+atLeast('금이 카드 위에서', CARD, token('accent'), 4.5);
+// 통째로 칠한 단추 — 글자가 바탕을 따라가야 한다
+atLeast('금 단추 위의 글자', token('accent'), token('on-accent'), 4.5);
+atLeast('빨간 단추 위의 흰 글자', token('danger-strong'), '#ffffff', 4.5);
+for (const st of ['success', 'warning', 'danger', 'info']) {
+  atLeast(st + ' — 배경 위에서', BG, token(st), 4.5);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
