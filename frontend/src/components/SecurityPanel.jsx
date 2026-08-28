@@ -23,7 +23,7 @@ const T = {
     safe: '안전',
     warning: '주의',
     danger: '위험',
-    userList: 'USER LIST',
+    userList: '사람 목록',
     id: 'ID',
     email: '이메일',
     nickname: '닉네임',

@@ -15,10 +15,10 @@ const pulseKeyframes = `
 `;
 
 const LOG_STYLES = {
-  block:      { icon: '\uD83D\uDEAB', color: 'var(--danger)', bg: 'var(--danger-dim)', label: 'BLOCK' },
-  warning:    { icon: '\u26A0\uFE0F', color: 'var(--warning)', bg: 'var(--warning-dim)', label: 'WARNING' },
-  suspicious: { icon: '\uD83D\uDD0D', color: 'var(--info)', bg: 'var(--info-dim)', label: 'SUSPECT' },
-  system:     { icon: '\u2699\uFE0F', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', label: 'SYSTEM' },
+  block:      { icon: '\uD83D\uDEAB', color: 'var(--danger)', bg: 'var(--danger-dim)', label: '차단' },
+  warning:    { icon: '\u26A0\uFE0F', color: 'var(--warning)', bg: 'var(--warning-dim)', label: '경고' },
+  suspicious: { icon: '\uD83D\uDD0D', color: 'var(--info)', bg: 'var(--info-dim)', label: '의심' },
+  system:     { icon: '\u2699\uFE0F', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', label: '시스템' },
 };
 
 export default function AiAdminPanel() {

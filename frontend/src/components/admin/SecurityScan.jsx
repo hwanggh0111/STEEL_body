@@ -36,6 +36,14 @@ export default function SecurityScan() {
     return 'var(--danger)';
   };
 
+  // 서버는 코드로 말한다(ENV · CRITICAL …). 코드는 그대로 두고 **화면에서만** 옮긴다 —
+  // 서버 쪽 이름을 우리말로 바꾸면 로그·검사·문서가 같이 흔들린다
+  const CAT = {
+    ENV: '환경변수', DB: '데이터', HEADERS: '헤더',
+    AI_GUARD: '가드', XSS_FILTER: 'XSS', INJECTION: '주입', FILES: '파일',
+  };
+  const SEV = { CRITICAL: '심각', HIGH: '높음', MEDIUM: '보통', LOW: '낮음' };
+
   const sevColor = (s) => {
     if (s === 'CRITICAL') return 'var(--danger)';
     if (s === 'HIGH') return 'var(--accent)';
@@ -78,11 +86,11 @@ export default function SecurityScan() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 62, flexShrink: 0 }}>[{r.category}]</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 62, flexShrink: 0 }}>{CAT[r.category] || r.category}</span>
                   <span style={{ fontSize: 13, color: r.status === 'SAFE' ? 'var(--text-secondary)' : 'var(--danger)' }}>{r.name}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {r.severity && <span style={{ fontSize: 10, color: sevColor(r.severity), fontWeight: 700 }}>{r.severity}</span>}
+                  {r.severity && <span style={{ fontSize: 10, color: sevColor(r.severity), fontWeight: 700 }}>{SEV[r.severity] || r.severity}</span>}
                   <span style={{ fontSize: 12, color: r.status === 'SAFE' ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
                     {r.status === 'SAFE' ? '통과' : '걸림'}
                   </span>
