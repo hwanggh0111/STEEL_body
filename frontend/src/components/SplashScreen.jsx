@@ -21,6 +21,7 @@ export default function SplashScreen({ onDone }) {
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
+      backgroundImage: 'var(--bg-glow)',
       zIndex: 99999,
       display: 'flex',
       flexDirection: 'column',

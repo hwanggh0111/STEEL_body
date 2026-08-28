@@ -15,6 +15,11 @@
      읽어 들이지 못하는 곳을 위해 --bg-primary 를 밑에 깐다 */
   --bg-glow: radial-gradient(120% 85% at 50% -5%, #241c14 0%, #181310 50%, #12100c 100%);
 
+  /* 머리 · 탭바 · 사이드바가 깔고 앉는 면.
+     불투명하게 칠하면 배경의 금빛이 거기서 뚝 끊긴다. 비치게 두고 흐린다 */
+  --surface:      rgba(18, 16, 12, 0.72);
+  --surface-blur: saturate(140%) blur(12px);
+
   /* 카드 — 단색이 아니라 위가 살짝 밝다 */
   --card-bg: linear-gradient(180deg, #1e1a14 0%, #191510 100%);
   /* 카드 윗변의 금실 한 줄 — 모서리에 빛이 걸린 것 */
@@ -94,10 +99,20 @@ body {
   font-weight: 400;
   color: var(--text-primary);
   background-color: var(--bg-primary);
-  background-image: var(--bg-glow);
-  background-attachment: fixed;
   line-height: 1.6;
   letter-spacing: 0.1px;
+}
+
+/* 위에서 드는 빛은 **화면에 한 번만** 깔린다.
+   예전에는 body 에 `background-attachment: fixed` 로 붙였는데, 모바일 브라우저가
+   스크롤할 때마다 다시 그린다. 고정된 판 하나를 깔고 그 위로 내용이 지나가게 한다 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-glow);
+  pointer-events: none;
 }
 
 /* 제목 — Bebas Neue */
@@ -184,6 +199,10 @@ body {
 .card.list-item {
   content-visibility: auto;
   contain-intrinsic-size: auto 76px;
+  /* 목록에서는 그라디언트와 금실을 끈다. 카드 한 장은 고급스럽지만
+     열 장이 쌓이면 줄무늬가 되어 정작 내용이 안 보인다 */
+  background: var(--bg-secondary);
+  box-shadow: none;
 }
 
 /* ─── 뱃지 ─────────────────────────── */

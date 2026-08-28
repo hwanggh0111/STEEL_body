@@ -166,7 +166,10 @@ export default function Layout() {
           태그라인이 **모든 화면 위에** 있었다. 앱 이름은 매일 오는 사람이 이미 알고,
           태그라인은 고객센터 소개에 있다. 한 줄로 줄여 본문에 자리를 내준다 */}
       <header style={{
-        background: 'var(--bg-primary)',
+        // 배경을 비치게 둔다. 불투명하게 칠하면 위에서 드는 빛이 여기서 끊긴다
+        background: 'var(--surface)',
+        backdropFilter: 'var(--surface-blur)',
+        WebkitBackdropFilter: 'var(--surface-blur)',
         borderBottom: '1px solid var(--border)',
         padding: '12px 20px',
       }}>

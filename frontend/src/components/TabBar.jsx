@@ -152,7 +152,9 @@ export default function TabBar() {
         <nav aria-label="메인 네비게이션" style={{
           position: 'fixed', top: 0, left: 0, bottom: 0,
           width: 200,
-          background: 'var(--bg-primary)',
+          background: 'var(--surface)',
+          backdropFilter: 'var(--surface-blur)',
+          WebkitBackdropFilter: 'var(--surface-blur)',
           borderRight: '1px solid var(--border)',
           zIndex: 9999,
           display: 'flex', flexDirection: 'column',
@@ -252,7 +254,9 @@ export default function TabBar() {
       {/* 하단 탭바 */}
       <nav aria-label="하단 네비게이션" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'var(--bg-primary)',
+        background: 'var(--surface)',
+        backdropFilter: 'var(--surface-blur)',
+        WebkitBackdropFilter: 'var(--surface-blur)',
         borderTop: '1px solid var(--border)',
         zIndex: 9999,
         display: 'flex', justifyContent: 'center',
