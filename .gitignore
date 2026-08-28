@@ -9,7 +9,7 @@ node_modules/
 frontend/dist/
 
 # Database
-backend/ironlog.json
+backend/steelbody.json
 backend/photos.json
 
 # IDE

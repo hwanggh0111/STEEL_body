@@ -53,7 +53,7 @@ const XSS_PATTERNS = [
 
 // ── 인젝션 패턴 ──
 //
-// **이 앱에는 SQL 도 MongoDB 도 없다.** 저장소는 JSON 파일 하나다(`ironlog.json`).
+// **이 앱에는 SQL 도 MongoDB 도 없다.** 저장소는 JSON 파일 하나다(`steelbody.json`).
 // 그런데 여기 있던 열두 개 중 열은 SQL 과 몽고를 노린 것이었다 —
 // `' OR ` · `; DROP ` · `UNION SELECT` · `$ne` · `$gt` · `$regex` · `$where` · `{ $` ·
 // 그리고 SQL 주석 `--`.

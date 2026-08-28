@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DB_PATH = path.join(__dirname, '../ironlog.json');
+const DB_PATH = path.join(__dirname, '../steelbody.json');
 
 // ── 사진은 따로 담는다 ──
 //
@@ -119,7 +119,7 @@ function load() {
       return _cache;
     }
   } catch (err) {
-    console.error('[DB] ironlog.json 파싱 실패, 초기화합니다:', err.message);
+    console.error('[DB] steelbody.json 파싱 실패, 초기화합니다:', err.message);
   }
   _cache = { ...DEFAULT_DATA, refreshTokens: [] };
   _flushSync(_cache);

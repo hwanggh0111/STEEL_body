@@ -188,5 +188,5 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 
 ## 저장소
 
-SQLite 가 아니라 **JSON 파일 한 개**(`backend/ironlog.json`)다. 메모리 캐시 + 지연 쓰기로 다룬다.
+SQLite 가 아니라 **JSON 파일 한 개**(`backend/steelbody.json`)다. 메모리 캐시 + 지연 쓰기로 다룬다.
 `.gitignore` 에 있으므로 저장소에는 올라가지 않는다.

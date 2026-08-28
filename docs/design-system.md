@@ -1,4 +1,4 @@
-# IRON LOG 디자인 시스템
+# STEEL BODY 디자인 시스템
 
 ## 디자인 정체성
 
