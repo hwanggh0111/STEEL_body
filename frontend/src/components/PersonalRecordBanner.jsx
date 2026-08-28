@@ -50,7 +50,7 @@ export default function PersonalRecordBanner({ record, onClose }) {
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1.5,
           color: 'var(--text-muted)', textDecoration: 'line-through', lineHeight: 1,
         }}>{fmt(prev)}</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
         <span style={{

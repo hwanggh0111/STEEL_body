@@ -4,6 +4,7 @@ import { MAINT_KEY as MAINT_LS_KEY, MAINT_VERSION_KEY as MAINT_VERSION_LS_KEY } 
 // 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
 import { readLS, saveLS } from '../data/safeStorage';
 import client from '../api/client';
+import Logo from './Logo';
 import { isAdmin as isAdminUser } from '../data/admin';
 import { dateKey } from '../data/dateKey';
 
@@ -238,16 +239,7 @@ export default function MaintenanceScreen({ children }) {
     }}>
       <div style={{ textAlign: 'center', maxWidth: 380, width: '100%' }}>
         {/* 앱 이름은 작게. 여기 온 사람은 어느 앱인지 안다 */}
-        <div style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: 18, fontWeight: 700, letterSpacing: 4,
-          background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: 28,
-        }}>
-          STEEL BODY
-        </div>
+        <Logo cap={16} style={{ marginBottom: 28 }} />
 
         <div style={{ fontSize: 40, marginBottom: 14 }} aria-hidden="true">{kind.icon}</div>
 

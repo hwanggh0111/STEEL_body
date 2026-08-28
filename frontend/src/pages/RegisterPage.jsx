@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
+import Logo from '../components/Logo';
 import { toast } from '../components/Toast';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import { saveLS } from '../data/safeStorage';
@@ -162,9 +163,9 @@ export default function RegisterPage() {
   return (
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
-        <h1 className="display-xl" style={{ textAlign: 'center', color: 'var(--accent)', marginBottom: 8 }}>
-          STEEL BODY
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <Logo cap={26} variant="stack" subtitle="" />
+        </div>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
           회원가입
         </p>

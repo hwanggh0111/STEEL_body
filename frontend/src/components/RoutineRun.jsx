@@ -16,14 +16,14 @@ const stateMark = {
 function Check({ state }) {
   if (state === 'done') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ stroke: 'var(--success)' }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M3 8.5l3.5 3.5L13 4.5" />
       </svg>
     );
   }
   if (state === 'skip') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ stroke: 'var(--text-muted)' }} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
         <path d="M4 4l8 8M12 4l-8 8" />
       </svg>
     );

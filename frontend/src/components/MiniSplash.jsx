@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Logo from './Logo';
 
 export default function MiniSplash({ onDone }) {
   const [phase, setPhase] = useState(0);
@@ -31,26 +32,8 @@ export default function MiniSplash({ onDone }) {
         opacity: phase === 0 ? 0 : 1,
         transition: 'all 0.2s ease-out',
       }}>
-        <svg width="40" height="40" viewBox="0 0 60 60" fill="none" style={{ transform: 'scaleX(-1)' }}>
-          <defs><linearGradient id="msL" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f7c499"/><stop offset="100%" stopColor="#d29a5f"/></linearGradient></defs>
-          <path d="M30 52 L28 40 Q24 32 26 26 Q28 20 32 16 L34 14 Q38 16 37 22 Q36 26 34 28 Q38 24 42 26 Q46 29 46 34 Q46 40 42 44 L38 48 Z" fill="url(#msL)"/>
-          <rect x="29" y="10" width="8" height="6" rx="2" fill="url(#msL)"/>
-        </svg>
-        <div style={{
-          fontFamily: "'Great Vibes', cursive",
-          fontSize: 36,
-          background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 10px rgba(238,183,125,0.4))',
-        }}>
-          Steel Body
-        </div>
-        <svg width="40" height="40" viewBox="0 0 60 60" fill="none">
-          <defs><linearGradient id="msR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f7c499"/><stop offset="100%" stopColor="#d29a5f"/></linearGradient></defs>
-          <path d="M30 52 L28 40 Q24 32 26 26 Q28 20 32 16 L34 14 Q38 16 37 22 Q36 26 34 28 Q38 24 42 26 Q46 29 46 34 Q46 40 42 44 L38 48 Z" fill="url(#msR)"/>
-          <rect x="29" y="10" width="8" height="6" rx="2" fill="url(#msR)"/>
-        </svg>
+        {/* 여기만 필기체(Great Vibes)에 날개 그림이었다. 앱의 로고로 맞춘다 */}
+        <Logo cap={24} style={{ filter: 'drop-shadow(0 0 10px rgba(238,183,125,0.35))' }} />
       </div>
     </div>
   );

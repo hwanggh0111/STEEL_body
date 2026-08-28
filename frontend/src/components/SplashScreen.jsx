@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Logo from './Logo';
 
 export default function SplashScreen({ onDone }) {
   const [phase, setPhase] = useState(0);
@@ -59,22 +60,17 @@ export default function SplashScreen({ onDone }) {
           <rect x="14" y="28" width="32" height="2" rx="1" fill="#fff" opacity="0.15"/>
         </svg>
 
-        {/* 로고 텍스트 */}
+        {/* 로고 — 스플래시에서만 다 편다 (마크 · 금선 · 글자 · 금선 · 부제) */}
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: phase >= 2 ? 36 : 64,
-            fontWeight: 700,
-            letterSpacing: phase >= 2 ? 4 : 8,
-            lineHeight: 1,
-            background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            filter: `drop-shadow(0 0 ${phase === 1 ? '20' : '8'}px rgba(238,183,125,${phase === 1 ? '0.6' : '0.3'}))`,
-            transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}>
-            STEEL BODY
-          </div>
+          <Logo
+            cap={phase >= 2 ? 26 : 40}
+            variant="stack"
+            subtitle=""
+            style={{
+              filter: `drop-shadow(0 0 ${phase === 1 ? '20' : '8'}px rgba(238,183,125,${phase === 1 ? '0.6' : '0.3'}))`,
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          />
           <div style={{
             fontFamily: "'Barlow', sans-serif",
             fontSize: phase >= 2 ? 9 : 13,

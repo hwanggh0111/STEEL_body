@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
+import Logo from './Logo';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
@@ -162,19 +163,7 @@ export default function TabBar() {
             padding: '20px 16px 16px',
             borderBottom: '1px solid var(--border)',
           }}>
-            <div style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: 3,
-              lineHeight: 1,
-              background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              cursor: 'pointer',
-            }} onClick={() => handleTab('/home')}>
-              STEEL BODY
-            </div>
+            <Logo cap={19} style={{ cursor: 'pointer' }} onClick={() => handleTab('/home')} />
           </div>
 
           {/* 메인 탭 */}

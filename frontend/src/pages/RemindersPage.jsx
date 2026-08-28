@@ -216,7 +216,7 @@ export default function RemindersPage() {
           background: 'var(--accent-dim)', border: '1px solid var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M6.5 9.5h11M4 9.5v5M20 9.5v5M2 12h2M20 12h2M6.5 7v10M17.5 7v10" />
           </svg>
         </div>

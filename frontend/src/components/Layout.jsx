@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
+import Logo from './Logo';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
@@ -180,24 +181,7 @@ export default function Layout() {
               alignItems: 'center', gap: 8, minWidth: 0,
             }}
           >
-            <svg width="30" height="30" viewBox="0 0 60 60" fill="none" aria-hidden="true">
-              <defs><linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f7c499"/><stop offset="100%" stopColor="#d29a5f"/></linearGradient></defs>
-              <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#dbGrad)"/>
-              <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#dbGrad)"/>
-              <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#dbGrad)" opacity="0.7"/>
-              <rect x="46" y="18" width="8" height="24" rx="3" fill="url(#dbGrad)"/>
-              <rect x="52" y="22" width="7" height="16" rx="2.5" fill="url(#dbGrad)" opacity="0.7"/>
-            </svg>
-            <div style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 21, fontWeight: 700, letterSpacing: 3, lineHeight: 1,
-              background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              whiteSpace: 'nowrap',
-            }}>
-              STEEL BODY
-            </div>
+            <Logo cap={18} />
           </div>
 
           {/* 내 계정 — 누르면 시트가 열린다.

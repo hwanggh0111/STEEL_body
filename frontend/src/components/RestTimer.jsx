@@ -27,10 +27,12 @@ function Ring({ ratio, children }) {
   return (
     <div style={{ position: 'relative', width: RING, height: RING, maxWidth: '100%', flexShrink: 0 }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${RING} ${RING}`} aria-hidden="true">
-        <circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke="var(--bg-tertiary)" strokeWidth="10" />
+        {/* 색은 **속성이 아니라 style 로** 준다. SVG 속성 안에서는 var() 가 치환되지 않아
+            값이 통째로 무시된다 — 링이 아예 안 그려진다 (2026-08-28 에 그래프에서 같은 것에 걸렸다) */}
+        <circle cx={RING / 2} cy={RING / 2} r={R} fill="none" style={{ stroke: 'var(--bg-tertiary)' }} strokeWidth="10" />
         <circle
           cx={RING / 2} cy={RING / 2} r={R} fill="none"
-          stroke="var(--accent)" strokeWidth="10" strokeLinecap="round"
+          style={{ stroke: 'var(--accent)' }} strokeWidth="10" strokeLinecap="round"
           strokeDasharray={CIRC}
           strokeDashoffset={CIRC * (1 - Math.max(0, Math.min(1, ratio)))}
           transform={`rotate(-90 ${RING / 2} ${RING / 2})`}

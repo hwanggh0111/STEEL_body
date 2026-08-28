@@ -6,6 +6,7 @@ import { useInbodyStore } from '../store/inbodyStore';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { toast } from '../components/Toast';
 import MissionSystem from '../components/MissionSystem';
+import { LogoMark, LogoWord } from '../components/Logo';
 import WeeklyReport from '../components/WeeklyReport';
 import HomeSearch from '../components/home/HomeSearch';
 import TodayCard from '../components/home/TodayCard';
@@ -153,24 +154,9 @@ export default function HomePage() {
     <div>
       {/* 머리 — 앱 이름은 매일 오는 사람이 이미 안다. 한 줄로 줄이고 자리를 내준다 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <svg width="36" height="36" viewBox="0 0 60 60" fill="none" aria-hidden="true">
-          <defs><linearGradient id="hDbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f7c499"/><stop offset="100%" stopColor="#d29a5f"/></linearGradient></defs>
-          <rect x="12" y="27" width="36" height="6" rx="3" fill="url(#hDbGrad)"/>
-          <rect x="6" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
-          <rect x="1" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
-          <rect x="46" y="18" width="8" height="24" rx="3" fill="url(#hDbGrad)"/>
-          <rect x="52" y="22" width="7" height="16" rx="2.5" fill="url(#hDbGrad)" opacity="0.7"/>
-        </svg>
+        <LogoMark size={34} />
         <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: 24, fontWeight: 700, letterSpacing: 3, lineHeight: 1.1,
-            background: 'linear-gradient(135deg, #f7c499, #d29a5f, #f7c499)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            STEEL BODY
-          </div>
+          <LogoWord cap={20} />
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
           </div>

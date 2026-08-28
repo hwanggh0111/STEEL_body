@@ -6,6 +6,7 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import SplashScreen from '../components/SplashScreen';
 import PasswordResetModal from '../components/PasswordResetModal';
 import client from '../api/client';
+import Logo from '../components/Logo';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -150,7 +151,7 @@ function oauthErrorText(code) {
     return (
       <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)', textAlign: 'center' }}>
-          <h1 className="display-xl" style={{ color: 'var(--accent)', marginBottom: 8 }}>STEEL BODY</h1>
+          <Logo cap={24} variant="stack" subtitle="" style={{ marginBottom: 14 }} />
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>닉네임을 설정해주세요</p>
           <input
             className="input"
@@ -216,9 +217,9 @@ function oauthErrorText(code) {
   return (
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
-        <h1 className="display-xl" style={{ textAlign: 'center', color: 'var(--accent)', marginBottom: 8 }}>
-          STEEL BODY
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <Logo cap={26} variant="stack" subtitle="" />
+        </div>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: returning ? 24 : 32 }}>
           당신의 운동을 기록하세요
         </p>
