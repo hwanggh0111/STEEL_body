@@ -127,8 +127,8 @@ export default function ConfirmModalHost() {
             ref={confirmBtnRef}
             onClick={() => close(true)}
             style={{
-              background: danger ? 'var(--danger)' : 'var(--accent)',
-              border: 'none', color: '#fff', padding: '10px 18px',
+              background: danger ? 'var(--danger-strong)' : 'var(--accent)',
+              border: 'none', color: danger ? '#fff' : 'var(--on-accent)', padding: '10px 18px',
               fontSize: 13, borderRadius: 'var(--radius)', cursor: 'pointer',
               fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.5, fontWeight: 600,
             }}

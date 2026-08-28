@@ -232,7 +232,7 @@ export default function AiAdminPanel() {
             <form onSubmit={handleBlock} style={{ display: 'flex', gap: 8 }}>
               <input className="input" value={blockIp} onChange={e => setBlockIp(e.target.value)} placeholder="IP 주소" style={{ flex: 1, fontFamily: "'Courier New', monospace" }} />
               <input className="input" type="number" value={blockMin} onChange={e => setBlockMin(e.target.value)} placeholder="분" min="1" style={{ width: 70 }} />
-              <button type="submit" style={{ background: 'var(--danger)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: 2, fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 2, cursor: 'pointer' }}>차단</button>
+              <button type="submit" style={{ background: 'var(--danger-strong)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: 2, fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 2, cursor: 'pointer' }}>차단</button>
             </form>
           </div>
         </div>

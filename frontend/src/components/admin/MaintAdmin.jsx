@@ -25,7 +25,7 @@ const KINDS = [
     defaultMin: 30, defaultReason: '서버 점검 (서버 재시작, 배포, 패치 적용)',
   },
   {
-    type: 'emergency', icon: '🚨', label: '긴급 점검', color: 'var(--danger)', btnText: '#fff',
+    type: 'emergency', icon: '🚨', label: '긴급 점검', color: 'var(--danger)', btnText: 'var(--on-accent)',
     desc: '서버 장애, 보안 이슈 등 즉각 대응이 필요한 경우',
     defaultMin: 90, defaultReason: '긴급 시스템 점검',
   },

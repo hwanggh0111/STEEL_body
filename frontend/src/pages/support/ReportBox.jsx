@@ -747,7 +747,7 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
                     <button
                       onClick={e => { e.stopPropagation(); removeItem(item.id); }}
                       style={{
-                        background: 'var(--danger)', border: '1px solid var(--danger)',
+                        background: 'var(--danger-strong)', border: '1px solid var(--danger-strong)',
                         color: '#fff', fontSize: 11.5, fontWeight: 700,
                         padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
                       }}
