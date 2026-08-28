@@ -10,6 +10,25 @@ const { recordLoginFailure } = require('../middleware/aiGuard');
 const verifyStore = {};
 const verifyAttempts = {};
 
+// 인증번호는 **비밀번호를 바꾸는 열쇠**다. Math.random() 은 예측 가능한 난수라
+// 여기에 쓰면 안 된다 (seed 를 알면 다음 값이 나온다). crypto 로 만든다
+function makeCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+// 안 쓴 번호를 걷어낸다.
+//
+// 5분이 지나면 못 쓰는 값인데도 메모리에 그대로 남아 있었다. 한 번에 죽을 만큼은
+// 아니지만 오래 켜두면 계속 쌓인다 — 새 번호를 만들 때마다 지난 것을 훑는다.
+function sweepExpired(now = Date.now()) {
+  for (const [email, v] of Object.entries(verifyStore)) {
+    if (!v || now > v.expires) {
+      delete verifyStore[email];
+      delete verifyAttempts[email];
+    }
+  }
+}
+
 // 로그인 실패 추적
 const loginAttempts = {};
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -31,7 +50,8 @@ router.post('/send-code', async (req, res) => {
     return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
   }
 
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  sweepExpired();
+  const code = makeCode();
   verifyStore[email] = { code, expires: Date.now() + 5 * 60 * 1000 };
   verifyAttempts[email] = 0;
 

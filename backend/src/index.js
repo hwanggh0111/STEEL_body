@@ -200,6 +200,20 @@ app.use('/api/auth/verify-code', rateLimit({
   ...RATE_LIMITS.verifyCode,
   message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));
+// 비밀번호를 바꾸는 두 자리도 같은 값으로 묶는다.
+//
+// 여기만 전용 제한이 없었다 — 전역 제한(분당 100)에만 걸렸다. 안쪽에서 인증번호를
+// 다섯 번 틀리면 번호를 버리게 돼 있지만, 그건 한 이메일에 대한 이야기다.
+// 이메일을 바꿔가며 두드리는 것은 전역 제한만으로는 느슨하다
+app.use('/api/auth/reset-password', rateLimit({
+  ...RATE_LIMITS.verifyCode,
+  message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
+}));
+app.use('/api/auth/password', rateLimit({
+  ...RATE_LIMITS.verifyCode,
+  message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
+}));
+
 app.use('/api/auth/check-username', rateLimit({
   ...RATE_LIMITS.checkName,
   message: { error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요' },

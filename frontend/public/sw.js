@@ -51,6 +51,25 @@ self.addEventListener('fetch', (event) => {
   const sameOrigin = url.origin === self.location.origin;
   const isNavigate = req.mode === 'navigate';
 
+  // 4. 이름에 해시가 박힌 파일은 **캐시를 먼저 본다.**
+  //
+  //    빌드가 `index-DkeTsJR5.js` 처럼 내용으로 이름을 짓는다 — 내용이 바뀌면
+  //    이름이 바뀐다. 그래서 이 파일들은 절대 낡지 않는다. 그런데도 매번 네트워크를
+  //    먼저 치면 느린 망에서 그만큼 기다린다. 캐시에 있으면 그대로 쓰고,
+  //    없을 때만 받아온다.
+  if (sameOrigin && /\/assets\/.+-[A-Za-z0-9_-]{8,}\.(js|css|woff2?)$/.test(url.pathname)) {
+    event.respondWith(
+      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(req, clone)).catch(() => {});
+        }
+        return res;
+      }).catch(() => Response.error()))
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(req)
       .then((response) => {
