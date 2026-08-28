@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useToday } from '../data/useToday';
+import { dateKey } from '../data/dateKey';
 import client from '../api/client';
 
 // 보안 로그 (관리자 화면의 「해킹 보안」).
@@ -67,7 +69,14 @@ const WATCH = [
   { key: 'register', label: '가입', types: ['register'], tone: 'info' },
 ];
 
-const dayOf = (iso) => (typeof iso === 'string' ? iso.slice(0, 10) : '');
+// 기록은 UTC 로 저장된다(`2026-08-28T15:20:00.000Z`). 앞 열 글자를 그냥 자르면
+// 그것도 UTC 날짜다 — 한국에서 밤 9시 이후에 남은 기록이 「내일」로 넘어간다.
+// 로컬 날짜로 바꿔서 센다 (dateKey 와 같은 규칙)
+const dayOf = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : dateKey(d);
+};
 const timeOf = (iso) => {
   if (!iso) return '-';
   const d = new Date(iso);
@@ -92,7 +101,9 @@ export default function HackingSecurityPanel() {
 
   useEffect(load, []);
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // 켜둔 채 날이 바뀌어도 오늘을 가리킨다 (useToday). 예전에는 UTC 기준이라
+  // 새벽 0~9시에 어제 것을 오늘로 셌다
+  const today = useToday();
 
   const counts = useMemo(() => {
     const out = {};

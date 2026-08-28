@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
+const { seoulDay } = require('../utils/seoulDay');
 const aiGuard = require('../middleware/aiGuard');
 const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY } = require('../config/security');
 
@@ -26,8 +27,10 @@ function addLog(type, detail) {
 // GET /api/security/dashboard - 보안 대시보드
 router.get('/dashboard', adminAuth, (req, res) => {
   const users = db.getAllUsers();
-  const today = new Date().toISOString().slice(0, 10);
-  const todaySignups = users.filter(u => u.created_at && u.created_at.slice(0, 10) === today).length;
+  // **UTC 로 세면 안 된다.** 서버는 UTC 로 도는데 보는 사람은 한국에 있다 —
+  // 한국 시간 자정부터 오전 9시까지 가입한 사람이 「오늘 가입」에서 빠졌다
+  const today = seoulDay(Date.now());
+  const todaySignups = users.filter(u => u.created_at && seoulDay(u.created_at) === today).length;
 
   // 화면(SecurityPanel)이 읽는 모양 그대로 돌려준다.
   //

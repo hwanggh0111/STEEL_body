@@ -41,6 +41,29 @@ function labelFor(type, text) {
   return SHOWN.feat.label;
 }
 
+// 커밋 꼬리표는 사람에게 보여줄 말이 아니다.
+//
+// 본문을 그대로 실었더니 「자세히」를 펼친 사람에게 `Co-Authored-By: …` 같은
+// 줄이 그대로 나갔다. git 트레일러(`말머리: 값` 꼴)와 서명 줄을 걷어낸다.
+const TRAILER = /^(Co-authored-by|Signed-off-by|Reviewed-by|Acked-by|Tested-by|Refs|Closes|Fixes|Change-Id):/i;
+
+// 본문이 길면 목록이 아니라 로그가 된다. 그리고 이 파일은 앱에 통째로 실린다 —
+// 40건 × 긴 본문이면 화면 하나 값의 덩어리가 된다
+const DETAIL_MAX = 420;
+
+function cleanBody(body) {
+  const lines = String(body || '').split('\n')
+    .filter(l => !TRAILER.test(l.trim()));
+  // 꼬리표를 걷어내면 끝에 빈 줄이 남는다
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  const out = lines.join('\n').trim();
+  if (out.length <= DETAIL_MAX) return out || null;
+  // 자를 때는 문단 경계에서 자른다. 문장 가운데서 끊으면 읽다 만 것처럼 보인다
+  const cut = out.slice(0, DETAIL_MAX);
+  const at = Math.max(cut.lastIndexOf('\n\n'), cut.lastIndexOf('. '), cut.lastIndexOf('다.'));
+  return (at > DETAIL_MAX * 0.5 ? cut.slice(0, at + 1) : cut).trim() + ' …';
+}
+
 function git(args) {
   return execFileSync('git', args, {
     cwd: resolve(HERE, '../..'),
@@ -75,7 +98,7 @@ function build() {
     entries.push({
       hash, date, type, label: labelFor(type, text),
       scope: scope || null, text: text.trim(),
-      detail: body || null,
+      detail: cleanBody(body),
     });
   }
 
