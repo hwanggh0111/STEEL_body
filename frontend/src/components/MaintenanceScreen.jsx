@@ -241,7 +241,7 @@ export default function MaintenanceScreen({ children }) {
         <div style={{
           fontFamily: "'Playfair Display', serif",
           fontSize: 18, fontWeight: 700, letterSpacing: 4,
-          background: 'linear-gradient(135deg, #f3ead0, #bfae7d, #f3ead0)',
+          background: 'linear-gradient(135deg, #f6cea8, #d18f4a, #f6cea8)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           marginBottom: 28,
