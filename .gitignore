@@ -22,3 +22,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# 검사가 쓰는 임시 DB (DB_FILE)
+backend/.check-*.json
