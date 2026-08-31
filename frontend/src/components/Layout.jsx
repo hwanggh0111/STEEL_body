@@ -16,12 +16,14 @@ import { PROFILE_PHOTO_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
+import AccountDeleteModal from './AccountDeleteModal';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
 
 export default function Layout() {
   const { nickname, logout } = useAuthStore();
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
   const [sideMenu, setSideMenu] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(readLS(PROFILE_KEY) || '');
@@ -239,6 +241,19 @@ export default function Layout() {
       {/* 비밀번호 변경.
           바꾸면 서버가 모든 기기의 로그인을 끊는다 — 그래서 여기서도 로그아웃하고 로그인으로 보낸다.
           그대로 두면 다음 요청에서 401 을 맞고 영문 모른 채 튕긴다 */}
+      {/* 계정 삭제 — 30일 뒤에 지워지고, 그 안에 다시 로그인하면 되살아난다.
+          예약하면 서버가 그 자리에서 로그아웃시키므로 여기서도 나가야 한다 */}
+      {deleting && (
+        <AccountDeleteModal
+          onClose={() => setDeleting(false)}
+          onDeleted={async (info) => {
+            setDeleting(false);
+            await logout();
+            navigate('/login', { state: { deleted: info } });
+          }}
+        />
+      )}
+
       {changingPw && (
         <PasswordChangeModal
           onClose={() => setChangingPw(false)}
@@ -424,6 +439,22 @@ export default function Layout() {
               onMouseEnter={hIn} onMouseLeave={hOut}
             >
               로그아웃
+            </div>
+
+            {/* 계정 삭제.
+                지금까지 앱에 이 길이 없어서 「제보함에 남겨주시면 지워드립니다」로 받고
+                있었다 — 자기 계정을 지우는 데 남의 손을 빌려야 했다.
+                **작게 둔다.** 찾는 사람은 찾고, 안 찾는 사람 손에는 안 걸리게 */}
+            <div
+              onClick={() => { setSideMenu(false); setDeleting(true); }}
+              style={{
+                ...menuStyle, borderTop: '1px solid var(--border)', textAlign: 'center',
+                color: 'var(--text-muted)', fontSize: 12, padding: '10px 18px',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              계정 삭제
             </div>
           </div>
         )}

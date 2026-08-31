@@ -232,6 +232,12 @@ router.post('/login', async (req, res) => {
   // 성공 시 시도 횟수 초기화
   delete loginAttempts[key];
 
+  // 지우기로 해놓고 다시 온 사람. **묻지 않고 되살린다** —
+  // 자기 비밀번호로 들어온 사람이 「아직 지우지 마세요」라고 말한 것과 같다.
+  // 여기서 한 번 더 물으면 실수로 누른 사람을 두 번 시험하는 것이다
+  const restored = db.cancelUserDeletion(user.id);
+  if (restored) addLog('account_delete_cancel', `Deletion cancelled by login: ${user.email} (id=${user.id})`);
+
   // ADMIN_EMAIL이면 자동 관리자 승격
   if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL) && user.role !== 'admin') {
     db.updateUserRole(user.id, 'admin');
@@ -242,7 +248,7 @@ router.post('/login', async (req, res) => {
   const { accessToken } = issueTokens(res, user);
 
   addLog('login_success', `Login success: ${user.email} (id=${user.id})`);
-  res.json({ token: accessToken, nickname: user.nickname, email: user.email, role: user.role || 'user' });
+  res.json({ token: accessToken, nickname: user.nickname, email: user.email, role: user.role || 'user', restored });
 });
 
 // 토큰 갱신
@@ -295,7 +301,52 @@ router.get('/me', require('../middleware/auth'), (req, res) => {
   const user = db.findUserById(req.userId);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   const { password, ...safeUser } = user;
-  res.json(safeUser);
+  // 계정 삭제 화면이 **무엇을 물어야 하는지**를 여기서 안다. 소셜로만 들어온 사람은
+  // 자기 비밀번호를 모르니 비밀번호를 물으면 안 된다
+  res.json({ ...safeUser, is_social: db.isSocialAccount(user), grace_days: db.GRACE_DAYS });
+});
+
+// ── 계정 삭제 ──
+//
+// 누르는 순간 지우지 않는다. 30일 잠가두고 그 안에 다시 로그인하면 되살아난다.
+// 그동안 서버에 남아 있는 것은 사실이므로 화면에도 그렇게 적는다.
+//
+// **관리자 계정은 여기서 못 지운다.** 관리자가 사라지면 남은 사람의 제보를 아무도
+// 못 보고, 정지된 사람을 아무도 못 풀어준다 — 서비스가 잠긴다.
+router.post('/delete', require('../middleware/auth'), async (req, res) => {
+  const user = db.findUserById(req.userId);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  if (user.role === 'admin') {
+    return res.status(400).json({ error: '관리자 계정은 앱에서 지울 수 없어요' });
+  }
+
+  const social = db.isSocialAccount(user);
+  if (social) {
+    // 비밀번호를 모르는 사람에게는 **자기 이메일을 손으로 적게** 한다.
+    // 눌러서 지워지는 것이 아니라 한 번 더 손이 가야 지워진다
+    const typed = String(req.body?.confirmEmail || '').trim().toLowerCase();
+    if (typed !== String(user.email || '').toLowerCase()) {
+      return res.status(400).json({ error: '이메일이 달라요. 쓰시는 이메일을 그대로 적어주세요', need: 'email' });
+    }
+  } else {
+    const password = req.body?.password;
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: '비밀번호를 입력해주세요', need: 'password' });
+    }
+    if (!(await bcrypt.compare(password, user.password))) {
+      addLog('account_delete_fail', `Delete password mismatch: ${user.email} (id=${user.id})`);
+      return res.status(401).json({ error: '비밀번호가 틀렸어요', need: 'password' });
+    }
+  }
+
+  const info = db.requestUserDeletion(user.id);
+  addLog('account_delete_request', `Deletion requested: ${user.email} (id=${user.id}, due=${info.delete_due_at})`);
+
+  // 예약과 동시에 로그아웃시킨다 — 잠갔다면서 그 기기에서 계속 쓰이면 안 된다
+  res.clearCookie('sb_access', { path: '/' });
+  res.clearCookie('sb_refresh', { path: '/api/auth' });
+  res.clearCookie('sb_csrf', { path: '/' });
+  res.json({ ...info, grace_days: db.GRACE_DAYS });
 });
 
 // 성별 — 인바디 참고 범위에만 쓴다.

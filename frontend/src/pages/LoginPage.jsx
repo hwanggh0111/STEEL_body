@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
 import SocialLoginButtons from '../components/SocialLoginButtons';
@@ -32,6 +32,9 @@ export default function LoginPage() {
   const [nickError, setNickError] = useState('');
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  // 계정 삭제를 막 예약하고 여기로 온 경우. 언제까지 되살릴 수 있는지 적어준다 —
+  // 「예약됐습니다」만 띄우고 보내면 며칠이 남았는지 알 길이 없다
+  const deleted = useLocation().state?.deleted;
   const [searchParams] = useSearchParams();
 
   // 세션 만료 알림
@@ -109,7 +112,10 @@ function oauthErrorText(code) {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const res = await login(email, password);
+      // 지우기로 해뒀던 계정으로 다시 들어온 사람. 아무 말도 안 하면 **지워졌는지
+      // 살아 있는지 모르는 채로** 앱을 쓰게 된다 — 되살아났다고 분명히 말한다
+      if (res?.restored) toast.success('계정이 되살아났어요. 삭제 예약이 취소됐습니다');
       // 아이디/닉네임 저장
       saveLS('saved_id', email);
       saveLS('saved_nickname', useAuthStore.getState().nickname || '');
@@ -220,6 +226,18 @@ function oauthErrorText(code) {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
           <Logo cap={26} variant="stack" subtitle="" />
         </div>
+
+        {deleted && (
+          <div style={{
+            border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
+            background: 'var(--bg-secondary)', padding: '13px 15px', marginBottom: 18,
+            fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8,
+          }}>
+            <b style={{ color: 'var(--text-primary)' }}>계정 삭제를 예약했어요.</b><br />
+            {String(deleted.delete_due_at || '').slice(0, 10)} 까지는 <b style={{ color: 'var(--accent)' }}>다시 로그인만 하시면
+            그대로 되살아납니다.</b> 그 뒤에는 기록이 전부 지워지고 되돌릴 수 없어요.
+          </div>
+        )}
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: returning ? 24 : 32 }}>
           당신의 운동을 기록하세요
         </p>

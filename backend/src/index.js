@@ -174,8 +174,23 @@ try {
   if (dropped > 0) console.log(`[DB] 옛 방식으로 저장돼 있던 로그인 유지 ${dropped}건을 걷어냈습니다 (그만큼 다시 로그인해야 합니다)`);
 } catch (e) { console.error('[DB] 옛 토큰 정리 실패:', e.message); }
 
-// 만료된 refresh token 정리 (30분마다)
-setInterval(() => { try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); } }, 30 * 60 * 1000);
+// 만료된 refresh token 정리 + 유예가 끝난 계정 삭제 (30분마다)
+//
+// 계정 삭제는 30일 뒤에 **실제로** 지워야 한다. 예약만 해두고 지우지 않으면
+// 「30일 뒤에 지웁니다」가 거짓말이 된다. 스케줄러를 따로 들이지 않고 이미 도는
+// 청소에 얹는다 — 서버가 꺼져 있던 동안 지날 때가 지난 것도 켜지면 곧 걷힌다.
+function sweepDeletedAccounts() {
+  for (const user of db.dueDeletions()) {
+    db.deleteUserCompletely(user.id);
+    console.log(`[CLEANUP] 유예가 끝난 계정을 지웠습니다 (id=${user.id})`);
+  }
+}
+setInterval(() => {
+  try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); }
+  try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
+}, 30 * 60 * 1000);
+// 켜질 때도 한 번 본다 — 서버가 꺼져 있는 동안 지날 때가 지난 것이 있다
+try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
 
 // 글로벌 Rate Limit — 숫자는 config/security.js 에 있다 (보안 대시보드가 같은 값을 읽는다)
 app.use(rateLimit({
@@ -210,6 +225,12 @@ app.use('/api/auth/reset-password', rateLimit({
   message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));
 app.use('/api/auth/password', rateLimit({
+  ...RATE_LIMITS.verifyCode,
+  message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
+}));
+
+// 계정 삭제도 비밀번호를 받는 자리다 — 같은 값으로 묶는다
+app.use('/api/auth/delete', rateLimit({
   ...RATE_LIMITS.verifyCode,
   message: { error: '너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));

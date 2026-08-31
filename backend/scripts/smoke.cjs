@@ -260,6 +260,27 @@ function cleanAll() {
   ]) {
     step(label + ' 은 관리자만', (await call('GET', urlPath)).status, 403);
   }
+  // ── 계정 삭제 ──
+  //
+  // **맨 뒤에 둔다.** 예약하는 순간 이 계정은 잠기고 토큰이 걷힌다 —
+  // 앞에 두면 그 뒤의 모든 검사가 401 이 된다.
+  console.log('\n── 계정을 지운다 (30일 유예) ──');
+  step('비밀번호가 틀리면 안 지운다',
+    (await call('POST', '/auth/delete', { password: 'wrong-one-9999' })).status, 401);
+  const del = await call('POST', '/auth/delete', { password: 'smoke1234' });
+  step('삭제 예약', del.status, 200);
+  const days = del.data?.delete_due_at
+    ? Math.round((new Date(del.data.delete_due_at) - Date.now()) / 86400000) : null;
+  step('  30일 뒤로 날이 잡힌다', days, 30);
+  // 잠갔다면서 그 기기에서 계속 쓰이면 잠근 것이 아니다
+  step('  예약하면 그 자리에서 잠긴다', (await call('GET', '/auth/me')).status, 401);
+  // 다시 로그인하면 되살아나야 한다. 이게 30일을 두는 이유 전부다
+  const back = await call('POST', '/auth/login', { email: EMAIL, password: 'smoke1234' });
+  step('다시 로그인하면 되살아난다', back.status, 200);
+  step('  되살아났다고 알려준다', back.data?.restored, true);
+  TOKEN = back.data?.token || TOKEN;
+  step('  되살아난 계정으로 다시 쓸 수 있다', (await call('GET', '/auth/me')).status, 200);
+
   console.log('\n' + (bad ? bad + '건 실패' : '한 바퀴 전부 통과'));
   await new Promise(r => setTimeout(r, 700));
   cleanup();

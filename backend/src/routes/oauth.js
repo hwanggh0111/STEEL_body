@@ -84,6 +84,9 @@ async function findOrCreateUser(email, rawNickname, provider) {
     db.updateUserRole(user.id, 'admin');
     user.role = 'admin';
   }
+  // 지우기로 해놓고 다시 들어온 사람은 되살린다. 이메일 로그인만 되살리면
+  // **소셜로만 쓰던 사람은 되돌릴 길이 없다** — 그쪽은 비밀번호를 모른다
+  db.cancelUserDeletion(user.id);
   return { user, nickname: user.nickname, email: user.email };
 }
 

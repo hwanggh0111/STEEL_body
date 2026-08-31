@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DB_PATH = path.join(__dirname, '../steelbody.json');
+// 검사에서는 진짜 DB 를 건드리면 안 된다. 그때만 다른 파일을 가리킬 수 있게 열어둔다
+// (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
+const DB_PATH = process.env.DB_FILE
+  ? path.resolve(process.env.DB_FILE)
+  : path.join(__dirname, '../steelbody.json');
 
 // ── 사진은 따로 담는다 ──
 //
@@ -15,7 +19,9 @@ const DB_PATH = path.join(__dirname, '../steelbody.json');
 // `--max-old-space-size=256` 으로 돈다. 서른 명이면 문자열로 만드는 도중에 죽는다.
 //
 // 사진은 **드물게 바뀌고 크다.** 나머지는 자주 바뀌고 작다. 갈라 두면 서로를 안 건드린다.
-const PHOTOS_PATH = path.join(__dirname, '../photos.json');
+const PHOTOS_PATH = process.env.DB_FILE
+  ? path.resolve(process.env.DB_FILE).replace(/\.json$/, '') + '.photos.json'
+  : path.join(__dirname, '../photos.json');
 
 // 기본 데이터 구조
 const DEFAULT_DATA = {
@@ -747,14 +753,77 @@ const db = {
     save(data);
     return { changes: 1 };
   },
+  // 한 사람에게 붙은 것을 **전부** 지운다.
+  //
+  // 예전에는 여섯 갈래만 지웠다. 제보 · 별점 · 알림설정 · 푸시구독 · 루틴진행 ·
+  // 정지기록 · 욕설기록 일곱이 그대로 남았다. 제보에는 쓴 글과 기기 정보가 들어 있고,
+  // 관리자 확인창은 그때도 「제보가 전부 사라집니다」라고 적고 있었다 —
+  // **「지웠다」가 거짓말이었다.** 알림설정과 푸시구독이 남으면 없는 사람에게 계속
+  // 알림을 보내려 든다.
+  //
+  // 그래서 목록을 여기 한 곳에 적어둔다. 새 컬렉션을 만들면서 여기에 안 적으면
+  // 또 남는다 — `npm run check` 가 이 목록과 실제 컬렉션을 맞춰본다.
+  USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
+                     'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
+                     'suspensions', 'abuseLogs'],
+  // 지금 램에 들고 있는 그대로.
+  //
+  // 파일은 0.5초 뒤에 쓰이므로 **검사가 파일을 읽으면 옛 내용을 본다.**
+  // (서버를 켜둔 채 DB 파일을 손으로 고치면 안 되는 것과 같은 이유다.)
+  // 고치지 말고 읽기만 할 것 — 돌려주는 것은 사본이 아니라 그 자체다
+  snapshot() { return load(); },
+
+  // ── 계정 삭제 예약 (30일 유예) ──
+  //
+  // 누르는 순간 지우지 않는다. **30일 동안 잠가두고, 그 안에 다시 로그인하면 되살린다.**
+  // 실수로 누른 사람과 홧김에 누른 사람을 구하려고 두는 시간이다.
+  // 그동안 서버에 남아 있는 것은 사실이라, 화면에도 그렇게 적는다.
+  //
+  // 예약과 동시에 **로그인 열쇠를 전부 걷어낸다** — 지운다고 해놓고 그 기기에서
+  // 계속 쓰이면 잠근 것이 아니다. 되살리려면 다시 로그인해야 한다.
+  GRACE_DAYS: 30,
+  requestUserDeletion(userId, now = new Date()) {
+    const data = load();
+    const user = data.users.find(u => u.id === userId);
+    if (!user) return null;
+    const due = new Date(now.getTime() + db.GRACE_DAYS * 24 * 60 * 60 * 1000);
+    user.deleting_at = now.toISOString();
+    user.delete_due_at = due.toISOString();
+    data.refreshTokens = (data.refreshTokens || []).filter(t => t.user_id !== userId);
+    invalidateUserIndex();
+    save(data);
+    return { deleting_at: user.deleting_at, delete_due_at: user.delete_due_at };
+  },
+  cancelUserDeletion(userId) {
+    const data = load();
+    const user = data.users.find(u => u.id === userId);
+    if (!user || !user.deleting_at) return false;
+    delete user.deleting_at;
+    delete user.delete_due_at;
+    invalidateUserIndex();
+    save(data);
+    return true;
+  },
+  // 유예가 끝난 계정. 시각을 넘겨받는 이유는 **검사에서 30일 뒤를 만들어 보기** 위해서다
+  dueDeletions(now = new Date()) {
+    const iso = now.toISOString();
+    return load().users.filter(u => u.delete_due_at && u.delete_due_at <= iso);
+  },
+
+  // 소셜로만 들어온 계정은 **본인도 비밀번호를 모른다** (가입할 때 난수를 넣는다).
+  // 그런 계정에 비밀번호를 물으면 영영 못 지운다
+  isSocialAccount(user) {
+    if (!user) return false;
+    if (user.is_social) return true;
+    return /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(user.username || '');
+  },
+
   deleteUserCompletely(userId) {
     const data = load();
     data.users = data.users.filter(u => u.id !== userId);
-    data.workouts = (data.workouts || []).filter(w => w.user_id !== userId);
-    data.inbody = (data.inbody || []).filter(r => r.user_id !== userId);
-    data.measures = (data.measures || []).filter(m => m.user_id !== userId);
-    data.myRoutines = (data.myRoutines || []).filter(r => r.user_id !== userId);
-    data.refreshTokens = (data.refreshTokens || []).filter(t => t.user_id !== userId);
+    for (const key of db.USER_COLLECTIONS) {
+      data[key] = (data[key] || []).filter(row => row.user_id !== userId);
+    }
     invalidateUserIndex();
     save(data);
     // 사진은 다른 파일에 있다. 여기서 안 부르면 지운 계정의 사진이 남는다

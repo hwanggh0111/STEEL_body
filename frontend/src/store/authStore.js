@@ -54,6 +54,9 @@ export const useAuthStore = create((set) => ({
     if (data.email) saveLS('ironlog_email', data.email);
     if (data.role) saveLS('ironlog_role', data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
+    // 지우기로 해뒀던 계정이면 서버가 되살리고 그렇다고 알려준다.
+    // 로그인 화면이 이 값을 보고 「되살아났어요」를 띄운다
+    return { restored: !!data.restored };
   },
 
   // 가입 직후 자동 로그인 (백엔드가 토큰/쿠키 발급)

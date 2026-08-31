@@ -38,6 +38,12 @@ module.exports = (req, res, next) => {
     if (user.role === 'blocked') {
       return res.status(403).json({ error: '차단된 계정이에요. 고객센터로 알려주세요' });
     }
+    // 지우기로 한 계정. 로그인 유지 열쇠는 예약할 때 걷어냈지만, 그때 손에 들고 있던
+    // access token 은 만료될 때까지 살아 있다 — 잠갔다면서 그 기기에서 계속 쓰이면
+    // 잠근 것이 아니다. 되살리려면 **다시 로그인**해야 한다
+    if (user.deleting_at) {
+      return res.status(401).json({ error: '삭제를 예약한 계정이에요. 다시 로그인하시면 되살아나요' });
+    }
 
     // AI Guard v2: 정지/차단 체크
     if (user.is_banned) {
