@@ -33,6 +33,23 @@ const josa = bundle('src/data/particle.js', '.t8.cjs');
 global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
 const chart = bundle('src/data/chartColors.js', '.t10.cjs');
+// 그래프 컴포넌트는 실제로 **그려봐야** 확인된다. react 는 밖에 둔다 —
+// 번들 안에 같이 넣으면 react 사본이 둘이 되어 훅이 안 붙는다
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const bundleJsx = (entry, out) => {
+  esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out,
+    platform: 'node', external: ['react', 'react-dom'], jsx: 'automatic' });
+  const m = require(process.cwd() + '/' + out);
+  fs.unlinkSync(out);
+  return m.default;
+};
+const draw = (C, props) => renderToStaticMarkup(React.createElement(C, props));
+const Line = bundleJsx('src/components/charts/LineChart.jsx', '.t12.cjs');
+const Bars = bundleJsx('src/components/charts/Bars.jsx', '.t13.cjs');
+const Donut = bundleJsx('src/components/charts/Donut.jsx', '.t14.cjs');
+const Radar = bundleJsx('src/components/charts/Radar.jsx', '.t15.cjs');
+
 const axis = bundle('src/components/charts/useWidth.js', '.t11.cjs');
 
 let bad = 0;
@@ -217,5 +234,73 @@ ok('눈금이 늘 최대보다 위에서 끝난다', axis.niceScale(70.4, 74.6).
 ok('12.0 은 12 로 적는다', axis.fmt(12.0), '12');
 ok('12.34 는 12.3 으로', axis.fmt(12.34), '12.3');
 ok('없는 값은 - 로', axis.fmt(null), '-');
+
+console.log('');
+console.log('── 그래프를 그려본다 (recharts 를 걷어내고 직접 그린 넷) ──');
+// 8/28 에 recharts 를 걷어내고 네 개를 직접 그렸다. 그때는 「브라우저로만 확인된다」고
+// 적어뒀는데, 그리는 쪽은 화면 없이도 돌려볼 수 있다 — 훅은 첫 판에서 폭 기본값(320)을
+// 쓰고 useEffect 는 안 돈다. 여기서 SVG 를 받아, 눈으로 볼 것을 글자로 본다.
+//
+// 이 그래프들이 조용히 죽는 방식은 둘이다. (1) 색이 안 먹어서 축 글씨가 검정이 된다
+// — 8/28 에 실제로 그랬다. (2) 안 잰 날을 이어 그려서 잰 것처럼 보여준다.
+const GOLD = '#eeb77d', MUTED = '#7a7160', RED = '#d96a5c', GREEN = '#7fb069', BLUE = '#7fa8d9';
+const TWO = [{ key: 'before', label: '과거', color: MUTED }, { key: 'after', label: '현재', color: GOLD }];
+
+// 08-18 은 체지방·골격근을 안 쟀다 (체중만 쟀다)
+const TREND = [
+  { date: '08-14', weight: 72.6, fat: 18.4, muscle: 33.1 },
+  { date: '08-18', weight: 72.0, fat: null, muscle: null },
+  { date: '08-22', weight: 71.6, fat: 17.9, muscle: 33.4 },
+  { date: '08-26', weight: 71.2, fat: 17.5, muscle: 33.6 },
+];
+const line = draw(Line, { data: TREND, xKey: 'date', unit: '%',
+  series: [{ key: 'fat', label: '체지방', color: RED }, { key: 'muscle', label: '골격근', color: GREEN }] });
+
+ok('꺾은선 — 축의 날짜가 찍힌다', ['08-14', '08-18', '08-22', '08-26'].every(d => line.includes('>' + d + '<')), true);
+// 「하나라도 muted 면 통과」로 두면 눈금 글씨만 검정이 돼도 날짜 글씨가 대신 채워준다.
+// 글자 하나하나가 토큰 색인지 본다 — 8/28 에 죽은 자리가 정확히 여기다
+const INK = [MUTED, '#aaa28e', '#eae4d6'];
+const fills = [...line.matchAll(/<text[^>]*fill="([^"]+)"/g)].map(m => m[1]);
+ok('꺾은선 — 글자가 아홉 개 찍힌다 (눈금 다섯 · 날짜 넷)', fills.length, 9);
+ok('꺾은선 — 글자 색이 전부 토큰이다 (8/28 에 축이 검정이라 안 보였다)',
+  fills.filter(f => !INK.includes(f)), []);
+ok('꺾은선 — 줄마다 선을 하나씩', (line.match(/<path/g) || []).length, 2);
+// 안 잰 날에서 붓을 뗀다. 이어 그렸으면 M 이 줄마다 하나뿐이다
+ok('꺾은선 — 안 잰 날에서 선이 끊긴다', (line.match(/ M(?=\d)/g) || []).length >= 2, true);
+ok('꺾은선 — 두 줄이면 범례가 붙는다', line.includes('체지방') && line.includes('골격근'), true);
+ok('꺾은선 — 잰 값이 없으면 빈 칸을 준다 (안 터진다)',
+  draw(Line, { data: [], xKey: 'date', series: [{ key: 'weight', label: '체중', color: GOLD }] }).includes('<svg'), false);
+
+const bars = draw(Bars, { data: [{ name: '체중', before: 72.6, after: 71.2 },
+                                 { name: '체지방', before: 18.4, after: 17.5 }], series: TWO });
+// 막대는 0 에서 시작해야 길이가 값을 말한다. 71.2 와 72.6 을 70 에서 자르면 두 배 차이로 보인다
+ok('막대 — 눈금이 0 에서 시작한다', bars.includes('>0<'), true);
+const FEET = [...bars.matchAll(/<rect x="[\d.]+" y="([\d.]+)"[^>]*height="([\d.]+)"/g)]
+  .map(m => Number(m[1]) + Number(m[2])).filter(v => v > 100);
+ok('막대 — 막대 밑동이 모두 같은 줄에 있다', new Set(FEET.map(v => v.toFixed(1))).size, 1);
+ok('막대 — 칸 이름이 찍힌다', bars.includes('>체중<') && bars.includes('>체지방<'), true);
+
+const donut = draw(Donut, { total: 71.2, data: [
+  { name: '골격근', value: 33.6, color: GREEN }, { name: '체지방', value: 12.5, color: RED },
+  { name: '체수분', value: 20.1, color: BLUE }, { name: '기타', value: 5.0, color: MUTED }] });
+ok('도넛 — 조각이 넷', (donut.match(/<path/g) || []).length, 4);
+ok('도넛 — 가운데에 합이 적혀 있다', donut.includes('>71.2<') && donut.includes('>kg<'), true);
+// 조각이 하나면 시작점과 끝점이 같아 호(arc)로는 못 그린다. 반원 둘로 나눠 그린다
+ok('도넛 — 조각이 하나여도 원이 된다',
+  (draw(Donut, { data: [{ name: '골격근', value: 33.6, color: GREEN }] }).match(/<path/g) || []).length, 2);
+
+const radar = draw(Radar, { data: [
+  { subject: '체중', before: 72.6, after: 71.2 }, { subject: '체지방', before: 18.4, after: 17.5 },
+  { subject: 'BMI', before: 23.1, after: 22.6 }, { subject: '골격근', before: 33.1, after: 33.6 },
+  { subject: '체수분', before: 19.8, after: 20.1 }], series: TWO });
+ok('오각형 — 축 이름 다섯이 다 적힌다',
+  ['체중', '체지방', 'BMI', '골격근', '체수분'].every(n => radar.includes('>' + n + '<')), true);
+ok('오각형 — 축마다 「과거 → 현재」', radar.includes('72.6 → 71.2'), true);
+ok('오각형 — 두 겹으로 그린다', (radar.match(/fill-opacity="0.28"/g) || []).length, 2);
+// 축마다 눈금이 다른 그림이라, 그 말을 안 적으면 모양을 그대로 믿게 된다
+ok('오각형 — 「축마다 눈금이 따로」 한 줄이 붙어 있다', radar.includes('축마다 눈금이 따로'), true);
+ok('오각형 — 축이 셋보다 적으면 안 그린다',
+  draw(Radar, { data: [{ subject: '체중', before: 1, after: 2 }], series: TWO }).includes('<svg'), false);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
