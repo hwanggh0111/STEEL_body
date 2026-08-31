@@ -19,8 +19,8 @@ function arc(cx, cy, rOut, rIn, from, to) {
   return `M${x1} ${y1} A${rOut} ${rOut} 0 ${big} 1 ${x2} ${y2} L${x3} ${y3} A${rIn} ${rIn} 0 ${big} 0 ${x4} ${y4} Z`;
 }
 
-export default function Donut({ data, total, height = 280 }) {
-  const [ref, w] = useWidth();
+export default function Donut({ data, total, height = 280, width = 320 }) {
+  const [ref, w] = useWidth(width);
   const parts = (Array.isArray(data) ? data : []).filter(d => d && d.value > 0);
   const sum = parts.reduce((s, d) => s + d.value, 0);
   if (!parts.length || sum <= 0) return <div ref={ref} style={{ height }} />;

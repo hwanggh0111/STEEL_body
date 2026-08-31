@@ -47,3 +47,36 @@ export function niceScale(min, max, ticks = 4) {
 // 12.0 → 12, 12.34 → 12.3. 축과 말풍선이 같은 규칙을 쓴다
 export const fmt = (v) =>
   (v == null || Number.isNaN(v)) ? '-' : String(Number(Number(v).toFixed(1)));
+
+// 날짜를 다 적으면 글자가 서로 겹친다. 폭에 맞춰 몇 칸씩 건너뛴다.
+//
+// 화면 밖으로 떼어 놓는다 — 폰에서 날짜가 몇 칸씩 뛰는지는 폭이 진짜로 바뀌어야
+// 보이는 것이라 브라우저로만 확인되던 자리였다. 계산만 남기면 화면 없이 돌려본다.
+export function labelEvery(count, innerW, gap = 46) {
+  const slots = Math.max(2, Math.floor(innerW / gap));
+  return Math.max(1, Math.ceil(count / slots));
+}
+
+// 실제로 적을 칸을 고른다. 마지막 날은 늘 적는다 — 「지금」이 안 적히면 그래프가
+// 어디서 끝났는지 모른다. 다만 바로 앞 것과 붙어 버리면 앞의 것을 뺀다.
+// 겹쳐 적느니 하나만 적는 게 낫다
+export function labelIndices(count, innerW, gap = 46) {
+  if (count <= 0) return [];
+  const every = labelEvery(count, innerW, gap);
+  const out = [];
+  for (let i = 0; i < count; i += every) out.push(i);
+  const last = count - 1;
+  if (out[out.length - 1] !== last) {
+    if (out.length > 1 && last - out[out.length - 1] < every) out.pop();
+    out.push(last);
+  }
+  return out;
+}
+
+// 짚은 자리(그래프 왼쪽 끝에서 잰 거리)가 몇 번째 칸인가.
+// 밖으로 나가면 양 끝으로 붙인다 — 손가락은 그래프 밖까지 미끄러진다
+export function pickIndex(rel, innerW, count) {
+  if (count <= 1) return 0;
+  const i = Math.round((rel / innerW) * (count - 1));
+  return Math.min(count - 1, Math.max(0, Number.isFinite(i) ? i : 0));
+}

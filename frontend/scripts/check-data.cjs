@@ -42,13 +42,14 @@ const bundleJsx = (entry, out) => {
     platform: 'node', external: ['react', 'react-dom'], jsx: 'automatic' });
   const m = require(process.cwd() + '/' + out);
   fs.unlinkSync(out);
-  return m.default;
+  return m;
 };
 const draw = (C, props) => renderToStaticMarkup(React.createElement(C, props));
-const Line = bundleJsx('src/components/charts/LineChart.jsx', '.t12.cjs');
-const Bars = bundleJsx('src/components/charts/Bars.jsx', '.t13.cjs');
-const Donut = bundleJsx('src/components/charts/Donut.jsx', '.t14.cjs');
-const Radar = bundleJsx('src/components/charts/Radar.jsx', '.t15.cjs');
+const lineMod = bundleJsx('src/components/charts/LineChart.jsx', '.t12.cjs');
+const Line = lineMod.default;
+const Bars = bundleJsx('src/components/charts/Bars.jsx', '.t13.cjs').default;
+const Donut = bundleJsx('src/components/charts/Donut.jsx', '.t14.cjs').default;
+const Radar = bundleJsx('src/components/charts/Radar.jsx', '.t15.cjs').default;
 
 const axis = bundle('src/components/charts/useWidth.js', '.t11.cjs');
 
@@ -301,6 +302,105 @@ ok('오각형 — 두 겹으로 그린다', (radar.match(/fill-opacity="0.28"/g)
 ok('오각형 — 「축마다 눈금이 따로」 한 줄이 붙어 있다', radar.includes('축마다 눈금이 따로'), true);
 ok('오각형 — 축이 셋보다 적으면 안 그린다',
   draw(Radar, { data: [{ subject: '체중', before: 1, after: 2 }], series: TWO }).includes('<svg'), false);
+
+
+console.log('');
+console.log('── 폭이 바뀌면 달라지는 것 (여태 브라우저로만 봤다) ──');
+// 8/31 에 그래프 넷을 화면 없이 그려봤지만, **폭이 진짜로 바뀌어야 나오는 셋**은
+// 남겨뒀다 — 글자 겹침 · 짚었을 때의 말풍선 · 폰에서 날짜 건너뛰기.
+//
+// 폭은 훅의 기본값이라 프로퍼티(`width`)로 넣어줄 수 있고, 겹침과 잘림은 그린 SVG 의
+// `<text>` 를 긁어 **자리를 재면** 나온다. 글자 폭은 글꼴을 봐야 정확하지만, 한글 한 자를
+// 글자크기만큼 · 영문과 숫자를 0.56 배로 잡으면 겹침을 잡기에는 넉넉하다.
+const glyph = (ch, f) => {
+  if (ch === ' ') return f * 0.28;
+  const c = ch.codePointAt(0);
+  if ((c > 0x1100 && c < 0xd800) || (c > 0xff00 && c < 0xffef)) return f;   // 한글·한자
+  if ('·—→'.includes(ch)) return f * 0.9;
+  return f * 0.56;
+};
+const textW = (str, f) => [...str].reduce((a, ch) => a + glyph(ch, f), 0);
+// 그린 글자마다 「어디서 어디까지 차지하는가」
+const boxes = (svg) => [...svg.matchAll(/<text ([^>]*)>([^<]*)<\/text>/g)].map(m => {
+  const at = {};
+  for (const a of m[1].matchAll(/([a-zA-Z-]+)="([^"]*)"/g)) at[a[1]] = a[2];
+  const f = Number(at['font-size'] || 10), x = Number(at.x), wid = textW(m[2], f);
+  const anchor = at['text-anchor'] || 'start';
+  const x0 = anchor === 'middle' ? x - wid / 2 : anchor === 'end' ? x - wid : x;
+  return { t: m[2], x0, x1: x0 + wid, y: Number(at.y), f };
+});
+const overlaps = (svg) => {
+  const b = boxes(svg), out = [];
+  for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+    // 같은 줄에 있고(글자 높이 안쪽) 가로가 겹치면 사람 눈에도 겹쳐 보인다
+    if (Math.abs(b[i].y - b[j].y) < Math.max(b[i].f, b[j].f) * 0.9
+      && b[i].x0 < b[j].x1 - 0.5 && b[j].x0 < b[i].x1 - 0.5) out.push(b[i].t + '↔' + b[j].t);
+  }
+  return out;
+};
+const outside = (svg, W) => boxes(svg).filter(b => b.x0 < -0.5 || b.x1 > W + 0.5).map(b => b.t);
+
+// 폰(320 · 375 · 430)부터 PC(900)까지. 날짜 수는 나흘치부터 석 달치까지
+const WIDTHS = [320, 375, 430, 900];
+const days = (n) => Array.from({ length: n }, (_, i) =>
+  ({ date: '08-' + String((i % 28) + 1).padStart(2, '0'), weight: 70 + (i % 5) * 0.4 }));
+// 비교 화면이 실제로 넘기는 다섯 칸 (이름이 길어지면 여기서 걸린다)
+const REAL = [{ name: '체중(kg)', subject: '체중' }, { name: '골격근(kg)', subject: '골격근' },
+              { name: '체지방(%)', subject: '체지방' }, { name: 'BMI', subject: 'BMI' },
+              { name: '체수분(L)', subject: '체수분' }].map(x => ({ ...x, before: 72.6, after: 71.2 }));
+
+let hit = [], clipped = [];
+for (const W of WIDTHS) {
+  for (const n of [4, 14, 30, 90]) {
+    const svg = draw(Line, { data: days(n), xKey: 'date', unit: 'kg', width: W,
+      series: [{ key: 'weight', label: '체중', color: GOLD }] });
+    hit = hit.concat(overlaps(svg).map(t => '꺾은선 ' + W + '/' + n + ' ' + t));
+    clipped = clipped.concat(outside(svg, W).map(t => '꺾은선 ' + W + '/' + n + ' ' + t));
+  }
+  for (const [name, svg] of [['막대', draw(Bars, { data: REAL, series: TWO, width: W })],
+                             ['오각형', draw(Radar, { data: REAL, series: TWO, width: W })]]) {
+    hit = hit.concat(overlaps(svg).map(t => name + ' ' + W + ' ' + t));
+    clipped = clipped.concat(outside(svg, W).map(t => name + ' ' + W + ' ' + t));
+  }
+}
+ok('폭 넷 × 날짜 넷 — 글자가 서로 겹치지 않는다', hit, []);
+// 마지막 날짜는 오른쪽 끝에 있다. 가운데 맞춤이면 절반이 잘려 나간다
+ok('폭 넷 — 글자가 그래프 밖으로 나가지 않는다 (잘려 보인다)', clipped, []);
+
+// 날짜 건너뛰기 — 폰에서는 성기게, PC 에서는 촘촘하게
+const marks = (n, innerW) => axis.labelIndices(n, innerW);
+ok('폰(320) 에서 석 달치는 여섯 칸만 적는다', marks(90, 276).length, 6);
+ok('PC(900) 에서 같은 석 달치는 더 촘촘하다', marks(90, 856).length >= 15, true);
+// 마지막 날이 안 적히면 그래프가 어디서 끝났는지 모른다
+ok('마지막 날은 폭과 상관없이 늘 적는다',
+  WIDTHS.every(W => [4, 14, 30, 90].every(n => marks(n, W - 44).includes(n - 1))), true);
+ok('첫 날도 늘 적는다', marks(30, 276)[0], 0);
+// 마지막을 끼워 넣느라 바로 앞과 붙던 것 — 8/31 에 실제로 겹쳤다
+ok('마지막과 그 앞이 한 칸 차이로 붙지 않는다',
+  marks(14, 331).slice(-2).reduce((a, b) => b - a) >= 2, true);
+ok('날짜가 셋뿐이면 다 적는다', marks(3, 276), [0, 1, 2]);
+ok('날짜가 하나여도 안 터진다', marks(1, 276), [0]);
+
+// 짚기 — 짚는 것은 화면이 있어야 하지만, 짚은 자리를 몇 번째로 셈하는지는 여기서 본다
+const P = (rel, count) => axis.pickIndex(rel, 276, count);
+ok('왼쪽 끝을 짚으면 첫 칸', P(0, 10), 0);
+ok('오른쪽 끝을 짚으면 마지막 칸', P(276, 10), 9);
+// 손가락은 그래프 밖까지 미끄러진다. -1 이나 10 이 나오면 말풍선이 빈 칸을 읽는다
+ok('왼쪽 밖으로 미끄러져도 첫 칸에 붙는다', P(-80, 10), 0);
+ok('오른쪽 밖으로 미끄러져도 마지막 칸에 붙는다', P(400, 10), 9);
+ok('가운데를 짚으면 가운데 칸', P(138, 9), 4);
+ok('칸이 하나뿐이면 늘 0 (0 으로 나누지 않는다)', P(138, 1), 0);
+
+// 말풍선에 뭐라고 적히는가
+const HROWS = [{ date: '08-14', fat: 18.4, muscle: 33.1 }, { date: '08-18', fat: null, muscle: 33.4 }];
+const HSER = [{ key: 'fat', label: '체지방' }, { key: 'muscle', label: '골격근' }];
+ok('짚기 전에는 줄 이름만 적는다', lineMod.hoverText(HROWS, null, HSER, 'date', '%'), '체지방 · 골격근');
+ok('짚으면 그 날짜의 값을 적는다',
+  lineMod.hoverText(HROWS, 0, HSER, 'date', '%'), '08-14 — 체지방 18.4% · 골격근 33.1%');
+ok('안 잰 값은 - 로 적는다 (0 이라고 하지 않는다)',
+  lineMod.hoverText(HROWS, 1, HSER, 'date', '%'), '08-18 — 체지방 -% · 골격근 33.4%');
+ok('줄이 하나뿐이면 짚기 전에는 빈 줄', lineMod.hoverText(HROWS, null, [HSER[0]], 'date', '%'), '');
+ok('없는 칸을 짚어도 안 터진다', lineMod.hoverText(HROWS, 9, HSER, 'date', '%'), '체지방 · 골격근');
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

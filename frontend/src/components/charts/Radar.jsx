@@ -7,14 +7,17 @@ import { useWidth, fmt } from './useWidth';
 // 올려놓으면 kg 이 늘 바깥이고 %는 늘 안쪽이라 모양이 아무 말도 안 한다.
 // 축마다 「그 축에서 큰 쪽」을 바깥으로 잡아 **두 시점의 차이**만 보이게 한다.
 
-export default function Radar({ data, series, height = 260 }) {
-  const [ref, w] = useWidth();
+export default function Radar({ data, series, height = 260, width = 320 }) {
+  const [ref, w] = useWidth(width);
   const rows = Array.isArray(data) ? data : [];
   if (rows.length < 3) return <div ref={ref} style={{ height }} />;
 
   const cx = w / 2;
   const cy = height / 2;
-  const r = Math.min(cx, cy) - 34;
+  // 축 이름과 「과거 → 현재」는 그물 **밖에** 적힌다. 옆으로 나갈 자리를 빼놓지 않으면
+  // 좁은 폰에서 양옆 축의 값이 화면 밖으로 잘린다 (9.5px 글자 열한 자 ≈ 58px + 여백)
+  const SIDE = 76;
+  const r = Math.max(40, Math.min(cx - SIDE, cy - 34));
   const angle = (i) => -Math.PI / 2 + (Math.PI * 2 * i) / rows.length;
 
   // 축마다 0 ~ (그 축의 큰 값 × 1.15)

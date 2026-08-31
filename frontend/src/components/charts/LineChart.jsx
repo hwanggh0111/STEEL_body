@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CHART } from '../../data/chartColors';
-import { useWidth, niceScale, fmt } from './useWidth';
+import { useWidth, niceScale, fmt, labelIndices, pickIndex } from './useWidth';
 
 // 꺾은선. 인바디의 체중 추이 · 체지방/골격근 추이 · 히스토리의 체중이 같이 쓴다.
 //
@@ -9,8 +9,16 @@ import { useWidth, niceScale, fmt } from './useWidth';
 
 const PAD = { top: 10, right: 10, bottom: 22, left: 34 };
 
-export default function LineChart({ data, xKey, series, height = 180, unit = '' }) {
-  const [ref, w] = useWidth();
+// 그래프 아래 한 줄. 짚기 전에는 줄 이름, 짚으면 그 날짜의 값.
+// 짚는 것은 화면이 있어야 하지만 **무슨 말이 나오는지**는 여기서 확인된다
+export function hoverText(rows, hover, shown, xKey, unit = '') {
+  const row = hover == null ? null : rows[hover];
+  if (!row) return shown.length > 1 ? shown.map(s => s.label).join(' · ') : '';
+  return row[xKey] + ' — ' + shown.map(s => s.label + ' ' + fmt(row[s.key]) + unit).join(' · ');
+}
+
+export default function LineChart({ data, xKey, series, height = 180, unit = '', width = 320 }) {
+  const [ref, w] = useWidth(width);
   const [hover, setHover] = useState(null);
 
   const rows = Array.isArray(data) ? data : [];
@@ -39,7 +47,7 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '' 
   };
 
   // 날짜를 다 적으면 겹친다. 폭에 맞춰 몇 칸씩 건너뛴다
-  const every = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor(innerW / 46))));
+  const marks = labelIndices(rows.length, innerW);
 
   // 마우스와 손가락이 같이 쓴다. **touches[0] 에는 currentTarget 이 없다** —
   // 그것만 넘기면 손가락으로 짚는 순간 터진다
@@ -47,12 +55,9 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '' 
     const point = e.touches ? e.touches[0] : e;
     if (!point) return;
     const box = e.currentTarget.getBoundingClientRect();
-    const rel = point.clientX - box.left - PAD.left;
-    const i = Math.round((rel / innerW) * (rows.length - 1));
-    setHover(Math.min(rows.length - 1, Math.max(0, i)));
+    setHover(pickIndex(point.clientX - box.left - PAD.left, innerW, rows.length));
   };
 
-  const label = shown.map(s => s.label + ' ' + fmt(rows[hover]?.[s.key]) + unit).join(' · ');
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -66,8 +71,11 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '' 
             <text x={PAD.left - 6} y={y(v) + 3.5} textAnchor="end" fontSize="10" fill={CHART.muted}>{fmt(v)}</text>
           </g>
         ))}
-        {rows.map((r, i) => (i % every === 0 || i === rows.length - 1) && (
-          <text key={i} x={x(i)} y={height - 7} textAnchor="middle" fontSize="10" fill={CHART.muted}>{r[xKey]}</text>
+        {/* 마지막 날짜는 오른쪽 끝에 있다. 가운데 맞춤으로 두면 절반이 그래프 밖으로
+            잘려 나간다 — 끝에서 안쪽으로 적는다 */}
+        {marks.map(i => (
+          <text key={i} x={x(i)} y={height - 7} fontSize="10" fill={CHART.muted}
+            textAnchor={i === rows.length - 1 && rows.length > 1 ? 'end' : 'middle'}>{rows[i][xKey]}</text>
         ))}
         {hover != null && (
           <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke={CHART.muted} strokeWidth="1" strokeDasharray="3 3" />
@@ -86,9 +94,7 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '' 
         height: 18, fontSize: 11.5, textAlign: 'center', lineHeight: '18px',
         color: hover == null ? CHART.muted : CHART.text2,
       }}>
-        {hover == null
-          ? (shown.length > 1 ? shown.map(s => s.label).join(' · ') : '')
-          : rows[hover][xKey] + ' — ' + label}
+        {hoverText(rows, hover, shown, xKey, unit)}
       </div>
 
       {shown.length > 1 && (

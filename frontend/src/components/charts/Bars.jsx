@@ -6,8 +6,8 @@ import { useWidth, niceScale, fmt } from './useWidth';
 
 const PAD = { top: 12, right: 10, bottom: 34, left: 34 };
 
-export default function Bars({ data, series, height = 220 }) {
-  const [ref, w] = useWidth();
+export default function Bars({ data, series, height = 220, width = 320 }) {
+  const [ref, w] = useWidth(width);
   const [hover, setHover] = useState(null);
 
   const rows = Array.isArray(data) ? data : [];
