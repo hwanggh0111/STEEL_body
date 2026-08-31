@@ -450,5 +450,22 @@ ok('선 색을 글자색에서 받는다 (고르면 금색)', one.includes('stro
 ok('없는 이름은 빈 칸을 준다 (안 터진다)',
   renderToStaticMarkup(React.createElement(nav.default, { name: '없는것' })), '');
 
+
+console.log('');
+console.log('── 루틴 갈래 단추가 화면 안에 들어오는가 ──');
+// 8/31 에 「기능성」이 넷째로 붙으면서 단추 줄이 320 · 360px 폰에서 넘쳤다.
+// 옆으로 밀어 보게 두면 거기 뭐가 더 있는지 알 길이 없다 — 줄을 바꾸게 고쳤다.
+// 다섯째를 넣으면 여기서 다시 걸린다
+const routinePage = fs.readFileSync('src/pages/RoutinePage.jsx', 'utf-8');
+const types = [...(routinePage.match(/\{\[([^\]]*)\]\.map\(\(t\)/) || [])[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+ok('갈래 단추가 넷이다', types, ['머신', '맨몸', '홈트', '기능성']);
+// btn-secondary — 14px · 자간 1.5 · 좌우 여백 20 · 테두리 1
+const btnW = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 14 : 8) + 1.5, 0) + 42;
+const rowW = types.reduce((a, t) => a + btnW(t), 0) + 8 * (types.length - 1);
+ok('한 줄에 다 안 들어간다 (그래서 줄을 바꿔야 한다)', rowW > 320 - 40, true);
+const typeRow = routinePage.slice(routinePage.indexOf("{['머신'") - 260, routinePage.indexOf("{['머신'"));
+ok('넘치는 줄이라 줄바꿈으로 받는다', /flexWrap: 'wrap'/.test(typeRow), true);
+ok('옆으로 밀어 보게 두지 않는다 (숨은 단추가 생긴다)', /overflowX/.test(typeRow), false);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

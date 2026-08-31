@@ -355,8 +355,9 @@ export default function RoutinePage() {
         운동 루틴 추천
       </div>
 
-      {/* 넷이 되면서 좁은 폰에서 넘친다. 넘치면 옆으로 밀어서 보게 한다 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
+      {/* 넷이 되면서 좁은 폰(320 · 360)에서 마지막 단추가 화면 밖으로 밀린다.
+          옆으로 밀어 보게 두면 **거기 뭐가 더 있는지 알 길이 없다** — 줄을 바꾼다 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {['머신', '맨몸', '홈트', '기능성'].map((t) => (
           <button
             key={t}
