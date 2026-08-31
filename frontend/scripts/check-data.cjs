@@ -408,12 +408,22 @@ console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린
 // 이모지 그림은 폰 만든 회사 것이라 걷어내고 SVG 로 직접 그렸다. 이름으로 고르는
 // 방식이라 **이름을 잘못 적으면 조용히 빈 칸**이 된다 — 아이콘만 사라지고 아무도 안 터진다
 const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
-const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
-const used = [...tabbar.matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]);
-ok('길찾기가 아이콘 열둘을 쓴다', used.length, 12);
+// 길찾기 · 홈의 「바로 가기」 · 미션이 같은 서랍에서 꺼내 쓴다
+const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/components/MissionSystem.jsx'];
+const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
+const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
+ok('세 화면이 아이콘 서른을 쓴다', used.length, 30);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
-ok('이모지가 남아 있지 않다', /[\u{1F300}-\u{1FAFF}]/u.test(tabbar), false);
+// 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
+ok('세 화면에 이모지가 남아 있지 않다',
+  FILES.filter(f => /[\u{1F300}-\u{1FAFF}\u{2B50}\u{2705}]/u.test(src[f])), []);
+// 같은 자리로 가는 길은 홈에서도 길찾기에서도 같은 그림이어야 한다
+const iconFor = (file, path) => (src[file].match(new RegExp("icon: '([a-z]+)'[^\n]*'" + path + "'")) ||
+  src[file].match(new RegExp("path: '" + path + "'[^\n]*icon: '([a-z]+)'")) || [])[1];
+ok('홈의 「바로 가기」가 길찾기와 같은 그림을 쓴다',
+  ['/homeworkout', '/search', '/measure', '/history', '/reminders', '/support']
+    .filter(p => iconFor('src/pages/HomePage.jsx', p) !== iconFor('src/components/TabBar.jsx', p)), []);
 // 색을 속성에 박아두면 고른 자리에서 금색이 안 된다 (그래프에서 8/28 에 겪은 것과 같은 종류)
 const one = renderToStaticMarkup(React.createElement(nav.default, { name: 'home' }));
 ok('아이콘이 실제로 그려진다', one.startsWith('<svg') && one.includes('<path'), true);

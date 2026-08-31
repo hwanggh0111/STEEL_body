@@ -14,6 +14,7 @@ import { dateKey } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
+import NavIcon from '../components/NavIcon';
 
 // 홈.
 //
@@ -36,13 +37,15 @@ import { mondayOf, weekKeys } from '../data/weeklyReport';
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 // 아래 탭바(홈 · 기록 · 인바디 · 루틴)에 없는 것들. 더보기를 열어야 닿는 자리다
+// 아이콘은 길찾기와 같은 것을 쓴다 (NavIcon.jsx). 같은 자리로 가는 길인데 홈에서만
+// 다른 그림이면 두 번 익혀야 한다
 const SHORTCUTS = [
-  { icon: '🏠', label: '홈트', path: '/homeworkout' },
-  { icon: '🔍', label: '운동 검색', path: '/search' },
-  { icon: '📐', label: '측정', path: '/measure' },
-  { icon: '📅', label: '히스토리', path: '/history' },
-  { icon: '🔔', label: '운동 알림', path: '/reminders' },
-  { icon: '📮', label: '고객센터', path: '/support' },
+  { icon: 'homegym', label: '홈트', path: '/homeworkout' },
+  { icon: 'search', label: '운동 검색', path: '/search' },
+  { icon: 'ruler', label: '측정', path: '/measure' },
+  { icon: 'calendar', label: '히스토리', path: '/history' },
+  { icon: 'bell', label: '운동 알림', path: '/reminders' },
+  { icon: 'chat', label: '고객센터', path: '/support' },
 ];
 
 // 이 날짜 이후로 인바디를 안 적었으면 한 번 짚어준다
@@ -236,7 +239,9 @@ export default function HomePage() {
                 onClick={() => navigate(s.path)}
                 style={{ textAlign: 'center', padding: '14px 6px' }}
               >
-                <div style={{ fontSize: 20, marginBottom: 4 }} aria-hidden="true">{s.icon}</div>
+                <div style={{ marginBottom: 4, color: 'var(--accent)', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+                  <NavIcon name={s.icon} size={22} />
+                </div>
                 <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: 1 }}>{s.label}</div>
               </div>
             ))}

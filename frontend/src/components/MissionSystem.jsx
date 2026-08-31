@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLangStore } from '../store/langStore';
 import { dateKey } from '../data/dateKey';
+import NavIcon from './NavIcon';
 
 // 미션.
 //
@@ -48,10 +49,10 @@ function getDailyMissions(lang, todayWorkouts) {
   const kinds = new Set(todayWorkouts.map(w => w.exercise));
 
   return [
-    { id: 'd1', title: lang === 'ko' ? '오늘 운동 1회 기록' : 'Log 1 workout today', icon: '💪', current: workoutCount, goal: 1 },
-    { id: 'd2', title: lang === 'ko' ? '오늘 운동 3회 기록' : 'Log 3 workouts today', icon: '🔥', current: workoutCount, goal: 3 },
-    { id: 'd3', title: lang === 'ko' ? '총 10세트 이상' : 'Complete 10+ sets', icon: '🏋️', current: totalSets, goal: 10 },
-    { id: 'd4', title: lang === 'ko' ? '2가지 이상 운동' : '2+ different exercises', icon: '🎯', current: kinds.size, goal: 2 },
+    { id: 'd1', title: lang === 'ko' ? '오늘 운동 1회 기록' : 'Log 1 workout today', icon: 'dumbbell', current: workoutCount, goal: 1 },
+    { id: 'd2', title: lang === 'ko' ? '오늘 운동 3회 기록' : 'Log 3 workouts today', icon: 'flame', current: workoutCount, goal: 3 },
+    { id: 'd3', title: lang === 'ko' ? '총 10세트 이상' : 'Complete 10+ sets', icon: 'stack', current: totalSets, goal: 10 },
+    { id: 'd4', title: lang === 'ko' ? '2가지 이상 운동' : '2+ different exercises', icon: 'target', current: kinds.size, goal: 2 },
   ];
 }
 
@@ -61,19 +62,19 @@ function getWeeklyMissions(lang, workouts, records, weekDates) {
   const thisWeekInbody = records.filter(r => weekDates.includes(r.date)).length;
 
   return [
-    { id: 'w1', title: lang === 'ko' ? '이번 주 3일 운동' : 'Work out 3 days this week', icon: '📅', current: weekWorkoutDays, goal: 3 },
-    { id: 'w2', title: lang === 'ko' ? '이번 주 5일 운동' : 'Work out 5 days this week', icon: '⭐', current: weekWorkoutDays, goal: 5 },
-    { id: 'w3', title: lang === 'ko' ? '이번 주 운동 15회 기록' : '15 workouts this week', icon: '🏆', current: weekTotalWorkouts, goal: 15 },
-    { id: 'w4', title: lang === 'ko' ? '이번 주 인바디 측정' : 'Measure InBody this week', icon: '📊', current: thisWeekInbody, goal: 1 },
+    { id: 'w1', title: lang === 'ko' ? '이번 주 3일 운동' : 'Work out 3 days this week', icon: 'calendar', current: weekWorkoutDays, goal: 3 },
+    { id: 'w2', title: lang === 'ko' ? '이번 주 5일 운동' : 'Work out 5 days this week', icon: 'star', current: weekWorkoutDays, goal: 5 },
+    { id: 'w3', title: lang === 'ko' ? '이번 주 운동 15회 기록' : '15 workouts this week', icon: 'trophy', current: weekTotalWorkouts, goal: 15 },
+    { id: 'w4', title: lang === 'ko' ? '이번 주 인바디 측정' : 'Measure InBody this week', icon: 'chart', current: thisWeekInbody, goal: 1 },
   ];
 }
 
 function getChallengeMissions(lang, totalWorkouts, totalInbody) {
   return [
-    { id: 'c1', title: lang === 'ko' ? '총 운동 50회 달성' : 'Reach 50 total workouts', icon: '🎖️', current: totalWorkouts, goal: 50 },
-    { id: 'c2', title: lang === 'ko' ? '총 운동 100회 달성' : 'Reach 100 total workouts', icon: '💎', current: totalWorkouts, goal: 100 },
-    { id: 'c3', title: lang === 'ko' ? '총 운동 300회 달성' : 'Reach 300 total workouts', icon: '👑', current: totalWorkouts, goal: 300 },
-    { id: 'c4', title: lang === 'ko' ? '인바디 5회 측정' : 'Measure InBody 5 times', icon: '📈', current: totalInbody, goal: 5 },
+    { id: 'c1', title: lang === 'ko' ? '총 운동 50회 달성' : 'Reach 50 total workouts', icon: 'medal', current: totalWorkouts, goal: 50 },
+    { id: 'c2', title: lang === 'ko' ? '총 운동 100회 달성' : 'Reach 100 total workouts', icon: 'gem', current: totalWorkouts, goal: 100 },
+    { id: 'c3', title: lang === 'ko' ? '총 운동 300회 달성' : 'Reach 300 total workouts', icon: 'crown', current: totalWorkouts, goal: 300 },
+    { id: 'c4', title: lang === 'ko' ? '인바디 5회 측정' : 'Measure InBody 5 times', icon: 'trend', current: totalInbody, goal: 5 },
   ];
 }
 
@@ -101,12 +102,13 @@ function MissionItem({ mission, t, dim }) {
       <div style={{
         width: 34, height: 34, borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 17,
         background: mission.done ? 'var(--success-dim)' : 'var(--bg-tertiary)',
         border: `1px solid ${mission.done ? 'var(--success)' : 'var(--border)'}`,
+        // 선으로 그린 아이콘이라 색을 여기서 준다 — 다 한 것은 초록, 아직인 것은 금색
+        color: mission.done ? 'var(--success)' : 'var(--accent)',
         flexShrink: 0,
       }} aria-hidden="true">
-        {mission.done ? '✓' : mission.icon}
+        <NavIcon name={mission.done ? 'check' : mission.icon} size={18} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
