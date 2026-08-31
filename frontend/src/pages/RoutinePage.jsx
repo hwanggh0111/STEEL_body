@@ -6,10 +6,25 @@ import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 
+// 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
+// 조용히 비어 보인다 — 서버는 200 을 주고 화면은 「데이터 없음」을 띄운다.
+// backend `npm run check` 가 이 파일을 읽어 짝을 맞춰본다
 const PARTS_MAP = {
   '머신': ['가슴', '등', '어깨', '하체', '팔'],
   '맨몸': ['가슴', '등', '어깨', '하체', '팔'],
   '홈트': ['전신', '가슴', '등', '어깨', '하체', '코어'],
+  '기능성': ['서킷', '체력검정', '들고걷기', '폭발력', '버티기'],
+};
+
+// 기능성은 성격이 달라서 한 줄 적어준다.
+//
+// 「특수부대」라는 말만 붙여놓고 끝내면 공식 프로그램인 줄 안다. 그게 아니고,
+// 공개된 체력검정 항목과 그쪽에서 흔히 쓰는 방식을 **집에서 할 수 있게 옮긴 것**이다.
+// 홈트와 뭐가 다른지도 여기서 말한다 — 안 그러면 갈래가 왜 둘인지 모른다
+const TYPE_NOTE = {
+  '기능성': '집에서 장비 없이 하는 특수부대식 훈련입니다. 부위별로 키우는 홈트와 달리 '
+    + '시간을 재고 숨이 차게 몰아붙입니다. 무거운 것이 필요한 자리는 책 넣은 배낭으로 합니다. '
+    + '공개된 체력검정 항목을 참고한 것이지 공식 프로그램은 아닙니다.',
 };
 
 export default function RoutinePage() {
@@ -340,17 +355,29 @@ export default function RoutinePage() {
         운동 루틴 추천
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {['머신', '맨몸', '홈트'].map((t) => (
+      {/* 넷이 되면서 좁은 폰에서 넘친다. 넘치면 옆으로 밀어서 보게 한다 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
+        {['머신', '맨몸', '홈트', '기능성'].map((t) => (
           <button
             key={t}
             className={`btn-secondary${type === t ? ' active' : ''}`}
             onClick={() => setType(t)}
+            style={{ flexShrink: 0 }}
           >
             {t}
           </button>
         ))}
       </div>
+
+      {TYPE_NOTE[type] && (
+        <div style={{
+          fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75,
+          background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
+          padding: '10px 13px', marginBottom: 14,
+        }}>
+          {TYPE_NOTE[type]}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
         {parts.map((p) => (
@@ -358,7 +385,7 @@ export default function RoutinePage() {
             key={p}
             className={`btn-secondary${part === p ? ' active' : ''}`}
             onClick={() => setPart(p)}
-            style={{ fontSize: 12, padding: '6px 14px' }}
+            style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}
           >
             {p}
           </button>
