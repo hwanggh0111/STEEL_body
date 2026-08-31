@@ -3,6 +3,7 @@ import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { FAQ, matchFaq } from './faq';
 import pkg from '../../../package.json';
+import NavIcon from '../../components/NavIcon';
 
 // ─────────────────────────────────────────────────────────────
 // 제보함
@@ -23,7 +24,7 @@ import pkg from '../../../package.json';
 
 const KINDS = [
   {
-    key: 'bug', label: '버그', icon: '🐞', desc: '안 되거나 이상하게 나오는 것',
+    key: 'bug', label: '버그', icon: 'bug', desc: '안 되거나 이상하게 나오는 것',
     titleLabel: '무슨 일이 있었나요',
     titleHint: '한 줄로 요약해 주세요',
     bodyLabel: '어떻게 하면 그렇게 되나요',
@@ -32,7 +33,7 @@ const KINDS = [
     attachNote: '기기와 화면 정보가 있으면 재현이 훨씬 빠릅니다',
   },
   {
-    key: 'ask', label: '문의', icon: '💬', desc: '어떻게 쓰는지 모르겠는 것',
+    key: 'ask', label: '문의', icon: 'chat', desc: '어떻게 쓰는지 모르겠는 것',
     titleLabel: '무엇이 궁금한가요',
     titleHint: '예) 기록한 운동을 나중에 고칠 수 있나요?',
     bodyLabel: '덧붙일 말 (없으면 비워두세요)',
@@ -41,7 +42,7 @@ const KINDS = [
     attachNote: '문의에는 보통 필요 없습니다',
   },
   {
-    key: 'idea', label: '건의', icon: '💡', desc: '이렇게 됐으면 하는 것',
+    key: 'idea', label: '건의', icon: 'bulb', desc: '이렇게 됐으면 하는 것',
     titleLabel: '무엇이 있었으면 하나요',
     titleHint: '예) 루틴에 메모를 남기고 싶어요',
     bodyLabel: '왜 필요한가요',
@@ -145,7 +146,7 @@ function AskFirst() {
         borderLeft: '2px solid var(--accent)', padding: '16px 16px 14px',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 15 }}>💬</span>
+          <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true"><NavIcon name="chat" size={16} /></span>
           <span style={{ fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 500 }}>
             먼저 하나만 여쭐게요
           </span>
@@ -396,7 +397,7 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
         <>
           <div style={{ marginBottom: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 26 }}>📮</span>
+              <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true"><NavIcon name="inbox" size={26} /></span>
               <h2 style={{
                 fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 3,
                 color: 'var(--accent)', margin: 0,
@@ -432,7 +433,9 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
                   opacity: kind && !on ? 0.45 : 1,
                 }}
               >
-                <div style={{ fontSize: 17, marginBottom: 3 }}>{x.icon}</div>
+                <div style={{ marginBottom: 3, display: 'flex', justifyContent: 'center', color: on ? 'var(--accent)' : 'var(--text-secondary)' }} aria-hidden="true">
+                  <NavIcon name={x.icon} size={19} />
+                </div>
                 <div style={{
                   fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
                   color: on ? 'var(--accent)' : 'var(--text-primary)',
@@ -663,14 +666,14 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
         </div>
       ) : loadFailed ? (
         <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
-          <div style={{ fontSize: 30, marginBottom: 10, opacity: 0.4 }}>📡</div>
+          <div style={{ marginBottom: 10, opacity: 0.4, display: 'flex', justifyContent: 'center' }} aria-hidden="true"><NavIcon name="signal" size={30} /></div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
             제보를 불러오지 못했습니다.<br />없어진 게 아니라 못 가져온 것이니, 새로고침해 주세요.
           </div>
         </div>
       ) : shown.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
-          <div style={{ fontSize: 30, marginBottom: 10, opacity: 0.4 }}>📭</div>
+          <div style={{ marginBottom: 10, opacity: 0.4, display: 'flex', justifyContent: 'center' }} aria-hidden="true"><NavIcon name="inbox" size={30} /></div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
             {filter === 'all' ? '아직 보낸 제보가 없습니다.' : `'${STATUS[filter].label}' 인 제보가 없습니다.`}
           </div>
@@ -704,7 +707,9 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
                     padding: '2px 7px', borderRadius: 'var(--radius)',
                     background: st.dim, color: st.color, border: `1px solid ${st.color}`,
                   }}>{st.label}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{kd.icon} {kd.label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <NavIcon name={kd.icon} size={13} />{kd.label}
+                  </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{dayOf(item.created_at)}</span>
                   {/* 펼치지 않고도 지울 수 있게 카드 줄에 둔다.
                       카드 클릭이 접기/펼치기라 stopPropagation 이 필요하다 */}

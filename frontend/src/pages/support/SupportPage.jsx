@@ -18,6 +18,7 @@ import FeedList from './FeedList';
 import Satisfaction from './Satisfaction';
 import { FAQ, matchFaq } from './faq';
 import { SEEN_REPLY_KEY as SEEN_REPLY_LS_KEY } from '../../data/localKeys';
+import NavIcon from '../../components/NavIcon';
 
 const CHANGES_SHOWN = 6;
 
@@ -66,9 +67,9 @@ const Num = ({ children }) => (
 // 말은 「버그 · 문의 · 건의」가 아니라 **사람이 하는 말**로 적는다.
 // 자기가 겪은 일이 「버그」인지 「문의」인지를 먼저 판단하게 하면 거기서 막힌다
 const HELP = [
-  { kind: 'bug',  icon: '🐞', line: '안 되는 게 있어요', sub: '이상하게 나오거나 눌러도 안 될 때' },
-  { kind: 'ask',  icon: '💬', line: '어떻게 쓰는지 모르겠어요', sub: '찾는 게 어디 있는지 물어보실 때' },
-  { kind: 'idea', icon: '💡', line: '이랬으면 좋겠어요', sub: '있었으면 하는 것이 있을 때' },
+  { kind: 'bug',  icon: 'bug', line: '안 되는 게 있어요', sub: '이상하게 나오거나 눌러도 안 될 때' },
+  { kind: 'ask',  icon: 'chat', line: '어떻게 쓰는지 모르겠어요', sub: '찾는 게 어디 있는지 물어보실 때' },
+  { kind: 'idea', icon: 'bulb', line: '이랬으면 좋겠어요', sub: '있었으면 하는 것이 있을 때' },
 ];
 
 export default function SupportPage() {
@@ -224,7 +225,9 @@ export default function SupportPage() {
               padding: '15px 0', borderBottom: '1px solid var(--border)',
             }}
           >
-            <span style={{ fontSize: 20, flexShrink: 0 }} aria-hidden="true">{h.icon}</span>
+            <span style={{ flexShrink: 0, color: 'var(--accent)' }} aria-hidden="true">
+              <NavIcon name={h.icon} size={22} />
+            </span>
             <span style={{ flexGrow: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 16, color: 'var(--text-primary)', fontWeight: 400 }}>{h.line}</span>
               <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{h.sub}</span>
@@ -263,7 +266,9 @@ export default function SupportPage() {
               color: 'var(--text-secondary)', fontSize: 13.5,
             }}
           >
-            <span style={{ color: 'var(--accent)' }} aria-hidden="true">📮</span>
+            <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true">
+              <NavIcon name="inbox" size={18} />
+            </span>
             <span>보낸 제보 보기 · 직접 쓰기</span>
             <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 15 }}>+</span>
           </button>

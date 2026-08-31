@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import client from '../../api/client';
 import { toast } from '../Toast';
+import NavIcon from '../NavIcon';
 
 // ─────────────────────────────────────────────────────────────
 // 제보 관리 — 들어온 버그 · 문의 · 건의를 보고 답을 단다.
@@ -11,9 +12,9 @@ import { toast } from '../Toast';
 // ─────────────────────────────────────────────────────────────
 
 const KIND = {
-  bug:  { label: '버그', icon: '🐞', color: 'var(--danger)' },
-  ask:  { label: '문의', icon: '💬', color: 'var(--info)' },
-  idea: { label: '건의', icon: '💡', color: 'var(--warning)' },
+  bug:  { label: '버그', icon: 'bug', color: 'var(--danger)' },
+  ask:  { label: '문의', icon: 'chat', color: 'var(--info)' },
+  idea: { label: '건의', icon: 'bulb', color: 'var(--warning)' },
 };
 
 const STATUS = {
@@ -79,7 +80,7 @@ function AbuseLogs() {
         onClick={() => setOpenList(v => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexWrap: 'wrap' }}
       >
-        <span style={{ fontSize: 15 }}>🚫</span>
+        <span style={{ display: 'flex' }} aria-hidden="true"><NavIcon name="ban" size={16} /></span>
         <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>욕설 · 비하 기록</span>
         {pending > 0 && (
           <span style={{
@@ -360,7 +361,7 @@ export default function ReportAdmin() {
                   style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 15 }}>{kd.icon}</span>
+                    <span style={{ color: kd.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kd.icon} size={16} /></span>
                     <span style={{ fontSize: 11.5, color: kd.color }}>{kd.label}</span>
                     <span style={{
                       fontSize: 10.5, padding: '1px 7px', borderRadius: 'var(--radius)',
@@ -404,7 +405,7 @@ export default function ReportAdmin() {
                         background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
                         padding: '8px 11px', marginBottom: 12, wordBreak: 'break-all',
                       }}>
-                        {/* 예전에는 여기에 「LV 32 · 🎫 5」가 같이 찍혔다.
+                        {/* 예전에는 여기에 「LV 32 · 티켓 5」가 같이 찍혔다.
                             8/25 에 레벨과 티켓을 걷어내면서 보내는 쪽과 서버의
                             `DEVICE_FIELDS`(appVersion · browser)는 줄였는데, **받아서
                             그리는 이 자리만 그대로** 남아 있었다. 오는 값이 없으니

@@ -409,14 +409,16 @@ console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린
 // 방식이라 **이름을 잘못 적으면 조용히 빈 칸**이 된다 — 아이콘만 사라지고 아무도 안 터진다
 const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
 // 길찾기 · 홈의 「바로 가기」 · 미션이 같은 서랍에서 꺼내 쓴다
-const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/components/MissionSystem.jsx'];
+const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/components/MissionSystem.jsx',
+               'src/pages/support/SupportPage.jsx', 'src/pages/support/ReportBox.jsx',
+               'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
-ok('세 화면이 아이콘 서른을 쓴다', used.length, 30);
+ok('여섯 화면이 아이콘 서른아홉을 쓴다', used.length, 39);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
-ok('세 화면에 이모지가 남아 있지 않다',
+ok('여섯 화면에 이모지가 남아 있지 않다',
   FILES.filter(f => /[\u{1F300}-\u{1FAFF}\u{2B50}\u{2705}]/u.test(src[f])), []);
 // 같은 자리로 가는 길은 홈에서도 길찾기에서도 같은 그림이어야 한다
 const iconFor = (file, path) => (src[file].match(new RegExp("icon: '([a-z]+)'[^\n]*'" + path + "'")) ||
@@ -424,6 +426,16 @@ const iconFor = (file, path) => (src[file].match(new RegExp("icon: '([a-z]+)'[^\
 ok('홈의 「바로 가기」가 길찾기와 같은 그림을 쓴다',
   ['/homeworkout', '/search', '/measure', '/history', '/reminders', '/support']
     .filter(p => iconFor('src/pages/HomePage.jsx', p) !== iconFor('src/components/TabBar.jsx', p)), []);
+// 버그 · 문의 · 건의는 고객센터 · 제보함 · 관리자 셋이 같은 그림을 써야 한다 —
+// 사람이 「버그」로 낸 것을 관리자가 딴 그림으로 보면 같은 것인지 한 번 더 생각해야 한다
+// 세 화면이 적는 모양이 조금씩 다르다 (kind: 'bug' · key: 'bug' · bug: {) — 낱말로 찾는다
+const kindIcon = (file) => Object.fromEntries(
+  [...src[file].matchAll(/\b(bug|ask|idea)\b[^\n]*icon: '([a-z]+)'/g)].map(m => [m[1], m[2]]));
+const K1 = kindIcon('src/pages/support/SupportPage.jsx');
+const K2 = kindIcon('src/pages/support/ReportBox.jsx');
+const K3 = kindIcon('src/components/admin/ReportAdmin.jsx');
+ok('제보 갈래 셋이 세 화면에서 같은 그림이다',
+  ['bug', 'ask', 'idea'].filter(k => !(K1[k] && K1[k] === K2[k] && K2[k] === K3[k])), []);
 // 색을 속성에 박아두면 고른 자리에서 금색이 안 된다 (그래프에서 8/28 에 겪은 것과 같은 종류)
 const one = renderToStaticMarkup(React.createElement(nav.default, { name: 'home' }));
 ok('아이콘이 실제로 그려진다', one.startsWith('<svg') && one.includes('<path'), true);
