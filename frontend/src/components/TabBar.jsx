@@ -2,26 +2,29 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
 import Logo from './Logo';
+import NavIcon from './NavIcon';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
 
+// 아이콘은 이모지가 아니라 직접 그린 선이다 (NavIcon.jsx). 이모지 그림은 폰 만든
+// 회사 것이라 남의 것이고, 폰마다 다르게 나온다 — 금색 화면에 파란 종이 뜬다
 const TABS = [
-  { path: '/home',    label: '홈',    icon: '🏠' },
-  { path: '/workout', label: '기록',  icon: '🏋️' },
-  { path: '/inbody',  label: '인바디', icon: '📊' },
-  { path: '/routine', label: '루틴',  icon: '📋' },
-  { path: '/more',    label: '더보기', icon: '⋯' },
+  { path: '/home',    label: '홈',    icon: 'home' },
+  { path: '/workout', label: '기록',  icon: 'dumbbell' },
+  { path: '/inbody',  label: '인바디', icon: 'chart' },
+  { path: '/routine', label: '루틴',  icon: 'clipboard' },
+  { path: '/more',    label: '더보기', icon: 'dots' },
 ];
 
 const MORE_ITEMS_ALL = [
-  { path: '/homeworkout', label: '홈트레이닝', icon: '🏠' },
-  { path: '/search',     label: '운동 검색',  icon: '🔍' },
-  { path: '/measure',    label: '측정 시스템', icon: '📐' },
-  { path: '/history',    label: '히스토리',   icon: '📅' },
-  { path: '/reminders',  label: '운동 알림',  icon: '🔔' },
-  { path: '/support',    label: '고객센터',   icon: '📮' },
-  { path: '/admin',      label: '관리자',     icon: '⚙️', adminOnly: true },
+  { path: '/homeworkout', label: '홈트레이닝', icon: 'homegym' },
+  { path: '/search',     label: '운동 검색',  icon: 'search' },
+  { path: '/measure',    label: '측정 시스템', icon: 'ruler' },
+  { path: '/history',    label: '히스토리',   icon: 'calendar' },
+  { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
+  { path: '/support',    label: '고객센터',   icon: 'chat' },
+  { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },
 ];
 
 // ─── 통일 디자인 토큰 ──────────────────
@@ -114,14 +117,15 @@ export default function TabBar() {
         }} />
       )}
       <span style={{
-        fontSize: NAV_TOKENS.iconSize,
-        opacity: active ? 1 : 0.7,
-        transition: 'opacity 0.15s, transform 0.15s',
+        // 선으로 그린 아이콘이라 색이 글자를 따라온다 — 고른 자리에서 금색이 된다
+        color: active ? 'var(--accent)' : 'var(--text-muted)',
+        opacity: active ? 1 : 0.85,
+        transition: 'opacity 0.15s, transform 0.15s, color 0.15s',
         transform: active ? 'scale(1.05)' : 'scale(1)',
         lineHeight: 1,
         position: 'relative',
       }}>
-        {item.icon}
+        <NavIcon name={item.icon} size={NAV_TOKENS.iconSize} />
         {item.badge > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -8,

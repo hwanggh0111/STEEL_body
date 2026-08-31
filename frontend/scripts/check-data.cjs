@@ -402,5 +402,24 @@ ok('안 잰 값은 - 로 적는다 (0 이라고 하지 않는다)',
 ok('줄이 하나뿐이면 짚기 전에는 빈 줄', lineMod.hoverText(HROWS, null, [HSER[0]], 'date', '%'), '');
 ok('없는 칸을 짚어도 안 터진다', lineMod.hoverText(HROWS, 9, HSER, 'date', '%'), '체지방 · 골격근');
 
+
+console.log('');
+console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린 것) ──');
+// 이모지 그림은 폰 만든 회사 것이라 걷어내고 SVG 로 직접 그렸다. 이름으로 고르는
+// 방식이라 **이름을 잘못 적으면 조용히 빈 칸**이 된다 — 아이콘만 사라지고 아무도 안 터진다
+const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
+const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
+const used = [...tabbar.matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]);
+ok('길찾기가 아이콘 열둘을 쓴다', used.length, 12);
+ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
+  used.filter(n => !nav.NAV_ICONS.includes(n)), []);
+ok('이모지가 남아 있지 않다', /[\u{1F300}-\u{1FAFF}]/u.test(tabbar), false);
+// 색을 속성에 박아두면 고른 자리에서 금색이 안 된다 (그래프에서 8/28 에 겪은 것과 같은 종류)
+const one = renderToStaticMarkup(React.createElement(nav.default, { name: 'home' }));
+ok('아이콘이 실제로 그려진다', one.startsWith('<svg') && one.includes('<path'), true);
+ok('선 색을 글자색에서 받는다 (고르면 금색)', one.includes('stroke="currentColor"'), true);
+ok('없는 이름은 빈 칸을 준다 (안 터진다)',
+  renderToStaticMarkup(React.createElement(nav.default, { name: '없는것' })), '');
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

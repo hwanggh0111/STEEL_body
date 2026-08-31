@@ -1,0 +1,67 @@
+// 길찾기 아이콘 — 직접 그린다.
+//
+// 예전에는 이모지(🏠 · 🏋️ …)를 글자로 찍었다. 이모지는 **글자마다 그림을 애플 · 구글 ·
+// 삼성이 따로 그린다.** 코드포인트는 자유롭지만 그 그림은 그 회사 것이고, 폰마다
+// 다르게 나오기까지 한다 — 금색으로 맞춰놓은 화면에 파란 종이 뜨고 노란 집이 뜬다.
+//
+// 그래서 여기서 직접 그린다. 남의 아이콘 세트도 안 가져온다(들여올 때마다 라이선스가
+// 따라온다). **선은 currentColor 로 그린다** — 그래야 고른 자리에서 금색이 되고,
+// 안 고른 자리에서 흐려진다.
+
+const S = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+// 톱니는 손으로 여덟 번 적느니 돌려가며 그린다
+const teeth = (n, r1, r2) => Array.from({ length: n }, (_, i) => {
+  const a = (Math.PI * 2 * i) / n;
+  const c = Math.cos(a), s = Math.sin(a);
+  return <line key={i} x1={12 + r1 * c} y1={12 + r1 * s} x2={12 + r2 * c} y2={12 + r2 * s} />;
+});
+
+const PATHS = {
+  // 집 — 지붕과 몸통, 가운데 문
+  home: <><path d="M3.5 11.2 12 4.2l8.5 7" /><path d="M5.6 10v9.4h12.8V10" /><path d="M10 19.4v-4.6h4v4.6" /></>,
+  // 덤벨 — 원판 넷과 봉
+  dumbbell: <><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4" /><path d="M7.2 12h9.6" /></>,
+  // 막대그래프 — 바닥선 위에 셋
+  chart: <><path d="M4 19.5h16" /><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7" /></>,
+  // 서류판 — 집게와 줄 셋
+  clipboard: <><rect x="5" y="5" width="14" height="15" rx="2" /><path d="M9 5V3.6h6V5" /><path d="M8.6 10.2h6.8M8.6 13.4h6.8M8.6 16.6h4" /></>,
+  // 더보기 — 점 셋
+  dots: <><circle cx="5.5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="18.5" cy="12" r="1.5" fill="currentColor" stroke="none" /></>,
+  // 홈트 — 집 안의 덤벨
+  homegym: <><path d="M3.5 11.2 12 4.2l8.5 7" /><path d="M5.6 10v9.4h12.8V10" /><path d="M8.4 13.4v3.4M10.2 12.6v5M13.8 12.6v5M15.6 13.4v3.4" /><path d="M10.2 14.9h3.6" /></>,
+  // 돋보기
+  search: <><circle cx="10.8" cy="10.8" r="6" /><path d="M15.2 15.2 20 20" /></>,
+  // 줄자 — 눈금이 있는 자
+  ruler: <><rect x="2.8" y="8.2" width="18.4" height="7.6" rx="1.4" /><path d="M7 8.2v3M11 8.2v4.2M15 8.2v3M19 8.2v4.2" /></>,
+  // 달력
+  calendar: <><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2" /><path d="M3.8 10h16.4" /><path d="M8.2 3.6v3.4M15.8 3.6v3.4" /><path d="M8 13.6h2M14 13.6h2M8 16.6h2M14 16.6h2" /></>,
+  // 종
+  bell: <><path d="M6.4 17.2c1.2-1.2 1.4-2.2 1.4-4.6 0-3.4 1.6-5.6 4.2-5.6s4.2 2.2 4.2 5.6c0 2.4.2 3.4 1.4 4.6z" /><path d="M10.2 19.6a2 2 0 0 0 3.6 0" /><path d="M12 4.4V7" /></>,
+  // 말풍선 — 물어보는 자리
+  chat: <><path d="M4 6.4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2H10l-4.6 3.4v-3.4H6a2 2 0 0 1-2-2z" /><path d="M8.4 9.2h7.2M8.4 12.2h4.6" /></>,
+  // 톱니
+  gear: <><circle cx="12" cy="12" r="3.4" />{teeth(8, 6.2, 8.8)}</>,
+};
+
+export const NAV_ICONS = Object.keys(PATHS);
+
+export default function NavIcon({ name, size = 22, title }) {
+  const d = PATHS[name];
+  // 이름이 틀리면 조용히 빈 칸이 된다 — 길찾기에서 아이콘만 사라지면 눈치채기 어렵다
+  if (!d) return null;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...S}
+      role={title ? 'img' : 'presentation'} aria-hidden={title ? undefined : true}
+      aria-label={title} style={{ display: 'block' }}>
+      {title && <title>{title}</title>}
+      {d}
+    </svg>
+  );
+}
