@@ -1,59 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '../components/Toast';
-
-const PROGRAMS = {
-  '전신 초급': [
-    { name: '점핑잭', duration: 30, rest: 15 },
-    { name: '스쿼트', duration: 30, rest: 15 },
-    { name: '푸시업', duration: 30, rest: 15 },
-    { name: '런지 (좌우)', duration: 30, rest: 15 },
-    { name: '플랭크', duration: 30, rest: 15 },
-    { name: '버피', duration: 20, rest: 20 },
-    { name: '마운틴 클라이머', duration: 30, rest: 15 },
-    { name: '슈퍼맨', duration: 30, rest: 0 },
-  ],
-  '상체 집중': [
-    { name: '푸시업', duration: 30, rest: 15 },
-    { name: '와이드 푸시업', duration: 30, rest: 15 },
-    { name: '다이아몬드 푸시업', duration: 25, rest: 20 },
-    { name: '딥스 (의자)', duration: 30, rest: 15 },
-    { name: '파이크 푸시업', duration: 25, rest: 20 },
-    { name: '플랭크 숄더탭', duration: 30, rest: 15 },
-    { name: '인클라인 푸시업', duration: 30, rest: 15 },
-    { name: '플랭크', duration: 40, rest: 0 },
-  ],
-  '하체 집중': [
-    { name: '스쿼트', duration: 30, rest: 15 },
-    { name: '와이드 스쿼트', duration: 30, rest: 15 },
-    { name: '런지', duration: 30, rest: 15 },
-    { name: '불가리안 스플릿 스쿼트', duration: 30, rest: 20 },
-    { name: '힙쓰러스트', duration: 30, rest: 15 },
-    { name: '카프레이즈', duration: 30, rest: 15 },
-    { name: '점프 스쿼트', duration: 25, rest: 20 },
-    { name: '월싯', duration: 40, rest: 0 },
-  ],
-  '코어 강화': [
-    { name: '크런치', duration: 30, rest: 15 },
-    { name: '레그레이즈', duration: 30, rest: 15 },
-    { name: '플랭크', duration: 40, rest: 15 },
-    { name: '사이드 플랭크 (좌)', duration: 25, rest: 10 },
-    { name: '사이드 플랭크 (우)', duration: 25, rest: 15 },
-    { name: '바이시클 크런치', duration: 30, rest: 15 },
-    { name: '마운틴 클라이머', duration: 30, rest: 15 },
-    { name: '데드버그', duration: 30, rest: 0 },
-  ],
-  '유산소 타바타': [
-    { name: '점핑잭', duration: 20, rest: 10 },
-    { name: '하이니', duration: 20, rest: 10 },
-    { name: '버피', duration: 20, rest: 10 },
-    { name: '마운틴 클라이머', duration: 20, rest: 10 },
-    { name: '점프 스쿼트', duration: 20, rest: 10 },
-    { name: '스케이터', duration: 20, rest: 10 },
-    { name: '터크점프', duration: 20, rest: 10 },
-    { name: '점핑 런지', duration: 20, rest: 0 },
-  ],
-};
+import { PROGRAMS, PROGRAM_NOTES } from '../data/homeworkoutPrograms';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -229,7 +177,13 @@ export default function HomeworkoutPage() {
 
               {open && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                  {/* 이름만으로는 옆 프로그램과 뭐가 다른지 모른다 — 있는 것만 적어준다 */}
+                  {(PROGRAM_NOTES[name] || []).map((line) => (
+                    <p key={line} style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, margin: '0 0 6px' }}>
+                      {line}
+                    </p>
+                  ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: (PROGRAM_NOTES[name] ? '10px 0 12px' : '0 0 12px') }}>
                     {exs.map((e, i) => (
                       <div key={`${e.name}-${i}`} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
                         <span style={{ width: 18, color: 'var(--text-muted)', flexShrink: 0, fontSize: 11 }}>{i + 1}</span>

@@ -467,5 +467,47 @@ const typeRow = routinePage.slice(routinePage.indexOf("{['머신'") - 260, routi
 ok('넘치는 줄이라 줄바꿈으로 받는다', /flexWrap: 'wrap'/.test(typeRow), true);
 ok('옆으로 밀어 보게 두지 않는다 (숨은 단추가 생긴다)', /overflowX/.test(typeRow), false);
 
+console.log('');
+console.log('── 홈트 프로그램 (기능성 훈련은 근력부터 유산소로) ──');
+// 프로그램 표를 화면에서 빼 `data/homeworkoutPrograms.js` 로 옮겼다 — 화면 안에 두면
+// 여기서 읽으려고 react-router 까지 끌고 와야 한다.
+const home = bundle('src/data/homeworkoutPrograms.js', '.t17.cjs');
+const homeNames = Object.keys(home.PROGRAMS);
+ok('프로그램이 여섯이다', homeNames,
+  ['전신 초급', '상체 집중', '하체 집중', '코어 강화', '유산소 타바타', '기능성 훈련']);
+// 마지막 운동 뒤에는 화면이 휴식을 넣지 않는다. rest 를 적어두면 그 숫자만 목록에 뜨고
+// 실제로는 안 쉬는, 말과 다른 자리가 된다
+ok('마지막 운동은 쉬는 시간이 0 이다',
+  homeNames.filter((n) => home.PROGRAMS[n][home.PROGRAMS[n].length - 1].rest !== 0), []);
+ok('모든 운동에 이름 · 초 · 쉬는 초가 있다',
+  homeNames.flatMap((n) => home.PROGRAMS[n]).filter((e) => !e.name || !(e.duration > 0) || !(e.rest >= 0)), []);
+
+const func = home.PROGRAMS['기능성 훈련'];
+ok('기능성 훈련은 열두 개다', func.length, 12);
+// 「근력부터 유산소같은거」 — 앞은 오래 버티며 힘을 쓰고, 뒤로 갈수록 짧고 빠르다.
+// 순서가 뒤집히면 프로그램의 뜻이 사라진다 (그냥 섞인 타바타가 된다)
+const half = func.length / 2;
+const avgSec = (list) => list.reduce((a, e) => a + e.duration, 0) / list.length;
+ok('앞 절반이 뒤 절반보다 오래 버틴다 (근력 → 유산소)', avgSec(func.slice(0, half)) > avgSec(func.slice(half)), true);
+ok('앞 여섯은 30초보다 짧지 않다', func.slice(0, half).filter((e) => e.duration < 30), []);
+ok('쉬는 시간이 뒤로 갈수록 길어지지 않는다',
+  func.slice(1, -1).filter((e, i) => e.rest > func[i].rest), []);
+// 타바타를 이름만 바꿔 한 번 더 깔면 두 프로그램을 둘 이유가 없다
+const tabata = home.PROGRAMS['유산소 타바타'].map((e) => e.name);
+ok('타바타와 겹치는 운동이 절반을 넘지 않는다',
+  func.filter((e) => tabata.includes(e.name)).length <= half, true);
+ok('기능성 훈련은 약 10분이다',
+  Math.round(func.reduce((a, e) => a + e.duration + e.rest, 0) / 60), 10);
+// 집에서 하는 앱이다. 뛰라고만 하고 층간소음을 안 적으면 밤에는 못 한다.
+// 문틀바 같은 장비도 없다는 전제라 대체를 같이 적는다
+const funcNote = (home.PROGRAM_NOTES['기능성 훈련'] || []).join(' ');
+ok('설명에 밤(층간소음) 이야기가 있다', /밤/.test(funcNote), true);
+ok('설명에 식탁이 없을 때의 대체가 있다', /수건|문고리/.test(funcNote), true);
+ok('설명에 근력과 유산소가 어떻게 나뉘는지 적혀 있다', /근력/.test(funcNote) && /유산소/.test(funcNote), true);
+ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유산소 타바타'] || []).length > 0, true);
+// 적어만 두고 화면이 안 그리면 아무도 못 본다
+ok('화면이 설명 줄을 그린다',
+  fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8').includes('PROGRAM_NOTES[name]'), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
