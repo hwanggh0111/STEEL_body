@@ -492,17 +492,23 @@ ok('앞 절반이 뒤 절반보다 오래 버틴다 (근력 → 유산소)', avg
 ok('앞 여섯은 30초보다 짧지 않다', func.slice(0, half).filter((e) => e.duration < 30), []);
 ok('쉬는 시간이 뒤로 갈수록 길어지지 않는다',
   func.slice(1, -1).filter((e, i) => e.rest > func[i].rest), []);
-// 타바타를 이름만 바꿔 한 번 더 깔면 두 프로그램을 둘 이유가 없다
-const tabata = home.PROGRAMS['유산소 타바타'].map((e) => e.name);
-ok('타바타와 겹치는 운동이 절반을 넘지 않는다',
-  func.filter((e) => tabata.includes(e.name)).length <= half, true);
+// 앞의 다섯에 있는 운동을 시간만 바꿔 다시 깔면 프로그램을 하나 더 둘 이유가 없다.
+// **하나라도 겹치면 실패다** (처음에 절반까지 봐주다가 반쪽짜리를 내놨다)
+const elsewhere = homeNames.filter((n) => n !== '기능성 훈련')
+  .flatMap((n) => home.PROGRAMS[n].map((e) => e.name));
+ok('다른 프로그램과 겹치는 운동이 하나도 없다',
+  func.filter((e) => elsewhere.includes(e.name)).map((e) => e.name), []);
+// 층간소음으로 밤에 못 하는 프로그램이 이미 둘이다. 이쪽은 조용한 것으로 채웠다
+ok('뛰는 동작이 없다',
+  func.filter((e) => /점프|점핑|버피|하이니|터크|스케이터/.test(e.name)).map((e) => e.name), []);
 ok('기능성 훈련은 약 10분이다',
   Math.round(func.reduce((a, e) => a + e.duration + e.rest, 0) / 60), 10);
 // 집에서 하는 앱이다. 뛰라고만 하고 층간소음을 안 적으면 밤에는 못 한다.
 // 문틀바 같은 장비도 없다는 전제라 대체를 같이 적는다
 const funcNote = (home.PROGRAM_NOTES['기능성 훈련'] || []).join(' ');
 ok('설명에 밤(층간소음) 이야기가 있다', /밤/.test(funcNote), true);
-ok('설명에 식탁이 없을 때의 대체가 있다', /수건|문고리/.test(funcNote), true);
+ok('설명에 배낭 무게를 어떻게 만드는지 있다', /배낭/.test(funcNote) && /kg/.test(funcNote), true);
+ok('설명에 계단이 없을 때의 대체가 있다', /의자 스텝업/.test(funcNote), true);
 ok('설명에 근력과 유산소가 어떻게 나뉘는지 적혀 있다', /근력/.test(funcNote) && /유산소/.test(funcNote), true);
 ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유산소 타바타'] || []).length > 0, true);
 // 적어만 두고 화면이 안 그리면 아무도 못 본다
