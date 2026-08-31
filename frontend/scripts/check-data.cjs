@@ -421,7 +421,7 @@ const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/compo
                'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
-ok('여섯 화면이 아이콘 서른아홉을 쓴다', used.length, 39);
+ok('여섯 화면이 아이콘 마흔을 쓴다', used.length, 40);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
@@ -506,8 +506,19 @@ ok('설명에 식탁이 없을 때의 대체가 있다', /수건|문고리/.test
 ok('설명에 근력과 유산소가 어떻게 나뉘는지 적혀 있다', /근력/.test(funcNote) && /유산소/.test(funcNote), true);
 ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유산소 타바타'] || []).length > 0, true);
 // 적어만 두고 화면이 안 그리면 아무도 못 본다
-ok('화면이 설명 줄을 그린다',
-  fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8').includes('PROGRAM_NOTES[name]'), true);
+const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
+ok('화면이 설명 줄을 그린다', page.includes('PROGRAM_NOTES[name]'), true);
+
+// 더보기의 「기능성 훈련」은 홈트의 한 프로그램으로 바로 간다 (`?p=이름`).
+// 이름이 한 글자만 달라도 조용히 목록만 열린다 — 아무도 안 터지고 바로가기만 죽는다
+const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
+const shortcuts = [...tabbar.matchAll(/param: '([^']+)'/g)].map((m) => m[1]);
+ok('더보기에 바로가기가 하나 있다', shortcuts, ['기능성 훈련']);
+ok('바로가기 이름이 프로그램 표에 있다', shortcuts.filter((n) => !home.PROGRAMS[n]), []);
+// 물음표 뒤를 안 보면 홈트레이닝과 기능성 훈련 두 줄이 같이 켜진다
+ok('지금 어느 줄로 왔는지 물음표 뒤까지 본다', /location\.search/.test(tabbar), true);
+ok('화면이 물음표 뒤를 읽는다', page.includes("params.get('p')"), true);
+ok('없는 이름이 와도 목록만 연다', page.includes('!PROGRAMS[wanted]'), true);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import { PROGRAMS, PROGRAM_NOTES } from '../data/homeworkoutPrograms';
 
@@ -18,6 +18,22 @@ export default function HomeworkoutPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [finished, setFinished] = useState(false);
   const navigate = useNavigate();
+  // 더보기의 「기능성 훈련」처럼 한 프로그램으로 바로 오는 길. `?p=이름`
+  //
+  // 바로 시작하게 하지 않고 **펼쳐서** 보여준다 — 층간소음이나 식탁 대체 같은 말이
+  // 미리 보기에만 있어서, 바로 타이머로 넘기면 그 말을 한 번도 못 보고 뛰게 된다.
+  // 없는 이름이 와도 목록만 열린다 (안 터진다)
+  const [params] = useSearchParams();
+  const wanted = params.get('p');
+  useEffect(() => {
+    if (!wanted || !PROGRAMS[wanted]) return;
+    setPreview(wanted);
+    // 여섯째 카드라 펴놓기만 하면 화면 밖이다 — 그 카드로 데려간다
+    const id = requestAnimationFrame(() => {
+      document.getElementById('program-' + wanted)?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [wanted]);
 
   const exercises = selected ? PROGRAMS[selected] : EMPTY;
   const current = exercises[currentIdx];
@@ -158,7 +174,7 @@ export default function HomeworkoutPage() {
           const total = exs.reduce((sum, e) => sum + e.duration + e.rest, 0);
           const open = preview === name;
           return (
-            <div key={name} className="card" style={{ marginBottom: 8 }}>
+            <div key={name} id={'program-' + name} className="card" style={{ marginBottom: 8 }}>
               <div
                 role="button"
                 tabIndex={0}

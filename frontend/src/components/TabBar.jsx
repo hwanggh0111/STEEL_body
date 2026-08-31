@@ -17,8 +17,12 @@ const TABS = [
   { path: '/more',    label: '더보기', icon: 'dots' },
 ];
 
+// `param` 이 있는 줄은 그 화면의 **한 자리로 바로** 들어간다 (홈트 목록을 거치지 않는다).
+// 값은 프로그램 이름 그대로다 — 한 글자만 달라도 홈트가 그 프로그램을 못 찾아
+// 목록만 열린다. `npm run check` 가 이 이름을 프로그램 표와 맞춰본다
 const MORE_ITEMS_ALL = [
   { path: '/homeworkout', label: '홈트레이닝', icon: 'homegym' },
+  { path: '/homeworkout', param: '기능성 훈련', label: '기능성 훈련', icon: 'flame' },
   { path: '/search',     label: '운동 검색',  icon: 'search' },
   { path: '/measure',    label: '측정 시스템', icon: 'ruler' },
   { path: '/history',    label: '히스토리',   icon: 'calendar' },
@@ -82,6 +86,15 @@ export default function TabBar() {
   // 하위 주소도 그 항목으로 친다 — /support/notices(공지함)에서 더보기가 꺼져 있으면
   // 지금 어디에 있는지가 아무 데도 안 뜬다
   const onPath = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+
+  // 같은 화면으로 가는 줄이 둘이다 (홈트 목록 · 기능성 훈련 바로가기).
+  // 주소만 보면 둘 다 켜져서 지금 어느 쪽으로 왔는지가 사라진다 — 물음표 뒤까지 본다
+  const goTo = (item) => item.path + (item.param ? '?p=' + encodeURIComponent(item.param) : '');
+  const onItem = (item) => {
+    if (!onPath(item.path)) return false;
+    if (!moreItems.some(m => m.param && m.path === item.path)) return true;
+    return (new URLSearchParams(location.search).get('p') || '') === (item.param || '');
+  };
 
   const isActive = (path) => {
     if (path === '/more') return showMore || moreItems.some(m => onPath(m.path));
@@ -200,10 +213,10 @@ export default function TabBar() {
               }}>더보기</div>
               {moreItems.map(item => (
                 <NavCell
-                  key={item.path}
+                  key={item.path + (item.param || '')}
                   item={item}
-                  active={onPath(item.path)}
-                  onClick={() => navigate(item.path)}
+                  active={onItem(item)}
+                  onClick={() => navigate(goTo(item))}
                   layout="horizontal"
                 />
               ))}
@@ -243,10 +256,10 @@ export default function TabBar() {
             }}>
               {moreItems.map(item => (
                 <NavCell
-                  key={item.path}
+                  key={item.path + (item.param || '')}
                   item={item}
-                  active={onPath(item.path)}
-                  onClick={() => { setShowMore(false); navigate(item.path); }}
+                  active={onItem(item)}
+                  onClick={() => { setShowMore(false); navigate(goTo(item)); }}
                   layout="vertical"
                 />
               ))}
