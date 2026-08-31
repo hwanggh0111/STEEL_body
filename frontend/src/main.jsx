@@ -21,12 +21,20 @@ devBoot().finally(() => {
 });
 
 // Service Worker 등록
+//
+// **개발 중에는 안 붙인다.** 서비스 워커는 캐시 먼저 주게 돼 있어서(8/28 에 그렇게
+// 고쳤다), 코드를 고치고 새로고침해도 **어제 화면이 그대로 나온다.** 오늘 이것 때문에
+// 「안 바뀌는데?」를 겪었다. 이미 붙어 있던 것도 여기서 떼고 캐시를 비운다
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      // 로그는 개발 빌드에서만. 운영 콘솔에 남길 이유가 없다
-      .then((reg) => { if (import.meta.env.DEV) console.log('SW registered:', reg.scope); })
-      .catch((err) => { if (import.meta.env.DEV) console.warn('SW registration failed:', err); });
-  });
+  if (import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .then(() => (window.caches ? caches.keys() : []))
+      .then((keys) => Promise.all([...keys].map((k) => caches.delete(k))))
+      .catch(() => {});
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 }
