@@ -164,7 +164,8 @@ export default function RegisterPage() {
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-          <Logo cap={26} variant="stack" subtitle="" />
+          {/* 처음 보는 자리라 부제까지 편다 */}
+          <Logo cap={26} variant="stack" />
         </div>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
           회원가입

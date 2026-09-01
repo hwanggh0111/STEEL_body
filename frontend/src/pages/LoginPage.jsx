@@ -157,7 +157,7 @@ function oauthErrorText(code) {
     return (
       <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)', textAlign: 'center' }}>
-          <Logo cap={24} variant="stack" subtitle="" style={{ marginBottom: 14 }} />
+          <Logo cap={24} variant="stack" style={{ marginBottom: 14 }} />
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>닉네임을 설정해주세요</p>
           <input
             className="input"
@@ -224,7 +224,8 @@ function oauthErrorText(code) {
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-          <Logo cap={26} variant="stack" subtitle="" />
+          {/* 처음 보는 자리라 부제까지 편다 — 이 앱이 무엇인지 한 줄로 말해준다 */}
+          <Logo cap={26} variant="stack" />
         </div>
 
         {deleted && (

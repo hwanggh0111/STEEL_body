@@ -72,22 +72,24 @@ export default function SplashScreen({ onDone }) {
               transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           />
+          {/* 표어. **전부 대문자에 자간 3** 이었다 — 로고를 소문자 세리프로 바꾼 뒤에는
+              여기만 표지판처럼 남는다. 로고와 같은 결(세리프 이탤릭 · 소문자)로 맞춘다 */}
           <div style={{
-            fontFamily: "'Barlow', sans-serif",
-            fontSize: phase >= 2 ? 9 : 13,
-            letterSpacing: 3,
+            fontFamily: "'Playfair Display', serif",
+            fontStyle: 'italic',
+            fontSize: phase >= 2 ? 11 : 15,
+            letterSpacing: 0.2,
             color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            marginTop: 6,
+            marginTop: 10,
             opacity: phase >= 1 ? 1 : 0,
             transition: 'all 0.6s ease 0.3s',
           }}>
-            Forge Your Body · Break Your Limits
+            Forge your body · Break your limits
           </div>
         </div>
       </div>
 
-      {/* 오렌지 글로우 배경 효과 */}
+      {/* 금빛 글로우 — 8/28 에 오렌지에서 바꿨는데 이 주석만 옛말로 남아 있었다 */}
       <div style={{
         position: 'absolute',
         width: 300,

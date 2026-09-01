@@ -115,7 +115,7 @@ const html = `<!doctype html>
   <div class="row">
     <div class="cap">48 · 60 · 96 · 192px</div>
     <div class="small">
-      ${[48, 60, 96, 192].map((n) => `<img src="../frontend/public/icons/icon.svg" width="${n}" height="${n}" alt="" />`).join('')}
+      ${[48, 60, 96, 192].map((n) => `<img src="./icon.svg" width="${n}" height="${n}" alt="" />`).join('')}
     </div>
   </div>
 </body></html>`;
@@ -123,5 +123,8 @@ const html = `<!doctype html>
 const outDir = path.join(FE, '..', '.design');
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'logo-blackiron.html'), html, 'utf-8');
+// 아이콘을 옆에 같이 둔다 — 시안을 주소로 띄울 때(`.design` 을 뿌리로 서버를 열 때)
+// 바깥 폴더는 못 읽는다
+fs.copyFileSync(path.join(FE, 'public/icons/icon.svg'), path.join(outDir, 'icon.svg'));
 fs.unlinkSync(OUT_JS);
 console.log('뽑았습니다 → .design/logo-blackiron.html');

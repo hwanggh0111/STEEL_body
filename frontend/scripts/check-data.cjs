@@ -495,6 +495,15 @@ ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys)
 // 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
 // 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
 const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
+// 로고만 우아하고 그 옆 글자가 표지판이면, 로고가 혼자 논다.
+// 스플래시의 표어가 딱 그 자리였다 — 전부 대문자에 자간 3 이었다
+const splash = fs.readFileSync('src/components/SplashScreen.jsx', 'utf-8');
+ok('스플래시 표어를 전부 대문자로 찍지 않는다', /textTransform: 'uppercase'/.test(splash), false);
+ok('표어도 로고와 같은 글자체다', /Playfair Display/.test(splash), true);
+// 사람이 이 앱을 처음 보는 자리에서는 로고를 한 벌 다 편다 (부제까지)
+const login = fs.readFileSync('src/pages/LoginPage.jsx', 'utf-8');
+ok('로그인 화면이 부제를 지우지 않는다', /variant="stack" subtitle=""/.test(login), false);
+
 ok('앱 아이콘도 링 하나 + 봉 하나다 (로고와 같은 모양)',
   [(icon.match(/<circle/g) || []).length, (icon.match(/<path/g) || []).length, / H\d/.test(icon)],
   [1, 1, true]);
