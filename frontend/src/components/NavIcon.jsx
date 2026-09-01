@@ -85,6 +85,29 @@ const PATHS = {
   signal: <><path d="M6.6 15.2a7.6 7.6 0 0 1 10.8 0M3.4 11.6a12.2 12.2 0 0 1 17.2 0" /><circle cx="12" cy="18.6" r="1.4" fill="currentColor" stroke="none" /></>,
   // 막음 — 차단한 사람
   ban: <><circle cx="12" cy="12" r="8" /><path d="M6.4 6.4 17.6 17.6" /></>,
+  // ─── 관리자 · 점검 ───
+  // 자물쇠 — 잠긴 자리 · 해킹 보안
+  lock: <><rect x="4.8" y="10.4" width="14.4" height="9.4" rx="2" /><path d="M8.2 10.4V7.8a3.8 3.8 0 0 1 7.6 0v2.6" /><circle cx="12" cy="14.8" r="1.3" fill="currentColor" stroke="none" /></>,
+  // 방패 — 보안 관리
+  shield: <><path d="M12 3.6 5 6.2v5.2c0 4 2.9 7.4 7 9 4.1-1.6 7-5 7-9V6.2z" /><path d="M9.2 12.2l2 2 3.6-3.8" /></>,
+  // 로봇 — 스스로 막는 쪽 (AI 관리자)
+  robot: <><rect x="4.4" y="8" width="15.2" height="10.6" rx="2.4" /><path d="M12 4.6V8" /><circle cx="12" cy="3.6" r="1.1" /><circle cx="9.2" cy="12.4" r="1.1" fill="currentColor" stroke="none" /><circle cx="14.8" cy="12.4" r="1.1" fill="currentColor" stroke="none" /><path d="M9.6 15.8h4.8" /></>,
+  // 렌치 — 점검
+  wrench: <><path d="M15.4 4.6a4.6 4.6 0 0 0-4.2 6.4L4.6 17.6l1.8 1.8 6.6-6.6a4.6 4.6 0 0 0 5.8-6l-2.6 2.6-2.2-.6-.6-2.2z" /></>,
+  // 서버 — 서버 점검
+  server: <><rect x="4" y="5" width="16" height="5.6" rx="1.4" /><rect x="4" y="13.4" width="16" height="5.6" rx="1.4" /><path d="M7.4 7.8h.01M7.4 16.2h.01" /><circle cx="7.4" cy="7.8" r="0.9" fill="currentColor" stroke="none" /><circle cx="7.4" cy="16.2" r="0.9" fill="currentColor" stroke="none" /></>,
+  // 사이렌 — 긴급
+  siren: <><path d="M6.6 18.4v-5.2a5.4 5.4 0 0 1 10.8 0v5.2z" /><path d="M4.6 18.4h14.8" /><path d="M12 4.6V2.8M5.4 7 4.2 5.8M18.6 7l1.2-1.2" /></>,
+  // 확성기 — 알려주는 것 (공지함)
+  megaphone: <><path d="M4.6 10.2v3.6a1.4 1.4 0 0 0 1.4 1.4h2.2l7.8 4V4.8l-7.8 4H6a1.4 1.4 0 0 0-1.4 1.4z" /><path d="M8.2 15.2v3.6h2.6v-2.3" /><path d="M18.8 9.6a3.4 3.4 0 0 1 0 4.8" /></>,
+  // 시계 — 최근에 본 것
+  clock: <><circle cx="12" cy="12" r="8" /><path d="M12 7.4V12l3 1.8" /></>,
+  // 심장 — 심박수
+  heart: <><path d="M12 19.4S4.6 15.2 4.6 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.4 1.9c0 5.3-7.4 9.5-7.4 9.5z" /></>,
+  // 줄 셋 — 메뉴 열기
+  menu: <><path d="M4.4 7.4h15.2M4.4 12h15.2M4.4 16.6h15.2" /></>,
+  // 물음표 말풍선 — 물었는데 답이 없던 말
+  question: <><path d="M4 6.4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2H10l-4.6 3.4v-3.4H6a2 2 0 0 1-2-2z" /><path d="M10.2 8.6a1.9 1.9 0 0 1 3.6.8c0 1.3-1.8 1.5-1.8 2.8" /><circle cx="12" cy="13.6" r="0.8" fill="currentColor" stroke="none" /></>,
   // 톱니
   gear: <><circle cx="12" cy="12" r="3.4" />{teeth(8, 6.2, 8.8)}</>,
 };

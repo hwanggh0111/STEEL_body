@@ -7,15 +7,15 @@ import { dateKey } from '../../data/dateKey';
 // 화면마다 따로 계산하면 어느 순간 한 곳만 옛날 값을 보여주게 된다.
 
 export const FEATURES = [
-  { name: '운동 기록',   path: '/workout',     icon: '🏋️', short: '무게 · 횟수 · 세트',      long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다' },
-  { name: '인바디',      path: '/inbody',      icon: '📊', short: '체중 · 체지방 · 골격근',  long: '체중 · 체지방 · 골격근을 넣으면 그래프로 이어진다. BMI 와 변화량을 같이 본다' },
-  { name: '루틴 추천',   path: '/routine',     icon: '📋', short: '2 · 3 · 5분할',           long: '2분할 · 3분할 · 5분할. 무엇을 할지 정하는 데 시간을 쓰지 않게' },
-  { name: '홈트레이닝',  path: '/homeworkout', icon: '🏠', short: '기구 없이 맨몸으로',      long: '기구 없이 하는 맨몸 운동. 집에서도 기록이 끊기지 않는다' },
-  { name: '측정 시스템', path: '/measure',     icon: '📐', short: '사이즈 · 1RM · 체력',     long: '전신 사이즈 · 1RM · 체력 테스트 · 심박수 존 · 스톱워치까지 한곳에' },
-  { name: '히스토리',    path: '/history',     icon: '📅', short: '달력으로 되짚기',         long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다' },
+  { name: '운동 기록',   path: '/workout',     icon: 'dumbbell', short: '무게 · 횟수 · 세트',      long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다' },
+  { name: '인바디',      path: '/inbody',      icon: 'chart', short: '체중 · 체지방 · 골격근',  long: '체중 · 체지방 · 골격근을 넣으면 그래프로 이어진다. BMI 와 변화량을 같이 본다' },
+  { name: '루틴 추천',   path: '/routine',     icon: 'clipboard', short: '2 · 3 · 5분할',           long: '2분할 · 3분할 · 5분할. 무엇을 할지 정하는 데 시간을 쓰지 않게' },
+  { name: '홈트레이닝',  path: '/homeworkout', icon: 'homegym', short: '기구 없이 맨몸으로',      long: '기구 없이 하는 맨몸 운동. 집에서도 기록이 끊기지 않는다' },
+  { name: '측정 시스템', path: '/measure',     icon: 'ruler', short: '사이즈 · 1RM · 체력',     long: '전신 사이즈 · 1RM · 체력 테스트 · 심박수 존 · 스톱워치까지 한곳에' },
+  { name: '히스토리',    path: '/history',     icon: 'calendar', short: '달력으로 되짚기',         long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다' },
   // 8/25 에 붙인 둘이 이 목록에 빠져 있었다 — 「무엇을 할 수 있나」가 할 수 있는 것을 다 안 적고 있었다
-  { name: '운동 검색',   path: '/search',      icon: '🔍', short: '이름 · 초성 · 부위로',    long: '앱 안의 운동 사전에서 바로 찾는다. 초성으로도, 부위 이름으로도 찾는다' },
-  { name: '운동 알림',   path: '/reminders',   icon: '🔔', short: '정한 요일과 시각에',      long: '정한 요일과 시각에 알린다. 그날 이미 적었으면 보내지 않는다' },
+  { name: '운동 검색',   path: '/search',      icon: 'search', short: '이름 · 초성 · 부위로',    long: '앱 안의 운동 사전에서 바로 찾는다. 초성으로도, 부위 이름으로도 찾는다' },
+  { name: '운동 알림',   path: '/reminders',   icon: 'bell', short: '정한 요일과 시각에',      long: '정한 요일과 시각에 알린다. 그날 이미 적었으면 보내지 않는다' },
 ];
 
 export function useIntroStats() {

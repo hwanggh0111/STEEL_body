@@ -15,10 +15,12 @@ const pulseKeyframes = `
 `;
 
 const LOG_STYLES = {
-  block:      { icon: '\uD83D\uDEAB', color: 'var(--danger)', bg: 'var(--danger-dim)', label: '차단' },
-  warning:    { icon: '\u26A0\uFE0F', color: 'var(--warning)', bg: 'var(--warning-dim)', label: '경고' },
-  suspicious: { icon: '\uD83D\uDD0D', color: 'var(--info)', bg: 'var(--info-dim)', label: '의심' },
-  system:     { icon: '\u2699\uFE0F', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', label: '시스템' },
+  // 이모지가 아니라 직접 그린 아이콘의 이름이다 (`components/NavIcon.jsx`).
+  // 이모지 그림은 폰 만든 회사 것이라 남의 것이고, 폰마다 다르게 나온다
+  block:      { icon: 'ban', color: 'var(--danger)', bg: 'var(--danger-dim)', label: '차단' },
+  warning:    { icon: 'siren', color: 'var(--warning)', bg: 'var(--warning-dim)', label: '경고' },
+  suspicious: { icon: 'search', color: 'var(--info)', bg: 'var(--info-dim)', label: '의심' },
+  system:     { icon: 'gear', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', label: '시스템' },
 };
 
 export default function AiAdminPanel() {
@@ -83,7 +85,10 @@ export default function AiAdminPanel() {
       {/* AI Status */}
       <div className="card" style={{ padding: 24, textAlign: 'center', animation: 'aiPulse 3s ease-in-out infinite', border: '1px solid var(--accent)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse at center, var(--accent) 0%, transparent 70%)', opacity: 0.04, pointerEvents: 'none' }} />
-        <div style={{ fontSize: 48, marginBottom: 6, filter: 'drop-shadow(0 0 12px var(--accent))' }}>🤖</div>
+        {/* 이모지가 아니라 직접 그린 선 — 폰마다 다르게 나오지 않고 금색을 따라온다 */}
+        <div style={{ color: 'var(--accent)', marginBottom: 6, display: 'flex', justifyContent: 'center', filter: 'drop-shadow(0 0 12px var(--accent))' }} aria-hidden="true">
+          <NavIcon name="robot" size={48} />
+        </div>
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 4, color: 'var(--accent)', textShadow: '0 0 12px var(--accent)' }}>AI GUARD v2 ACTIVE</div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--success)', fontSize: 11, marginTop: 4 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', animation: 'dotBlink 1.5s infinite' }} />
@@ -247,7 +252,7 @@ export default function AiAdminPanel() {
             const s = LOG_STYLES[log.type] || LOG_STYLES.system;
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', marginBottom: 3, borderRadius: 4, background: s.bg, borderLeft: `3px solid ${s.color}` }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>{s.icon}</span>
+                <span style={{ flexShrink: 0, color: s.color, display: 'flex' }} aria-hidden="true"><NavIcon name={s.icon} size={15} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
                     <span style={{ fontSize: 10, color: s.color, fontWeight: 700, padding: '1px 5px', border: `1px solid ${s.color}40`, borderRadius: 2 }}>{s.label}</span>

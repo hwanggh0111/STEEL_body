@@ -466,6 +466,11 @@ export default function SupportPage() {
                     fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
                     color: 'var(--text-muted)', width: 20, flexShrink: 0,
                   }}>{String(i + 1).padStart(2, '0')}</span>
+                  {/* 아이콘이 적혀만 있고 **아무 데서도 안 그려지고 있었다** (9/1 까지).
+                      길찾기·홈 검색과 같은 그림이라, 같은 자리로 가는 길이 같아 보인다 */}
+                  <span style={{ color: 'var(--text-muted)', display: 'flex', flexShrink: 0, alignSelf: 'center' }} aria-hidden="true">
+                    <NavIcon name={f.icon} size={17} />
+                  </span>
                   <span style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 500 }}>{f.name}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto', textAlign: 'right' }}>{f.short}</span>
                 </div>

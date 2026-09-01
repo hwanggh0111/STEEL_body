@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import NavIcon from './NavIcon';
 import { MAINT_KEY as MAINT_LS_KEY, MAINT_VERSION_KEY as MAINT_VERSION_LS_KEY } from '../data/localKeys';
 // 이 컴포넌트는 App 전체를 감싼다. 쿠키를 막아둔 브라우저에서 localStorage 가
 // 던지면 앱이 통째로 흰 화면이 되므로 안전한 래퍼만 쓴다.
@@ -148,9 +149,9 @@ function formatTime(sec) {
 // 점검 종류별로 부르는 이름. 문단은 따로 두지 않는다 —
 // 예전에는 제목 · 안내문 · 뱃지 · 문단 · 꼬리말이 **전부 같은 말**을 했다
 const KINDS = {
-  emergency: { icon: '🚨', title: '긴급 점검 중', color: 'var(--danger)' },
-  server:    { icon: '🖥️', title: '서버 점검 중', color: 'var(--info)' },
-  regular:   { icon: '🔧', title: '정기 점검 중', color: 'var(--accent)' },
+  emergency: { icon: 'siren', title: '긴급 점검 중', color: 'var(--danger)' },
+  server:    { icon: 'server', title: '서버 점검 중', color: 'var(--info)' },
+  regular:   { icon: 'wrench', title: '정기 점검 중', color: 'var(--accent)' },
 };
 const kindOf = (t) => KINDS[t] || KINDS.regular;
 
@@ -210,7 +211,7 @@ export default function MaintenanceScreen({ children }) {
           padding: '7px 14px', fontSize: 12.5, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
         }}>
-          <span aria-hidden="true">{kind.icon}</span>
+          <span aria-hidden="true" style={{ display: 'flex', color: kind.color }}><NavIcon name={kind.icon} size={18} /></span>
           <span>{kind.title} — 사용자는 지금 앱을 못 씁니다</span>
           <span style={{ marginLeft: 'auto', fontWeight: 500 }}>
             {info.endTime} 까지 · {formatTime(Math.max(0, info.remainSec))} 남음
@@ -242,7 +243,9 @@ export default function MaintenanceScreen({ children }) {
         {/* 앱 이름은 작게. 여기 온 사람은 어느 앱인지 안다 */}
         <Logo cap={16} style={{ marginBottom: 28 }} />
 
-        <div style={{ fontSize: 40, marginBottom: 14 }} aria-hidden="true">{kind.icon}</div>
+        <div style={{ marginBottom: 14, color: kind.color, display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+          <NavIcon name={kind.icon} size={40} />
+        </div>
 
         <div style={{
           fontFamily: "'Bebas Neue', sans-serif",

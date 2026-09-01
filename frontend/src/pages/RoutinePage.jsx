@@ -437,7 +437,9 @@ export default function RoutinePage() {
                   )}
                   {tip && (
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                      💡 {tip}
+                      <span style={{ color: 'var(--accent)', display: 'inline-flex', verticalAlign: '-3px', marginRight: 4 }} aria-hidden="true">
+                        <NavIcon name="bulb" size={14} />
+                      </span>{tip}
                     </div>
                   )}
                 </div>

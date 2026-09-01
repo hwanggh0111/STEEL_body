@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import NavIcon from '../components/NavIcon';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import SecurityPanel from '../components/SecurityPanel';
@@ -40,18 +41,18 @@ const GROUPS = [
   {
     title: '사람이 기다리는 것',
     items: [
-      { key: 'report', label: '제보 관리', icon: '📮', desc: '들어온 제보에 답하고, 욕설·비하로 걸린 기록을 판정한다' },
-      { key: 'faqgap', label: '못 찾은 말', icon: '🔎', desc: '고객센터에서 답을 못 찾고 나간 검색어' },
-      { key: 'maint', label: '점검 스케줄', icon: '🔧', desc: '점검 시각을 예약하고 안내 화면을 띄운다' },
+      { key: 'report', label: '제보 관리', icon: 'inbox', desc: '들어온 제보에 답하고, 욕설·비하로 걸린 기록을 판정한다' },
+      { key: 'faqgap', label: '못 찾은 말', icon: 'question', desc: '고객센터에서 답을 못 찾고 나간 검색어' },
+      { key: 'maint', label: '점검 스케줄', icon: 'wrench', desc: '점검 시각을 예약하고 안내 화면을 띄운다' },
     ],
   },
   {
     title: '지켜보는 것',
     items: [
-      { key: 'security', label: '보안 관리', icon: '🛡️', desc: '가입자 목록 · 차단 · 해제, JWT · CORS 설정' },
-      { key: 'hacking', label: '해킹 보안', icon: '🔒', desc: '로그인 실패 · 차단된 요청 · 보안 로그' },
-      { key: 'ai', label: 'AI 관리자', icon: '🤖', desc: '자동으로 막힌 IP 를 보고 풀거나 더 막는다' },
-      { key: 'scan', label: '보안 검사', icon: '🔍', desc: '지금 한 번 훑어서 약한 곳을 찾는다' },
+      { key: 'security', label: '보안 관리', icon: 'shield', desc: '가입자 목록 · 차단 · 해제, JWT · CORS 설정' },
+      { key: 'hacking', label: '해킹 보안', icon: 'lock', desc: '로그인 실패 · 차단된 요청 · 보안 로그' },
+      { key: 'ai', label: 'AI 관리자', icon: 'robot', desc: '자동으로 막힌 IP 를 보고 풀거나 더 막는다' },
+      { key: 'scan', label: '보안 검사', icon: 'search', desc: '지금 한 번 훑어서 약한 곳을 찾는다' },
     ],
   },
 ];
@@ -121,7 +122,10 @@ export default function AdminPage() {
   if (!isAdmin) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden="true">🔒</div>
+        {/* 이모지 그림은 폰 만든 회사 것이고 폰마다 다르게 나온다 — 직접 그린 선을 쓴다 */}
+        <div style={{ color: 'var(--text-muted)', marginBottom: 16, display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+          <NavIcon name="lock" size={48} />
+        </div>
         <div style={{
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 22,
           letterSpacing: 2, color: 'var(--danger)', marginBottom: 8,
@@ -179,7 +183,12 @@ export default function AdminPage() {
           style={{ flexShrink: 0 }}
           onClick={() => setMenuOpen(v => !v)}
           aria-expanded={menuOpen}
-        >{menuOpen ? '× 닫기' : '☰ 관리 항목'}</button>
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <NavIcon name={menuOpen ? 'ban' : 'menu'} size={16} />
+            {menuOpen ? '닫기' : '관리 항목'}
+          </span>
+        </button>
         <div style={{
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1.5,
           color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -208,7 +217,9 @@ export default function AdminPage() {
                       }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span aria-hidden="true">{t.icon}</span>
+                        <span aria-hidden="true" style={{ display: 'flex', color: 'inherit' }}>
+                          <NavIcon name={t.icon} size={18} />
+                        </span>
                         <span style={{
                           fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
                           color: active ? 'var(--accent)' : 'var(--text-primary)',

@@ -13,6 +13,7 @@
 // 여기서 한 번에 확인한다.
 const esbuild = require('esbuild');
 const fs = require('fs');
+const path = require('path');
 
 const bundle = (entry, out) => {
   esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
@@ -450,6 +451,84 @@ ok('선 색을 글자색에서 받는다 (고르면 금색)', one.includes('stro
 ok('없는 이름은 빈 칸을 준다 (안 터진다)',
   renderToStaticMarkup(React.createElement(nav.default, { name: '없는것' })), '');
 
+
+console.log('');
+console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴다) ──');
+// 이모지 그림은 애플 · 구글 · 삼성이 각각 그린 **그 회사 것**이고, 폰마다 다르게 나온다 —
+// 검정+금으로 맞춰놓은 화면에 파란 종이 뜨고 노란 집이 뜬다.
+// 8/31 에 길찾기 · 홈 · 미션 · 고객센터를 걷었고, 9/1 에 나머지 아홉 자리를 걷었다.
+//
+// **✕ · ✎ · ★ · ☆ · ✓ · ⚠ 는 그대로 둔다.** 이건 벤더가 그린 그림이 아니라 글자다 —
+// 앱 글꼴로 그려지고 글자색을 따라온다. 이모지와 성격이 다르다
+const VENDOR_EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
+const codeOf = (src) => src
+  // 주석은 뺀다 — 「예전에는 🏠 를 찍었다」 같은 설명까지 잡으면 기록을 못 남긴다
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+
+const srcFiles = [];
+(function walk(dir) {
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) walk(full);
+    else if (/\.(jsx?|cjs)$/.test(name)) srcFiles.push(full);
+  }
+})('src');
+ok('앱 코드에 이모지가 없다',
+  srcFiles.filter((f) => VENDOR_EMOJI.test(codeOf(fs.readFileSync(f, 'utf-8'))))
+    .map((f) => f.replace(/\\/g, '/')), []);
+
+// 이름이 틀리면 **조용히 빈 칸**이 된다 (NavIcon 은 모르는 이름에 null 을 준다).
+// 아무도 안 터지고 아이콘 자리만 비므로 눈으로만 잡힌다
+const iconNames = new Set(nav.NAV_ICONS);
+const pickIcons = (src) => [...codeOf(src).matchAll(/icon: '([^']+)'/g)].map((m) => m[1]);
+const iconUsers = [
+  'src/components/home/HomeSearch.jsx',
+  'src/pages/AdminPage.jsx',
+  'src/pages/support/introData.js',
+  'src/components/admin/MaintAdmin.jsx',
+  'src/components/MaintenanceScreen.jsx',
+  'src/components/AiAdminPanel.jsx',
+  'src/pages/support/SupportPage.jsx',
+  'src/components/TabBar.jsx',
+];
+const unknown = [];
+for (const f of iconUsers) {
+  for (const n of pickIcons(fs.readFileSync(f, 'utf-8'))) {
+    if (!iconNames.has(n)) unknown.push(f.split('/').pop() + ': ' + n);
+  }
+}
+ok('적어둔 아이콘 이름이 전부 실제로 그려진다', unknown, []);
+
+// 적어만 두고 화면이 안 그리면 없는 것과 같다 —
+// 고객센터 소개의 아이콘이 딱 그랬다 (9/1 까지 아무 데서도 안 그려지고 있었다)
+const drawsIcon = (f) => /<NavIcon\s+name=/.test(fs.readFileSync(f, 'utf-8'));
+ok('아이콘을 적어둔 화면이 그것을 실제로 그린다',
+  iconUsers.filter((f) => /\.jsx$/.test(f)).filter((f) => !drawsIcon(f)), []);
+ok('고객센터 소개가 아이콘을 그린다',
+  /<NavIcon name=\{f\.icon\}/.test(fs.readFileSync('src/pages/support/SupportPage.jsx', 'utf-8')), true);
+
+// 같은 자리로 가는 길은 같은 그림이어야 한다 — 두 번 익히게 하지 않는다.
+// 더보기(TabBar) · 홈 검색 · 고객센터 소개 셋이 같은 화면을 가리킨다
+const grab = (src, re) => {
+  const out = {};
+  for (const m of codeOf(src).matchAll(re)) out[m[1]] = m[2] || m[3];
+  return out;
+};
+const tabbarSrc = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
+const homeSearchSrc = fs.readFileSync('src/components/home/HomeSearch.jsx', 'utf-8');
+const introSrc = fs.readFileSync('src/pages/support/introData.js', 'utf-8');
+const byPath = (src) => {
+  const out = {};
+  for (const m of codeOf(src).matchAll(/path: '([^']+)'[^}]*?icon: '([^']+)'/g)) {
+    if (!out[m[1]]) out[m[1]] = m[2];
+  }
+  return out;
+};
+const T = byPath(tabbarSrc), H = byPath(homeSearchSrc), I = byPath(introSrc);
+const shared = Object.keys(T).filter((p2) => H[p2] || I[p2]);
+ok('같은 자리로 가는 길은 세 화면이 같은 그림을 쓴다',
+  shared.filter((p2) => (H[p2] && H[p2] !== T[p2]) || (I[p2] && I[p2] !== T[p2])), []);
 
 console.log('');
 console.log('── 루틴 갈래 단추가 화면 안에 들어오는가 ──');

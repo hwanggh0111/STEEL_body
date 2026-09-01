@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MAINT_VERSION_KEY } from '../../data/localKeys';
+import NavIcon from '../NavIcon';
 import { getSchedules, fetchSchedules, pushSchedules, runningNow } from '../MaintenanceScreen';
 import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
@@ -15,17 +16,17 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 // 한 곳에 적어두고 세 번 그린다.
 const KINDS = [
   {
-    type: 'regular', icon: '🔧', label: '정기 점검', color: 'var(--accent)', btnText: 'var(--on-accent)',
+    type: 'regular', icon: 'wrench', label: '정기 점검', color: 'var(--accent)', btnText: 'var(--on-accent)',
     desc: '2~3개월 주기. DB 최적화, 보안 업데이트, 시스템 개선',
     defaultMin: 60, defaultReason: '정기 시스템 점검 (DB 최적화, 보안 업데이트)',
   },
   {
-    type: 'server', icon: '🖥️', label: '서버 점검', color: 'var(--info)', btnText: 'var(--on-accent)',
+    type: 'server', icon: 'server', label: '서버 점검', color: 'var(--info)', btnText: 'var(--on-accent)',
     desc: '서버 재시작, 배포, 패치 적용 등',
     defaultMin: 30, defaultReason: '서버 점검 (서버 재시작, 배포, 패치 적용)',
   },
   {
-    type: 'emergency', icon: '🚨', label: '긴급 점검', color: 'var(--danger)', btnText: 'var(--on-accent)',
+    type: 'emergency', icon: 'siren', label: '긴급 점검', color: 'var(--danger)', btnText: 'var(--on-accent)',
     desc: '서버 장애, 보안 이슈 등 즉각 대응이 필요한 경우',
     defaultMin: 90, defaultReason: '긴급 시스템 점검',
   },
@@ -64,7 +65,7 @@ function MaintForm({ kind, onSchedule }) {
   return (
     <div className="card" style={{ padding: 16, marginBottom: 12, borderColor: kind.color }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 20 }} aria-hidden="true">{kind.icon}</span>
+        <span style={{ color: kind.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kind.icon} size={20} /></span>
         <div>
           <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: kind.color }}>{kind.label}</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{kind.desc}</div>
@@ -382,7 +383,7 @@ export default function MaintAdmin() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {schedules.map((s, i) => {
-            // 목록의 아이콘이 **언제나 🔧** 였다. 긴급(🚨)으로 잡은 것도 목록에서는
+            // 목록의 아이콘이 **언제나 렌치** 였다. 긴급(사이렌)으로 잡은 것도 목록에서는
             // 정기와 똑같이 보여서, 무엇을 걸어뒀는지 알 수 없었다
             const kind = kindOf(s.type);
             const live = runningNow(s);
@@ -390,7 +391,7 @@ export default function MaintAdmin() {
             <div key={i} className="card" style={{ padding: '14px 16px', borderColor: live ? kind.color : 'var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                  <span style={{ fontSize: 20 }} aria-hidden="true">{kind.icon}</span>
+                  <span style={{ color: kind.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kind.icon} size={20} /></span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{
                       fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 1.5,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import NavIcon from '../NavIcon';
 import { useNavigate } from 'react-router-dom';
 import { SEARCH_HISTORY_KEY } from '../../data/localKeys';
 import { isAdmin } from '../../data/admin';
@@ -36,36 +37,41 @@ function matchSearch(q, item) {
   return false;
 }
 
+// `icon` 은 **직접 그린 아이콘의 이름**이다 (`components/NavIcon.jsx`).
+// 예전에는 이모지를 글자로 찍었다 — 그림은 애플 · 구글 · 삼성이 각각 그린 것이라
+// 남의 것이고, 폰마다 다르게 나온다. 여기 것들은 **길찾기 · 더보기와 같은 그림**을 쓴다.
+// 같은 자리로 가는 길인데 검색에서만 다른 그림이면 두 번 익혀야 한다.
+// 이름을 잘못 적으면 조용히 빈 칸이 된다 — `npm run check` 가 이름을 맞춰본다
 export const SEARCH_ITEMS = [
   // ─── 메인 페이지 ───
-  { label: '홈', keywords: ['홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면'], path: '/home', icon: '🏠' },
-  { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: '📋' },
-  { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: '🏋️' },
-  { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: '📊' },
-  { label: '홈트레이닝', keywords: ['홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: '🏠' },
-  { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: '🔍' },
-  { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: '📐' },
-  { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: '📅' },
-  { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: '📮' },
-  { label: '운동 알림', keywords: ['알림', '알람', '리마인더', '푸시', 'push', 'notification', '노티', '깨워', '까먹', '잊어', '요일', '시간', 'ㅇㄷㅇㄹ'], path: '/reminders', icon: '🔔' },
-  { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: '📰' },
+  { label: '홈', keywords: ['홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면'], path: '/home', icon: 'home' },
+  { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: 'clipboard' },
+  { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: 'dumbbell' },
+  { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: 'chart' },
+  { label: '홈트레이닝', keywords: ['홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: 'homegym' },
+  { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: 'search' },
+  { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: 'ruler' },
+  { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: 'calendar' },
+  { label: '고객센터', keywords: ['고객센터', '고객', '센터', '문의', '제보', '건의', '버그', 'bug', '신고', '오류', '안돼', '안됨', 'faq', 'FAQ', '자주묻는질문', '도움말', 'help', 'support', '소개', '앱정보', '버전', 'ㄱㄱㅅㅌ'], path: '/support', icon: 'chat' },
+  { label: '운동 알림', keywords: ['알림', '알람', '리마인더', '푸시', 'push', 'notification', '노티', '깨워', '까먹', '잊어', '요일', '시간', 'ㅇㄷㅇㄹ'], path: '/reminders', icon: 'bell' },
+  { label: '공지함', keywords: ['공지', '공지함', '소식', '알림', '업데이트', 'update', '변경', '바뀐것', '패치', 'notice', 'changelog', '새기능', '고침'], path: '/support/notices', icon: 'megaphone' },
 
   // ─── 측정 시스템 서브 기능 (탭 자동 선택) ───
-  { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: '📏' },
-  { label: '어깨 측정', keywords: ['어깨', 'shoulder', '견봉', '어깨너비', '문짝', '광배', '비율'], path: '/measure', tab: 'shoulder', icon: '💪' },
-  { label: '1RM 계산', keywords: ['1rm', '1RM', '최대중량', 'one rep max', '벤치프레스', '스쿼트', '데드리프트', '숄더프레스', 'brzycki'], path: '/measure', tab: 'orm', icon: '🔢' },
-  { label: '체력 테스트', keywords: ['체력', '테스트', '푸시업', '풀업', '플랭크', '달리기', '윗몸일으키기', '시트업', '스쿼트', 'fitness'], path: '/measure', tab: 'fitness', icon: '🏃' },
-  { label: '심박수 존', keywords: ['심박수', '심박', 'heart rate', '존', 'zone', '최대심박', '안정심박', '유산소', 'bpm'], path: '/measure', tab: 'heart', icon: '❤️' },
-  { label: '스톱워치 / 타이머', keywords: ['스톱워치', 'stopwatch', '타이머', 'timer', '시간', '랩', 'lap'], path: '/measure', tab: 'stopwatch', icon: '⏱️' },
-  { label: '유연성 측정', keywords: ['유연성', 'flexibility', '앉아 앞으로 굽히기', '스트레칭', '스쿼트 깊이'], path: '/measure', tab: 'flex', icon: '🧘' },
+  { label: '전신 사이즈', keywords: ['전신', '사이즈', '둘레', '가슴', '허리', '엉덩이', '팔둘레', '허벅지', '종아리', '목둘레'], path: '/measure', tab: 'size', icon: 'ruler' },
+  { label: '어깨 측정', keywords: ['어깨', 'shoulder', '견봉', '어깨너비', '문짝', '광배', '비율'], path: '/measure', tab: 'shoulder', icon: 'dumbbell' },
+  { label: '1RM 계산', keywords: ['1rm', '1RM', '최대중량', 'one rep max', '벤치프레스', '스쿼트', '데드리프트', '숄더프레스', 'brzycki'], path: '/measure', tab: 'orm', icon: 'stack' },
+  { label: '체력 테스트', keywords: ['체력', '테스트', '푸시업', '풀업', '플랭크', '달리기', '윗몸일으키기', '시트업', '스쿼트', 'fitness'], path: '/measure', tab: 'fitness', icon: 'flame' },
+  { label: '심박수 존', keywords: ['심박수', '심박', 'heart rate', '존', 'zone', '최대심박', '안정심박', '유산소', 'bpm'], path: '/measure', tab: 'heart', icon: 'heart' },
+  { label: '스톱워치 / 타이머', keywords: ['스톱워치', 'stopwatch', '타이머', 'timer', '시간', '랩', 'lap'], path: '/measure', tab: 'stopwatch', icon: 'clock' },
+  { label: '유연성 측정', keywords: ['유연성', 'flexibility', '앉아 앞으로 굽히기', '스트레칭', '스쿼트 깊이'], path: '/measure', tab: 'flex', icon: 'trend' },
 
   // ─── 홈 안의 자리 (그 자리로 데려간다) ───
-  { label: '오늘 할 것', keywords: ['오늘', 'today', '할것', '지금', '이어서', '진행중'], path: '/home', scroll: 'home-today', icon: '☀️' },
-  { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', scroll: 'home-week', icon: '📅' },
-  { label: '미션', keywords: ['미션', 'mission', '목표', 'weekly'], path: '/home', scroll: 'home-missions', icon: '🎯' },
+  { label: '오늘 할 것', keywords: ['오늘', 'today', '할것', '지금', '이어서', '진행중'], path: '/home', scroll: 'home-today', icon: 'check' },
+  { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', scroll: 'home-week', icon: 'calendar' },
+  { label: '미션', keywords: ['미션', 'mission', '목표', 'weekly'], path: '/home', scroll: 'home-missions', icon: 'target' },
 
   // ─── 관리자 (관리자 권한 필요) ───
-  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: '⚙️', adminOnly: true },
+  { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: 'gear', adminOnly: true },
 ];
 
 const HISTORY_KEY = SEARCH_HISTORY_KEY;
@@ -140,9 +146,9 @@ export default function HomeSearch() {
         style={{ paddingLeft: 38, fontSize: 14 }}
       />
       <span style={{
-        position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-        fontSize: 15, pointerEvents: 'none', opacity: 0.7,
-      }} aria-hidden="true">🔍</span>
+        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+        pointerEvents: 'none', opacity: 0.7, color: 'var(--text-muted)',
+      }} aria-hidden="true"><NavIcon name="search" size={16} /></span>
 
       {focused && (query.trim() || history.length > 0) && (
         <div style={{
@@ -200,7 +206,10 @@ export default function HomeSearch() {
                       onMouseDown={(e) => { e.preventDefault(); setFocused(false); go(item); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }}
                     >
-                      <span style={{ fontSize: 14 }} aria-hidden="true">{item?.icon || '🕒'}</span>
+                      {/* 최근에 친 말은 항목이 아닐 수도 있다 — 그때는 시계를 그린다 */}
+                      <span style={{ color: 'var(--text-muted)', display: 'flex' }} aria-hidden="true">
+                        <NavIcon name={item?.icon || 'clock'} size={16} />
+                      </span>
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
                     </div>
                     <button

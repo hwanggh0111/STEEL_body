@@ -143,7 +143,7 @@ export default function PasswordResetModal({ onClose }) {
               <button type="button" onClick={() => setShowPw(!showPw)} aria-label="비밀번호 표시 토글" style={{
                 position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
-              }}>{showPw ? '🙈' : '👁'}</button>
+              }}>{showPw ? '숨기기' : '보기'}</button>
             </div>
 
             <label className="label" htmlFor="reset-new-pw2">새 비밀번호 확인</label>

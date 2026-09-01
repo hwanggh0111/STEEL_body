@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import NavIcon from '../../components/NavIcon';
 import { useNavigate } from 'react-router-dom';
 import { FEED } from './feedData';
 import FeedList from './FeedList';
@@ -113,9 +114,9 @@ export default function NoticeArchive() {
           style={{ paddingLeft: 36, paddingRight: q ? 34 : undefined, fontSize: 13.5 }}
         />
         <span style={{
-          position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 14, opacity: 0.7, pointerEvents: 'none',
-        }} aria-hidden="true">🔍</span>
+          position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+          opacity: 0.7, pointerEvents: 'none', color: 'var(--text-muted)',
+        }} aria-hidden="true"><NavIcon name="search" size={15} /></span>
         {q && (
           <button
             onClick={() => setQ('')}
