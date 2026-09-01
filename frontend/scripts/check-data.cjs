@@ -468,13 +468,13 @@ ok('넘치는 줄이라 줄바꿈으로 받는다', /flexWrap: 'wrap'/.test(type
 ok('옆으로 밀어 보게 두지 않는다 (숨은 단추가 생긴다)', /overflowX/.test(typeRow), false);
 
 console.log('');
-console.log('── 홈트 프로그램 (기능성 훈련은 근력부터 유산소로) ──');
+console.log('── 홈트 프로그램 (기능성(특수부대식)은 근력부터 유산소로) ──');
 // 프로그램 표를 화면에서 빼 `data/homeworkoutPrograms.js` 로 옮겼다 — 화면 안에 두면
 // 여기서 읽으려고 react-router 까지 끌고 와야 한다.
 const home = bundle('src/data/homeworkoutPrograms.js', '.t17.cjs');
 const homeNames = Object.keys(home.PROGRAMS);
 ok('프로그램이 여섯이다', homeNames,
-  ['전신 초급', '상체 집중', '하체 집중', '코어 강화', '유산소 타바타', '기능성 훈련']);
+  ['전신 초급', '상체 집중', '하체 집중', '코어 강화', '유산소 타바타', '기능성(특수부대식)']);
 // 마지막 운동 뒤에는 화면이 휴식을 넣지 않는다. rest 를 적어두면 그 숫자만 목록에 뜨고
 // 실제로는 안 쉬는, 말과 다른 자리가 된다
 ok('마지막 운동은 쉬는 시간이 0 이다',
@@ -482,8 +482,8 @@ ok('마지막 운동은 쉬는 시간이 0 이다',
 ok('모든 운동에 이름 · 초 · 쉬는 초가 있다',
   homeNames.flatMap((n) => home.PROGRAMS[n]).filter((e) => !e.name || !(e.duration > 0) || !(e.rest >= 0)), []);
 
-const func = home.PROGRAMS['기능성 훈련'];
-ok('기능성 훈련은 열두 개다', func.length, 12);
+const func = home.PROGRAMS['기능성(특수부대식)'];
+ok('기능성(특수부대식)은 열두 개다', func.length, 12);
 // 「근력부터 유산소같은거」 — 앞은 오래 버티며 힘을 쓰고, 뒤로 갈수록 짧고 빠르다.
 // 순서가 뒤집히면 프로그램의 뜻이 사라진다 (그냥 섞인 타바타가 된다)
 const half = func.length / 2;
@@ -492,7 +492,7 @@ ok('앞 절반이 뒤 절반보다 오래 버틴다 (근력 → 유산소)', avg
 ok('앞 여섯은 30초보다 짧지 않다', func.slice(0, half).filter((e) => e.duration < 30), []);
 ok('쉬는 시간이 뒤로 갈수록 길어지지 않는다',
   func.slice(1, -1).filter((e, i) => e.rest > func[i].rest), []);
-// 홈트의 기능성 훈련은 **추천 루틴의 「기능성」과 같은 운동**을 시간 재는 판으로
+// 홈트의 「기능성(특수부대식)」은 **추천 루틴의 「기능성」과 같은 운동**을 시간 재는 판으로
 // 옮긴 것이다. 루틴 쪽에서 이름을 고치면 여기만 옛 이름으로 남는데, 아무도 안 터진다 —
 // 두 화면이 같은 동작을 다른 이름으로 부르게 될 뿐이다
 const routineSrc = fs.readFileSync('../backend/src/routes/routines.js', 'utf-8');
@@ -502,18 +502,18 @@ ok('루틴의 기능성이 스무 가지다', routineNames.length, 20);
 ok('홈트의 기능성이 루틴에 없는 운동을 넣지 않았다',
   func.filter((e) => !routineNames.includes(e.name)).map((e) => e.name), []);
 // 그렇다고 다른 프로그램을 통째로 베낀 것이면 프로그램을 하나 더 둘 이유가 없다
-const elsewhere = homeNames.filter((n) => n !== '기능성 훈련')
+const elsewhere = homeNames.filter((n) => n !== '기능성(특수부대식)')
   .flatMap((n) => home.PROGRAMS[n].map((e) => e.name));
 ok('다른 프로그램과 겹치는 운동이 절반을 넘지 않는다',
   func.filter((e) => elsewhere.includes(e.name)).length < half, true);
 // 집에서 하는 앱이다. 뛰는 동작을 넣었으면 밤에 어떻게 하라는 말이 있어야 한다
 const jumpy = func.filter((e) => /점프|점핑|버피|하이니|터크|스케이터/.test(e.name)).map((e) => e.name);
 ok('뛰는 동작은 뒤쪽에만 둔다', jumpy.every((n) => func.findIndex((e) => e.name === n) >= half), true);
-ok('기능성 훈련은 약 10분이다',
+ok('기능성(특수부대식)은 약 10분이다',
   Math.round(func.reduce((a, e) => a + e.duration + e.rest, 0) / 60), 10);
 // 집에서 하는 앱이다. 뛰라고만 하고 층간소음을 안 적으면 밤에는 못 한다.
 // 문틀바 같은 장비도 없다는 전제라 대체를 같이 적는다
-const funcNote = (home.PROGRAM_NOTES['기능성 훈련'] || []).join(' ');
+const funcNote = (home.PROGRAM_NOTES['기능성(특수부대식)'] || []).join(' ');
 ok('설명에 밤(층간소음) 이야기가 있다', /밤/.test(funcNote), true);
 ok('설명에 배낭 무게를 어떻게 만드는지 있다', /배낭/.test(funcNote) && /kg/.test(funcNote), true);
 ok('설명에 문틀바가 없을 때의 대체가 있다', /수건/.test(funcNote), true);
@@ -527,13 +527,21 @@ ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유�
 const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
 ok('화면이 설명 줄을 그린다', page.includes('PROGRAM_NOTES[name]'), true);
 
-// 더보기의 「기능성 훈련」은 홈트의 한 프로그램으로 바로 간다 (`?p=이름`).
+// 더보기의 「기능성(특수부대식)」은 홈트의 한 프로그램으로 바로 간다 (`?p=이름`).
 // 이름이 한 글자만 달라도 조용히 목록만 열린다 — 아무도 안 터지고 바로가기만 죽는다
 const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
 const shortcuts = [...tabbar.matchAll(/param: '([^']+)'/g)].map((m) => m[1]);
-ok('더보기에 바로가기가 하나 있다', shortcuts, ['기능성 훈련']);
+ok('더보기에 바로가기가 하나 있다', shortcuts, ['기능성(특수부대식)']);
 ok('바로가기 이름이 프로그램 표에 있다', shortcuts.filter((n) => !home.PROGRAMS[n]), []);
-// 물음표 뒤를 안 보면 홈트레이닝과 기능성 훈련 두 줄이 같이 켜진다
+// 단추에 적히는 말은 프로그램 이름과 **다를 수 있다** — 「기능성(특수부대식)」을 그대로
+// 적으면 폰에서 화면 밖으로 나간다. 넉 줄 그리드라 한 칸이 320px 폰에서 80px 이고,
+// 라벨은 줄바꿈을 안 한다(nowrap). 11px · 자간 1 로 어림잡아 재본다
+const moreLabels = [...tabbar.matchAll(/label: '([^']+)'/g)].map((m) => m[1])
+  .filter((l) => !['홈', '기록', '인바디', '루틴', '더보기'].includes(l));
+const labelW = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 11 : 6.2) + 1, 0);
+ok('더보기 라벨이 폰 한 칸(320px ÷ 4)에 들어간다',
+  moreLabels.filter((l) => labelW(l) > 320 / 4 - 8), []);
+// 물음표 뒤를 안 보면 홈트레이닝과 특수부대식 두 줄이 같이 켜진다
 ok('지금 어느 줄로 왔는지 물음표 뒤까지 본다', /location\.search/.test(tabbar), true);
 ok('화면이 물음표 뒤를 읽는다', page.includes("params.get('p')"), true);
 ok('없는 이름이 와도 목록만 연다', page.includes('!PROGRAMS[wanted]'), true);

@@ -18,7 +18,7 @@ export default function HomeworkoutPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [finished, setFinished] = useState(false);
   const navigate = useNavigate();
-  // 더보기의 「기능성 훈련」처럼 한 프로그램으로 바로 오는 길. `?p=이름`
+  // 더보기의 「기능성(특수부대식)」처럼 한 프로그램으로 바로 오는 길. `?p=이름`
   //
   // 바로 시작하게 하지 않고 **펼쳐서** 보여준다 — 층간소음이나 식탁 대체 같은 말이
   // 미리 보기에만 있어서, 바로 타이머로 넘기면 그 말을 한 번도 못 보고 뛰게 된다.
