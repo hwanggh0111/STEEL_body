@@ -471,20 +471,29 @@ ok('아이폰 홈 화면 이름',
   (html.match(/apple-mobile-web-app-title" content="([^"]+)"/) || [])[1], APP_NAME);
 ok('알림 제목', sw.includes(`payload.title || '${APP_NAME}'`), true);
 // 로고는 첫 글자만 세리프로 따로 그린다 — 두 조각을 이으면 이름이 나와야 한다
-const parts = [...logo.matchAll(/}}>([A-Z ]+)<\/span>/g)].map((m) => m[1]);
+const parts = [...logo.matchAll(/>(BLACK|IRON)<\/span>/g)].map((m) => m[1]);
 // 두 낱말을 굵기와 자간으로 갈라 그린다 — 이으면 이름이 나와야 한다
 ok('로고 글자를 이으면 앱 이름이 된다', parts.join(' '), APP_NAME);
 // **두 낱말이 달라야 한다.** 같은 크기·같은 자간이면 그냥 긴 글자다
-ok('BLACK 과 IRON 을 다르게 그린다', /opacity: 0\.72/.test(logo) && /cap \* 0\.40/.test(logo), true);
+// **번쩍이게 만드는 셋을 안 쓴다** — 금색 그라데이션 · 글자 그림자 · 굵기 대비.
+// 화면에서 금속을 흉내 내면 대개 싸 보인다. 한 색 · 가는 선 · 넓은 자간으로 간다
+ok('글자에 그라데이션을 안 쓴다', /backgroundClip: 'text'/.test(logo), false);
+ok('글자에 그림자를 안 쓴다', /textShadow/.test(logo), false);
+ok('자간을 넓게 벌린다', /letterSpacing: cap \* 0\.4/.test(logo), true);
+// 마크는 선 하나 굵기. 획이 많아지면 작은 자리에서 뭉친다
+ok('마크가 선 둘로 끝난다', (logo.match(/<path/g) || []).length, 2);
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
 // 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
 // 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
 const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
-ok('앱 아이콘이 로고와 같은 모양이다',
-  /M256 38 474 256 256 474 38 256Z/.test(icon) && /M72 256 H440/.test(icon), true);
+ok('앱 아이콘도 마름모 하나 + 가로선 하나다 (로고와 같은 모양)',
+  [(icon.match(/<path/g) || []).length, icon.includes('Z"'), / H\d/.test(icon)],
+  [2, true, true]);
 ok('앱 아이콘에 옛 그림(원 안 바벨)이 안 남았다', /<circle/.test(icon), false);
+// 금색은 한 색으로 납작하게. 아이콘에서도 그라데이션을 안 쓴다
+ok('아이콘 금색에 그라데이션을 안 쓴다', icon.includes('stroke="url(#'), false);
 
 console.log('');
 console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴다) ──');

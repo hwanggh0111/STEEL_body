@@ -2,38 +2,25 @@
   <!-- BLACK IRON 앱 아이콘 — 앱 안의 로고 마크와 **같은 그림**이다.
        격자 24칸으로 그린 것을 512 로 키웠다 (×21.333).
 
-       2026-09-01 에 이름을 BLACK IRON 으로 바꾸면서 다시 그렸다.
-       예전에는 「원 안의 바벨」이었는데, 헬스 앱 아이콘의 절반이 그 모양이라
-       홈 화면에서 옆 앱과 구별이 안 됐다. 지금은 **원판을 옆에서 본 마름모**에
-       봉이 지난다 — 45도로 꺾인 각이라 작게 줄여도 뭉개지지 않는다.
+       2026-09-01 저녁에 다시 줄였다. 그 전에는 마름모 두 겹에 원판 두 장까지
+       그렸는데, 홈 화면 크기(48~60px)로 줄이면 선이 뭉쳐서 검은 덩어리가 됐다.
+       **마름모 하나 + 가로선 하나**만 남긴다 — 뺄수록 또렷해진다.
 
-       바탕은 검정에 아주 옅은 금빛을 섞었다. 순검정이면 어두운 배경에서 사라진다. -->
+       금색은 한 색으로 납작하게 쓴다. 그라데이션을 넣으면 화면에서 금속을 흉내 내는
+       꼴이 되고, 대개 싸 보인다. 바탕만 아주 옅게 눕혔다 (순검정이면 어두운 배경에
+       아이콘이 통째로 사라진다). -->
   <defs>
     <linearGradient id="plate" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#241c14"/>
-      <stop offset="100%" stop-color="#12100c"/>
-    </linearGradient>
-    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f6d4ab"/>
-      <stop offset="45%" stop-color="#eeb77d"/>
-      <stop offset="100%" stop-color="#b98a55"/>
+      <stop offset="0%" stop-color="#1b1712"/>
+      <stop offset="100%" stop-color="#100e0b"/>
     </linearGradient>
   </defs>
 
   <rect width="512" height="512" rx="112" fill="url(#plate)"/>
 
-  <!-- 바깥 마름모 — 원판의 옆모습. 테두리는 획의 절반 -->
-  <path d="M256 38 474 256 256 474 38 256Z"
-        fill="none" stroke="url(#gold)" stroke-width="19" stroke-linejoin="round" opacity="0.75"/>
-  <!-- 안쪽 마름모 — 두 겹이 되면 깊이가 생긴다 -->
-  <path d="M256 136 376 256 256 376 136 256Z"
-        fill="none" stroke="url(#gold)" stroke-width="19" stroke-linejoin="round" opacity="0.45"/>
-
-  <!-- 봉 — 가운데를 가로지른다. 양끝이 테두리 밖으로 살짝 걸린다 -->
-  <path d="M72 256 H440" stroke="url(#gold)" stroke-width="41" stroke-linecap="round"/>
-  <!-- 원판 두 장 — 봉에 끼운 것 -->
-  <g stroke="url(#gold)" stroke-width="41" stroke-linecap="round">
-    <path d="M190 186 V326"/>
-    <path d="M322 186 V326"/>
-  </g>
+  <!-- 마름모 — 원판을 옆에서 본 모양. 선 굵기는 로고와 같은 비율(1.2/24) -->
+  <path d="M256 51 461 256 256 461 51 256Z"
+        fill="none" stroke="#eeb77d" stroke-width="26" stroke-linejoin="round"/>
+  <!-- 봉 — 마름모 안쪽만 지난다. 밖으로 삐져나오면 십자가처럼 보인다 -->
+  <path d="M119 256 H393" stroke="#eeb77d" stroke-width="26" stroke-linecap="round"/>
 </svg>

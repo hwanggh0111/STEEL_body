@@ -1,35 +1,31 @@
 // BLACK IRON 로고. **앱의 모든 자리가 이것 하나를 쓴다.**
 //
-// 2026-09-01 에 이름을 STEEL BODY → IRONLOG → **BLACK IRON** 으로 정하면서 다시 그렸다.
-// (2026-08-28 전까지는 로고가 세 벌이었다 — 머리는 Playfair 이탤릭, 미니 스플래시는
-// Great Vibes 필기체, 로그인은 Bebas. 같은 앱에서 셋이면 어느 것도 로고가 아니다.)
+// 2026-09-01 저녁에 세 번째로 고쳤다. 앞의 두 판이 촌스러웠던 이유는 분명하다 —
+// **금색 그라데이션 글자 · 글자 그림자 · 굵기 대비.** 셋 다 「번쩍이게」 만드는 장치다.
+// 금속처럼 보이려고 넣은 것인데, 화면에서 금속을 흉내 내면 대개 싸 보인다.
 //
-// 앞의 로고는 「링 안의 바벨 + 금색 글자」였다. 나쁘지 않았지만 **평범했다** —
-// 헬스 앱 아이콘의 절반이 원 안에 바벨을 넣는다. 그리고 글자가 한 덩어리라
-// 이름이 두 낱말이라는 것이 안 보였다.
+// 고급은 그 반대다. **납작한 한 색 · 가는 선 · 넓은 여백.**
 //
-// 고급스러움은 번쩍임이 아니라 **여백 · 자간 · 굵기 차이**에서 나온다. 규칙 다섯:
+//   · 글자는 **한 색으로 납작하게.** 그라데이션도 그림자도 없다
+//   · 두 낱말을 **같은 크기 · 같은 굵기**로 두고, 사이를 **머리카락 선** 하나로 가른다.
+//     굵기로 차이를 주면 광고 문구처럼 보이고, 선 하나로 가르면 표지처럼 보인다
+//   · 글자체는 **Barlow 300**(가는 것). 자간을 아주 넓게(0.42em) 벌린다 —
+//     여백이 고급을 만든다. 앱의 제목(Bebas)과 굳이 같게 하지 않는다.
+//     로고는 UI 글자와 다른 종족이어도 된다. 다만 **로고는 이 한 벌뿐**이다
+//   · 마크도 선 하나 굵기로 줄였다. 마름모 하나 + 가로선 하나 — 그 이상은 뺐다.
+//     원판 두 장까지 그리면 22px 에서 뭉치고, 뭉치면 촌스러워진다
 //
-//   · **두 낱말을 다르게 다룬다.** BLACK 은 가늘고 넓게(자간 큼 · 어두운 금),
-//     IRON 은 굵고 또렷하게. 같은 크기로 나란히 두면 그냥 긴 글자다
-//   · **마크는 원판을 옆에서 본 모양**(마름모)에 봉이 지난다. 원 안 바벨을 피하고,
-//     45도로 꺾인 각이라 작은 자리에서도 안 뭉갠다
-//   · 마크 높이 = 대문자 높이(cap). 밑선이 맞는다
-//   · 금속 결은 **얕게 한 겹**. 위가 밝고 아래가 가라앉는다 — 번쩍이면 싸 보인다
-//   · 큰 자리(스플래시 · 로그인)에서만 금선과 부제를 넣는다
-//
-// 색은 `--accent` 계열이다. **마크는 `currentColor` 로 받는다** — SVG 속성 안에서는
+// 색은 `--accent` 하나만 쓴다. **마크는 `currentColor` 로 받는다** — SVG 속성 안에서는
 // `var(--accent)` 가 치환되지 않아 값이 통째로 무시된다 (8/28 에 그래프에서 겪었다).
-// 그래서 감싼 요소의 `color` 로 흘려보낸다.
 
-const STROKE = 1.9;        // 격자 24칸 기준 — 글자의 세로획과 같은 굵기
-const HAIR = 0.9;          // 테두리는 획의 절반. 가둔다기보다 감싼다
+const HAIR = 1.2;          // 격자 24칸 기준 — 머리카락 굵기. 이보다 굵으면 무거워진다
 
 /**
- * 마크 — **원판을 옆에서 본 마름모**에 봉이 지난다.
+ * 마크 — **마름모 하나에 가로선 하나.**
  *
- * 바깥은 각진 테두리(마름모), 안은 작은 마름모, 가운데를 봉이 가로지른다.
- * 원이 아니라 각이라 금색이 모서리에서 한 번 꺾이고, 그게 금속처럼 보인다.
+ * 원판을 옆에서 본 모양(마름모)에 봉이 지난다. 그 이상은 그리지 않는다 —
+ * 앞 판에서는 마름모 두 겹에 원판 두 장까지 그렸는데, 작은 자리에서 선이 뭉쳤다.
+ * 뺄수록 또렷해지고, 또렷한 것이 고급이다.
  */
 export function LogoMark({ size = 24, style }) {
   return (
@@ -37,72 +33,52 @@ export function LogoMark({ size = 24, style }) {
       width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"
       style={{ color: 'var(--accent)', flexShrink: 0, display: 'block', ...style }}
     >
-      {/* 바깥 마름모 — 원판의 옆모습 */}
-      <path d="M12 1.8 22.2 12 12 22.2 1.8 12Z"
-        stroke="currentColor" strokeWidth={HAIR} opacity="0.75" strokeLinejoin="round" />
-      {/* 안쪽 마름모 — 두 겹이 되면 깊이가 생긴다 */}
-      <path d="M12 6.4 17.6 12 12 17.6 6.4 12Z"
-        stroke="currentColor" strokeWidth={HAIR} opacity="0.45" strokeLinejoin="round" />
-      {/* 봉 — 가운데를 가로지른다. 양끝이 테두리 밖으로 살짝 걸린다 */}
-      <path d="M3.4 12H20.6" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" />
-      {/* 원판 두 장 — 봉에 끼운 것 */}
-      <path d="M8.9 8.7V15.3M15.1 8.7V15.3"
-        stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" />
+      <path d="M12 2.4 21.6 12 12 21.6 2.4 12Z"
+        stroke="currentColor" strokeWidth={HAIR} strokeLinejoin="round" />
+      {/* 봉 — 마름모 안쪽만 지난다. 밖으로 삐져나오면 십자가처럼 보인다 */}
+      <path d="M5.6 12H18.4" stroke="currentColor" strokeWidth={HAIR} strokeLinecap="round" />
     </svg>
   );
 }
 
-// 금속 결 — 얕게. 위가 밝고 아래가 가라앉는다.
-// `deep` 은 굵은 글자용(대비를 조금 더), 아닌 쪽은 가는 글자용이다
-const metal = (deep) => ({
-  backgroundImage: deep
-    ? 'linear-gradient(172deg, var(--accent-hover) 0%, var(--accent) 40%, var(--accent-low) 78%, var(--accent-hover) 100%)'
-    : 'linear-gradient(175deg, var(--accent) 0%, var(--accent-low) 100%)',
-  WebkitBackgroundClip: 'text',
-  backgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  color: 'var(--accent)',
-  ...(deep ? { textShadow: '0 1px 0 rgba(0,0,0,0.45)' } : null),
-});
-
 /**
- * 워드마크 — **BLACK 은 가늘고 넓게, IRON 은 굵고 또렷하게.**
+ * 워드마크 — **같은 크기 · 같은 굵기 · 사이에 가는 선 하나.**
  *
- * 두 낱말을 같은 크기로 나란히 두면 그냥 긴 글자다. 굵기와 자간을 갈라놓으면
- * 이름이 두 낱말이라는 것이 한눈에 보이고, 그 차이가 고급스러움을 만든다.
- * (BLACK 은 가라앉고 IRON 이 올라온다 — 이름이 뜻하는 것과도 맞는다)
+ * 앞 판은 BLACK 을 흐리게 IRON 을 굵게 해서 차이를 줬다. 그게 광고 문구처럼 보였다.
+ * 둘을 나란히 두고 선 하나로 가르면 표지처럼 보인다 — 그게 고급이다.
  */
 export function LogoWord({ cap = 19, style }) {
+  const type = {
+    fontFamily: "'Barlow', system-ui, sans-serif",
+    fontWeight: 300,
+    fontSize: cap * 0.86,
+    letterSpacing: cap * 0.42,     // 넓게. 여백이 고급을 만든다
+    lineHeight: 1,
+    color: 'var(--accent)',        // 한 색. 그라데이션도 그림자도 없다
+    whiteSpace: 'nowrap',
+  };
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap', ...style }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', ...style }}>
+      <span style={type}>BLACK</span>
+      {/* 가르는 선 — 대문자 높이의 절반쯤. 글자보다 흐리게 둔다 */}
       <span style={{
-        fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: cap * 0.82,
-        letterSpacing: cap * 0.40,   // 넓게 — 여백이 고급을 만든다
-        lineHeight: 1,
-        opacity: 0.72,
-        ...metal(false),
-      }}>BLACK</span>
-      {/* 자간이 마지막 글자 뒤에도 붙으므로 사이는 조금만 벌린다 */}
-      <span style={{ width: cap * 0.10, flexShrink: 0 }} />
-      <span style={{
-        fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: cap,
-        letterSpacing: cap * 0.16,
-        lineHeight: 1,
-        ...metal(true),
-      }}>IRON</span>
+        width: 1, height: cap * 0.62, background: 'var(--accent)', opacity: 0.45,
+        margin: `0 ${cap * 0.30}px 0 ${cap * 0.10}px`, flexShrink: 0,
+      }} />
+      <span style={type}>IRON</span>
     </span>
   );
 }
 
-// 금선 두 겹 — 가는 선 위에 더 가는 선. 얇은데도 또렷하다. 큰 자리에만 쓴다
-function Rule({ width = '100%', gap = 2 }) {
+// 금선 — 한 겹, 가운데만 진하다. 큰 자리에만 쓴다.
+// 앞 판은 두 겹이었는데 겹칠수록 장식이 된다
+function Rule({ width = '100%' }) {
   return (
-    <span style={{ width, display: 'flex', flexDirection: 'column', gap }}>
-      <span style={{ height: 1, background: 'linear-gradient(90deg, transparent, var(--accent) 18%, var(--accent) 82%, transparent)' }} />
-      <span style={{ height: 1, background: 'linear-gradient(90deg, transparent, var(--accent-low) 30%, var(--accent-low) 70%, transparent)', opacity: 0.55 }} />
-    </span>
+    <span style={{
+      width, height: 1,
+      background: 'linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent) 78%, transparent)',
+      opacity: 0.55,
+    }} />
   );
 }
 
@@ -112,7 +88,7 @@ function Rule({ width = '100%', gap = 2 }) {
  * `cap` 은 대문자 높이(px). 마크가 같은 높이로 따라온다.
  * `variant`
  *   'row'   머리 · 탭바 — 마크 + 글자. 금선과 부제는 안 넣는다 (작은 자리에서는 과하다)
- *   'stack' 스플래시 · 로그인 — 마크 · 금선 · 글자 · 금선 · 부제까지 다 넣는다
+ *   'stack' 스플래시 · 로그인 — 마크 · 글자 · 금선 · 부제
  *   'word'  글자만 (마크를 따로 놓는 자리)
  *   'mark'  마크만 (아이콘 자리)
  */
@@ -124,16 +100,15 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'RECORD YOU
     return (
       <span style={{
         display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-        gap: cap * 0.34, ...style,
+        gap: cap * 0.46, ...style,
       }} {...rest}>
-        <LogoMark size={cap * 2.2} />
-        <Rule gap={Math.max(1, cap * 0.05)} />
+        <LogoMark size={cap * 2.0} />
         <LogoWord cap={cap} />
-        <Rule width="72%" gap={Math.max(1, cap * 0.05)} />
+        <Rule width="64%" />
         {subtitle ? (
           <span style={{
-            fontFamily: "'Barlow', sans-serif", fontWeight: 500,
-            fontSize: cap * 0.30, letterSpacing: cap * 0.26,
+            fontFamily: "'Barlow', system-ui, sans-serif", fontWeight: 300,
+            fontSize: cap * 0.28, letterSpacing: cap * 0.30,
             color: 'var(--accent-low)', whiteSpace: 'nowrap',
           }}>{subtitle}</span>
         ) : null}
@@ -143,8 +118,8 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'RECORD YOU
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', ...style }} {...rest}>
-      <LogoMark size={cap * 1.15} />
-      <span style={{ width: cap * 0.46, flexShrink: 0 }} />
+      <LogoMark size={cap * 1.05} />
+      <span style={{ width: cap * 0.52, flexShrink: 0 }} />
       <LogoWord cap={cap} />
     </span>
   );
