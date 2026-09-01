@@ -32,11 +32,13 @@ const Logo = require(OUT_JS);
 const draw = (props) => renderToStaticMarkup(React.createElement(Logo.default, props));
 
 // 지금 쓰는 것 — 여러 크기로
+// **앱에서 실제로 쓰는 크기 그대로 적는다.** 이름표가 실제와 다르면 시안을 보고
+// 고른 것이 앱에서는 다른 크기로 나온다 — 9/1 에 그렇게 어긋나 있었다
 const sizes = [
-  ['머리 · 탭바 (19)', { cap: 19, variant: 'row' }],
-  ['머리 크게 (28)', { cap: 28, variant: 'row' }],
-  ['로그인 · 스플래시 (34)', { cap: 34, variant: 'stack' }],
-  ['크게 (56)', { cap: 56, variant: 'stack' }],
+  ['머리 (Layout · 18)', { cap: 18, variant: 'row' }],
+  ['PC 사이드바 (TabBar · 19)', { cap: 19, variant: 'row' }],
+  ['홈으로 돌아올 때 (MiniSplash · 28)', { cap: 28, variant: 'row' }],
+  ['로그인 · 회원가입 (34)', { cap: 34, variant: 'stack' }],
   ['글자만 (40)', { cap: 40, variant: 'word' }],
 ];
 
