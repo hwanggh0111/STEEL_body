@@ -482,6 +482,31 @@ ok('마지막 운동은 쉬는 시간이 0 이다',
 ok('모든 운동에 이름 · 초 · 쉬는 초가 있다',
   homeNames.flatMap((n) => home.PROGRAMS[n]).filter((e) => !e.name || !(e.duration > 0) || !(e.rest >= 0)), []);
 
+// 여섯 판이 서로 다른 운동을 한다 — 같은 것을 나눠 쓰면 판을 여섯 두는 뜻이 없다.
+// 괄호 안((좌) · (의자) · (식탁 아래))은 같은 동작을 어디서 하느냐일 뿐이라 떼고 센다
+const base = (n) => n.replace(/\s*\([^)]*\)/g, '').trim();
+const dup = [];
+homeNames.forEach((a, i) => homeNames.slice(i + 1).forEach((b) => {
+  const A = new Set(home.PROGRAMS[a].map((e) => base(e.name)));
+  home.PROGRAMS[b].forEach((e) => { if (A.has(base(e.name))) dup.push(a + ' · ' + b + ' : ' + base(e.name)); });
+}));
+ok('프로그램끼리 같은 운동을 나눠 쓰지 않는다', dup, []);
+ok('기능성 말고는 여덟 개씩이다',
+  homeNames.filter((n) => n !== '기능성(특수부대식)' && home.PROGRAMS[n].length !== 8), []);
+// 홈트에서 본 이름을 검색창에 치면 나와야 한다. 사전에 없으면 **조용히 빈손**이다 —
+// 아무도 안 터지고, 화면은 「없습니다」만 말한다.
+// 기능성 열둘은 사전이 아니라 추천 루틴에서 온 이름이라 그쪽도 같이 본다
+const dict = bundle('src/data/exerciseDict.js', '.t18.cjs');
+const known = new Set(dict.EXERCISE_DICT.map((e) => base(e.ko)));
+const routineSrcAll = fs.readFileSync('../backend/src/routes/routines.js', 'utf-8');
+[...routineSrcAll.matchAll(/name: '([^']+)'/g)].forEach((m) => known.add(base(m[1])));
+ok('홈트 운동이 전부 사전이나 루틴에 있다 (검색에서 찾힌다)',
+  [...new Set(homeNames.flatMap((n) => home.PROGRAMS[n].map((e) => base(e.name))))]
+    .filter((n) => !known.has(n)), []);
+// 설명은 하나만 비어도 그 판만 아무 말 없이 시작한다 — 대체 동작과 층간소음이 거기 있다
+ok('여섯 판 모두 한 줄 설명이 있다',
+  homeNames.filter((n) => !(home.PROGRAM_NOTES[n] || []).length), []);
+
 const func = home.PROGRAMS['기능성(특수부대식)'];
 ok('기능성(특수부대식)은 열두 개다', func.length, 12);
 // 「근력부터 유산소같은거」 — 앞은 오래 버티며 힘을 쓰고, 뒤로 갈수록 짧고 빠르다.
