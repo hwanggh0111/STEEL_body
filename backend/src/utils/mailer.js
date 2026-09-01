@@ -18,7 +18,7 @@ function getTransporter() {
 }
 
 // 인증번호 메일 발송. 성공 시 true, 실패/미설정 시 false.
-const APP_NAME = 'IRONLOG';
+const APP_NAME = 'BLACK IRON';
 // 메일은 CSS 변수를 못 쓴다(메일 프로그램이 안 읽는다). 그래서 값을 적는데,
 // **앱의 `--accent` 와 같은 값이어야 한다.** 8/28 에 앱은 검정+금으로 바꿨는데
 // 메일만 옛 주황(#ff6b1a)으로 남아 있었다 — 앱을 쓰다 메일을 받으면 다른 서비스 같다.

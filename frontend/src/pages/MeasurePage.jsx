@@ -72,7 +72,7 @@ export default function MeasurePage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'ironlog_measures.csv';
+        a.download = 'blackiron_measures.csv';
         document.body.appendChild(a);
         a.click();
         a.remove();

@@ -18,7 +18,7 @@ const path = require('path');
 
 const BASE = process.env.SEED_BASE || 'http://localhost:4000/api';
 const CLEAR = process.argv.includes('--clear');
-const DB_PATH = path.join(__dirname, '../ironlog.json');
+const DB_PATH = path.join(__dirname, '../blackiron.json');
 
 const EMAIL = 'seed@demo.local';
 const PASSWORD = 'seed12345';

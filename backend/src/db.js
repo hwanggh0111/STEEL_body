@@ -6,7 +6,7 @@ const crypto = require('crypto');
 // (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
 const DB_PATH = process.env.DB_FILE
   ? path.resolve(process.env.DB_FILE)
-  : path.join(__dirname, '../ironlog.json');
+  : path.join(__dirname, '../blackiron.json');
 
 // ── 사진은 따로 담는다 ──
 //
@@ -136,7 +136,7 @@ function load() {
       return _cache;
     }
   } catch (err) {
-    console.error('[DB] ironlog.json 파싱 실패, 초기화합니다:', err.message);
+    console.error('[DB] blackiron.json 파싱 실패, 초기화합니다:', err.message);
   }
   _cache = { ...DEFAULT_DATA, refreshTokens: [] };
   _flushSync(_cache);

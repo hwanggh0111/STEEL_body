@@ -458,7 +458,7 @@ console.log('── 앱 이름이 한 이름인가 ──');
 // 로고 · 탭 제목 · 설치 이름(manifest) · 아이폰 홈 화면 이름 · 알림 제목 · 내보내기 파일.
 // 하나만 빠뜨리면 **거기만 옛 이름으로 남는다.** 폰 홈 화면에 옛 이름으로 깔리거나,
 // 알림만 다른 앱에서 온 것처럼 뜬다. 아무도 안 터져서 눈으로만 잡힌다.
-const APP_NAME = 'IRONLOG';
+const APP_NAME = 'BLACK IRON';
 const html = fs.readFileSync('index.html', 'utf-8');
 const manifest = JSON.parse(fs.readFileSync('public/manifest.json', 'utf-8'));
 const sw = fs.readFileSync('public/sw.js', 'utf-8');
@@ -472,10 +472,19 @@ ok('아이폰 홈 화면 이름',
 ok('알림 제목', sw.includes(`payload.title || '${APP_NAME}'`), true);
 // 로고는 첫 글자만 세리프로 따로 그린다 — 두 조각을 이으면 이름이 나와야 한다
 const parts = [...logo.matchAll(/}}>([A-Z ]+)<\/span>/g)].map((m) => m[1]);
-ok('로고 글자를 이으면 앱 이름이 된다', parts.join(''), APP_NAME);
+// 두 낱말을 굵기와 자간으로 갈라 그린다 — 이으면 이름이 나와야 한다
+ok('로고 글자를 이으면 앱 이름이 된다', parts.join(' '), APP_NAME);
+// **두 낱말이 달라야 한다.** 같은 크기·같은 자간이면 그냥 긴 글자다
+ok('BLACK 과 IRON 을 다르게 그린다', /opacity: 0\.72/.test(logo) && /cap \* 0\.40/.test(logo), true);
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
+// 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
+// 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
+const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
+ok('앱 아이콘이 로고와 같은 모양이다',
+  /M256 38 474 256 256 474 38 256Z/.test(icon) && /M72 256 H440/.test(icon), true);
+ok('앱 아이콘에 옛 그림(원 안 바벨)이 안 남았다', /<circle/.test(icon), false);
 
 console.log('');
 console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴다) ──');
@@ -506,7 +515,7 @@ ok('앱 코드에 이모지가 없다',
 // 「예전 이름은 STEEL BODY 였다」까지 잡으면 왜 바꿨는지를 못 적는다)
 const oldName = srcFiles.concat(['index.html', 'public/manifest.json', 'public/sw.js', 'vite.config.js'])
   .filter((f) => fs.existsSync(f))
-  .filter((f) => /STEEL BODY|steelbody-|steel-body/.test(codeOf(fs.readFileSync(f, 'utf-8'))))
+  .filter((f) => /STEEL BODY|steelbody-|steel-body|IRONLOG|ironlog-/.test(codeOf(fs.readFileSync(f, 'utf-8'))))
   .map((f) => f.split(/[\\/]/).pop());
 ok('코드에 옛 이름이 안 남았다', oldName, []);
 

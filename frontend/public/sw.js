@@ -1,6 +1,6 @@
 // __SW_VERSION__는 빌드 시 vite plugin이 timestamp로 치환합니다.
-// 개발 모드에서는 그대로 'ironlog-dev' 사용.
-const CACHE_NAME = '__SW_VERSION__'.startsWith('__SW') ? 'ironlog-dev' : '__SW_VERSION__';
+// 개발 모드에서는 그대로 'blackiron-dev' 사용.
+const CACHE_NAME = '__SW_VERSION__'.startsWith('__SW') ? 'blackiron-dev' : '__SW_VERSION__';
 const PRECACHE_URLS = ['/', '/index.html'];
 
 // Install: precache core static files
@@ -108,7 +108,7 @@ self.addEventListener('push', (event) => {
     payload = {};
   }
 
-  const title = payload.title || 'IRONLOG';
+  const title = payload.title || 'BLACK IRON';
   const options = {
     body: payload.body || '',
     // 이 앱이 가진 아이콘은 svg 하나뿐이다 (manifest 와 같은 것을 쓴다).
@@ -117,7 +117,7 @@ self.addEventListener('push', (event) => {
     icon: '/icons/icon.svg',
     badge: '/icons/icon.svg',
     // 같은 tag 로 오면 덮어쓴다. 알림이 줄줄이 쌓이지 않게 한다
-    tag: payload.tag || 'ironlog',
+    tag: payload.tag || 'blackiron',
     data: { url: payload.url || '/home' },
   };
 

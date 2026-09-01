@@ -14,7 +14,7 @@ const db = require('../db');
 const PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
 const PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
 // 브라우저 푸시 서버가 문제가 생겼을 때 연락할 곳. mailto: 나 https: 여야 한다
-const SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@ironlog.local';
+const SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@blackiron.local';
 
 let ready = false;
 if (PUBLIC && PRIVATE) {

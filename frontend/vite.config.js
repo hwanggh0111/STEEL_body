@@ -9,7 +9,7 @@ const swVersionPlugin = () => ({
   closeBundle() {
     const swPath = path.resolve('dist/sw.js');
     if (!fs.existsSync(swPath)) return;
-    const version = `ironlog-${Date.now()}`;
+    const version = `blackiron-${Date.now()}`;
     let content = fs.readFileSync(swPath, 'utf-8');
     content = content.replace(/__SW_VERSION__/g, version);
     fs.writeFileSync(swPath, content, 'utf-8');
