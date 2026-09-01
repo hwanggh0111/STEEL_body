@@ -58,6 +58,17 @@ const DEFAULT_DATA = {
   // 진행 중인 루틴. 한 사람당 한 줄 — 한 번에 한 운동을 한다.
   // 서버에 두는 이유는 폰으로 시작해서 다른 기기로 이어갈 수 있어야 해서다
   routineSessions: [],
+  // ── 방어막이 남기는 것 ──
+  //
+  // **막아놓은 것은 서버가 다시 떠도 남아야 한다.** 8/31 까지 차단은 전부 램에만
+  // 있었다(`aiGuard` 의 Map 들). 서버가 한 번 재시작하면 「영구 정지」로 막아둔 IP 도
+  // 그냥 풀렸다 — Render 무료 플랜은 15분만 놀아도 프로세스가 내려간다. 즉 공격자는
+  // **기다리기만 하면 됐다.**
+  blocks: [],        // { ip, until, level, reason, created_at } — until: ISO 또는 'forever'
+  // 로그인 실패 누적. IP 별 · 계정별 둘 다 여기에 센다.
+  // 계정별을 같이 세는 이유는 IP 를 바꿔가며 한 계정을 두들기는 것을 IP 별로는
+  // 절대 못 잡기 때문이다 (한 IP 당 한두 번씩만 시도하면 된다)
+  loginFails: [],    // { key, count, last, until } — key: 'ip:1.2.3.4' | 'user:12'
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
   _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1 },
@@ -772,6 +783,14 @@ const db = {
   // (서버를 켜둔 채 DB 파일을 손으로 고치면 안 되는 것과 같은 이유다.)
   // 고치지 말고 읽기만 할 것 — 돌려주는 것은 사본이 아니라 그 자체다
   snapshot() { return load(); },
+  /**
+   * 지금 당장 파일에 쓴다.
+   *
+   * 보통은 0.5초 뒤에 몰아 쓴다 — 기록 하나 저장할 때마다 파일을 통째로 다시 쓰지 않으려는
+   * 것이다. 그런데 **막았다는 사실은 그 0.5초 안에 서버가 죽어도 남아야 한다** (공격받는
+   * 중에 죽는 것이 바로 그 상황이다). 검사도 다른 프로세스에서 파일을 읽어보려면 이게 필요하다
+   */
+  flushNow() { _flushImmediate(); },
 
   // ── 계정 삭제 예약 (30일 유예) ──
   //
@@ -859,7 +878,11 @@ const db = {
     const data = load();
     if (!data.refreshTokens) return null;
     const hash = refreshHash(token);
-    return data.refreshTokens.find(t => t.token_hash === hash && t.expires_at > new Date().toISOString()) || null;
+    // **쓴 것은 못 찾은 것으로 친다.** 여기서 걸러야 재사용이 「없는 토큰」이 아니라
+    // 재사용으로 보인다 (그 판단은 `findUsedRefreshToken` 이 한다)
+    return data.refreshTokens.find(
+      t => t.token_hash === hash && !t.used_at && t.expires_at > new Date().toISOString()
+    ) || null;
   },
   deleteRefreshToken(token) {
     const data = load();
@@ -867,6 +890,140 @@ const db = {
     const hash = refreshHash(token);
     data.refreshTokens = data.refreshTokens.filter(t => t.token_hash !== hash);
     save(data);
+  },
+
+  // ── 한 번 쓴 refresh token 은 지우지 않고 「썼다」고 적는다 ──
+  //
+  // 갱신할 때마다 새 토큰으로 바꾼다(rotation). 그런데 예전에는 쓴 토큰을 **지웠다** —
+  // 지우고 나면 그게 새어나가 남이 쓴 것인지, 그냥 만료된 것인지 **구별할 수가 없다.**
+  // 둘 다 401 이다.
+  //
+  // 토큰이 새면 이렇게 된다. 공격자가 먼저 갱신하면 그 사람은 새 토큰을 받아 계속 쓰고,
+  // 진짜 주인은 다음 갱신에서 401 을 받아 다시 로그인한다 — **쫓겨나는 쪽이 주인이다.**
+  //
+  // 그래서 쓴 표시만 하고 만료까지 들고 있는다. 쓴 토큰이 또 오면 **둘 중 하나는
+  // 도둑**이므로 그 계정의 로그인 유지를 전부 끊는다. 둘 다 다시 로그인해야 하는데,
+  // 비밀번호를 아는 쪽만 돌아온다.
+  useRefreshToken(token) {
+    const data = load();
+    if (!data.refreshTokens) return;
+    const hash = refreshHash(token);
+    const row = data.refreshTokens.find(t => t.token_hash === hash);
+    if (!row) return;
+    row.used_at = new Date().toISOString();
+    save(data);
+  },
+  /** 이미 쓴 토큰으로 또 갱신하려 든 것인가. 맞으면 그 줄을 준다 (누구 것인지 알아야 끊는다) */
+  findUsedRefreshToken(token) {
+    const data = load();
+    if (!data.refreshTokens) return null;
+    const hash = refreshHash(token);
+    return data.refreshTokens.find(t => t.token_hash === hash && t.used_at) || null;
+  },
+
+  // ── 방어막: 막아둔 것 ──
+  //
+  // 램이 아니라 파일에 적는다. 서버가 다시 떠도 막힌 것은 막힌 채여야 한다.
+  // `until` 이 'forever' 면 사람이 풀어줄 때까지 안 풀린다
+  blockIp(ip, untilMs, level, reason) {
+    if (!ip) return;
+    const data = load();
+    if (!data.blocks) data.blocks = [];
+    const until = untilMs === Infinity ? 'forever' : new Date(untilMs).toISOString();
+    const row = data.blocks.find(b => b.ip === ip);
+    if (row) {
+      // 더 센 것으로만 덮어쓴다 — 뒤에 온 가벼운 판정이 영구 차단을 지우면 안 된다
+      if (row.until === 'forever') return;
+      if (until === 'forever' || until > row.until) Object.assign(row, { until, level, reason, created_at: new Date().toISOString() });
+    } else {
+      data.blocks.push({ ip, until, level, reason, created_at: new Date().toISOString() });
+    }
+    save(data);
+  },
+  /** 지금 막혀 있으면 그 줄을, 아니면 null. 지날 때가 지난 줄은 그 자리에서 걷는다 */
+  findBlock(ip) {
+    const data = load();
+    if (!data.blocks || !data.blocks.length) return null;
+    const row = data.blocks.find(b => b.ip === ip);
+    if (!row) return null;
+    if (row.until !== 'forever' && row.until <= new Date().toISOString()) {
+      data.blocks = data.blocks.filter(b => b.ip !== ip);
+      save(data);
+      return null;
+    }
+    return row;
+  },
+  unblockIp(ip) {
+    const data = load();
+    if (!data.blocks) return false;
+    const before = data.blocks.length;
+    data.blocks = data.blocks.filter(b => b.ip !== ip);
+    if (data.blocks.length === before) return false;
+    save(data);
+    return true;
+  },
+  listBlocks() {
+    const data = load();
+    const now = new Date().toISOString();
+    return (data.blocks || []).filter(b => b.until === 'forever' || b.until > now);
+  },
+  cleanExpiredBlocks() {
+    const data = load();
+    if (!data.blocks || !data.blocks.length) return 0;
+    const now = new Date().toISOString();
+    const before = data.blocks.length;
+    data.blocks = data.blocks.filter(b => b.until === 'forever' || b.until > now);
+    const dropped = before - data.blocks.length;
+    if (dropped > 0) save(data);
+    return dropped;
+  },
+
+  // ── 방어막: 로그인 실패 누적 ──
+  //
+  // `key` 는 'ip:1.2.3.4' 또는 'user:12' 다. **계정별을 같이 세는 것이 요점이다** —
+  // IP 별로만 세면 IP 를 바꿔가며 한 계정을 두들기는 것을 못 잡는다. 한 IP 당
+  // 두 번씩만 시도하면 IP 카운터는 영영 안 찬다.
+  recordLoginFail(key, windowMs, max, lockMs) {
+    const data = load();
+    if (!data.loginFails) data.loginFails = [];
+    const now = Date.now();
+    let row = data.loginFails.find(r => r.key === key);
+    if (!row) {
+      row = { key, count: 0, last: 0, until: 0 };
+      data.loginFails.push(row);
+    }
+    // 오래 조용했으면 처음부터 센다
+    if (now - row.last > windowMs) row.count = 0;
+    row.count += 1;
+    row.last = now;
+    if (row.count >= max) row.until = now + lockMs;
+    save(data);
+    return row;
+  },
+  /** 지금 잠겨 있으면 남은 밀리초, 아니면 0 */
+  loginLockLeft(key) {
+    const data = load();
+    const row = (data.loginFails || []).find(r => r.key === key);
+    if (!row || !row.until) return 0;
+    return Math.max(0, row.until - Date.now());
+  },
+  clearLoginFail(key) {
+    const data = load();
+    if (!data.loginFails) return;
+    const before = data.loginFails.length;
+    data.loginFails = data.loginFails.filter(r => r.key !== key);
+    if (data.loginFails.length !== before) save(data);
+  },
+  /** 다 식은 줄은 걷는다. 안 걷으면 시도한 IP 수만큼 파일이 커진다 */
+  cleanLoginFails(windowMs) {
+    const data = load();
+    if (!data.loginFails || !data.loginFails.length) return 0;
+    const now = Date.now();
+    const before = data.loginFails.length;
+    data.loginFails = data.loginFails.filter(r => now - r.last < windowMs || r.until > now);
+    const dropped = before - data.loginFails.length;
+    if (dropped > 0) save(data);
+    return dropped;
   },
 
   // 있는 그대로 적혀 있던 옛 줄을 걷어낸다. 그대로 두면 못 알아보는 줄이 만료될 때까지

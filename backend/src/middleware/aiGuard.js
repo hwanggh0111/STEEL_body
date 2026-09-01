@@ -21,6 +21,35 @@ function limitedSet(map, key, value) {
 
 const requestCounts = new Map();    // IP → { count, firstRequest }
 const blockedIPs = new Map();       // IP → { until, level, reason }
+
+// 막을 때는 램과 **파일에 같이** 적는다.
+//
+// 8/31 까지 차단은 이 Map 하나였다. 서버가 다시 뜨면 통째로 비었다 —
+// 「영구 차단」으로 적어둔 것도 같이 사라졌다. Render 무료 플랜은 15분만 놀아도
+// 프로세스를 내린다. 공격자가 할 일은 **기다리는 것**뿐이었다.
+//
+// 램을 그대로 두는 이유는 요청마다 파일을 읽지 않기 위해서다. 파일은 서버가 뜰 때
+// 한 번 읽어 램을 채우고(`hydrateBlocks`), 막을 때마다 같이 적는다
+function block(ip, until, level, reason) {
+  if (!ip || ip === 'unknown') return;
+  limitedSet(blockedIPs, ip, { until, level, reason });
+  // **곧바로 파일에 쓴다.** 보통 쓰기는 0.5초 뒤로 미뤄지는데, 막는 순간은 공격받는
+  // 중이라 그 사이에 서버가 죽을 수 있다 — 죽으면서 차단만 사라지면 막은 적이 없는 것이다
+  try { db.blockIp(ip, until, level, reason); db.flushNow(); } catch { /* 파일이 안 써져도 막기는 막는다 */ }
+}
+
+/** 서버가 뜰 때 파일에 남아 있던 차단을 램으로 올린다 */
+function hydrateBlocks() {
+  let n = 0;
+  try {
+    for (const row of db.listBlocks()) {
+      const until = row.until === 'forever' ? Infinity : new Date(row.until).getTime();
+      limitedSet(blockedIPs, row.ip, { until, level: row.level, reason: row.reason });
+      n++;
+    }
+  } catch { /* 파일이 없으면 빈 채로 시작한다 */ }
+  return n;
+}
 const loginFailures = new Map();    // IP → { count, lastFailure }
 const notFoundCounts = new Map();   // IP → { count, firstHit }
 const spamCounts = new Map();       // userId → { count, firstCreate }
@@ -202,7 +231,7 @@ function executeLevel4(userId, ip, triggerType, details) {
   suspensionCounts.set(userId, (suspensionCounts.get(userId) || 0) + 1);
 
   // IP 영구 차단
-  limitedSet(blockedIPs, ip, { until: Infinity, level: 4, reason: aiReason });
+  block(ip, Infinity, 4, aiReason);
 
   return aiReason;
 }
@@ -233,7 +262,7 @@ function executeLevel3(userId, ip, triggerType, details, days) {
   }
 
   // IP 차단 (정지 기간만큼)
-  limitedSet(blockedIPs, ip, { until: Date.now() + days * 24 * 60 * 60 * 1000, level: 3, reason: aiReason });
+  block(ip, Date.now() + days * 24 * 60 * 60 * 1000, 3, aiReason);
 
   return aiReason;
 }
@@ -245,7 +274,7 @@ function executeLevel2(ip, triggerType, details, hours) {
   const aiReason = generateAiReason(2, triggerType, details);
   addLog('ALERT', `LEVEL 2 — ${triggerType}: ${hours}시간 잠금`, ip);
 
-  limitedSet(blockedIPs, ip, { until, level: 2, reason: aiReason });
+  block(ip, until, 2, aiReason);
   return aiReason;
 }
 
@@ -459,6 +488,7 @@ function aiGuardMiddleware(req, res, next) {
       return res.status(403).json(response);
     }
     blockedIPs.delete(ip);
+    try { db.unblockIp(ip); } catch { /* 파일이 안 지워져도 램에서는 풀렸다 */ }
   }
 
   // 봇 감지 (Render/UptimeRobot 등 모니터링 서비스 제외)
@@ -629,5 +659,21 @@ module.exports.getStats = () => ({
   spamTracking: spamCounts.size,
 });
 module.exports.getSuspiciousIPs = () => [...blockedIPs.keys()];
-module.exports.unblockIP = (ip) => { const r = blockedIPs.delete(ip); if (r) addLog('system', '수동 차단 해제', ip); return r; };
-module.exports.manualBlock = (ip, minutes) => { const until = Date.now() + minutes * 60000; limitedSet(blockedIPs, ip, { until, level: 2, reason: '관리자 수동 차단' }); return new Date(until).toISOString(); };
+// 손으로 풀 때는 **파일에서도** 지운다. 램에서만 지우면 다음에 서버가 뜰 때 되살아난다
+module.exports.unblockIP = (ip) => {
+  const inRam = blockedIPs.delete(ip);
+  let inFile = false;
+  try { inFile = db.unblockIp(ip); } catch { /* 파일이 없으면 램만 */ }
+  const r = inRam || inFile;
+  if (r) addLog('system', '수동 차단 해제', ip);
+  return r;
+};
+module.exports.hydrateBlocks = hydrateBlocks;
+
+// 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
+// **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다
+// (공격자가 먼저 쓰고, 주인의 갱신이 두 번째로 도착하는 것이 오히려 흔하다)
+module.exports.noteRefreshReuse = (userId, ip, email) => {
+  addLog('CRITICAL', `로그인 유지 토큰이 두 번 쓰였습니다 — ${email || 'id=' + userId} 의 로그인을 전부 끊었습니다`, ip, userId);
+};
+module.exports.manualBlock = (ip, minutes) => { const until = Date.now() + minutes * 60000; block(ip, until, 2, '관리자 수동 차단'); return new Date(until).toISOString(); };

@@ -29,10 +29,32 @@ function sweepExpired(now = Date.now()) {
   }
 }
 
-// 로그인 실패 추적
-const loginAttempts = {};
-const LOGIN_MAX_ATTEMPTS = 5;
+// ── 로그인 실패 추적 ──
+//
+// 8/31 까지는 이 파일의 `loginAttempts` 객체 하나였고, 열쇠가 **`IP + 이메일`** 이었다.
+// 그 조합은 무차별 대입 둘 다를 못 잡는다.
+//
+//   1. **한 계정을 IP 를 바꿔가며** 두들기기 — 프록시 목록만 있으면 IP 당 두 번씩만
+//      시도하면 된다. 조합 카운터는 영영 5에 못 닿는다
+//   2. **한 IP 에서 계정을 바꿔가며** 두들기기(크리덴셜 스터핑) — 어디서 샌 이메일·
+//      비밀번호 목록을 그대로 붓는 방식이다. 이메일이 바뀔 때마다 카운터가 새로 시작한다
+//
+// 그래서 열쇠를 둘로 나눈다 — **계정별**(IP 무관)과 **IP별**(계정 무관).
+// 그리고 램이 아니라 파일에 센다. 서버가 다시 뜨면 카운터가 0이 되던 것도 같은 구멍이다.
+//
+// **계정별 열쇠는 「친 아이디」로 만든다** (있는 계정인지 보지 않는다). 없는 계정은
+// 401 인데 있는 계정만 429 가 되면, 그 차이가 「이 아이디는 있다」는 답이 된다.
+//
+// 계정을 잠그는 것은 **남이 일부러 잠글 수 있다**(그 사람 아이디로 열 번 틀리면 된다).
+// 그래서 15분으로 짧게 두고, 그동안에도 비밀번호 찾기는 열려 있다. 잠금을 아예 안 두면
+// 목록을 가진 쪽이 하루 종일 두들길 수 있어서, 둘 중에는 이쪽이 낫다.
+const LOGIN_WINDOW = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;      // 계정 하나에 틀린 시도 열 번 (IP 를 바꿔도 같이 센다)
+const LOGIN_MAX_PER_IP = 20;        // 한 주소에서 스무 번 (계정을 바꿔도 같이 센다)
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
+
+// 친 아이디를 하나의 말로 맞춘다 — 대소문자와 앞뒤 공백으로 카운터를 피할 수 있으면 안 된다
+const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
 
 const { sanitize, cleanName } = require('../utils/sanitize');
 const { issueTokens } = require('../utils/tokens');
@@ -202,35 +224,35 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: '아이디(이메일)와 비밀번호를 입력해주세요' });
   }
 
-  // 로그인 시도 잠금 확인 (IP + 입력값 조합으로 추적)
+  // 잠겼는지 먼저 본다 — **비밀번호를 맞춰보기 전에.**
+  //
+  // bcrypt 는 한 번에 0.2초쯤 쓴다(rounds 12). 잠긴 뒤에도 맞춰보고 나서 막으면,
+  // 두들기는 쪽은 답을 못 얻어도 **서버 CPU 는 계속 태운다**. 막을 때는 그 앞에서 막는다.
   const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
-  const key = `${clientIp}:${email.toLowerCase()}`;
-  const attempts = loginAttempts[key];
-  if (attempts && attempts.count >= LOGIN_MAX_ATTEMPTS) {
-    const elapsed = Date.now() - attempts.lastAttempt;
-    if (elapsed < LOGIN_LOCK_TIME) {
-      const remaining = Math.ceil((LOGIN_LOCK_TIME - elapsed) / 60000);
-      addLog('login_blocked', `Login blocked: ${email} (locked ${remaining}min)`);
-      return res.status(429).json({ error: `로그인 시도 초과. ${remaining}분 후 다시 시도해주세요` });
-    }
-    delete loginAttempts[key];
+  const acctKey = loginKeyOf(email);
+  const ipKey = 'ip:' + clientIp;
+  const locked = Math.max(db.loginLockLeft(acctKey), db.loginLockLeft(ipKey));
+  if (locked > 0) {
+    const remaining = Math.ceil(locked / 60000);
+    addLog('login_blocked', `Login blocked: ${email} (locked ${remaining}min)`);
+    return res.status(429).json({ error: `로그인 시도 초과. ${remaining}분 후 다시 시도해주세요` });
   }
 
   const user = email.includes('@') ? db.findUserByEmail(email) : db.findUserByUsername(email);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    // 실패 횟수 기록
-    if (!loginAttempts[key]) loginAttempts[key] = { count: 0, lastAttempt: 0 };
-    loginAttempts[key].count++;
-    loginAttempts[key].lastAttempt = Date.now();
-    addLog('login_fail', `Login failed: ${email} (attempt ${loginAttempts[key].count})`);
+    // 계정별 · IP별 두 자리에 같이 센다 (둘 중 하나만으로는 못 잡는 것이 있다)
+    const acct = db.recordLoginFail(acctKey, LOGIN_WINDOW, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_TIME);
+    db.recordLoginFail(ipKey, LOGIN_WINDOW, LOGIN_MAX_PER_IP, LOGIN_LOCK_TIME);
+    addLog('login_fail', `Login failed: ${email} (attempt ${acct.count})`);
     // AI Guard에도 로그인 실패 기록 (clientIp는 상단에서 선언됨)
     recordLoginFailure(clientIp);
     return res.status(401).json({ error: '아이디(이메일) 또는 비밀번호가 틀렸어요' });
   }
 
-  // 성공 시 시도 횟수 초기화
-  delete loginAttempts[key];
+  // 들어왔으면 그 계정 카운터는 지운다. **IP 쪽은 안 지운다** — 자기 계정 하나를
+  // 제대로 로그인해서 스무 번 틀린 흔적을 지우는 길이 되면 안 된다
+  db.clearLoginFail(acctKey);
 
   // 지우기로 해놓고 다시 온 사람. **묻지 않고 되살린다** —
   // 자기 비밀번호로 들어온 사람이 「아직 지우지 마세요」라고 말한 것과 같다.
@@ -259,6 +281,32 @@ router.post('/refresh', (req, res) => {
   }
   const stored = db.findRefreshToken(refreshToken);
   if (!stored) {
+    // ── 이미 쓴 토큰이 또 왔다면 그것은 만료가 아니라 **새어나간 것이다** ──
+    //
+    // 갱신할 때마다 토큰을 새 것으로 바꾼다. 그러니 한 번 쓴 토큰이 다시 오는 경우는
+    // 하나뿐이다 — 그 값을 **두 곳이 들고 있다.** 하나는 주인이고 하나는 훔친 쪽이다.
+    //
+    // 여기서 그냥 401 만 주면 어떻게 되냐면, 먼저 갱신한 쪽(대개 공격자다. 훔치자마자
+    // 쓴다)이 새 토큰을 받아 계속 쓰고 **주인이 쫓겨난다.** 누가 진짜인지 서버는
+    // 모르므로, 그 계정의 로그인 유지를 **전부** 끊는다. 둘 다 다시 로그인해야 하고
+    // 비밀번호를 아는 쪽만 돌아온다.
+    const reused = db.findUsedRefreshToken(refreshToken);
+    if (reused) {
+      db.deleteUserRefreshTokens(reused.user_id);
+      addLog('refresh_reuse', `Refresh token reuse detected: user ${reused.user_id} — 모든 세션 종료`);
+      const u = db.findUserById(reused.user_id);
+      try {
+        // 관리자 화면의 보안 기록에도 남긴다 — 사람이 봐야 하는 종류의 일이다
+        require('../middleware/aiGuard').noteRefreshReuse(reused.user_id, req.ip || 'unknown', u?.email || '');
+      } catch { /* 기록이 안 남아도 세션은 끊는다 */ }
+      res.clearCookie('sb_access', { path: '/' });
+      res.clearCookie('sb_refresh', { path: '/api/auth' });
+      res.clearCookie('sb_csrf', { path: '/' });
+      return res.status(401).json({
+        error: '보안을 위해 로그인을 모두 끊었어요. 다시 로그인해주세요',
+        reason: 'refresh_reuse',
+      });
+    }
     // 토큰이 유효하지 않으면 모든 쿠키 클리어
     res.clearCookie('sb_access', { path: '/' });
     res.clearCookie('sb_refresh', { path: '/api/auth' });
@@ -270,8 +318,9 @@ router.post('/refresh', (req, res) => {
     db.deleteRefreshToken(refreshToken);
     return res.status(401).json({ error: '계정을 찾을 수 없거나 정지된 계정이에요' });
   }
-  // 기존 refresh token 삭제 (rotation)
-  db.deleteRefreshToken(refreshToken);
+  // 쓴 토큰은 **지우지 않고 「썼다」고 적는다.** 지우면 새어나가 다시 온 것인지
+  // 그냥 만료된 것인지 구별할 수 없다 — 둘 다 「없는 토큰」이 된다
+  db.useRefreshToken(refreshToken);
   // 새 토큰 발급.
   //
   // **새 access token 을 몸통에도 담아 보낸다.** 예전에는 쿠키로만 줬다.

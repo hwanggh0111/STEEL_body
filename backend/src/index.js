@@ -174,6 +174,16 @@ try {
   if (dropped > 0) console.log(`[DB] 옛 방식으로 저장돼 있던 로그인 유지 ${dropped}건을 걷어냈습니다 (그만큼 다시 로그인해야 합니다)`);
 } catch (e) { console.error('[DB] 옛 토큰 정리 실패:', e.message); }
 
+// 파일에 남아 있던 차단을 램으로 올린다.
+//
+// **막아놓은 것은 서버가 다시 떠도 막힌 채여야 한다.** 8/31 까지 차단은 램에만 있어서
+// 재시작 한 번이면 영구 차단까지 통째로 풀렸다 — Render 무료 플랜은 15분만 놀아도
+// 프로세스를 내리므로, 공격자가 할 일은 기다리는 것뿐이었다.
+try {
+  const restored = aiGuard.hydrateBlocks();
+  if (restored > 0) console.log(`[GUARD] 막아둔 주소 ${restored}건을 그대로 이어받았습니다`);
+} catch (e) { console.error('[GUARD] 차단 목록 읽기 실패:', e.message); }
+
 // 만료된 refresh token 정리 + 유예가 끝난 계정 삭제 (30분마다)
 //
 // 계정 삭제는 30일 뒤에 **실제로** 지워야 한다. 예약만 해두고 지우지 않으면
@@ -187,6 +197,10 @@ function sweepDeletedAccounts() {
 }
 setInterval(() => {
   try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); }
+  // 지날 때가 지난 차단과 다 식은 로그인 실패 줄도 같이 걷는다 —
+  // 안 걷으면 시도한 주소 수만큼 파일이 커진다
+  try { db.cleanExpiredBlocks(); } catch (e) { console.error('[CLEANUP:block]', e.message); }
+  try { db.cleanLoginFails(24 * 60 * 60 * 1000); } catch (e) { console.error('[CLEANUP:login]', e.message); }
   try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
 }, 30 * 60 * 1000);
 // 켜질 때도 한 번 본다 — 서버가 꺼져 있는 동안 지날 때가 지난 것이 있다

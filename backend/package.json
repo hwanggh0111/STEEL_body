@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs",
+    "check": "node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs",
     "smoke": "node scripts/smoke.cjs",
     "seed": "node scripts/seed.cjs",
     "seed:clear": "node scripts/seed.cjs --clear",
