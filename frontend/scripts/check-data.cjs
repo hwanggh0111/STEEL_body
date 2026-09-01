@@ -453,6 +453,30 @@ ok('없는 이름은 빈 칸을 준다 (안 터진다)',
 
 
 console.log('');
+console.log('── 기록 화면에서 운동을 찾을 수 있는가 ──');
+// 기록 화면의 운동명 칸은 **내가 전에 적은 이름만** 찾고 있었다. 처음 쓰는 사람은
+// 후보가 하나도 없었고, 초성('ㅂㅊㅍㄹㅅ')이나 부위('가슴')로는 아무것도 안 나왔다.
+// 그 기능은 「운동 검색」 화면에만 있어서, 기록하다 이름이 생각 안 나면 화면을
+// 나갔다 들어와야 했다 — 적으려던 것을 도중에 끊는 셈이다.
+const dictMod = bundle('src/data/exerciseDict.js', '.t19.cjs');
+const found = (q) => dictMod.searchExercises(q, 8).map((e) => e.ko);
+
+ok('이름으로 찾는다', found('벤치프레스').includes('벤치프레스'), true);
+ok('초성으로 찾는다 (ㅂㅊㅍㄹㅅ)', found('ㅂㅊㅍㄹㅅ').includes('벤치프레스'), true);
+ok('영문으로 찾는다 (squat)', found('squat').includes('스쿼트'), true);
+ok('부위로 찾는다 (가슴)', found('가슴').length > 0, true);
+// 홈트·루틴에서 쓰는 이름도 여기서 찾혀야 한다 — 9/1 에 사전에 넣은 것들이다
+ok('오늘 넣은 운동도 찾힌다 (노르딕 컬)', found('노르딕').includes('노르딕 컬'), true);
+ok('한 글자로는 안 찾는다 (거의 다 걸려서 도움이 안 된다)', found('스').length, 0);
+
+const wp = fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8');
+ok('기록 화면이 사전을 쓴다', /searchExercises/.test(wp), true);
+// 내가 전에 한 것이 위에 와야 한다 — 무게·횟수가 저절로 채워지는 것들이다
+ok('전에 한 것을 먼저 보여준다', wp.indexOf('mine: true') < wp.indexOf('fromDict'), true);
+ok('사전에서 온 것은 설명을 같이 보여준다', wp.includes('s.desc &&'), true);
+ok('뭘로 찾을 수 있는지 적어준다', wp.includes('이름 · 초성 · 부위로 찾을 수 있어요'), true);
+
+console.log('');
 console.log('── 앱 이름이 한 이름인가 ──');
 // 2026-09-01 에 STEEL BODY → IRONLOG 로 바꿨다. 이름은 **여섯 자리**에 흩어져 있다 —
 // 로고 · 탭 제목 · 설치 이름(manifest) · 아이폰 홈 화면 이름 · 알림 제목 · 내보내기 파일.

@@ -15,6 +15,7 @@ import { volumeOf } from '../data/weeklyReport';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { primeAudio } from '../data/alertSound';
+import { searchExercises } from '../data/exerciseDict';
 
 const TEXT = {
   ko: {
@@ -37,7 +38,7 @@ const TEXT = {
     loading: '로딩 중...',
     noRecords: '이 날짜의 운동 기록이 없어요',
     autofilled: '지난 기록에서 불러왔어요',
-    placeholderExercise: '벤치프레스',
+    placeholderExercise: '벤치프레스 · ㅂㅊㅍㄹㅅ · 가슴',
     placeholderWeight: '60kg',
     placeholderSets: '4',
     placeholderReps: '12',
@@ -80,7 +81,7 @@ const TEXT = {
     loading: 'Loading...',
     noRecords: 'No workout records for this date',
     autofilled: 'Auto-filled from last session',
-    placeholderExercise: 'Bench Press',
+    placeholderExercise: 'Bench Press · chest',
     placeholderWeight: '60kg',
     placeholderSets: '4',
     placeholderReps: '12',
@@ -225,13 +226,37 @@ export default function WorkoutPage() {
     [workouts]
   );
 
+  // 운동명 후보.
+  //
+  // **예전에는 「내가 전에 적은 이름」만 찾았다.** 그래서 처음 쓰는 사람은 후보가 하나도
+  // 없었고, 초성('ㅂㅊㅍㄹㅅ')이나 부위('가슴')로는 아무것도 안 나왔다. 그 기능은
+  // 「운동 검색」 화면에만 있었는데, 기록하다가 운동 이름이 생각 안 나면 **화면을 나갔다
+  // 들어와야 했다.** 적으려던 것을 도중에 끊는 셈이다.
+  //
+  // 이제 두 곳을 같이 본다.
+  //   1. **내가 전에 한 것** — 위에 둔다. 무게·횟수가 저절로 채워지는 것들이다
+  //   2. **앱 운동 사전** — 그 아래. 「운동 검색」이 쓰는 그 사전이라 초성 · 영문 ·
+  //      부위 · 설명으로 다 찾힌다. 설명 한 줄을 같이 보여줘서 고르기 전에 확인한다
+  const buildSuggestions = (val) => {
+    const q = val.trim();
+    if (!q) return [];
+    const mine = allExercises
+      .filter((ex) => ex.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 4)
+      .map((name) => ({ name, mine: true }));
+    // 사전은 한 글자로는 안 찾는다(거의 다 걸려서 도움이 안 된다) — 그건 사전 쪽 규칙이다
+    const fromDict = searchExercises(q, 8)
+      .filter((e) => !mine.some((m) => m.name === e.ko))
+      .map((e) => ({ name: e.ko, desc: e.desc, group: e.group }));
+    return [...mine, ...fromDict].slice(0, 8);
+  };
+
   // 운동명 변경 시 이전 기록 자동 채우기 + 자동완성 제안
   const handleExerciseChange = (e) => {
     const val = e.target.value;
     setExercise(val);
     setAutofilled(false);
-    const filtered = allExercises.filter(ex => ex.toLowerCase().includes(val.toLowerCase()));
-    setSuggestions(val ? filtered.slice(0, 5) : []);
+    setSuggestions(buildSuggestions(val));
     setSuggestIdx(-1);
   };
 
@@ -253,7 +278,7 @@ export default function WorkoutPage() {
       setSuggestIdx(n => (n <= 0 ? suggestions.length : n) - 1);
     } else if (e.key === 'Enter' && suggestIdx >= 0) {
       e.preventDefault();
-      handleSuggestionClick(suggestions[suggestIdx]);
+      handleSuggestionClick(suggestions[suggestIdx].name);
     } else if (e.key === 'Escape') {
       setSuggestions([]);
       setSuggestIdx(-1);
@@ -546,7 +571,14 @@ export default function WorkoutPage() {
               </div>
             </div>
 
-            {autofilled && (
+            {/* 뭘로 찾을 수 있는지 안 적으면 아무도 초성이나 부위로 안 쳐본다.
+            후보가 떠 있는 동안에는 안 그린다 — 목록을 가린다 */}
+        {suggestions.length === 0 && !autofilled && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.6 }}>
+            이름 · 초성 · 부위로 찾을 수 있어요. 전에 한 운동은 무게와 횟수가 저절로 채워집니다.
+          </div>
+        )}
+        {autofilled && (
               <div style={{ fontSize: 11.5, color: 'var(--accent)' }}>↻ {t.autofilled}</div>
             )}
             {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
@@ -651,21 +683,41 @@ export default function WorkoutPage() {
             }}>
               {suggestions.map((s, idx) => (
                 <div
-                  key={s}
+                  key={s.name}
                   id={`exercise-suggestion-${idx}`}
                   role="option"
                   aria-selected={idx === suggestIdx}
                   // 누르는 순간 입력칸이 포커스를 잃으면 blur 가 목록을 닫아 클릭이 샌다.
                   // mousedown 을 막아 포커스를 잡아두고, 클릭은 그대로 받는다
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleSuggestionClick(s)}
+                  onClick={() => handleSuggestionClick(s.name)}
                   onMouseEnter={() => setSuggestIdx(idx)}
                   style={{
-                    padding: '10px 12px', cursor: 'pointer', fontSize: 13,
+                    padding: '9px 12px', cursor: 'pointer', fontSize: 13,
                     borderBottom: '1px solid var(--border)',
                     background: idx === suggestIdx ? 'var(--bg-tertiary)' : 'transparent',
                   }}
-                >{s}</div>
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: 'var(--text-primary)' }}>{s.name}</span>
+                    {/* 전에 한 것은 무게·횟수가 저절로 채워진다 — 그걸 미리 알려준다 */}
+                    {s.mine ? (
+                      <span style={{
+                        fontSize: 10.5, color: 'var(--accent)', border: '1px solid var(--accent)',
+                        borderRadius: 'var(--radius)', padding: '0 6px', flexShrink: 0,
+                      }}>전에 한 것</span>
+                    ) : s.group ? (
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{s.group}</span>
+                    ) : null}
+                  </div>
+                  {/* 사전에서 온 것은 어떤 운동인지 한 줄로 — 이름만 보고 고르면 엉뚱한 걸 적는다 */}
+                  {s.desc && (
+                    <div style={{
+                      fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{s.desc}</div>
+                  )}
+                </div>
               ))}
             </div>
           )}
