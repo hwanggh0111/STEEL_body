@@ -15,6 +15,10 @@
 //   · **가르는 직선을 뺐다.** 낱말 사이는 여백으로 나눈다. 선을 그으면 나눈 티가 난다
 //   · **마크는 각을 버리고 원으로.** 마름모(각 넷)를 링 하나로 바꾸고, 봉이 그 안을
 //     가로지른다. 원은 어느 크기로 줄여도 뭉개지지 않는 유일한 모양이다
+//   · **글자는 흘림(이탤릭)으로 세우고, 밑에 펜으로 그은 획을 하나 둔다.**
+//     곧게 선 글자에 자로 그은 선은 인쇄물이고, 기운 글자에 손으로 그은 획은 싸인이다.
+//     획은 **가운데가 굵고 양끝이 가늘며 끝이 위로 튄다** — 선(stroke)으로는 굵기를
+//     못 바꾸니 면(fill)으로 그린다
 //
 // 색은 `--accent` 하나만 납작하게 쓴다. 그라데이션도 그림자도 없다 —
 // 화면에서 금속을 흉내 내면 대개 싸 보인다(그게 앞 판이 촌스러웠던 이유다).
@@ -52,9 +56,13 @@ export function LogoWord({ cap = 19, style }) {
     <span style={{
       fontFamily: "'Playfair Display', 'Times New Roman', serif",
       fontWeight: 400,
+      // **흘림(이탤릭).** 곧게 선 글자는 인쇄물이고, 기울면 손으로 쓴 것이 된다 —
+      // 싸인처럼 보이게 하는 것의 절반은 이 기울기다
+      fontStyle: 'italic',
       // 세리프는 대문자 높이가 낮게 앉는다 — 같은 자리에 놓으려면 조금 키운다
       fontSize: cap * 1.34,
-      letterSpacing: cap * 0.02,
+      // 흘림은 글자끼리 이어지는 결이라 자간을 더 좁힌다. 벌리면 이어진 느낌이 끊긴다
+      letterSpacing: cap * 0.005,
       lineHeight: 1,
       color: 'var(--accent)',
       whiteSpace: 'nowrap',
@@ -63,14 +71,30 @@ export function LogoWord({ cap = 19, style }) {
   );
 }
 
-// 금선 — 한 겹, 가운데만 진하다. 큰 자리에만 쓴다
-function Rule({ width = '100%' }) {
+/**
+ * 싸인 획 — **펜으로 한 번 그은 것.**
+ *
+ * 앞 판은 곧은 금선이었다. 자로 그은 선은 표(表)의 줄이고, 손으로 그은 획은 싸인이다.
+ * 차이는 셋이다 — **가운데가 굵고 양끝이 가늘다 · 살짝 휘었다 · 끝이 위로 튄다.**
+ *
+ * 선(stroke)으로는 굵기를 바꿀 수 없어서 **면(fill)으로 그린다** — 위아래 곡선 두 개를
+ * 맞물려 가운데가 부푼 모양을 만든다. 끝의 짧은 획은 펜을 떼면서 튀는 자국이다.
+ */
+function Flourish({ width = '100%' }) {
   return (
-    <span style={{
-      width, height: 1,
-      background: 'linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent) 78%, transparent)',
-      opacity: 0.5,
-    }} />
+    <svg viewBox="0 0 120 14" width={width} height="auto" fill="none" aria-hidden="true"
+      style={{ display: 'block', color: 'var(--accent)', overflow: 'visible' }}>
+      {/* 몸통 — 가운데가 굵고 양끝으로 갈수록 얇아진다 */}
+      <path
+        d="M2 9.4C22 3.6 44 2.2 74 3.4c14 .6 28 1.8 44 4.2-16-1.2-30-1.8-44-2.2C44 5 22 6.2 2 9.4Z"
+        fill="currentColor" opacity="0.9"
+      />
+      {/* 끝의 튄 자국 — 펜을 떼면서 위로 올라간다 */}
+      <path
+        d="M108 6.6c4.4-1.6 8-3.4 10.6-5.6-1.6 2.8-4.6 5-8.6 6.6Z"
+        fill="currentColor" opacity="0.65"
+      />
+    </svg>
   );
 }
 
@@ -96,10 +120,10 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record you
       }} {...rest}>
         <LogoMark size={cap * 2.0} />
         <LogoWord cap={cap} />
-        <Rule width="58%" />
+        <Flourish width="62%" />
         {subtitle ? (
           <span style={{
-            // 부제도 세리프 이탤릭으로 — 대문자로 적으면 다시 표지판이 된다
+            // 부제도 같은 흘림으로 — 대문자로 적으면 다시 표지판이 된다
             fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 400,
             fontSize: cap * 0.46, letterSpacing: cap * 0.01,
             color: 'var(--accent-low)', whiteSpace: 'nowrap',

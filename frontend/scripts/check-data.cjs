@@ -484,11 +484,20 @@ ok('낱말 사이에 선을 안 긋는다', /width: 1, height: cap/.test(logo), 
 // 화면에서 금속을 흉내 내면 대개 싸 보인다. 한 색 · 가는 선 · 넓은 자간으로 간다
 ok('글자에 그라데이션을 안 쓴다', /backgroundClip: 'text'/.test(logo), false);
 ok('글자에 그림자를 안 쓴다', /textShadow/.test(logo), false);
-ok('소문자라 자간을 좁게 둔다', /letterSpacing: cap \* 0\.02/.test(logo), true);
+// 소문자에 자간을 벌리면 글자가 흩어진다. 값은 손볼 수 있으니 **넓지 않은지**만 본다
+const wordSpacing = Number((logo.match(/letterSpacing: cap \* (0\.[0-9]+)/) || [])[1]);
+ok('소문자라 자간을 좁게 둔다', wordSpacing > 0 && wordSpacing <= 0.03, true);
 // 마크는 선 하나 굵기. 획이 많아지면 작은 자리에서 뭉친다
 // 마크는 **링 하나 + 봉 하나**. 각진 도형을 안 쓴다 — 원은 어느 크기로 줄여도 안 뭉갠다
+// **마크 함수 안만 센다.** 파일 전체를 세면 싸인 획의 path 까지 걸린다 —
+// 실제로 그렇게 짰다가 FAIL 이 났다
+const markBody = logo.slice(logo.indexOf('export function LogoMark'), logo.indexOf('export function LogoWord'));
 ok('마크가 링 하나 + 봉 하나다',
-  [(logo.match(/<circle/g) || []).length, (logo.match(/<path/g) || []).length], [1, 1]);
+  [(markBody.match(/<circle/g) || []).length, (markBody.match(/<path/g) || []).length], [1, 1]);
+// 싸인 획 — 자로 그은 선이 아니라 **면으로 그린 획**이다 (가운데가 굵고 끝이 가늘다)
+ok('밑줄은 곧은 선이 아니라 그은 획이다',
+  /function Flourish/.test(logo) && /fill="currentColor"/.test(logo), true);
+ok('글자를 흘려 쓴다 (싸인 결)', /fontStyle: 'italic'/.test(logo), true);
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
