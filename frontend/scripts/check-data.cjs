@@ -552,6 +552,23 @@ ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유�
 const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
 ok('화면이 설명 줄을 그린다', page.includes('PROGRAM_NOTES[name]'), true);
 
+// 운동마다 **어떻게 하는지**가 있어야 한다. 이름만 있으면 「스캡 푸시업」에서 멈춘다
+ok('마흔여덟 개 운동에 전부 설명이 있다',
+  homeNames.flatMap((n) => home.PROGRAMS[n].map((e) => e.name)).filter((n) => !home.descOf(n)), []);
+ok('괄호가 붙은 이름도 설명을 찾는다 (좌 · 의자 · 식탁 아래)',
+  home.descOf('사이드 플랭크 힙 딥 (좌)') === home.descOf('사이드 플랭크 힙 딥'), true);
+ok('사전에 없는 이름은 빈 줄을 준다 (안 터진다)', home.descOf('없는운동'), '');
+ok('화면이 그 설명을 그린다', page.includes('descOf('), true);
+// 쉬는 20초 동안 다음이 뭔지 모르면 그 시간이 준비하는 시간이 못 된다
+ok('쉬는 화면이 다음 운동을 알려준다', /다음/.test(page) && page.includes('descOf(nextEx.name)'), true);
+// 플랭크를 하는 사람은 바닥을 보고 있다 — 화면을 봐야만 알 수 있으면 안 된다
+ok('단계가 바뀔 때 소리 · 진동으로 알린다', page.includes('beepDone('), true);
+ok('소리는 사람이 누른 순간에 준비한다 (브라우저가 막는다)', page.includes('primeAudio()'), true);
+// 40초 플랭크 중에 화면이 꺼지면 남은 시간도 다음도 못 본다
+ok('운동하는 동안 화면을 안 재운다', page.includes("wakeLock.request('screen')"), true);
+ok('오늘 안 되는 운동은 건너뛸 수 있다', page.includes('skipStep'), true);
+ok('완료 화면에 이모지를 안 쓴다', /💪|🎉|🔥/.test(page), false);
+
 // 더보기의 「기능성(특수부대식)」은 홈트의 한 프로그램으로 바로 간다 (`?p=이름`).
 // 이름이 한 글자만 달라도 조용히 목록만 열린다 — 아무도 안 터지고 바로가기만 죽는다
 const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');

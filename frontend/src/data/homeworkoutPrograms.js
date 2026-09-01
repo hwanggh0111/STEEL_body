@@ -3,6 +3,23 @@
 //
 // duration 은 운동하는 초, rest 는 그 다음 쉬는 초다. **마지막 운동의 rest 는 0** —
 // 끝나고 쉴 필요가 없다 (화면도 마지막 뒤에는 휴식을 넣지 않는다).
+//
+// **운동 이름 옆에 어떻게 하는지를 같이 준다** (`descOf`). 이름만 적어두면
+// 「스캡 푸시업」 · 「노르딕 컬」 앞에서 사람이 멈춘다 — 설명을 따로 적지 않고
+// 운동 사전(`exerciseDict.js`)에서 가져온다. 사전은 검색이 쓰는 그 사전이라,
+// 홈트에서 본 이름을 검색창에 쳐도 같은 말이 나온다.
+import { EXERCISE_DICT } from './exerciseDict';
+
+// 괄호 안은 같은 동작을 **어디서 하느냐**일 뿐이다 — (좌) · (의자) · (식탁 아래).
+// 사전에는 괄호 없는 이름으로 있다
+const base = (name) => String(name || '').replace(/\s*\([^)]*\)/g, '').trim();
+
+const DESC = new Map(EXERCISE_DICT.map((e) => [base(e.ko), e.desc]));
+
+/** 그 운동을 어떻게 하는지 한 줄. 사전에 없으면 빈 문자열 (화면은 그 줄을 안 그린다) */
+export function descOf(name) {
+  return DESC.get(base(name)) || '';
+}
 export const PROGRAMS = {
   // 초보가 몸을 데우는 판. **뛰는 동작이 하나도 없다** — 처음 하는 사람이 층간소음까지
   // 신경 쓰면 첫 판을 못 넘긴다. 앞뒤(굿모닝 · 글루트브릿지)와 좌우(사이드 스텝)를

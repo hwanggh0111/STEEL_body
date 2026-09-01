@@ -158,6 +158,18 @@ export const EXERCISE_DICT = [
   { ko: '스쿼트 사이드킥', en: 'squat side kick', group: '유산소', desc: '일어서며 옆으로 차기. 둔근 바깥쪽 + 균형' },
   { ko: '인치웜', en: 'inchworm', group: '전신', desc: '선 채로 손을 짚어 플랭크까지 걸어갔다 돌아옴. 전신을 한 번에 편다' },
   { ko: '스프롤', en: 'sprawl', group: '유산소', desc: '버피에서 점프를 뺀 레슬링식 동작. 소리가 안 난다' },
+  // ─── 기능성(특수부대식) — 추천 루틴에서 온 것들 ───
+  // 홈트의 여섯째 판이 부르는 이름이다. 설명은 루틴(`backend/src/routes/routines.js`)에
+  // 이미 적어둔 것을 한 줄로 줄였다 — 두 곳이 같은 동작을 다르게 설명하면 안 된다
+  { ko: '배낭 파머스 워크', en: 'backpack farmer walk', group: '전신', desc: '책 넣은 배낭이나 장바구니를 양손에 들고 걷기. 그립 + 코어 + 자세' },
+  { ko: '오버헤드 배낭 워크', en: 'overhead backpack walk', group: '전신', desc: '가벼운 배낭을 머리 위로 든 채 걷기. 허리가 젖혀지지 않게 배에 힘' },
+  { ko: '배낭 안고 런지 워크', en: 'backpack lunge walk', group: '런지', desc: '배낭을 가슴 앞에 안고 걸으며 런지. 좁으면 제자리에서 좌우 번갈아' },
+  { ko: '배낭 스러스터', en: 'backpack thruster', group: '전신', desc: '배낭을 안고 앉았다 일어서며 머리 위로 밀어 올림. 제일 빨리 숨이 찬다' },
+  { ko: '데드행', en: 'dead hang', group: '풀업', desc: '문틀바에 팔을 편 채 매달려 버티기. 그립 + 어깨' },
+  { ko: '월싯', en: 'wall sit', group: '스쿼트', desc: '벽에 등을 붙이고 무릎 90도로 버티기. 소리도 자리도 안 난다' },
+  { ko: '할로우 홀드', en: 'hollow hold', group: '코어', desc: '누워서 어깨와 다리를 함께 들어 바나나 모양. 허리가 뜨면 다리를 더 든다' },
+  { ko: '플랭크 어깨 터치', en: 'plank shoulder tap', group: '코어', desc: '높은 플랭크에서 반대쪽 어깨 짚기. 골반이 흔들리지 않게 버틴다' },
+  { ko: '하이니 스프린트', en: 'high knee sprint', group: '유산소', desc: '무릎을 배꼽 높이까지 올리며 제자리 전력 질주. 앞꿈치로 디디면 소리가 덜 난다' },
 ];
 
 export const CATEGORY_DICT = {

@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
-import { PROGRAMS, PROGRAM_NOTES } from '../data/homeworkoutPrograms';
+import NavIcon from '../components/NavIcon';
+import { PROGRAMS, PROGRAM_NOTES, descOf } from '../data/homeworkoutPrograms';
+import { primeAudio, beepDone } from '../data/alertSound';
+import { useRestTimerStore } from '../store/restTimerStore';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -18,6 +21,15 @@ export default function HomeworkoutPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [finished, setFinished] = useState(false);
   const navigate = useNavigate();
+  // 소리와 진동은 휴식 타이머에서 이미 정한 값을 그대로 쓴다. 같은 「시간이 다 됐다」인데
+  // 화면마다 따로 켜고 끄게 하면 한쪽만 꺼둔 것을 잊는다.
+  //
+  // **화면을 보고 있어야만 알 수 있으면 안 된다.** 플랭크를 하는 사람은 바닥을 보고 있고,
+  // 런지 홀드를 하는 사람은 폰을 못 든다 — 소리가 나야 다음으로 넘어간 걸 안다
+  const sound = useRestTimerStore((s) => s.sound);
+  const vibrate = useRestTimerStore((s) => s.vibrate);
+  const alertRef = useRef({ sound, vibrate });
+  alertRef.current = { sound, vibrate };
   // 더보기의 「기능성(특수부대식)」처럼 한 프로그램으로 바로 오는 길. `?p=이름`
   //
   // 바로 시작하게 하지 않고 **펼쳐서** 보여준다 — 층간소음이나 식탁 대체 같은 말이
@@ -64,6 +76,9 @@ export default function HomeworkoutPage() {
 
   const advance = () => {
     const { idx, rest } = phaseRef.current;
+    // 단계가 바뀌는 그 순간에 알린다. 소리도 진동도 안 될 수 있어서(사파리는 진동이
+    // 없고, 브라우저가 소리를 막기도 한다) 화면 표시는 언제나 같이 둔다
+    beepDone(alertRef.current.sound, alertRef.current.vibrate);
     // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
     if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
       beginPhase(idx, true);
@@ -80,6 +95,10 @@ export default function HomeworkoutPage() {
     beginPhase(next, false);
   };
 
+  // 1초마다 도는 자리가 붙잡고 있을 최신 `advance`. 없으면 처음 렌더의 것을 계속 쓴다
+  const advanceRef = useRef(advance);
+  advanceRef.current = advance;
+
   useEffect(() => {
     if (!running) return;
     // 250ms 마다 시계를 다시 본다. 1초 간격으로 재면 백그라운드에서 흐르지 않는다
@@ -88,10 +107,33 @@ export default function HomeworkoutPage() {
       const remain = deadlineRef.current - Date.now();
       // 올림으로 센다. 반올림하면 마지막 0.5초가 잘려 단계마다 조금씩 짧아진다
       setTimeLeft(Math.max(0, Math.ceil(remain / 1000)));
-      if (remain <= 0) advance();
+      if (remain <= 0) advanceRef.current();
     }, 250);
     return () => clearInterval(id);
   }, [running, selected]);
+
+  // 운동하는 동안 화면을 안 재운다.
+  //
+  // 40초 플랭크를 하는데 30초에 화면이 꺼지면 남은 시간도, 다음이 뭔지도 못 본다.
+  // 폰을 손으로 만질 수 없는 자세라서 더 그렇다. 안 되는 브라우저(사파리 일부)에서는
+  // 조용히 넘어간다 — 이것만 믿고 다른 것을 빼지 않는다
+  useEffect(() => {
+    if (!running || !navigator.wakeLock) return;
+    let lock = null;
+    let dropped = false;
+    const grab = () => navigator.wakeLock.request('screen')
+      .then((l) => { if (dropped) l.release().catch(() => {}); else lock = l; })
+      .catch(() => {});
+    grab();
+    // 다른 앱을 봤다 돌아오면 잠금이 풀려 있다 — 다시 잡는다
+    const onVisible = () => { if (document.visibilityState === 'visible') grab(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      dropped = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, [running]);
 
   // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
   const pausedLeftRef = useRef(0);
@@ -99,6 +141,9 @@ export default function HomeworkoutPage() {
   // 처음부터 시작한다. 멈춰뒀던 자리는 버린다
   const startProgram = () => {
     if (!exercises.length) return;
+    // 소리는 **사람이 누른 그 순간에** 준비해야 한다. 시간이 다 되는 시점은 아무도
+    // 누르지 않은 시점이라, 그때 처음 만들면 브라우저가 막는다
+    primeAudio();
     pausedLeftRef.current = 0;
     setFinished(false);
     setRunning(true);
@@ -119,12 +164,24 @@ export default function HomeworkoutPage() {
   };
 
   const resumeProgram = () => {
+    primeAudio();
     const left = pausedLeftRef.current;
     if (left <= 0) { startProgram(); return; }
     deadlineRef.current = Date.now() + left;
     phaseRef.current = { ...phaseRef.current, done: false };
     setTimeLeft(Math.ceil(left / 1000));
     setRunning(true);
+  };
+
+  // 못 하는 운동은 넘어갈 수 있어야 한다.
+  //
+  // 노르딕 컬이나 월 핸드스탠드는 오늘 안 되는 사람이 있다. 넘길 길이 없으면
+  // 그 자리에서 20초를 서서 기다리거나 판을 통째로 그만둔다 — 둘 다 나쁘다.
+  // 쉬는 시간이면 쉬는 것을 건너뛰고 바로 다음 운동으로 간다
+  const skipStep = () => {
+    if (!running) return;
+    deadlineRef.current = Date.now();
+    advance();
   };
 
   // 그만두기 — 처음으로 되돌린다
@@ -153,6 +210,10 @@ export default function HomeworkoutPage() {
   });
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
+  // 진행 막대는 **움직인 시간**으로 잰다. 쉬는 시간까지 넣으면 가만히 있는 동안에도
+  // 막대가 자라서, 힘든 판과 쉬운 판이 같은 속도로 차오른다
+  const workSeconds = exercises.reduce((sum, e) => sum + e.duration, 0);
+  const nextEx = exercises[currentIdx + 1];
 
   // 프로그램 선택 화면
   //
@@ -200,15 +261,25 @@ export default function HomeworkoutPage() {
                     </p>
                   ))}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: (PROGRAM_NOTES[name] ? '10px 0 12px' : '0 0 12px') }}>
-                    {exs.map((e, i) => (
-                      <div key={`${e.name}-${i}`} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
-                        <span style={{ width: 18, color: 'var(--text-muted)', flexShrink: 0, fontSize: 11 }}>{i + 1}</span>
-                        <span style={{ flexGrow: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 12, flexShrink: 0 }}>
-                          {e.duration}초{e.rest > 0 ? ` · 쉬는 ${e.rest}초` : ''}
-                        </span>
-                      </div>
-                    ))}
+                    {/* 이름만 적어두면 「스캡 푸시업」 앞에서 사람이 멈춘다.
+                        어떻게 하는지를 운동 사전에서 가져와 같이 적는다 */}
+                    {exs.map((e, i) => {
+                      const how = descOf(e.name);
+                      return (
+                        <div key={`${e.name}-${i}`} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13, marginBottom: how ? 6 : 0 }}>
+                          <span style={{ width: 18, color: 'var(--text-muted)', flexShrink: 0, fontSize: 11 }}>{i + 1}</span>
+                          <div style={{ flexGrow: 1, minWidth: 0 }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>{e.name}</span>
+                            {how && (
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 1 }}>{how}</div>
+                            )}
+                          </div>
+                          <span style={{ color: 'var(--text-muted)', fontSize: 12, flexShrink: 0 }}>
+                            {e.duration}초{e.rest > 0 ? ` · 쉬는 ${e.rest}초` : ''}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <button className="btn-primary" onClick={() => setSelected(name)}>시작하기</button>
                 </div>
@@ -228,7 +299,10 @@ export default function HomeworkoutPage() {
     return (
       <div>
         <div style={{ textAlign: 'center', padding: '40px 0 28px' }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">💪</div>
+          {/* 이모지 그림은 폰 만든 회사 것이고 폰마다 다르게 나온다 — 직접 그린 선을 쓴다 */}
+          <div style={{ color: 'var(--accent)', marginBottom: 10 }} aria-hidden="true">
+            <NavIcon name="flame" size={40} />
+          </div>
           <div style={{
             fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, letterSpacing: 3,
             color: 'var(--accent)', marginBottom: 8,
@@ -270,27 +344,60 @@ export default function HomeworkoutPage() {
         </button>
       </div>
 
-      {/* 타이머 */}
+      {/* 타이머.
+          쉬는 20초 동안 **다음이 뭔지 모르면** 그 시간이 준비하는 시간이 못 된다.
+          자세를 잡을 새 없이 시작 소리가 나고, 그제서야 이름을 읽는다.
+          그래서 쉬는 화면은 다음 운동과 어떻게 하는지를 같이 보여준다 */}
       {running && current && (
-        <div style={{ textAlign: 'center', marginBottom: 24, padding: 24, background: isRest ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-          <div style={{ fontSize: 12, color: isRest ? 'var(--info)' : 'var(--accent)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
-            {isRest ? '휴식' : `${currentIdx + 1} / ${exercises.length}`}
+        <div style={{ marginBottom: 24, padding: 24, background: isRest ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          {/* 어디까지 왔는지 — 숫자만으로는 얼마나 남았는지 감이 안 온다 */}
+          <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{
+              width: `${Math.round((doneSeconds / Math.max(1, workSeconds)) * 100)}%`,
+              height: '100%', background: 'var(--accent)', borderRadius: 2, transition: 'width 0.3s',
+            }} />
           </div>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 3, marginBottom: 8, color: isRest ? 'var(--info)' : 'var(--text-primary)' }}>
-            {isRest ? 'REST' : current.name}
-          </div>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 64, color: isRest ? 'var(--info)' : 'var(--accent)', lineHeight: 1 }}>
-            {timeLeft}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>초</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: isRest ? 'var(--info)' : 'var(--accent)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
+              {isRest ? '휴식' : `${currentIdx + 1} / ${exercises.length}`}
+            </div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 3, marginBottom: 8, color: isRest ? 'var(--info)' : 'var(--text-primary)' }}>
+              {isRest ? 'REST' : current.name}
+            </div>
+            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 64, color: isRest ? 'var(--info)' : 'var(--accent)', lineHeight: 1 }}>
+              {timeLeft}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>초</div>
 
-          <button
-            className="btn-secondary"
-            style={{ marginTop: 16 }}
-            onClick={pauseProgram}
-          >
-            일시정지
-          </button>
+            {/* 쉴 때는 다음 운동을, 할 때는 지금 하는 것을 어떻게 하는지 적는다 */}
+            {isRest ? (
+              nextEx && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>다음</div>
+                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, marginTop: 2 }}>
+                    {nextEx.name} <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{nextEx.duration}초</span>
+                  </div>
+                  {descOf(nextEx.name) && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 4 }}>{descOf(nextEx.name)}</div>
+                  )}
+                </div>
+              )
+            ) : (
+              descOf(current.name) && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 12 }}>
+                  {descOf(current.name)}
+                </div>
+              )
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={pauseProgram}>일시정지</button>
+              {/* 오늘 안 되는 운동이 있다. 넘길 길이 없으면 서서 기다리거나 판을 접는다 */}
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={skipStep}>
+                {isRest ? '바로 시작' : '건너뛰기'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -337,12 +444,18 @@ export default function HomeworkoutPage() {
               opacity: running && i < currentIdx ? 0.4 : 1,
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: 'var(--text-muted)', width: 20 }}>{i + 1}</span>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1 }}>{ex.name}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: 'var(--text-muted)', width: 20, flexShrink: 0 }}>{i + 1}</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1 }}>{ex.name}</span>
+                  {/* 어떻게 하는지를 여기에도 둔다 — 시작하기 전에 훑어보는 자리다 */}
+                  {descOf(ex.name) && (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>{descOf(ex.name)}</div>
+                  )}
+                </div>
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ex.duration}초 {ex.rest > 0 ? `+ ${ex.rest}초 휴식` : ''}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{ex.duration}초 {ex.rest > 0 ? `+ ${ex.rest}초 휴식` : ''}</span>
             </div>
           </div>
         ))}
