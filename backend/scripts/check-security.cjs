@@ -85,6 +85,19 @@ ok('영구 차단도 그대로 이어받는다',
     console.log(JSON.stringify(guard.getBlockedIPs()['5.6.7.8'].until));
   `], { encoding: 'utf-8' }).trim()), 'permanent');
 
+// ── 램과 파일이 어긋나면 영구 차단이 조용히 사라진다 ──
+//
+// 코드 리뷰가 잡아준 것이다. 파일 쪽은 「약한 것으로 못 덮는다」를 지키는데 **램만
+// 덮어쓰고 있었다.** 영구 차단된 주소를 관리자가 「60분」으로 다시 걸면 램은 60분이
+// 되고 파일은 forever 다. 60분 뒤 그 주소가 오면 만료 자리가 **파일의 영구 차단까지
+// 지운다** — 이 검사가 막으려던 바로 그 일이 거기서 났다.
+guard.manualBlock('6.6.6.6', 60);          // 먼저 60분
+db.blockIp('6.6.6.6', Infinity, 4, '검사: 영구로 올림');
+guard.hydrateBlocks();                      // 서버가 다시 뜬 셈 치고 파일에서 읽어온다
+guard.manualBlock('6.6.6.6', 60);          // 그 뒤에 관리자가 60분으로 다시 건다
+ok('영구 차단을 짧은 차단으로 못 덮는다 (파일)', db.findBlock('6.6.6.6').until, 'forever');
+ok('영구 차단을 짧은 차단으로 못 덮는다 (램)', guard.getBlockedIPs()['6.6.6.6'].until, 'permanent');
+
 // 손으로 풀면 파일에서도 빠져야 한다 — 램에서만 지우면 다음에 뜰 때 되살아난다
 ok('풀면 파일에서도 빠진다', (db.unblockIp('1.2.3.4'), db.findBlock('1.2.3.4')), null);
 ok('없는 것을 풀면 false', db.unblockIp('없는주소'), false);
@@ -208,6 +221,10 @@ const guardSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'middleware',
 // 여기서는 곧바로 쓰는지(0.5초 미루지 않는지)만 본다. 막는 순간은 서버가 죽을 수도 있는 때다
 ok('막을 때 곧바로 파일에 쓴다', /db\.blockIp\([^)]*\);\s*db\.flushNow\(\);/.test(guardSrc), true);
 ok('손으로 풀면 파일에서도 지운다', guardSrc.includes('db.unblockIp(ip)'), true);
+// 푼 것도 곧바로 써야 한다. 안 그러면 「해제되었어요」라고 말해놓고 다시 뜰 때 되살아난다
+ok('풀 때도 곧바로 파일에 쓴다', /db\.unblockIp\(ip\);\s*db\.flushNow\(\);/.test(guardSrc), true);
+// 만료로 지우기 전에 파일을 한 번 더 본다 (램이 파일보다 약할 수 있다)
+ok('만료 청소가 파일을 먼저 본다', /db\.findBlock\(ip\)/.test(guardSrc), true);
 
 console.log('');
 console.log('── 관리자 화면이 「지금 막혀 있는 것」을 실제로 받는가 ──');
@@ -304,6 +321,51 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
   const unblock = await call('POST', base + '/ai-unblock/203.0.113.7');
   ok('주소 차단도 화면에서 풀린다', unblock.status, 200);
   ok('풀고 나면 파일에서도 빠진다', db.findBlock('203.0.113.7'), null);
+
+  // ── AI 관리자 화면이 규칙을 서버에서 받는가 ──
+  //
+  // 그 화면은 규칙 열한 줄을 **손으로 적어두고 있었고 숫자가 틀렸다** —
+  // 대량 요청은 「15/30/50회」라고 적혀 있었지만 200/300/500 이었고, 로그인 실패는
+  // 「3/5/10회」였지만 7/10/20 이었다. 스팸은 「10건/분」인데 60 이고, 이미 없앤
+  // SQL·몽고 인젝션도 그대로 있었다. 틀린 방어 규칙을 보고 판단하는 것이 제일 나쁘다
+  const ai = (await call('GET', base + '/ai-dashboard')).json;
+  ok('규칙을 서버가 준다', Array.isArray(ai.policy) && ai.policy.length > 0, true);
+  ok('규칙마다 제목과 설명이 있다',
+    (ai.policy || []).filter((r) => !r.title || !r.detail), []);
+
+  // **숫자가 코드의 상수와 같아야 한다.** 여기서 어긋나면 화면이 또 거짓말을 한다
+  const T = guard.THRESHOLDS;
+  const joined = (ai.policy || []).map((r) => r.detail).join(' ');
+  ok('대량 요청 문턱이 코드와 같다',
+    T.RATE_STEPS.every((st) => joined.includes(String(st.count))), true);
+  ok('로그인 실패 문턱이 코드와 같다',
+    T.LOGIN_FAIL_STEPS.every((st) => joined.includes(String(st.count))), true);
+  ok('스팸 문턱이 코드와 같다', joined.includes(String(T.SPAM_PER_MINUTE)), true);
+  // 없앤 것을 아직 한다고 적으면 안 된다
+  ok('없는 규칙(SQL · 몽고)을 한다고 적지 않는다', /SQL 인젝션을 막는다|몽고 인젝션을 막는다/.test(joined), false);
+  ok('계정을 자동으로 지운다고 적지 않는다', /자동으로 지운다|즉시 삭제/.test(joined), false);
+
+  // 램에서 센 숫자가 **언제부터**인지 같이 줘야 한다
+  ok('언제부터 센 것인지 알려준다', typeof ai.since, 'string');
+  // 지금 막혀 있는 것은 파일에서 센다 (해킹 보안과 같은 값을 봐야 한다)
+  ok('막혀 있는 건수를 같이 준다', typeof ai.shield?.blocks, 'number');
+  ok('잠긴 로그인 건수도 같이 준다', typeof ai.shield?.loginLocks, 'number');
+  // 두 화면이 **같은 자리(파일)** 를 본다 — 한쪽만 램을 보면 값이 갈린다
+  ok('해킹 보안과 같은 자리를 본다', ai.shield.blocks, db.listBlocks().length);
+
+  const aiPanel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'AiAdminPanel.jsx'), 'utf-8');
+  ok('화면이 그 규칙을 그린다', /data\?\.policy/.test(aiPanel), true);
+  // **주석은 뺀다.** 「예전에는 15/30/50 이라고 적혀 있었다」는 왜 고쳤는지의 기록이다 —
+  // 그것까지 잡으면 기록을 못 남긴다 (이모지 검사에서 같은 것을 겪었다)
+  const aiCode = aiPanel.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  ok('화면이 규칙을 손으로 안 적는다', /1분에 \d+회|\d+\/\d+\/\d+회/.test(aiCode), false);
+  ok('화면이 언제부터 센 것인지 적는다', aiPanel.includes('data?.since'), true);
+  // 탭을 안 보고 있으면 안 부른다 (예전에는 10초마다 하루 8,640번 불렀다)
+  ok('보고 있을 때만 부른다', /visibilitychange/.test(aiPanel) && /document\.hidden/.test(aiPanel), true);
+  ok('앞 요청이 안 왔으면 건너뛴다', /inflight/.test(aiPanel), true);
+  // 같은 목록을 두 화면이 각자 그리지 않는다
+  ok('차단 목록을 여기서 또 그리지 않는다', /ai-unblock/.test(aiPanel), false);
 
   // 화면이 그리는 자리 — 있어도 안 그리면 없는 것과 같다
   ok('화면이 지금 막혀 있는 것을 그린다', panel.includes("client.get('/security/shield')"), true);

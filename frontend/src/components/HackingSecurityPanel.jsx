@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToday } from '../data/useToday';
 import { dateKey } from '../data/dateKey';
 import client from '../api/client';
+import { toast } from './Toast';
 
 // 보안 로그 (관리자 화면의 「해킹 보안」).
 //
@@ -116,7 +117,9 @@ export default function HackingSecurityPanel() {
 
   const loadShield = () => {
     setShieldFailed(false);
-    client.get('/security/shield')
+    // **프로미스를 돌려준다.** 안 돌려주면 푸는 쪽이 목록 갱신을 못 기다리고
+    // 단추부터 풀어버려서, 방금 푼 줄이 잠깐 그대로 남는다
+    return client.get('/security/shield')
       .then(({ data }) => setShield({
         blocks: Array.isArray(data?.blocks) ? data.blocks : [],
         loginLocks: Array.isArray(data?.loginLocks) ? data.loginLocks : [],
@@ -136,19 +139,26 @@ export default function HackingSecurityPanel() {
   };
 
   // 푸는 자리 둘. 누르는 동안 그 줄만 잠가둔다 — 연타로 두 번 보내면
-  // 두 번째는 「목록에 없어요」가 되어 푼 사람에게 실패로 보인다
+  // 두 번째는 「목록에 없어요」가 되어 푼 사람에게 실패로 보인다.
+  //
+  // **안 풀렸으면 안 풀렸다고 말한다.** 처음에는 `.catch(() => {})` 로 삼키고 있었다 —
+  // 그러면 단추가 「푸는 중…」에서 도로 「풀기」가 되고 줄은 그대로 남는데, 관리자는
+  // 「풀렸는데 목록이 늦은 것」인지 「안 풀린 것」인지 알 길이 없다. 사람을 막아둔 자리라
+  // 그 차이가 크다. 그리고 목록을 다시 읽는 것까지 기다렸다가 단추를 풀어준다
   const unblockIp = (ip) => {
     setBusy('ip:' + ip);
     client.post(`/security/ai-unblock/${encodeURIComponent(ip)}`)
-      .then(loadShield)
-      .catch(() => {})
+      .then(() => loadShield())
+      .then(() => toast(`${ip} 차단을 풀었어요`))
+      .catch((e) => toast(e?.response?.data?.error || '못 풀었어요. 잠시 뒤에 다시 해주세요', 'error'))
       .finally(() => setBusy(''));
   };
   const unlockLogin = (key) => {
     setBusy(key);
     client.post('/security/unlock-login', { key })
-      .then(loadShield)
-      .catch(() => {})
+      .then(() => loadShield())
+      .then(() => toast('잠금을 풀었어요'))
+      .catch((e) => toast(e?.response?.data?.error || '못 풀었어요. 잠시 뒤에 다시 해주세요', 'error'))
       .finally(() => setBusy(''));
   };
 

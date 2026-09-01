@@ -32,6 +32,17 @@ const blockedIPs = new Map();       // IP → { until, level, reason }
 // 한 번 읽어 램을 채우고(`hydrateBlocks`), 막을 때마다 같이 적는다
 function block(ip, until, level, reason) {
   if (!ip || ip === 'unknown') return;
+  // **약한 것으로 덮어쓰지 않는다.** 파일 쪽(`db.blockIp`)은 이미 그렇게 하는데
+  // 램만 덮어쓰고 있었다. 그러면 둘이 어긋난다 — 영구 차단된 주소를 관리자가
+  // 「60분 차단」으로 다시 걸면 램은 60분이 되고 파일은 그대로 forever 다.
+  // 60분 뒤 그 주소가 다시 오면 아래 만료 자리가 **파일의 영구 차단까지 지운다.**
+  // 이 changeset 이 막으려던 바로 그 일이 여기서 났다
+  const had = blockedIPs.get(ip);
+  if (had && (had.until === Infinity || (until !== Infinity && until <= had.until))) {
+    // 이미 더 세게(또는 더 길게) 막혀 있다 — 램은 그대로 두고 파일만 맞춰본다
+    try { db.blockIp(ip, until, level, reason); db.flushNow(); } catch { /* 파일이 안 써져도 막기는 막는다 */ }
+    return;
+  }
   limitedSet(blockedIPs, ip, { until, level, reason });
   // **곧바로 파일에 쓴다.** 보통 쓰기는 0.5초 뒤로 미뤄지는데, 막는 순간은 공격받는
   // 중이라 그 사이에 서버가 죽을 수 있다 — 죽으면서 차단만 사라지면 막은 적이 없는 것이다
@@ -60,6 +71,31 @@ const spamCounts = new Map();       // userId → { count, firstCreate }
 // 몰아 적으면 5개 종목 × 3세트만 해도 15건이다. **정상적으로 쓰는 사람이 걸렸다.**
 // 그리고 걸리면 7일 정지였고, 두 번 걸리면 계정이 지워졌다.
 const SPAM_PER_MINUTE = 60;
+
+// ── 자동 판정의 문턱값 ──
+//
+// **관리자 화면이 이 숫자를 그대로 보여준다.** 예전에는 화면이 손으로 적어두고 있었고,
+// 그래서 **틀린 값을 보고 있었다** — 대량 요청은 「15/30/50회」라고 적혀 있었지만 실제는
+// 200/300/500 이었고, 로그인 실패는 「3/5/10회」라고 적혀 있었지만 실제는 7/10/20 이었다.
+// 스팸은 「10건/분」이라 적혀 있었지만 60 이고, 없어진 SQL·몽고 인젝션도 아직 적혀 있었다.
+//
+// 숫자를 두 곳에 적어두면 반드시 어긋난다. 여기 한 곳에 두고 화면은 받아서 그린다.
+// 잘못된 방어 규칙을 보고 판단하는 것이, 규칙을 모르는 것보다 나쁘다.
+const RATE_STEPS = [
+  { count: 500, hours: 168 },
+  { count: 300, hours: 24 },
+  { count: 200, hours: 1 },
+];
+const LOGIN_FAIL_STEPS = [
+  { count: 20, hours: 168 },
+  { count: 10, hours: 24 },
+  { count: 7, hours: 1 },
+];
+const NOT_FOUND_STEP = { count: 30, hours: 72 };
+const BOT_LOCK_HOURS = 72;
+const INPUT_SUSPEND_DAYS = 3;
+const SUSPEND_TO_BAN = 2;
+const WARN_TO_LOCK = { count: 10, hours: 168 };
 const warningCounts = new Map();    // IP → count
 const suspensionCounts = new Map(); // userId → count
 const aiLogs = [];                  // max 500
@@ -256,8 +292,8 @@ function executeLevel3(userId, ip, triggerType, details, days) {
   const count = (suspensionCounts.get(userId) || 0) + 1;
   suspensionCounts.set(userId, count);
 
-  // 정지 2회 누적 → LEVEL 4
-  if (count >= 2) {
+  // 정지가 쌓이면 영구 정지
+  if (count >= SUSPEND_TO_BAN) {
     return executeLevel4(userId, ip, 'accumulated', `${count}회`);
   }
 
@@ -285,9 +321,9 @@ function executeLevel1(ip, triggerType, details) {
   warningCounts.set(ip, count);
   addLog('INFO', `LEVEL 1 — ${triggerType}: 경고 (${count}회 누적)`, ip);
 
-  // 경고 10회 누적 → LEVEL 2 (7일 잠금)
-  if (count >= 10) {
-    executeLevel2(ip, 'accumulated', `경고 ${count}회 누적`, 168); // 7일
+  // 경고가 쌓이면 잠근다
+  if (count >= WARN_TO_LOCK.count) {
+    executeLevel2(ip, 'accumulated', `경고 ${count}회 누적`, WARN_TO_LOCK.hours);
     warningCounts.set(ip, 0);
   }
 }
@@ -374,14 +410,14 @@ function recordLoginFailure(ip) {
   }
 
   const record = loginFailures.get(ip);
-  if (record.count >= 20) {
-    executeLevel2(ip, 'login_lock', '20회', 168); // 7일
-    loginFailures.delete(ip);
-  } else if (record.count >= 10) {
-    executeLevel2(ip, 'login_lock', '10회', 24);
-    loginFailures.delete(ip);
-  } else if (record.count >= 7) {
-    executeLevel2(ip, 'login_lock', '7회', 1);
+  for (const step of LOGIN_FAIL_STEPS) {
+    if (record.count >= step.count) {
+      executeLevel2(ip, 'login_lock', `${step.count}회`, step.hours);
+      // 제일 센 둘은 세던 것을 지운다 — 다음에 또 걸리면 처음부터 센다.
+      // 제일 낮은 단은 남겨둬야 그 위로 올라갈 수 있다
+      if (step !== LOGIN_FAIL_STEPS[LOGIN_FAIL_STEPS.length - 1]) loginFailures.delete(ip);
+      break;
+    }
   }
 }
 
@@ -399,12 +435,12 @@ function checkRequestRate(ip) {
   }
   record.count++;
 
-  if (record.count >= 500) {
-    executeLevel2(ip, 'rate_limit', `${record.count}회`, 168); // 7일
-  } else if (record.count >= 300) {
-    executeLevel2(ip, 'rate_limit', `${record.count}회`, 24);
-  } else if (record.count >= 200) {
-    executeLevel2(ip, 'rate_limit', `${record.count}회`, 1);
+  // 위에서부터 본다 — 제일 센 것에 먼저 걸리게
+  for (const step of RATE_STEPS) {
+    if (record.count >= step.count) {
+      executeLevel2(ip, 'rate_limit', `${record.count}회`, step.hours);
+      break;
+    }
   }
 }
 
@@ -422,8 +458,8 @@ function checkNotFound(ip) {
     }
   }
   const record = notFoundCounts.get(ip);
-  if (record.count >= 30) {
-    executeLevel2(ip, 'scan_attack', `${record.count}회/분`, 72); // 3일
+  if (record.count >= NOT_FOUND_STEP.count) {
+    executeLevel2(ip, 'scan_attack', `${record.count}회/분`, NOT_FOUND_STEP.hours);
     notFoundCounts.delete(ip);
   }
 }
@@ -487,6 +523,22 @@ function aiGuardMiddleware(req, res, next) {
       else response.message = 'AI Guard에 의해 일시 차단되었습니다.';
       return res.status(403).json(response);
     }
+    // **지우기 전에 파일을 한 번 더 본다.** 램이 파일보다 약할 수 있어서다 —
+    // 램의 60분이 지났다고 파일의 영구 차단까지 지우면 안 된다
+    let persisted = null;
+    try { persisted = db.findBlock(ip); } catch { /* 파일을 못 읽으면 램만 본다 */ }
+    if (persisted) {
+      // 파일 쪽이 아직 살아 있다 — 그 값으로 램을 되돌리고 계속 막는다
+      const until2 = persisted.until === 'forever' ? Infinity : new Date(persisted.until).getTime();
+      limitedSet(blockedIPs, ip, { until: until2, level: persisted.level, reason: persisted.reason });
+      blockedRequests++;
+      return res.status(403).json({
+        error: '접근이 차단되었습니다.',
+        level: persisted.level,
+        message: persisted.level === 4 ? '보안 정책 위반으로 영구 차단되었습니다.' : 'AI Guard에 의해 일시 차단되었습니다.',
+        ...(persisted.until === 'forever' ? {} : { blockedUntil: persisted.until }),
+      });
+    }
     blockedIPs.delete(ip);
     try { db.unblockIp(ip); } catch { /* 파일이 안 지워져도 램에서는 풀렸다 */ }
   }
@@ -494,7 +546,7 @@ function aiGuardMiddleware(req, res, next) {
   // 봇 감지 (Render/UptimeRobot 등 모니터링 서비스 제외)
   const ua = req.get('user-agent') || '';
   if (BOT_PATTERNS.some(p => p.test(ua)) && !ua.includes('Mozilla') && !ua.includes('Render') && !ua.includes('UptimeRobot') && !ua.includes('HealthCheck')) {
-    executeLevel2(ip, 'bot', ua, 72);
+    executeLevel2(ip, 'bot', ua, BOT_LOCK_HOURS);
     return res.status(403).json({ error: '자동화된 접근이 차단되었습니다.' });
   }
 
@@ -539,7 +591,7 @@ function aiGuardMiddleware(req, res, next) {
         });
       }
 
-      const reason = executeLevel3(userId, ip, threat.type, threat.pattern, 3);
+      const reason = executeLevel3(userId, ip, threat.type, threat.pattern, INPUT_SUSPEND_DAYS);
       return res.status(403).json({
         error: '보안 정책 위반이 감지되었습니다.',
         message: '되풀이되어 계정이 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 관리자에게 알려주세요.',
@@ -633,6 +685,60 @@ function suspensionCheck(req, res, next) {
   next();
 }
 
+// 사람이 읽는 시간. 「168시간」은 아무도 7일로 안 읽는다
+const hoursText = (h) => (h >= 24 ? `${Math.round(h / 24)}일` : `${h}시간`);
+
+/**
+ * 지금 실제로 도는 자동 규칙. **화면은 이걸 받아서 그린다.**
+ *
+ * 손으로 적어두면 코드가 바뀔 때 화면만 옛 숫자로 남는다 — 실제로 그랬다.
+ * 여기 있는 값은 전부 위의 상수에서 나온다. 새 규칙을 넣으면 이 목록에도 적는다.
+ */
+function policy() {
+  return [
+    {
+      title: '너무 잦은 요청',
+      detail: `1분에 ${RATE_STEPS.map((s) => s.count).join(' · ')}회를 넘으면 그 주소를 `
+        + `${RATE_STEPS.map((s) => hoursText(s.hours)).join(' · ')} 잠근다`,
+    },
+    {
+      title: '로그인 실패가 쌓이는 주소',
+      detail: `1시간 안에 ${LOGIN_FAIL_STEPS.map((s) => s.count).join(' · ')}회 틀리면 `
+        + `${LOGIN_FAIL_STEPS.map((s) => hoursText(s.hours)).join(' · ')} 잠근다`,
+    },
+    {
+      title: '없는 주소를 계속 두드리기',
+      detail: `1분에 ${NOT_FOUND_STEP.count}회를 넘으면 ${hoursText(NOT_FOUND_STEP.hours)} 잠근다 (훑고 다니는 것)`,
+    },
+    {
+      title: '봇 · 크롤러',
+      detail: `사람 브라우저가 아닌 것으로 보이면 ${hoursText(BOT_LOCK_HOURS)} 잠근다`,
+    },
+    {
+      title: '보낼 수 없는 글자 (XSS · 프로토타입 오염)',
+      detail: `요청은 언제나 막는다. **첫 번은 막고 알려만 주고**, 되풀이하면 `
+        + `${INPUT_SUSPEND_DAYS}일 정지한다. SQL · 몽고 패턴은 이 앱에 그런 DB 가 없어 안 본다`,
+    },
+    {
+      title: '기록을 몰아서 만들기',
+      detail: `1분에 ${SPAM_PER_MINUTE}건을 넘으면 막는다 (운동을 몰아 적는 사람이 걸리지 않게 넉넉히 뒀다)`,
+    },
+    {
+      title: '경고가 쌓이면',
+      detail: `${WARN_TO_LOCK.count}번 쌓이면 그 주소를 ${hoursText(WARN_TO_LOCK.hours)} 잠근다`,
+    },
+    {
+      title: '정지가 쌓이면',
+      detail: `${SUSPEND_TO_BAN}번 정지되면 영구 정지한다 — **계정과 기록은 지우지 않는다**`,
+    },
+    {
+      title: '자동으로 하지 않는 것',
+      detail: '계정과 기록을 지우는 일 · IP 대역(/24) 통째로 막기 · 관리자 처벌. '
+        + '지우는 것은 「보안 관리」에서 사람이 확인하고 한다',
+    },
+  ];
+}
+
 // ── 내보내기 ──
 module.exports = aiGuardMiddleware;
 module.exports.spamCheck = spamCheck;
@@ -663,12 +769,16 @@ module.exports.getSuspiciousIPs = () => [...blockedIPs.keys()];
 module.exports.unblockIP = (ip) => {
   const inRam = blockedIPs.delete(ip);
   let inFile = false;
-  try { inFile = db.unblockIp(ip); } catch { /* 파일이 없으면 램만 */ }
+  // **푼 것도 곧바로 쓴다.** 막을 때만 flush 하고 풀 때는 0.5초 미루고 있었다 —
+  // 그 사이에 프로세스가 내려가면 「차단이 해제되었어요」라고 말해놓고 다시 뜰 때 되살아난다
+  try { inFile = db.unblockIp(ip); db.flushNow(); } catch { /* 파일이 없으면 램만 */ }
   const r = inRam || inFile;
   if (r) addLog('system', '수동 차단 해제', ip);
   return r;
 };
 module.exports.hydrateBlocks = hydrateBlocks;
+module.exports.policy = policy;
+module.exports.THRESHOLDS = { RATE_STEPS, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
 
 // 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
 // **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다

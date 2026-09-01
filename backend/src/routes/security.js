@@ -161,6 +161,10 @@ router.post('/revoke-admin/:id', adminAuth, (req, res) => {
   res.json({ message: '관리자 권한이 해제되었어요' });
 });
 
+// 이 프로세스가 뜬 시각. AI 관리자 화면의 숫자들이 **언제부터 센 것인지**를 말해준다 —
+// 그 숫자는 전부 램에 있어서 서버가 다시 뜨면 0 부터 다시 센다
+const START_AT = new Date().toISOString();
+
 // ── AI Guard 엔드포인트 ──
 
 // GET /api/security/ai-dashboard - AI 관리 현황 (강화)
@@ -210,6 +214,21 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
   };
 
   res.json({
+    // 화면이 **손으로 적어두던 규칙**을 서버가 준다.
+    //
+    // 예전 화면에는 열한 줄이 박혀 있었는데 **숫자가 실제와 달랐다** — 대량 요청은
+    // 「15/30/50회」라고 적혀 있었지만 200/300/500 이었고, 로그인 실패는 「3/5/10회」였지만
+    // 7/10/20 이었다. 이미 없앤 SQL·몽고 인젝션도 그대로 적혀 있었다.
+    // **틀린 방어 규칙을 보고 판단하는 것이 규칙을 모르는 것보다 나쁘다.**
+    policy: aiGuard.policy(),
+    // 이 서버가 언제 떴는지. 아래 숫자들은 **그때부터 센 것**이라 이게 없으면
+    // 「총 요청 12건」이 하루치인지 방금 뜬 뒤 1분치인지 알 수가 없다
+    since: START_AT,
+    // 지금 막혀 있는 것 (파일에 남는다 — 재시작해도 그대로)
+    shield: {
+      blocks: db.listBlocks().length,
+      loginLocks: db.listLoginLocks().length,
+    },
     stats: {
       totalRequests: stats.totalRequests,
       totalBlocks: stats.blockedRequests,

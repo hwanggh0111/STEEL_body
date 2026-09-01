@@ -505,6 +505,31 @@ ok('적어둔 아이콘 이름이 전부 실제로 그려진다', unknown, []);
 const drawsIcon = (f) => /<NavIcon\s+name=/.test(fs.readFileSync(f, 'utf-8'));
 ok('아이콘을 적어둔 화면이 그것을 실제로 그린다',
   iconUsers.filter((f) => /\.jsx$/.test(f)).filter((f) => !drawsIcon(f)), []);
+// **쓰면서 안 들여오면 화면이 열자마자 죽는다.**
+// 9/1 에 이모지를 걷다가 두 화면(AI 관리자 · 루틴)에서 실제로 그랬다 —
+// `<NavIcon>` 은 넣고 `import` 를 빠뜨렸다. **빌드는 통과한다** (번들러는 전역일 수도
+// 있다고 보고 넘어간다) 그리고 검사도 「그린다」만 보고 있어서 같이 놓쳤다.
+// 그 화면을 열어야만 `ReferenceError` 로 터진다
+const usesIcon = srcFiles.filter((f) => /<NavIcon\s/.test(fs.readFileSync(f, 'utf-8')));
+const short = (f) => f.split(/[\\/]/).pop();
+ok('NavIcon 을 쓰는 화면은 전부 들여온다',
+  usesIcon.filter((f) => !/import NavIcon from/.test(fs.readFileSync(f, 'utf-8'))).map(short), []);
+// 다른 이름에서도 같은 일이 난다 — 자주 쓰는 것 몇 개를 같이 본다
+const COMMON = ['client', 'toast', 'useNavigate'];
+const missing = [];
+for (const f of srcFiles) {
+  const src = fs.readFileSync(f, 'utf-8');
+  const body = src.replace(/^import[^;]*;$/gm, '');
+  for (const name of COMMON) {
+    const used = new RegExp('\\b' + name + '\\s*\\(').test(body);
+    const imported = new RegExp('import[^;]*\\b' + name + '\\b[^;]*;').test(src);
+    // 그 이름을 **자기가 만든 파일**은 들여올 필요가 없다 (client.js · Toast.jsx)
+    const defines = new RegExp('(const|let|function|class)\\s+' + name + '\\b').test(src);
+    if (used && !imported && !defines) missing.push(short(f) + ': ' + name);
+  }
+}
+ok('쓰는데 안 들여온 이름이 없다', missing, []);
+
 ok('고객센터 소개가 아이콘을 그린다',
   /<NavIcon name=\{f\.icon\}/.test(fs.readFileSync('src/pages/support/SupportPage.jsx', 'utf-8')), true);
 

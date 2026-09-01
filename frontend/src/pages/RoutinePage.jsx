@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import NavIcon from '../components/NavIcon';
 import { toast } from '../components/Toast';
 import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';

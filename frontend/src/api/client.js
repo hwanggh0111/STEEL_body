@@ -84,6 +84,24 @@ client.interceptors.response.use(
         queue.forEach(({ resolve }) => resolve());
         return client(originalRequest);
       } catch (refreshErr) {
+        // **탭 두 개는 로그아웃시키지 않는다.**
+        //
+        // 서버는 「방금 쓴 토큰이 또 왔다」를 도둑이 아니라 **경쟁**으로 보고 20초 동안
+        // 세션을 안 끊는다(`refresh_race`). 그런데 여기서는 갱신이 한 번만 실패해도
+        // 바로 로그인 화면으로 보내고 있었다 — 서버가 살려둔 세션을 화면이 스스로 버렸다.
+        //
+        // 그 경우에는 한 번만 다시 해본다. 그때는 다른 탭이 이미 새 쿠키를 받아둔 뒤라 붙는다
+        if (refreshErr?.response?.status === 401
+            && refreshErr.response?.data?.error?.includes('잠시 뒤에')
+            && !originalRequest._raceRetried) {
+          originalRequest._raceRetried = true;
+          isRefreshing = false;
+          const queue = [...refreshQueue];
+          refreshQueue = [];
+          queue.forEach(({ resolve }) => resolve());
+          await new Promise((r) => setTimeout(r, 400));
+          return client(originalRequest);
+        }
         // refresh도 실패: 카운터 증가 + 큐 복사 후 초기화
         refreshFailCount++;
         isRefreshing = false;
