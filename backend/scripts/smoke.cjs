@@ -58,46 +58,66 @@ function step(label, got, want) {
 
 // 다 돌고 나면 만든 것을 걷어낸다. 서버는 바뀐 것을 500ms 뒤에 파일로 흘리므로
 // 조금 기다렸다 지운다 — 안 그러면 지운 뒤에 서버가 되살려 쓴다
-function cleanup() {
+// 파일에서 그 계정과 그 사람 것을 지운다. 지웠으면 true
+function wipeFromFile() {
+  const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  const me = db.users.find(u => u.email === EMAIL);
+  if (!me) return false;
+  const id = me.id;
+  for (const key of Object.keys(db)) {
+    if (!Array.isArray(db[key])) continue;
+    db[key] = db[key].filter(row => {
+      if (!row || typeof row !== 'object') return true;
+      if (row.email === EMAIL) return false;
+      const uid = row.user_id ?? row.userId;
+      return !(uid !== undefined && uid === id);
+    });
+  }
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  return true;
+}
+
+const stillThere = () => {
+  try {
+    return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8')).users.some(u => u.email === EMAIL);
+  } catch { return false; }
+};
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+// **지웠다고 믿지 않는다.** 서버는 DB 를 램에 들고 있다가 500ms 뒤에 파일로 흘린다.
+// 이 검사는 서버가 떠 있어야 돌아가므로, 지운 직후에 서버가 옛 내용을 덮어쓰면
+// **계정이 되살아난다.**
+//
+// 예전에는 한 번 지우고 1.2초 뒤에 살아 있으면 「되살아났습니다」라고 말하고 끝냈다.
+// 말은 정직했지만 계정은 그대로 남았다 — 8/31 과 9/1 것 둘이 그렇게 쌓였고,
+// 그 계정들이 낸 제보가 **관리자 화면의 「손볼 제보」 숫자로 남아 있었다.**
+// 검사가 남긴 것이 운영 화면의 할 일로 보이면 안 된다.
+//
+// 이제 되살아나면 **다시 지운다.** 서버는 마지막 요청 뒤로는 더 쓸 것이 없어서
+// 두 번째나 세 번째에는 붙는다. 세 번 해도 안 되면 그때 사람에게 말한다
+async function cleanup() {
   if (KEEP) {
     console.log(`\n남겨둠 — 만든 계정: ${EMAIL} (관리자 화면에서 지우세요)`);
     return;
   }
   try {
-    const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    const me = db.users.find(u => u.email === EMAIL);
-    if (!me) return;
-    const id = me.id;
-    for (const key of Object.keys(db)) {
-      if (!Array.isArray(db[key])) continue;
-      db[key] = db[key].filter(row => {
-        if (!row || typeof row !== 'object') return true;
-        if (row.email === EMAIL) return false;
-        const uid = row.user_id ?? row.userId;
-        return !(uid !== undefined && uid === id);
-      });
-    }
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-
-    // **지웠다고 믿지 않는다.** 서버는 DB 를 램에 들고 있다가 나중에 파일로 흘린다.
-    // 이 검사는 서버가 떠 있어야 돌아가므로, 지운 직후에 서버가 옛 내용을 덮어쓰면
-    // 계정이 되살아난다. 실제로 그렇게 몇 개가 쌓였다.
-    //
-    // 그래서 잠깐 뒤에 다시 읽어보고, 살아 있으면 그렇다고 말한다.
-    // 「지웠습니다」라고 해놓고 안 지워지는 것이 제일 나쁘다.
-    setTimeout(() => {
-      let back = false;
-      try {
-        back = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8')).users.some(u => u.email === EMAIL);
-      } catch { /* 못 읽으면 아래에서 안내한다 */ }
-      console.log('');
-      if (back) {
-        console.log(`검사 계정 ${EMAIL} 이 서버 쪽에서 되살아났습니다.`);
-        console.log('서버를 내리고 `npm run smoke:clean` 을 돌리면 한 번에 지워집니다.');
-      } else {
-        console.log(`검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
+    if (!wipeFromFile()) return;
+    for (let i = 0; i < 3; i++) {
+      await wait(900);
+      if (!stillThere()) {
+        console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
+        return;
       }
-    }, 1200);
+      wipeFromFile();
+    }
+    await wait(900);
+    if (stillThere()) {
+      console.log(`\n검사 계정 ${EMAIL} 이 서버 쪽에서 자꾸 되살아납니다.`);
+      console.log('서버를 내리고 `npm run smoke:clean` 을 돌리면 한 번에 지워집니다.');
+    } else {
+      console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
+    }
   } catch (err) {
     console.log(`\n검사 계정을 못 지웠습니다 (${err.message}). ${EMAIL} 을 직접 지워주세요.`);
   }
@@ -283,6 +303,6 @@ function cleanAll() {
 
   console.log('\n' + (bad ? bad + '건 실패' : '한 바퀴 전부 통과'));
   await new Promise(r => setTimeout(r, 700));
-  cleanup();
+  await cleanup();
   process.exit(bad ? 1 : 0);
 })();

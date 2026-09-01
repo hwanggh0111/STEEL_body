@@ -173,6 +173,22 @@ ok('재사용이 보이면 그 계정 토큰을 전부 끊는다',
   db.snapshot().refreshTokens.filter(t => t.user_id === owner).length, 0);
 
 const authRefresh = authSrc.slice(authSrc.indexOf("router.post('/refresh'"), authSrc.indexOf("router.post('/logout'"));
+
+// ── 탭 두 개는 도둑이 아니다 ──
+//
+// 탭을 둘 열어두면 둘 다 같은 쿠키를 들고 있다. 둘이 거의 동시에 갱신을 보내면
+// 두 번째는 **이미 쓴 토큰**을 들고 도착한다 — 0.2초 늦었을 뿐이다.
+// 여기서 바로 「전부 끊기」를 하면 **탭 두 개 열어둔 사람이 쫓겨난다.**
+// 화면은 한 탭 안에서는 갱신을 하나로 합치지만(`api/client.js`) 탭끼리는 못 합친다.
+const { REFRESH_REUSE_GRACE_MS } = require('../src/config/security');
+ok('유예 창이 있다 (20초쯤)', Math.round(REFRESH_REUSE_GRACE_MS / 1000), 20);
+ok('방금 쓴 것이면 세션을 안 끊는다',
+  authRefresh.indexOf('REFRESH_REUSE_GRACE_MS') < authRefresh.indexOf('db.deleteUserRefreshTokens('), true);
+ok('그때는 재사용이 아니라 경쟁으로 적는다', /refresh_race/.test(authRefresh), true);
+// 유예를 지나서 온 것은 진짜 재사용이다 — 그때는 끊는다
+ok('유예를 넘기면 그 계정 전부를 끊는다',
+  /Date\.now\(\) - new Date\(reused\.used_at\)\.getTime\(\) < REFRESH_REUSE_GRACE_MS/.test(authRefresh), true);
+
 ok('갱신할 때 지우지 않고 「썼다」고 적는다', authRefresh.includes('db.useRefreshToken('), true);
 // 지우는 자리가 하나 남아 있는데 그건 **정지된 계정**이다 — 그 사람은 돌아오지 않는다.
 // 그 외에 지우는 자리가 생기면 재사용을 다시 못 알아본다

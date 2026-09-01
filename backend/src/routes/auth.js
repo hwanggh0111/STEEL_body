@@ -56,6 +56,7 @@ const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
 // 친 아이디를 하나의 말로 맞춘다 — 대소문자와 앞뒤 공백으로 카운터를 피할 수 있으면 안 된다
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
 
+const { REFRESH_REUSE_GRACE_MS } = require('../config/security');
 const { sanitize, cleanName } = require('../utils/sanitize');
 const { issueTokens } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED } = require('../utils/mailer');
@@ -291,6 +292,20 @@ router.post('/refresh', (req, res) => {
     // 모르므로, 그 계정의 로그인 유지를 **전부** 끊는다. 둘 다 다시 로그인해야 하고
     // 비밀번호를 아는 쪽만 돌아온다.
     const reused = db.findUsedRefreshToken(refreshToken);
+    // **탭 두 개는 도둑이 아니다.**
+    //
+    // 탭을 둘 열어두면 둘 다 같은 쿠키를 들고 있다. 둘이 거의 동시에 갱신을 보내면
+    // 두 번째는 이미 쓴 토큰을 들고 도착한다 — 0.2초 늦었을 뿐이다. 여기서 바로
+    // 「전부 끊기」를 하면 **탭 두 개 열어둔 사람이 쫓겨난다.** 실제로 이 화면은
+    // 한 탭 안에서는 갱신을 하나로 합치지만(`api/client.js`), 탭끼리는 못 합친다.
+    //
+    // 그래서 방금 쓴 것이면 세션을 끊지 않고 401 만 준다. 화면은 새 쿠키로 다시
+    // 갱신하면 되고, 갱신 실패 세 번까지는 로그아웃하지 않는다
+    if (reused && Date.now() - new Date(reused.used_at).getTime() < REFRESH_REUSE_GRACE_MS) {
+      addLog('refresh_race', `Refresh race (탭 여럿): user ${reused.user_id}`);
+      res.clearCookie('sb_access', { path: '/' });
+      return res.status(401).json({ error: '잠시 뒤에 다시 시도해주세요' });
+    }
     if (reused) {
       db.deleteUserRefreshTokens(reused.user_id);
       addLog('refresh_reuse', `Refresh token reuse detected: user ${reused.user_id} — 모든 세션 종료`);

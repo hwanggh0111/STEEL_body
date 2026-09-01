@@ -23,6 +23,18 @@ const JWT = {
   refreshMs: 7 * 24 * 60 * 60 * 1000,
 };
 
+// 로그인 유지 토큰이 **두 번 쓰인 것으로 보일 때**, 그 사이가 이만큼 안 되면
+// 도둑이 아니라 **경쟁**으로 본다.
+//
+// 탭을 둘 열어두면 둘 다 같은 쿠키를 들고 있다. 둘이 거의 동시에 갱신을 보내면
+// 두 번째는 **이미 쓴 토큰**을 들고 도착한다 — 훔친 것이 아니라 0.2초 늦은 것뿐이다.
+// 여기서 「도둑이다」 하고 그 사람의 로그인을 전부 끊으면, **탭 두 개 열어둔 사람이
+// 쫓겨난다.** 반대로 유예를 길게 두면 훔친 쪽에게 그만큼 시간을 준다.
+//
+// 20초는 늦게 도착한 요청을 덮기엔 넉넉하고, 훔쳐서 쓰기엔 짧다.
+// 유예 안이면 세션을 끊지 않고 그냥 401 을 준다(화면은 다시 갱신하면 된다).
+const REFRESH_REUSE_GRACE_MS = 20 * 1000;
+
 const BCRYPT_ROUNDS = 12;
 
 // 사진을 base64 로 보내기 때문에 넉넉하다. photoLimit 과 짝이다
@@ -35,4 +47,4 @@ const BODY_LIMIT = '3mb';
 // 적고 있었다. 두 곳에 따로 적어두면 그렇게 된다.
 const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=()';
 
-module.exports = { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY };
+module.exports = { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS };
