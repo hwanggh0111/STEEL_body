@@ -178,7 +178,9 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
     ip,
     level: info.level,
     until: info.until,
-    blockedAt: info.until === 'permanent' ? null : new Date(info.until === 'permanent' ? now : now).toISOString(),
+    // 언제 막았는지는 파일에 있다. 예전에는 이 자리가 `new Date(now)` 라 **늘 지금**이었다 —
+    // 어제 막은 것도 방금 막은 것으로 보였다
+    blockedAt: db.findBlock(ip)?.created_at || null,
     remaining: info.until === 'permanent' ? 'permanent' : Math.max(0, Math.ceil((new Date(info.until).getTime() - now) / 60000)),
   }));
 
@@ -223,6 +225,56 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
     blacklist: blacklist.slice(-20),
     suspensions: suspensions.slice(-20).reverse(),
   });
+});
+
+// GET /api/security/shield — **지금 막혀 있는 것**.
+//
+// 「해킹 보안」 화면이 그동안 보여준 것은 **로그뿐**이었다. 로그는 서버 메모리에 쌓이고
+// 재시작하면 사라지는 「무슨 일이 있었나」다. 정작 **지금 누가 막혀 있는가**는 어느
+// 화면에도 없었다 — 풀어달라는 사람이 와도 관리자가 볼 자리가 없었다.
+//
+// 여기서 주는 것은 로그와 반대로 **파일에 남는 것**이다. 서버가 다시 떠도 그대로다.
+router.get('/shield', adminAuth, (req, res) => {
+  const now = Date.now();
+  const blocks = db.listBlocks().map(b => ({
+    ip: b.ip,
+    level: b.level,
+    reason: b.reason,
+    until: b.until,
+    createdAt: b.created_at,
+    // 남은 분. 영구면 null 이다 — 0 으로 주면 화면이 「곧 풀림」으로 읽는다
+    remaining: b.until === 'forever' ? null : Math.max(0, Math.ceil((new Date(b.until).getTime() - now) / 60000)),
+  }));
+
+  // 로그인 잠금. 열쇠가 'acct:<친 아이디>' 또는 'ip:<주소>' 다.
+  // **친 아이디는 있는 계정이 아닐 수도 있다** — 열쇠를 계정이 아니라 친 말로 만들기
+  // 때문이다(있는 계정만 429 가 되면 그 차이가 아이디 확인 답이 된다)
+  const loginLocks = db.listLoginLocks().map(r => ({
+    key: r.key,
+    kind: r.key.startsWith('acct:') ? 'account' : 'ip',
+    target: r.key.slice(r.key.indexOf(':') + 1),
+    count: r.count,
+    until: new Date(r.until).toISOString(),
+    remaining: Math.max(0, Math.ceil((r.until - now) / 60000)),
+  }));
+
+  res.json({ blocks, loginLocks });
+});
+
+// POST /api/security/unlock-login — 잠긴 로그인을 풀어준다.
+//
+// 계정 잠금은 **남이 일부러 걸 수 있다** (그 사람 아이디로 열 번 틀리면 된다).
+// 15분이면 저절로 풀리지만, 기다리는 사람에게는 그 15분이 길다
+router.post('/unlock-login', adminAuth, (req, res) => {
+  const { key } = req.body || {};
+  if (!key || typeof key !== 'string') return res.status(400).json({ error: '무엇을 풀지 알려주세요' });
+  if (!key.startsWith('acct:') && !key.startsWith('ip:')) {
+    return res.status(400).json({ error: '알 수 없는 잠금이에요' });
+  }
+  db.clearLoginFail(key);
+  db.flushNow();
+  addLog('login-unlock', `로그인 잠금 해제: ${key}`);
+  res.json({ message: '잠금을 풀었어요' });
 });
 
 // IP 형식 검증

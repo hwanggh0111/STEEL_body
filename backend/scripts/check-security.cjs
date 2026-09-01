@@ -193,10 +193,125 @@ const guardSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'middleware',
 ok('막을 때 곧바로 파일에 쓴다', /db\.blockIp\([^)]*\);\s*db\.flushNow\(\);/.test(guardSrc), true);
 ok('손으로 풀면 파일에서도 지운다', guardSrc.includes('db.unblockIp(ip)'), true);
 
-// 검사가 만든 파일은 스스로 치운다
-for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
-  if (fs.existsSync(f)) fs.unlinkSync(f);
-}
+console.log('');
+console.log('── 관리자 화면이 「지금 막혀 있는 것」을 실제로 받는가 ──');
 
-console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
-process.exit(bad ? 1 : 0);
+// **이 앱이 세 번 당한 자리다.** 서버는 200 을 주고 화면은 아무 말도 안 한다 —
+// 8/24 `/security/dashboard`, 8/26 `/security/logs`(배열을 객체로 받아 로그 100건이
+// 와도 늘 「없습니다」였다). 빌드도 통과하고 에러도 안 난다.
+//
+// 그래서 **서버를 실제로 띄워 응답을 받아보고**, 그 이름들을 **화면 파일이 읽는
+// 이름과 맞춰본다.** 관리자 인증은 검사에서 통과시킨다 — 여기서 보려는 것은
+// 인증이 아니라 주고받는 모양이다.
+const express = require('express');
+const adminAuthPath = require.resolve('../src/middleware/adminAuth');
+require.cache[adminAuthPath] = {
+  id: adminAuthPath, filename: adminAuthPath, loaded: true, exports: (req, res, next) => next(),
+};
+const securityRouter = require('../src/routes/security');
+
+const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'HackingSecurityPanel.jsx'), 'utf-8');
+
+(async () => {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/security', securityRouter);
+  const server = app.listen(0);
+  await new Promise((r) => server.once('listening', r));
+  const base = 'http://127.0.0.1:' + server.address().port + '/api/security';
+
+  // `fetch` 를 쓰면 연결이 남아서, 검사가 다 끝나고도 프로세스가 깨끗하게 못 끝난다
+  // (윈도우에서 `Assertion failed: ... UV_HANDLE_CLOSING` 으로 죽고 종료 코드가 127 이
+  // 된다 — 전부 통과했는데 `npm run check` 는 실패로 읽었다). 연결을 안 남기고 부른다
+  const http = require('http');
+  const call = (method, url, body) => new Promise((resolve, reject) => {
+    const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
+    const req = http.request(url, {
+      method,
+      agent: new http.Agent({ keepAlive: false }),
+      headers: payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {},
+    }, (res) => {
+      let text = '';
+      res.setEncoding('utf-8');
+      res.on('data', (c) => { text += c; });
+      res.on('end', () => resolve({ status: res.statusCode, json: text ? JSON.parse(text) : null }));
+    });
+    req.on('error', reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+
+  // 막아둔 것 하나와 잠긴 로그인 하나를 만들어 둔다
+  db.blockIp('203.0.113.7', Date.now() + 2 * HOUR, 3, '검사: 이유가 이렇게 적힌다');
+  db.blockIp('203.0.113.8', Infinity, 4, '검사: 영구');
+  for (let i = 0; i < 10; i++) db.recordLoginFail('acct:locked@test.local', WINDOW, MAX_ACCT, LOCK);
+
+  const shield = (await call('GET', base + '/shield')).json;
+
+  ok('막힌 주소를 배열로 준다', Array.isArray(shield.blocks), true);
+  ok('잠긴 로그인을 배열로 준다', Array.isArray(shield.loginLocks), true);
+  // 앞 단락에서 막아둔 것들도 같이 온다 — 여기서는 **방금 것이 들어 있는지**만 본다
+  // (목록을 통째로 비교했다가 앞의 것들 때문에 FAIL 이 났다)
+  ok('막아둔 둘이 다 온다',
+    ['203.0.113.7', '203.0.113.8'].filter((ip) => !shield.blocks.some((b) => b.ip === ip)), []);
+
+  const one = shield.blocks.find((b) => b.ip === '203.0.113.7');
+  ok('왜 막혔는지도 같이 온다 (이유를 모르면 풀지 말지 못 정한다)', one.reason, '검사: 이유가 이렇게 적힌다');
+  ok('남은 시간을 분으로 준다', one.remaining, 120);
+  ok('언제 막았는지도 온다', typeof one.createdAt, 'string');
+  // 영구를 0 으로 주면 화면이 「곧 풀림」으로 읽는다 — null 이라야 「풀 때까지」로 그린다
+  ok('영구 차단은 남은 시간이 null 이다', shield.blocks.find((b) => b.ip === '203.0.113.8').remaining, null);
+
+  const lock = shield.loginLocks.find((l) => l.target === 'acct:locked@test.local'.slice(5));
+  ok('잠긴 계정이 온다', !!lock, true);
+  ok('계정 잠금인지 주소 잠금인지 말해준다', lock.kind, 'account');
+  ok('몇 번 틀렸는지도 온다', lock.count, 10);
+
+  // **화면이 읽는 이름과 맞는가.** 한쪽만 고치면 화면이 조용히 빈다
+  const fields = ['blocks', 'loginLocks', 'remaining', 'reason', 'createdAt', 'count', 'kind', 'target'];
+  ok('화면이 읽는 이름이 응답에 다 있다',
+    fields.filter((f) => panel.includes('.' + f) && !JSON.stringify(shield).includes('"' + f.replace(/^\./, '') + '"')
+      && !['remaining', 'reason', 'createdAt', 'count', 'kind', 'target'].every(() => false)),
+    []);
+  const flat = JSON.stringify(shield);
+  ok('응답에 그 이름들이 실제로 적혀 있다', fields.filter((f) => !flat.includes('"' + f + '"')), []);
+  ok('화면이 그 이름들을 읽는다', fields.filter((f) => !panel.includes(f)), []);
+
+  // 푸는 자리 둘이 실제로 푸는가
+  const unlock = await call('POST', base + '/unlock-login', { key: 'acct:locked@test.local' });
+  ok('잠금을 풀어준다', unlock.status, 200);
+  ok('풀고 나면 잠금이 없다', db.loginLockLeft('acct:locked@test.local'), 0);
+
+  const bogus = await call('POST', base + '/unlock-login', { key: '아무거나' });
+  ok('알 수 없는 잠금은 400', bogus.status, 400);
+
+  const unblock = await call('POST', base + '/ai-unblock/203.0.113.7');
+  ok('주소 차단도 화면에서 풀린다', unblock.status, 200);
+  ok('풀고 나면 파일에서도 빠진다', db.findBlock('203.0.113.7'), null);
+
+  // 화면이 그리는 자리 — 있어도 안 그리면 없는 것과 같다
+  ok('화면이 지금 막혀 있는 것을 그린다', panel.includes("client.get('/security/shield')"), true);
+  ok('화면에 푸는 단추가 있다',
+    panel.includes('/security/ai-unblock/') && panel.includes("client.post('/security/unlock-login'"), true);
+  // 로그를 못 불러와도 막힌 목록은 보여야 한다 — 사람이 「왜 막혔냐」고 물어온 순간이 그때다
+  ok('로그를 못 불러와도 막힌 목록은 그린다',
+    panel.slice(panel.indexOf('if (failed)'), panel.indexOf('if (failed)') + 400).includes('shieldBlock'), true);
+  ok('로그(사라진다)와 차단(남는다)의 차이를 적어둔다',
+    /서버가 다시 떠도 그대로 남습니다/.test(panel) && /서버가 다시 뜨면 비워집니다/.test(panel), true);
+
+  // 서버는 닫고 **process.exit 는 부르지 않는다.**
+  // 윈도우에서 닫히는 중인 손잡이를 두고 exit 하면 libuv 가 죽는다
+  // (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)`) — 종료 코드가 127 이 되고
+  // `npm run check` 가 거기서 끊긴다. 검사는 전부 통과했는데 실패로 보이던 자리다.
+  await new Promise((r) => server.close(r));
+
+  // 검사가 만든 파일은 스스로 치운다.
+  // **먼저 파일에 쓴 다음 지운다** — 안 그러면 지운 뒤에 종료 훅이 다시 써놓는다
+  db.flushNow();
+  for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+  }
+
+  console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
+  process.exit(bad ? 1 : 0);
+})();

@@ -1014,6 +1014,12 @@ const db = {
     data.loginFails = data.loginFails.filter(r => r.key !== key);
     if (data.loginFails.length !== before) save(data);
   },
+  /** 지금 잠겨 있는 것만. 관리자 화면이 이걸 보고 풀어준다 */
+  listLoginLocks() {
+    const data = load();
+    const now = Date.now();
+    return (data.loginFails || []).filter(r => r.until > now);
+  },
   /** 다 식은 줄은 걷는다. 안 걷으면 시도한 IP 수만큼 파일이 커진다 */
   cleanLoginFails(windowMs) {
     const data = load();
