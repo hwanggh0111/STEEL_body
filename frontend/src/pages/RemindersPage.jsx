@@ -222,7 +222,7 @@ export default function RemindersPage() {
         </div>
         <div style={{ flexGrow: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>STEEL BODY</span>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>IRONLOG</span>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{settings.time}</span>
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>오늘 운동하는 날이에요</div>

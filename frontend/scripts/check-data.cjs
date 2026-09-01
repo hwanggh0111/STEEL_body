@@ -453,6 +453,31 @@ ok('없는 이름은 빈 칸을 준다 (안 터진다)',
 
 
 console.log('');
+console.log('── 앱 이름이 한 이름인가 ──');
+// 2026-09-01 에 STEEL BODY → IRONLOG 로 바꿨다. 이름은 **여섯 자리**에 흩어져 있다 —
+// 로고 · 탭 제목 · 설치 이름(manifest) · 아이폰 홈 화면 이름 · 알림 제목 · 내보내기 파일.
+// 하나만 빠뜨리면 **거기만 옛 이름으로 남는다.** 폰 홈 화면에 옛 이름으로 깔리거나,
+// 알림만 다른 앱에서 온 것처럼 뜬다. 아무도 안 터져서 눈으로만 잡힌다.
+const APP_NAME = 'IRONLOG';
+const html = fs.readFileSync('index.html', 'utf-8');
+const manifest = JSON.parse(fs.readFileSync('public/manifest.json', 'utf-8'));
+const sw = fs.readFileSync('public/sw.js', 'utf-8');
+const logo = fs.readFileSync('src/components/Logo.jsx', 'utf-8');
+
+ok('탭 제목', (html.match(/<title>([^<]+)<\/title>/) || [])[1], APP_NAME);
+ok('설치 이름', manifest.name, APP_NAME);
+ok('홈 화면에 붙는 짧은 이름', manifest.short_name, APP_NAME);
+ok('아이폰 홈 화면 이름',
+  (html.match(/apple-mobile-web-app-title" content="([^"]+)"/) || [])[1], APP_NAME);
+ok('알림 제목', sw.includes(`payload.title || '${APP_NAME}'`), true);
+// 로고는 첫 글자만 세리프로 따로 그린다 — 두 조각을 이으면 이름이 나와야 한다
+const parts = [...logo.matchAll(/}}>([A-Z ]+)<\/span>/g)].map((m) => m[1]);
+ok('로고 글자를 이으면 앱 이름이 된다', parts.join(''), APP_NAME);
+// 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
+const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
+ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
+
+console.log('');
 console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴다) ──');
 // 이모지 그림은 애플 · 구글 · 삼성이 각각 그린 **그 회사 것**이고, 폰마다 다르게 나온다 —
 // 검정+금으로 맞춰놓은 화면에 파란 종이 뜨고 노란 집이 뜬다.
@@ -477,6 +502,13 @@ const srcFiles = [];
 ok('앱 코드에 이모지가 없다',
   srcFiles.filter((f) => VENDOR_EMOJI.test(codeOf(fs.readFileSync(f, 'utf-8'))))
     .map((f) => f.replace(/\\/g, '/')), []);
+// 옛 이름이 코드에 남아 있으면 거기만 딴 앱이 된다 (주석의 기록은 뺀다 —
+// 「예전 이름은 STEEL BODY 였다」까지 잡으면 왜 바꿨는지를 못 적는다)
+const oldName = srcFiles.concat(['index.html', 'public/manifest.json', 'public/sw.js', 'vite.config.js'])
+  .filter((f) => fs.existsSync(f))
+  .filter((f) => /STEEL BODY|steelbody-|steel-body/.test(codeOf(fs.readFileSync(f, 'utf-8'))))
+  .map((f) => f.split(/[\\/]/).pop());
+ok('코드에 옛 이름이 안 남았다', oldName, []);
 
 // 이름이 틀리면 **조용히 빈 칸**이 된다 (NavIcon 은 모르는 이름에 null 을 준다).
 // 아무도 안 터지고 아이콘 자리만 비므로 눈으로만 잡힌다

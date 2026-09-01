@@ -33,7 +33,7 @@ export default function HistoryPage() {
   const [filterExercise, setFilterExercise] = useState('');
 
   const handleExportCSV = (type = 'workouts') => {
-    const filename = type === 'inbody' ? 'steelbody_inbody.csv' : 'steelbody_workouts.csv';
+    const filename = type === 'inbody' ? 'ironlog_inbody.csv' : 'ironlog_workouts.csv';
     const baseURL = import.meta.env.VITE_API_URL || '/api';
     const token = readLS('token');
     fetch(`${baseURL}/export/${type}`, {

@@ -18,6 +18,14 @@ function getTransporter() {
 }
 
 // 인증번호 메일 발송. 성공 시 true, 실패/미설정 시 false.
+const APP_NAME = 'IRONLOG';
+// 메일은 CSS 변수를 못 쓴다(메일 프로그램이 안 읽는다). 그래서 값을 적는데,
+// **앱의 `--accent` 와 같은 값이어야 한다.** 8/28 에 앱은 검정+금으로 바꿨는데
+// 메일만 옛 주황(#ff6b1a)으로 남아 있었다 — 앱을 쓰다 메일을 받으면 다른 서비스 같다.
+// 여기 한 곳에만 적고 두 통이 같이 쓴다
+const ACCENT = '#eeb77d';
+const INK = '#1a1a1a';
+
 async function sendVerificationCode(email, code) {
   const t = getTransporter();
   if (!t) {
@@ -30,13 +38,13 @@ async function sendVerificationCode(email, code) {
     await t.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: '[STEEL BODY] 인증번호',
+      subject: `[${APP_NAME}] 인증번호`,
       text: `인증번호: ${code}\n\n5분 안에 입력해주세요. 본인이 요청하지 않았다면 이 메일을 무시하세요.`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #fafafa;">
-          <h2 style="color: #ff6b1a; letter-spacing: 4px; margin: 0 0 16px;">STEEL BODY</h2>
+          <h2 style="color: ${ACCENT}; letter-spacing: 4px; margin: 0 0 16px;">${APP_NAME}</h2>
           <p style="color: #333; font-size: 14px; line-height: 1.6;">인증번호를 안내드립니다. 5분 이내에 입력해주세요.</p>
-          <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #fff; border: 2px solid #ff6b1a; border-radius: 8px; color: #ff6b1a; margin: 16px 0;">${code}</div>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #fff; border: 2px solid ${ACCENT}; border-radius: 8px; color: ${INK}; margin: 16px 0;">${code}</div>
           <p style="color: #999; font-size: 12px;">본인이 요청하지 않았다면 이 메일을 무시하세요.</p>
         </div>
       `,
@@ -88,11 +96,11 @@ function notifyAdmin(kind, subject, lines, always = false) {
   t.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to,
-    subject: `[STEEL BODY] ${subject}`,
+    subject: `[${APP_NAME}] ${subject}`,
     text,
     html: `
       <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #fafafa;">
-        <h2 style="color: #ff6b1a; letter-spacing: 4px; margin: 0 0 4px;">STEEL BODY</h2>
+        <h2 style="color: ${ACCENT}; letter-spacing: 4px; margin: 0 0 4px;">${APP_NAME}</h2>
         <p style="color: #666; font-size: 12px; margin: 0 0 16px;">${subject}</p>
         <div style="background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 16px; color: #333; font-size: 14px; line-height: 1.8; white-space: pre-wrap;">${
           lines.map(l => String(l).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))).join('<br>')

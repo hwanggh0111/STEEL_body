@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: steel-body
+    name: ironlog
     runtime: node
     plan: free
     region: oregon
@@ -14,9 +14,9 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://steel-body.onrender.com
+        value: https://ironlog.onrender.com
       - key: BACKEND_URL
-        value: https://steel-body.onrender.com
+        value: https://ironlog.onrender.com
       - key: ADMIN_EMAIL
         sync: false
       - key: GOOGLE_CLIENT_ID

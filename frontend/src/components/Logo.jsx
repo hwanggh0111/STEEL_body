@@ -1,4 +1,8 @@
-// STEEL BODY 로고. **앱의 모든 자리가 이것 하나를 쓴다.**
+// IRONLOG 로고. **앱의 모든 자리가 이것 하나를 쓴다.**
+//
+// 2026-09-01 에 이름을 STEEL BODY 에서 IRONLOG 로 바꿨다. 이 앱이 하는 일은
+// 「기록」이고, 브라우저에 남는 열쇠도 아직 `ironlog_` 다 — 이름과 하는 일과
+// 남아 있는 것이 이제 한 이름으로 모인다.
 //
 // 2026-08-28 전까지는 로고가 세 벌이었다 — 머리는 Playfair 이탤릭, 미니 스플래시는
 // Great Vibes 필기체, 로그인은 Bebas. 같은 앱에서 셋이면 어느 것도 로고가 아니다.
@@ -7,7 +11,7 @@
 //   · 마크는 격자 24칸에 획 2칸 — 글자의 세로획과 같은 굵기다
 //   · 마크 높이 = 대문자 높이(cap). 밑선이 맞는다
 //   · 마크와 글자 사이 여백 = 획 × 4
-//   · S 한 글자만 세리프. 나머지는 앱이 쓰는 Bebas 다
+//   · 첫 글자 하나만 세리프. 나머지는 앱이 쓰는 Bebas 다 (예전에는 S, 지금은 I)
 //
 // 색은 `--accent` 계열을 쓴다. **마크는 `currentColor` 로 받는다** — SVG 속성
 // 안에서는 `var(--accent)` 가 치환되지 않아 값이 통째로 무시된다 (오늘 그래프에서
@@ -49,18 +53,18 @@ const metal = (deep) => ({
   ...(deep ? { textShadow: '0 1px 0 rgba(0,0,0,0.5)' } : null),
 });
 
-// 워드마크 — S 한 글자만 세리프
+// 워드마크 — 첫 글자(I) 하나만 세리프. 나머지는 Bebas
 export function LogoWord({ cap = 19, style }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap', ...style }}>
       <span style={{
         fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700,
         fontSize: cap * 1.28, lineHeight: 1, marginRight: cap * 0.02, ...metal(true),
-      }}>S</span>
+      }}>I</span>
       <span style={{
         fontFamily: "'Bebas Neue', sans-serif",
         fontSize: cap, letterSpacing: cap * 0.22, lineHeight: 1, ...metal(false),
-      }}>TEEL BODY</span>
+      }}>RONLOG</span>
     </span>
   );
 }

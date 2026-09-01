@@ -176,7 +176,7 @@ export default function Layout() {
         padding: '12px 20px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          {/* PC 에서는 왼쪽 사이드바가 이미 STEEL BODY 를 크게 달고 있다.
+          {/* PC 에서는 왼쪽 사이드바가 이미 IRONLOG 를 크게 달고 있다.
               머리에도 그대로 두면 **같은 워드마크 두 개가 나란히** 놓인다.
               PC 는 사이드바가 이름과 길찾기를, 머리가 계정을 맡는다 */}
           <div
@@ -397,7 +397,7 @@ export default function Layout() {
                   {nickname} ✎
                 </div>
               )}
-              {/* 「STEEL BODY 회원」이라고 적혀 있던 자리다. 아무 것도 말하지 않는
+              {/* 「IRONLOG 회원」이라고 적혀 있던 자리다. 아무 것도 말하지 않는
                   줄이라 없앴다 — 여기 온 사람은 자기가 회원인 것을 안다 */}
 
               {/* 비밀번호 변경.

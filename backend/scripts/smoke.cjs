@@ -16,7 +16,7 @@ const path = require('path');
 
 const BASE = process.env.SMOKE_BASE || 'http://localhost:4000/api';
 const KEEP = process.argv.includes('--keep');
-const DB_PATH = path.join(__dirname, '../steelbody.json');
+const DB_PATH = path.join(__dirname, '../ironlog.json');
 
 // 같은 계정이 겹치지 않게. 다시 돌릴 때마다 새로 만들어진다
 const TAG = 'smoke' + (Math.floor(Date.now() / 1000) % 100000);
