@@ -34,7 +34,8 @@ export default function MiniSplash({ onDone }) {
         transition: 'all 0.2s ease-out',
       }}>
         {/* 여기만 필기체(Great Vibes)에 날개 그림이었다. 앱의 로고로 맞춘다 */}
-        <Logo cap={24} style={{ filter: 'drop-shadow(0 0 10px rgba(238,183,125,0.35))' }} />
+        {/* 홈으로 돌아올 때 잠깐 뜨는 것. 큰 스플래시(48)보다는 작게, 머리(18)보다는 크게 */}
+        <Logo cap={28} style={{ filter: 'drop-shadow(0 0 10px rgba(238,183,125,0.35))' }} />
       </div>
     </div>
   );

@@ -84,6 +84,15 @@ const html = `<!doctype html>
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
   .small { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+  .splash-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .splash-row { grid-template-columns: 1fr; } }
+  .splash { background: #0a0a0a; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 300px; position: relative; overflow: hidden; }
+  .splash .cap { position: absolute; top: 14px; left: 16px; }
+  .splash .glow { position: absolute; width: 300px; height: 300px; border-radius: 50%;
+                  background: radial-gradient(circle, rgba(238,183,125,0.15) 0%, transparent 70%); }
+  .tagline { font-family: 'Playfair Display', serif; font-style: italic; color: var(--muted);
+             margin-top: 12px; text-align: center; }
 </style></head>
 <body>
   <h1>BLACK IRON</h1>
@@ -99,6 +108,27 @@ const html = `<!doctype html>
     <div class="row"><div class="cap">${label}</div>${draw(props)}</div>
     <div class="row light"><div class="cap">${label} · 밝은 바탕</div>${draw(props)}</div>
   </div>`).join('')}
+
+  <h2>메인으로 넘어가기 전 화면 (스플래시)</h2>
+  <p class="lead" style="margin-top:-6px">앱을 켤 때마다 보는 <b>유일하게 큰 로고</b>입니다.
+  실제 화면처럼 <b>검은 바탕에 금빛 글로우</b>를 깔고 표어까지 같이 그렸습니다.
+  가운데가 <b>지금 쓰는 크기(48)</b> 이고, 좌우는 견줘 보시라고 뒀습니다.</p>
+  <div class="splash-row">
+    ${[['앞에 쓰던 크기 (40)', 40], ['지금 (48)', 48], ['더 크게 (56)', 56]].map(([label, c]) => `
+    <div class="row splash">
+      <div class="cap">${label}</div>
+      <div class="glow"></div>
+      <div style="position:relative">${draw({ cap: c, variant: 'stack', subtitle: '' })}
+        <div class="tagline" style="font-size:${Math.round(c * 0.30)}px">Forge your body · Break your limits</div>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <h2>넘어가는 동안 · 홈으로 돌아올 때</h2>
+  <div class="pair">
+    <div class="row"><div class="cap">넘어가는 동안 (32)</div>${draw({ cap: 32, variant: 'stack', subtitle: '' })}</div>
+    <div class="row"><div class="cap">홈으로 돌아올 때 · 미니 (28)</div>${draw({ cap: 28, variant: 'row' })}</div>
+  </div>
 
   <h2>글자체만 바꿔본 것 (마크는 그대로)</h2>
   ${wordVariants.map(([label, css, text]) => `

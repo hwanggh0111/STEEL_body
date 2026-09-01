@@ -63,8 +63,11 @@ export default function SplashScreen({ onDone }) {
 
         {/* 로고 — 스플래시에서만 다 편다 (마크 · 금선 · 글자 · 금선 · 부제) */}
         <div style={{ textAlign: 'center' }}>
+          {/* 메인으로 넘어가기 전 화면이다. 이 앱을 켤 때마다 보는 **유일하게 큰 로고**라
+              조금 크게 둔다 — 40 은 폰에서 생각보다 작게 앉는다 (9/1 에 48 로 키웠다).
+              넘어가는 동안(phase 2)에는 줄여서 화면이 비는 느낌을 없앤다 */}
           <Logo
-            cap={phase >= 2 ? 26 : 40}
+            cap={phase >= 2 ? 32 : 48}
             variant="stack"
             subtitle=""
             style={{
