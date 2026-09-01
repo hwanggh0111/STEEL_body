@@ -43,29 +43,31 @@ const sizes = [
 // 마크는 SVG 라 그대로 뽑아 쓴다 (B · C 판에도 같은 마크를 붙인다)
 const markOnly = draw({ cap: 34, variant: 'mark' });
 
-// 글자체만 바꾼 판 — 마크는 그대로. 고를 때 헷갈리지 않게 한 가지만 바꾼다
+// 글자체만 바꾼 판 — 마크는 그대로. 고를 때 헷갈리지 않게 한 가지만 바꾼다.
+//
+// 「딱딱하다」는 말을 듣고 다시 짰다. 딱딱함은 **각**에서 온다 —
+// 전부 대문자 · 넓은 자간 · 각진 도형 · 가르는 직선. 우아함은 그 반대에 있다:
+// 소문자 · 세리프의 굵기 대비 · 좁은 자간 · 곡선.
 const wordVariants = [
-  ['A · 지금 쓰는 것 — Barlow 300, 자간 넓게',
-   `font-family:'Barlow',sans-serif;font-weight:300;letter-spacing:.42em`],
-  ['B · 세리프 — Playfair Display 400, 자간 넓게',
-   `font-family:'Playfair Display',serif;font-weight:400;letter-spacing:.30em`],
-  ['C · 앱 제목과 같은 글자체 — Bebas Neue, 자간 넓게',
-   `font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:.34em`],
+  ['A · 지금 쓰는 것 — Playfair 400, 「Black Iron」',
+   "font-family:'Playfair Display',serif;font-weight:400;letter-spacing:.02em", 'Black Iron'],
+  ['B · 같은 글자체 이탤릭 — 더 흘려 쓴 결',
+   "font-family:'Playfair Display',serif;font-style:italic;font-weight:400;letter-spacing:.01em", 'Black Iron'],
+  ['C · 세리프 · 조금 굵게 (500) — 작은 자리에서 또렷하다',
+   "font-family:'Playfair Display',serif;font-weight:500;letter-spacing:.02em", 'Black Iron'],
+  ['D · 전부 대문자로 돌아간 판 — 앞에 쓰던 것 (비교용)',
+   "font-family:'Barlow',sans-serif;font-weight:300;letter-spacing:.42em", 'BLACK IRON'],
 ];
 
-const wordHtml = (css, size) => `
-  <span style="display:inline-flex;align-items:center;white-space:nowrap">
-    <span style="${css};font-size:${size}px;color:var(--accent)">BLACK</span>
-    <span style="width:1px;height:${Math.round(size * 0.72)}px;background:var(--accent);opacity:.45;margin:0 ${Math.round(size * 0.34)}px 0 ${Math.round(size * 0.12)}px"></span>
-    <span style="${css};font-size:${size}px;color:var(--accent)">IRON</span>
-  </span>`;
+const wordHtml = (css, size, text) => `
+  <span style="${css};font-size:${size}px;color:var(--accent);white-space:nowrap">${text}</span>`;
 
 const html = `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8" />
 <title>BLACK IRON 로고</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 <style>
   :root {
     --accent: #eeb77d; --accent-hover: #f6d4ab; --accent-low: #b98a55;
@@ -86,8 +88,10 @@ const html = `<!doctype html>
 <body>
   <h1>BLACK IRON</h1>
   <p class="lead">브라우저 없이 그려서 뽑은 것입니다. 로고에서 눈으로 볼 것은 <b>글꼴이 어떻게 앉는가</b>뿐입니다.<br />
-  금색 그라데이션 · 글자 그림자 · 굵기 대비를 다 뺐습니다 — 화면에서 금속을 흉내 내면 대개 싸 보입니다.<br />
-  대신 <b>한 색 · 가는 선 · 넓은 자간</b>으로 갔습니다. 아래 <b>B · C</b> 는 글자체만 바꾼 판입니다.</p>
+  먼저 <b>번쩍임</b>(금색 그라데이션 · 글자 그림자)을 걷어냈고, 그다음 <b>딱딱함</b>을 걷어냈습니다.<br />
+  딱딱함은 각에서 옵니다 — 전부 대문자 · 넓은 자간 · 각진 도형 · 가르는 직선.
+  그래서 <b>소문자 · 세리프 · 좁은 자간 · 링</b>으로 갔습니다.<br />
+  아래 <b>A~D</b> 는 글자만 바꾼 판입니다. <b>D 가 조금 전까지 쓰던 것</b>이니 나란히 놓고 보세요.</p>
 
   <h2>지금 쓰는 것</h2>
   ${sizes.map(([label, props]) => `
@@ -97,14 +101,14 @@ const html = `<!doctype html>
   </div>`).join('')}
 
   <h2>글자체만 바꿔본 것 (마크는 그대로)</h2>
-  ${wordVariants.map(([label, css]) => `
+  ${wordVariants.map(([label, css, text]) => `
   <div class="row">
     <div class="cap">${label}</div>
     <div class="small">
       ${markOnly}
-      ${wordHtml(css, 34)}
+      ${wordHtml(css, 34, text)}
     </div>
-    <div style="margin-top:22px">${wordHtml(css, 18)}</div>
+    <div style="margin-top:22px">${wordHtml(css, 18, text)}</div>
   </div>`).join('')}
 
   <h2>홈 화면에 깔리는 크기 (아이콘)</h2>

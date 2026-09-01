@@ -1,31 +1,33 @@
 // BLACK IRON 로고. **앱의 모든 자리가 이것 하나를 쓴다.**
 //
-// 2026-09-01 저녁에 세 번째로 고쳤다. 앞의 두 판이 촌스러웠던 이유는 분명하다 —
-// **금색 그라데이션 글자 · 글자 그림자 · 굵기 대비.** 셋 다 「번쩍이게」 만드는 장치다.
-// 금속처럼 보이려고 넣은 것인데, 화면에서 금속을 흉내 내면 대개 싸 보인다.
+// 2026-09-01 저녁에 네 번째로 고쳤다. 앞 판은 「번쩍임」을 걷어내 촌스러움은 없앴지만
+// **딱딱했다.** 원인은 넷이고 넷 다 각(角)이다 —
+// **전부 대문자 · 넓은 자간 · 각진 마름모 · 가르는 직선.**
 //
-// 고급은 그 반대다. **납작한 한 색 · 가는 선 · 넓은 여백.**
+// 우아함은 규칙이 아니라 **곡선 · 굵기 대비 · 소문자**에서 나온다.
 //
-//   · 글자는 **한 색으로 납작하게.** 그라데이션도 그림자도 없다
-//   · 두 낱말을 **같은 크기 · 같은 굵기**로 두고, 사이를 **머리카락 선** 하나로 가른다.
-//     굵기로 차이를 주면 광고 문구처럼 보이고, 선 하나로 가르면 표지처럼 보인다
-//   · 글자체는 **Barlow 300**(가는 것). 자간을 아주 넓게(0.42em) 벌린다 —
-//     여백이 고급을 만든다. 앱의 제목(Bebas)과 굳이 같게 하지 않는다.
-//     로고는 UI 글자와 다른 종족이어도 된다. 다만 **로고는 이 한 벌뿐**이다
-//   · 마크도 선 하나 굵기로 줄였다. 마름모 하나 + 가로선 하나 — 그 이상은 뺐다.
-//     원판 두 장까지 그리면 22px 에서 뭉치고, 뭉치면 촌스러워진다
+//   · **대문자를 버리고 「Black Iron」으로 적는다.** 전부 대문자는 표지판의 글이다 —
+//     읽는 사람에게 지시하는 결이 된다. 첫 자만 대문자로 두면 사람이 쓴 이름이 된다
+//   · **글자체는 Playfair Display**(세리프). 획이 굵어졌다 가늘어지는 대비가 있어서,
+//     같은 금색이어도 훨씬 부드럽게 앉는다. 산세리프 대문자는 이 대비가 없어 판판하다
+//   · **자간을 도로 좁힌다**(0.02em). 소문자에 자간을 벌리면 글자가 흩어져 보인다 —
+//     자간을 넓히는 것은 대문자에서만 통하는 수법이다
+//   · **가르는 직선을 뺐다.** 낱말 사이는 여백으로 나눈다. 선을 그으면 나눈 티가 난다
+//   · **마크는 각을 버리고 원으로.** 마름모(각 넷)를 링 하나로 바꾸고, 봉이 그 안을
+//     가로지른다. 원은 어느 크기로 줄여도 뭉개지지 않는 유일한 모양이다
 //
-// 색은 `--accent` 하나만 쓴다. **마크는 `currentColor` 로 받는다** — SVG 속성 안에서는
-// `var(--accent)` 가 치환되지 않아 값이 통째로 무시된다 (8/28 에 그래프에서 겪었다).
+// 색은 `--accent` 하나만 납작하게 쓴다. 그라데이션도 그림자도 없다 —
+// 화면에서 금속을 흉내 내면 대개 싸 보인다(그게 앞 판이 촌스러웠던 이유다).
+// **마크는 `currentColor` 로 받는다** — SVG 속성 안에서는 `var(--accent)` 가
+// 치환되지 않아 값이 통째로 무시된다 (8/28 에 그래프에서 겪었다).
 
-const HAIR = 1.2;          // 격자 24칸 기준 — 머리카락 굵기. 이보다 굵으면 무거워진다
+const HAIR = 1.1;          // 격자 24칸 기준 — 머리카락 굵기
 
 /**
- * 마크 — **마름모 하나에 가로선 하나.**
+ * 마크 — **가는 링 하나에 봉 하나.**
  *
- * 원판을 옆에서 본 모양(마름모)에 봉이 지난다. 그 이상은 그리지 않는다 —
- * 앞 판에서는 마름모 두 겹에 원판 두 장까지 그렸는데, 작은 자리에서 선이 뭉쳤다.
- * 뺄수록 또렷해지고, 또렷한 것이 고급이다.
+ * 원판을 정면에서 본 모양(링)에 봉이 지난다. 각을 하나도 안 쓴다.
+ * 봉의 양끝이 링 밖으로 조금 나가서, 갇힌 그림이 아니라 지나가는 그림이 된다.
  */
 export function LogoMark({ size = 24, style }) {
   return (
@@ -33,51 +35,41 @@ export function LogoMark({ size = 24, style }) {
       width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"
       style={{ color: 'var(--accent)', flexShrink: 0, display: 'block', ...style }}
     >
-      <path d="M12 2.4 21.6 12 12 21.6 2.4 12Z"
-        stroke="currentColor" strokeWidth={HAIR} strokeLinejoin="round" />
-      {/* 봉 — 마름모 안쪽만 지난다. 밖으로 삐져나오면 십자가처럼 보인다 */}
-      <path d="M5.6 12H18.4" stroke="currentColor" strokeWidth={HAIR} strokeLinecap="round" />
+      <circle cx="12" cy="12" r="9.2" stroke="currentColor" strokeWidth={HAIR} />
+      <path d="M1.6 12H22.4" stroke="currentColor" strokeWidth={HAIR} strokeLinecap="round" />
     </svg>
   );
 }
 
 /**
- * 워드마크 — **같은 크기 · 같은 굵기 · 사이에 가는 선 하나.**
+ * 워드마크 — **「Black Iron」.** 세리프 · 첫 자만 대문자 · 자간은 좁게.
  *
- * 앞 판은 BLACK 을 흐리게 IRON 을 굵게 해서 차이를 줬다. 그게 광고 문구처럼 보였다.
- * 둘을 나란히 두고 선 하나로 가르면 표지처럼 보인다 — 그게 고급이다.
+ * 앞 판은 「BLACK │ IRON」이었다. 대문자에 넓은 자간에 가르는 직선까지 있어서
+ * 표지판처럼 읽혔다. 소문자를 살리고 선을 빼면 사람이 쓴 이름이 된다.
  */
 export function LogoWord({ cap = 19, style }) {
-  const type = {
-    fontFamily: "'Barlow', system-ui, sans-serif",
-    fontWeight: 300,
-    fontSize: cap * 0.86,
-    letterSpacing: cap * 0.42,     // 넓게. 여백이 고급을 만든다
-    lineHeight: 1,
-    color: 'var(--accent)',        // 한 색. 그라데이션도 그림자도 없다
-    whiteSpace: 'nowrap',
-  };
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', ...style }}>
-      <span style={type}>BLACK</span>
-      {/* 가르는 선 — 대문자 높이의 절반쯤. 글자보다 흐리게 둔다 */}
-      <span style={{
-        width: 1, height: cap * 0.62, background: 'var(--accent)', opacity: 0.45,
-        margin: `0 ${cap * 0.30}px 0 ${cap * 0.10}px`, flexShrink: 0,
-      }} />
-      <span style={type}>IRON</span>
-    </span>
+    <span style={{
+      fontFamily: "'Playfair Display', 'Times New Roman', serif",
+      fontWeight: 400,
+      // 세리프는 대문자 높이가 낮게 앉는다 — 같은 자리에 놓으려면 조금 키운다
+      fontSize: cap * 1.34,
+      letterSpacing: cap * 0.02,
+      lineHeight: 1,
+      color: 'var(--accent)',
+      whiteSpace: 'nowrap',
+      ...style,
+    }}>Black Iron</span>
   );
 }
 
-// 금선 — 한 겹, 가운데만 진하다. 큰 자리에만 쓴다.
-// 앞 판은 두 겹이었는데 겹칠수록 장식이 된다
+// 금선 — 한 겹, 가운데만 진하다. 큰 자리에만 쓴다
 function Rule({ width = '100%' }) {
   return (
     <span style={{
       width, height: 1,
       background: 'linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent) 78%, transparent)',
-      opacity: 0.55,
+      opacity: 0.5,
     }} />
   );
 }
@@ -92,7 +84,7 @@ function Rule({ width = '100%' }) {
  *   'word'  글자만 (마크를 따로 놓는 자리)
  *   'mark'  마크만 (아이콘 자리)
  */
-export default function Logo({ cap = 19, variant = 'row', subtitle = 'RECORD YOUR TRAINING', style, ...rest }) {
+export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record your training', style, ...rest }) {
   if (variant === 'mark') return <LogoMark size={cap * 1.15} style={style} {...rest} />;
   if (variant === 'word') return <LogoWord cap={cap} style={style} {...rest} />;
 
@@ -100,15 +92,16 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'RECORD YOU
     return (
       <span style={{
         display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-        gap: cap * 0.46, ...style,
+        gap: cap * 0.42, ...style,
       }} {...rest}>
         <LogoMark size={cap * 2.0} />
         <LogoWord cap={cap} />
-        <Rule width="64%" />
+        <Rule width="58%" />
         {subtitle ? (
           <span style={{
-            fontFamily: "'Barlow', system-ui, sans-serif", fontWeight: 300,
-            fontSize: cap * 0.28, letterSpacing: cap * 0.30,
+            // 부제도 세리프 이탤릭으로 — 대문자로 적으면 다시 표지판이 된다
+            fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 400,
+            fontSize: cap * 0.46, letterSpacing: cap * 0.01,
             color: 'var(--accent-low)', whiteSpace: 'nowrap',
           }}>{subtitle}</span>
         ) : null}
@@ -118,8 +111,8 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'RECORD YOU
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', ...style }} {...rest}>
-      <LogoMark size={cap * 1.05} />
-      <span style={{ width: cap * 0.52, flexShrink: 0 }} />
+      <LogoMark size={cap * 1.12} />
+      <span style={{ width: cap * 0.44, flexShrink: 0 }} />
       <LogoWord cap={cap} />
     </span>
   );

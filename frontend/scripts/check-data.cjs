@@ -471,27 +471,33 @@ ok('아이폰 홈 화면 이름',
   (html.match(/apple-mobile-web-app-title" content="([^"]+)"/) || [])[1], APP_NAME);
 ok('알림 제목', sw.includes(`payload.title || '${APP_NAME}'`), true);
 // 로고는 첫 글자만 세리프로 따로 그린다 — 두 조각을 이으면 이름이 나와야 한다
-const parts = [...logo.matchAll(/>(BLACK|IRON)<\/span>/g)].map((m) => m[1]);
+const parts = [...logo.matchAll(/>(Black Iron)</g)].map((m) => m[1]);
 // 두 낱말을 굵기와 자간으로 갈라 그린다 — 이으면 이름이 나와야 한다
-ok('로고 글자를 이으면 앱 이름이 된다', parts.join(' '), APP_NAME);
+// 로고는 소문자로 적고(「Black Iron」) 설치 이름은 대문자다(「BLACK IRON」) —
+// 같은 이름이어야 한다. 대소문자만 맞춰서 견준다
+ok('로고에 적힌 것이 앱 이름과 같다', parts.join(' ').toUpperCase(), APP_NAME);
+// **딱딱함은 각에서 온다.** 전부 대문자 · 넓은 자간 · 가르는 직선을 안 쓴다
+ok('로고를 전부 대문자로 적지 않는다', /Black Iron/.test(logo), true);
+ok('낱말 사이에 선을 안 긋는다', /width: 1, height: cap/.test(logo), false);
 // **두 낱말이 달라야 한다.** 같은 크기·같은 자간이면 그냥 긴 글자다
 // **번쩍이게 만드는 셋을 안 쓴다** — 금색 그라데이션 · 글자 그림자 · 굵기 대비.
 // 화면에서 금속을 흉내 내면 대개 싸 보인다. 한 색 · 가는 선 · 넓은 자간으로 간다
 ok('글자에 그라데이션을 안 쓴다', /backgroundClip: 'text'/.test(logo), false);
 ok('글자에 그림자를 안 쓴다', /textShadow/.test(logo), false);
-ok('자간을 넓게 벌린다', /letterSpacing: cap \* 0\.4/.test(logo), true);
+ok('소문자라 자간을 좁게 둔다', /letterSpacing: cap \* 0\.02/.test(logo), true);
 // 마크는 선 하나 굵기. 획이 많아지면 작은 자리에서 뭉친다
-ok('마크가 선 둘로 끝난다', (logo.match(/<path/g) || []).length, 2);
+// 마크는 **링 하나 + 봉 하나**. 각진 도형을 안 쓴다 — 원은 어느 크기로 줄여도 안 뭉갠다
+ok('마크가 링 하나 + 봉 하나다',
+  [(logo.match(/<circle/g) || []).length, (logo.match(/<path/g) || []).length], [1, 1]);
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
 // 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
 // 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
 const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
-ok('앱 아이콘도 마름모 하나 + 가로선 하나다 (로고와 같은 모양)',
-  [(icon.match(/<path/g) || []).length, icon.includes('Z"'), / H\d/.test(icon)],
-  [2, true, true]);
-ok('앱 아이콘에 옛 그림(원 안 바벨)이 안 남았다', /<circle/.test(icon), false);
+ok('앱 아이콘도 링 하나 + 봉 하나다 (로고와 같은 모양)',
+  [(icon.match(/<circle/g) || []).length, (icon.match(/<path/g) || []).length, / H\d/.test(icon)],
+  [1, 1, true]);
 // 금색은 한 색으로 납작하게. 아이콘에서도 그라데이션을 안 쓴다
 ok('아이콘 금색에 그라데이션을 안 쓴다', icon.includes('stroke="url(#'), false);
 
