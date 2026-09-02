@@ -306,6 +306,24 @@ const hist = stripNotes(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8'));
 // 않은 날이 같이 세어진다
 ok('계획을 기록과 따로 받아온다', /client\.get\('\/plans'\)/.test(hist), true);
 ok('달력 아래를 늘 폼으로 채우지 않는다', /selectedDate \? \(/.test(hist), true);
+// **홈에도 오늘 할 것이 보여야 한다.** 달력에 담아뒀는데 그날 홈에 오면 아무 데도
+// 안 보였다 — 정해둔 사람에게 「루틴을 고르세요」는 이미 한 일을 또 시키는 것이다
+const todayCard = stripNotes(fs.readFileSync('src/components/home/TodayCard.jsx', 'utf-8'));
+const planBranch = todayCard.indexOf('todayPlans.length > 0');
+const routineBranch = todayCard.indexOf('myRoutines.length > 0');
+const sessionBranch = todayCard.indexOf('if (session)');
+ok('홈이 오늘 담아둔 것으로 갈라진다', planBranch >= 0, true);
+// 순서가 곧 우선순위다 — 담아둔 것이 「아무 루틴이나 고르세요」보다 앞이다
+ok('담아둔 것이 만들어둔 루틴보다 앞이다',
+  planBranch >= 0 && routineBranch >= 0 && planBranch < routineBranch, true);
+// 하던 루틴이 있으면 그것이 먼저다 (이어서 하기)
+ok('하던 루틴이 제일 앞이다',
+  sessionBranch >= 0 && sessionBranch < planBranch, true);
+// 루틴을 담아뒀는데 그 사이에 루틴을 지웠을 수 있다 — 시작할 것이 없으면 기록하는 길로
+ok('지운 루틴을 담아뒀어도 안 터진다', /routine \? '시작 ›' : '기록 ›'/.test(todayCard), true);
+const homePage = stripNotes(fs.readFileSync('src/pages/HomePage.jsx', 'utf-8'));
+ok('홈이 오늘 것만 골라 넘긴다', /p\.date === today/.test(homePage), true);
+
 const dayPlan = stripNotes(fs.readFileSync('src/components/DayPlan.jsx', 'utf-8'));
 // 「월요일 가슴+삼두」를 그날에 걸어두는 것이 제일 흔한 쓰임이다
 ok('내 루틴을 통째로 걸 수 있다', /kind: 'routine'/.test(dayPlan), true);

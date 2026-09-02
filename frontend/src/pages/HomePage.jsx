@@ -113,6 +113,8 @@ export default function HomePage() {
   const startSession = useRoutineSessionStore(s => s.start);
 
   const [myRoutines, setMyRoutines] = useState([]);
+  // 달력에서 오늘 하기로 담아둔 것. 없으면 카드가 아예 안 갈라진다
+  const [plans, setPlans] = useState([]);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -124,11 +126,18 @@ export default function HomePage() {
     client.get('/my-routines')
       .then(({ data }) => setMyRoutines(Array.isArray(data) ? data : []))
       .catch(() => {});
+    // 달력에서 미리 정해둔 것. 못 받아와도 조용히 넘어간다 —
+    // 계획이 없는 사람에게는 원래 안 보이는 자리다
+    client.get('/plans')
+      .then(({ data }) => setPlans(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   // 켜둔 채 날이 바뀌어도 오늘을 가리킨다 (useToday 주석 참고)
   const today = useToday();
   const todayWorkouts = workouts[today] || [];
+  // 오늘 담아둔 것만. 지난 것과 앞날 것은 달력이 맡는다
+  const todayPlans = useMemo(() => plans.filter(p => p.date === today), [plans, today]);
   // 매 렌더 새 배열을 만들면 아래 useMemo 의 deps 가 늘 달라져 memo 가 무의미해진다.
   // deps 를 비워두면 마운트할 때의 주를 붙들고 있어 일요일 밤을 못 넘긴다 —
   // `today` 를 본다 (하루 안에서는 같은 값이라 memo 는 그대로 유지된다)
@@ -177,6 +186,7 @@ export default function HomePage() {
         <>
           <SectionTitle id="home-today">오늘</SectionTitle>
           <TodayCard
+            todayPlans={todayPlans}
             session={session}
             todayWorkouts={todayWorkouts}
             myRoutines={myRoutines}
