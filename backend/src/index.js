@@ -139,6 +139,10 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/oauth/')) return next();
   // 공개 API는 생략
   if (req.path === '/api/health') return next();
+  // 흰 화면 보고는 **로그인 전에도** 온다 (로그인 화면에서 터지면 토큰이 없다).
+  // CSRF 를 걸면 정작 받아야 할 때 못 받는다. 남이 억지로 보내봐야 할 수 있는 일은
+  // 우리 오류 목록에 줄을 더하는 것뿐이고, 그건 1분에 다섯 건으로 막아뒀다
+  if (req.path === '/api/client-error') return next();
   // Bearer 토큰만 쓰는 요청은 CSRF 가 필요 없다 — 브라우저가 알아서 붙이지 않기 때문이다.
   //
   // 다만 "Bearer 헤더가 있으면 통과" 로 두면 안 된다. 인증 쿠키가 같이 붙어 있으면
@@ -294,6 +298,7 @@ app.use('/api/faq-gaps',    require('./routes/faqGaps'));
 app.use('/api/reminders',   require('./routes/reminders'));
 app.use('/api/routine-session', require('./routes/routineSession'));
 app.use('/api/plans',       require('./routes/plans'));
+app.use('/api/client-error', require('./routes/clientErrors'));
 app.use('/api/export',      require('./routes/export'));
 
 // 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)

@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
+import ErrorBoundary from './ErrorBoundary';
 import Logo from './Logo';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
@@ -230,7 +231,15 @@ export default function Layout() {
         {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
             여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}
         <div key={location.pathname} className="page-enter">
-          <Outlet />
+          {/* **화면 하나가 죽어도 앱 전체가 죽지 않게.**
+              바깥에도 에러 경계가 하나 있지만 그건 라우터까지 통째로 감싸서,
+              한 화면이 터지면 **탭 바까지 사라진다** — 다른 데로 갈 길이 없어진다.
+              여기서 받으면 터진 자리만 안내로 바뀌고 나머지는 그대로 쓸 수 있다.
+              주소를 key 로 줘서 **다른 탭으로 가면 다시 살아난다** (에러 경계는 스스로
+              풀리지 않는다 — 한 번 터지면 새로 만들어야 한다) */}
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
 

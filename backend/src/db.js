@@ -65,6 +65,11 @@ const DEFAULT_DATA = {
   // 계획대로 하면 기록이 따로 쌓이고, 그날이 지나도 계획은 계획으로 남는다
   // (안 한 날을 지워버리면 왜 못 했는지가 아무 데도 안 남는다).
   plans: [],         // { id, user_id, date, kind: 'routine'|'exercise', name, routine_id, created_at }
+  // 화면이 흰 화면이 됐을 때 브라우저가 보내온 것.
+  //
+  // **사람 것이 아니다** — 어느 계정 것인지 안 적는다. 무엇이 터졌는지와 어느 화면인지만
+  // 남긴다. 백 건만 들고 있는다 (그 이상은 같은 것이 반복될 뿐이다)
+  clientErrors: [],  // { at, message, stack, path, agent }
   // ── 방어막이 남기는 것 ──
   //
   // **막아놓은 것은 서버가 다시 떠도 남아야 한다.** 8/31 까지 차단은 전부 램에만
@@ -429,6 +434,24 @@ const db = {
     data.measures.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+
+  // clientErrors — 흰 화면이 났을 때 브라우저가 보내온 것
+  addClientError(row) {
+    const data = load();
+    if (!data.clientErrors) data.clientErrors = [];
+    data.clientErrors.push({ at: new Date().toISOString(), ...row });
+    // 백 건만. 오래된 것부터 버린다
+    if (data.clientErrors.length > 100) data.clientErrors = data.clientErrors.slice(-100);
+    save(data);
+  },
+  getClientErrors() {
+    return [...(load().clientErrors || [])].reverse();   // 최신이 위
+  },
+  clearClientErrors() {
+    const data = load();
+    data.clientErrors = [];
+    save(data);
   },
 
   // plans — 앞으로 할 것

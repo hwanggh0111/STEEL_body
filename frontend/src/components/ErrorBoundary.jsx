@@ -60,11 +60,30 @@ export default class ErrorBoundary extends Component {
     return { err, stale: isStaleChunk(err) };
   }
 
-  componentDidCatch(err) {
+  componentDidCatch(err, info) {
     // 오래된 조각이면 한 번은 저절로 새로 받는다. 사람이 뭘 잘못한 게 아니다
     if (isStaleChunk(err) && !reloadedAlready() && markReloaded()) {
       window.location.reload();
+      return;
     }
+    // **무엇이 터졌는지를 서버로 한 줄 보낸다.**
+    //
+    // 이 안내를 본 사람 열에 아홉은 제보를 안 적고 그냥 나간다. 그러면 우리는
+    // 흰 화면이 났다는 것조차 모른다 — 오늘 그것 때문에 두 번 헤맸다.
+    // **사람이 적은 글이나 기록은 안 붙인다.** 무엇이 터졌는지와 어느 화면인지만 보낸다.
+    // 실패해도 조용히 넘어간다 (이미 터진 화면에서 또 터지면 안 된다)
+    try {
+      const baseURL = import.meta.env.VITE_API_URL || '/api';
+      fetch(`${baseURL}/client-error`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: String(err?.message || err),
+          stack: String(err?.stack || info?.componentStack || ''),
+          path: typeof window !== 'undefined' ? window.location.pathname : '',
+        }),
+      }).catch(() => {});
+    } catch { /* 여기서 또 터지면 안 된다 */ }
   }
 
   render() {
