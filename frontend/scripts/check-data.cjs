@@ -258,6 +258,57 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 제보함 목록 (2026-09-02 에 다시 짰다) ──');
+// 사람이 제보함에 **두 번째로** 오는 이유는 하나다 — 답이 왔나 보려고.
+// 그런데 답이 어느 것에 달렸는지 목록에서 안 보여서, 여섯 장을 다 눌러봐야 했다.
+const rv = bundle('src/pages/support/reportView.js', '.t26.cjs');
+
+const REP = [
+  { id: 3, status: 'checking', reply: '고쳤습니다', reply_at: '2026-09-02T10:00:00Z' },
+  { id: 2, status: 'done', reply: '안 사라집니다', reply_at: '2026-08-20T10:00:00Z' },
+  { id: 1, status: 'received' },
+];
+const SEEN = '2026-08-25T00:00:00Z';
+
+// **상태와 답변은 다른 것이다.** 「확인중」인데 답이 달린 제보가 실제로 있다 —
+// 상태 배지만 보고는 답이 온 줄 모른다
+ok('상태가 「확인중」이어도 답은 답이다', rv.hasReply(REP[0]), true);
+ok('답이 없으면 없다고 한다', rv.hasReply(REP[2]), false);
+ok('마지막으로 본 뒤에 온 답만 새 답이다',
+  [rv.isNewReply(REP[0], SEEN), rv.isNewReply(REP[1], SEEN)], [true, false]);
+ok('안 본 답이 몇 건인지 센다', rv.newReplyCount(REP, SEEN), 1);
+// 한 번도 안 본 사람에게는 답이 다 새 것이다
+ok('처음 온 사람에게는 답이 다 새 것이다', rv.newReplyCount(REP, ''), 2);
+
+// **안 본 답이 맨 위다.** 예전에는 무조건 id 역순이라 답이 달린 옛 제보가 아래에 묻혔다
+ok('안 본 답을 맨 위로 올린다', rv.sortReports(REP, SEEN).map((r) => r.id), [3, 2, 1]);
+// **더 최근에 보낸 제보보다도 위다.** 답을 보러 온 사람이 제일 먼저 볼 것이 그것이다
+ok('안 본 답이 더 새 제보보다도 위다',
+  rv.sortReports([{ id: 9, status: 'received' }, REP[0]], SEEN).map((r) => r.id), [3, 9]);
+
+// 거르는 말은 사람의 말로. 「접수」와 「확인중」의 차이는 제보한 사람에게 아무 뜻이 없다
+ok('거름망이 셋이다', rv.FILTERS.map((f) => f.key), ['all', 'answered', 'waiting']);
+ok('거름망마다 몇 건인지 센다',
+  [rv.filterCounts(REP).all, rv.filterCounts(REP).answered, rv.filterCounts(REP).waiting], [3, 2, 1]);
+ok('「답변 옴」으로 거르면 답 있는 것만', rv.viewReports(REP, 'answered', SEEN).map((r) => r.id), [3, 2]);
+ok('「기다리는 중」으로 거르면 답 없는 것만', rv.viewReports(REP, 'waiting', SEEN).map((r) => r.id), [1]);
+
+// **825줄 한 파일이었다.** 목록 한 줄을 고치려고 폼 400줄을 지나쳐야 했다
+const boxLines = fs.readFileSync('src/pages/support/ReportBox.jsx', 'utf-8').split(NL).length;
+ok('제보함이 한 파일에 몰려 있지 않다 (825줄 → 절반 아래로)', boxLines < 450, true);
+for (const f of ['reportMeta.js', 'reportView.js', 'ReportList.jsx', 'AskFirst.jsx']) {
+  ok(`${f} 로 나눴다`, fs.existsSync('src/pages/support/' + f), true);
+}
+
+const list = stripNotes(fs.readFileSync('src/pages/support/ReportList.jsx', 'utf-8'));
+// 답이 어느 것에 왔는지 펼치지 않고도 보여야 한다
+ok('목록에 답변 표시를 그린다', /답변 옴/.test(list) && /새 답변/.test(list), true);
+ok('접힌 채로도 답의 첫 줄을 보여준다', /String\(item\.reply\)\.split/.test(list), true);
+// 고객센터가 제보함을 펼치는 순간 「본 시각」을 올린다 — 다시 읽으면 전부 읽은 것이 된다
+ok('본 시각을 처음 한 번만 읽는다', /useState\(\(\) => readLS\(SEEN_REPLY_KEY\)/.test(list), true);
+// 관리자의 말(접수 · 보류)을 사람에게 그대로 내놓지 않는다
+ok('상태 넷을 탭으로 내놓지 않는다', /'보류'|status === filter/.test(list), false);
+
 console.log('\n── 측정 도구 (2026-09-02 에 다시 짰다) ──');
 // 전신 사이즈 · 체력 테스트 · 유연성은 **적기만 하고 달라진 것을 안 말했다.**
 // 푸시업 30개를 적으면 목록에 쌓일 뿐, 늘었는지 줄었는지는 위아래를 번갈아 보며
@@ -741,7 +792,7 @@ console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린
 const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
 // 길찾기 · 홈의 「바로 가기」 · 미션이 같은 서랍에서 꺼내 쓴다
 const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/components/MissionSystem.jsx',
-               'src/pages/support/SupportPage.jsx', 'src/pages/support/ReportBox.jsx',
+               'src/pages/support/SupportPage.jsx', 'src/pages/support/reportMeta.js',
                'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
@@ -763,7 +814,8 @@ ok('홈의 「바로 가기」가 길찾기와 같은 그림을 쓴다',
 const kindIcon = (file) => Object.fromEntries(
   [...src[file].matchAll(/\b(bug|ask|idea)\b[^\n]*icon: '([a-z]+)'/g)].map(m => [m[1], m[2]]));
 const K1 = kindIcon('src/pages/support/SupportPage.jsx');
-const K2 = kindIcon('src/pages/support/ReportBox.jsx');
+// 2026-09-02 에 제보함을 넷으로 나눴다 — 갈래와 말은 `reportMeta.js` 가 들고 있다
+const K2 = kindIcon('src/pages/support/reportMeta.js');
 const K3 = kindIcon('src/components/admin/ReportAdmin.jsx');
 ok('제보 갈래 셋이 세 화면에서 같은 그림이다',
   ['bug', 'ask', 'idea'].filter(k => !(K1[k] && K1[k] === K2[k] && K2[k] === K3[k])), []);
@@ -1217,7 +1269,7 @@ const nameSpots = [
   ['홈 바로가기', 'src/pages/HomePage.jsx'],
   ['홈 검색', 'src/components/home/HomeSearch.jsx'],
   ['고객센터 소개', 'src/pages/support/introData.js'],
-  ['제보함의 화면 목록', 'src/pages/support/ReportBox.jsx'],
+  ['제보함의 화면 목록', 'src/pages/support/reportMeta.js'],
   ['자주 묻는 것', 'src/pages/support/faq.js'],
 ];
 for (const [where, file] of nameSpots) {

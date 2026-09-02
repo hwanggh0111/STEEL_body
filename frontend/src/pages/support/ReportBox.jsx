@@ -1,9 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
-import { FAQ, matchFaq } from './faq';
+import { matchFaq } from './faq';
 import pkg from '../../../package.json';
 import NavIcon from '../../components/NavIcon';
+import { KINDS, kindOf, SCREENS, FREQ, WORKAROUND } from './reportMeta';
+import ReportList from './ReportList';
+import AskFirst from './AskFirst';
 
 // ─────────────────────────────────────────────────────────────
 // 제보함
@@ -22,66 +25,6 @@ import NavIcon from '../../components/NavIcon';
 // 셋을 같은 폼으로 받으면 버그는 정보가 모자라고 문의는 쓸데없이 길어진다.
 // ─────────────────────────────────────────────────────────────
 
-const KINDS = [
-  {
-    key: 'bug', label: '버그', icon: 'bug', desc: '안 되거나 이상하게 나오는 것',
-    titleLabel: '무슨 일이 있었나요',
-    titleHint: '한 줄로 요약해 주세요',
-    bodyLabel: '어떻게 하면 그렇게 되나요',
-    bodyHint: '언제, 어디서, 무엇을 했더니 어떻게 됐는지 적어주시면 훨씬 빨리 찾습니다.\n예) 기록에서 무게를 넣고 저장했는데 히스토리에 안 보여요',
-    minBody: 10, send: '버그 보내기', attachDefault: true,
-    attachNote: '기기와 화면 정보가 있으면 재현이 훨씬 빠릅니다',
-  },
-  {
-    key: 'ask', label: '문의', icon: 'chat', desc: '어떻게 쓰는지 모르겠는 것',
-    titleLabel: '무엇이 궁금한가요',
-    titleHint: '예) 기록한 운동을 나중에 고칠 수 있나요?',
-    bodyLabel: '덧붙일 말 (없으면 비워두세요)',
-    bodyHint: '더 설명할 게 있으면 적어주세요. 없으면 비워두셔도 됩니다.',
-    minBody: 0, send: '문의 보내기', attachDefault: false,
-    attachNote: '문의에는 보통 필요 없습니다',
-  },
-  {
-    key: 'idea', label: '건의', icon: 'bulb', desc: '이렇게 됐으면 하는 것',
-    titleLabel: '무엇이 있었으면 하나요',
-    titleHint: '예) 루틴에 메모를 남기고 싶어요',
-    bodyLabel: '왜 필요한가요',
-    bodyHint: '어떤 상황에서 아쉬웠는지 적어주시면 판단이 쉽습니다.',
-    minBody: 5, send: '건의 보내기', attachDefault: false,
-    attachNote: '건의에는 보통 필요 없습니다',
-  },
-];
-
-const kindOf = key => KINDS.find(k => k.key === key) || KINDS[0];
-
-// 버그 전용 — 어느 화면인지
-// 8/25 에 늘어난 화면들(운동 검색 · 운동 알림)이 빠져 있었다. 없는 화면의 버그는
-// 「그 밖에」로 오는데, 그러면 어느 화면인지를 물어본 뜻이 없어진다
-const SCREENS = ['홈', '기록', '인바디', '루틴', '기능성운동', '운동 검색', '측정', '히스토리', '운동 알림', '고객센터', '그 밖에'];
-
-// 버그 전용 — 다시 해도 그런지. 한 번뿐이면 우선순위가 다르다
-const FREQ = [
-  { key: 'always',    label: '매번 그래요' },
-  { key: 'sometimes', label: '가끔 그래요' },
-  { key: 'once',      label: '한 번만 그랬어요' },
-];
-
-// 건의 전용 — 지금은 어떻게 버티고 있는지. 대안이 있으면 급하지 않다
-const WORKAROUND = [
-  { key: 'none',   label: '방법이 없어요' },
-  { key: 'clumsy', label: '불편하게 돌려서 해요' },
-  { key: 'okay',   label: '그냥 없어도 돼요' },
-];
-
-const STATUS = {
-  received: { label: '접수',     color: 'var(--info)',       dim: 'var(--info-dim)' },
-  checking: { label: '확인중',   color: 'var(--warning)',    dim: 'var(--warning-dim)' },
-  done:     { label: '처리완료', color: 'var(--success)',    dim: 'var(--success-dim)' },
-  held:     { label: '보류',     color: 'var(--text-muted)', dim: 'var(--bg-tertiary)' },
-};
-
-// 서버가 주는 날짜는 ISO 문자열이다. 화면에는 날짜만 쓴다
-const dayOf = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
 
 // 제보에 붙는 기기 정보. 체크했을 때만 보낸다.
 // 재현에 실제로 쓰는 것만 담는다 — 무엇을 보내는지 화면에 그대로 적어둔다.
@@ -103,145 +46,6 @@ function useDeviceInfo() {
 //   2. 몰아세우지 않는다 — 처음 화면은 사무적인 안내문이었다. 무엇을 쳐야 할지 모르는
 //      사람에게 빈 칸만 들이밀고 "못 찾으면 위에서 고르세요" 라고 하면 쫓아내는 말로 읽힌다.
 //      그래서 주제를 눌러서 바로 볼 수 있게 두고, 문장도 여쭙는 말로 바꿨다
-function AskFirst() {
-  const [q, setQ] = useState('');
-  const [open, setOpen] = useState(null);
-  const [showAll, setShowAll] = useState(false);
-
-  const typed = q.trim().length >= 2;
-  const hits = typed ? matchFaq(q) : [];
-  const list = typed ? hits : (showAll ? FAQ : []);
-
-  // 답이 하나도 안 나온 말을 남긴다. FAQ 를 무엇으로 늘릴지 감으로 정하지 않으려고.
-  //
-  // 치는 동안 스쳐 지나가는 글자까지 보내면 목록이 쓰레기가 된다. 그래서 **2초 멈춘 뒤**
-  // 에 보낸다 — 그 정도 멈췄다는 것은 「여기에는 답이 없네요」를 읽었다는 뜻이다.
-  // 같은 말은 이 화면이 살아 있는 동안 한 번만 보낸다.
-  //
-  // 남기는 것은 친 말뿐이다. 누가 쳤는지는 서버도 안 남긴다.
-  // 실패해도 아무 일도 하지 않는다 — 이것 때문에 제보를 못 쓰게 되면 본말이 전도된다.
-  const sentRef = useRef(new Set());
-  useEffect(() => {
-    if (!typed || hits.length > 0) return;
-    const term = q.trim();
-    if (sentRef.current.has(term)) return;
-    const timer = setTimeout(() => {
-      sentRef.current.add(term);
-      client.post('/faq-gaps', { term }).catch(() => {});
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [q, typed, hits.length]);
-
-  // 주제를 누르면 그 자리에서 답까지 펼친다 — 한 번 더 누르게 하지 않는다
-  const pickTopic = (item) => {
-    setQ(item.topic);
-    setOpen(item.q);
-    setShowAll(false);
-  };
-
-  return (
-    <div style={{ paddingTop: 20 }}>
-      <div style={{
-        background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
-        borderLeft: '2px solid var(--accent)', padding: '16px 16px 14px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-          <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true"><NavIcon name="chat" size={16} /></span>
-          <span style={{ fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 500 }}>
-            먼저 하나만 여쭐게요
-          </span>
-        </div>
-        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' }}>
-          궁금해서 오신 거라면 여기서 바로 답을 드릴 수 있어요.<br />
-          기다리지 않으셔도 되니까요.
-        </p>
-
-        <input
-          className="input"
-          value={q}
-          onChange={e => { setQ(e.target.value.slice(0, 40)); setOpen(null); }}
-          placeholder="어떤 게 궁금하신가요?"
-          style={{ marginBottom: 10, background: 'var(--bg-secondary)' }}
-        />
-
-        {/* 무엇을 쳐야 할지 모르는 사람이 대부분이다. 눌러서 바로 볼 수 있게 둔다.
-            다 늘어놓으면 네 줄이 되어 제보하러 온 사람의 길을 막는다 — 앞의 여섯 개만
-            보여주고, 나머지는 아래 '모두 보기' 로 간다 */}
-        {!typed && !showAll && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-            {FAQ.slice(0, 6).map(f => (
-              <button
-                key={f.q}
-                onClick={() => pickTopic(f)}
-                style={{
-                  padding: '6px 11px', fontSize: 12, cursor: 'pointer',
-                  borderRadius: 'var(--radius)', border: '1px solid var(--border-hover)',
-                  background: 'transparent', color: 'var(--text-secondary)',
-                }}
-              >{f.topic}</button>
-            ))}
-          </div>
-        )}
-
-        {typed && hits.length === 0 && (
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '2px 0 6px' }}>
-            여기에는 딱 맞는 답이 없네요.<br />
-            <span style={{ color: 'var(--text-muted)' }}>
-              그 이야기는 제가 직접 듣는 게 낫겠습니다 — 위에서 유형만 골라주세요.
-            </span>
-          </div>
-        )}
-
-        {list.map((f) => {
-          const on = open === f.q;
-          return (
-            <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
-              <div
-                onClick={() => setOpen(on ? null : f.q)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
-              >
-                <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
-                  {f.q}
-                </span>
-                <span style={{
-                  color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
-                  transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
-                }}>+</span>
-              </div>
-              {on && (
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85, padding: '0 0 14px' }}>
-                  {f.a}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {!typed && (
-          <button
-            onClick={() => { setShowAll(v => !v); setOpen(null); }}
-            style={{
-              background: 'none', border: 'none', padding: '10px 0 0', cursor: 'pointer',
-              color: 'var(--text-muted)', fontSize: 12.5,
-            }}
-          >{showAll ? '접기' : `자주 묻는 것 ${FAQ.length}가지 모두 보기`}</button>
-        )}
-      </div>
-
-      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.85, padding: '14px 2px 0' }}>
-        찾으시는 게 없어도 괜찮습니다. 위에서 유형만 골라주시면 나머지는 제가 여쭤볼게요 —
-        버그는 <b style={{ color: 'var(--text-secondary)' }}>어떻게 하면 그렇게 되는지</b>,
-        문의는 <b style={{ color: 'var(--text-secondary)' }}>궁금하신 것만</b>,
-        건의는 <b style={{ color: 'var(--text-secondary)' }}>어떤 게 아쉬우셨는지</b> 여쭙습니다.
-      </div>
-    </div>
-  );
-}
-
-// embedded — 고객센터 안에 한 섹션으로 얹을 때 쓴다.
-// initialKind — 고객센터에서 「안 되는 게 있어요」처럼 갈래를 골라 들어오면 그 유형으로 연다.
-// 그러면 유형 고르기 전에 나오는 `무엇이 궁금하세요?`(AskFirst)를 건너뛴다 —
-// 고객센터의 자주 묻는 것을 이미 지나온 사람에게 같은 목록을 또 들이밀지 않는다
 export default function ReportBox({ embedded = false, initialKind = '' }) {
   const [kind, setKind] = useState(initialKind);
   const [title, setTitle] = useState('');
@@ -260,8 +64,6 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
   const fetchReports = useReportStore(s => s.fetchAll);
   const [sending, setSending] = useState(false);
   const device = useDeviceInfo();
-  const [open, setOpen] = useState(null);
-  const [filter, setFilter] = useState('all');
   const [sent, setSent] = useState(false);
   // 제목을 치는 동안 답이 이미 있는 질문인지 찾아본다
   const [openHint, setOpenHint] = useState(null);
@@ -317,9 +119,6 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
     setAttach(kind ? kindOf(kind).attachDefault : true);
   };
 
-  // 보낸 제보 지우기. 한 번 더 묻는다 — 되돌릴 수 없고, 카드를 누르면 펼쳐지는
-  // 화면이라 손가락이 스칠 자리다
-  const [confirmDel, setConfirmDel] = useState(null);
   const [sendError, setSendError] = useState('');
 
   // 먼저 화면에서 지우고 서버에 알린다. 실패하면 되돌린다 —
@@ -327,8 +126,6 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
   const removeItem = async (id) => {
     const prev = items;
     setItems(prev.filter(i => i.id !== id));
-    setConfirmDel(null);
-    if (open === id) setOpen(null);
     try {
       await client.delete(`/reports/${id}`);
     } catch {
@@ -354,7 +151,6 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
       });
       setItems(prev => [data, ...prev]);
       setKind(''); setTitle(''); setBody('');
-      setOpen(data.id);
       setSent(true);
       setTimeout(() => setSent(false), 2600);
       setLoadFailed(false);
@@ -368,18 +164,6 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
       setSending(false);
     }
   };
-
-  // 목록은 최신이 위다. 예시 세 건이 날짜 오름차순으로 적혀 있는데 새 제보는 맨 위에 붙어서,
-  // 하나만 보내도 순서가 섞였다. 보여줄 때 한 번 세운다 — 서버에 붙이면 서버가 정렬해 준다.
-  const shown = useMemo(() => {
-    const list = filter === 'all' ? items : items.filter(i => i.status === filter);
-    return [...list].sort((a, b) => b.id - a.id);
-  }, [items, filter]);
-  const counts = useMemo(() => {
-    const c = { all: items.length };
-    for (const key of Object.keys(STATUS)) c[key] = items.filter(i => i.status === key).length;
-    return c;
-  }, [items]);
 
   // 고른 것 / 안 고른 것 한 벌 — 유형 칩, 화면 칩, 빈도 칩이 전부 같은 모양을 쓴다
   const chip = (on) => ({
@@ -627,192 +411,12 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
         )}
       </div>
 
-      {/* ─── 내 제보 ─── */}
-      <div className="section-title">
-        <div className="accent-bar" />
-        내 제보
-        <span style={{
-          fontFamily: "'Barlow', sans-serif", fontSize: 12, letterSpacing: 0,
-          color: 'var(--text-muted)', marginLeft: 'auto',
-        }}>{items.length}건</span>
-      </div>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        {[['all', '전체'], ...Object.entries(STATUS).map(([key, v]) => [key, v.label])].map(([key, label]) => {
-          const on = filter === key;
-          const color = key === 'all' ? 'var(--accent)' : STATUS[key].color;
-          return (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              style={{
-                padding: '6px 12px', fontSize: 12, cursor: 'pointer',
-                borderRadius: 'var(--radius)',
-                border: `1px solid ${on ? color : 'var(--border)'}`,
-                background: on ? color : 'transparent',
-                color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
-                fontWeight: on ? 700 : 400, transition: 'all 0.15s',
-              }}
-            >
-              {label} {counts[key] || 0}
-            </button>
-          );
-        })}
-      </div>
-
-      {loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: '34px 20px', fontSize: 13, color: 'var(--text-muted)' }}>
-          불러오는 중…
-        </div>
-      ) : loadFailed ? (
-        <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
-          <div style={{ marginBottom: 10, opacity: 0.4, display: 'flex', justifyContent: 'center' }} aria-hidden="true"><NavIcon name="signal" size={30} /></div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-            제보를 불러오지 못했습니다.<br />없어진 게 아니라 못 가져온 것이니, 새로고침해 주세요.
-          </div>
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '34px 20px' }}>
-          <div style={{ marginBottom: 10, opacity: 0.4, display: 'flex', justifyContent: 'center' }} aria-hidden="true"><NavIcon name="inbox" size={30} /></div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-            {filter === 'all' ? '아직 보낸 제보가 없습니다.' : `'${STATUS[filter].label}' 인 제보가 없습니다.`}
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {shown.map(item => {
-            const st = STATUS[item.status];
-            const kd = kindOf(item.kind);
-            const isOpen = open === item.id;
-            // 유형마다 받은 게 다르니 목록에 붙는 꼬리표도 다르다
-            const tags = [];
-            if (item.kind === 'bug') {
-              if (item.meta?.screen) tags.push(item.meta.screen);
-              const f = FREQ.find(x => x.key === item.meta?.freq);
-              if (f) tags.push(f.label);
-            } else if (item.kind === 'idea') {
-              const w = WORKAROUND.find(x => x.key === item.meta?.workaround);
-              if (w) tags.push(w.label);
-            }
-            return (
-              <div
-                key={item.id}
-                className="card clickable"
-                onClick={() => { setOpen(isOpen ? null : item.id); setConfirmDel(null); }}
-                style={{ padding: 14, borderColor: isOpen ? 'var(--border-hover)' : 'var(--border)' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-                  <span style={{
-                    fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5,
-                    padding: '2px 7px', borderRadius: 'var(--radius)',
-                    background: st.dim, color: st.color, border: `1px solid ${st.color}`,
-                  }}>{st.label}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <NavIcon name={kd.icon} size={13} />{kd.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{dayOf(item.created_at)}</span>
-                  {/* 펼치지 않고도 지울 수 있게 카드 줄에 둔다.
-                      카드 클릭이 접기/펼치기라 stopPropagation 이 필요하다 */}
-                  <button
-                    onClick={e => { e.stopPropagation(); setConfirmDel(confirmDel === item.id ? null : item.id); }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 2px 4px',
-                      color: confirmDel === item.id ? 'var(--danger)' : 'var(--text-muted)',
-                      fontSize: 11.5, flexShrink: 0,
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = confirmDel === item.id ? 'var(--danger)' : 'var(--text-muted)'; }}
-                  >지우기</button>
-                </div>
-
-                <div style={{
-                  fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.45,
-                  ...(isOpen ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
-                }}>{item.title}</div>
-
-                {/* 확인 단계 — 접힌 채로도 여기서 끝낼 수 있다.
-                    되돌릴 수 없는 일이라 한 번 더 묻는다 */}
-                {confirmDel === item.id && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
-                    padding: '9px 10px', background: 'var(--danger-dim)',
-                    border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
-                  }}>
-                    <span style={{ fontSize: 11.5, color: 'var(--danger)', marginRight: 'auto' }}>
-                      지우면 되돌릴 수 없습니다
-                    </span>
-                    <button
-                      onClick={e => { e.stopPropagation(); setConfirmDel(null); }}
-                      style={{
-                        background: 'none', border: '1px solid var(--border-hover)',
-                        color: 'var(--text-secondary)', fontSize: 11.5,
-                        padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
-                      }}
-                    >취소</button>
-                    <button
-                      onClick={e => { e.stopPropagation(); removeItem(item.id); }}
-                      style={{
-                        background: 'var(--danger-strong)', border: '1px solid var(--danger-strong)',
-                        color: '#fff', fontSize: 11.5, fontWeight: 700,
-                        padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
-                      }}
-                    >지웁니다</button>
-                  </div>
-                )}
-
-                {tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
-                    {tags.map(t => (
-                      <span key={t} style={{
-                        fontSize: 10.5, color: 'var(--text-muted)',
-                        border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '2px 7px',
-                      }}>{t}</span>
-                    ))}
-                  </div>
-                )}
-
-                {isOpen && (
-                  <>
-                    {item.body && (
-                      <div style={{
-                        fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.75,
-                        marginTop: 10, whiteSpace: 'pre-wrap',
-                      }}>{item.body}</div>
-                    )}
-
-                    {item.reply ? (
-                      <div style={{
-                        marginTop: 14, padding: '12px 14px',
-                        background: 'var(--bg-tertiary)',
-                        borderLeft: '2px solid var(--accent)', borderRadius: 'var(--radius)',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                          <span style={{
-                            fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
-                            letterSpacing: 1.5, color: 'var(--accent)',
-                          }}>답변</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dayOf(item.reply_at)}</span>
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                          {item.reply}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{
-                        marginTop: 12, fontSize: 12, color: 'var(--text-muted)',
-                        borderTop: '1px solid var(--border)', paddingTop: 10,
-                      }}>
-                        아직 답변이 없습니다. 확인하는 대로 여기에 답니다.
-                      </div>
-                    )}
-
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <ReportList
+        items={items}
+        loading={loading}
+        loadFailed={loadFailed}
+        onDelete={removeItem}
+      />
 
       <div style={{
         marginTop: 22, fontSize: 11.5, color: 'var(--text-muted)',
