@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import {
-  searchExercises, siblingsOf, koreanNameOf, translateQuery,
+  searchExercises, siblingsOf, koreanNameOf, translateQuery, isPart, PARTS,
 } from '../data/exerciseDict';
 import { formOf } from '../data/exerciseForm';
 
@@ -22,14 +22,10 @@ import { formOf } from '../data/exerciseForm';
 // 고른 뒤에 무엇을 할지는 **쓰는 쪽이 정한다**(`onPick`) — 검색 화면은 기록 화면으로
 // 데려가고, 기록 화면은 그 자리에서 이름 칸을 채운다.
 
-const CATEGORIES = [
-  { label: '가슴', q: '가슴' },
-  { label: '등', q: '등' },
-  { label: '어깨', q: '어깨' },
-  { label: '하체', q: '하체' },
-  { label: '팔', q: '팔' },
-  { label: '코어', q: '코어' },
-];
+// 부위 단추 — **사전이 아는 부위를 그대로 쓴다.**
+// 여기에 손으로 적어두면 사전에 부위를 하나 더 만들었을 때 이 단추만 옛 목록으로 남는다.
+// 「등」 · 「팔」이 안 나오던 것도 이 자리와 사전이 따로 놀아서 생긴 일이다
+const CATEGORIES = PARTS.map((label) => ({ label, q: label }));
 
 const EXTERNAL_TIMEOUT = 8000;
 
@@ -152,7 +148,8 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
   // 늦게 온 응답이 새 검색을 덮어쓰지 않게 요청에 번호를 매긴다
   const seqRef = useRef(0);
 
-  const typed = query.trim().length >= 2;
+  // 부위 이름은 한 글자여도 찾는다 (「등」 · 「팔」)
+  const typed = query.trim().length >= 2 || isPart(query);
   // 앱 안의 사전은 네트워크가 필요 없다. 치는 동안 바로 나온다
   const results = useMemo(() => (typed ? searchExercises(query) : []), [query, typed]);
   const siblings = useMemo(() => (picked ? siblingsOf(picked) : []), [picked]);

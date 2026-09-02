@@ -258,6 +258,41 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 부위로 찾기 (2026-09-02 에 고쳤다) ──');
+// **「등」과 「팔」 단추가 아무것도 못 찾고 있었다.** 단추가 검색창에 그 글자를 넣는
+// 식이었는데, 사전 검색은 한 글자로는 안 찾는다(거의 다 걸려서 도움이 안 된다).
+// 「등」 · 「팔」이 한 글자다. **아무도 안 터지고 그 두 단추만 조용히 빈 화면을 줬다.**
+const dictP = bundle('src/data/exerciseDict.js', '.t24.cjs');
+
+ok('부위가 일곱이다', dictP.PARTS.length, 7);
+// 한 부위라도 비면 그 단추는 늘 빈 화면을 준다
+ok('부위마다 운동이 있다',
+  dictP.PARTS.filter((n) => dictP.byCategory(n).length === 0), []);
+// 여기서 터진 자리다 — 한 글자짜리 부위
+ok('한 글자 부위도 찾는다 (등 · 팔)',
+  [dictP.searchExercises('등', 99).length > 0, dictP.searchExercises('팔', 99).length > 0],
+  [true, true]);
+// 사전에 운동을 더할 때 갈래를 새로 만들면 그 운동만 어느 부위에도 안 들어간다
+ok('사전의 모든 운동이 어느 부위에 든다',
+  dictP.EXERCISE_DICT.filter((e) => !dictP.partOf(e)).map((e) => e.ko), []);
+
+// **글자를 찾은 것이지 부위를 찾은 것이 아니었다.** 설명(desc)에 그 글자가 있으면
+// 걸려서, 「가슴」에 고블릿 스쿼트(「덤벨을 가슴 앞에 들고」)가, 「어깨」에 데드행이 떴다
+const inPart = (part, ko) => dictP.byCategory(part).some((e) => e.ko === ko);
+ok('설명에 「가슴」이 있다고 가슴 운동이 되지 않는다', inPart('가슴', '고블릿 스쿼트'), false);
+ok('설명에 「어깨」가 있다고 어깨 운동이 되지 않는다', inPart('어깨', '데드행'), false);
+// 있어야 할 자리에는 있어야 한다
+ok('고블릿 스쿼트는 하체다', inPart('하체', '고블릿 스쿼트'), true);
+ok('데드행은 등이다', inPart('등', '데드행'), true);
+ok('풀업 · 랫풀다운은 등이다', inPart('등', '풀업') && inPart('등', '랫풀다운'), true);
+ok('컬 · 삼두 · 딥스는 팔이다',
+  inPart('팔', '바벨컬') && inPart('팔', '스컬크러셔') && inPart('팔', '딥스'), true);
+
+// 단추를 손으로 적어두면 사전에 부위를 하나 더 만들었을 때 이 자리만 옛 목록으로 남는다.
+// 「등」 · 「팔」이 안 나오던 것도 단추와 사전이 따로 놀아서 생긴 일이다
+const finderSrc = stripNotes(fs.readFileSync('src/components/ExerciseFinder.jsx', 'utf-8'));
+ok('부위 단추를 사전에서 가져온다', /PARTS\.map\(/.test(finderSrc), true);
+
 console.log('\n── 자세 설명 (2026-09-02) ──');
 // 사전의 한 줄(`desc`)은 「그게 무슨 운동인가」이지 「어떻게 하는가」가 아니다.
 // 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다.

@@ -199,6 +199,11 @@ function chosung(str) {
  * 부위 이름('가슴')으로도 찾을 수 있게 설명까지 본다 — 설명에 부위가 적혀 있다.
  */
 export function searchExercises(query, limit = 30) {
+  // **부위 이름은 한 글자여도 찾는다.** 「등」 · 「팔」이 한 글자라 아래의 두 글자
+  // 규칙에 걸려 아무것도 안 나오고 있었다. 그리고 부위는 글자로 찾을 것이 아니라
+  // 갈래로 거를 것이다 — 설명에 「가슴 앞에 들고」가 있다고 가슴 운동은 아니다
+  if (isPart(query)) return byCategory(query).slice(0, limit);
+
   const q = norm(query);
   if (q.length < 2) return [];
 
@@ -227,11 +232,54 @@ export function siblingsOf(exercise) {
   return EXERCISE_DICT.filter(e => e.group === exercise.group && e.ko !== exercise.ko);
 }
 
-/** 부위 이름으로 묶어 보여줄 때 쓴다. */
-export function byCategory(koCategory) {
-  const q = norm(koCategory);
-  if (!q) return [];
-  return EXERCISE_DICT.filter(e => norm(e.desc).includes(q) || norm(e.group).includes(q));
+// ── 부위 ──
+//
+// **부위 단추가 「등」과 「팔」에서 아무것도 못 찾고 있었다** (2026-09-02).
+// 단추가 검색창에 그 글자를 넣는 식이었는데, 사전 검색은 **한 글자로는 안 찾는다**
+// (거의 다 걸려서 도움이 안 되기 때문이다). 「등」 · 「팔」은 한 글자다.
+//
+// 그리고 두 글자짜리도 제대로 찾은 것이 아니었다. 설명(`desc`)에 그 글자가 들어 있으면
+// 걸렸기 때문에 **「가슴」에 고블릿 스쿼트**(「덤벨을 가슴 앞에 들고」)가, **「어깨」에
+// 데드행**이 떴다. 글자를 찾은 것이지 부위를 찾은 것이 아니었다.
+//
+// 이제 **갈래(`group`)에서 부위를 뽑는다.** 갈래는 사람이 적어둔 것이라 설명 글자보다
+// 믿을 만하고, 사전의 운동이 하나도 빠짐없이 어느 한 부위에 들어간다.
+export const PARTS = ['가슴', '등', '어깨', '하체', '팔', '코어', '전신 · 유산소'];
+
+const PART_OF_GROUP = {
+  // 가슴 — 미는 것들
+  '벤치프레스': '가슴', '푸시업': '가슴', '플라이': '가슴', '케이블': '가슴',
+  '머신프레스': '가슴', '머신플라이': '가슴',
+  // 등 — 당기는 것들. 데드리프트도 여기다 (다리로 들지만 등이 버틴다)
+  '로우': '등', '풀업': '등', '풀다운': '등', '데드리프트': '등', '승모근': '등',
+  // 어깨 — 머리 위로 밀거나 옆으로 드는 것들
+  '프레스': '어깨', '레이즈': '어깨',
+  // 팔
+  '컬': '팔', '삼두': '팔', '딥스': '팔',
+  // 하체
+  '스쿼트': '하체', '런지': '하체', '하체머신': '하체', '둔근': '하체',
+  '종아리': '하체', '햄스트링': '하체',
+  // 코어
+  '코어': '코어',
+  // 숨차게 하는 것 · 온몸으로 하는 것
+  '유산소': '전신 · 유산소', '전신': '전신 · 유산소',
+};
+
+/** 그 운동이 어느 부위인가. 갈래를 못 찾으면 `null` (검사가 잡는다) */
+export function partOf(exercise) {
+  return PART_OF_GROUP[exercise?.group] || null;
+}
+
+/** 그 부위의 운동들. 부위 이름이 아니면 빈 배열 */
+export function byCategory(part) {
+  const want = String(part || '').trim();
+  if (!PARTS.includes(want)) return [];
+  return EXERCISE_DICT.filter(e => partOf(e) === want);
+}
+
+/** 친 말이 부위 이름인가 (「등」 한 글자도 부위다) */
+export function isPart(query) {
+  return PARTS.includes(String(query || '').trim());
 }
 
 /** 영어 이름 → 한국어 이름. 외부 DB 결과에 우리 이름을 붙여줄 때 쓴다. */
