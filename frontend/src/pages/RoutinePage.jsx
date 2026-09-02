@@ -50,8 +50,12 @@ export default function RoutinePage() {
   const [type, setType] = useState('머신');
   const [part, setPart] = useState('가슴');
   const [routines, setRoutines] = useState({});
-  // 갈래마다 한 번만 받아둔다. 예전에는 갈래를 왔다 갔다 할 때마다 서버를 다시 쳤다
-  const [cache, setCache] = useState({});
+  // 갈래마다 한 번만 받아둔다. 예전에는 갈래를 왔다 갔다 할 때마다 서버를 다시 쳤다.
+  //
+  // **ref 로 든다.** state 로 두면 받아온 순간 이 값이 바뀌고, 그 바람에 아래 effect 가
+  // 한 번 더 돌면서 `setPart(첫 부위)` 를 다시 부른다 — 받아오는 사이에 사람이 고른
+  // 부위가 도로 처음으로 튄다. 화면에 그릴 값이 아니라 들고만 있는 값이다
+  const cacheRef = useRef({});
   const [loading, setLoading] = useState(false);
   const [openIdx, setOpenIdx] = useState(null);
   const [myRoutines, setMyRoutines] = useState([]);
@@ -193,18 +197,18 @@ export default function RoutinePage() {
     if (tab !== 'pick') return;
     setOpenIdx(null);
     setPart(PARTS_MAP[type]?.[0] || '가슴');
-    if (cache[type]) { setRoutines(cache[type]); setLoading(false); return; }
+    if (cacheRef.current[type]) { setRoutines(cacheRef.current[type]); setLoading(false); return; }
     setLoading(true);
     client.get(`/routines/${type}`)
       // 부위별로 묶인 객체다. 배열이나 null 이 오면 빈 것으로 친다
       .then(({ data }) => {
         const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+        cacheRef.current[type] = obj;
         setRoutines(obj);
-        setCache(prev => ({ ...prev, [type]: obj }));
       })
       .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요', 'error'); })
       .finally(() => setLoading(false));
-  }, [type, tab, cache]);
+  }, [type, tab]);
 
   useEffect(() => { setOpenIdx(null); }, [part]);
 

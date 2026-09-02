@@ -282,7 +282,9 @@ ok('기능성이 공식 프로그램이 아니라고 적는다', /공식 프로�
 ok('부위 단추에 개수를 적는다', /const n = \(routines\[p\] \|\| \[\]\)\.length/.test(rtPage), true);
 
 // **갈래를 왔다 갔다 할 때마다 서버를 다시 쳤다.** 그리고 추천을 안 보고 있어도 받았다
-ok('갈래마다 한 번만 받아둔다', /cache\[type\]/.test(rtPage), true);
+ok('갈래마다 한 번만 받아둔다', /cacheRef\.current\[type\]/.test(rtPage), true);
+// 받아둔 것을 state 로 들면, 받아오는 사이에 사람이 고른 부위가 도로 처음으로 튄다
+ok('받아둔 것은 화면 값이 아니라 ref 로 든다', /const cacheRef = useRef/.test(rtPage), true);
 ok('추천을 볼 때만 받아온다', /if \(tab !== 'pick'\) return;/.test(rtPage), true);
 
 // 갈래 이름은 서버의 routines.js 와 글자까지 같아야 한다 — 다르면 그 칸만 조용히 빈다
@@ -360,6 +362,13 @@ ok('한 번만 적었으면 견주지 않는다', mc.changeOf([rows[0]], 'pushup
 // 적은 적이 없으면 화면은 아무 줄도 안 그린다
 ok('안 적은 항목은 null 을 준다', mc.changeOf(rows, 'plank'), null);
 // 빈 칸으로 저장한 기록이 최신인 척하면 안 된다
+// 아침에 재고 저녁에 또 재면 날짜가 같다. 들어온 차례대로 두면 「지난번」이 뒤집힌다
+ok('같은 날 두 번 재면 나중에 적은 것이 최신이다',
+  mc.changeOf([
+    { id: 5, date: '2026-09-01', data: { pushup: '31' } },
+    { id: 6, date: '2026-09-01', data: { pushup: '35' } },
+    { id: 4, date: '2026-08-20', data: { pushup: '28' } },
+  ], 'pushup').last, 35);
 ok('빈 값은 적은 것으로 치지 않는다',
   mc.changeOf([{ id: 4, date: '2026-09-02', data: { pushup: '' } }, ...rows], 'pushup').last, 34);
 
