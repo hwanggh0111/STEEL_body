@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import NavIcon from '../../components/NavIcon';
 import { FAQ, matchFaq } from './faq';
+import client from '../../api/client';
 
 // 「자주 묻는 것」 먼저 찾아보기 — 제보하기 폼 위에 붙는다.
 //
