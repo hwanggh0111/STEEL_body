@@ -258,6 +258,22 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 지운 것이 되살아나지 않는가 ──');
+// **서버 삭제 실패를 삼키면 이 기기에서만 지워진다.** 다음에 앱을 열면 서버에서 받아와
+// 그대로 되살아난다 — 지운 줄 알았는데 그대로인 것은 **몸 사진**에서 특히 나쁘다.
+// 비교 화면(전 · 후 사진)에서 고쳤던 것과 같은 자리가 **프로필 사진에 남아 있었다**
+// (2026-09-02 에 찾아 고쳤다).
+const layout = stripNotes(fs.readFileSync('src/components/Layout.jsx', 'utf-8'));
+ok('프로필 사진 삭제 실패를 안 삼킨다',
+  /photos\/profile'\)\s*\.catch\(\(\) => \{\}\)/.test(layout), false);
+ok('실패하면 되살아난다고 말해준다', /다시 열면 되살아납니다/.test(layout), true);
+const cmpPage2 = stripNotes(fs.readFileSync('src/pages/ComparePage.jsx', 'utf-8'));
+ok('비교 화면도 그렇게 말한다', /다시 열면 되살아납니다/.test(cmpPage2), true);
+// 두 번 눌렀거나 다른 기기에서 이미 뺐으면 404 다. 그때 되돌리면 방금 뺀 것이
+// 눈앞에서 되살아난다
+const hist2 = stripNotes(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8'));
+ok('없어서 못 지운 것은 실패로 안 친다', /err\.response\?\.status === 404/.test(hist2), true);
+
 console.log('\n── 달력에 「할 것」 담기 (2026-09-02) ──');
 // 달력은 되짚는 자리이기만 한 게 아니다. **「이번 주에 언제 갈까」를 정하는 자리**이기도
 // 한데, 앞날을 눌러도 「이 날은 쉬셨네요」만 나왔다 — 아직 오지도 않은 날인데.

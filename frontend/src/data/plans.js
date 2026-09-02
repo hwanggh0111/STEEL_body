@@ -6,10 +6,19 @@
 // 계획은 **그날이 지나도 안 지운다.** 안 한 날을 조용히 지우면 왜 못 했는지가
 // 아무 데도 안 남는다 — 지난 계획은 「못 한 것」으로 흐리게 그린다.
 
+// **목록이 아닌 것이 와도 안 터진다.**
+//
+// 이 앱은 **서버가 준 모양을 화면이 다르게 읽는 일로 세 번 당했다**
+// (8/24 `/security/dashboard` · 8/26 `/security/logs` · 8/28 응답 모양 다섯).
+// 배열이 올 자리에 객체가 오면 `.filter` 가 없어서 그 자리에서 터지고,
+// 터지면 **흰 화면**이다. 빈 목록으로 보고 그리는 편이 낫다 —
+// 화면이 「없습니다」를 보여주는 것과 아무것도 안 보여주는 것은 다르다.
+const asList = (v) => (Array.isArray(v) ? v : []);
+
 /** 날짜별로 묶는다. 달력은 칸마다 이 안에서 꺼내 쓴다 */
 export function plansByDate(plans) {
   const map = {};
-  for (const p of plans || []) {
+  for (const p of asList(plans)) {
     if (!p?.date) continue;
     (map[p.date] = map[p.date] || []).push(p);
   }
@@ -34,15 +43,19 @@ export function planState(date, today, dayWorkouts) {
 
 /** 오늘부터 가까운 순으로 아직 안 한 계획 몇 개. 홈이나 목록 위에 한 줄 적을 때 쓴다 */
 export function upcoming(plans, today, workoutsByDate = {}, limit = 3) {
-  return (plans || [])
-    .filter((p) => p.date >= today && !(workoutsByDate[p.date] || []).length)
+  const by = workoutsByDate || {};
+  return asList(plans)
+    // 줄 하나가 이상해도 그 줄만 빼고 나머지는 그린다
+    .filter((p) => p?.date && p.date >= today && !asList(by[p.date]).length)
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
     .slice(0, limit);
 }
 
 /** 지난 날인데 못 한 것이 몇 건인가 */
 export function missedCount(plans, today, workoutsByDate = {}) {
-  return (plans || []).filter((p) => p.date < today && !(workoutsByDate[p.date] || []).length).length;
+  const by = workoutsByDate || {};
+  return asList(plans)
+    .filter((p) => p?.date && p.date < today && !asList(by[p.date]).length).length;
 }
 
 /** '2026-09-05' → '9월 5일' */

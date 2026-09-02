@@ -77,7 +77,11 @@ export default function HistoryPage() {
     setPlans(prev.filter(p => p.id !== id));
     try {
       await client.delete(`/plans/${id}`);
-    } catch {
+    } catch (err) {
+      // **없어서 못 지운 것은 실패가 아니다.** 두 번 눌렀거나 다른 기기에서 이미
+      // 뺐으면 404 가 온다 — 그때 「빼지 못했어요」를 띄우고 목록을 되돌리면
+      // 방금 뺀 것이 눈앞에서 되살아난다
+      if (err.response?.status === 404) return;
       setPlans(prev);
       toast('빼지 못했어요', 'error');
     }

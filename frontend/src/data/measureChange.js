@@ -19,8 +19,17 @@
  * 아니라 **저녁 것보다 먼저 들어온 아침 것**으로 잡힌다. 날짜가 같으면 나중에 적은
  * 것(id 가 큰 것)을 앞에 둔다.
  */
+// **목록이 아닌 것이 와도 안 터진다.**
+//
+// 이 앱은 **서버가 준 모양을 화면이 다르게 읽는 일로 세 번 당했다**
+// (8/24 `/security/dashboard` · 8/26 `/security/logs` · 8/28 응답 모양 다섯).
+// 배열이 올 자리에 객체가 오면 `.filter` 가 없어서 그 자리에서 터지고,
+// 터지면 **흰 화면**이다. 빈 목록으로 보고 그리는 편이 낫다 —
+// 화면이 「없습니다」를 보여주는 것과 아무것도 안 보여주는 것은 다르다.
+const asList = (v) => (Array.isArray(v) ? v : []);
+
 function withKey(records, key) {
-  return (records || [])
+  return asList(records)
     .filter((r) => r?.data?.[key] != null && r.data[key] !== '')
     .slice()
     .sort((a, b) => String(b.date).localeCompare(String(a.date)) || (b.id || 0) - (a.id || 0));
@@ -81,9 +90,11 @@ export function bestOf(records, key, better = 'up') {
 
 /** 「+2.0cm」 · 「-1.5cm」 · 「그대로」 */
 export function diffLabel(diff, unit = '') {
-  if (diff === null || diff === undefined) return '';
-  if (diff === 0) return '그대로';
-  return `${diff > 0 ? '+' : ''}${diff}${unit}`;
+  const n = Number(diff);
+  // 숫자가 아니면 빈 글자. 화면은 그 자리를 비운다 — 「NaNkg」를 보여주지 않는다
+  if (diff === null || diff === undefined || !Number.isFinite(n)) return '';
+  if (n === 0) return '그대로';
+  return `${n > 0 ? '+' : ''}${n}${unit}`;
 }
 
 /** 「3일 만에」 · 「2주 만에」. 며칠인지 모르면 빈 문자열 */

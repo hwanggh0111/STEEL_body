@@ -44,7 +44,9 @@ export function shiftMonth(year, month, by) {
 
 /** 그 날 기록에서 대표 부위 하나. 없으면 null. */
 export function partOfDay(list) {
-  if (!list || list.length === 0) return null;
+  // **목록이 아닌 것이 와도 안 터진다.** 이 앱은 서버가 준 모양을 화면이 다르게
+  // 읽는 일로 세 번 당했다 — 배열 자리에 객체가 오면 그 자리에서 터지고 흰 화면이 된다
+  if (!Array.isArray(list) || list.length === 0) return null;
   return partDistribution(list)[0]?.part || null;
 }
 

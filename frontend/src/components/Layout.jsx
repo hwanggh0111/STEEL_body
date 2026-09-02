@@ -140,7 +140,13 @@ export default function Layout() {
     if (!ok) return;
     removeLS(PROFILE_KEY);
     setProfilePhoto('');
-    client.delete('/photos/profile').catch(() => {});
+    // **서버 삭제 실패를 삼키면 안 된다.** 이 기기에서만 지워지고 서버에는 남으면
+    // **다음에 앱을 열 때 사진이 되살아난다** (아래에서 `/photos` 를 받아 다시 채운다).
+    // 지운 줄 알았는데 그대로인 것은 몸 사진에서 특히 나쁘다 —
+    // 비교 화면의 전·후 사진에서 고쳤던 것과 같은 자리다
+    client.delete('/photos/profile')
+      .then(() => toast('프로필 사진을 지웠어요'))
+      .catch(() => toast('이 기기에서만 지워졌어요 — 다시 열면 되살아납니다', 'error'));
   };
 
   const Avatar = ({ size, fontSize }) => (

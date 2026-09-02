@@ -10,8 +10,9 @@
     "prebuild": "node scripts/gen-changelog.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node scripts/check-data.cjs && node scripts/check-screens.cjs",
-    "screens": "node scripts/check-screens.cjs"
+    "check": "node scripts/check-data.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs",
+    "screens": "node scripts/check-screens.cjs",
+    "odd": "node scripts/check-odd.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.2.1",

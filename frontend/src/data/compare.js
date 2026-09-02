@@ -85,8 +85,9 @@ export function changes(before, after) {
     });
 }
 
-/** 「+0.8kg」 · 「-3.0kg」 · 「그대로」 */
+/** 「+0.8kg」 · 「-3.0kg」 · 「그대로」. 이상한 것이 오면 빈 글자 (화면은 그 자리를 비운다) */
 export function diffLabel(c) {
+  if (!c || !Number.isFinite(Number(c.diff))) return '';
   if (c.dir === 0) return '그대로';
-  return `${c.diff > 0 ? '+' : ''}${c.diff.toFixed(1)}${c.unit}`;
+  return `${c.diff > 0 ? '+' : ''}${Number(c.diff).toFixed(1)}${c.unit || ''}`;
 }

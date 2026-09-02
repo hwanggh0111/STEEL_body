@@ -4,6 +4,15 @@
 // 답이 달린 제보가 목록에서 다른 것들과 똑같이 생겼으면, 아무도 안 터지고 사람만
 // 여섯 장을 다 눌러본다.
 
+// **목록이 아닌 것이 와도 안 터진다.**
+//
+// 이 앱은 **서버가 준 모양을 화면이 다르게 읽는 일로 세 번 당했다**
+// (8/24 `/security/dashboard` · 8/26 `/security/logs` · 8/28 응답 모양 다섯).
+// 배열이 올 자리에 객체가 오면 `.filter` 가 없어서 그 자리에서 터지고,
+// 터지면 **흰 화면**이다. 빈 목록으로 보고 그리는 편이 낫다 —
+// 화면이 「없습니다」를 보여주는 것과 아무것도 안 보여주는 것은 다르다.
+const asList = (v) => (Array.isArray(v) ? v : []);
+
 /** 답이 달렸나. **상태와 다른 것이다** — 「확인중」인데 답이 달린 제보가 실제로 있다 */
 export const hasReply = (item) => !!(item && item.reply);
 
@@ -42,23 +51,23 @@ export function matchFilter(item, key) {
  * 제일 위에 둔다 — 예전에는 무조건 id 역순이라, 답이 달린 옛 제보가 아래에 묻혔다.
  */
 export function sortReports(items, seenAt) {
-  return [...(items || [])].sort((a, b) => {
+  return [...asList(items)].sort((a, b) => {
     const an = isNewReply(a, seenAt) ? 1 : 0;
     const bn = isNewReply(b, seenAt) ? 1 : 0;
     if (an !== bn) return bn - an;
-    return b.id - a.id;
+    return (b?.id || 0) - (a?.id || 0);
   });
 }
 
 /** 거르고 세운 목록 */
 export function viewReports(items, filterKey, seenAt) {
-  const list = (items || []).filter((i) => matchFilter(i, filterKey));
+  const list = asList(items).filter((i) => matchFilter(i, filterKey));
   return sortReports(list, seenAt);
 }
 
 /** 거름망마다 몇 건인가 (탭에 적는다) */
 export function filterCounts(items) {
-  const list = items || [];
+  const list = asList(items);
   return FILTERS.reduce((acc, f) => {
     acc[f.key] = list.filter((i) => matchFilter(i, f.key)).length;
     return acc;
@@ -67,4 +76,4 @@ export function filterCounts(items) {
 
 /** 아직 안 본 답이 몇 건인가. 0 이면 화면은 그 줄을 안 그린다 */
 export const newReplyCount = (items, seenAt) =>
-  (items || []).filter((i) => isNewReply(i, seenAt)).length;
+  asList(items).filter((i) => isNewReply(i, seenAt)).length;
