@@ -9,7 +9,8 @@
     "smoke": "node scripts/smoke.cjs",
     "seed": "node scripts/seed.cjs",
     "seed:clear": "node scripts/seed.cjs --clear",
-    "smoke:clean": "node scripts/smoke.cjs --clean-all"
+    "smoke:clean": "node scripts/smoke.cjs --clean-all",
+    "shield": "node scripts/check-shield.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
