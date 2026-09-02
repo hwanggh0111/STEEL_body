@@ -873,6 +873,63 @@ ok('타바타에도 뭐가 다른지 한 줄 있다', (home.PROGRAM_NOTES['유�
 const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
 ok('화면이 설명 줄을 그린다', page.includes('PROGRAM_NOTES[name]'), true);
 
+// ── 고르기 전에 알아야 하는 둘 — 준비물 · 층간소음 (2026-09-02) ──
+//
+// 화면 머리가 **「장비 없이 집에서 할 수 있는 운동 프로그램」**이라고 적고 있었다.
+// **사실이 아니었다** — 의자 · 식탁 · 수건 · 배낭 · 문틀바를 쓴다. 집에 있는 것으로
+// 대신하게 해둔 것이지 아무것도 안 쓰는 것이 아니다. 「장비 없이」를 보고 들어온
+// 사람이 배낭 파머스 워크 앞에서 멈춘다. **아무도 안 터지고 사람만 멈춘다.**
+// 주석은 뺀다 — 「「장비 없이」라고 적으면 안 된다」는 왜 그런지 남긴 기록이다
+ok('머리에 「장비 없이」라고 적지 않는다', /장비 없이/.test(codeOf(page)), false);
+
+// 준비물은 **운동 이름에서 뽑는다.** 손으로 적어두면 운동을 갈아끼울 때 한쪽만 고친다
+for (const [name, want] of [
+  ['코어 강화', []],
+  ['유산소 타바타', []],
+]) ok(`${name}은 맨몸만 쓴다`, home.gearOf(name), want);
+ok('기능성은 배낭과 문틀바를 쓴다',
+  home.gearOf('기능성(특수부대식)').filter((g) => /배낭|문틀바/.test(g)).length, 2);
+ok('배낭은 무게를 어떻게 만드는지까지 적어준다',
+  /책|물통/.test(home.gearOf('기능성(특수부대식)').find((g) => /배낭/.test(g)) || ''), true);
+
+// **이름에 물건이 적혀 있는데 준비물에서 빠지면** 그 프로그램만 「맨몸만」이라고 거짓말한다
+const GEAR_WORDS = [['의자', /의자/], ['식탁', /식탁/], ['수건', /수건/], ['배낭', /배낭/]];
+const missedGear = [];
+for (const n of homeNames) {
+  const listed = home.gearOf(n).join(' ');
+  for (const [word, re] of GEAR_WORDS) {
+    if (home.PROGRAMS[n].some((e) => re.test(e.name)) && !listed.includes(word)) missedGear.push(`${n}/${word}`);
+  }
+}
+ok('이름에 적힌 물건이 준비물에서 빠지지 않는다', missedGear, []);
+
+// 층간소음 — **이름으로 짐작하면 틀린다.** 「스프롤」은 버피처럼 생겼지만 점프가 없어
+// 소리가 안 나고(그러라고 넣은 것이다), 「하프 버피」도 점프를 뺀 판이다
+ok('스프롤 · 하프 버피를 뛰는 것으로 세지 않는다',
+  home.LOUD.filter((n) => /스프롤|하프 버피/.test(n)), []);
+ok('전신 초급은 밤에도 그대로 켤 수 있다', home.loudOf('전신 초급'), []);
+ok('타바타에서 뛰는 것은 크로스 잭 하나뿐이다', home.loudOf('유산소 타바타'), ['크로스 잭']);
+// 뛰는 것이 있는 프로그램은 밤에 어떻게 하라는 말이 설명에 있어야 한다
+const noNightNote = homeNames.filter((n) => home.loudOf(n).length > 0
+  && !/밤/.test((home.PROGRAM_NOTES[n] || []).join(' ')));
+ok('뛰는 것이 있으면 밤에 어떻게 할지 적혀 있다', noNightNote, []);
+
+// 좁히는 단추가 늘 빈 화면을 주면 안 된다
+ok('「밤에도 조용한 것」에 남는 것이 있다', homeNames.some((n) => home.loudOf(n).length === 0), true);
+ok('「준비물 없는 것」에 남는 것이 있다', homeNames.some((n) => home.gearOf(n).length === 0), true);
+
+// 적어만 두고 화면이 안 그리면 아무도 못 본다. **펼치기 전에** 보여야 한다 —
+// 배낭이 없는 사람이 시작하고 세 번째 운동에서 알게 되면 늦다
+ok('화면이 준비물과 밤 이야기를 카드에 그린다',
+  /gearOf\(/.test(page) && /loudOf\(/.test(page) && /준비물/.test(page), true);
+ok('화면에 좁히는 단추 둘이 있다',
+  /onlyQuiet/.test(page) && /onlyBare/.test(page), true);
+// 좁혀서 아무것도 안 남으면 고장으로 읽힌다 — 되돌릴 길을 같이 준다
+ok('아무것도 안 남으면 조건 지우는 길을 준다', /조건 지우기/.test(page), true);
+// 홈트는 이어서 하는 물건이다. 지난번에 한 것을 맨 위에 둔다
+ok('지난번에 한 것을 적어둔다', /steelbody_home_last/.test(page), true);
+ok('열쇠를 앱 이름 따라 안 바꿨다', /blackiron_home/.test(page), false);
+
 // 운동마다 **어떻게 하는지**가 있어야 한다. 이름만 있으면 「스캡 푸시업」에서 멈춘다
 ok('마흔여덟 개 운동에 전부 설명이 있다',
   homeNames.flatMap((n) => home.PROGRAMS[n].map((e) => e.name)).filter((n) => !home.descOf(n)), []);

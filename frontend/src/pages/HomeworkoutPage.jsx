@@ -2,11 +2,39 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
-import { PROGRAMS, PROGRAM_NOTES, descOf } from '../data/homeworkoutPrograms';
+import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
+import { readLS, saveLS } from '../data/safeStorage';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
+
+// 지난번에 한 프로그램. **여기에만 남는다** — 홈트는 아직 서버에 안 쌓인다
+// (「운동 기록에 남기기」를 눌러야 기록이 된다). 그래서 기기의 것으로만 적는다.
+//
+// 열쇠의 `steelbody_` 는 옛 앱 이름이다. 앱 이름이 바뀌어도 안 바꾼다
+const LS_LAST = 'steelbody_home_last';
+
+function readLastDone() {
+  try {
+    const v = JSON.parse(readLS(LS_LAST) || 'null');
+    // 없어진 프로그램 이름이 적혀 있으면 안 그린다 (프로그램을 갈아끼워도 안 터진다)
+    return v && PROGRAMS[v.name] ? v : null;
+  } catch {
+    return null;
+  }
+}
+const saveLastDone = (name) => saveLS(LS_LAST, JSON.stringify({ name, at: Date.now() }));
+
+const dayStart = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+/** 며칠 전인가. 「3일 전」이 「9월 1일」보다 빨리 읽힌다 */
+function agoLabel(at) {
+  const days = Math.round((dayStart(Date.now()) - dayStart(at)) / 86400000);
+  if (days <= 0) return '오늘';
+  if (days === 1) return '어제';
+  if (days < 30) return `${days}일 전`;
+  return '한 달 넘게 전';
+}
 
 // 고르기 전 빈 목록. 매 렌더 새로 만들면 effect 가 그때마다 다시 돈다
 const EMPTY = [];
@@ -15,6 +43,10 @@ export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
   // 시작하기 전에 무엇을 하는지 펼쳐 보는 자리
   const [preview, setPreview] = useState(null);
+  // 지난번에 한 것 · 지금 되는 것만 좁혀 보기
+  const [lastDone, setLastDone] = useState(readLastDone);
+  const [onlyQuiet, setOnlyQuiet] = useState(false);
+  const [onlyBare, setOnlyBare] = useState(false);
   const [running, setRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isRest, setIsRest] = useState(false);
@@ -93,6 +125,10 @@ export default function HomeworkoutPage() {
       phaseRef.current = { idx, rest, done: true };
       setRunning(false);
       setFinished(true);
+      // 다음에 왔을 때 「지난번에 한 것」으로 보여준다. 홈트는 서버에 안 쌓이니
+      // 여기서 안 적으면 무엇을 했는지 아무 데도 안 남는다
+      saveLastDone(selected);
+      setLastDone(readLastDone());
       toast('홈트 완료!');
       return;
     }
@@ -219,25 +255,97 @@ export default function HomeworkoutPage() {
   const workSeconds = exercises.reduce((sum, e) => sum + e.duration, 0);
   const nextEx = exercises[currentIdx + 1];
 
-  // 프로그램 선택 화면
+  // ── 고르는 화면 ──
   //
-  // 예전에는 이름 · 개수 · 걸리는 시간만 보여줬다. **무엇을 하는지는 시작해봐야 알았다.**
-  // 8개짜리 프로그램을 고르면서 그 안에 뭐가 들었는지 모르고 누르는 셈이었다.
-  // 이제 눌러서 미리 볼 수 있다.
+  // 머리에 **「장비 없이 집에서 할 수 있는 운동 프로그램」**이라고 적혀 있었다.
+  // **그것이 사실이 아니었다** — 의자 · 식탁 · 수건 · 배낭 · 문틀바를 쓴다.
+  // 집에 있는 것으로 대신하게 해둔 것이지 아무것도 안 쓰는 것이 아니다.
+  // 「장비 없이」를 보고 들어온 사람이 배낭 파머스 워크 앞에서 멈춘다.
+  //
+  // 그래서 머리만 고치지 않고 **고르는 자리를 다시 짰다.** 집에서 하는 사람이
+  // 고르기 전에 정말 묻는 것은 둘이다 —
+  //   **「지금 이거 할 만한 게 집에 있나」**(준비물) 와
+  //   **「이 시간에 뛰어도 되나」**(층간소음).
+  // 둘 다 카드에 적고, 그 둘로 목록을 좁힐 수 있게 했다.
+  //
+  // 그리고 **지난번에 한 것**을 맨 위에 둔다. 홈트는 이어서 하는 물건이라
+  // 열에 아홉은 저번에 하던 것을 또 한다.
   if (!selected) {
+    const cards = PROGRAM_NAMES.map((name) => ({
+      name,
+      exs: PROGRAMS[name],
+      gear: gearOf(name),
+      loud: loudOf(name),
+    }));
+    const shown = cards.filter((c) => (!onlyQuiet || c.loud.length === 0) && (!onlyBare || c.gear.length === 0));
+    const narrowed = onlyQuiet || onlyBare;
+
     return (
       <div>
         <div className="section-title">
           <div className="accent-bar" />
           홈트레이닝
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-          장비 없이 집에서 할 수 있는 운동 프로그램
+        {/* **「장비 없이」라고 적으면 안 된다.** 의자 · 수건 · 배낭을 쓴다 —
+            운동기구를 안 쓰는 것이지 아무것도 안 쓰는 것이 아니다 */}
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.7 }}>
+          운동기구 없이, 집에 있는 것(의자 · 수건 · 배낭)으로 하는 프로그램 {PROGRAM_NAMES.length}개입니다.
+          <br />
+          무엇이 필요하고 밤에 켜도 되는지를 카드에 적어뒀어요.
         </p>
-        {PROGRAM_NAMES.map((name) => {
-          const exs = PROGRAMS[name];
+
+        {/* 지난번에 한 것 — 홈트는 이어서 하는 물건이다.
+            처음 온 사람에게는 안 그린다 (빈 자리를 남겨두면 고장 난 것으로 읽힌다) */}
+        {lastDone && (
+          <div className="card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ minWidth: 0, flexGrow: 1 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>지난번에 한 것</div>
+              <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {lastDone.name} <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>· {agoLabel(lastDone.at)}</span>
+              </div>
+            </div>
+            <button
+              className="btn-secondary"
+              style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+              onClick={() => setSelected(lastDone.name)}
+            >또 하기</button>
+          </div>
+        )}
+
+        {/* 좁히기 — 집에서 하는 사람이 실제로 걸리는 두 가지다.
+            여섯 개짜리 목록에 검색칸을 놓을 일은 아니고, 이 둘이면 충분하다 */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <button
+            className={`btn-secondary${onlyQuiet ? ' active' : ''}`}
+            aria-pressed={onlyQuiet}
+            style={{ width: 'auto', padding: '7px 12px', fontSize: 12.5 }}
+            onClick={() => setOnlyQuiet((v) => !v)}
+          >밤에도 조용한 것</button>
+          <button
+            className={`btn-secondary${onlyBare ? ' active' : ''}`}
+            aria-pressed={onlyBare}
+            style={{ width: 'auto', padding: '7px 12px', fontSize: 12.5 }}
+            onClick={() => setOnlyBare((v) => !v)}
+          >준비물 없는 것</button>
+        </div>
+
+        {/* 조건에 맞는 것이 하나도 없을 수 있다. 빈 화면만 두면 고장으로 읽힌다 —
+            무엇 때문에 비었는지 적고 되돌릴 길을 같이 준다 */}
+        {shown.length === 0 && (
+          <div className="card" style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+            고르신 조건에 맞는 프로그램이 없어요.
+            <button
+              className="btn-secondary"
+              style={{ marginTop: 10 }}
+              onClick={() => { setOnlyQuiet(false); setOnlyBare(false); }}
+            >조건 지우기</button>
+          </div>
+        )}
+
+        {shown.map(({ name, exs, gear, loud }) => {
           const total = exs.reduce((sum, e) => sum + e.duration + e.rest, 0);
           const open = preview === name;
+          const note = (PROGRAM_NOTES[name] || [])[0];
           return (
             <div key={name} id={'program-' + name} className="card" style={{ marginBottom: 8 }}>
               <div
@@ -245,12 +353,31 @@ export default function HomeworkoutPage() {
                 tabIndex={0}
                 onClick={() => setPreview(open ? null : name)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreview(open ? null : name); } }}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', gap: 10 }}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer', gap: 10 }}
               >
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2 }}>{name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                     {exs.length}개 운동 · 약 {Math.ceil(total / 60)}분 · {open ? '접기' : '눌러서 미리 보기'}
+                  </div>
+                  {/* 이름 한 줄로는 옆 프로그램과 뭐가 다른지 모른다. 펼치지 않아도 보이게 한 줄 */}
+                  {note && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>{note}</div>
+                  )}
+
+                  {/* **고르기 전에 알아야 하는 둘.** 펼쳐야 보이면 늦다 —
+                      배낭이 없는 사람은 시작하고 세 번째 운동에서 알게 된다 */}
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+                    <div>
+                      {gear.length === 0
+                        ? '준비물 없음 — 맨몸으로 합니다'
+                        : `준비물 — ${gear.join(' · ')}`}
+                    </div>
+                    <div>
+                      {loud.length === 0
+                        ? '밤에도 그대로 — 뛰는 동작이 없습니다'
+                        : `밤에는 ${loud.join(' · ')} ${loud.length === 1 ? '하나만' : '을'} 바꿔서 (미리 보기에 적어뒀어요)`}
+                    </div>
                   </div>
                 </div>
                 <span className="badge badge-accent" style={{ flexShrink: 0 }}>{exs.length}개</span>
@@ -291,6 +418,14 @@ export default function HomeworkoutPage() {
             </div>
           );
         })}
+
+        {/* 좁혀서 안 보이는 것이 있으면 그렇다고 말한다. 안 적으면 프로그램이
+            줄어든 줄 안다 */}
+        {narrowed && shown.length > 0 && shown.length < cards.length && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
+            조건에 맞는 {shown.length}개만 보이고 있어요 (전체 {cards.length}개).
+          </div>
+        )}
       </div>
     );
   }
