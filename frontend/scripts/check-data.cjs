@@ -258,6 +258,65 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 측정 도구 (2026-09-02 에 다시 짰다) ──');
+// 전신 사이즈 · 체력 테스트 · 유연성은 **적기만 하고 달라진 것을 안 말했다.**
+// 푸시업 30개를 적으면 목록에 쌓일 뿐, 늘었는지 줄었는지는 위아래를 번갈아 보며
+// 사람이 직접 빼야 했다. 체력 테스트는 원래 늘려고 재는 것이다.
+const mc = bundle('src/data/measureChange.js', '.t25.cjs');
+
+const rows = [
+  { id: 3, date: '2026-09-01', data: { pushup: '34', run_1km: '300' } },
+  { id: 2, date: '2026-08-25', data: { pushup: '30', run_1km: '312' } },
+  { id: 1, date: '2026-08-01', data: { pushup: '31' } },
+];
+const push = mc.changeOf(rows, 'pushup');
+ok('지난번과 견준다', [push.prev, push.last, push.diff], [30, 34, 4]);
+ok('며칠 만인지 센다', push.days, 7);
+// 한 번만 적었으면 견줄 것이 없다. 0 으로 치면 「34개 늘었다」가 된다
+ok('한 번만 적었으면 견주지 않는다', mc.changeOf([rows[0]], 'pushup').prev, null);
+// 적은 적이 없으면 화면은 아무 줄도 안 그린다
+ok('안 적은 항목은 null 을 준다', mc.changeOf(rows, 'plank'), null);
+// 빈 칸으로 저장한 기록이 최신인 척하면 안 된다
+ok('빈 값은 적은 것으로 치지 않는다',
+  mc.changeOf([{ id: 4, date: '2026-09-02', data: { pushup: '' } }, ...rows], 'pushup').last, 34);
+
+// **최고 기록은 체력 테스트에서만 말한다.** 몸(사이즈 · 유연성)에는 등급을 안 매긴다
+ok('최고 기록을 찾는다', mc.bestOf(rows, 'pushup', 'up').value, 34);
+// 1km 달리기는 작을수록 잘한 것이다. 큰 값을 최고로 뽑으면 거꾸로 말하게 된다
+ok('작을수록 좋은 것은 작은 값이 최고다', mc.bestOf(rows, 'run_1km', 'down').value, 300);
+
+// 1km 를 초로만 받고 있었다 — 안내 숫자가 300(=5분)이었다.
+// 사람은 스톱워치를 「5분 12초」로 읽지 312로 읽지 않는다
+ok('초를 분:초로 읽어준다', mc.mmss(312), '5:12');
+ok('한 자리 초에 0 을 붙인다', mc.mmss(305), '5:05');
+ok('분 · 초를 초로 되돌린다', mc.toSeconds('5', '12'), 312);
+ok('둘 다 비었으면 안 적은 것이다 (0초로 저장하지 않는다)', mc.toSeconds('', ''), null);
+ok('분만 적어도 된다', mc.toSeconds('5', ''), 300);
+
+ok('「그대로」를 말해준다', mc.diffLabel(0, 'cm'), '그대로');
+ok('늘어난 것에 + 를 붙인다', mc.diffLabel(2, 'cm'), '+2cm');
+ok('열흘은 날로, 3주는 주로 읽는다', [mc.sinceLabel(10), mc.sinceLabel(21)], ['10일 만에', '3주 만에']);
+
+const fit = stripNotes(fs.readFileSync('src/components/measure/FitnessTestSection.jsx', 'utf-8'));
+const size = stripNotes(fs.readFileSync('src/components/measure/BodySizeSection.jsx', 'utf-8'));
+const flex = stripNotes(fs.readFileSync('src/components/measure/FlexibilitySection.jsx', 'utf-8'));
+
+// 적는 자리에서 지난 값을 보여준다 — 저장하고 나서야 견줄 수 있으면 늦다
+for (const [name, src] of [['체력 테스트', fit], ['전신 사이즈', size], ['유연성', flex]]) {
+  ok(`${josa.i(name)} 지난 값을 적는 자리에서 보여준다`, /지난번 \{/.test(src), true);
+}
+// 몸에는 등급을 안 매긴다 — 사이즈 · 유연성은 방향만 칠하는 부품 하나를 같이 쓴다
+ok('몸 쪽 둘이 같은 부품을 쓴다',
+  /ChangeSummary/.test(size) && /ChangeSummary/.test(flex), true);
+const summary = stripNotes(fs.readFileSync('src/components/measure/ChangeSummary.jsx', 'utf-8'));
+ok('몸에는 좋고 나쁨을 안 매긴다고 적어둔다', /좋고 나쁨을 매기지 않습니다/.test(summary), true);
+ok('몸 쪽에 위험색을 안 쓴다', /var\(--danger\)|var\(--success\)/.test(summary), false);
+// 체력이 준 날에 경고색을 주면 다음에 안 적게 된다
+ok('체력 테스트도 빨강을 안 쓴다', /var\(--danger\)/.test(fit), false);
+// 1km 만 시간이다
+ok('1km 를 분 · 초 두 칸으로 받는다', /runMin/.test(fit) && /runSec/.test(fit), true);
+ok('저장은 그대로 초로 한다 (옛 기록과 같은 모양)', /toSeconds\(runMin, runSec\)/.test(fit), true);
+
 console.log('\n── 관리자 「보안 관리」 (2026-09-02 에 다시 짰다) ──');
 // 앱에서 두 번째로 큰 화면인데 한 번도 다시 안 본 화면이었다.
 const sec = stripNotes(fs.readFileSync('src/components/SecurityPanel.jsx', 'utf-8'));
