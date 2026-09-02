@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import NavIcon from '../components/NavIcon';
@@ -17,21 +17,41 @@ const PARTS_MAP = {
   '기능성': ['서킷', '체력검정', '들고걷기', '폭발력', '버티기'],
 };
 
-// 기능성은 성격이 달라서 한 줄 적어준다.
+// 갈래마다 한 줄.
 //
-// 「특수부대」라는 말만 붙여놓고 끝내면 공식 프로그램인 줄 안다. 그게 아니고,
-// 공개된 체력검정 항목과 그쪽에서 흔히 쓰는 방식을 **집에서 할 수 있게 옮긴 것**이다.
-// 홈트와 뭐가 다른지도 여기서 말한다 — 안 그러면 갈래가 왜 둘인지 모른다
+// **예전에는 기능성에만 있었다.** 나머지 셋은 이름만 보고 고르라는 셈인데,
+// 「맨몸」과 「홈트」가 뭐가 다른지는 이름으로 알 수 없다 — 갈래가 넷인 이유를
+// 여기서 말한다 (2026-09-02 에 넷 다 채웠다).
+//
+// 기능성은 특히 그렇다. 「특수부대」라는 말만 붙여놓고 끝내면 공식 프로그램인 줄 안다.
+// 그게 아니고, 공개된 체력검정 항목과 그쪽에서 흔히 쓰는 방식을 **집에서 할 수 있게
+// 옮긴 것**이다.
 const TYPE_NOTE = {
+  '머신': '헬스장 기계로 합니다. 궤도가 정해져 있어 자세를 배우기 전에도 안전하게 무게를 올릴 수 있어요.',
+  '맨몸': '기구 없이 제 몸무게로 합니다. 헬스장 없이도 되지만 무게를 올릴 수 없어 횟수와 자세로 올립니다.',
+  '홈트': '집에서 부위별로 키웁니다. 의자 · 수건처럼 집에 있는 것을 씁니다 — 「기능성운동」 화면의 프로그램과 같은 결이에요.',
   '기능성': '집에서 장비 없이 하는 특수부대식 훈련입니다. 부위별로 키우는 홈트와 달리 '
     + '시간을 재고 숨이 차게 몰아붙입니다. 무거운 것이 필요한 자리는 책 넣은 배낭으로 합니다. '
     + '공개된 체력검정 항목을 참고한 것이지 공식 프로그램은 아닙니다.',
 };
 
+// 이 화면에 오는 이유는 둘이다 — **내 루틴을 시작하러** 오거나,
+// **오늘 뭘 할지 고르러** 온다. 예전에는 둘이 한 화면에 위아래로 쌓여 있어서,
+// 내 루틴을 시작하려는 사람이 만들기 폼과 추천 스물몇 칸을 지나쳐야 했다.
+const TABS = [
+  { key: 'mine', label: '내 루틴' },
+  { key: 'pick', label: '추천 루틴' },
+];
+
 export default function RoutinePage() {
+  // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
+  // 처음 온 사람에게만 추천을 편다
+  const [tab, setTab] = useState('mine');
   const [type, setType] = useState('머신');
   const [part, setPart] = useState('가슴');
   const [routines, setRoutines] = useState({});
+  // 갈래마다 한 번만 받아둔다. 예전에는 갈래를 왔다 갔다 할 때마다 서버를 다시 쳤다
+  const [cache, setCache] = useState({});
   const [loading, setLoading] = useState(false);
   const [openIdx, setOpenIdx] = useState(null);
   const [myRoutines, setMyRoutines] = useState([]);
@@ -72,10 +92,19 @@ export default function RoutinePage() {
     }
   };
 
-  // Fetch my routines from server
+  // 내가 만든 루틴을 받아온다.
+  //
+  // **하나도 없으면 추천 쪽을 편다.** 처음 온 사람에게 「루틴 없음」만 보여주고
+  // 끝내면 그 다음에 무엇을 해야 할지가 화면에 없다. 딱 한 번만 옮긴다 —
+  // 그 뒤로는 사람이 고른 탭을 지킨다
+  const movedRef = useRef(false);
   useEffect(() => {
     client.get('/my-routines')
-      .then(({ data }) => setMyRoutines(Array.isArray(data) ? data : []))
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : [];
+        setMyRoutines(list);
+        if (!movedRef.current && list.length === 0) { movedRef.current = true; setTab('pick'); }
+      })
       .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
   }, []);
 
@@ -158,23 +187,80 @@ export default function RoutinePage() {
 
   const parts = PARTS_MAP[type] || PARTS_MAP['머신'];
 
+  // **추천을 보고 있을 때만 받아온다.** 예전에는 화면에 들어오기만 해도 받았고,
+  // 갈래를 왔다 갔다 할 때마다 같은 것을 다시 받았다. 갈래별로 한 번만 받아 들고 있는다
   useEffect(() => {
-    setLoading(true);
+    if (tab !== 'pick') return;
     setOpenIdx(null);
     setPart(PARTS_MAP[type]?.[0] || '가슴');
+    if (cache[type]) { setRoutines(cache[type]); setLoading(false); return; }
+    setLoading(true);
     client.get(`/routines/${type}`)
       // 부위별로 묶인 객체다. 배열이나 null 이 오면 빈 것으로 친다
-      .then(({ data }) => setRoutines(data && typeof data === 'object' && !Array.isArray(data) ? data : {}))
+      .then(({ data }) => {
+        const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+        setRoutines(obj);
+        setCache(prev => ({ ...prev, [type]: obj }));
+      })
       .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요', 'error'); })
       .finally(() => setLoading(false));
-  }, [type]);
+  }, [type, tab, cache]);
 
   useEffect(() => { setOpenIdx(null); }, [part]);
 
   const exercises = routines[part] || [];
 
+  // 하던 루틴이 있으면 **어느 탭에 있든** 맨 위에 둔다.
+  // 추천을 보다가도 하던 것으로 돌아갈 수 있어야 한다
+  const running = session ? myRoutines.find(r => (r._id || r.id) === session.routineId) : null;
+
   return (
     <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {TABS.map(({ key, label }) => {
+          const on = tab === key;
+          const n = key === 'mine' ? myRoutines.length : null;
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              aria-pressed={on}
+              style={{
+                flex: 1, padding: '10px 0', fontSize: 13.5, cursor: 'pointer',
+                borderRadius: 'var(--radius)',
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                background: on ? 'var(--accent)' : 'transparent',
+                color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
+                fontWeight: on ? 700 : 400, transition: 'all 0.15s',
+              }}
+            >{label}{n ? ` ${n}` : ''}</button>
+          );
+        })}
+      </div>
+
+      {/* 하던 것 — 탭을 옮겨도 따라온다. 중간에 그만두고 딴 데 갔다가
+          돌아왔을 때 제일 먼저 눌러야 하는 자리다 */}
+      {running && (
+        <div className="card" style={{
+          marginBottom: 14, padding: '12px 14px', borderLeft: '2px solid var(--accent)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{ minWidth: 0, flexGrow: 1 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>하던 루틴</div>
+            <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {running.name} <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>· {session.done}/{session.total}</span>
+            </div>
+          </div>
+          <button
+            className="btn-secondary"
+            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+            onClick={() => navigate('/workout')}
+          >이어서</button>
+        </div>
+      )}
+
+      {tab === 'mine' && (
+      <>
       {/* ─── 나만의 루틴 ─── */}
       <div className="section-title">
         <div className="accent-bar" />
@@ -191,7 +277,7 @@ export default function RoutinePage() {
           <div className="empty-state-title">루틴 없음</div>
           <div className="empty-state-desc">
             아직 만든 루틴이 없어요.<br />
-            아래 추천에서 골라 담거나, 직접 만들 수 있습니다.
+위의 「추천 루틴」에서 골라 담거나, 아래에서 직접 만들 수 있습니다.
           </div>
         </div>
       )}
@@ -350,8 +436,12 @@ export default function RoutinePage() {
         </div>
       )}
 
-      {/* 추천은 아래다. 내가 만든 것을 먼저 본다 */}
-      <div className="section-title" style={{ marginTop: 32 }}>
+      </>
+      )}
+
+      {tab === 'pick' && (
+      <>
+      <div className="section-title">
         <div className="accent-bar" />
         운동 루틴 추천
       </div>
@@ -382,16 +472,21 @@ export default function RoutinePage() {
       )}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
-        {parts.map((p) => (
-          <button
-            key={p}
-            className={`btn-secondary${part === p ? ' active' : ''}`}
-            onClick={() => setPart(p)}
-            style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}
-          >
-            {p}
-          </button>
-        ))}
+        {/* **몇 개가 들었는지 적는다.** 예전에는 이름만 있어서, 뭐가 있는지 보려면
+            부위를 하나씩 다 눌러봐야 했다 */}
+        {parts.map((p) => {
+          const n = (routines[p] || []).length;
+          return (
+            <button
+              key={p}
+              className={`btn-secondary${part === p ? ' active' : ''}`}
+              onClick={() => setPart(p)}
+              style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}
+            >
+              {p}{n ? ` ${n}` : ''}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -486,6 +581,8 @@ export default function RoutinePage() {
             </div>
           );
         })
+      )}
+      </>
       )}
 
     </div>

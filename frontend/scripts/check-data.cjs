@@ -258,6 +258,38 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 루틴 (2026-09-02 에 다시 짰다) ──');
+// 한 화면에 **두 화면**이 있었다 — 「나만의 루틴」(목록 + 만들기 폼 + 고치기)과
+// 「운동 루틴 추천」(갈래 4 × 부위 5~6). 내 루틴을 시작하려는 사람이 만들기 폼과
+// 추천 스물몇 칸을 지나쳐야 했다.
+const rtPage = stripNotes(fs.readFileSync('src/pages/RoutinePage.jsx', 'utf-8'));
+
+ok('두 갈래를 탭으로 갈랐다', /TABS/.test(rtPage) && /tab === 'mine'/.test(rtPage) && /tab === 'pick'/.test(rtPage), true);
+// 처음 온 사람에게 「루틴 없음」만 보여주고 끝내면 그 다음에 무엇을 할지가 화면에 없다
+ok('루틴이 없으면 추천 쪽을 편다', /setTab\('pick'\)/.test(rtPage), true);
+// 한 번만 옮기고 그 뒤로는 사람이 고른 탭을 지킨다
+ok('탭을 딱 한 번만 옮긴다', /movedRef/.test(rtPage), true);
+// 추천을 보다가도 하던 것으로 돌아갈 수 있어야 한다
+ok('하던 루틴은 탭과 무관하게 맨 위에 둔다', /하던 루틴/.test(rtPage), true);
+
+// **갈래가 넷인 이유가 이름에 없다.** 「맨몸」과 「홈트」가 뭐가 다른지 이름으로는 모른다
+const notes = [...rtPage.matchAll(/'(머신|맨몸|홈트|기능성)':\s*'/g)].map((m) => m[1]);
+ok('갈래 넷에 설명이 다 있다', ['머신', '맨몸', '홈트', '기능성'].filter((t) => !notes.includes(t)), []);
+// 「특수부대」만 붙여놓고 끝내면 공식 프로그램인 줄 안다
+ok('기능성이 공식 프로그램이 아니라고 적는다', /공식 프로그램은 아닙니다/.test(rtPage), true);
+
+// 부위 이름만 있으면 뭐가 들었는지 보려고 하나씩 다 눌러봐야 한다
+ok('부위 단추에 개수를 적는다', /const n = \(routines\[p\] \|\| \[\]\)\.length/.test(rtPage), true);
+
+// **갈래를 왔다 갔다 할 때마다 서버를 다시 쳤다.** 그리고 추천을 안 보고 있어도 받았다
+ok('갈래마다 한 번만 받아둔다', /cache\[type\]/.test(rtPage), true);
+ok('추천을 볼 때만 받아온다', /if \(tab !== 'pick'\) return;/.test(rtPage), true);
+
+// 갈래 이름은 서버의 routines.js 와 글자까지 같아야 한다 — 다르면 그 칸만 조용히 빈다
+const routineSrc2 = fs.readFileSync('../backend/src/routes/routines.js', 'utf-8');
+ok('갈래 넷이 서버에 다 있다',
+  ['머신', '맨몸', '홈트', '기능성'].filter((t) => !routineSrc2.includes(`${t}: {`)), []);
+
 console.log('\n── 제보함 목록 (2026-09-02 에 다시 짰다) ──');
 // 사람이 제보함에 **두 번째로** 오는 이유는 하나다 — 답이 왔나 보려고.
 // 그런데 답이 어느 것에 달렸는지 목록에서 안 보여서, 여섯 장을 다 눌러봐야 했다.
