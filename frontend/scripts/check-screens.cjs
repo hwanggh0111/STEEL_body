@@ -83,7 +83,7 @@ function draw(file) {
   }
 }
 
-console.log('── 화면이 터지지 않고 그려지는가 ──');
+console.log('── 화면이 터지지 않고 그려지는가 (데이터 없이) ──');
 // 로그인해야 열리는 화면들이다. 서버 렌더에서는 effect 가 안 돌아 비어 있는 채로
 // 그려진다 — **그 상태에서도 안 터져야 한다.** 처음 열 때가 정확히 그 상태다
 const SCREENS = [
@@ -97,13 +97,140 @@ const SCREENS = [
   ['기능성운동', 'src/pages/HomeworkoutPage.jsx'],
   ['운동 검색', 'src/pages/SearchPage.jsx'],
   ['고객센터', 'src/pages/support/SupportPage.jsx'],
+  ['공지함', 'src/pages/support/NoticeArchive.jsx'],
   ['운동 알림', 'src/pages/RemindersPage.jsx'],
   ['로그인', 'src/pages/LoginPage.jsx'],
   ['회원가입', 'src/pages/RegisterPage.jsx'],
+  // 관리자 화면은 탭 하나가 화면 하나다. 관리자만 보는 자리라 더 늦게 들킨다
+  ['관리자', 'src/pages/AdminPage.jsx'],
+  ['관리자 · 보안 관리', 'src/components/SecurityPanel.jsx'],
+  ['관리자 · 해킹 보안', 'src/components/HackingSecurityPanel.jsx'],
+  ['관리자 · AI 관리자', 'src/components/AiAdminPanel.jsx'],
+  ['관리자 · 제보 관리', 'src/components/admin/ReportAdmin.jsx'],
+  ['관리자 · 점검 스케줄', 'src/components/admin/MaintAdmin.jsx'],
+  ['관리자 · 보안 검사', 'src/components/admin/SecurityScan.jsx'],
+  ['관리자 · 못 찾은 말', 'src/components/admin/FaqGapAdmin.jsx'],
+  // 껍데기와 전면 화면
+  ['점검 화면', 'src/components/MaintenanceScreen.jsx'],
+  ['스플래시', 'src/components/SplashScreen.jsx'],
 ];
 
 for (const [name, file] of SCREENS) {
   ok(`${name} 화면이 그려진다`, draw(file), null);
+}
+
+// ── 데이터를 넣고 그려본다 ──
+//
+// 위의 것은 **빈 화면**을 본다. 그런데 화면이 터지는 자리는 대개 **데이터가 있을 때**다 —
+// 목록을 돌리고, 날짜를 견주고, 없는 칸을 꺼내는 코드가 그때 처음 돈다.
+// 그래서 부품에는 진짜 모양의 값을 넣어 한 번 더 그린다.
+console.log('');
+console.log('── 데이터를 넣고 그려본다 ──');
+
+const TODAY = '2026-09-02';
+const WORKOUTS = {
+  '2026-09-01': [{ id: 1, exercise: '벤치프레스', weight: 60, sets: 4, reps: 10, date: '2026-09-01' }],
+};
+const PLANS = [
+  { id: 1, date: '2026-09-02', kind: 'routine', name: '가슴+삼두', routine_id: 7 },
+  { id: 2, date: '2026-09-05', kind: 'exercise', name: '데드리프트', routine_id: null },
+  { id: 3, date: '2026-08-20', kind: 'exercise', name: '스쿼트', routine_id: null },  // 못 한 것
+];
+const ROUTINES = [{ id: 7, name: '가슴+삼두', exercises: [{ name: '벤치프레스', sets: 4, reps: 10 }] }];
+const REPORTS = [
+  { id: 3, kind: 'bug', status: 'checking', title: '안 됩니다', body: '이렇게요',
+    created_at: '2026-09-01T00:00:00Z', reply: '고쳤습니다', reply_at: '2026-09-02T00:00:00Z', meta: { screen: '기록', freq: 'always' } },
+  { id: 2, kind: 'ask', status: 'received', title: '궁금합니다', body: '', created_at: '2026-08-30T00:00:00Z', meta: {} },
+];
+const MEASURES = [
+  { id: 2, date: '2026-09-01', data: { pushup: '34', run_1km: '300', chest: '95', sitreach: '15' } },
+  { id: 1, date: '2026-08-25', data: { pushup: '30', run_1km: '312', chest: '94', sitreach: '12' } },
+];
+
+// 부품 하나를 props 와 함께 그려본다
+function drawWith(file, props, wrap = true) {
+  const out = path.join(__dirname, '..', '.screen2.cjs');
+  const realError = console.error;
+  const realWarn = console.warn;
+  console.error = () => {};
+  console.warn = () => {};
+  try {
+    esbuild.buildSync({
+      entryPoints: [path.join(__dirname, '..', file)],
+      bundle: true, format: 'cjs', outfile: out, platform: 'node', jsx: 'automatic',
+      external: ['react', 'react-dom', 'react-router-dom'],
+      define: { 'import.meta.env': '{}' },
+      logLevel: 'silent',
+    });
+    const mod = require(out);
+    const C = mod.default || mod;
+    const el = React.createElement(C, props);
+    renderToStaticMarkup(wrap ? React.createElement(MemoryRouter, null, el) : el);
+    return null;
+  } catch (e) {
+    return e.message.split('\n')[0];
+  } finally {
+    console.error = realError;
+    console.warn = realWarn;
+    if (fs.existsSync(out)) fs.unlinkSync(out);
+    delete require.cache[out];
+  }
+}
+
+// 달력 — 한 날 · 할 날 · 못 한 날이 한 화면에 같이 있는 상태
+ok('달력이 한 날과 할 날을 같이 그린다',
+  drawWith('src/components/MonthCalendar.jsx', {
+    year: 2026, month: 9, workouts: WORKOUTS,
+    plans: { '2026-09-02': [PLANS[0]], '2026-09-05': [PLANS[1]] },
+    selected: '2026-09-02', onSelect: () => {},
+  }), null);
+
+// 그 날 할 것 — 오늘 · 앞날 · 지난 날 셋 다
+for (const [when, date] of [['오늘', '2026-09-02'], ['앞날', '2026-09-05'], ['지난 날', '2026-08-20']]) {
+  ok(`「${when}」의 할 것이 그려진다`,
+    drawWith('src/components/DayPlan.jsx', {
+      date, today: TODAY,
+      plans: PLANS.filter((p) => p.date === date),
+      dayWorkouts: WORKOUTS[date] || [],
+      myRoutines: ROUTINES, onAdd: () => {}, onDelete: () => {}, adding: false,
+    }), null);
+}
+
+// 홈의 「오늘」 — 갈래 다섯을 다 그려본다. 순서가 곧 우선순위라 갈래마다 다른 코드가 돈다
+const SESSION = { routineId: 7, name: '가슴+삼두', done: 1, total: 4, current: 1,
+  items: [{ name: '벤치프레스' }, { name: '인클라인' }] };
+for (const [name, props] of [
+  ['하던 루틴', { session: SESSION, todayWorkouts: [], todayPlans: [], myRoutines: ROUTINES }],
+  ['오늘 기록', { session: null, todayWorkouts: WORKOUTS['2026-09-01'], todayPlans: [], myRoutines: ROUTINES }],
+  ['오늘 담아둔 것', { session: null, todayWorkouts: [], todayPlans: [PLANS[0]], myRoutines: ROUTINES }],
+  ['담아둔 루틴이 지워진 경우', { session: null, todayWorkouts: [], todayPlans: [{ ...PLANS[0], routine_id: 999 }], myRoutines: [] }],
+  ['만들어둔 루틴', { session: null, todayWorkouts: [], todayPlans: [], myRoutines: ROUTINES }],
+  ['아무것도 없음', { session: null, todayWorkouts: [], todayPlans: [], myRoutines: [] }],
+]) {
+  ok(`홈의 「오늘」 — ${name}`,
+    drawWith('src/components/home/TodayCard.jsx', { ...props, onStartRoutine: () => {}, starting: false }), null);
+}
+
+// 제보 목록 — 답이 온 것 · 안 온 것 · 아직 못 불러온 것
+for (const [name, props] of [
+  ['답이 온 것이 섞여 있음', { items: REPORTS, loading: false, loadFailed: false }],
+  ['아직 불러오는 중', { items: [], loading: true, loadFailed: false }],
+  ['못 불러옴', { items: [], loading: false, loadFailed: true }],
+  ['하나도 없음', { items: [], loading: false, loadFailed: false }],
+]) {
+  ok(`제보 목록 — ${name}`, drawWith('src/pages/support/ReportList.jsx', { ...props, onDelete: () => {} }), null);
+}
+
+// 측정 — 지난번과 견주는 자리. 기록이 하나뿐일 때가 견줄 것이 없는 자리다
+for (const [name, file] of [
+  ['체력 테스트', 'src/components/measure/FitnessTestSection.jsx'],
+  ['전신 사이즈', 'src/components/measure/BodySizeSection.jsx'],
+  ['유연성', 'src/components/measure/FlexibilitySection.jsx'],
+]) {
+  ok(`측정 · ${name} (두 번 잰 뒤)`,
+    drawWith(file, { records: MEASURES, onSave: () => {}, onDelete: () => {} }), null);
+  ok(`측정 · ${name} (처음 잰 날)`,
+    drawWith(file, { records: [MEASURES[0]], onSave: () => {}, onDelete: () => {} }), null);
 }
 
 console.log('');
