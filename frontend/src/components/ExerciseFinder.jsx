@@ -3,6 +3,7 @@ import axios from 'axios';
 import {
   searchExercises, siblingsOf, koreanNameOf, translateQuery,
 } from '../data/exerciseDict';
+import { formOf } from '../data/exerciseForm';
 
 // 운동 찾기 — **화면이 아니라 부품이다.**
 //
@@ -32,10 +33,35 @@ const CATEGORIES = [
 
 const EXTERNAL_TIMEOUT = 8000;
 
-// 카드에 할 일이 둘이다 — 고르기와 같은 갈래 펼쳐보기.
-// 카드를 통째로 「고르기」로 두면 갈래를 볼 방법이 없어진다.
-// 그래서 **고르는 것은 단추**, 나머지 자리는 갈래 펼치기다.
+// 아래에 붙는 두 단추 — 「자세 보기」와 「같은 갈래 보기」.
+// 글자만 놓아두면 눌러도 되는 것인지 모른다. 단추로 그린다
+function MoreLink({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer',
+        fontSize: 11.5, color: 'var(--text-muted)', textDecoration: 'underline',
+        textUnderlineOffset: 3,
+      }}
+    >{children}</button>
+  );
+}
+
+// 카드에 할 일이 셋이다 — 고르기 · 자세 보기 · 같은 갈래 펼쳐보기.
+// 카드를 통째로 「고르기」로 두면 나머지를 볼 방법이 없어진다.
+// 그래서 **고르는 것은 오른쪽 단추**, 나머지 둘은 아래 줄의 단추다.
+//
+// **자세 설명을 붙인 이유** (2026-09-02) — 사전의 한 줄(`desc`)은 「그게 무슨
+// 운동인가」이지 「어떻게 하는가」가 아니다. 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을
+// 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다. 순서 서너 줄과 **조심할 것 한 줄**을
+// 눌러서 볼 수 있게 뒀다 — 늘 펼쳐두면 목록에서 운동을 못 고른다.
 function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
+  const [openForm, setOpenForm] = useState(false);
+  // 사전에 없는 이름(외부 DB 결과)에는 자세 설명이 없다. 그때는 단추를 아예 안 그린다 —
+  // 눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다
+  const form = formOf(ko);
   return (
     <div className="card list-item" style={{ marginBottom: 6 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -65,9 +91,45 @@ function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
           onClick={onPick}
         >{pickLabel}</button>
       </div>
-      {onExpand && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-          {expanded ? '갈래 접기' : '눌러서 같은 갈래 보기'}
+      {(form || onExpand) && (
+        <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+          {form && (
+            <MoreLink onClick={() => setOpenForm((v) => !v)}>
+              {openForm ? '자세 접기' : '자세 보기'}
+            </MoreLink>
+          )}
+          {onExpand && (
+            <MoreLink onClick={onExpand}>
+              {expanded ? '갈래 접기' : '같은 갈래 보기'}
+            </MoreLink>
+          )}
+        </div>
+      )}
+
+      {openForm && form && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 6 }}>
+            이렇게 합니다
+          </div>
+          {/* 순서가 있는 것이라 번호를 매긴다 — 이 자리에서는 번호가 장식이 아니다 */}
+          <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {form.steps.map((line) => (
+              <li key={line} style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                {line}
+              </li>
+            ))}
+          </ol>
+          {/* **조심할 것은 따로 세운다.** 순서에 섞어두면 다치는 자리가 묻힌다 */}
+          {form.careful && (
+            <div style={{
+              marginTop: 10, padding: '8px 10px',
+              borderLeft: '2px solid var(--warning)', background: 'var(--bg-tertiary)',
+              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
+            }}>
+              <span style={{ color: 'var(--warning)' }}>조심할 것 — </span>
+              {form.careful}
+            </div>
+          )}
         </div>
       )}
     </div>

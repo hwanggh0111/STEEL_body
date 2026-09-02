@@ -258,6 +258,47 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 자세 설명 (2026-09-02) ──');
+// 사전의 한 줄(`desc`)은 「그게 무슨 운동인가」이지 「어떻게 하는가」가 아니다.
+// 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다.
+const form = bundle('src/data/exerciseForm.js', '.t22.cjs');
+const dictAll = bundle('src/data/exerciseDict.js', '.t23.cjs').EXERCISE_DICT;
+
+// **하나만 빠져도 그 운동에서만 단추가 사라진다.** 아무도 안 터지고, 그 운동을 찾은
+// 사람만 「왜 이건 자세가 없지」 하게 된다
+ok('사전에 있는 운동 전부에 자세 설명이 있다',
+  dictAll.filter((e) => !form.formOf(e.ko)).map((e) => e.ko), []);
+ok('사전에 없는 이름을 적어두지 않았다',
+  Object.keys(form.FORM).filter((k) => !dictAll.some((e) => e.ko === k)), []);
+ok('사전과 개수가 같다', form.FORM_COUNT, dictAll.length);
+
+// 순서가 두 줄이면 자세가 안 잡힌다. 그리고 **다치는 자리는 반드시 적는다**
+ok('순서가 세 줄 이상이다',
+  Object.entries(form.FORM).filter(([, v]) => (v.steps || []).length < 3).map(([k]) => k), []);
+ok('조심할 것이 다 적혀 있다',
+  Object.entries(form.FORM).filter(([, v]) => !v.careful).map(([k]) => k), []);
+
+// 괄호 안은 같은 동작을 어디서 하느냐일 뿐이다 — 자세 설명은 하나만 둔다
+ok('괄호가 붙은 이름도 찾는다 (좌 · 의자 · 식탁 아래)',
+  !!form.formOf('사이드 플랭크 힙 딥 (좌)') && !!form.formOf('인버티드 로우 (식탁 아래)'), true);
+// 외부 DB 에서 온 이름에는 자세 설명이 없다. 그때 화면은 단추를 아예 안 그린다
+ok('사전에 없는 이름은 null 을 준다 (안 터진다)', form.formOf('없는운동'), null);
+
+// 집에서 하는 앱이다. **뛰는 동작의 조심할 것에는 층간소음이 적혀 있어야 한다** —
+// 프로그램 설명에만 적어두면 검색으로 그 운동만 찾아온 사람은 못 본다
+const loudMoves = ['버피', '크로스 잭', '하이니 스프린트', '점프 스쿼트', '점핑잭'];
+ok('뛰는 동작에는 밤 이야기가 붙어 있다',
+  loudMoves.filter((n) => !/밤|소리|아파트|아래층/.test(form.formOf(n).careful || '')), []);
+
+const finder = stripNotes(fs.readFileSync('src/components/ExerciseFinder.jsx', 'utf-8'));
+ok('화면이 자세 설명을 가져다 쓴다', /formOf\(/.test(finder), true);
+// 늘 펼쳐두면 목록에서 운동을 못 고른다 — 눌러서 본다
+ok('눌러서 펼치는 단추가 있다', /자세 보기/.test(finder) && /자세 접기/.test(finder), true);
+// 순서가 있는 것이라 번호를 매긴다. 이 자리에서는 번호가 장식이 아니다
+ok('순서를 번호 매긴 목록으로 그린다', /<ol/.test(finder), true);
+// 조심할 것을 순서에 섞어두면 다치는 자리가 묻힌다
+ok('조심할 것을 따로 세운다', /조심할 것/.test(finder), true);
+
 console.log('\n── 비교 (2026-09-02 에 다시 짠 화면) ──');
 // **눈으로 봐서는 틀린 것을 못 잡는 화면이다** — 과거와 현재를 거꾸로 골라도
 // 그래프는 멀쩡히 그려지고 숫자만 조용히 반대로 말한다. 그래서 계산을 떼어내 돌려본다.
