@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { readLS, saveLS } from '../data/safeStorage';
+import { TONES, VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME } from '../data/alertSound';
 
 // 휴식 타이머.
 //
@@ -16,6 +17,10 @@ const LS_DURATION = 'steelbody_rest_duration';
 const LS_AUTO = 'steelbody_rest_auto';
 const LS_SOUND = 'steelbody_rest_sound';
 const LS_VIBRATE = 'steelbody_rest_vibrate';
+// 열쇠 이름의 `steelbody_` 는 옛 앱 이름이다. **앱 이름이 바뀌어도 안 바꾼다** —
+// 바꾸면 쓰던 사람의 설정이 통째로 사라진다 (8/28 · 9/1 에 정한 규칙이다)
+const LS_TONE = 'steelbody_rest_tone';
+const LS_VOLUME = 'steelbody_rest_volume';
 
 export const PRESETS = [30, 60, 90, 120, 180];
 export const MIN_SEC = 5;
@@ -28,6 +33,9 @@ const readInt = (key, fallback) => {
 };
 // 저장한 적이 없으면 켜진 것으로 본다. '0' 이라고 적혀 있을 때만 꺼진 것이다
 const readFlag = (key) => readLS(key) !== '0';
+// 목록에 없는 값이 적혀 있으면 기본으로 돌린다 — 소리 하나를 나중에 빼도 안 터진다
+const readPickOf = (val, list, fallback) => (list.some((x) => x.id === val) ? val : fallback);
+const readPick = (key, list, fallback) => readPickOf(readLS(key), list, fallback);
 
 let ticker = null;
 
@@ -56,6 +64,9 @@ export const useRestTimerStore = create((set, get) => ({
   autoStart: readFlag(LS_AUTO),
   sound: readFlag(LS_SOUND),
   vibrate: readFlag(LS_VIBRATE),
+  // 어떤 소리로 알릴지 · 얼마나 크게 (2026-09-02). 제보로 들어온 것이다
+  tone: readPick(LS_TONE, TONES, DEFAULT_TONE),
+  volume: readPick(LS_VOLUME, VOLUMES, DEFAULT_VOLUME),
 
   setDuration: (sec) => {
     const n = Math.min(MAX_SEC, Math.max(MIN_SEC, Math.round(Number(sec) || 0)));
@@ -66,6 +77,8 @@ export const useRestTimerStore = create((set, get) => ({
   setAutoStart: (on) => { saveLS(LS_AUTO, on ? '1' : '0'); set({ autoStart: !!on }); },
   setSound: (on) => { saveLS(LS_SOUND, on ? '1' : '0'); set({ sound: !!on }); },
   setVibrate: (on) => { saveLS(LS_VIBRATE, on ? '1' : '0'); set({ vibrate: !!on }); },
+  setTone: (id) => { const v = readPickOf(id, TONES, DEFAULT_TONE); saveLS(LS_TONE, v); set({ tone: v }); },
+  setVolume: (id) => { const v = readPickOf(id, VOLUMES, DEFAULT_VOLUME); saveLS(LS_VOLUME, v); set({ volume: v }); },
 
   start: (sec, label = '') => {
     const seconds = Math.min(MAX_SEC, Math.max(MIN_SEC, Math.round(Number(sec) || get().duration)));
@@ -138,6 +151,15 @@ export const useRestTimerStore = create((set, get) => ({
   // 끝난 것을 보고 나면 부른다 (알림을 두 번 울리지 않게)
   ackFinished: () => set({ finished: false, leftMs: null, label: '' }),
 }));
+
+/**
+ * 지금 정해져 있는 알림 설정. **소리를 내는 자리가 셋이라**(휴식 띠 · 홈트 · 측정
+ * 스톱워치) 각자 스토어를 뒤지면 한 곳만 빠뜨려도 그 화면만 옛 소리로 운다.
+ */
+export const alertPrefs = () => {
+  const { sound, vibrate, tone, volume } = useRestTimerStore.getState();
+  return { sound, vibrate, tone, volume };
+};
 
 /** 남은 밀리초 → 'M:SS'. */
 export function formatLeft(ms) {

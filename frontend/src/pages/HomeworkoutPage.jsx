@@ -28,8 +28,12 @@ export default function HomeworkoutPage() {
   // 런지 홀드를 하는 사람은 폰을 못 든다 — 소리가 나야 다음으로 넘어간 걸 안다
   const sound = useRestTimerStore((s) => s.sound);
   const vibrate = useRestTimerStore((s) => s.vibrate);
-  const alertRef = useRef({ sound, vibrate });
-  alertRef.current = { sound, vibrate };
+  // 어떤 소리로 얼마나 크게 알릴지도 같은 설정을 본다 — 휴식 타이머에서 고른 것이
+  // 여기서도 그대로 난다. 화면마다 다른 소리가 나면 같은 앱으로 안 들린다
+  const tone = useRestTimerStore((s) => s.tone);
+  const volume = useRestTimerStore((s) => s.volume);
+  const alertRef = useRef({ sound, vibrate, tone, volume });
+  alertRef.current = { sound, vibrate, tone, volume };
   // 더보기의 「기능성(특수부대식)」처럼 한 프로그램으로 바로 오는 길. `?p=이름`
   //
   // 바로 시작하게 하지 않고 **펼쳐서** 보여준다 — 층간소음이나 식탁 대체 같은 말이
@@ -78,7 +82,7 @@ export default function HomeworkoutPage() {
     const { idx, rest } = phaseRef.current;
     // 단계가 바뀌는 그 순간에 알린다. 소리도 진동도 안 될 수 있어서(사파리는 진동이
     // 없고, 브라우저가 소리를 막기도 한다) 화면 표시는 언제나 같이 둔다
-    beepDone(alertRef.current.sound, alertRef.current.vibrate);
+    beepDone(alertRef.current);
     // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
     if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
       beginPhase(idx, true);

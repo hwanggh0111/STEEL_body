@@ -125,6 +125,87 @@ rest.useRestTimerStore.getState().stop();
 ok('남은 시간 표기', rest.formatLeft(90 * 1000), '1:30');
 ok('0 이하는 0:00', rest.formatLeft(-5), '0:00');
 
+// 알림 소리 — **고를 수 있게 만든 것**(2026-09-02, 제보로 들어온 것이다).
+// 소리 파일을 두지 않고 그 자리에서 만들기 때문에, 정말 다른 소리가 나는지는
+// **울려봐야** 안다. 브라우저 대신 가짜 오디오를 세워 무엇을 예약하는지 읽는다.
+console.log('\n── 알림 소리 (고르기 · 크기) ──');
+const fakeAudio = () => {
+  const made = [];
+  const param = () => { const e = []; return {
+    events: e,
+    setValueAtTime: (v, t) => e.push(['set', v, t]),
+    linearRampToValueAtTime: (v, t) => e.push(['lin', v, t]),
+    exponentialRampToValueAtTime: (v, t) => e.push(['exp', v, t]),
+  }; };
+  class Ctx {
+    constructor() { this.state = 'running'; this.currentTime = 0; this.destination = {}; }
+    createOscillator() {
+      const o = { type: 'sine', frequency: { value: 0 }, connect: (x) => x,
+        start: (t) => { o.at = t; }, stop: () => {} };
+      made.push(o);
+      return o;
+    }
+    createGain() { const g = { gain: param(), connect: (x) => x }; made[made.length - 1].g = g; return g; }
+  }
+  global.window = { AudioContext: Ctx };
+  return made;
+};
+let played = fakeAudio();
+const alert = bundle('src/data/alertSound.js', '.t20.cjs');
+
+// 이름만 보고는 어떤 소리인지 아무도 모른다 — 설명을 화면에 그대로 적는다
+ok('소리가 넷이다', alert.TONES.length, 4);
+ok('소리마다 이름과 설명이 있다',
+  alert.TONES.filter((t) => !t.name || !t.desc).map((t) => t.id), []);
+ok('id 가 안 겹친다', new Set(alert.TONES.map((t) => t.id)).size, 4);
+ok('크기는 셋이고 작을수록 작다',
+  alert.VOLUMES.map((v) => v.gain), [0.35, 0.7, 1]);
+
+// **준비하기 전에는 안 운다.** 브라우저가 사람이 안 누른 소리를 막기 때문에,
+// 여기서 소리를 내려고 하면 그냥 조용히 실패해야 한다 (터지면 안 된다)
+ok('준비 전에는 조용히 넘어간다', alert.playTone('ding', 'mid'), false);
+alert.primeAudio();
+
+const ring = (tone, vol) => { played.length = 0; alert.playTone(tone, vol); return played.slice(); };
+for (const t of alert.TONES) {
+  // 조사는 앱이 쓰는 그 사전으로 붙인다. **낫표를 씌운 채로 넘기면 안 된다** —
+  // 마지막 글자가 「」 라 받침을 못 본다 (「종」는 이 된다). 이름만 넘기고 낫표는 밖에서
+  const eun = josa.eun(t.name).slice(t.name.length);
+  ok(`「${t.name}」${eun} ${t.notes.length}알을 울린다`, ring(t.id, 'mid').length, t.notes.length);
+}
+// 비슷한 소리를 넷 두면 고르는 일이 짐이 된다 — 넷이 서로 달라야 한다
+const shapes = alert.TONES.map((t) => ring(t.id, 'mid').map((o) => `${o.type}:${o.frequency.value}`).join(','));
+ok('소리 넷이 서로 다르다', new Set(shapes).size, 4);
+
+// 크기는 **실제로 소리에 반영돼야 한다.** 목록의 숫자만 바꾸고 소리에 안 넣으면
+// 눌러도 아무 차이가 없다 — 사람은 자기 폰이 이상한 줄 안다
+const peak = (arr) => arr[0].g.gain.events[1][1];
+ok('「작게」가 「크게」보다 작다', peak(ring('bell', 'low')) < peak(ring('bell', 'high')), true);
+ok('크기가 목록의 숫자 그대로 들어간다',
+  Number((peak(ring('bell', 'low')) / peak(ring('bell', 'high'))).toFixed(3)), 0.35);
+// 소리 하나를 나중에 빼도 안 터져야 한다 — 없는 이름은 기본 소리로 운다
+ok('없는 이름이 와도 운다 (기본 소리)', ring('없는소리', 'mid').length, alert.TONES[0].notes.length);
+delete global.window;
+
+// **소리를 내는 자리가 셋이다** — 휴식 띠 · 홈트 · 측정 스톱워치.
+// 한 곳만 빠뜨리면 그 화면만 옛 소리로 운다. 아무도 안 터지고 소리만 다르다
+for (const [name, file, want] of [
+  ['휴식 띠', 'src/components/RestBar.jsx', /beepDone\(\{ sound, vibrate, tone, volume \}\)/],
+  ['홈트', 'src/pages/HomeworkoutPage.jsx', /alertRef\.current = \{ sound, vibrate, tone, volume \}/],
+  ['측정 스톱워치', 'src/components/measure/StopwatchSection.jsx', /alertPrefs\(\)/],
+]) {
+  ok(`${name}도 고른 소리로 운다`, want.test(fs.readFileSync(file, 'utf-8')), true);
+}
+
+const rt = fs.readFileSync('src/components/RestTimer.jsx', 'utf-8');
+ok('화면이 소리 넷과 크기 셋을 다 그린다', /TONES\.map/.test(rt) && /VOLUMES\.map/.test(rt), true);
+// 눌러서 들어보지 않고 이름만 보고 고르라고 하면 아무도 안 고른다
+ok('고르면 그 자리에서 들려준다', /previewTone\(/.test(rt), true);
+ok('고른 소리의 설명을 적어준다', /\.desc\}/.test(rt), true);
+// 열쇠 이름은 옛 앱 이름 그대로 둔다 — 바꾸면 쓰던 사람의 설정이 사라진다
+ok('설정 열쇠를 앱 이름 따라 안 바꿨다',
+  /steelbody_rest_tone/.test(fs.readFileSync('src/store/restTimerStore.js', 'utf-8')), true);
+
 console.log('\n── 조사 (주간 요약 · 히스토리 · 루틴이 같이 쓴다) ──');
 for (const [word, want] of [['등', '등이'], ['하체', '하체가'], ['가슴', '가슴이'], ['어깨', '어깨가']]) {
   ok(word, josa.i(word), want);
@@ -174,6 +255,10 @@ for (const [q, want] of [
   ['푸시', '알림'], ['탈퇴', '계정 삭제'], ['비번', '비밀번호'], ['csv', '내보내기'],
   ['등급', '인바디 판정'], ['홈트', '홈트'], ['점검', '점검'], ['구글', '소셜 로그인'],
   ['날아갔', '기록 보관'], ['차단', '정지'],
+  // 9/2 에 항목을 하나 늘렸다. **「소리」와 「알림」이 서로 걸려드는 자리다** —
+  // 운동 알림(푸시)과 휴식 타이머 소리는 다른 이야기인데 말이 겹친다
+  ['소리크기', '휴식 타이머 소리'], ['볼륨', '휴식 타이머 소리'], ['소리', '휴식 타이머 소리'],
+  ['알림', '알림'],
 ]) ok(q + ' → ' + want, firstFaq(q), want);
 ok('한 글자로는 안 찾는다', faq.matchFaq('ㅇ'), []);
 // 계정 삭제는 8/31 에 앱 안에 길이 생겼다. 답이 옛말로 남아 있으면 「제보함에

@@ -1,5 +1,5 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
-import { primeAudio } from '../data/alertSound';
+import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useState } from 'react';
 
@@ -81,7 +81,8 @@ function Toggle({ on, onClick, label, desc }) {
 export default function RestTimer() {
   const {
     duration, runSec, leftMs, deadline, pausedLeft, label,
-    autoStart, sound, vibrate, setDuration, setAutoStart, setSound, setVibrate,
+    autoStart, sound, vibrate, tone, volume,
+    setDuration, setAutoStart, setSound, setVibrate, setTone, setVolume,
     start, add, pause, resume, stop,
   } = useRestTimerStore();
 
@@ -220,6 +221,48 @@ export default function RestTimer() {
           onClick={() => { primeAudio(); setSound(!sound); }}
           label="끝나면 소리로 알리기"
         />
+
+        {/* 소리를 끈 사람에게는 고를 것을 안 보여준다 — 눌러도 아무 일이 안 일어나는
+            자리를 남겨두면 고장으로 읽힌다 */}
+        {sound && (
+          <div style={{ paddingLeft: 2, marginBottom: 4 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+              어떤 소리로 알릴까요 — 누르면 그 자리에서 들려드립니다
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              {TONES.map((tn) => (
+                <button
+                  key={tn.id}
+                  className={`btn-secondary${tone === tn.id ? ' active' : ''}`}
+                  style={{ flex: '1 1 0', minWidth: 64, padding: '8px 0' }}
+                  aria-pressed={tone === tn.id}
+                  onClick={() => { setTone(tn.id); previewTone(tn.id, volume); }}
+                >{tn.name}</button>
+              ))}
+            </div>
+            {/* 고른 소리가 어떤 것인지 한 줄. 이름(「종」·「나무」)만으로는 아무도 모른다 */}
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
+              {(TONES.find((t) => t.id === tone) || TONES[0]).desc}
+            </div>
+
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>소리 크기</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {VOLUMES.map((v) => (
+                <button
+                  key={v.id}
+                  className={`btn-secondary${volume === v.id ? ' active' : ''}`}
+                  style={{ flex: '1 1 0', padding: '8px 0' }}
+                  aria-pressed={volume === v.id}
+                  onClick={() => { setVolume(v.id); previewTone(tone, v.id); }}
+                >{v.name}</button>
+              ))}
+            </div>
+            {/* 폰이 무음이면 아무 소리도 안 난다. 「크게」로 해도 안 들리면 여기부터 본다 */}
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+              폰이 무음이면 소리가 나지 않습니다. 진동을 같이 켜두세요
+            </div>
+          </div>
+        )}
         <Toggle
           on={vibrate}
           onClick={() => setVibrate(!vibrate)}

@@ -12,7 +12,7 @@ import { beepDone } from '../data/alertSound';
 // 소리가 나기도 하고 안 나기도 한다 — 언제나 떠 있는 이 자리에 한 번만 둔다.
 
 export default function RestBar({ bottom = 58 }) {
-  const { leftMs, deadline, pausedLeft, finished, label, duration, sound, vibrate, add, pause, resume, stop, ackFinished } = useRestTimerStore();
+  const { leftMs, deadline, pausedLeft, finished, label, duration, sound, vibrate, tone, volume, add, pause, resume, stop, ackFinished } = useRestTimerStore();
   const navigate = useNavigate();
   const location = useLocation();
   const alerted = useRef(false);
@@ -22,11 +22,11 @@ export default function RestBar({ bottom = 58 }) {
     if (!finished) { alerted.current = false; return; }
     if (alerted.current) return;
     alerted.current = true;
-    beepDone(sound, vibrate);
+    beepDone({ sound, vibrate, tone, volume });
     // 다 됐다는 표시를 잠깐 두고 스스로 걷는다 — 누르지 않아도 사라진다
     const t = setTimeout(() => ackFinished(), 6000);
     return () => clearTimeout(t);
-  }, [finished, sound, vibrate, ackFinished]);
+  }, [finished, sound, vibrate, tone, volume, ackFinished]);
 
   const running = deadline != null;
   const paused = pausedLeft != null;

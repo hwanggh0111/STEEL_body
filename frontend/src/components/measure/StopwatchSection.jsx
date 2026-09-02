@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from '../Toast';
 import { primeAudio, beepDone } from '../../data/alertSound';
+import { alertPrefs } from '../../store/restTimerStore';
 
 // 스톱워치 · 타이머.
 //
@@ -35,7 +36,9 @@ export default function StopwatchSection({ onSave }) {
           baseRef.current = 0;
           setTime(0);
           setRunning(false);
-          beepDone();
+          // 휴식 타이머에서 고른 소리 · 크기를 여기서도 쓴다. 켜고 끄는 것은
+          // 그 화면의 설정이라 여기서는 안 본다 — 측정은 늘 알린다
+          beepDone({ ...alertPrefs(), sound: true, vibrate: true });
           toast('타이머 종료!');
           return;
         }
