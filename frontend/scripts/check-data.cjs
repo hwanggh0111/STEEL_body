@@ -258,6 +258,42 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 관리자 「보안 관리」 (2026-09-02 에 다시 짰다) ──');
+// 앱에서 두 번째로 큰 화면인데 한 번도 다시 안 본 화면이었다.
+const sec = stripNotes(fs.readFileSync('src/components/SecurityPanel.jsx', 'utf-8'));
+const secApi = fs.readFileSync('../backend/src/routes/security.js', 'utf-8');
+
+// **적어두고 아무도 안 부르는 길이 있었다.** 화면 안의 표(actionMap)에는 `revoke-admin`
+// 이 있는데 그것을 부르는 단추가 없었다 — 관리자 권한을 잘못 준 순간 화면에서는
+// 되돌릴 방법이 없었다. 서버에는 그 길이 멀쩡히 열려 있었다
+const mapped = [...sec.matchAll(/'([a-z-]+)':\s*'([a-z-]+)',/g)].map((m) => m[1]);
+const called = [...sec.matchAll(/handleAction\([^,]+,\s*'([a-z-]+)'\)/g)].map((m) => m[1]);
+ok('적어둔 길을 화면이 다 쓴다',
+  mapped.filter((a) => !called.includes(a)), []);
+ok('관리자를 내리는 길이 화면에 있다',
+  called.includes('revoke-admin') && /onClick=\{\(\) => revokeAdmin\(/.test(sec), true);
+
+// 화면이 부르는 자리가 서버에 없으면 눌러도 404 다. 아무도 안 터지고 토스트만 뜬다
+const endpoints = [...sec.matchAll(/'([a-z-]+)':\s*'([a-z-]+)',/g)].map((m) => m[2]);
+ok('화면이 부르는 자리가 서버에 다 있다',
+  endpoints.filter((e) => !secApi.includes(`'/${e}/:id'`)), []);
+
+// **여섯 칸짜리 표를 카드로 바꿨다.** 폰에서 가로로 밀렸고, 막기 · 지우기 · 관리자
+// 부여가 화면 밖 오른쪽 끝에 있었다. 8/31 에 측정에서 걷어낸 그 문제다
+ok('사람 목록이 옆으로 밀리는 표가 아니다', /<table/.test(sec), false);
+// 관리자에게 「막기」를 누르면 서버가 거절한다 — 못 하는 것을 눌러보게 두지 않는다
+ok('막기는 일반 사람에게만 그린다', /user\.role === 'user'/.test(sec), true);
+// 관리자 권한은 주는 것도 내리는 것도 되돌리기 어렵다. 한 번 묻는다
+ok('관리자 권한은 한 번 묻고 준다', /confirmDialog\(/.test(sec), true);
+// 자기 관리자 권한은 서버가 못 내리게 한다. 화면도 그 단추를 안 그린다
+ok('내 권한을 내리는 단추는 안 그린다', /isMe\(user\)/.test(sec), true);
+// 접어두면 열어보기 전에는 위험한 것이 있는지 모른다
+ok('접힌 서버 설정에 걸린 개수를 적는다', /dangerN|warnN/.test(sec), true);
+// 역할이 admin · blocked · user 라고 영문 그대로 찍히고 있었다
+ok('역할을 우리말로 적는다', /ROLE_LABEL/.test(sec), true);
+// 옆 화면(해킹 보안)과 무엇이 다른지 안 적으면 어느 쪽에서 풀어야 할지 모른다
+ok('해킹 보안과 무엇이 다른지 적어둔다', /해킹 보안/.test(sec), true);
+
 console.log('\n── 부위로 찾기 (2026-09-02 에 고쳤다) ──');
 // **「등」과 「팔」 단추가 아무것도 못 찾고 있었다.** 단추가 검색창에 그 글자를 넣는
 // 식이었는데, 사전 검색은 한 글자로는 안 찾는다(거의 다 걸려서 도움이 안 된다).

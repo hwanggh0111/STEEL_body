@@ -109,7 +109,9 @@ export default function ConfirmModalHost() {
             color: 'var(--text-primary)', marginBottom: 10,
           }}>{options.title}</h3>
         )}
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+        {/* 줄바꿈을 그대로 살린다 — 「무엇을 합니다」와 「그러면 이렇게 됩니다」를
+            한 줄로 이어붙이면 두 번째 문장을 안 읽는다 */}
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
           {message}
         </p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
