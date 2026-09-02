@@ -72,16 +72,6 @@ export default function HistoryPage() {
 
   // 먼저 화면에서 빼고 서버에 알린다. 실패하면 되돌린다 —
   // 지운 줄 알았는데 새로고침하면 살아 있는 것이 제일 나쁘다
-  // 달력이 칸마다 꺼내 쓴다
-  const planMap = useMemo(() => plansByDate(plans), [plans]);
-  // 아직 안 한 것 중 가까운 것 셋. 날짜를 안 고른 동안 한 줄로 알려준다
-  const next = useMemo(() => upcoming(plans, today, workouts, 3), [plans, today, workouts]);
-  // 보고 있는 달에서 하기로 해놓고 못 한 것
-  const missed = useMemo(() => {
-    const prefix = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
-    return missedCount(plans.filter(p => p.date.startsWith(prefix)), today, workouts);
-  }, [plans, today, workouts, ym]);
-
   const removePlan = async (id) => {
     const prev = plans;
     setPlans(prev.filter(p => p.id !== id));
@@ -133,6 +123,22 @@ export default function HistoryPage() {
   const now = incoming ? new Date(`${incoming}T00:00:00`) : new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
   const [selectedDate, setSelectedDate] = useState(incoming);
+
+  // ── 계획을 화면 값으로 빚는 자리 ──
+  //
+  // **`ym` 아래에 둔다.** 위에 뒀다가 흰 화면을 봤다 — `missed` 가 `ym` 을 읽는데
+  // `const` 는 선언 줄에 닿기 전에는 못 읽는다(TDZ). 빌드는 통과한다. 화면을 열어야
+  // 터지고, 터지면 에러 경계가 「새로고침해 주세요」를 띄운다.
+  // **읽는 값보다 뒤에 두는 것이 규칙이다.**
+  // 달력이 칸마다 꺼내 쓴다
+  const planMap = useMemo(() => plansByDate(plans), [plans]);
+  // 아직 안 한 것 중 가까운 것 셋. 날짜를 안 고른 동안 한 줄로 알려준다
+  const next = useMemo(() => upcoming(plans, today, workouts, 3), [plans, today, workouts]);
+  // 보고 있는 달에서 하기로 해놓고 못 한 것
+  const missed = useMemo(() => {
+    const prefix = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
+    return missedCount(plans.filter(p => p.date.startsWith(prefix)), today, workouts);
+  }, [plans, today, workouts, ym]);
 
   useEffect(() => {
     const date = location.state?.date;
