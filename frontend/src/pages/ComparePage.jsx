@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
-import Bars from '../components/charts/Bars';
 import RadarChart from '../components/charts/Radar';
 import { toast } from '../components/Toast';
 import client from '../api/client';
@@ -8,8 +7,36 @@ import { readLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
-import { scaleFor, positionOn } from '../data/bodyRanges';
 import { CHART } from '../data/chartColors';
+import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/compare';
+
+// ─────────────────────────────────────────────────────────────
+// 비교 — 2026-09-02 에 다시 짰다.
+//
+// 이 화면은 **앱이 틀린 말을 하는 유일한 자리**였다.
+//
+//   · 「종합 평가」가 몸에 등급을 매겼다. 8/25 에 「등급을 안 매긴다」고 정했고 바로 위
+//     표는 방향만 칠하는데, 그 아래 카드는 **체중 증가를 주황(주의) · 체지방 증가를
+//     빨강(위험)**으로 칠했다. 벌크업 중인 사람에게 「체중 2kg 증가」를 경고로 줬다.
+//     한 화면이 두 말을 했다 → **걷어냈다.** 무엇이 어느 쪽으로 갔는지만 적는다
+//   · 과거와 현재를 **거꾸로 고를 수 있었다.** 칸 둘이 서로를 안 봐서, 5kg 뺀 사람의
+//     화면에 「체중 5kg 증가」가 떴다 → 고르면 **알아서 앞뒤를 맞춘다**(`orderPick`)
+//   · **같은 다섯 숫자를 세 번 그렸다** — 표 · 묶음 막대 · 오각형. 그중 **막대**가
+//     체중(73) · 골격근(33) · 체지방(16) · BMI(23.5) · 체수분(41)을 **0부터 시작하는
+//     한 눈금**에 세웠다. 0부터 시작하는 공통 축은 **같은 단위끼리일 때만** 맞다 —
+//     73 짜리 눈금에서 체지방 1.5% 변화는 픽셀 두어 개다. **사람이 보러 온 바로 그
+//     변화를 그림이 뭉갰다** → 막대를 뺐다.
+//     오각형은 **축마다 눈금이 따로**고 그 사실을 그림에 적어둔다 — 이 화면이 보려는
+//     「두 시점의 차이」에 맞는 그림이라 남겼다. 이름만 고쳤다: 「밸런스 비교」는
+//     균형을 재는 그림이라는 뜻인데 그런 그림이 아니다
+//   · **얼마 만에 달라졌는지가 아무 데도 없었다.** 3kg 을 2주에 뺀 것과 반년에 뺀 것은
+//     다른 이야기다 → 고른 두 날짜 사이를 적는다
+//   · 사진과 숫자가 서로 몰랐다. 사진은 전 · 후 한 장씩 고정이고 숫자는 날짜를 고른다 →
+//     사진에 **언제 올린 것인지**를 적는다. 날짜를 지어내지 않고, 다른 것은 다르다고 적는다
+//
+// 덩어리 다섯(사진 · 상세 · 종합 평가 · 과거vs현재 · 밸런스)을 **셋**으로 줄였다 —
+// 언제와 언제를 고른다 → 사진 → 얼마나 달라졌나(표 + 오각형).
+// ─────────────────────────────────────────────────────────────
 
 const PHOTO_KEY = COMPARE_PHOTOS_KEY;
 
@@ -20,58 +47,46 @@ function savePhotos(photos) {
   saveLS(PHOTO_KEY, JSON.stringify(photos));
 }
 
-// BMI 를 뭐라고 부를지.
-//
-// 「저체중 · 정상 · 과체중 · 비만」이 앱 안에 **네 군데** 복붙돼 있었다 —
-// 인바디 입력 폼 · 인바디 목록 카드 · 여기, 그리고 눈금(`data/bodyRanges.js`).
-// 8/25 에 몸에 등급을 안 매기기로 하고 눈금만 고쳤더니 나머지 셋이 다른 말을 했다.
-// 이제 넷 다 눈금 하나를 본다.
-function getBmiInfo(bmi) {
-  if (!bmi) return { label: '-', color: 'var(--text-muted)' };
-  const scale = scaleFor('bmi');
-  const pos = scale ? positionOn(scale, Number(bmi)) : null;
-  if (!pos?.band) return { label: '-', color: 'var(--text-muted)' };
-  const tone = pos.band.tone;
-  return {
-    label: pos.band.label,
-    color: tone === 'low' ? 'var(--info)' : tone === 'high' ? 'var(--warning)' : 'var(--success)',
-  };
+/** '2026-06-14T…' → '6월 14일'. 못 읽으면 빈 문자열 (화면은 그 줄을 안 그린다) */
+function shortDay(iso) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const d = new Date(t);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-// 늘고 줆에 좋고 나쁨을 매기지 않는다. **방향만** 색으로 나눈다.
+// 늘고 줆에 **좋고 나쁨을 매기지 않는다. 방향만** 색으로 나눈다.
 //
 // 예전에는 항목마다 `reverse` 를 줘서 좋은 쪽 초록 · 나쁜 쪽 빨강으로 칠했다.
-// 그런데 **체중은 `reverse={false}`** 였다 — 체중이 늘면 초록, 줄면 빨강이라는 뜻이다.
+// 그런데 체중은 `reverse={false}` 였다 — 체중이 늘면 초록, 줄면 빨강이라는 뜻이다.
 // 빼려고 오신 분에게는 정확히 거꾸로 말하고 있었다.
-//
-// 인바디 「얼마나 달라졌나」는 8/25 에 이미 방향만 칠하기로 했는데, 같은 앱의 「비교」가
-// 반대로 하고 있었다. 무엇이 어느 쪽으로 갔는지만 보여준다.
-function DiffValue({ label, before, after, unit }) {
-  if (before == null || after == null) return null;
-  const diff = (after - before).toFixed(1);
-  const num = Number(diff);
-  let color = 'var(--text-muted)';
-  if (num > 0) color = 'var(--accent)';
-  if (num < 0) color = 'var(--info)';
+const dirColor = (dir) =>
+  dir > 0 ? 'var(--accent)' : dir < 0 ? 'var(--info)' : 'var(--text-muted)';
 
+function ChangeRow({ c }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{before}{unit}</span>
-        <span style={{ fontSize: 16, color: 'var(--text-muted)' }}>→</span>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{after}{unit}</span>
-        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, color, letterSpacing: 1, minWidth: 55, textAlign: 'right' }}>
-          {num > 0 ? '+' : ''}{diff}{unit}
-        </span>
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '11px 0', borderBottom: '1px solid var(--border)', gap: 10,
+    }}>
+      <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0 }}>{c.label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{c.before}{c.unit}</span>
+        <span style={{ fontSize: 15, color: 'var(--text-muted)' }}>&#8594;</span>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{c.after}{c.unit}</span>
+        <span style={{
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1,
+          color: dirColor(c.dir), minWidth: 58, textAlign: 'right', flexShrink: 0,
+        }}>{diffLabel(c)}</span>
       </div>
     </div>
   );
 }
 
-function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
+function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
   const inputRef = useRef(null);
   const photo = photos[photoKey] || null;
+  const accentBorder = photoKey === 'after';
 
   // 폰에서 고른 사진은 대개 3~8MB 다. 거절하지 않고 줄여서 올린다
   // (shrinkImage 주석 참고)
@@ -115,9 +130,16 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
   };
 
   return (
-    <div style={{ flex: 1 }}>
-      <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: accentBorder ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 6, textAlign: 'center' }}>
-        {label}
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{
+        fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5,
+        color: accentBorder ? 'var(--accent)' : 'var(--text-muted)',
+        marginBottom: 4, textAlign: 'center',
+      }}>{label}</div>
+      {/* **언제 올린 사진인지 적는다.** 사진에는 날짜가 없어서, 반년 전 사진을 놓고
+          「많이 달라졌다」고 보게 된다. 서버가 주는 `updated_at` 을 그대로 쓴다 */}
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 6, minHeight: 16 }}>
+        {photo ? (takenAt ? `${shortDay(takenAt)}에 올림` : '올린 날짜 모름') : ''}
       </div>
       {photo ? (
         <div style={{ position: 'relative' }}>
@@ -125,9 +147,7 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
             src={photo}
             alt={label}
             style={{
-              width: '100%',
-              aspectRatio: '3/4',
-              objectFit: 'cover',
+              width: '100%', aspectRatio: '3/4', objectFit: 'cover',
               borderRadius: 'var(--radius)',
               border: `1px solid ${accentBorder ? 'var(--accent)' : 'var(--border)'}`,
             }}
@@ -135,26 +155,23 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
           <button
             className="delete-btn"
             onClick={handleDelete}
+            aria-label={`${label} 사진 지우기`}
             style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', borderRadius: 'var(--radius)', padding: '2px 6px' }}
-          >
-            ✕
-          </button>
+          >&#10005;</button>
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
           style={{
-            width: '100%',
-            aspectRatio: '3/4',
+            width: '100%', aspectRatio: '3/4',
             background: 'var(--bg-tertiary)',
             border: `1px dashed ${accentBorder ? 'var(--accent)' : 'var(--border)'}`,
             borderRadius: 'var(--radius)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s',
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'center', alignItems: 'center', cursor: 'pointer',
           }}
         >
           <div style={{ fontSize: 28, color: 'var(--text-muted)', marginBottom: 4 }}>+</div>
@@ -166,15 +183,18 @@ function PhotoUpload({ label, photoKey, photos, setPhotos, accentBorder }) {
   );
 }
 
-// 예시 데이터 (인바디 기록 없을 때 그래프용)
-const SAMPLE_BEFORE = { weight: 78, fat_pct: 22, muscle_kg: 30, bmi: 25.1, water_l: 38 };
-const SAMPLE_AFTER = { weight: 73, fat_pct: 16, muscle_kg: 33, bmi: 23.5, water_l: 41 };
+// 인바디를 두 번 넣기 전에는 그래프에 그릴 것이 없다. 예시로 그리되
+// **그것이 내 숫자가 아니라는 것을 그래프 위에 먼저** 적는다 (아래에 작게 적으면
+// 다 보고 나서야 남의 숫자였다는 것을 알게 된다)
+const SAMPLE_BEFORE = { date: '2026-06-10', weight: 78, fat_pct: 22, muscle_kg: 30, bmi: 25.1, water_l: 38 };
+const SAMPLE_AFTER = { date: '2026-09-02', weight: 73, fat_pct: 16, muscle_kg: 33, bmi: 23.5, water_l: 41 };
 
 export default function ComparePage() {
   const { records, loading, fetchAll } = useInbodyStore();
   const [beforeIdx, setBeforeIdx] = useState(null);
   const [afterIdx, setAfterIdx] = useState(null);
   const [photos, setPhotos] = useState(loadPhotos());
+  const [photoAt, setPhotoAt] = useState({});
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -191,9 +211,11 @@ export default function ComparePage() {
       const before = data.find(p => p.type === 'before');
       const after = data.find(p => p.type === 'after');
       const serverPhotos = {};
-      if (before) serverPhotos.before = before.data;
-      if (after) serverPhotos.after = after.data;
+      const at = {};
+      if (before) { serverPhotos.before = before.data; at.before = before.updated_at || before.created_at; }
+      if (after) { serverPhotos.after = after.data; at.after = after.updated_at || after.created_at; }
       setPhotos(serverPhotos);
+      setPhotoAt(at);
       savePhotos(serverPhotos);
     }).catch(() => {});
   }, []);
@@ -205,14 +227,19 @@ export default function ComparePage() {
     }
   }, [records]);
 
-  const hasData = records.length >= 2;
-  const before = hasData && beforeIdx !== null ? records[beforeIdx] : null;
-  const after = hasData && afterIdx !== null ? records[afterIdx] : null;
+  // **고른 두 날짜를 늘 과거 → 현재로 바로잡는다.** 막지 않고 앞뒤를 맞춘다
+  const picked = orderPick(beforeIdx, afterIdx);
+  const hasData = records.length >= 2 && beforeIdx !== null && afterIdx !== null && !picked.same;
+  const before = hasData ? records[picked.before] : null;
+  const after = hasData ? records[picked.after] : null;
 
-  // 그래프용 데이터 (실제 데이터 or 예시)
   const graphBefore = before || SAMPLE_BEFORE;
   const graphAfter = after || SAMPLE_AFTER;
   const isExample = !before || !after;
+  // 같은 날을 두 번 고르면 견줄 것이 없다. 예시 숫자로 바꿔 그리면 「내 것」으로 읽는다
+  const sameDay = records.length >= 2 && picked.same;
+  const list = sameDay ? [] : changes(graphBefore, graphAfter);
+  const days = daysBetween(graphBefore.date, graphAfter.date);
 
   if (loading) {
     return (
@@ -223,118 +250,61 @@ export default function ComparePage() {
     );
   }
 
+  const selectRow = (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <label className="label" htmlFor="cmp-before">과거</label>
+        <select
+          id="cmp-before" className="input" value={beforeIdx ?? ''}
+          onChange={(e) => setBeforeIdx(Number(e.target.value))}
+        >
+          {records.map((r, i) => (
+            <option key={`b-${r.id}`} value={i}>{r.date} ({r.weight}kg)</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ fontSize: 15, color: 'var(--text-muted)', paddingBottom: 11, flexShrink: 0 }}>&#8594;</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <label className="label" htmlFor="cmp-after">현재</label>
+        <select
+          id="cmp-after" className="input" value={afterIdx ?? ''}
+          onChange={(e) => setAfterIdx(Number(e.target.value))}
+        >
+          {records.map((r, i) => (
+            <option key={`a-${r.id}`} value={i}>{r.date} ({r.weight}kg)</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <div className="section-title">
         <div className="accent-bar" />
-        사진 비교
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} setPhotos={setPhotos} accentBorder={false} />
-        <PhotoUpload label="AFTER" photoKey="after" photos={photos} setPhotos={setPhotos} accentBorder={true} />
+        비교
       </div>
 
-      {/* 인바디 데이터 있을 때: 날짜 선택 + 상세 비교 */}
-      {hasData && (
-        <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <label className="label">기존 (BEFORE)</label>
-              <select className="input" value={beforeIdx ?? ''} onChange={(e) => setBeforeIdx(Number(e.target.value))}>
-                {records.map((r, i) => (
-                  <option key={`b-${r.id}`} value={i}>{r.date} ({r.weight}kg)</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label className="label">현재 (AFTER)</label>
-              <select className="input" value={afterIdx ?? ''} onChange={(e) => setAfterIdx(Number(e.target.value))}>
-                {records.map((r, i) => (
-                  <option key={`a-${r.id}`} value={i}>{r.date} ({r.weight}kg)</option>
-                ))}
-              </select>
-            </div>
+      {/* ── 1. 언제와 언제 ──
+          예전에는 날짜 고르는 자리가 사진 **아래**에 있었다. 무엇과 무엇을 견주는지가
+          화면 중간에서야 정해졌다. 먼저 고르고 그 아래를 다 그린다 */}
+      {records.length >= 2 && (
+        <div style={{ marginBottom: 16 }}>
+          {selectRow}
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
+            {picked.same
+              ? '같은 날을 두 번 고르셨어요. 다른 날을 골라주세요.'
+              : `${graphBefore.date} → ${graphAfter.date}${days != null ? ` · ${spanLabel(days)}` : ''}`}
+            {/* 거꾸로 고른 것을 조용히 바꿔놓으면 사람은 자기가 잘못 본 줄 안다 */}
+            {picked.swapped && !picked.same && (
+              <span style={{ color: 'var(--accent)' }}> · 앞뒤를 바꿔 놓았어요</span>
+            )}
           </div>
-
-          {before && after && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                <div className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--text-muted)', marginBottom: 8 }}>BEFORE</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{before.date}</div>
-                  <div className="stat-number" style={{ fontSize: 32 }}>{before.weight}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}>kg</span></div>
-                  {before.bmi && <div style={{ marginTop: 4 }}><span style={{ fontSize: 12, color: getBmiInfo(before.bmi).color }}>BMI {before.bmi} ({getBmiInfo(before.bmi).label})</span></div>}
-                </div>
-                <div className="card" style={{ textAlign: 'center', borderColor: 'var(--accent)' }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>AFTER</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{after.date}</div>
-                  <div className="stat-number" style={{ fontSize: 32 }}>{after.weight}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}>kg</span></div>
-                  {after.bmi && <div style={{ marginTop: 4 }}><span style={{ fontSize: 12, color: getBmiInfo(after.bmi).color }}>BMI {after.bmi} ({getBmiInfo(after.bmi).label})</span></div>}
-                </div>
-              </div>
-
-              <div className="section-title">
-                <div className="accent-bar" />
-                상세 비교
-              </div>
-              <div className="card" style={{ marginBottom: 20 }}>
-                <DiffValue label="체중" before={before.weight} after={after.weight} unit="kg" />
-                <DiffValue label="체지방률" before={before.fat_pct} after={after.fat_pct} unit="%" />
-                <DiffValue label="골격근량" before={before.muscle_kg} after={after.muscle_kg} unit="kg" />
-                <DiffValue label="체수분" before={before.water_l} after={after.water_l} unit="L" />
-                <DiffValue label="BMI" before={before.bmi} after={after.bmi} unit="" />
-              </div>
-
-              <div className="section-title">
-                <div className="accent-bar" />
-                종합 평가
-              </div>
-              <div className="card" style={{ marginBottom: 20 }}>
-                {(() => {
-                  const results = [];
-                  if (before.weight != null && after.weight != null) {
-                    const d = after.weight - before.weight;
-                    if (d < -1) results.push({ text: `체중 ${Math.abs(d).toFixed(1)}kg 감량`, color: 'var(--success)' });
-                    else if (d > 1) results.push({ text: `체중 ${d.toFixed(1)}kg 증가`, color: 'var(--warning)' });
-                    else results.push({ text: '체중 유지', color: 'var(--text-secondary)' });
-                  }
-                  if (before.muscle_kg != null && after.muscle_kg != null) {
-                    const d = after.muscle_kg - before.muscle_kg;
-                    if (d > 0.5) results.push({ text: `골격근 ${d.toFixed(1)}kg 증가`, color: 'var(--success)' });
-                    else if (d < -0.5) results.push({ text: `골격근 ${Math.abs(d).toFixed(1)}kg 감소`, color: 'var(--danger)' });
-                    else results.push({ text: '골격근 유지', color: 'var(--text-secondary)' });
-                  }
-                  if (before.fat_pct != null && after.fat_pct != null) {
-                    const d = after.fat_pct - before.fat_pct;
-                    if (d < -1) results.push({ text: `체지방률 ${Math.abs(d).toFixed(1)}% 감소`, color: 'var(--success)' });
-                    else if (d > 1) results.push({ text: `체지방률 ${d.toFixed(1)}% 증가`, color: 'var(--danger)' });
-                    else results.push({ text: '체지방률 유지', color: 'var(--text-secondary)' });
-                  }
-                  if (results.length === 0) return <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 12 }}>상세 데이터가 부족해요</div>;
-                  return results.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 14, color: r.color, fontWeight: 500 }}>{r.text}</span>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </>
-          )}
-        </>
+        </div>
       )}
 
-      {/* ── 그래프 ──
-          기록이 두 개 미만이면 예시 숫자로 그린다. **그건 내 몸이 아니다.**
-          예전에는 그래프를 다 그린 **뒤에** 작게 「예시」라고 붙였다 —
-          다 보고 나서야 남의 숫자였다는 것을 알게 된다. 위로 올리고 분명히 적는다 */}
-      <div className="section-title">
-        <div className="accent-bar" />
-        {isExample ? '이렇게 보입니다 (예시)' : '과거 vs 현재 수치 비교'}
-      </div>
-
-      {isExample && (
-        <div className="card" style={{ borderLeft: '3px solid var(--warning)', marginBottom: 10 }}>
+      {records.length < 2 && (
+        <div className="card" style={{ borderLeft: '3px solid var(--warning)', marginBottom: 16 }}>
           <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
             아래 숫자는 제 것이 아닙니다
           </div>
@@ -344,45 +314,76 @@ export default function ComparePage() {
           </div>
         </div>
       )}
-      <div className="card" style={{ marginBottom: 20, padding: 12 }}>
-        <Bars
-          height={220}
-          series={[
-            { key: 'before', label: '과거', color: CHART.muted },
-            { key: 'after', label: '현재', color: CHART.accent },
-          ]}
-          data={[
-            { name: '체중(kg)', before: graphBefore.weight, after: graphAfter.weight },
-            ...(graphBefore.muscle_kg != null && graphAfter.muscle_kg != null ? [{ name: '골격근(kg)', before: graphBefore.muscle_kg, after: graphAfter.muscle_kg }] : []),
-            ...(graphBefore.fat_pct != null && graphAfter.fat_pct != null ? [{ name: '체지방(%)', before: graphBefore.fat_pct, after: graphAfter.fat_pct }] : []),
-            ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ name: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
-            ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ name: '체수분(L)', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
-          ]}
-        />
-      </div>
 
+      {/* ── 2. 사진 ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} setPhotos={setPhotos} />
+        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} setPhotos={setPhotos} />
+      </div>
+      {/* **사진은 위에서 고른 날짜를 따라가지 않는다.** 없는 날짜를 지어내지 않고
+          다른 것은 다르다고 적는다 — 안 적으면 사람은 같은 날의 것으로 읽는다 */}
+      {(photos.before || photos.after) && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.7 }}>
+          사진은 마지막에 올린 두 장입니다 — 위에서 고른 날짜와는 별개예요.
+        </div>
+      )}
+      {!photos.before && !photos.after && <div style={{ marginBottom: 20 }} />}
+
+      {/* ── 3. 얼마나 달라졌나 ──
+          예전에는 이 자리에 「상세 비교」 표와 「종합 평가」 카드가 따로 있었고,
+          표는 판단을 안 하는데 카드는 등급을 매겼다. 한 덩어리로 합치고 등급을 걷었다 */}
       <div className="section-title">
         <div className="accent-bar" />
-        밸런스 비교
-      </div>
-      <div className="card" style={{ marginBottom: 20, padding: 12 }}>
-        <RadarChart
-          height={260}
-          series={[
-            { key: 'before', label: '과거', color: CHART.muted },
-            { key: 'after', label: '현재', color: CHART.accent },
-          ]}
-          data={[
-            { subject: '체중', before: graphBefore.weight, after: graphAfter.weight },
-            ...(graphBefore.muscle_kg != null && graphAfter.muscle_kg != null ? [{ subject: '골격근', before: graphBefore.muscle_kg, after: graphAfter.muscle_kg }] : []),
-            ...(graphBefore.fat_pct != null && graphAfter.fat_pct != null ? [{ subject: '체지방', before: graphBefore.fat_pct, after: graphAfter.fat_pct }] : []),
-            ...(graphBefore.bmi != null && graphAfter.bmi != null ? [{ subject: 'BMI', before: graphBefore.bmi, after: graphAfter.bmi }] : []),
-            ...(graphBefore.water_l != null && graphAfter.water_l != null ? [{ subject: '체수분', before: graphBefore.water_l, after: graphAfter.water_l }] : []),
-          ]}
-        />
+        {sameDay ? '얼마나 달라졌나' : isExample ? '이렇게 보입니다 (예시)' : '얼마나 달라졌나'}
       </div>
 
+      {list.length > 0 ? (
+        <div className="card" style={{ marginBottom: 10 }}>
+          {!isExample && days != null && (
+            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+              {spanLabel(days)}
+            </div>
+          )}
+          {list.map((c) => <ChangeRow key={c.key} c={c} />)}
+          {/* **판단하지 않는다고 말한다.** 색만 다르게 칠해두면 사람은 그 색을
+              점수로 읽는다 — 초록이 없어도 주황이 있으면 주의로 읽는다 */}
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
+            늘고 줆에 좋고 나쁨을 매기지 않습니다. 무엇이 어느 쪽으로 갔는지만 적어요 —
+            <span style={{ color: 'var(--accent)' }}> 늘어난 것</span>과
+            <span style={{ color: 'var(--info)' }}> 줄어든 것</span>.
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ marginBottom: 10, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>
+          {sameDay
+            ? '위에서 서로 다른 두 날을 골라주세요.'
+            : '견줄 항목이 없어요. 인바디에 체중 말고 다른 값도 넣어보세요.'}
+        </div>
+      )}
 
+      {/* 표는 얼마나 달라졌는지를 숫자로, 이 그림은 **어느 쪽으로 갔는지를 한눈에** 준다.
+          축마다 눈금이 따로라(그 말이 그림에 적혀 있다) 단위가 달라도 서로 안 뭉갠다.
+          **묶음 막대는 뺐다** — 0부터 시작하는 한 눈금에 체중(73)과 체지방(16)을 같이
+          세워서, 사람이 보러 온 1.5% 변화가 픽셀 두어 개로 뭉개졌다.
+          제목도 「밸런스 비교」에서 고쳤다 — 균형을 재는 그림이 아니다 */}
+      {list.length >= 3 && (
+        <>
+          <div className="section-title">
+            <div className="accent-bar" />
+            한눈에 — 두 시점의 차이
+          </div>
+          <div className="card" style={{ marginBottom: 20, padding: 12 }}>
+            <RadarChart
+              height={260}
+              series={[
+                { key: 'before', label: '과거', color: CHART.muted },
+                { key: 'after', label: '현재', color: CHART.accent },
+              ]}
+              data={list.map((c) => ({ subject: c.label, before: c.before, after: c.after }))}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

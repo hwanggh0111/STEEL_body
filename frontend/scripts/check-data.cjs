@@ -15,6 +15,8 @@ const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
+const NL = String.fromCharCode(10);
+
 const bundle = (entry, out) => {
   esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
   const m = require(process.cwd() + '/' + out);
@@ -48,7 +50,6 @@ const bundleJsx = (entry, out) => {
 const draw = (C, props) => renderToStaticMarkup(React.createElement(C, props));
 const lineMod = bundleJsx('src/components/charts/LineChart.jsx', '.t12.cjs');
 const Line = lineMod.default;
-const Bars = bundleJsx('src/components/charts/Bars.jsx', '.t13.cjs').default;
 const Donut = bundleJsx('src/components/charts/Donut.jsx', '.t14.cjs').default;
 const Radar = bundleJsx('src/components/charts/Radar.jsx', '.t15.cjs').default;
 
@@ -246,6 +247,64 @@ ok('그 주 일요일까지 그대로', streakAt('2026-08-16'), 10);
 ok('한 주를 통째로 쉬면 끊긴다', streakAt('2026-08-17'), 0);
 ok('기록이 아예 없으면 0', weekly.buildWeekly({}, new Date('2026-08-10T00:00:00')).streak, 0);
 
+// 주석을 뺀 소스. 「예전에는 빨강으로 칠했다」 같은 기록까지 잡으면 왜 걷었는지를 못 적는다.
+//
+// **`/*` 앞에 공백이나 `{` 가 있을 때만 주석으로 본다.** 안 그러면
+// `accept="image/*"` 의 `/*` 가 주석 시작으로 읽혀서, 거기부터 다음 `*/` 까지
+// **코드 4천 자가 통째로 사라진다.** 비교 화면에서 실제로 그랬다 (2026-09-02).
+const stripNotes = (src) => src
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')
+  .split(NL)
+  .filter((l) => !/^\s*\/\//.test(l))
+  .join(NL);
+
+console.log('\n── 비교 (2026-09-02 에 다시 짠 화면) ──');
+// **눈으로 봐서는 틀린 것을 못 잡는 화면이다** — 과거와 현재를 거꾸로 골라도
+// 그래프는 멀쩡히 그려지고 숫자만 조용히 반대로 말한다. 그래서 계산을 떼어내 돌려본다.
+const cmp = bundle('src/data/compare.js', '.t21.cjs');
+
+// 인바디 기록은 최신이 앞이다(0번이 제일 최근) — **과거일수록 인덱스가 크다**
+ok('과거 → 현재로 골랐으면 그대로', [cmp.orderPick(5, 0).before, cmp.orderPick(5, 0).after], [5, 0]);
+// 5kg 뺀 사람의 화면에 「체중 5kg 증가」가 뜨던 자리다. 막지 않고 앞뒤를 맞춘다
+ok('거꾸로 골랐으면 바로잡는다', [cmp.orderPick(0, 5).before, cmp.orderPick(0, 5).after], [5, 0]);
+ok('바로잡았다고 말해준다 (조용히 바꾸면 사람이 잘못 본 줄 안다)', cmp.orderPick(0, 5).swapped, true);
+ok('같은 날을 두 번 고른 것을 안다', cmp.orderPick(3, 3).same, true);
+
+// 3kg 을 2주에 뺀 것과 반년에 뺀 것은 다른 이야기인데, 얼마 만인지가 아무 데도 없었다
+ok('며칠 사이인지 센다', cmp.daysBetween('2026-06-10', '2026-09-02'), 84);
+ok('못 읽는 날짜는 null (화면이 그 줄을 안 그린다)', cmp.daysBetween('', '2026-09-02'), null);
+ok('84일은 날로 읽는다', cmp.spanLabel(84), '84일 사이');
+ok('석 달이 넘으면 달로 읽는다', cmp.spanLabel(120), '4개월 사이 (120일)');
+
+// **좋고 나쁨을 매기지 않는다.** 8/25 에 그렇게 정했는데 이 화면의 「종합 평가」만
+// 그 뒤로도 등급을 매기고 있었다 — 체중이 늘면 주황(주의), 체지방이 늘면 빨강(위험).
+// 벌크업 중인 사람에게 「체중 증가」를 경고색으로 줬다
+const B = { date: '2026-06-10', weight: 78, muscle_kg: 30, fat_pct: 22, water_l: 38, bmi: 25.1 };
+const A = { date: '2026-09-02', weight: 73, muscle_kg: 33, fat_pct: 16, water_l: 38, bmi: 23.5 };
+const ch = cmp.changes(B, A);
+ok('다섯 가지를 견준다', ch.length, 5);
+ok('무엇이 어느 쪽으로 갔는지만 준다 (좋고 나쁨 없음)',
+  Object.keys(ch[0]).filter((k) => /good|bad|reverse|score|grade/.test(k)), []);
+ok('줄어든 것은 -1, 늘어난 것은 +1',
+  [ch.find((c) => c.key === 'weight').dir, ch.find((c) => c.key === 'muscle_kg').dir], [-1, 1]);
+ok('안 달라진 것은 0 (「그대로」)', cmp.diffLabel(ch.find((c) => c.key === 'water_l')), '그대로');
+ok('늘어난 것에 + 를 붙인다', cmp.diffLabel(ch.find((c) => c.key === 'muscle_kg')), '+3.0kg');
+// 한쪽에만 있는 값은 견줄 수가 없다 — 빼고 그린다 (0 으로 치면 「30kg 감소」가 된다)
+ok('한쪽에 없는 값은 견주지 않는다', cmp.changes(B, { ...A, muscle_kg: null }).length, 4);
+ok('기록이 하나면 아무것도 안 준다', cmp.changes(null, A), []);
+
+const cmpPage = stripNotes(fs.readFileSync('src/pages/ComparePage.jsx', 'utf-8'));
+// 「종합 평가」가 쓰던 색이다. 방향만 칠하기로 했으므로 이 셋이 다시 나오면 안 된다
+ok('몸에 등급을 매기는 색을 안 쓴다',
+  /var\(--success\)|var\(--danger\)/.test(cmpPage), false);
+ok('앞뒤를 바로잡고 나서 그린다', /orderPick\(/.test(cmpPage), true);
+ok('얼마 만인지 적는다', /spanLabel\(/.test(cmpPage), true);
+// 사진에는 날짜가 없어서 반년 전 사진을 놓고 「많이 달라졌다」고 보게 된다
+ok('사진에 언제 올린 것인지 적는다', /updated_at/.test(cmpPage), true);
+// 0부터 시작하는 한 눈금에 체중(73)과 체지방(16)을 같이 세우던 그림
+ok('묶음 막대를 안 쓴다', /charts\/Bars/.test(cmpPage), false);
+ok('막대 파일도 지웠다', fs.existsSync('src/components/charts/Bars.jsx'), false);
+
 console.log('\n── 자주 묻는 것 (고객센터 · 제보함이 같이 본다) ──');
 // 개수를 못박으면 항목을 늘릴 때마다 여기부터 고쳐야 한다. 줄어든 것만 잡는다
 ok('항목이 줄지 않았다', faq.FAQ.length >= 15, true);
@@ -368,14 +427,9 @@ ok('꺾은선 — 두 줄이면 범례가 붙는다', line.includes('체지방')
 ok('꺾은선 — 잰 값이 없으면 빈 칸을 준다 (안 터진다)',
   draw(Line, { data: [], xKey: 'date', series: [{ key: 'weight', label: '체중', color: GOLD }] }).includes('<svg'), false);
 
-const bars = draw(Bars, { data: [{ name: '체중', before: 72.6, after: 71.2 },
-                                 { name: '체지방', before: 18.4, after: 17.5 }], series: TWO });
-// 막대는 0 에서 시작해야 길이가 값을 말한다. 71.2 와 72.6 을 70 에서 자르면 두 배 차이로 보인다
-ok('막대 — 눈금이 0 에서 시작한다', bars.includes('>0<'), true);
-const FEET = [...bars.matchAll(/<rect x="[\d.]+" y="([\d.]+)"[^>]*height="([\d.]+)"/g)]
-  .map(m => Number(m[1]) + Number(m[2])).filter(v => v > 100);
-ok('막대 — 막대 밑동이 모두 같은 줄에 있다', new Set(FEET.map(v => v.toFixed(1))).size, 1);
-ok('막대 — 칸 이름이 찍힌다', bars.includes('>체중<') && bars.includes('>체지방<'), true);
+// 묶음 막대(`charts/Bars.jsx`)는 2026-09-02 에 걷어냈다. 비교 화면 하나가 쓰고 있었는데,
+// 0부터 시작하는 한 눈금에 체중(73)과 체지방(16)을 같이 세워서, 사람이 보러 온 1.5%
+// 변화가 픽셀 두어 개로 뭉개졌다. 쓰는 화면이 없어져서 파일도 같이 지웠다.
 
 const donut = draw(Donut, { total: 71.2, data: [
   { name: '골격근', value: 33.6, color: GREEN }, { name: '체지방', value: 12.5, color: RED },
@@ -453,8 +507,7 @@ for (const W of WIDTHS) {
     hit = hit.concat(overlaps(svg).map(t => '꺾은선 ' + W + '/' + n + ' ' + t));
     clipped = clipped.concat(outside(svg, W).map(t => '꺾은선 ' + W + '/' + n + ' ' + t));
   }
-  for (const [name, svg] of [['막대', draw(Bars, { data: REAL, series: TWO, width: W })],
-                             ['오각형', draw(Radar, { data: REAL, series: TWO, width: W })]]) {
+  for (const [name, svg] of [['오각형', draw(Radar, { data: REAL, series: TWO, width: W })]]) {
     hit = hit.concat(overlaps(svg).map(t => name + ' ' + W + ' ' + t));
     clipped = clipped.concat(outside(svg, W).map(t => name + ' ' + W + ' ' + t));
   }
@@ -674,10 +727,10 @@ console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴�
 // **✕ · ✎ · ★ · ☆ · ✓ · ⚠ 는 그대로 둔다.** 이건 벤더가 그린 그림이 아니라 글자다 —
 // 앱 글꼴로 그려지고 글자색을 따라온다. 이모지와 성격이 다르다
 const VENDOR_EMOJI = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
-const codeOf = (src) => src
-  // 주석은 뺀다 — 「예전에는 🏠 를 찍었다」 같은 설명까지 잡으면 기록을 못 남긴다
-  .replace(/\/\*[\s\S]*?\*\//g, '')
-  .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+// `stripNotes` 를 그대로 쓴다. 여기에도 같은 구멍이 있었다 —
+// `accept="image/*"` 에 걸려 비교 화면의 코드 4천 자를 건너뛰고 있었다
+// (그 안에 이모지가 있었어도 못 잡았다)
+const codeOf = stripNotes;
 
 const srcFiles = [];
 (function walk(dir) {
