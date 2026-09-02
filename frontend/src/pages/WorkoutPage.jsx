@@ -38,6 +38,7 @@ const TEXT = {
     loading: '로딩 중...',
     noRecords: '이 날짜의 운동 기록이 없어요',
     autofilled: '지난 기록에서 불러왔어요',
+    searchHint: '이름 · 초성 · 부위로 찾을 수 있어요. 전에 한 운동은 무게와 횟수가 저절로 채워집니다.',
     placeholderExercise: '벤치프레스 · ㅂㅊㅍㄹㅅ · 가슴',
     placeholderWeight: '60kg',
     placeholderSets: '4',
@@ -81,6 +82,7 @@ const TEXT = {
     loading: 'Loading...',
     noRecords: 'No workout records for this date',
     autofilled: 'Auto-filled from last session',
+    searchHint: 'Search by name, initials, or muscle group. Past exercises fill in weight and reps.',
     placeholderExercise: 'Bench Press · chest',
     placeholderWeight: '60kg',
     placeholderSets: '4',
@@ -571,14 +573,7 @@ export default function WorkoutPage() {
               </div>
             </div>
 
-            {/* 뭘로 찾을 수 있는지 안 적으면 아무도 초성이나 부위로 안 쳐본다.
-            후보가 떠 있는 동안에는 안 그린다 — 목록을 가린다 */}
-        {suggestions.length === 0 && !autofilled && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.6 }}>
-            이름 · 초성 · 부위로 찾을 수 있어요. 전에 한 운동은 무게와 횟수가 저절로 채워집니다.
-          </div>
-        )}
-        {autofilled && (
+            {autofilled && (
               <div style={{ fontSize: 11.5, color: 'var(--accent)' }}>↻ {t.autofilled}</div>
             )}
             {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
@@ -736,7 +731,15 @@ export default function WorkoutPage() {
             <span style={{ fontSize: 14 }}>&#8635;</span> {t.autofilled}
           </div>
         )}
-        {!autofilled && <div style={{ marginBottom: 10 }} />}
+        {!autofilled && (
+          /* 뭘로 찾을 수 있는지 안 적으면 아무도 초성이나 부위로 쳐보지 않는다.
+             후보 목록이 이 자리를 덮으므로 떠 있는 동안에는 감춘다 — 지우지는 않는다.
+             지우면 밑의 무게·횟수 칸이 위로 튄다 */
+          <div style={{
+            fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.6,
+            visibility: suggestions.length > 0 ? 'hidden' : 'visible',
+          }}>{t.searchHint}</div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1 }}>

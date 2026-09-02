@@ -475,6 +475,12 @@ ok('기록 화면이 사전을 쓴다', /searchExercises/.test(wp), true);
 ok('전에 한 것을 먼저 보여준다', wp.indexOf('mine: true') < wp.indexOf('fromDict'), true);
 ok('사전에서 온 것은 설명을 같이 보여준다', wp.includes('s.desc &&'), true);
 ok('뭘로 찾을 수 있는지 적어준다', wp.includes('이름 · 초성 · 부위로 찾을 수 있어요'), true);
+// **그 줄이 운동명 칸 밑에 있어야 한다.** 9/1 에는 「다음 운동」 카드 안에 들어가 있었다 —
+// 그 카드에는 운동명 칸이 아예 없다(무게·세트·횟수뿐이다). 찾을 것이 없는 자리에서
+// 찾는 법을 알려주고, 정작 찾는 칸 밑에는 아무 말이 없었다. 빌드도 검사도 통과했다.
+ok('그 줄이 운동명 칸 밑에 있다', wp.indexOf('t.searchHint') > wp.indexOf('ref={exerciseInputRef}'), true);
+// 후보가 뜰 때 줄을 지우면 밑의 무게·횟수 칸이 위로 튄다 — 감추기만 한다
+ok('후보가 뜨면 감춘다 (지우지 않는다)', /visibility: suggestions\.length > 0/.test(wp), true);
 
 console.log('');
 console.log('── 앱 이름이 한 이름인가 ──');
