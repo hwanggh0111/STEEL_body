@@ -476,7 +476,7 @@ ok('전에 한 것을 먼저 보여준다', wp.indexOf('mine: true') < wp.indexO
 ok('사전에서 온 것은 설명을 같이 보여준다', wp.includes('s.desc &&'), true);
 ok('뭘로 찾을 수 있는지 적어준다', wp.includes('이름 · 초성 · 부위로 찾을 수 있어요'), true);
 // **그 줄이 운동명 칸 밑에 있어야 한다.** 9/1 에는 「다음 운동」 카드 안에 들어가 있었다 —
-// 그 카드에는 운동명 칸이 아예 없다(무게·세트·횟수뿐이다). 찾을 것이 없는 자리에서
+// 그 카드에는 운동명 칸이 아예 없다(무게·횟수·횟수뿐이다). 찾을 것이 없는 자리에서
 // 찾는 법을 알려주고, 정작 찾는 칸 밑에는 아무 말이 없었다. 빌드도 검사도 통과했다.
 ok('그 줄이 운동명 칸 밑에 있다', wp.indexOf('t.searchHint') > wp.indexOf('ref={exerciseInputRef}'), true);
 // 후보가 뜰 때 줄을 지우면 밑의 무게·횟수 칸이 위로 튄다 — 감추기만 한다
@@ -548,6 +548,34 @@ ok('앱 아이콘도 링 하나 + 봉 하나다 (로고와 같은 모양)',
   [1, 1, true]);
 // 금색은 한 색으로 납작하게. 아이콘에서도 그라데이션을 안 쓴다
 ok('아이콘 금색에 그라데이션을 안 쓴다', icon.includes('stroke="url(#'), false);
+
+// **시안에 실제로 쓰는 자리가 다 있어야 한다.** 9/1 에 이름표가 앱과 어긋나 있었고
+// (「로그인 · 스플래시 (34)」인데 앱은 26 · 48 이었다), 그걸 고치면서도 **홈 화면 머리와
+// 점검 화면은 시안에 아예 없었다.** 시안에 없는 자리는 아무도 안 보고 지나간다 —
+// 홈 화면 머리는 매일 오는 사람이 제일 자주 보는 로고다.
+const sheetSrc = fs.readFileSync('scripts/logo-sheet.cjs', 'utf-8');
+const logoCaps = new Set();
+const jsxFiles = (dir, out = []) => {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) jsxFiles(full, out);
+    else if (e.name.endsWith('.jsx') && e.name !== 'Logo.jsx') out.push(full);
+  }
+  return out;
+};
+for (const f of jsxFiles('src')) {
+  const src = fs.readFileSync(f, 'utf-8');
+  // `cap={phase >= 2 ? 32 : 48}` 처럼 두 크기를 한 줄에 쓰는 자리가 있어 숫자를 다 긁는다
+  for (const m of src.matchAll(/<Logo(?:Mark|Word)?\b[\s\S]{0,300}?(?:cap|size)=\{([^}]*)\}/g)) {
+    // 삼항(`phase >= 2 ? 32 : 48`)은 물음표 앞이 조건이라 숫자를 긁으면 2 가 딸려온다
+    const val = m[1].includes('?') ? m[1].slice(m[1].indexOf('?')) : m[1];
+    for (const n of val.match(/\d+/g) || []) logoCaps.add(Number(n));
+  }
+}
+const capsMissing = [...logoCaps].sort((a, b) => a - b)
+  .filter((n) => !new RegExp('(^|[^0-9.])' + n + '([^0-9.]|$)').test(sheetSrc));
+ok('앱에서 쓰는 로고 크기가 시안에 다 있다', capsMissing, []);
+
 
 console.log('');
 console.log('── 이모지를 다 걷어냈는가 (남의 그림을 안 쓴다) ──');

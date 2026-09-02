@@ -39,8 +39,24 @@ const sizes = [
   ['PC 사이드바 (TabBar · 19)', { cap: 19, variant: 'row' }],
   ['홈으로 돌아올 때 (MiniSplash · 28)', { cap: 28, variant: 'row' }],
   ['로그인 · 회원가입 (34)', { cap: 34, variant: 'stack' }],
+  ['점검 화면 (MaintenanceScreen · 16)', { cap: 16, variant: 'row' }],
   ['글자만 (40)', { cap: 40, variant: 'word' }],
 ];
+
+// **홈 화면 머리만 한 벌을 안 쓴다.** 마크와 글자를 따로 놓고(마크 34 · 글자 20),
+// 글자 밑에 날짜를 한 줄 넣는다 — 마크가 두 줄 높이를 받치는 자리라서다.
+// 그래서 다른 자리와 견주면 **마크가 글자보다 크다**(다른 자리는 cap×1.12).
+// 매일 오는 사람이 제일 자주 보는 로고이므로 시안에서 빠지면 안 된다.
+const drawMark = (size) => renderToStaticMarkup(React.createElement(Logo.LogoMark, { size }));
+const drawWord = (cap) => renderToStaticMarkup(React.createElement(Logo.LogoWord, { cap }));
+const homeHead = `
+  <span style="display:inline-flex;align-items:center;gap:10px">
+    ${drawMark(34)}
+    <span>
+      ${drawWord(20)}
+      <div style="font-size:12px;color:#8a8a8a;margin-top:2px">2026년 9월 2일 화요일</div>
+    </span>
+  </span>`;
 
 // 마크는 SVG 라 그대로 뽑아 쓴다 (B · C 판에도 같은 마크를 붙인다)
 const markOnly = draw({ cap: 34, variant: 'mark' });
@@ -110,6 +126,11 @@ const html = `<!doctype html>
     <div class="row"><div class="cap">${label}</div>${draw(props)}</div>
     <div class="row light"><div class="cap">${label} · 밝은 바탕</div>${draw(props)}</div>
   </div>`).join('')}
+
+  <div class="pair">
+    <div class="row"><div class="cap">홈 화면 머리 (HomePage · 마크 34 + 글자 20)</div>${homeHead}</div>
+    <div class="row light"><div class="cap">홈 화면 머리 · 밝은 바탕</div>${homeHead}</div>
+  </div>
 
   <h2>메인으로 넘어가기 전 화면 (스플래시)</h2>
   <p class="lead" style="margin-top:-6px">앱을 켤 때마다 보는 <b>유일하게 큰 로고</b>입니다.
