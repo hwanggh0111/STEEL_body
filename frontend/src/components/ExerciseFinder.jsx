@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import {
-  searchExercises, siblingsOf, koreanNameOf, translateQuery, isPart, PARTS,
+  searchExercises, koreanNameOf, translateQuery, isPart, PARTS,
 } from '../data/exerciseDict';
 import { formOf } from '../data/exerciseForm';
 
@@ -16,8 +16,13 @@ import { formOf } from '../data/exerciseForm';
 //
 // 하는 일은 그대로다:
 //   · 앱 안의 사전을 **치는 동안 바로** 보여준다 (한국어 · 영어 · 초성 · 부위)
-//   · 고른 운동의 **같은 갈래**를 펼쳐본다 (벤치프레스 → 인클라인 · 디클라인 …)
+//   · 운동마다 **자세 설명**을 눌러서 편다 (순서 · 조심할 것)
 //   · 앱에서 못 찾으면 **눌렀을 때만** 인터넷(wger.de)에 나간다. 끊겨도 검색은 된다
+//
+// **「같은 갈래 보기」는 2026-09-02 에 걷어냈다.** 「벤치프레스」를 찾으면 인클라인 ·
+// 디클라인이 **이미 그 목록에 다 나와 있다** — 사전 검색이 갈래 이름까지 보기 때문이다.
+// 눌러서 펼치면 방금 본 것을 다시 보여줄 뿐이었고, 카드마다 단추가 둘이라 정작
+// 「자세 보기」가 어느 것인지 한 번 더 읽어야 했다.
 //
 // 고른 뒤에 무엇을 할지는 **쓰는 쪽이 정한다**(`onPick`) — 검색 화면은 기록 화면으로
 // 데려가고, 기록 화면은 그 자리에서 이름 칸을 채운다.
@@ -29,8 +34,7 @@ const CATEGORIES = PARTS.map((label) => ({ label, q: label }));
 
 const EXTERNAL_TIMEOUT = 8000;
 
-// 아래에 붙는 두 단추 — 「자세 보기」와 「같은 갈래 보기」.
-// 글자만 놓아두면 눌러도 되는 것인지 모른다. 단추로 그린다
+// 아래에 붙는 「자세 보기」. 글자만 놓아두면 눌러도 되는 것인지 모른다. 단추로 그린다
 function MoreLink({ onClick, children }) {
   return (
     <button
@@ -45,15 +49,15 @@ function MoreLink({ onClick, children }) {
   );
 }
 
-// 카드에 할 일이 셋이다 — 고르기 · 자세 보기 · 같은 갈래 펼쳐보기.
-// 카드를 통째로 「고르기」로 두면 나머지를 볼 방법이 없어진다.
-// 그래서 **고르는 것은 오른쪽 단추**, 나머지 둘은 아래 줄의 단추다.
+// 카드에 할 일이 둘이다 — 고르기와 자세 보기.
+// 카드를 통째로 「고르기」로 두면 자세를 볼 방법이 없어진다.
+// 그래서 **고르는 것은 오른쪽 단추**, 자세는 아래 줄의 단추다.
 //
 // **자세 설명을 붙인 이유** (2026-09-02) — 사전의 한 줄(`desc`)은 「그게 무슨
 // 운동인가」이지 「어떻게 하는가」가 아니다. 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을
 // 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다. 순서 서너 줄과 **조심할 것 한 줄**을
 // 눌러서 볼 수 있게 뒀다 — 늘 펼쳐두면 목록에서 운동을 못 고른다.
-function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
+function Card({ ko, en, desc, tag, pickLabel, onPick }) {
   const [openForm, setOpenForm] = useState(false);
   // 사전에 없는 이름(외부 DB 결과)에는 자세 설명이 없다. 그때는 단추를 아예 안 그린다 —
   // 눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다
@@ -61,13 +65,7 @@ function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
   return (
     <div className="card list-item" style={{ marginBottom: 6 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div
-          style={{ flexGrow: 1, minWidth: 0, cursor: onExpand ? 'pointer' : 'default' }}
-          onClick={onExpand || undefined}
-          role={onExpand ? 'button' : undefined}
-          tabIndex={onExpand ? 0 : undefined}
-          onKeyDown={(e) => { if (onExpand && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onExpand(); } }}
-        >
+        <div style={{ flexGrow: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
               {ko}
@@ -87,18 +85,11 @@ function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
           onClick={onPick}
         >{pickLabel}</button>
       </div>
-      {(form || onExpand) && (
-        <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-          {form && (
-            <MoreLink onClick={() => setOpenForm((v) => !v)}>
-              {openForm ? '자세 접기' : '자세 보기'}
-            </MoreLink>
-          )}
-          {onExpand && (
-            <MoreLink onClick={onExpand}>
-              {expanded ? '갈래 접기' : '같은 갈래 보기'}
-            </MoreLink>
-          )}
+      {form && (
+        <div style={{ marginTop: 6 }}>
+          <MoreLink onClick={() => setOpenForm((v) => !v)}>
+            {openForm ? '자세 접기' : '자세 보기'}
+          </MoreLink>
         </div>
       )}
 
@@ -140,7 +131,6 @@ function Card({ ko, en, desc, tag, pickLabel, onPick, onExpand, expanded }) {
  */
 export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false }) {
   const [query, setQuery] = useState('');
-  const [picked, setPicked] = useState(null);
   const [external, setExternal] = useState(null);   // null=안 찾음, []=없음
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -152,11 +142,9 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
   const typed = query.trim().length >= 2 || isPart(query);
   // 앱 안의 사전은 네트워크가 필요 없다. 치는 동안 바로 나온다
   const results = useMemo(() => (typed ? searchExercises(query) : []), [query, typed]);
-  const siblings = useMemo(() => (picked ? siblingsOf(picked) : []), [picked]);
 
   const setQ = (v) => {
     setQuery(v);
-    setPicked(null);
     setExternal(null);
     setError('');
   };
@@ -231,10 +219,6 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
                   desc={e.desc}
                   pickLabel={pickLabel}
                   onPick={() => onPick(e.ko)}
-                  onExpand={siblingsOf(e).length > 0
-                    ? () => setPicked(picked?.ko === e.ko ? null : e)
-                    : null}
-                  expanded={picked?.ko === e.ko}
                 />
               ))}
             </>
@@ -254,16 +238,6 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
                 onClick={() => onPick(query.trim())}
               >「{query.trim()}」 그대로 쓰기</button>
             </div>
-          )}
-
-          {/* 같은 갈래 — 하나 고른 뒤에 옆 갈래를 보여준다 */}
-          {siblings.length > 0 && (
-            <>
-              <div className="label" style={{ marginTop: 18 }}>{picked.group} 갈래 {siblings.length}개</div>
-              {siblings.map((e) => (
-                <Card key={e.ko} ko={e.ko} en={e.en} desc={e.desc} pickLabel={pickLabel} onPick={() => onPick(e.ko)} />
-              ))}
-            </>
           )}
 
           {/* 외부 DB — 눌러야 나간다 */}

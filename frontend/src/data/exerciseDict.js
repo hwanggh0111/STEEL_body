@@ -226,11 +226,10 @@ export function searchExercises(query, limit = 30) {
     .map(r => r.e);
 }
 
-/** 같은 갈래의 운동들 (벤치프레스 → 인클라인 · 디클라인 …). 자기 자신은 뺀다. */
-export function siblingsOf(exercise) {
-  if (!exercise?.group) return [];
-  return EXERCISE_DICT.filter(e => e.group === exercise.group && e.ko !== exercise.ko);
-}
+// `siblingsOf`(같은 갈래의 운동들)는 2026-09-02 에 걷어냈다. 검색이 갈래 이름까지
+// 보기 때문에 「벤치프레스」를 찾으면 인클라인 · 디클라인이 **이미 목록에 다 나온다** —
+// 펼쳐도 방금 본 것을 다시 보여줄 뿐이었다. 갈래(`group`)는 그대로 쓴다: 부위를
+// 이 값에서 뽑는다(`partOf`)
 
 // ── 부위 ──
 //

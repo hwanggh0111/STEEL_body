@@ -293,6 +293,17 @@ ok('컬 · 삼두 · 딥스는 팔이다',
 const finderSrc = stripNotes(fs.readFileSync('src/components/ExerciseFinder.jsx', 'utf-8'));
 ok('부위 단추를 사전에서 가져온다', /PARTS\.map\(/.test(finderSrc), true);
 
+// 「같은 갈래 보기」는 2026-09-02 에 걷어냈다. 검색이 갈래 이름까지 보기 때문에
+// 「벤치프레스」를 찾으면 인클라인 · 디클라인이 **이미 목록에 다 나온다** —
+// 펼쳐도 방금 본 것을 다시 보여줄 뿐이었고, 카드마다 단추가 둘이라 정작
+// 「자세 보기」가 어느 것인지 한 번 더 읽어야 했다
+ok('갈래 펼치기를 걷어냈다', /같은 갈래 보기|siblingsOf/.test(finderSrc), false);
+// 걷어낸 근거가 실제로 맞는지 본다 — 갈래 이름으로 찾으면 그 갈래가 다 나와야 한다
+const benchAll = dictP.EXERCISE_DICT.filter((e) => e.group === '벤치프레스').map((e) => e.ko);
+const benchHit = dictP.searchExercises('벤치프레스', 30).map((e) => e.ko);
+ok('갈래 이름으로 찾으면 그 갈래가 다 나온다',
+  benchAll.filter((n) => !benchHit.includes(n)), []);
+
 console.log('\n── 자세 설명 (2026-09-02) ──');
 // 사전의 한 줄(`desc`)은 「그게 무슨 운동인가」이지 「어떻게 하는가」가 아니다.
 // 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다.
