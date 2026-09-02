@@ -7,9 +7,13 @@ import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
 import MonthCalendar from '../components/MonthCalendar';
+import DayPlan from '../components/DayPlan';
+import client from '../api/client';
+import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
 import { toast } from '../components/Toast';
 import { readLS } from '../data/safeStorage';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
+import { useToday } from '../data/useToday';
 
 // 히스토리.
 //
@@ -19,6 +23,12 @@ import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 //
 // 달력을 앞에 세웠다. 날짜를 누르면 그날 것만 보고, 안 누르면 그 달 전체를 본다.
 // 거르기와 CSV 내보내기는 그대로 뒀다 — 되던 것을 없애지 않는다.
+//
+// **앞으로 할 것도 여기서 정한다** (2026-09-02). 달력은 되짚는 자리이면서
+// 「이번 주에 언제 갈까」를 **정하는 자리**이기도 한데, 앞날을 눌러도
+// 「이 날은 쉬셨네요」만 나왔다 — 아직 오지도 않은 날인데.
+// 계획은 기록과 **따로** 저장한다(`/api/plans`). 섞으면 「이 달에 몇 일 나왔나」에
+// 아직 하지도 않은 날이 같이 세어진다.
 export default function HistoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +40,58 @@ export default function HistoryPage() {
     fetchInbody();
   }, []);
 
+  // 켜둔 채 자정을 넘기면 「오늘」이 어제에 멈춘다 — 앞날인지 지난 날인지가 뒤집힌다
+  const today = useToday();
+
   const [filterExercise, setFilterExercise] = useState('');
+
+  // ── 앞으로 할 것 ──
+  const [plans, setPlans] = useState([]);
+  const [myRoutines, setMyRoutines] = useState([]);
+  const [addingPlan, setAddingPlan] = useState(false);
+
+  useEffect(() => {
+    // 못 불러와도 화면은 그대로 돈다 — 계획은 이 화면의 곁다리다
+    client.get('/plans').then(({ data }) => setPlans(Array.isArray(data) ? data : [])).catch(() => {});
+    client.get('/my-routines').then(({ data }) => setMyRoutines(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
+
+  const addPlan = async (plan) => {
+    if (addingPlan) return;
+    setAddingPlan(true);
+    try {
+      const { data } = await client.post('/plans', plan);
+      setPlans(prev => [...prev, data]);
+      toast(`${dayLabel(plan.date)}에 담았어요`);
+    } catch (err) {
+      toast(err.response?.data?.error || '담지 못했어요', 'error');
+    } finally {
+      setAddingPlan(false);
+    }
+  };
+
+  // 먼저 화면에서 빼고 서버에 알린다. 실패하면 되돌린다 —
+  // 지운 줄 알았는데 새로고침하면 살아 있는 것이 제일 나쁘다
+  // 달력이 칸마다 꺼내 쓴다
+  const planMap = useMemo(() => plansByDate(plans), [plans]);
+  // 아직 안 한 것 중 가까운 것 셋. 날짜를 안 고른 동안 한 줄로 알려준다
+  const next = useMemo(() => upcoming(plans, today, workouts, 3), [plans, today, workouts]);
+  // 보고 있는 달에서 하기로 해놓고 못 한 것
+  const missed = useMemo(() => {
+    const prefix = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
+    return missedCount(plans.filter(p => p.date.startsWith(prefix)), today, workouts);
+  }, [plans, today, workouts, ym]);
+
+  const removePlan = async (id) => {
+    const prev = plans;
+    setPlans(prev.filter(p => p.id !== id));
+    try {
+      await client.delete(`/plans/${id}`);
+    } catch {
+      setPlans(prev);
+      toast('빼지 못했어요', 'error');
+    }
+  };
 
   const handleExportCSV = (type = 'workouts') => {
     const filename = type === 'inbody' ? 'blackiron_inbody.csv' : 'blackiron_workouts.csv';
@@ -144,9 +205,43 @@ export default function HistoryPage() {
         year={ym.year}
         month={ym.month}
         workouts={workouts}
+        plans={planMap}
         selected={selectedDate}
         onSelect={setSelectedDate}
       />
+
+      {/* 날짜를 고르면 그날 할 것을 정한다. 안 골랐으면 **다가오는 것 한 줄**만 —
+          달력 아래를 늘 폼으로 채워두면 되짚으러 온 사람의 길을 막는다 */}
+      {selectedDate ? (
+        <DayPlan
+          date={selectedDate}
+          today={today}
+          plans={planMap[selectedDate] || []}
+          dayWorkouts={workouts[selectedDate]}
+          myRoutines={myRoutines}
+          onAdd={addPlan}
+          onDelete={removePlan}
+          adding={addingPlan}
+        />
+      ) : next.length > 0 ? (
+        <div className="card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ minWidth: 0, flexGrow: 1 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>다음에 할 것</div>
+            <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {next[0].name}
+              <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+                {' · '}{untilLabel(next[0].date, today)}
+                {next.length > 1 ? ` · 외 ${next.length - 1}개` : ''}
+              </span>
+            </div>
+          </div>
+          <button
+            className="btn-secondary"
+            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+            onClick={() => { setYm({ year: Number(next[0].date.slice(0, 4)), month: Number(next[0].date.slice(5, 7)) }); setSelectedDate(next[0].date); }}
+          >보기</button>
+        </div>
+      ) : null}
 
       {/* 그 달 요약 — 아무것도 없으면 기록이 있는 달로 데려다준다 */}
       {summary.days > 0 ? (
@@ -166,6 +261,13 @@ export default function HistoryPage() {
           {summary.parts.length > 0 && (
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
               {summary.parts.slice(0, 4).map(p => `${p.part} ${Math.round(p.ratio * 100)}%`).join(' · ')}
+            </div>
+          )}
+          {/* 하기로 해놓고 못 한 날. **혼내지 않는다** — 몇 건인지만 적는다.
+              0 이면 이 줄 자체가 안 나온다 (「못 한 것 0건」은 알릴 이유가 없다) */}
+          {missed > 0 && (
+            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+              하기로 했는데 못 한 날 {missed}건
             </div>
           )}
         </div>

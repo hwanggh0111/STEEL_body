@@ -258,6 +258,65 @@ const stripNotes = (src) => src
   .filter((l) => !/^\s*\/\//.test(l))
   .join(NL);
 
+console.log('\n── 달력에 「할 것」 담기 (2026-09-02) ──');
+// 달력은 되짚는 자리이기만 한 게 아니다. **「이번 주에 언제 갈까」를 정하는 자리**이기도
+// 한데, 앞날을 눌러도 「이 날은 쉬셨네요」만 나왔다 — 아직 오지도 않은 날인데.
+const pl = bundle('src/data/plans.js', '.t27.cjs');
+
+const PLANS = [
+  { id: 1, date: '2026-09-01', name: '가슴+삼두' },
+  { id: 2, date: '2026-09-05', name: '하체' },
+  { id: 3, date: '2026-09-05', name: '코어' },
+];
+const TODAY = '2026-09-02';
+const DID = { '2026-09-01': [{ id: 9 }] };
+
+ok('날짜별로 묶는다', Object.keys(pl.plansByDate(PLANS)).length, 2);
+ok('같은 날 여럿을 다 담는다', pl.plansByDate(PLANS)['2026-09-05'].length, 2);
+
+// **「했는지」를 계획에 적어두지 않는다.** 기록이 곧 답이다 —
+// 따로 적어두면 기록을 지웠을 때 계획만 「했음」으로 남는다
+ok('그날 기록이 있으면 한 것이다', pl.planState('2026-09-01', TODAY, DID['2026-09-01']), 'done');
+ok('오늘과 앞날은 할 것이다',
+  [pl.planState(TODAY, TODAY, []), pl.planState('2026-09-05', TODAY, [])], ['todo', 'todo']);
+// 못 한 날을 조용히 지우면 왜 못 했는지가 아무 데도 안 남는다
+ok('지난 날인데 기록이 없으면 못 한 것이다', pl.planState('2026-08-30', TODAY, []), 'missed');
+
+ok('가까운 것부터 준다', pl.upcoming(PLANS, TODAY, DID, 3).map((x) => x.id), [2, 3]);
+// 이미 한 날은 「다음에 할 것」이 아니다
+ok('한 날은 다음 것에서 뺀다', pl.upcoming(PLANS, TODAY, DID, 3).some((x) => x.id === 1), false);
+ok('못 한 것을 센다', pl.missedCount(PLANS, TODAY, {}), 1);
+ok('한 날은 못 한 것으로 안 센다', pl.missedCount(PLANS, TODAY, DID), 0);
+
+ok('날짜를 사람 말로 적는다', pl.dayLabel('2026-09-05'), '9월 5일');
+ok('며칠 남았는지 적는다',
+  [pl.untilLabel(TODAY, TODAY), pl.untilLabel('2026-09-03', TODAY), pl.untilLabel('2026-09-05', TODAY)],
+  ['오늘', '내일', '3일 뒤']);
+ok('지난 날은 며칠 전인지 적는다', pl.untilLabel('2026-09-01', TODAY), '어제');
+
+const cal = stripNotes(fs.readFileSync('src/components/MonthCalendar.jsx', 'utf-8'));
+// 한 날도 할 날도 금색이라 **색으로만 가르면 구별이 안 된다**
+ok('한 날은 실선, 할 날은 점선으로 가른다', /dashed/.test(cal), true);
+ok('할 것이 있는 날에 개수를 적는다', /planned/.test(cal), true);
+// 못 한 날을 빨강으로 두면 달력을 열 때마다 혼나는 기분이 된다
+ok('못 한 날을 위험색으로 칠하지 않는다', /var\(--danger\)/.test(cal), false);
+
+const hist = stripNotes(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8'));
+// **한 것과 할 것을 섞지 않는다** — 섞으면 「이 달에 몇 일 나왔나」에 아직 하지도
+// 않은 날이 같이 세어진다
+ok('계획을 기록과 따로 받아온다', /client\.get\('\/plans'\)/.test(hist), true);
+ok('달력 아래를 늘 폼으로 채우지 않는다', /selectedDate \? \(/.test(hist), true);
+const dayPlan = stripNotes(fs.readFileSync('src/components/DayPlan.jsx', 'utf-8'));
+// 「월요일 가슴+삼두」를 그날에 걸어두는 것이 제일 흔한 쓰임이다
+ok('내 루틴을 통째로 걸 수 있다', /kind: 'routine'/.test(dayPlan), true);
+ok('운동 하나만 담을 수도 있다', /kind: 'exercise'/.test(dayPlan), true);
+// 달력에서 날짜를 고른 다음 기록 화면에서 날짜를 또 고르게 하지 않는다
+ok('그 날짜를 들고 기록 화면으로 간다', /state: \{ date \}/.test(dayPlan), true);
+const wp2 = stripNotes(fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8'));
+ok('기록 화면이 들고 온 날짜를 쓴다', /location\.state\?\.date/.test(wp2), true);
+// 들고 온 날짜를 자정 넘김 처리가 오늘로 덮으면 그 날짜로 못 적는다
+ok('들고 온 날짜를 자정 넘김이 안 덮는다', /useRef\(!!location\.state\?\.date\)/.test(wp2), true);
+
 console.log('\n── 루틴 (2026-09-02 에 다시 짰다) ──');
 // 한 화면에 **두 화면**이 있었다 — 「나만의 루틴」(목록 + 만들기 폼 + 고치기)과
 // 「운동 루틴 추천」(갈래 4 × 부위 5~6). 내 루틴을 시작하려는 사람이 만들기 폼과

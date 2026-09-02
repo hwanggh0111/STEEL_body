@@ -115,9 +115,12 @@ export default function WorkoutPage() {
 
   // 같은 식을 손으로 또 적지 않는다 — 이 자리가 8/21 에 새벽 기록이 사라지던 버그의 출처였다
   const today = useToday();
-  const [date, setDate] = useState(today);
-  // 사람이 날짜를 직접 골랐나. 골랐으면 건드리지 않는다 (아래 자정 넘김 처리에서 쓴다)
-  const datePickedRef = useRef(false);
+  // **달력에서 날짜를 들고 올 수 있다** (히스토리의 「이 날 기록하기」).
+  // 예전에는 달력에서 날짜를 고른 다음 여기 와서 날짜를 또 골라야 했다
+  const [date, setDate] = useState(location.state?.date || today);
+  // 사람이 날짜를 직접 골랐나. 골랐으면 건드리지 않는다 (아래 자정 넘김 처리에서 쓴다).
+  // 달력에서 날짜를 들고 왔으면 그것도 사람이 고른 것이다 — 자정 넘김이 덮으면 안 된다
+  const datePickedRef = useRef(!!location.state?.date);
   const [exercise, setExercise] = useState(location.state?.exercise || '');
   // 운동을 지정해서 들어왔나 (운동 검색 · 홈트의 「이 운동 기록하기」).
   // 한 번 저장하고 나면 풀어준다 — 그다음부터는 루틴을 따라가면 된다

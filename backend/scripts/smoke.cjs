@@ -193,6 +193,30 @@ function cleanAll() {
   step('진행표 끝', p2.status, 200);
   step('  다 했다고 알려준다', p2.data?.finished, true);
 
+  console.log('\n── 달력에 할 것을 담는다 ──');
+  // 한 것과 할 것은 다른 이야기다. 계획은 따로 저장한다
+  const pl1 = await call('POST', '/plans', { date: '2026-12-24', kind: 'routine', name: '가슴 등', routineId: rt.data?.id });
+  step('루틴을 그날에 건다', pl1.status, 201);
+  const pl2 = await call('POST', '/plans', { date: '2026-12-24', kind: 'exercise', name: '데드리프트' });
+  step('운동 하나도 담는다', pl2.status, 201);
+  const plList = await call('GET', '/plans');
+  step('내 계획을 받아온다', plList.status, 200);
+  step('  두 개가 들어 있다', (plList.data || []).filter(p => p.date === '2026-12-24').length, 2);
+  // 눌린 줄 모르고 또 누르는 자리다
+  step('같은 날 같은 것은 두 번 안 담긴다',
+    (await call('POST', '/plans', { date: '2026-12-24', kind: 'exercise', name: '데드리프트' })).status, 400);
+  step('이름이 공백만이면 안 담긴다',
+    (await call('POST', '/plans', { date: '2026-12-24', kind: 'exercise', name: '   ' })).status, 400);
+  step('날짜 모양이 아니면 안 담긴다',
+    (await call('POST', '/plans', { date: '내일', kind: 'exercise', name: '스쿼트' })).status, 400);
+  // 남의 루틴 번호를 적어 보내면 그 이름이 붙는다
+  step('없는 루틴은 못 건다',
+    (await call('POST', '/plans', { date: '2026-12-25', kind: 'routine', name: '남의 루틴', routineId: 999999 })).status, 400);
+  step('담은 것을 뺀다', (await call('DELETE', '/plans/' + pl2.data?.id)).status, 200);
+  step('  빼고 나면 하나만 남는다',
+    ((await call('GET', '/plans')).data || []).filter(p => p.date === '2026-12-24').length, 1);
+  step('없는 것을 빼면 404', (await call('DELETE', '/plans/999999')).status, 404);
+
   console.log('\n── 막아야 할 것은 막는지 ──');
   step('운동명 공백만',
     (await call('POST', '/workouts', { date: '2026-08-27', exercise: '   ', weight: 60, sets: 3, reps: 10 })).status, 400);

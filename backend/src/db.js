@@ -58,6 +58,13 @@ const DEFAULT_DATA = {
   // 진행 중인 루틴. 한 사람당 한 줄 — 한 번에 한 운동을 한다.
   // 서버에 두는 이유는 폰으로 시작해서 다른 기기로 이어갈 수 있어야 해서다
   routineSessions: [],
+  // 앞으로 할 것. 달력에서 날짜를 골라 미리 정해둔다.
+  //
+  // **기록(`workouts`)과 섞지 않는다.** 한 것과 할 것은 다른 이야기다 — 섞어두면
+  // 「이번 달에 몇 번 나왔나」에 아직 하지도 않은 날이 같이 세어진다.
+  // 계획대로 하면 기록이 따로 쌓이고, 그날이 지나도 계획은 계획으로 남는다
+  // (안 한 날을 지워버리면 왜 못 했는지가 아무 데도 안 남는다).
+  plans: [],         // { id, user_id, date, kind: 'routine'|'exercise', name, routine_id, created_at }
   // ── 방어막이 남기는 것 ──
   //
   // **막아놓은 것은 서버가 다시 떠도 남아야 한다.** 8/31 까지 차단은 전부 램에만
@@ -71,7 +78,7 @@ const DEFAULT_DATA = {
   loginFails: [],    // { key, count, last, until } — key: 'ip:1.2.3.4' | 'user:12'
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1, plans: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -420,6 +427,34 @@ const db = {
     const idx = data.measures.findIndex(m => m.id === id && m.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.measures.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
+  // plans — 앞으로 할 것
+  //
+  // 날짜 오름차순으로 준다. 달력은 날짜로 찾아 쓰고, 목록은 가까운 날부터 본다
+  getPlans(userId) {
+    const data = load();
+    return (data.plans || [])
+      .filter(p => p.user_id === userId)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  },
+  createPlan(userId, plan) {
+    const id = nextId('plans');
+    const data = load();
+    if (!data.plans) data.plans = [];
+    const row = { id, user_id: userId, created_at: new Date().toISOString(), ...plan };
+    data.plans.push(row);
+    save(data);
+    return row;
+  },
+  deletePlan(id, userId) {
+    const data = load();
+    if (!data.plans) return { changes: 0 };
+    const idx = data.plans.findIndex(p => p.id === id && p.user_id === userId);
+    if (idx === -1) return { changes: 0 };
+    data.plans.splice(idx, 1);
     save(data);
     return { changes: 1 };
   },
@@ -776,7 +811,7 @@ const db = {
   // 또 남는다 — `npm run check` 가 이 목록과 실제 컬렉션을 맞춰본다.
   USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
                      'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
-                     'suspensions', 'abuseLogs'],
+                     'suspensions', 'abuseLogs', 'plans'],
   // 지금 램에 들고 있는 그대로.
   //
   // 파일은 0.5초 뒤에 쓰이므로 **검사가 파일을 읽으면 옛 내용을 본다.**
