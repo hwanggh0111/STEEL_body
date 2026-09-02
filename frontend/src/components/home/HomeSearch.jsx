@@ -48,7 +48,7 @@ export const SEARCH_ITEMS = [
   { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: 'clipboard' },
   { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: 'dumbbell' },
   { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: 'chart' },
-  { label: '홈트레이닝', keywords: ['홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: 'homegym' },
+  { label: '기능성운동', keywords: ['기능성', '기능성운동', '홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: 'homegym' },
   { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: 'search' },
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: 'ruler' },
   { label: '히스토리', keywords: ['히스토리', 'history', '기록', '과거', '이력', '달력', '히'], path: '/history', icon: 'calendar' },

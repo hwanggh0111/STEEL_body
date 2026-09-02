@@ -40,7 +40,7 @@ const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 // 아이콘은 길찾기와 같은 것을 쓴다 (NavIcon.jsx). 같은 자리로 가는 길인데 홈에서만
 // 다른 그림이면 두 번 익혀야 한다
 const SHORTCUTS = [
-  { icon: 'homegym', label: '홈트', path: '/homeworkout' },
+  { icon: 'homegym', label: '기능성운동', path: '/homeworkout' },
   { icon: 'search', label: '운동 검색', path: '/search' },
   { icon: 'ruler', label: '측정', path: '/measure' },
   { icon: 'calendar', label: '히스토리', path: '/history' },

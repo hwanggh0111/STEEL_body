@@ -25,7 +25,7 @@ const TABS = [
 // 「기능성(특수부대식)」은 그 폭을 넘어 화면 밖으로 나간다 (글자는 줄바꿈을 안 한다).
 // 그래서 단추에는 「특수부대식」만 적고, 어디로 가는지는 프로그램 이름이 말한다
 const MORE_ITEMS_ALL = [
-  { path: '/homeworkout', label: '홈트레이닝', icon: 'homegym' },
+  { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
   { path: '/homeworkout', param: '기능성(특수부대식)', label: '특수부대식', icon: 'flame' },
   { path: '/search',     label: '운동 검색',  icon: 'search' },
   { path: '/measure',    label: '측정 시스템', icon: 'ruler' },

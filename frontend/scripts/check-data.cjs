@@ -253,7 +253,10 @@ ok('topic 이 겹치지 않는다', new Set(faq.FAQ.map(f => f.topic)).size, faq
 const firstFaq = (q) => (faq.matchFaq(q)[0] || {}).topic || null;
 for (const [q, want] of [
   ['푸시', '알림'], ['탈퇴', '계정 삭제'], ['비번', '비밀번호'], ['csv', '내보내기'],
-  ['등급', '인바디 판정'], ['홈트', '홈트'], ['점검', '점검'], ['구글', '소셜 로그인'],
+  ['등급', '인바디 판정'], ['점검', '점검'], ['구글', '소셜 로그인'],
+  // 9/2 에 「홈트레이닝」을 「기능성운동」으로 바꿨다. **옛 이름으로도 찾혀야 한다** —
+  // 이름을 바꿔도 사람은 한동안 옛 이름으로 찾고, 못 찾으면 화면이 없어진 줄 안다
+  ['홈트', '기능성운동'], ['기능성운동', '기능성운동'],
   ['날아갔', '기록 보관'], ['차단', '정지'],
   // 9/2 에 항목을 하나 늘렸다. **「소리」와 「알림」이 서로 걸려드는 자리다** —
   // 운동 알림(푸시)과 휴식 타이머 소리는 다른 이야기인데 말이 겹친다
@@ -965,6 +968,36 @@ ok('더보기 라벨이 폰 한 칸(320px ÷ 4)에 들어간다',
 ok('지금 어느 줄로 왔는지 물음표 뒤까지 본다', /location\.search/.test(tabbar), true);
 ok('화면이 물음표 뒤를 읽는다', page.includes("params.get('p')"), true);
 ok('없는 이름이 와도 목록만 연다', page.includes('!PROGRAMS[wanted]'), true);
+
+// ── 화면 이름이 한 이름인가 (2026-09-02, 홈트레이닝 → 기능성운동) ──
+//
+// **이름은 길찾기 넷에 흩어져 있다** — 더보기 · 홈 바로가기 · 홈 검색 · 고객센터 소개.
+// 여기에 화면 제목 · 제보함의 화면 목록 · 자주 묻는 것까지 일곱 자리다.
+// 하나만 빠뜨리면 **거기만 옛 이름으로 남는다.** 아무도 안 터진다 —
+// 같은 화면이 자리마다 다른 이름으로 불릴 뿐이다 (9/1 에 앱 이름에서 겪었다).
+const HOME_NAME = '기능성운동';
+const nameSpots = [
+  ['화면 제목', 'src/pages/HomeworkoutPage.jsx'],
+  ['더보기', 'src/components/TabBar.jsx'],
+  ['홈 바로가기', 'src/pages/HomePage.jsx'],
+  ['홈 검색', 'src/components/home/HomeSearch.jsx'],
+  ['고객센터 소개', 'src/pages/support/introData.js'],
+  ['제보함의 화면 목록', 'src/pages/support/ReportBox.jsx'],
+  ['자주 묻는 것', 'src/pages/support/faq.js'],
+];
+for (const [where, file] of nameSpots) {
+  const src = codeOf(fs.readFileSync(file, 'utf-8'));
+  ok(`${josa.i(where)} 새 이름을 쓴다`, src.includes(HOME_NAME), true);
+}
+// 옛 이름이 화면에 남아 있으면 안 된다. **찾는 말(keywords)은 뺀다** —
+// 거기 있는 「홈트」는 옛 이름으로도 찾게 하려고 일부러 둔 것이다
+const stripKeywords = (src) => src.replace(/keywords: \[[^\]]*\]/g, '');
+const oldLeft = nameSpots.filter(([, file]) =>
+  /홈트레이닝/.test(stripKeywords(codeOf(fs.readFileSync(file, 'utf-8'))).replace(/옛 홈트레이닝/g, '')));
+ok('옛 이름이 화면에 남아 있지 않다', oldLeft.map(([w]) => w), []);
+// 루틴의 갈래 「홈트」는 **그대로 둔다** — 추천 루틴을 나누는 말이지 이 화면 이름이 아니다
+ok('루틴 갈래는 건드리지 않았다',
+  /'홈트'/.test(fs.readFileSync('src/pages/RoutinePage.jsx', 'utf-8')), true);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

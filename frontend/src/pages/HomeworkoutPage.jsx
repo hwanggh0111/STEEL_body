@@ -129,7 +129,7 @@ export default function HomeworkoutPage() {
       // 여기서 안 적으면 무엇을 했는지 아무 데도 안 남는다
       saveLastDone(selected);
       setLastDone(readLastDone());
-      toast('홈트 완료!');
+      toast('기능성운동 완료!');
       return;
     }
     beginPhase(next, false);
@@ -246,7 +246,7 @@ export default function HomeworkoutPage() {
   // (둘 다 필수 칸이다). 홈트는 시간으로 하는 것이라 「한 운동 = 한 세트」로 세고,
   // 횟수는 1 로 둔다. 고치고 싶으면 그 자리에서 고치면 된다
   const goRecord = (count) => navigate('/workout', {
-    state: { exercise: `홈트 - ${selected}`, sets: String(Math.max(1, count)), reps: '1' },
+    state: { exercise: `기능성운동 - ${selected}`, sets: String(Math.max(1, count)), reps: '1' },
   });
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
@@ -284,7 +284,7 @@ export default function HomeworkoutPage() {
       <div>
         <div className="section-title">
           <div className="accent-bar" />
-          홈트레이닝
+          기능성운동
         </div>
         {/* **「장비 없이」라고 적으면 안 된다.** 의자 · 수건 · 배낭을 쓴다 —
             운동기구를 안 쓰는 것이지 아무것도 안 쓰는 것이 아니다 */}
