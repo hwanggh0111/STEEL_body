@@ -362,6 +362,26 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+
+  // **무엇이 꺼져 있는지 뜰 때 말한다.**
+  //
+  // 알림(VAPID)은 이미 「열쇠가 없습니다」를 찍는데 소셜 로그인만 조용했다.
+  // 열쇠가 없으면 로그인 화면에 그 단추가 **아예 안 나온다** — 눌러볼 수도 없으니
+  // 「구글 로그인이 안 된다」의 원인이 열쇠인지 코드인지 알 길이 없었다.
+  // 코드는 `npm run oauth` 가 구글 없이 한 바퀴 돌려서 본다. 남는 것은 열쇠뿐이다.
+  const social = [
+    ['구글', 'GOOGLE_CLIENT_ID'],
+    ['네이버', 'NAVER_CLIENT_ID'],
+    ['페이스북', 'FACEBOOK_APP_ID'],
+    ['인스타그램', 'INSTAGRAM_APP_ID'],
+  ];
+  const off = social.filter(([, key]) => !process.env[key]).map(([name]) => name);
+  if (off.length === social.length) {
+    console.log('[oauth] 소셜 로그인 열쇠가 하나도 없습니다. 이메일 로그인만 됩니다 (버튼은 안 나옵니다)');
+  } else if (off.length > 0) {
+    console.log(`[oauth] 열쇠가 없어 꺼진 소셜 로그인: ${off.join(' · ')} (나머지는 켜집니다)`);
+  }
+
   // 운동 알림 — VAPID 키가 없으면 스스로 안 뜬다 (설정이 없다고 서버가 못 뜨면 안 된다)
   require('./utils/reminderRunner').start();
 });
