@@ -88,6 +88,9 @@ function oauthErrorText(code) {
     const nick = searchParams.get('nickname');
     const emailParam = searchParams.get('email');
     const err = searchParams.get('error');
+    // 방금 만들어진 계정인가 · 지우기로 해뒀던 계정이 되살아났는가 (서버가 알려준다)
+    const created = searchParams.get('created') === '1';
+    const restored = searchParams.get('restored') === '1';
 
     if (oauthSuccess === 'success' && nick) {
       const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, 30);
@@ -98,8 +101,20 @@ function oauthErrorText(code) {
       // 구글 로그인 후 닉네임 설정 단계 — 이전 로그인 실패 메시지 정리
       setError('');
       setNickError('');
-      setOauthNick(sanitizedNick);
-      setOauthNickStep(true);
+      // 지우기로 해뒀던 계정으로 다시 들어온 사람. 이메일 로그인은 이미 말해주는데
+      // 소셜만 조용했다 — 살아 있는지 지워졌는지 모르는 채로 앱을 쓰게 된다
+      if (restored) toast.success('계정이 되살아났어요. 삭제 예약이 취소됐습니다');
+      // **이름 정하기는 계정이 방금 만들어졌을 때만.**
+      //
+      // 그동안은 소셜로 들어올 때마다 이 단계가 나왔다. 백 번째 로그인에도 이름을
+      // 다시 확인시키는 것은 **로그인에 한 단계를 더 놓는 것**이다. 두 번째부터는
+      // 이미 쓰던 이름이 있고, 바꾸고 싶으면 「내 계정」에서 바꾼다
+      if (created) {
+        setOauthNick(sanitizedNick);
+        setOauthNickStep(true);
+      } else {
+        setShowSplash(true);
+      }
     }
     if (err) {
       setError(oauthErrorText(err));

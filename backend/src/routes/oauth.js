@@ -70,9 +70,19 @@ function getUrls(req) {
 
 // 소셜 로그인 공통: 유저 찾거나 생성
 async function findOrCreateUser(email, rawNickname, provider) {
+  // **이메일이 없으면 계정을 만들지 않는다.**
+  //
+  // 계정을 찾는 열쇠는 이메일 하나다(`emailKey`). 빈 값이 들어오면 그 열쇠가 `''` 가
+  // 되는데, 그러면 이메일 없이 들어온 **서로 다른 사람이 같은 계정 하나로 묶인다.**
+  // 남의 운동 기록이 내 화면에 뜬다는 뜻이다. 여기서 막는다 —
+  // 구글 콜백은 이 검사를 갖고 있었지만 `/google/code` 쪽에는 없었다
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    throw new Error('OAUTH_NO_EMAIL');
+  }
   // 외부 제공자가 준 닉네임 sanitize + 길이 제한 (XSS 방어)
   const safeNickname = (sanitize(String(rawNickname || '')).slice(0, 30) || (provider + '_user'));
   let user = db.findUserByEmail(email);
+  const created = !user;
   if (!user) {
     const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
     const username = provider + '_' + crypto.randomBytes(4).toString('hex');
@@ -86,8 +96,23 @@ async function findOrCreateUser(email, rawNickname, provider) {
   }
   // 지우기로 해놓고 다시 들어온 사람은 되살린다. 이메일 로그인만 되살리면
   // **소셜로만 쓰던 사람은 되돌릴 길이 없다** — 그쪽은 비밀번호를 모른다
-  db.cancelUserDeletion(user.id);
-  return { user, nickname: user.nickname, email: user.email };
+  //
+  // 되살렸다는 것도 **화면까지 가져간다.** 이메일 로그인은 「계정이 되살아났어요」를
+  // 띄우는데 소셜은 조용했다 — 지워졌는지 살아 있는지 모르는 채로 앱을 쓰게 된다
+  const restored = !!db.cancelUserDeletion(user.id);
+  return { user, nickname: user.nickname, email: user.email, created, restored };
+}
+
+// 로그인이 끝나고 화면으로 돌려보낼 주소.
+//
+// `created` 를 같이 보낸다. 화면의 「닉네임 정하기」 단계는 **계정이 방금 만들어졌을
+// 때만** 나와야 하는데, 그동안은 소셜로 들어올 때마다 나왔다 — 백 번째 로그인에도
+// 이름을 다시 확인시키는 것은 로그인에 한 단계를 더 놓는 것이다
+function successUrl(frontendUrl, { nickname, email, created, restored }) {
+  const q = new URLSearchParams({ oauth: 'success', nickname, email });
+  if (created) q.set('created', '1');
+  if (restored) q.set('restored', '1');
+  return `${frontendUrl}/login?${q}`;
 }
 
 // ─── Google ───────────────────────────
@@ -138,6 +163,11 @@ router.get('/providers', (req, res) => {
 });
 
 router.get('/google', (req, res) => {
+  // **구글만 이 가드가 없었다.** 네이버 · 페이스북 · 인스타그램은 열쇠가 없으면
+  // `?error=..._not_configured` 로 되돌려 보내는데, 구글은 `client_id=undefined` 인
+  // 채로 구글에 보내고 있었다 — 사람은 구글의 영어 오류 화면을 만나고,
+  // 거기에는 앱으로 돌아오는 길이 없다
+  if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=google_not_configured`);
   const { backendUrl } = getUrls(req);
   // state 에 프론트엔드 referer 를 같이 담아둔다 (콜백에서 돌아갈 곳을 정하는 데 쓴다)
   const state = generateState(req.get('referer') || '');
@@ -156,7 +186,10 @@ router.get('/google/callback', async (req, res) => {
   const { backendUrl } = getUrls(req);
   const stateData = oauthStates.get(req.query.state);
   if (!validateState(req.query.state)) {
-    return res.redirect(`${FRONTEND}/login?error=invalid_state`);
+    // 다른 오류는 아래에서 정한 frontendUrl 로 돌아가는데 여기만 FRONTEND 였다.
+    // 개발용 IP(192.168.x)나 터널로 들어온 사람은 **다른 주소로 튕겨** 로그인 화면이
+    // 아니라 낯선 곳에 떨어진다
+    return res.redirect(`${getUrls(req).frontendUrl}/login?error=invalid_state`);
   }
   // referer 기반 frontend origin — 화이트리스트 검증 (open redirect 방지)
   let frontendUrl = ALLOWED_FRONTENDS[0] || FRONTEND;
@@ -178,9 +211,9 @@ router.get('/google/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     if (!profile || !profile.email) throw new Error('Google profile missing email');
-    const { user, nickname, email } = await findOrCreateUser(profile.email, profile.name, 'google');
-    setAuthCookies(res, user);
-    res.redirect(`${frontendUrl}/login?oauth=success&nickname=${encodeURIComponent(nickname)}&email=${encodeURIComponent(email)}`);
+    const info = await findOrCreateUser(profile.email, profile.name, 'google');
+    setAuthCookies(res, info.user);
+    res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=google_failed`);
@@ -202,11 +235,16 @@ router.post('/google/code', async (req, res) => {
     const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    const { user, nickname, email } = await findOrCreateUser(profile.email, profile.name, 'google');
+    const { user, nickname, email, created, restored } = await findOrCreateUser(profile.email, profile.name, 'google');
     setAuthCookies(res, user);
-    res.json({ nickname, email });
+    res.json({ nickname, email, created, restored });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('Google code error:', err.message);
+    // 구글이 이메일을 안 줬을 때와 열쇠·코드가 틀렸을 때는 사람이 할 일이 다르다.
+    // 앞의 것은 다시 눌러도 똑같으니 그렇게 말한다
+    if (err.message === 'OAUTH_NO_EMAIL') {
+      return res.status(400).json({ error: '구글 계정에서 이메일을 받지 못했어요. 이메일 제공에 동의하고 다시 시도해주세요' });
+    }
     res.status(401).json({ error: '구글 로그인에 실패했어요. 잠시 뒤에 다시 해주세요' });
   }
 });
@@ -244,9 +282,9 @@ router.get('/naver/callback', async (req, res) => {
     });
     const profile = profileRes?.response;
     if (!profile || !profile.email) throw new Error('Naver profile missing');
-    const { user, nickname, email } = await findOrCreateUser(profile.email, profile.nickname || profile.name, 'naver');
-    setAuthCookies(res, user);
-    res.redirect(`${frontendUrl}/login?oauth=success&nickname=${encodeURIComponent(nickname)}&email=${encodeURIComponent(email)}`);
+    const info = await findOrCreateUser(profile.email, profile.nickname || profile.name, 'naver');
+    setAuthCookies(res, info.user);
+    res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=naver_failed`);
@@ -286,9 +324,9 @@ router.get('/facebook/callback', async (req, res) => {
     });
     if (!profile || !profile.id) throw new Error('Facebook profile missing');
     const email = profile.email || `fb_${profile.id}@facebook.com`;
-    const { user, nickname, email: userEmail } = await findOrCreateUser(email, profile.name, 'facebook');
-    setAuthCookies(res, user);
-    res.redirect(`${frontendUrl}/login?oauth=success&nickname=${encodeURIComponent(nickname)}&email=${encodeURIComponent(userEmail)}`);
+    const info = await findOrCreateUser(email, profile.name, 'facebook');
+    setAuthCookies(res, info.user);
+    res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=facebook_failed`);
@@ -330,9 +368,9 @@ router.get('/instagram/callback', async (req, res) => {
     });
     if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
     const email = `ig_${profile.user_id}@instagram.com`;
-    const { user, nickname, email: userEmail } = await findOrCreateUser(email, profile.username, 'instagram');
-    setAuthCookies(res, user);
-    res.redirect(`${frontendUrl}/login?oauth=success&nickname=${encodeURIComponent(nickname)}&email=${encodeURIComponent(userEmail)}`);
+    const info = await findOrCreateUser(email, profile.username, 'instagram');
+    setAuthCookies(res, info.user);
+    res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=instagram_failed`);
@@ -340,3 +378,8 @@ router.get('/instagram/callback', async (req, res) => {
 });
 
 module.exports = router;
+
+// 검사가 떼어 쓴다 (`npm run check`). 라우터를 띄우지 않고 이 둘만 돌려본다 —
+// 구글 열쇠가 없는 자리에서도 볼 수 있는 것은 봐둔다
+module.exports.successUrl = successUrl;
+module.exports.findOrCreateUser = findOrCreateUser;
