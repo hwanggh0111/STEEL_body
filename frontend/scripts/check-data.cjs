@@ -930,7 +930,8 @@ const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/compo
                'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
-ok('여섯 화면이 아이콘 마흔을 쓴다', used.length, 40);
+// 9/3 에 더보기의 「특수부대식」 줄(같은 화면으로 가는 둘째 줄)을 지워 하나 줄었다
+ok('여섯 화면이 아이콘 서른아홉을 쓴다', used.length, 39);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
@@ -1384,11 +1385,17 @@ ok('운동하는 동안 화면을 안 재운다', page.includes("wakeLock.reques
 ok('오늘 안 되는 운동은 건너뛸 수 있다', page.includes('skipStep'), true);
 ok('완료 화면에 이모지를 안 쓴다', /💪|🎉|🔥/.test(page), false);
 
-// 더보기의 「기능성(특수부대식)」은 홈트의 한 프로그램으로 바로 간다 (`?p=이름`).
-// 이름이 한 글자만 달라도 조용히 목록만 열린다 — 아무도 안 터지고 바로가기만 죽는다
+// **한 화면에 한 줄이다.**
+//
+// 9/3 까지 더보기에 「기능성운동」과 「특수부대식」이 나란히 있었는데 **둘 다 같은
+// 화면**으로 갔다(뒤엣것은 프로그램 하나를 펼쳐 놓기만 했다). 눌러본 사람에게는
+// 같은 것이 두 줄인 것이다. 여섯 프로그램 중 하나만 지름길을 갖는 이유도 없었다.
+// 다시 그런 줄이 생기면 여기서 잡는다
 const tabbar = fs.readFileSync('src/components/TabBar.jsx', 'utf-8');
+const morePaths = [...tabbar.matchAll(/\{ path: '([^']+)'[^}]*label:/g)].map((m) => m[1]);
+ok('더보기에 같은 화면으로 가는 줄이 둘 있지 않다',
+  morePaths.filter((p, i) => morePaths.indexOf(p) !== i), []);
 const shortcuts = [...tabbar.matchAll(/param: '([^']+)'/g)].map((m) => m[1]);
-ok('더보기에 바로가기가 하나 있다', shortcuts, ['기능성(특수부대식)']);
 ok('바로가기 이름이 프로그램 표에 있다', shortcuts.filter((n) => !home.PROGRAMS[n]), []);
 // 단추에 적히는 말은 프로그램 이름과 **다를 수 있다** — 「기능성(특수부대식)」을 그대로
 // 적으면 폰에서 화면 밖으로 나간다. 넉 줄 그리드라 한 칸이 320px 폰에서 80px 이고,
@@ -1398,8 +1405,8 @@ const moreLabels = [...tabbar.matchAll(/label: '([^']+)'/g)].map((m) => m[1])
 const labelW = (s) => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x1100 ? 11 : 6.2) + 1, 0);
 ok('더보기 라벨이 폰 한 칸(320px ÷ 4)에 들어간다',
   moreLabels.filter((l) => labelW(l) > 320 / 4 - 8), []);
-// 물음표 뒤를 안 보면 홈트레이닝과 특수부대식 두 줄이 같이 켜진다
-ok('지금 어느 줄로 왔는지 물음표 뒤까지 본다', /location\.search/.test(tabbar), true);
+// 화면으로 바로 들어오는 길(`?p=이름`)은 **남겨둔다** — 더보기 줄은 지웠지만
+// 다른 데서 걸어주는 링크나 저장해둔 주소가 그 길로 온다
 ok('화면이 물음표 뒤를 읽는다', page.includes("params.get('p')"), true);
 ok('없는 이름이 와도 목록만 연다', page.includes('!PROGRAMS[wanted]'), true);
 

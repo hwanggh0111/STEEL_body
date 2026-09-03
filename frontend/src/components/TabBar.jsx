@@ -17,16 +17,15 @@ const TABS = [
   { path: '/more',    label: '더보기', icon: 'dots' },
 ];
 
-// `param` 이 있는 줄은 그 화면의 **한 자리로 바로** 들어간다 (홈트 목록을 거치지 않는다).
-// 값은 프로그램 이름 그대로다 — 한 글자만 달라도 홈트가 그 프로그램을 못 찾아
-// 목록만 열린다. `npm run check` 가 이 이름을 프로그램 표와 맞춰본다.
+// **한 화면에 한 줄이다.**
 //
-// **라벨은 이름보다 짧다.** 폰에서 이 자리는 넉 줄 그리드라 한 칸이 80px 남짓인데
-// 「기능성(특수부대식)」은 그 폭을 넘어 화면 밖으로 나간다 (글자는 줄바꿈을 안 한다).
-// 그래서 단추에는 「특수부대식」만 적고, 어디로 가는지는 프로그램 이름이 말한다
+// 9/3 까지 여기에 「기능성운동」과 「특수부대식」이 나란히 있었다. 둘 다 `/homeworkout`
+// 으로 가고, 뒤엣것은 여섯 프로그램 중 하나를 펼쳐 놓기만 했다 — **눌러보면 같은
+// 화면이다.** 여섯 중 하나만 지름길을 갖는 것도 이유가 없다(다른 다섯은 없다).
+// 메뉴에 같은 곳으로 가는 줄이 둘 있으면, 쓰는 사람은 둘이 다른 것인 줄 알고 눌러본다.
+// 그래서 지름길 줄을 지웠다 — 프로그램은 그 화면에서 고른다
 const MORE_ITEMS_ALL = [
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
-  { path: '/homeworkout', param: '기능성(특수부대식)', label: '특수부대식', icon: 'flame' },
   { path: '/search',     label: '운동 검색',  icon: 'search' },
   { path: '/measure',    label: '측정 시스템', icon: 'ruler' },
   { path: '/history',    label: '히스토리',   icon: 'calendar' },
@@ -91,14 +90,12 @@ export default function TabBar() {
   // 지금 어디에 있는지가 아무 데도 안 뜬다
   const onPath = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
-  // 같은 화면으로 가는 줄이 둘이다 (홈트 목록 · 특수부대식 바로가기).
-  // 주소만 보면 둘 다 켜져서 지금 어느 쪽으로 왔는지가 사라진다 — 물음표 뒤까지 본다
+  // 한 화면에 한 줄이라 주소만 보면 된다. 예전에는 같은 화면으로 가는 줄이 둘이라
+  // (홈트 목록 · 특수부대식 바로가기) 물음표 뒤까지 봐야 어느 쪽인지 갈렸다.
+  // **줄을 지우니 그 갈래도 없어졌다** — 화면의 `?p=` 길은 그대로 남는다
+  // (다른 데서 걸어주는 링크가 그 길로 온다)
   const goTo = (item) => item.path + (item.param ? '?p=' + encodeURIComponent(item.param) : '');
-  const onItem = (item) => {
-    if (!onPath(item.path)) return false;
-    if (!moreItems.some(m => m.param && m.path === item.path)) return true;
-    return (new URLSearchParams(location.search).get('p') || '') === (item.param || '');
-  };
+  const onItem = (item) => onPath(item.path);
 
   const isActive = (path) => {
     if (path === '/more') return showMore || moreItems.some(m => onPath(m.path));
