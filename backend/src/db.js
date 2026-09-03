@@ -227,6 +227,16 @@ const _index = { userById: null, userByEmail: null, userByUsername: null };
 // 같은 사람의 계정이 둘로 갈리고 기록도 갈린다. 저장은 적은 그대로 두고, 찾고 비교할 때만 낮춘다.
 const emailKey = (email) => String(email || '').trim().toLowerCase();
 
+// 아이디도 이메일과 **같은 규칙**으로 맞춘다.
+//
+// 회원가입 화면은 친 것을 소문자로 낮춰 보낸다(`val.toLowerCase()`). 그런데 서버의
+// 조회는 대소문자를 그대로 가리고 있었다 — `Kevin12` 로 가입한 줄 아는 사람이
+// 로그인 화면에 `Kevin12` 를 치면 **없는 계정**이 된다. 화면은 「아이디 또는 비밀번호가
+// 틀렸어요」라고만 하니 사람은 비밀번호를 의심한다.
+//
+// 이메일은 emailKey 로 이미 맞추고 있었다. 아이디만 빠져 있었다.
+const usernameKey = (username) => String(username || '').trim().toLowerCase();
+
 // refresh token 은 해시로만 담는다. `this.` 로 부르지 않는다 —
 // 이 파일의 다른 도우미(load · save · emailKey)처럼 모듈 함수로 둬야, 나중에
 // `const { saveRefreshToken } = db` 처럼 떼어 쓰는 사람이 생겨도 안 깨진다
@@ -240,7 +250,7 @@ function rebuildIndex() {
   for (const u of data.users) {
     _index.userById.set(u.id, u);
     _index.userByEmail.set(emailKey(u.email), u);
-    if (u.username) _index.userByUsername.set(u.username, u);
+    if (u.username) _index.userByUsername.set(usernameKey(u.username), u);
   }
 }
 
@@ -258,14 +268,14 @@ const db = {
   },
   findUserByUsername(username) {
     if (!_index.userById) rebuildIndex();
-    return _index.userByUsername.get(username) || null;
+    return _index.userByUsername.get(usernameKey(username)) || null;
   },
   createUser(email, password, nickname, username) {
     const data = load();
     if (data.users.some(u => emailKey(u.email) === emailKey(email))) {
       throw new Error('DUPLICATE_EMAIL');
     }
-    if (username && data.users.some(u => u.username === username)) {
+    if (username && data.users.some(u => usernameKey(u.username) === usernameKey(username))) {
       throw new Error('DUPLICATE_USERNAME');
     }
     const id = data._nextId.users || 1;
