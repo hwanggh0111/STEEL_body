@@ -231,11 +231,11 @@ const calHtml = (props) => html('src/components/MonthCalendar.jsx', {
   // 이 검사는 그렇게 두 번 헛돌았다 — 검사가 조용히 통과하는 것이 제일 나쁘다
   const seen = (h) => h.replace(/aria-label="[^"]*"/g, '');
   const plain = seen(calHtml({ selected: null }));
-  // 칸에는 못 넣는다 — 폰에서 칸이 33~49px 이라 두세 글자에서 잘린다.
-  // 그래서 **그 주 아래**에 화면 폭을 다 써서 한 줄씩 보여준다
-  ok('적어둔 메모가 달력에 보인다 (그 주 아래)', plain.includes('어깨가 안 좋아 가볍게'), true);
-  ok('  날짜를 같이 적는다', plain.includes('2일'), true);
-  ok('  둘째 줄까지 늘어놓지는 않는다', plain.includes('벤치 5kg 내림'), false);
+  // **적어둔 글이 그 날짜 칸 안에 보여야 한다.** 「달력에 메모한다」는 말은 그 뜻이다.
+  // 폰에서 칸이 33~49px 이라 9px 글자로 줄당 서너 자, 세 줄까지 넣는다 —
+  // 넘치면 잘리지만 무슨 날이었는지는 읽힌다
+  ok('적어둔 메모가 그 날짜 칸에 보인다', plain.includes('어깨가 안 좋아 가볍게'), true);
+  ok('  둘째 줄까지 칸에 넣지는 않는다 (전문은 눌러서 본다)', plain.includes('벤치 5kg 내림'), false);
   const picked = calHtml({ selected: '2026-09-02' });
   ok('  고른 날 아래에 적는 자리가 열린다', picked.includes('9월 2일 메모'), true);
   ok('  적어둔 것이 있으면 「고치기」', picked.includes('고치기'), true);
