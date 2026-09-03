@@ -177,6 +177,34 @@ function drawWith(file, props, wrap = true) {
   }
 }
 
+// 그려본 **결과를 글자로** 돌려준다.
+//
+// 위의 `drawWith` 는 「터지지 않는가」만 본다. 그런데 화면이 **자리를 옮기는** 것은
+// 그것으로 안 잡힌다 — 달력 칸에 있던 글이 아래 카드로 내려가도 둘 다 잘 그려진다.
+// 그래서 무엇이 어디에 찍혔는지 봐야 하는 자리는 이것으로 본다
+function html(file, props) {
+  const out = path.join(__dirname, '..', '.screen3.cjs');
+  const realError = console.error; const realWarn = console.warn;
+  console.error = () => {}; console.warn = () => {};
+  try {
+    esbuild.buildSync({
+      entryPoints: [path.join(__dirname, '..', file)],
+      bundle: true, format: 'cjs', outfile: out, platform: 'node', jsx: 'automatic',
+      external: ['react', 'react-dom', 'react-router-dom'],
+      define: { 'import.meta.env': '{}' }, logLevel: 'silent',
+    });
+    const mod = require(out);
+    const C = mod.default || mod;
+    return renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(C, props)));
+  } catch (e) {
+    return 'FAILED: ' + e.message.split('\n')[0];
+  } finally {
+    console.error = realError; console.warn = realWarn;
+    if (fs.existsSync(out)) fs.unlinkSync(out);
+    delete require.cache[out];
+  }
+}
+
 // 달력 — 한 날 · 할 날 · 못 한 날이 한 화면에 같이 있는 상태
 ok('달력이 한 날과 할 날을 같이 그린다',
   drawWith('src/components/MonthCalendar.jsx', {
@@ -186,35 +214,69 @@ ok('달력이 한 날과 할 날을 같이 그린다',
   }), null);
 
 // 메모가 있는 날은 칸에 점이 찍힌다 — 쉰 날에도 메모는 있을 수 있다
-ok('달력이 메모 있는 날을 표시한다',
-  drawWith('src/components/MonthCalendar.jsx', {
-    year: 2026, month: 9, workouts: WORKOUTS,
-    plans: { '2026-09-02': [PLANS[0]] },
-    notes: { '2026-09-02': true, '2026-09-07': true },
-    selected: null, onSelect: () => {},
-  }), null);
+// 「달력에 메모하게 해달라」는 말은 **달력에 적는다**는 뜻이었다 (9/3).
+// 그래서 그리는 것만 보지 않고 **글이 칸에 실제로 찍히는지**까지 본다 —
+// 달력 아래 카드로 되돌아가도 그리기는 통과하기 때문이다
+const CAL_NOTES = { '2026-09-02': { id: 9, date: '2026-09-02', body: '어깨가 안 좋아 가볍게\n벤치 5kg 내림' } };
+const calHtml = (props) => html('src/components/MonthCalendar.jsx', {
+  year: 2026, month: 9, workouts: WORKOUTS, plans: {}, notes: CAL_NOTES,
+  onSelect: () => {}, onSaveNote: () => {}, onDeleteNote: () => {}, savingNote: false, ...props,
+});
+{
+  // **아무 날도 안 고른 채로 본다.** 고른 날에는 아래 편집칸에도 같은 글이 나오므로,
+  // 그 상태로 보면 칸에서 글을 빼도 검사가 통과한다 (실제로 그렇게 헛돌았다)
+  //
+  // 그리고 **눈에 보이는 글자만** 본다. 칸의 `aria-label` 에도 메모가 들어 있어서
+  // (읽어주는 프로그램을 위한 것이다) 통째로 찾으면 칸에서 글을 빼도 통과한다.
+  // 이 검사는 그렇게 두 번 헛돌았다 — 검사가 조용히 통과하는 것이 제일 나쁘다
+  const seen = (h) => h.replace(/aria-label="[^"]*"/g, '');
+  const plain = seen(calHtml({ selected: null }));
+  ok('메모 첫 줄이 달력 칸에 찍힌다', plain.includes('어깨가 안 좋아 가볍게'), true);
+  ok('  둘째 줄까지 칸에 넣지는 않는다', plain.includes('벤치 5kg 내림'), false);
+  const picked = calHtml({ selected: '2026-09-02' });
+  ok('  고른 날 아래에 적는 자리가 열린다', picked.includes('9월 2일 메모'), true);
+  ok('  적어둔 것이 있으면 「고치기」', picked.includes('고치기'), true);
+  const empty = calHtml({ selected: '2026-09-10' });
+  ok('아직 없으면 「적기」', empty.includes('적기') && !empty.includes('고치기'), true);
+  ok('날짜를 안 골랐으면 적는 자리가 없다',
+    calHtml({ selected: null }).includes('일 메모'), false);
+}
+
+for (const [name, extra] of [
+  ['메모가 칸에 보인다', { selected: null }],
+  ['고른 날 아래에서 적는다 (메모 있음)', { selected: '2026-09-02' }],
+  ['고른 날 아래에서 적는다 (아직 없음)', { selected: '2026-09-04' }],
+]) {
+  ok(`달력 — ${name}`,
+    drawWith('src/components/MonthCalendar.jsx', {
+      year: 2026, month: 9, workouts: WORKOUTS,
+      plans: { '2026-09-02': [PLANS[0]] },
+      notes: CAL_NOTES, onSelect: () => {},
+      onSaveNote: () => {}, onDeleteNote: () => {}, savingNote: false,
+      ...extra,
+    }), null);
+}
 
 // 그날 한 장 — 한 것 · 할 것 · 메모가 한 카드에 있다.
 // **날짜마다 있는 것이 다르다** — 그 갈래를 다 그려본다
 const DAY_NOTE = { id: 9, date: TODAY, body: '어깨가 안 좋아 가볍게\n벤치 5kg 내림' };
 for (const [name, props] of [
-  ['오늘 · 한 것도 할 것도 메모도 있음',
-    { date: TODAY, plans: [PLANS[0]], dayWorkouts: WORKOUTS['2026-09-01'], note: DAY_NOTE }],
+  ['오늘 · 한 것도 할 것도 있음',
+    { date: TODAY, plans: [PLANS[0]], dayWorkouts: WORKOUTS['2026-09-01'] }],
   ['앞날 · 할 것만',
-    { date: '2026-09-05', plans: [PLANS[1]], dayWorkouts: [], note: null }],
+    { date: '2026-09-05', plans: [PLANS[1]], dayWorkouts: [] }],
   ['지난 날 · 하기로 했는데 기록이 없음',
-    { date: '2026-08-20', plans: [PLANS[2]], dayWorkouts: [], note: null }],
+    { date: '2026-08-20', plans: [PLANS[2]], dayWorkouts: [] }],
   ['아무것도 없는 날',
-    { date: '2026-09-04', plans: [], dayWorkouts: [], note: null }],
+    { date: '2026-09-04', plans: [], dayWorkouts: [] }],
   ['기록이 넷 (셋만 보이고 「외 1건」)',
-    { date: TODAY, plans: [], note: null,
+    { date: TODAY, plans: [],
       dayWorkouts: [1, 2, 3, 4].map((i) => ({ id: i, exercise: '운동' + i, weight: 60, sets: 4, reps: 10 })) }],
 ]) {
   ok(`그날 한 장 — ${name}`,
     drawWith('src/components/DaySheet.jsx', {
       today: TODAY, myRoutines: ROUTINES,
       onAddPlan: () => {}, onDeletePlan: () => {}, addingPlan: false,
-      onSaveNote: () => {}, onDeleteNote: () => {}, savingNote: false,
       onSeeRecords: () => {}, ...props,
     }), null);
 }

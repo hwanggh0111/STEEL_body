@@ -283,11 +283,14 @@ export default function HistoryPage() {
         notes={dayNotes}
         selected={selectedDate}
         onSelect={setSelectedDate}
+        onSaveNote={(body, done) => saveDayNote(selectedDate, body, done)}
+        onDeleteNote={removeDayNote}
+        savingNote={savingNote}
       />
 
       {/* 날짜를 고르면 그날 할 것을 정한다. 안 골랐으면 **다가오는 것 한 줄**만 —
           달력 아래를 늘 폼으로 채워두면 되짚으러 온 사람의 길을 막는다 */}
-      {/* 날짜를 고르면 **그날 한 장**이 나온다 — 한 것 · 할 것 · 메모.
+      {/* 메모는 **달력 안에서** 적는다(그 주 아래). 여기는 한 것 · 할 것이다.
           안 골랐으면 「다음에 할 것」 한 줄만. 달력 아래를 늘 폼으로 채워두면
           되짚으러 온 사람의 길을 막는다 */}
       {selectedDate ? (
@@ -300,10 +303,6 @@ export default function HistoryPage() {
           onAddPlan={addPlan}
           onDeletePlan={removePlan}
           addingPlan={addingPlan}
-          note={dayNotes[selectedDate] || null}
-          onSaveNote={(body, done) => saveDayNote(selectedDate, body, done)}
-          onDeleteNote={removeDayNote}
-          savingNote={savingNote}
           onSeeRecords={() => document.getElementById('history-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
       ) : next.length > 0 ? (

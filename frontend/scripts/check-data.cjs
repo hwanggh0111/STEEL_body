@@ -344,10 +344,16 @@ ok('홈이 오늘 것만 골라 넘긴다', /p\.date === today/.test(homePage), 
 // 그전에는 카드가 둘이었다 — 「할 것」(DayPlan)과 「메모」(DayNote)가 위아래로 쌓였다.
 // 하루를 보러 왔는데 화면이 **기능 단위**로 나뉘어 있었다
 const daySheet = stripNotes(fs.readFileSync('src/components/DaySheet.jsx', 'utf-8'));
-// 하루에 붙는 것은 셋이다 — 한 것 · 할 것 · 그날 있었던 일
-for (const label of ['한 것', '할 것', '메모']) {
+// 하루에 붙는 것은 한 것 · 할 것 둘이다
+for (const label of ['한 것', '할 것']) {
   ok(`그날 한 장에 「${label}」이 있다`, daySheet.includes(`label="${label}"`), true);
 }
+// **메모는 여기 없다.** 달력 칸에 적고 칸에서 읽는다 —
+// 「달력에 메모하게 해달라」는 말은 달력에 적는다는 뜻이었다.
+// 같은 것을 두 자리에 두면 어느 쪽이 진짜인지 알 수 없게 된다
+ok('메모는 그날 한 장이 아니라 달력이 맡는다', /label="메모"/.test(daySheet), false);
+const calSrc = stripNotes(fs.readFileSync('src/components/MonthCalendar.jsx', 'utf-8'));
+ok('달력이 메모를 맡는다', /onSaveNote/.test(calSrc) && /textarea/.test(calSrc), true);
 // 칸 셋이 **같은 모양**이라야 한 하루로 읽힌다 — 그리는 곳이 하나다
 ok('칸을 그리는 곳이 하나다 (Section)', (daySheet.match(/function Section\(/g) || []).length, 1);
 // 「월요일 가슴+삼두」를 그날에 걸어두는 것이 제일 흔한 쓰임이다
