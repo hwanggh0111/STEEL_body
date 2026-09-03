@@ -213,7 +213,12 @@ router.post('/register', async (req, res) => {
     });
   } catch (err) {
     if (err.message === 'DUPLICATE_USERNAME') return res.status(409).json({ error: '이미 사용 중인 아이디에요' });
-    return res.status(409).json({ error: '이미 사용 중인 이메일이에요' });
+    if (err.message === 'DUPLICATE_EMAIL') return res.status(409).json({ error: '이미 사용 중인 이메일이에요' });
+    // **중복이 아닌 것까지 「이미 쓰는 이메일」이라고 답하고 있었다.** 저장이 실패하든
+    // 토큰 발급이 터지든 사람에게는 똑같이 보인다 — 멀쩡한 자기 주소를 못 쓰는 줄 알고
+    // 다른 이메일로 가입하거나, 그냥 돌아간다. 우리가 터진 것은 우리가 터졌다고 말한다
+    console.error('[AUTH] 회원가입 실패:', err.message);
+    return res.status(500).json({ error: '가입 중에 문제가 생겼어요. 잠시 뒤에 다시 해주세요' });
   }
 });
 
