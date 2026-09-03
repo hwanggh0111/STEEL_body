@@ -30,6 +30,12 @@ import { useToday } from '../data/useToday';
 // 「이 날은 쉬셨네요」만 나왔다 — 아직 오지도 않은 날인데.
 // 계획은 기록과 **따로** 저장한다(`/api/plans`). 섞으면 「이 달에 몇 일 나왔나」에
 // 아직 하지도 않은 날이 같이 세어진다.
+const exportBtn = {
+  background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+  padding: '7px 12px', fontSize: 11.5, borderRadius: 'var(--radius)',
+  cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+};
+
 export default function HistoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -375,41 +381,59 @@ export default function HistoryPage() {
       {/* 그날 한 장의 「아래에서 보기」가 여기로 데려온다 */}
       <div className="section-title" id="history-list" style={{ marginTop: 24, scrollMarginTop: 70 }}>
         <div className="accent-bar" />
-        {selectedDate ? `${selectedDate.slice(5).replace('-', '월 ')}일 기록` : `${ym.month}월 기록`}
+        {selectedDate ? `${Number(selectedDate.slice(5, 7))}월 ${Number(selectedDate.slice(8, 10))}일 기록` : `${ym.month}월 기록`}
         {selectedDate && (
           <button
-            className="btn-secondary"
-            style={{ marginLeft: 'auto', padding: '4px 10px' }}
             onClick={() => setSelectedDate(null)}
+            style={{
+              marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', padding: '3px 10px', fontSize: 11.5,
+              borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
+            }}
           >이 달 전체</button>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-        <select className="input" value={filterExercise} onChange={e => setFilterExercise(e.target.value)}
-          style={{ flex: 1, fontSize: 13 }}>
-          <option value="">전체 운동</option>
-          {allExercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
-        </select>
-        {filterExercise && (
-          <button onClick={() => setFilterExercise('')}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
-        )}
-        <button
-          onClick={() => handleExportCSV('workouts')}
-          className="btn-secondary"
-          style={{ fontSize: 12, padding: '8px 14px', whiteSpace: 'nowrap' }}
-        >
-          운동 CSV
-        </button>
-        <button
-          onClick={() => handleExportCSV('inbody')}
-          className="btn-secondary"
-          style={{ fontSize: 12, padding: '8px 14px', whiteSpace: 'nowrap' }}
-        >
-          인바디 CSV
-        </button>
-      </div>
+      {/* **없는 것에 단추를 두지 않는다.**
+          기록이 하나도 없는 사람에게 「전체 운동」 고르개와 「운동 CSV」 · 「인바디 CSV」가
+          나란히 있었다 — 내려받을 것이 없는데 내보내기가 셋이다.
+          거르개는 운동이 **두 가지 이상**일 때만 뜻이 있고(하나면 거를 것이 없다),
+          내보내기는 그 자료가 있을 때만 나온다 */}
+      {(allExercises.length > 1 || dates.length > 0 || records.length > 0) && (
+        <div style={{ display: 'flex', gap: 7, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+          {allExercises.length > 1 && (
+            <select
+              className="input"
+              value={filterExercise}
+              onChange={e => setFilterExercise(e.target.value)}
+              style={{ flex: 1, minWidth: 130, fontSize: 13, padding: '8px 11px' }}
+            >
+              <option value="">전체 운동</option>
+              {allExercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+            </select>
+          )}
+          {filterExercise && (
+            <button
+              onClick={() => setFilterExercise('')}
+              aria-label="거르기 풀기"
+              style={{
+                background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                padding: '6px 10px', fontSize: 11.5, borderRadius: 'var(--radius)', cursor: 'pointer',
+              }}
+            >풀기</button>
+          )}
+          {/* 내보내기는 **내려받을 것이 있을 때만.** 이름도 「CSV」가 아니라 무엇을
+              내려받는지로 적는다 — CSV 가 뭔지 모르는 사람이 대부분이다 */}
+          <span style={{ display: 'flex', gap: 7, marginLeft: 'auto' }}>
+            {dates.length > 0 && (
+              <button onClick={() => handleExportCSV('workouts')} style={exportBtn}>운동 내려받기</button>
+            )}
+            {records.length > 0 && (
+              <button onClick={() => handleExportCSV('inbody')} style={exportBtn}>인바디 내려받기</button>
+            )}
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
@@ -417,14 +441,14 @@ export default function HistoryPage() {
           로딩 중...
         </div>
       ) : dates.length === 0 ? (
+        /* **「기록 없음」과 「아직 운동 기록이 없어요」를 나란히 적고 있었다** —
+           같은 말을 두 번 한다. 한 줄이면 된다 */
         <div className="empty-state">
-          <div className="empty-state-title">기록 없음</div>
-          <div className="empty-state-desc">아직 운동 기록이 없어요</div>
-          <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/workout')}>+ 첫 운동 기록하기</button>
+          <div className="empty-state-desc">아직 적은 운동이 없어요</div>
+          <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/workout')}>첫 운동 기록하기</button>
         </div>
       ) : shownDates.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-title">기록 없음</div>
           <div className="empty-state-desc">
             {filterExercise
               ? `여기서는 ${eul(`'${filterExercise}'`)} 한 기록이 없어요`
@@ -449,26 +473,41 @@ export default function HistoryPage() {
         })
       )}
 
-      {/* 통계와 체중 변화는 되짚는 재료지 본론이 아니다. 달력 아래로 내렸다 */}
-      <div style={{ height: 8 }} />
-      <div className="section-title">
-        <div className="accent-bar" />
-        통계
-      </div>
+      {/* 통계와 체중 변화는 되짚는 재료지 본론이 아니다. 달력 아래로 내렸다.
+          **셀 것이 없으면 안 그린다** — 처음 온 사람에게 0 을 셋 늘어놓는 화면이었다.
+          0 은 아무것도 안 알려주면서 「내가 아무것도 안 했다」만 크게 적어둔다 */}
+      {totalWorkouts > 0 && (
+        <>
+          <div style={{ height: 8 }} />
+          <div className="section-title">
+            <div className="accent-bar" />
+            통계
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${records.length > 0 ? 3 : 2}, 1fr)`,
+            gap: 8, marginBottom: 24,
+          }}>
+            <StatBox number={totalDays} label="운동일" />
+            <StatBox number={totalWorkouts} label="총 운동" />
+            {/* 인바디를 한 번도 안 적었으면 그 칸도 없다 */}
+            {records.length > 0 && <StatBox number={records.length} label="인바디" />}
+          </div>
+        </>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 24 }}>
-        <StatBox number={totalDays} label="운동일" />
-        <StatBox number={totalWorkouts} label="총 운동" />
-        <StatBox number={records.length} label="인바디" />
-      </div>
-
-      <div className="section-title">
-        <div className="accent-bar" />
-        체중 변화
-      </div>
-      <div className="card" style={{ marginBottom: 24, padding: 12 }}>
-        <WeightChart records={records} />
-      </div>
+      {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
+      {records.length > 1 && (
+        <>
+          <div className="section-title">
+            <div className="accent-bar" />
+            체중 변화
+          </div>
+          <div className="card" style={{ marginBottom: 24, padding: 12 }}>
+            <WeightChart records={records} />
+          </div>
+        </>
+      )}
 
     </div>
   );

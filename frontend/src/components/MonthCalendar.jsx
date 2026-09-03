@@ -20,12 +20,16 @@ import { dateKey } from '../data/dateKey';
 // 처음에는 달력 아래에 카드를 하나 더 놓았다. 그런데 「달력에 메모하게 해달라」는 말은
 // **달력에 적는다**는 뜻이었다 — 벽에 걸린 달력에 연필로 적듯이. 그래서 안으로 넣었다.
 //
-//   1. 적어둔 날은 **칸 안에 그 글이 보인다** (첫 줄, 한 줄만). 한 달을 펼쳐보면
-//      「그때 무슨 일이 있었는지」가 달력만 보고 읽힌다
+//   1. 적어둔 날은 **그 주 아래에 한 줄씩** 보인다 — 「4일 · 어깨가 안 좋아 가볍게」
 //   2. 날짜를 누르면 **그 주 바로 아래에서** 곧바로 쓴다. 아래로 내려갈 필요가 없다
 //
-// 칸이 커진다(56px). 한 달이 한 화면에 조금 덜 들어오는 대신 **글이 보인다** —
-// 달력을 여는 이유가 「몇 번 갔나」에서 「그때 어땠나」로 옮겨가는 자리다.
+// **칸 안에 글을 넣어봤다가 물렀다.** 재보니 칸 폭이 폰에서 33~49px 이다
+// (320 · 375 · 430px 화면 기준, 일곱 칸에 여백을 빼고). 10px 글자로도 **두세 글자**밖에
+// 안 들어간다 — 글이 아니라 얼룩이다. **작게 넣느니 안 넣는 편이 낫다.**
+// 그래서 칸에는 **메모가 있다는 표시**(아래쪽 짧은 줄)만 두고, 글은 주 아래에서
+// 화면 폭을 다 써서 보여준다. 벽에 걸린 달력에 적어둔 것과 같은 자리다.
+//
+// 칸은 72px 로 키웠다 — 날짜 · 부위 · 표시가 겹치지 않게.
 
 const SHORT = { 가슴: '가', 등: '등', 어깨: '어', 하체: '하', 팔: '팔', 코어: '코', 기타: '·' };
 
@@ -67,7 +71,7 @@ export default function MonthCalendar({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
         {DAY_LABELS.map((d, i) => (
           <div key={d} style={{
-            textAlign: 'center', fontSize: 11, fontWeight: 600,
+            textAlign: 'center', fontSize: 12, fontWeight: 600,
             color: i >= 5 ? 'var(--text-secondary)' : 'var(--text-muted)',
           }}>{d}</div>
         ))}
@@ -103,9 +107,9 @@ export default function MonthCalendar({
                         + (memo ? ` · 메모: ${memo}` : '')}
                       aria-pressed={isSelected}
                       style={{
-                        minHeight: 56,
+                        minHeight: 72,
                         display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'flex-start', gap: 2,
+                        alignItems: 'center', justifyContent: 'flex-start', gap: 3,
                         borderRadius: 'var(--radius)',
                         cursor: 'pointer',
                         background: done ? 'var(--accent-dim)' : 'var(--bg-primary)',
@@ -120,34 +124,58 @@ export default function MonthCalendar({
                                 : `1px solid ${done ? 'var(--accent)' : 'var(--border)'}`,
                         color: done || todo ? 'var(--accent)' : 'var(--text-muted)',
                         fontFamily: "'Barlow', sans-serif",
-                        padding: '5px 3px 4px',
+                        padding: '7px 3px 5px',
                         overflow: 'hidden',
                       }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, lineHeight: 1 }}>{cell.day}</span>
+                      <span style={{ fontSize: 14, fontWeight: isToday ? 700 : 400, lineHeight: 1 }}>{cell.day}</span>
                       {part ? (
-                        <span style={{ fontSize: 9, lineHeight: 1, opacity: 0.85 }}>{SHORT[part] || '·'}</span>
+                        <span style={{ fontSize: 10.5, lineHeight: 1, opacity: 0.85 }}>{SHORT[part] || '·'}</span>
                       ) : planned ? (
                         // 할 것이 있는 날은 개수를 적는다. 이름은 칸에 안 들어간다
-                        <span style={{ fontSize: 9, lineHeight: 1, opacity: missed ? 0.5 : 0.85 }}>
+                        <span style={{ fontSize: 10.5, lineHeight: 1, opacity: missed ? 0.5 : 0.85 }}>
                           {planned}개
                         </span>
                       ) : null}
-                      {/* **적어둔 글이 칸에 보인다.** 한 줄만, 넘치면 잘린다 —
-                          칸에서 다 읽으라는 것이 아니라 **무슨 날이었는지**를 알리는 것이다.
+                      {/* 메모가 있다는 **표시**. 글은 주 아래에서 읽는다 —
+                          칸에 넣으면 두세 글자에서 잘려 얼룩이 된다.
                           쉰 날에도 메모는 있을 수 있어서(「출장이라 쉼」) 흐린 색으로 둔다 */}
                       {memo && (
-                        <span style={{
-                          fontSize: 8.5, lineHeight: 1.25, marginTop: 1,
-                          color: 'var(--text-secondary)', opacity: 0.9,
-                          width: '100%', textAlign: 'center',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>{memo}</span>
+                        <span aria-hidden="true" style={{
+                          marginTop: 'auto', width: 14, height: 2, borderRadius: 1,
+                          background: done || todo ? 'var(--accent)' : 'var(--text-muted)',
+                          opacity: 0.85,
+                        }} />
                       )}
                     </button>
                   );
                 })}
               </div>
+
+              {/* ── 그 주에 적어둔 것들 ──
+                  **화면 폭을 다 써서 보여준다.** 달력을 펼치기만 해도 그 주에 무슨 일이
+                  있었는지가 읽힌다. 누르면 그 날이 열린다 */}
+              {week.filter((c) => c && firstLine(notes?.[c.key]?.body)).map((c) => (
+                <button
+                  key={'note-' + c.key}
+                  onClick={() => onSelect(c.key === selected ? null : c.key)}
+                  style={{
+                    display: 'flex', alignItems: 'baseline', gap: 7, width: '100%',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '2px 3px', textAlign: 'left', fontFamily: 'inherit',
+                    opacity: c.key === selected ? 1 : 0.9,
+                  }}
+                >
+                  <span style={{
+                    fontSize: 11, color: 'var(--text-muted)', flexShrink: 0,
+                    fontFamily: "'Barlow', sans-serif",
+                  }}>{c.day}일</span>
+                  <span style={{
+                    fontSize: 12, color: 'var(--text-secondary)', minWidth: 0,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{firstLine(notes[c.key].body)}</span>
+                </button>
+              ))}
 
               {/* ── 그 주 아래에서 바로 적는다 ── */}
               {openHere && (
