@@ -45,11 +45,15 @@ function AbuseLogs() {
   const [logs, setLogs] = useState([]);
   const [openList, setOpenList] = useState(false);
   const [busy, setBusy] = useState(false);
+  // **못 불러온 것과 없는 것은 다르다.** 아래에서 기록이 하나도 없으면 카드를 통째로
+  // 감추는데, 못 불러왔을 때도 똑같이 사라지고 있었다 — 관리자는 그것을
+  // 「욕설·비하 기록 없음」으로 읽는다. 여기는 **세션을 열면 제일 먼저 보는 자리**다
+  const [failed, setFailed] = useState(false);
 
   const load = () => {
     client.get('/reports/abuse')
-      .then(({ data }) => setLogs(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .then(({ data }) => { setLogs(Array.isArray(data) ? data : []); setFailed(false); })
+      .catch(() => setFailed(true));
   };
   useEffect(load, []);
 
@@ -69,6 +73,29 @@ function AbuseLogs() {
 
   // 확인 안 한 것 중에 막힌 것만 센다. 짜증은 처벌이 아니라 참고다
   const pending = logs.filter(a => !a.reviewed && a.level !== 'mild').length;
+
+  // 못 불러왔으면 그렇다고 말하고 다시 받을 길을 둔다. 조용히 사라지면 안 된다
+  if (failed) {
+    return (
+      <div className="card" style={{
+        padding: '13px 15px', marginBottom: 14, borderColor: 'var(--danger)',
+        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span style={{ display: 'flex' }} aria-hidden="true"><NavIcon name="ban" size={16} /></span>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>욕설 · 비하 기록을 못 불러왔어요</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>기록이 없는 것과는 다릅니다</span>
+        <button
+          onClick={load}
+          style={{
+            marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
+            color: 'var(--text-muted)', padding: '4px 10px', fontSize: 11,
+            borderRadius: 'var(--radius)', cursor: 'pointer',
+          }}
+        >다시 불러오기</button>
+      </div>
+    );
+  }
+
   if (logs.length === 0) return null;
 
   return (
