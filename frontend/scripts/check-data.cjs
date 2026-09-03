@@ -340,12 +340,23 @@ ok('지운 루틴을 담아뒀어도 안 터진다', /routine \? '시작 ›' : 
 const homePage = stripNotes(fs.readFileSync('src/pages/HomePage.jsx', 'utf-8'));
 ok('홈이 오늘 것만 골라 넘긴다', /p\.date === today/.test(homePage), true);
 
-const dayPlan = stripNotes(fs.readFileSync('src/components/DayPlan.jsx', 'utf-8'));
+// 달력에서 날짜를 누르면 나오는 **그날 한 장** (9/3 에 다시 만들었다).
+// 그전에는 카드가 둘이었다 — 「할 것」(DayPlan)과 「메모」(DayNote)가 위아래로 쌓였다.
+// 하루를 보러 왔는데 화면이 **기능 단위**로 나뉘어 있었다
+const daySheet = stripNotes(fs.readFileSync('src/components/DaySheet.jsx', 'utf-8'));
+// 하루에 붙는 것은 셋이다 — 한 것 · 할 것 · 그날 있었던 일
+for (const label of ['한 것', '할 것', '메모']) {
+  ok(`그날 한 장에 「${label}」이 있다`, daySheet.includes(`label="${label}"`), true);
+}
+// 칸 셋이 **같은 모양**이라야 한 하루로 읽힌다 — 그리는 곳이 하나다
+ok('칸을 그리는 곳이 하나다 (Section)', (daySheet.match(/function Section\(/g) || []).length, 1);
 // 「월요일 가슴+삼두」를 그날에 걸어두는 것이 제일 흔한 쓰임이다
-ok('내 루틴을 통째로 걸 수 있다', /kind: 'routine'/.test(dayPlan), true);
-ok('운동 하나만 담을 수도 있다', /kind: 'exercise'/.test(dayPlan), true);
+ok('내 루틴을 통째로 걸 수 있다', /kind: 'routine'/.test(daySheet), true);
+ok('운동 하나만 담을 수도 있다', /kind: 'exercise'/.test(daySheet), true);
 // 달력에서 날짜를 고른 다음 기록 화면에서 날짜를 또 고르게 하지 않는다
-ok('그 날짜를 들고 기록 화면으로 간다', /state: \{ date \}/.test(dayPlan), true);
+ok('그 날짜를 들고 기록 화면으로 간다', /state: \{ date \}/.test(daySheet), true);
+// 다른 날로 옮겼는데 쓰던 것이 남으면 **다른 날 메모가 이 날에 붙는다**
+ok('날짜가 바뀌면 쓰던 것을 닫는다', /\}, \[date\]\)/.test(daySheet), true);
 const wp2 = stripNotes(fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8'));
 ok('기록 화면이 들고 온 날짜를 쓴다', /location\.state\?\.date/.test(wp2), true);
 // 들고 온 날짜를 자정 넘김 처리가 오늘로 덮으면 그 날짜로 못 적는다

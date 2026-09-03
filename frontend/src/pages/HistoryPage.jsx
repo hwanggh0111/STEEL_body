@@ -7,8 +7,7 @@ import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
 import MonthCalendar from '../components/MonthCalendar';
-import DayPlan from '../components/DayPlan';
-import DayNote from '../components/DayNote';
+import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
 import { toast } from '../components/Toast';
@@ -288,29 +287,25 @@ export default function HistoryPage() {
 
       {/* 날짜를 고르면 그날 할 것을 정한다. 안 골랐으면 **다가오는 것 한 줄**만 —
           달력 아래를 늘 폼으로 채워두면 되짚으러 온 사람의 길을 막는다 */}
+      {/* 날짜를 고르면 **그날 한 장**이 나온다 — 한 것 · 할 것 · 메모.
+          안 골랐으면 「다음에 할 것」 한 줄만. 달력 아래를 늘 폼으로 채워두면
+          되짚으러 온 사람의 길을 막는다 */}
       {selectedDate ? (
-        <>
-        <DayPlan
+        <DaySheet
           date={selectedDate}
           today={today}
           plans={planMap[selectedDate] || []}
           dayWorkouts={workouts[selectedDate]}
           myRoutines={myRoutines}
-          onAdd={addPlan}
-          onDelete={removePlan}
-          adding={addingPlan}
-        />
-        {/* **그날 어땠는지.** 달력에는 지금까지 숫자만 있었다 — 몇 개 했고 무슨
-            부위였는지는 기록에서 나오지만 **왜 그랬는지는 아무 데도 안 남았다**
-            (「어깨가 안 좋아 가볍게」 · 「출장이라 쉼」). 한 달 뒤에 제일 궁금한 것이 그것이다 */}
-        <DayNote
-          date={selectedDate}
+          onAddPlan={addPlan}
+          onDeletePlan={removePlan}
+          addingPlan={addingPlan}
           note={dayNotes[selectedDate] || null}
-          onSave={(body, done) => saveDayNote(selectedDate, body, done)}
-          onDelete={removeDayNote}
-          saving={savingNote}
+          onSaveNote={(body, done) => saveDayNote(selectedDate, body, done)}
+          onDeleteNote={removeDayNote}
+          savingNote={savingNote}
+          onSeeRecords={() => document.getElementById('history-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
-        </>
       ) : next.length > 0 ? (
         <div className="card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ minWidth: 0, flexGrow: 1 }}>
@@ -378,7 +373,8 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <div className="section-title" style={{ marginTop: 24 }}>
+      {/* 그날 한 장의 「아래에서 보기」가 여기로 데려온다 */}
+      <div className="section-title" id="history-list" style={{ marginTop: 24, scrollMarginTop: 70 }}>
         <div className="accent-bar" />
         {selectedDate ? `${selectedDate.slice(5).replace('-', '월 ')}일 기록` : `${ym.month}월 기록`}
         {selectedDate && (

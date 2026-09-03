@@ -185,18 +185,7 @@ ok('달력이 한 날과 할 날을 같이 그린다',
     selected: '2026-09-02', onSelect: () => {},
   }), null);
 
-// 그날 메모 — 적은 것이 있을 때 · 없을 때
-for (const [name, note] of [
-  ['적어둔 것이 있음', { id: 1, date: TODAY, body: '어깨가 안 좋아 가볍게\n벤치 5kg 내림' }],
-  ['아직 없음', null],
-]) {
-  ok(`그날 메모 — ${name}`,
-    drawWith('src/components/DayNote.jsx', {
-      date: TODAY, note, onSave: () => {}, onDelete: () => {}, saving: false,
-    }, false), null);
-}
-
-// 달력이 메모 있는 날에 점을 찍는다
+// 메모가 있는 날은 칸에 점이 찍힌다 — 쉰 날에도 메모는 있을 수 있다
 ok('달력이 메모 있는 날을 표시한다',
   drawWith('src/components/MonthCalendar.jsx', {
     year: 2026, month: 9, workouts: WORKOUTS,
@@ -205,14 +194,28 @@ ok('달력이 메모 있는 날을 표시한다',
     selected: null, onSelect: () => {},
   }), null);
 
-// 그 날 할 것 — 오늘 · 앞날 · 지난 날 셋 다
-for (const [when, date] of [['오늘', '2026-09-02'], ['앞날', '2026-09-05'], ['지난 날', '2026-08-20']]) {
-  ok(`「${when}」의 할 것이 그려진다`,
-    drawWith('src/components/DayPlan.jsx', {
-      date, today: TODAY,
-      plans: PLANS.filter((p) => p.date === date),
-      dayWorkouts: WORKOUTS[date] || [],
-      myRoutines: ROUTINES, onAdd: () => {}, onDelete: () => {}, adding: false,
+// 그날 한 장 — 한 것 · 할 것 · 메모가 한 카드에 있다.
+// **날짜마다 있는 것이 다르다** — 그 갈래를 다 그려본다
+const DAY_NOTE = { id: 9, date: TODAY, body: '어깨가 안 좋아 가볍게\n벤치 5kg 내림' };
+for (const [name, props] of [
+  ['오늘 · 한 것도 할 것도 메모도 있음',
+    { date: TODAY, plans: [PLANS[0]], dayWorkouts: WORKOUTS['2026-09-01'], note: DAY_NOTE }],
+  ['앞날 · 할 것만',
+    { date: '2026-09-05', plans: [PLANS[1]], dayWorkouts: [], note: null }],
+  ['지난 날 · 하기로 했는데 기록이 없음',
+    { date: '2026-08-20', plans: [PLANS[2]], dayWorkouts: [], note: null }],
+  ['아무것도 없는 날',
+    { date: '2026-09-04', plans: [], dayWorkouts: [], note: null }],
+  ['기록이 넷 (셋만 보이고 「외 1건」)',
+    { date: TODAY, plans: [], note: null,
+      dayWorkouts: [1, 2, 3, 4].map((i) => ({ id: i, exercise: '운동' + i, weight: 60, sets: 4, reps: 10 })) }],
+]) {
+  ok(`그날 한 장 — ${name}`,
+    drawWith('src/components/DaySheet.jsx', {
+      today: TODAY, myRoutines: ROUTINES,
+      onAddPlan: () => {}, onDeletePlan: () => {}, addingPlan: false,
+      onSaveNote: () => {}, onDeleteNote: () => {}, savingNote: false,
+      onSeeRecords: () => {}, ...props,
     }), null);
 }
 
