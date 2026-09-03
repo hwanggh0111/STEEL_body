@@ -11,6 +11,18 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
           {workout.weight} · {workout.sets}세트 · {workout.reps}회
         </div>
+        {/* 아직 서버에 못 올린 것. **적은 사람에게는 이미 한 운동**이라 목록에
+            그대로 보여주되, 어디까지 갔는지는 숨기지 않는다 */}
+        {(workout.pending || workout.failed) && (
+          <div style={{
+            fontSize: 11, marginTop: 4,
+            color: workout.failed ? 'var(--danger)' : 'var(--text-muted)',
+          }}>
+            {workout.failed
+              ? `못 올렸어요 — ${workout.error || '서버가 받지 않았어요'}`
+              : '이 기기에 있어요 · 연결되면 올라가요'}
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 4 }}>
         {onEdit && (

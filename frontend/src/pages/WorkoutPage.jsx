@@ -410,8 +410,12 @@ export default function WorkoutPage() {
         // 최고 기록은 **넣기 전** 의 것과 견뎌야 한다. 저장한 뒤에 세면 방금 넣은
         // 것이 이미 목록에 있어서 무엇을 넣어도 경신이 아니게 된다.
         const before = bestRecords(workouts);
-        await addWorkout(payload);
-        toast(t.saved);
+        // 신호가 없으면 기기에 담아두고 줄에 세운다. **그 사실을 그대로 말한다** —
+        // 그냥 「저장했어요」라고 하면 다른 기기에서 안 보이는 것이 버그로 보인다
+        const saved = await addWorkout(payload);
+        toast(saved?.queued
+          ? '신호가 없어 이 기기에 적어뒀어요. 연결되면 저절로 올라가요'
+          : t.saved);
         setRecord(checkRecord(before, payload));
         cameForExerciseRef.current = false;
 

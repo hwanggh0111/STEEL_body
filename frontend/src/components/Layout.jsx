@@ -18,6 +18,8 @@ import { shrinkImage } from '../data/shrinkImage';
 import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
 import AccountDeleteModal from './AccountDeleteModal';
+import OfflineBar from './OfflineBar';
+import { useWorkoutStore } from '../store/workoutStore';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
@@ -65,6 +67,57 @@ export default function Layout() {
   }, [location.pathname]);
   const sideRef = useRef(null);
   const fileRef = useRef(null);
+
+  // ── 신호가 없을 때 적은 것 ──
+  //
+  // 앱이 뜰 때 **기기에 담아둔 것을 먼저 화면에 올린다**(네트워크보다 먼저다 —
+  // 지하에서 앱을 열면 그것이 곧 화면이다). 그리고 밀린 것이 있으면 올려본다.
+  //
+  // 그 뒤로는 브라우저가 알려주는 `online` 을 듣는다. 이 신호는 **거짓말을 잘 하지만**
+  // (와이파이에 붙기만 해도 온다) 보내보고 실패하면 그대로 줄에 남으니 손해가 없다.
+  useEffect(() => {
+    const store = useWorkoutStore.getState();
+    store.hydrate();
+    const send = async () => {
+      const res = await useWorkoutStore.getState().flushQueue();
+      if (res.sent > 0) toast.success(`적어둔 기록 ${res.sent}개를 올렸어요`);
+      if (res.failed > 0) toast('서버가 받지 않은 기록이 있어요. 위쪽에서 확인해주세요', 'error');
+    };
+    send();
+    const onOnline = () => { useWorkoutStore.getState().setOnline(true); send(); };
+    const onOffline = () => useWorkoutStore.getState().setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
+  // 나가기 전에 **아직 못 올린 것이 있는지** 본다.
+  //
+  // 로그아웃하면 그 사람 것을 다 지운다(`PER_USER_KEYS`) — 줄에 남은 기록도 같이
+  // 사라진다. 다음 사람 화면에 앞 사람 기록이 뜨면 안 되니 지우는 것이 맞지만,
+  // **말없이 지우면 헬스장에서 적은 것이 소리 없이 없어진다.** 한 번 묻는다
+  const leave = useCallback(async () => {
+    const pending = useWorkoutStore.getState().queue;
+    if (pending.length > 0) {
+      const sent = await useWorkoutStore.getState().flushQueue();
+      const left = useWorkoutStore.getState().queue.length;
+      if (left > 0) {
+        const ok = await confirmDialog(
+          `아직 올리지 못한 기록이 ${left}개 있어요. 지금 로그아웃하면 이 기기에서 사라집니다.`,
+          { title: '올리지 못한 기록', confirmText: '그래도 로그아웃', danger: true },
+        );
+        if (!ok) return false;
+      } else if (sent.sent > 0) {
+        toast.success(`적어둔 기록 ${sent.sent}개를 올렸어요`);
+      }
+    }
+    await logout();
+    navigate('/login');
+    return true;
+  }, [logout, navigate]);
 
   useEffect(() => {
     // **서버가 답했으면 서버가 진실이다** — 「없다」는 답도 답이다.
@@ -230,6 +283,8 @@ export default function Layout() {
       <main className="content-area" style={{ paddingTop: 22, paddingBottom: (isPC ? 30 : 80) + (restShowing ? 58 : 0) }}>
         {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
             여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}
+        {/* 신호가 없거나 아직 못 올린 것이 있을 때만 나온다. 아무 일도 없으면 안 나온다 */}
+        <OfflineBar />
         <div key={location.pathname} className="page-enter">
           {/* **화면 하나가 죽어도 앱 전체가 죽지 않게.**
               바깥에도 에러 경계가 하나 있지만 그건 라우터까지 통째로 감싸서,
@@ -449,7 +504,7 @@ export default function Layout() {
                 **이미 로그인한 사람에게 로그인 단추**를 준 셈이고, 그걸 누르면
                 로그아웃도 없이 로그인 화면으로 갔다. 헤더에도 로그아웃이 또 있었다 */}
             <div
-              onClick={async () => { setSideMenu(false); await logout(); navigate('/login'); }}
+              onClick={async () => { setSideMenu(false); await leave(); }}
               style={{ ...menuStyle, borderTop: '1px solid var(--border)', textAlign: 'center', color: 'var(--danger)' }}
               onMouseEnter={hIn} onMouseLeave={hOut}
             >

@@ -26,6 +26,13 @@ export const PROFILE_PHOTO_KEY = 'ironlog_profile_photo';
 export const COMPARE_PHOTOS_KEY = 'ironlog_photos';
 export const SEARCH_HISTORY_KEY = 'ironlog_search_history';
 export const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
+// 신호가 없을 때 쓰는 둘 (`data/offline.js`).
+//   cache — 마지막으로 받아온 기록. 못 받아오면 이것으로 그린다
+//   queue — 아직 못 올린 기록. **사람이 적은 것이라 제일 잃으면 안 되는 값이다**
+// 사람마다 다르므로 로그아웃하면 지운다 — 다음 사람 화면에 앞 사람 기록이 뜨면 안 된다.
+// (줄에 남은 것이 있으면 로그아웃 전에 화면이 먼저 말린다. `Layout` 참고)
+export const WORKOUT_CACHE_KEY = 'ironlog_workouts_cache';
+export const WORKOUT_QUEUE_KEY = 'ironlog_workout_queue';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
@@ -36,6 +43,8 @@ export const PER_USER_KEYS = [
   COMPARE_PHOTOS_KEY,
   SEARCH_HISTORY_KEY,
   SEEN_REPLY_KEY,
+  WORKOUT_CACHE_KEY,
+  WORKOUT_QUEUE_KEY,
 ];
 
 // ── 기기의 것. 로그아웃해도 남긴다 ──

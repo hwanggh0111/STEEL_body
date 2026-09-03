@@ -91,7 +91,9 @@ export const useAuthStore = create((set) => ({
     try { document.cookie = 'sb_csrf=; Max-Age=0; path=/'; } catch { /* 쿠키를 막아둔 브라우저 */ }
     set({ token: null, nickname: null, sex: null, isLoggedIn: false });
     // 다른 스토어 초기화
-    useWorkoutStore.setState({ workouts: {}, loading: false });
+    // 담아둔 목록 · 못 올린 줄까지 비운다. 안 비우면 다음에 로그인한 사람 화면에
+    // **앞 사람이 헬스장에서 적은 기록**이 남는다 (localStorage 쪽은 LOGOUT_KEYS 가 지운다)
+    useWorkoutStore.setState({ workouts: {}, server: {}, queue: [], loading: false, flushing: false });
     useInbodyStore.setState({ records: [], loading: false });
     // 목록을 「방금 받아왔다」고 기억해 둔 것까지 비운다.
     // 안 비우면 다음에 로그인한 사람이 앞 사람 목록을 잠깐 본다

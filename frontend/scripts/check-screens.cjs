@@ -221,6 +221,18 @@ for (const [name, props] of [
   ok(`제보 목록 — ${name}`, drawWith('src/pages/support/ReportList.jsx', { ...props, onDelete: () => {} }), null);
 }
 
+// 아직 못 올린 기록 — 신호가 없을 때 목록에 섞여 그려지는 자리다
+for (const [name, extra] of [
+  ['올리는 중', { pending: true }],
+  ['못 올림', { failed: true, error: '무엇을 할지 적어주세요' }],
+]) {
+  ok(`기록 카드 — ${name}`,
+    drawWith('src/components/WorkoutCard.jsx', {
+      workout: { id: 'local-abc', date: TODAY, exercise: '벤치프레스', weight: 60, sets: 4, reps: 10, ...extra },
+      onDelete: () => {}, onEdit: () => {},
+    }, false), null);
+}
+
 // 측정 — 지난번과 견주는 자리. 기록이 하나뿐일 때가 견줄 것이 없는 자리다
 for (const [name, file] of [
   ['체력 테스트', 'src/components/measure/FitnessTestSection.jsx'],
