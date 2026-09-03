@@ -5,7 +5,6 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useInbodyStore } from '../store/inbodyStore';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { toast } from '../components/Toast';
-import MissionSystem from '../components/MissionSystem';
 import { LogoMark, LogoWord } from '../components/Logo';
 import WeeklyReport from '../components/WeeklyReport';
 import HomeSearch from '../components/home/HomeSearch';
@@ -19,7 +18,7 @@ import NavIcon from '../components/NavIcon';
 // 홈.
 //
 // 매일 여는 화면인데 **오늘 뭘 할지는 아무 데도 없었다.** 위에서부터 로고 · 검색 ·
-// 오늘의 요약 · 통계 셋 · 미션 · 주간 달력 · 주간 요약 · 빠른 이동 여덟 덩어리가
+// 오늘의 요약 · 통계 셋 · 주간 달력 · 주간 요약 · 빠른 이동 여러 덩어리가
 // 순서 없이 쌓여 있었다. 다시 짜면서 세 가지를 바꿨다.
 //
 // **1. 하던 것을 안다.** 루틴을 시작해두고 홈에 오면 진행표가 기록 화면에만 있어서
@@ -236,9 +235,6 @@ export default function HomePage() {
           </div>
 
           <WeeklyReport workouts={workouts} />
-
-          <SectionTitle id="home-missions">MISSIONS</SectionTitle>
-          <MissionSystem workouts={workouts} records={records} weekDates={weekDates} />
 
           <SectionTitle>바로 가기</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>

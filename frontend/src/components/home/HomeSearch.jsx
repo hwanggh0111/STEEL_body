@@ -68,7 +68,6 @@ export const SEARCH_ITEMS = [
   // ─── 홈 안의 자리 (그 자리로 데려간다) ───
   { label: '오늘 할 것', keywords: ['오늘', 'today', '할것', '지금', '이어서', '진행중'], path: '/home', scroll: 'home-today', icon: 'check' },
   { label: '이번 주 운동', keywords: ['이번주', '주간', '주', 'week', '달력', 'calendar'], path: '/home', scroll: 'home-week', icon: 'calendar' },
-  { label: '미션', keywords: ['미션', 'mission', '목표', 'weekly'], path: '/home', scroll: 'home-missions', icon: 'target' },
 
   // ─── 관리자 (관리자 권한 필요) ───
   { label: '관리자', keywords: ['관리자', 'admin', '어드민', '점검', '보안', 'AI', '관리'], path: '/admin', icon: 'gear', adminOnly: true },

@@ -221,6 +221,25 @@ for (const [name, props] of [
   ok(`제보 목록 — ${name}`, drawWith('src/pages/support/ReportList.jsx', { ...props, onDelete: () => {} }), null);
 }
 
+// 내 계정 시트 — 9/3 에 다시 만들었다. 사진이 있을 때와 없을 때 그리는 것이 다르다
+for (const [name, photo] of [['사진 없음', ''], ['사진 있음', 'data:image/png;base64,iVBOR']]) {
+  ok(`내 계정 시트 — ${name}`,
+    drawWith('src/components/AccountSheet.jsx', {
+      nickname: '개발자3', email: 'me@example.com', photo,
+      onPickPhoto: () => {}, onDeletePhoto: () => {}, onZoomPhoto: () => {},
+      onSaveNick: () => {}, savingNick: false,
+      onChangePw: () => {}, onLogout: () => {}, onDeleteAccount: () => {},
+    }, false), null);
+}
+// 이름이 없는 계정도 있다 (소셜에서 이름을 못 받은 경우)
+ok('내 계정 시트 — 이름도 이메일도 없음',
+  drawWith('src/components/AccountSheet.jsx', {
+    nickname: '', email: '', photo: '',
+    onPickPhoto: () => {}, onDeletePhoto: () => {}, onZoomPhoto: () => {},
+    onSaveNick: () => {}, savingNick: false,
+    onChangePw: () => {}, onLogout: () => {}, onDeleteAccount: () => {},
+  }, false), null);
+
 // 루틴 메모장. 서버 렌더에서는 effect 가 안 돌아 **아직 아무것도 못 받은 상태**로
 // 그려진다 — 처음 열었을 때와 같다
 ok('루틴 메모가 그려진다', drawWith('src/pages/routine/RoutineNotes.jsx', { onToRoutine: () => {} }, false), null);

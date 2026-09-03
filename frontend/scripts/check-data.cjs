@@ -924,14 +924,16 @@ console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린
 // 이모지 그림은 폰 만든 회사 것이라 걷어내고 SVG 로 직접 그렸다. 이름으로 고르는
 // 방식이라 **이름을 잘못 적으면 조용히 빈 칸**이 된다 — 아이콘만 사라지고 아무도 안 터진다
 const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
-// 길찾기 · 홈의 「바로 가기」 · 미션이 같은 서랍에서 꺼내 쓴다
-const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx', 'src/components/MissionSystem.jsx',
+// 길찾기 · 홈의 「바로 가기」 · 고객센터가 같은 서랍에서 꺼내 쓴다
+// 9/3 에 미션을 걷어냈다 (MissionSystem.jsx 삭제)
+const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx',
                'src/pages/support/SupportPage.jsx', 'src/pages/support/reportMeta.js',
                'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
-// 9/3 에 더보기의 「특수부대식」 줄(같은 화면으로 가는 둘째 줄)을 지워 하나 줄었다
-ok('여섯 화면이 아이콘 서른아홉을 쓴다', used.length, 39);
+// 9/3 에 둘이 줄었다 — 더보기의 「특수부대식」 줄(같은 화면으로 가는 둘째 줄)과
+// 미션(MissionSystem.jsx 삭제, 아이콘 열둘을 쓰고 있었다)
+ok('다섯 화면이 아이콘 스물일곱을 쓴다', used.length, 27);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
@@ -1409,6 +1411,40 @@ ok('더보기 라벨이 폰 한 칸(320px ÷ 4)에 들어간다',
 // 다른 데서 걸어주는 링크나 저장해둔 주소가 그 길로 온다
 ok('화면이 물음표 뒤를 읽는다', page.includes("params.get('p')"), true);
 ok('없는 이름이 와도 목록만 연다', page.includes('!PROGRAMS[wanted]'), true);
+
+// ── 내 계정 시트 (2026-09-03 에 다시 만들었다) ──
+//
+// 그전에는 한 화면에 **글자 크기가 다섯, 모양이 셋**이었다 (테두리 단추 · 꽉 찬 줄 ·
+// ✎ 라는 **글자**). 눌러야 하는 것과 그냥 적힌 것이 구별되지 않았다.
+// 다시 흐트러지는 것은 글자로 잡을 수 있는 자리라 여기서 본다
+const sheet = fs.readFileSync('src/components/AccountSheet.jsx', 'utf-8');
+const sheetCode = codeOf(sheet);
+
+// 1. 글자를 아이콘 자리에 쓰지 않는다. ✎ · ✕ 는 글꼴마다 다르게 그려지고 크기도 안 맞는다
+//    (이모지는 앱 전체를 보는 검사가 위에서 이미 잡는다)
+ok('아이콘 자리에 글자를 쓰지 않는다', /[✎✏✕✖★☆＋]/.test(sheetCode), false);
+
+// 2. 금색은 한 자리에만. 단추마다 칠하면 어디를 눌러야 하는지가 사라진다
+//    (아바타 테두리와, 이름 고칠 때의 확인 단추뿐이다)
+ok('금색을 세 자리보다 많이 쓰지 않는다',
+  (sheetCode.match(/var\(--accent\)/g) || []).length <= 3, true);
+
+// 3. 줄은 한 가지 모양이다 — 높이도 글자도 아이콘도 하나(`Row`)에서 나온다
+ok('줄을 그리는 곳이 하나다 (Row)', (sheet.match(/function Row\(/g) || []).length, 1);
+
+// 4. 되돌릴 수 없는 것은 아래에. 계정 삭제가 제일 마지막이다
+const sheetOrder = ['이름 바꾸기', '비밀번호 변경', '로그아웃', '계정 삭제'];
+ok('할 일 · 나가기 · 지우기 순서다',
+  sheetOrder.map((w) => sheetCode.indexOf(w)).every((n, i, a) => n > 0 && (i === 0 || n > a[i - 1])), true);
+
+// 5. 지금 **누구로 들어와 있는지** 적는다. 예전 이 자리는 「BLACK IRON 회원」이었다 —
+//    아무것도 말하지 않는 줄이다. 기기를 같이 쓰면 이 한 줄이 제일 먼저 필요하다
+ok('이메일을 보여준다', /email/.test(sheet), true);
+ok('아무 말도 아닌 줄을 넣지 않는다', /회원/.test(sheetCode), false);
+
+// 6. 이름을 못 바꿨는데 칸이 닫히면 고쳐 쓰던 것이 사라진다
+const layoutSrc2 = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
+ok('이름 저장은 성공했을 때만 칸을 닫는다', /done\?\.\(\)/.test(layoutSrc2), true);
 
 // ── 화면 이름이 한 이름인가 (2026-09-02, 홈트레이닝 → 기능성운동) ──
 //

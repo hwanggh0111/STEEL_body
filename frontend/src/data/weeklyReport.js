@@ -3,7 +3,7 @@
 // 히스토리는 달력이라 「했다 / 안 했다」만 보인다. 얼마나 했는지, 지난주보다 나은지는
 // 아무도 말해주지 않았다. 서버에 이미 쌓인 기록을 세기만 하면 되는 일이다.
 //
-// 한 주는 **월요일에 시작한다** (앱의 다른 곳과 같다 — HomePage 의 주간 달력, MissionSystem).
+// 한 주는 **월요일에 시작한다** (앱의 다른 곳과 같다 — HomePage 의 주간 달력).
 
 import { dateKey } from './dateKey';
 import { parseWeight } from './personalRecord';

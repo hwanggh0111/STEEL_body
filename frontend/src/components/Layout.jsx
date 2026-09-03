@@ -19,6 +19,7 @@ import PasswordChangeModal from './PasswordChangeModal';
 import { useIsPC } from './useIsPC';
 import AccountDeleteModal from './AccountDeleteModal';
 import OfflineBar from './OfflineBar';
+import AccountSheet from './AccountSheet';
 import { useWorkoutStore } from '../store/workoutStore';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
@@ -30,8 +31,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sideMenu, setSideMenu] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(readLS(PROFILE_KEY) || '');
-  const [editingNick, setEditingNick] = useState(false);
-  const [newNick, setNewNick] = useState('');
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
   const [changingPw, setChangingPw] = useState(false);
@@ -175,19 +174,21 @@ export default function Layout() {
     });
   };
 
-  const saveNickname = useCallback(() => {
-    const trimmed = newNick.trim();
+  // 이름을 고친다. **성공했을 때만 편집 칸을 닫는다** (`done`) —
+  // 실패했는데 닫히면 고쳐 쓰던 것이 사라지고, 무엇이 안 됐는지도 안 보인다
+  const saveNickname = useCallback((name, done) => {
+    const trimmed = String(name || '').trim();
     if (!trimmed || savingNick) return;
     setSavingNick(true);
     client.put('/auth/nickname', { nickname: trimmed }).then(() => {
       saveLS('nickname', trimmed);
       useAuthStore.setState({ nickname: trimmed });
-      setEditingNick(false);
-      toast('닉네임이 변경됐어요');
+      done?.();
+      toast('이름이 바뀌었어요');
     }).catch((err) => {
-      toast(err.response?.data?.error || '닉네임 변경 실패', 'error');
+      toast(err.response?.data?.error || '이름을 바꾸지 못했어요', 'error');
     }).finally(() => setSavingNick(false));
-  }, [newNick, savingNick]);
+  }, [savingNick]);
 
   const handlePhotoDelete = async () => {
     const ok = await confirmDialog('프로필 사진을 삭제할까요?', { title: '프로필 사진 삭제', confirmText: '삭제' });
@@ -392,142 +393,23 @@ export default function Layout() {
         flexDirection: 'column', alignItems: 'flex-end',
       }}>
         {sideMenu && (
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            minWidth: 240,
-            maxHeight: '75vh',
-            overflow: 'auto',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          }}>
-            {/* 프로필 사진 영역 */}
-            <div style={{ padding: '20px 18px', textAlign: 'center' }}>
-              <div
-                onClick={() => fileRef.current?.click()}
-                style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
-              >
-                {profilePhoto ? (
-                  <img src={profilePhoto} alt="프로필"
-                    onClick={(e) => { e.stopPropagation(); setZoomImg(profilePhoto); }}
-                    style={{
-                    width: 70, height: 70, borderRadius: '50%', objectFit: 'cover',
-                    border: '3px solid var(--accent)', cursor: 'zoom-in',
-                  }} />
-                ) : (
-                  <div style={{
-                    width: 70, height: 70, borderRadius: '50%',
-                    background: 'var(--bg-tertiary)', border: '2px dashed var(--accent)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <div style={{ fontSize: 20, color: 'var(--text-muted)' }}>+</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>사진</div>
-                  </div>
-                )}
-                <div style={{
-                  position: 'absolute', bottom: 0, right: 0,
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: 'var(--accent)', color: 'var(--on-accent)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700,
-                }}>✎</div>
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
-
-              {/* 닉네임 (클릭하면 수정) */}
-              {editingNick ? (
-                <div style={{ marginTop: 10, display: 'flex', gap: 4, justifyContent: 'center' }}>
-                  <input
-                    className="input"
-                    value={newNick}
-                    onChange={(e) => setNewNick(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveNickname(); }}
-                    autoFocus
-                    style={{ width: 120, fontSize: 13, padding: '6px 8px', textAlign: 'center' }}
-                    placeholder="새 닉네임"
-                  />
-                  <button
-                    onClick={saveNickname}
-                    disabled={savingNick}
-                    style={{
-                      background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
-                      padding: '6px 10px', fontSize: 11, borderRadius: 'var(--radius)',
-                      cursor: 'pointer', fontWeight: 700,
-                    }}
-                  >
-                    확인
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => { setNewNick(nickname); setEditingNick(true); }}
-                  style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)', marginTop: 10, cursor: 'pointer' }}
-                  title="클릭하여 닉네임 변경"
-                >
-                  {nickname} ✎
-                </div>
-              )}
-              {/* 「BLACK IRON 회원」이라고 적혀 있던 자리다. 아무 것도 말하지 않는
-                  줄이라 없앴다 — 여기 온 사람은 자기가 회원인 것을 안다 */}
-
-              {/* 비밀번호 변경.
-                  로그인 화면의 '비밀번호를 잊으셨나요?' 는 찾기(이메일 인증)라서 다른 것이다.
-                  로그인한 채로 바꾸는 자리는 지금까지 어디에도 없었다 */}
-              <button
-                onClick={() => { setSideMenu(false); setChangingPw(true); }}
-                style={{
-                  marginTop: 10, background: 'none', border: '1px solid var(--border)',
-                  color: 'var(--text-secondary)', padding: '4px 12px', cursor: 'pointer',
-                  fontSize: 11, borderRadius: 'var(--radius)', transition: 'all 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-              >비밀번호 변경</button>
-              {profilePhoto && (
-                <button
-                  onClick={handlePhotoDelete}
-                  style={{
-                    marginTop: 8, background: 'none', border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', padding: '2px 8px', cursor: 'pointer',
-                    fontSize: 10, borderRadius: 'var(--radius)', transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                >
-                  사진 삭제
-                </button>
-              )}
-            </div>
-
-            {/* 나가기 하나.
-                예전에는 여기 「로그인」과 「로그아웃」이 나란히 있었다.
-                **이미 로그인한 사람에게 로그인 단추**를 준 셈이고, 그걸 누르면
-                로그아웃도 없이 로그인 화면으로 갔다. 헤더에도 로그아웃이 또 있었다 */}
-            <div
-              onClick={async () => { setSideMenu(false); await leave(); }}
-              style={{ ...menuStyle, borderTop: '1px solid var(--border)', textAlign: 'center', color: 'var(--danger)' }}
-              onMouseEnter={hIn} onMouseLeave={hOut}
-            >
-              로그아웃
-            </div>
-
-            {/* 계정 삭제.
-                지금까지 앱에 이 길이 없어서 「제보함에 남겨주시면 지워드립니다」로 받고
-                있었다 — 자기 계정을 지우는 데 남의 손을 빌려야 했다.
-                **작게 둔다.** 찾는 사람은 찾고, 안 찾는 사람 손에는 안 걸리게 */}
-            <div
-              onClick={() => { setSideMenu(false); setDeleting(true); }}
-              style={{
-                ...menuStyle, borderTop: '1px solid var(--border)', textAlign: 'center',
-                color: 'var(--text-muted)', fontSize: 12, padding: '10px 18px',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-            >
-              계정 삭제
-            </div>
-          </div>
+          <AccountSheet
+            nickname={nickname}
+            email={readLS('ironlog_email') || ''}
+            photo={profilePhoto}
+            onPickPhoto={() => fileRef.current?.click()}
+            onDeletePhoto={handlePhotoDelete}
+            onZoomPhoto={setZoomImg}
+            onSaveNick={saveNickname}
+            savingNick={savingNick}
+            onChangePw={() => { setSideMenu(false); setChangingPw(true); }}
+            onLogout={async () => { setSideMenu(false); await leave(); }}
+            onDeleteAccount={() => { setSideMenu(false); setDeleting(true); }}
+          />
         )}
+        {/* 사진 고르는 칸은 시트 밖에 둔다 — 시트가 닫히면서 같이 사라지면
+            고른 파일이 `onChange` 에 닿기 전에 입력칸이 없어진다 */}
+        <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
       </div>
 
       {showTopBtn && (
