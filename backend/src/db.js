@@ -503,12 +503,13 @@ const db = {
       // 최근에 고친 것이 위다. 메모장은 **지금 짜고 있는 것**을 보러 오는 자리다
       .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
   },
-  createNote(userId, body) {
+  // date 를 주면 **달력의 그날 메모**, 안 주면 루틴 메모다 (`routes/notes.js` 참고)
+  createNote(userId, body, date = null) {
     const id = nextId('notes');
     const data = load();
     if (!data.notes) data.notes = [];
     const now = new Date().toISOString();
-    const row = { id, user_id: userId, body, created_at: now, updated_at: now };
+    const row = { id, user_id: userId, body, date, created_at: now, updated_at: now };
     data.notes.push(row);
     save(data);
     return row;

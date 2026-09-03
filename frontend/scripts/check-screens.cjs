@@ -185,6 +185,26 @@ ok('달력이 한 날과 할 날을 같이 그린다',
     selected: '2026-09-02', onSelect: () => {},
   }), null);
 
+// 그날 메모 — 적은 것이 있을 때 · 없을 때
+for (const [name, note] of [
+  ['적어둔 것이 있음', { id: 1, date: TODAY, body: '어깨가 안 좋아 가볍게\n벤치 5kg 내림' }],
+  ['아직 없음', null],
+]) {
+  ok(`그날 메모 — ${name}`,
+    drawWith('src/components/DayNote.jsx', {
+      date: TODAY, note, onSave: () => {}, onDelete: () => {}, saving: false,
+    }, false), null);
+}
+
+// 달력이 메모 있는 날에 점을 찍는다
+ok('달력이 메모 있는 날을 표시한다',
+  drawWith('src/components/MonthCalendar.jsx', {
+    year: 2026, month: 9, workouts: WORKOUTS,
+    plans: { '2026-09-02': [PLANS[0]] },
+    notes: { '2026-09-02': true, '2026-09-07': true },
+    selected: null, onSelect: () => {},
+  }), null);
+
 // 그 날 할 것 — 오늘 · 앞날 · 지난 날 셋 다
 for (const [when, date] of [['오늘', '2026-09-02'], ['앞날', '2026-09-05'], ['지난 날', '2026-08-20']]) {
   ok(`「${when}」의 할 것이 그려진다`,

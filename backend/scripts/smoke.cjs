@@ -236,6 +236,24 @@ function cleanAll() {
   step('메모를 지운다', (await call('DELETE', '/notes/' + nt.data?.id)).status, 200);
   step('없는 것을 지우면 404', (await call('DELETE', '/notes/999999')).status, 404);
 
+  // 달력의 그날 메모 — 같은 길(`/notes`)에 **날짜가 붙은** 것이다.
+  // 루틴 메모장과 목록이 섞이면 안 된다 (섞이면 짜다 만 루틴 사이에 「출장이라 쉼」이 낀다)
+  const dn = await call('POST', '/notes', { date: '2027-03-05', body: '어깨가 안 좋아 가볍게' });
+  step('달력에 그날 메모를 적는다', dn.status, 201);
+  step('  날짜가 붙어서 돌아온다', dn.data?.date, '2027-03-05');
+  const dn2 = await call('POST', '/notes', { date: '2027-03-05', body: '고쳐 적음' });
+  step('같은 날 또 보내면 고친다 (하루 한 장)', dn2.status, 200);
+  step('  장수가 늘지 않는다', dn2.data?.id, dn.data?.id);
+  await call('POST', '/notes', { date: '2027-04-02', body: '다음 달 것' });
+  const march = await call('GET', '/notes?month=2027-03');
+  step('보고 있는 달만 받아온다', (march.data || []).length, 1);
+  step('루틴 메모 목록에 달력 것이 안 섞인다',
+    ((await call('GET', '/notes')).data || []).filter(n => n.date).length, 0);
+  step('날짜 모양이 아니면 안 받는다',
+    (await call('POST', '/notes', { date: '내일', body: 'x' })).status, 400);
+  step('달 모양이 아니면 안 받는다', (await call('GET', '/notes?month=3월')).status, 400);
+  step('그날 메모를 지운다', (await call('DELETE', '/notes/' + dn.data?.id)).status, 200);
+
   console.log('\n── 막아야 할 것은 막는지 ──');
   step('운동명 공백만',
     (await call('POST', '/workouts', { date: '2026-08-27', exercise: '   ', weight: 60, sets: 3, reps: 10 })).status, 400);

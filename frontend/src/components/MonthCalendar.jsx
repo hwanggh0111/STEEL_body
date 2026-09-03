@@ -17,7 +17,9 @@ import { dateKey } from '../data/dateKey';
 
 const SHORT = { 가슴: '가', 등: '등', 어깨: '어', 하체: '하', 팔: '팔', 코어: '코', 기타: '·' };
 
-export default function MonthCalendar({ year, month, workouts, plans = {}, selected, onSelect }) {
+// `notes` 는 { 'YYYY-MM-DD': true } 다. **내용은 안 받는다** — 칸에 글은 안 들어가고,
+// 있다는 표시(점)만 그린다. 내용은 날짜를 누르면 아래에 그대로 나온다
+export default function MonthCalendar({ year, month, workouts, plans = {}, notes = {}, selected, onSelect }) {
   const today = dateKey();
   const weeks = useMemo(() => monthGrid(year, month), [year, month]);
 
@@ -43,6 +45,7 @@ export default function MonthCalendar({ year, month, workouts, plans = {}, selec
               // 계획해둔 날인데 그날 기록이 없다 — 오늘부터면 「할 것」, 지났으면 「못 한 것」
               const todo = !done && planned > 0 && cell.key >= today;
               const missed = !done && planned > 0 && cell.key < today;
+              const hasNote = !!notes?.[cell.key];
               const isToday = cell.key === today;
               const isSelected = cell.key === selected;
               const part = done ? partOfDay(list) : null;
@@ -53,7 +56,8 @@ export default function MonthCalendar({ year, month, workouts, plans = {}, selec
                   onClick={() => onSelect(isSelected ? null : cell.key)}
                   aria-label={`${month}월 ${cell.day}일`
                     + (done ? ` · 기록 ${list.length}건` : ' · 기록 없음')
-                    + (planned ? ` · 할 것 ${planned}개${missed ? ' (못 함)' : ''}` : '')}
+                    + (planned ? ` · 할 것 ${planned}개${missed ? ' (못 함)' : ''}` : '')
+                    + (hasNote ? ' · 메모 있음' : '')}
                   aria-pressed={isSelected}
                   style={{
                     aspectRatio: '1 / 1',
@@ -77,6 +81,7 @@ export default function MonthCalendar({ year, month, workouts, plans = {}, selec
                     color: done || todo ? 'var(--accent)' : 'var(--text-muted)',
                     fontFamily: "'Barlow', sans-serif",
                     padding: 0,
+                    position: 'relative',
                   }}
                 >
                   <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, lineHeight: 1 }}>{cell.day}</span>
@@ -89,6 +94,16 @@ export default function MonthCalendar({ year, month, workouts, plans = {}, selec
                       {planned}개
                     </span>
                   ) : null}
+                  {/* 메모가 있는 날. **점 하나다** — 칸이 44px 이라 글자를 더 넣을 자리가
+                      없고, 부위 글자(가 · 등)와 개수는 이미 그 자리를 쓴다.
+                      쉰 날에도 메모는 있을 수 있어서(「출장이라 쉼」) 색은 흐리게 둔다 */}
+                  {hasNote && (
+                    <span aria-hidden="true" style={{
+                      position: 'absolute', bottom: 4, width: 3, height: 3, borderRadius: '50%',
+                      background: done || todo ? 'var(--accent)' : 'var(--text-muted)',
+                      opacity: 0.9,
+                    }} />
+                  )}
                 </button>
               );
             })}

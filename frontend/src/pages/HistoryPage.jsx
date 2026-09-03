@@ -8,9 +8,11 @@ import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
 import MonthCalendar from '../components/MonthCalendar';
 import DayPlan from '../components/DayPlan';
+import DayNote from '../components/DayNote';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
 import { toast } from '../components/Toast';
+import { confirmDialog } from '../components/ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 import { useToday } from '../data/useToday';
@@ -55,6 +57,50 @@ export default function HistoryPage() {
     client.get('/plans').then(({ data }) => setPlans(Array.isArray(data) ? data : [])).catch(() => {});
     client.get('/my-routines').then(({ data }) => setMyRoutines(Array.isArray(data) ? data : [])).catch(() => {});
   }, []);
+
+  // ── 그날 메모 ──
+  //
+  // **보고 있는 달만 한 번에 받는다.** 칸마다 물어보면 서른 번이고, 통째로 받으면
+  // 몇 년치를 들고 온다. 달을 넘길 때마다 그 달치를 받는다 (`?month=YYYY-MM`).
+  const [dayNotes, setDayNotes] = useState({});
+  const [savingNote, setSavingNote] = useState(false);
+
+  const saveDayNote = async (date, body, done) => {
+    if (savingNote) return;
+    setSavingNote(true);
+    try {
+      const { data } = await client.post('/notes', { body, date });
+      setDayNotes(prev => ({ ...prev, [date]: data }));
+      done?.();   // **성공했을 때만 닫는다** — 실패하고 닫히면 적던 것이 사라진다
+      toast('메모를 저장했어요');
+    } catch (err) {
+      toast(err.response?.data?.error || '저장하지 못했어요', 'error');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const removeDayNote = async (note) => {
+    const ok = await confirmDialog(`${dayLabel(note.date)} 메모를 지울까요?`,
+      { title: '메모 지우기', confirmText: '지웁니다', danger: true });
+    if (!ok) return;
+    try {
+      await client.delete(`/notes/${note.id}`);
+      setDayNotes(prev => {
+        const next = { ...prev };
+        delete next[note.date];
+        return next;
+      });
+      toast('지웠어요');
+    } catch (err) {
+      // 없어서 못 지운 것은 실패가 아니다 (두 번 눌렀거나 다른 기기에서 이미 지웠다)
+      if (err.response?.status === 404) {
+        setDayNotes(prev => { const next = { ...prev }; delete next[note.date]; return next; });
+        return;
+      }
+      toast('지우지 못했어요. 다시 열면 그대로 있어요', 'error');
+    }
+  };
 
   const addPlan = async (plan) => {
     if (addingPlan) return;
@@ -126,6 +172,25 @@ export default function HistoryPage() {
   const incoming = location.state?.date || null;
   const now = incoming ? new Date(`${incoming}T00:00:00`) : new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
+
+  // **`ym` 보다 아래에 둔다.** 이 효과는 보고 있는 달을 읽는데, `const` 는 선언 줄에
+  // 닿기 전에는 못 읽는다(TDZ) — 위에 두면 화면을 여는 순간 터진다.
+  // 9/2 에 이 화면을 흰 화면으로 만든 자리가 정확히 이것이고, `npm run screens` 가
+  // 오늘 또 잡아줬다
+  useEffect(() => {
+    const month = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
+    let dropped = false;
+    client.get('/notes', { params: { month } })
+      .then(({ data }) => {
+        if (dropped) return;   // 달을 빨리 넘기면 늦게 온 답이 새 달을 덮는다
+        const map = {};
+        for (const n of Array.isArray(data) ? data : []) if (n && n.date) map[n.date] = n;
+        setDayNotes(map);
+      })
+      // 못 불러와도 화면은 그대로 돈다. 메모는 이 화면의 곁다리다
+      .catch(() => {});
+    return () => { dropped = true; };
+  }, [ym.year, ym.month]);
   const [selectedDate, setSelectedDate] = useState(incoming);
 
   // ── 계획을 화면 값으로 빚는 자리 ──
@@ -216,6 +281,7 @@ export default function HistoryPage() {
         month={ym.month}
         workouts={workouts}
         plans={planMap}
+        notes={dayNotes}
         selected={selectedDate}
         onSelect={setSelectedDate}
       />
@@ -223,6 +289,7 @@ export default function HistoryPage() {
       {/* 날짜를 고르면 그날 할 것을 정한다. 안 골랐으면 **다가오는 것 한 줄**만 —
           달력 아래를 늘 폼으로 채워두면 되짚으러 온 사람의 길을 막는다 */}
       {selectedDate ? (
+        <>
         <DayPlan
           date={selectedDate}
           today={today}
@@ -233,6 +300,17 @@ export default function HistoryPage() {
           onDelete={removePlan}
           adding={addingPlan}
         />
+        {/* **그날 어땠는지.** 달력에는 지금까지 숫자만 있었다 — 몇 개 했고 무슨
+            부위였는지는 기록에서 나오지만 **왜 그랬는지는 아무 데도 안 남았다**
+            (「어깨가 안 좋아 가볍게」 · 「출장이라 쉼」). 한 달 뒤에 제일 궁금한 것이 그것이다 */}
+        <DayNote
+          date={selectedDate}
+          note={dayNotes[selectedDate] || null}
+          onSave={(body, done) => saveDayNote(selectedDate, body, done)}
+          onDelete={removeDayNote}
+          saving={savingNote}
+        />
+        </>
       ) : next.length > 0 ? (
         <div className="card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ minWidth: 0, flexGrow: 1 }}>
