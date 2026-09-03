@@ -47,13 +47,17 @@ const stay = db.findUserByEmail('stay@test.local').id;
 // 빠뜨려도 검사가 같이 빠뜨려서 늘 통과한다 — 검사가 코드를 따라가면 안 된다
 const ALL = ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
              'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
-             'suspensions', 'abuseLogs'];
+             'suspensions', 'abuseLogs',
+             // 달력의 계획(8/31)과 루틴 메모(9/3). **둘 다 여기 없었다** —
+             // 아래 「user_id 를 쓰는 갈래」 검사는 검사용 DB 에 그 갈래가 심겨 있어야
+             // 걸리는데, 이 목록이 곧 심는 목록이라 빠뜨리면 스스로를 못 잡는다
+             'plans', 'notes'];
 const seed = db.snapshot();
 for (const key of ALL) {
   seed[key] = [{ id: 1, user_id: gone }, { id: 2, user_id: stay }];
 }
 
-ok('한 사람에게 붙는 갈래를 열둘로 적어뒀다', ALL.filter(k => !db.USER_COLLECTIONS.includes(k)), []);
+ok('한 사람에게 붙는 갈래를 열넷으로 적어뒀다', ALL.filter(k => !db.USER_COLLECTIONS.includes(k)), []);
 // 목록에서 빠뜨린 갈래가 있으면 그 갈래만 조용히 남는다.
 // DB 에 실제로 있는 것 중 user_id 를 쓰는 것은 전부 목록에 있어야 한다
 const withUser = Object.entries(raw())

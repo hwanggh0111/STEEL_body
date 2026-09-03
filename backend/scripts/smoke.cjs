@@ -217,6 +217,25 @@ function cleanAll() {
     ((await call('GET', '/plans')).data || []).filter(p => p.date === '2026-12-24').length, 1);
   step('없는 것을 빼면 404', (await call('DELETE', '/plans/999999')).status, 404);
 
+  console.log('\n── 루틴 메모를 적는다 ──');
+  // 루틴이 되기 전 단계. 떠오르는 대로 적어두고, 다 짜였을 때 루틴으로 만든다.
+  // 메모를 읽어 루틴으로 옮기는 일은 화면이 한다(`data/routineNote.js`, `npm run note`) —
+  // 여기서는 적고 · 고치고 · 지우는 것만 본다
+  const nt = await call('POST', '/notes', { body: '월요일 가슴 · 삼두\n벤치프레스 5x10\n딥스 3세트' });
+  step('메모를 적는다', nt.status, 201);
+  step('  적은 그대로 돌아온다', String(nt.data?.body || '').split('\n').length, 3);
+  step('빈 메모는 안 받는다', (await call('POST', '/notes', { body: '   ' })).status, 400);
+  step('글자가 아니면 안 받는다', (await call('POST', '/notes', { body: ['배열'] })).status, 400);
+  const ntList = await call('GET', '/notes');
+  step('내 메모를 받아온다', Array.isArray(ntList.data), true);
+  step('  방금 적은 것이 있다', (ntList.data || []).some(n => n.id === nt.data?.id), true);
+  const ntEdit = await call('PUT', '/notes/' + nt.data?.id, { body: '화요일 등\n랫풀다운 4x12' });
+  step('고친다', ntEdit.status, 200);
+  step('  고친 시각이 바뀐다', ntEdit.data?.updated_at !== nt.data?.updated_at, true);
+  step('없는 메모는 못 고친다', (await call('PUT', '/notes/999999', { body: 'x' })).status, 404);
+  step('메모를 지운다', (await call('DELETE', '/notes/' + nt.data?.id)).status, 200);
+  step('없는 것을 지우면 404', (await call('DELETE', '/notes/999999')).status, 404);
+
   console.log('\n── 막아야 할 것은 막는지 ──');
   step('운동명 공백만',
     (await call('POST', '/workouts', { date: '2026-08-27', exercise: '   ', weight: 60, sets: 3, reps: 10 })).status, 400);

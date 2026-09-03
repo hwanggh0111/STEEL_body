@@ -298,6 +298,7 @@ app.use('/api/faq-gaps',    require('./routes/faqGaps'));
 app.use('/api/reminders',   require('./routes/reminders'));
 app.use('/api/routine-session', require('./routes/routineSession'));
 app.use('/api/plans',       require('./routes/plans'));
+app.use('/api/notes',       require('./routes/notes'));
 app.use('/api/client-error', require('./routes/clientErrors'));
 app.use('/api/export',      require('./routes/export'));
 

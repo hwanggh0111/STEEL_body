@@ -30,6 +30,9 @@ const DEFAULT_DATA = {
   inbody: [],
   measures: [],
   myRoutines: [],
+  // 루틴을 짜기 전에 적어두는 메모. 루틴이 되기 전 단계라 따로 둔다 —
+  // 반쯤 적다 만 것을 루틴 목록에 섞으면 「시작하기」를 누를 수 있는 것이 돼버린다
+  notes: [],
   // 제보함. 공지사항 기능을 없애면서 notices 자리를 이쪽으로 돌렸다 —
   // "레코드 목록 + 본인 것만 조회 + 관리자 전체 조회" 라는 모양이 같다.
   reports: [],
@@ -492,6 +495,43 @@ const db = {
     return { changes: 1 };
   },
 
+  // notes — 루틴 메모장
+  getNotes(userId) {
+    const data = load();
+    return (data.notes || [])
+      .filter(n => n.user_id === userId)
+      // 최근에 고친 것이 위다. 메모장은 **지금 짜고 있는 것**을 보러 오는 자리다
+      .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+  },
+  createNote(userId, body) {
+    const id = nextId('notes');
+    const data = load();
+    if (!data.notes) data.notes = [];
+    const now = new Date().toISOString();
+    const row = { id, user_id: userId, body, created_at: now, updated_at: now };
+    data.notes.push(row);
+    save(data);
+    return row;
+  },
+  updateNote(id, userId, body) {
+    const data = load();
+    const note = (data.notes || []).find(n => n.id === id && n.user_id === userId);
+    if (!note) return { changes: 0, note: null };
+    note.body = body;
+    note.updated_at = new Date().toISOString();
+    save(data);
+    return { changes: 1, note };
+  },
+  deleteNote(id, userId) {
+    const data = load();
+    if (!data.notes) return { changes: 0 };
+    const idx = data.notes.findIndex(n => n.id === id && n.user_id === userId);
+    if (idx === -1) return { changes: 0 };
+    data.notes.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
   // myRoutines
   getMyRoutines(userId) {
     const data = load();
@@ -844,7 +884,7 @@ const db = {
   // 또 남는다 — `npm run check` 가 이 목록과 실제 컬렉션을 맞춰본다.
   USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
                      'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
-                     'suspensions', 'abuseLogs', 'plans'],
+                     'suspensions', 'abuseLogs', 'plans', 'notes'],
   // 지금 램에 들고 있는 그대로.
   //
   // 파일은 0.5초 뒤에 쓰이므로 **검사가 파일을 읽으면 옛 내용을 본다.**
