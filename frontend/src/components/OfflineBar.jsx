@@ -51,7 +51,7 @@ export default function OfflineBar() {
         padding: '9px 13px', marginBottom: 12,
         border: `1px solid ${danger ? 'var(--danger)' : 'var(--border)'}`,
         borderRadius: 'var(--radius)',
-        background: 'var(--bg-card)',
+        background: 'var(--card-bg)',
       }}
     >
       <span aria-hidden="true" style={{

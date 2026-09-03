@@ -221,6 +221,10 @@ for (const [name, props] of [
   ok(`제보 목록 — ${name}`, drawWith('src/pages/support/ReportList.jsx', { ...props, onDelete: () => {} }), null);
 }
 
+// 루틴 메모장. 서버 렌더에서는 effect 가 안 돌아 **아직 아무것도 못 받은 상태**로
+// 그려진다 — 처음 열었을 때와 같다
+ok('루틴 메모가 그려진다', drawWith('src/pages/routine/RoutineNotes.jsx', { onToRoutine: () => {} }, false), null);
+
 // 아직 못 올린 기록 — 신호가 없을 때 목록에 섞여 그려지는 자리다
 for (const [name, extra] of [
   ['올리는 중', { pending: true }],

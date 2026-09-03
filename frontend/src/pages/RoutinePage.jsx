@@ -41,7 +41,12 @@ const TYPE_NOTE = {
 const TABS = [
   { key: 'mine', label: '내 루틴' },
   { key: 'pick', label: '추천 루틴' },
+  // 루틴이 되기 전 단계. 떠오르는 대로 적어두고, 다 짜였을 때 루틴으로 만든다 —
+  // 그 자리가 앱에 없어서 사람들은 폰 메모장에 적고 여기로 옮겨 적었다
+  { key: 'note', label: '메모' },
 ];
+
+import RoutineNotes from './routine/RoutineNotes';
 
 export default function RoutinePage() {
   // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
@@ -441,6 +446,26 @@ export default function RoutinePage() {
       )}
 
       </>
+      )}
+
+      {tab === 'note' && (
+        <RoutineNotes
+          onToRoutine={(routine) => {
+            // **곧바로 루틴을 만들지 않는다.** 우리가 잘못 읽었을 수 있고,
+            // 그건 사람이 폼에서 보고 고치면 된다. 채워서 보여주고 저장은 사람이 누른다
+            setEditingId(null);
+            setNewRoutine({
+              name: routine.name,
+              exercises: routine.exercises.length ? routine.exercises : [{ name: '', sets: '', reps: '' }],
+            });
+            setTab('mine');
+            setShowCreate(true);
+            toast(routine.name
+              ? `메모에서 운동 ${routine.exercises.length}개를 옮겼어요. 확인하고 저장하세요`
+              : `운동 ${routine.exercises.length}개를 옮겼어요. 루틴 이름을 정해주세요`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
       )}
 
       {tab === 'pick' && (
