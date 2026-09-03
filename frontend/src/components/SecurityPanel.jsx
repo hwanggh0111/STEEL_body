@@ -260,7 +260,9 @@ export default function SecurityPanel() {
     try {
       await client.post(`/security/${endpoint}/${userId}`);
       const res = await client.get('/security/users');
-      setUsers(res.data);
+      // 처음 불러올 때와 **같은 자리**다. 여기만 막지 않고 있었다 —
+      // 배열이 아닌 것이 오면 아래의 map 에서 터지고, 터지면 흰 화면이다
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       // 조용히 넘어가면 목록이 그대로라 성공한 줄 안다. 사람을 차단하는 자리다
       toast(e?.response?.data?.error || '처리하지 못했어요', 'error');
