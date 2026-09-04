@@ -432,26 +432,36 @@ export default function RemindersPage() {
           `<input type="time">` 를 걷었다. 브라우저마다 생김새가 다르고, 폰에서는
           굴림판이 뜨고, **비우면 빈 값이 서버로 간다**(그러면 저장이 실패한다).
           무엇보다 「저녁 7시」라고 생각하는 사람에게 19 를 찾게 하는 자리였다.
-          오전/오후 · 시 · 분 셋으로 고른다. 담기는 값(24시간)은 그대로다 */}
+
+          **고르개 셋을 한 줄에 나란히 둔다.** 처음에는 오전/오후만 단추 두 개로
+          만들었는데, 단추와 고르개가 한 줄에 섞이니 높이도 생김새도 제각각이라
+          어수선했다. 셋 다 같은 것으로 만들면 줄이 한 덩어리로 읽힌다.
+
+          아래에 「오후 7:00에 옵니다」를 한 줄 더 적었던 것은 **뺐다** —
+          바로 위 미리보기 카드가 이미 그 시각을 보여준다. 같은 말을 두 번 하면
+          어느 쪽이 진짜인지 보는 사람이 한 번 더 생각해야 한다.
+
+          담기는 값(24시간)은 그대로다 */}
       <div className="label">시간</div>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-        {[[AM, '오전'], [PM, '오후']].map(([v, label]) => (
-          <button
-            key={v}
-            className={`btn-secondary${clock.ampm === v ? ' active' : ''}`}
-            disabled={busy}
-            onClick={() => setTime(v, clock.hour12, clock.minute)}
-            style={{ width: 'auto', padding: '10px 16px' }}
-            aria-pressed={clock.ampm === v}
-          >{label}</button>
-        ))}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 18,
+      }}>
+        <select
+          className="input"
+          value={clock.ampm}
+          disabled={busy}
+          onChange={(e) => setTime(e.target.value, clock.hour12, clock.minute)}
+          aria-label="오전 오후"
+        >
+          <option value={AM}>오전</option>
+          <option value={PM}>오후</option>
+        </select>
         <select
           className="input"
           value={clock.hour12}
           disabled={busy}
           onChange={(e) => setTime(clock.ampm, Number(e.target.value), clock.minute)}
           aria-label="시"
-          style={{ width: 'auto', flexGrow: 1, marginBottom: 0 }}
         >
           {HOURS12.map(h => <option key={h} value={h}>{h}시</option>)}
         </select>
@@ -461,15 +471,11 @@ export default function RemindersPage() {
           disabled={busy}
           onChange={(e) => setTime(clock.ampm, clock.hour12, Number(e.target.value))}
           aria-label="분"
-          style={{ width: 'auto', flexGrow: 1, marginBottom: 0 }}
         >
           {minuteOptions(clock.minute).map(m => (
             <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>
           ))}
         </select>
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>
-        {label24(settings.time)}에 옵니다
       </div>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
