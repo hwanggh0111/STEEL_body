@@ -21,9 +21,10 @@ const BodyPage = lazy(() => import('./pages/BodyPage'));
 const IntroPage = lazy(() => import('./pages/IntroPage'));
 // 커뮤니티 — 이 앱에서 **남에게 보이는 첫 글**이다 (2026-09-04)
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
-// HOME — 오늘 + 커뮤니티 · 소식 · 소개 (2026-09-04).
-// 앱을 열면 늘 여기가 나오니 **여기가 곧 홈페이지다**
-const HomeShell = lazy(() => import('./pages/HomeShell'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+// 홈페이지 — **앱 밖으로 나가 새 화면으로 열린다** (2026-09-04).
+// 껍데기(Layout) 밖에 건다 — 아래 탭바도 내 계정도 없는, 웹사이트 같은 자리다
+const SiteHome = lazy(() => import('./pages/SiteHome'));
 const InbodyPage = lazy(() => import('./pages/InbodyPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
@@ -63,11 +64,14 @@ export default function App() {
         <BrowserRouter>
           <Suspense fallback={<Loading />}>
             <Routes>
+              {/* 홈페이지 — **껍데기 밖이다.** 아래 탭바도 머리도 없이 열린다.
+                  로그인은 그대로 필요하다 (남이 읽는 글이지만 아무나 읽지는 않는다) */}
+              <Route path="/site" element={<PrivateRoute><SiteHome /></PrivateRoute>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route index element={<Navigate to="/home" />} />
-                <Route path="home" element={<HomeShell />} />
+                <Route path="home" element={<HomePage />} />
                 <Route path="routine" element={<RoutinePage />} />
                 <Route path="workout" element={<WorkoutPage />} />
                 <Route path="train" element={<TrainPage />} />

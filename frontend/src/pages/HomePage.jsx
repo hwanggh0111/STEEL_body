@@ -234,6 +234,34 @@ export default function HomePage() {
 
           <WeeklyReport workouts={workouts} />
 
+          {/* ── 홈페이지로 ── (2026-09-04)
+              **새 화면으로 연다.** 앱 안에 탭으로 끼워 넣었다가 걷었다 —
+              운동을 적다가 커뮤니티를 보러 갔다 오면 **적던 자리가 그대로 있어야**
+              한다. `rel` 은 새 창이 이 화면을 건드리지 못하게 막는다 */}
+          <a
+            href="/site"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 11,
+              marginTop: 18, padding: '15px 16px', textDecoration: 'none',
+              background: 'var(--card-bg)', border: '1px solid var(--border)',
+              boxShadow: 'var(--card-edge)', borderRadius: 'var(--radius)',
+            }}
+          >
+            <NavIcon name="chat" size={20} />
+            <span style={{ flexGrow: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>커뮤니티</span>
+              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                같이 하는 사람들이 쓰는 자리 · 새 화면으로 열려요
+              </span>
+            </span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+            </svg>
+          </a>
+
         </>
       )}
     </div>

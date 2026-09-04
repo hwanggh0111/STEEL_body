@@ -103,8 +103,8 @@ const SCREENS = [
   ['고객센터', 'src/pages/support/SupportPage.jsx'],
   // 소개는 2026-09-04 에 고객센터에서 갈라 나왔다
   ['앱 소개', 'src/pages/IntroPage.jsx'],
-  // HOME — 오늘 + 커뮤니티 · 소식 · 소개 (2026-09-04)
-  ['HOME 껍데기', 'src/pages/HomeShell.jsx'],
+  // 홈페이지 — 새 화면으로 열리는 자리 (2026-09-04)
+  ['홈페이지', 'src/pages/SiteHome.jsx'],
   // 커뮤니티 — 이 앱에서 남에게 보이는 첫 글 (2026-09-04)
   ['커뮤니티', 'src/pages/CommunityPage.jsx'],
   ['커뮤니티 · 글 하나', 'src/pages/community/PostView.jsx'],
