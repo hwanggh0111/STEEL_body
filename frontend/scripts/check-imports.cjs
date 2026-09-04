@@ -115,6 +115,41 @@ for (const file of files) {
 ok('훅 · 길찾기 · client · toast 를 다 가져왔다', [...new Set(missing)], []);
 ok('JSX 로 그리는 것을 다 가져왔다', [...new Set(missingComp)], []);
 
+// ── 없어진 상태를 아직 부르는 자리 ── (2026-09-04)
+//
+// 5차 리모델링에서 아래 탭바의 「더보기」를 걷었다. `showMore` 상태를 지우고,
+// 그것을 쓰던 곳도 지웠는데 **`handleTab` 첫 줄의 `setShowMore(false)` 하나가
+// 남았다.** 빌드는 통과하고 화면도 잘 그려진다 — **탭을 누르는 순간** 터진다.
+// 그래서 화면이 통째로 안 움직였다.
+//
+// 위의 두 검사도, 화면을 그려보는 `npm run screens` 도 이것을 못 잡는다:
+// 그리기만 하고 **누르지는 않기 때문**이다. 눌러야 도는 코드는 글자로 볼 수밖에 없다.
+//
+// 규칙은 하나다 — `setXxx(` 를 부르면 그 파일 어딘가에 그 이름이 있어야 한다.
+// `useState` 로 만들었거나, 프로퍼티로 받았거나, 가져왔거나, 그냥 함수로 만들었거나.
+const SETTER_BUILTIN = new Set(['setTimeout', 'setInterval', 'setImmediate']);
+const orphanSetters = [];
+for (const file of files) {
+  const code = stripped(fs.readFileSync(file, 'utf-8'));
+  // **점 뒤엣것은 남의 것이다** — `localStorage.setItem` · `d.setHours` ·
+  // `useNoteStore.getState().setOnline` 은 이 파일이 만드는 이름이 아니다.
+  // 브라우저가 주는 것(setTimeout · setInterval)도 뺀다
+  for (const m of code.matchAll(/(?<![.\w$])(set[A-Z][\w$]*)\s*\(/g)) {
+    const name = m[1];
+    if (SETTER_BUILTIN.has(name)) continue;
+    // 만들어진 자리가 있는가. useState 짝 · const/let · function · 프로퍼티 · 가져오기
+    const made = new RegExp(
+      '(,\\s*' + name + '\\s*\\]'          // const [x, setX] = useState()
+      + '|\\b(const|let|var|function)\\s+' + name + '\\b'
+      + '|\\b' + name + '\\s*[,}:]'          // { setX } 로 받았거나 { setX, ... }
+      + '|\\b' + name + '\\s*=[^=]'          // setX = ...
+      + ')'
+    );
+    if (!made.test(code)) orphanSetters.push(`${rel(file)} — ${name}()`);
+  }
+}
+ok('없어진 상태를 아직 부르는 자리가 없다', [...new Set(orphanSetters)], []);
+
 console.log('');
 console.log(bad ? `${bad}건 실패` : '다 가져왔습니다');
 process.exit(bad ? 1 : 0);

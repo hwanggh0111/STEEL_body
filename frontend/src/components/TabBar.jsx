@@ -73,7 +73,6 @@ export default function TabBar() {
   );
 
   const handleTab = (path) => {
-    setShowMore(false);
     if (path === '/home' && location.pathname === '/home') return;
     if (path === '/home') {
       setSplash(true);
