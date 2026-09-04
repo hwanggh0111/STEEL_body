@@ -101,6 +101,8 @@ const SCREENS = [
   ['기능성운동', 'src/pages/HomeworkoutPage.jsx'],
   ['운동 검색', 'src/pages/SearchPage.jsx'],
   ['고객센터', 'src/pages/support/SupportPage.jsx'],
+  // 소개는 2026-09-04 에 고객센터에서 갈라 나왔다
+  ['앱 소개', 'src/pages/IntroPage.jsx'],
   ['공지함', 'src/pages/support/NoticeArchive.jsx'],
   ['운동 알림', 'src/pages/RemindersPage.jsx'],
   ['로그인', 'src/pages/LoginPage.jsx'],

@@ -24,6 +24,7 @@ export const DRAWER_ITEMS = [
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
   { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
   { path: '/support',    label: '고객센터',   icon: 'chat' },
+  { path: '/intro',      label: '앱 소개',    icon: 'bulb' },
   { path: '/workout',    label: '옛 기록',    icon: 'dumbbell' },
   { path: '/routine',    label: '옛 루틴',    icon: 'clipboard' },
   { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },

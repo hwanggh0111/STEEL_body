@@ -976,7 +976,8 @@ const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m 
 //   더보기에서 루틴 · 운동 검색 · 측정 · 히스토리를 걷었다 (탭바의 「운동」·「몸」·「기록」 안으로).
 //   되돌릴 수 있게 남긴 「옛 기록」·「옛 루틴」 둘이 늘었다.
 // 5차를 마치고 그 둘을 걷으면 이 수는 다시 줄어든다
-ok('여섯 자리가 아이콘 열아홉을 쓴다', used.length, 19);
+// 9/4 저녁에 하나 늘었다 — 서랍의 **「앱 소개」**다 (고객센터에서 갈라 나왔다)
+ok('여섯 자리가 아이콘 스물을 쓴다', used.length, 20);
 // 서랍이 하나가 됐다 (2026-09-04) — 아래 「더보기」를 걷고 머리의 내 계정으로 옮겼다.
 // **둘이 있으면 무엇이 어느 쪽에 있는지를 사람이 외워야 한다**
 ok('아래 탭바에 「더보기」가 없다', /label: '더보기'/.test(src['src/components/TabBar.jsx']), false);
@@ -1230,8 +1231,23 @@ for (const f of srcFiles) {
 }
 ok('쓰는데 안 들여온 이름이 없다', missing, []);
 
-ok('고객센터 소개가 아이콘을 그린다',
-  /<NavIcon name=\{f\.icon\}/.test(fs.readFileSync('src/pages/support/SupportPage.jsx', 'utf-8')), true);
+// 소개는 2026-09-04 에 고객센터에서 갈라 나왔다 (`pages/IntroPage.jsx`).
+// 고객센터는 도와주는 자리고 소개는 보여주는 자리다 — 접어서 같은 화면에 둬도
+// 한 화면이 두 가지 일을 한다
+ok('앱 소개가 아이콘을 그린다',
+  /<NavIcon name=\{f\.icon\}/.test(fs.readFileSync('src/pages/IntroPage.jsx', 'utf-8')), true);
+ok('  고객센터에는 소개가 없다',
+  /FEATURES/.test(fs.readFileSync('src/pages/support/SupportPage.jsx', 'utf-8')), false);
+// **소개가 가리키는 자리가 실재해야 한다.** 5차에 화면 자리가 바뀌었는데 목록이
+// 옛 주소를 그대로 들고 있으면, 읽고 눌러본 사람이 없어진 자리로 간다
+{
+  const routes = fs.readFileSync('src/App.jsx', 'utf-8');
+  const dead = [...codeOf(fs.readFileSync('src/pages/support/introData.js', 'utf-8'))
+    .matchAll(/path: '\/([\w-]+)'/g)]
+    .map(m => m[1])
+    .filter(name => !new RegExp('path="' + name + '"').test(routes));
+  ok('  소개가 없는 자리를 가리키지 않는다', [...new Set(dead)], []);
+}
 
 // 같은 자리로 가는 길은 같은 그림이어야 한다 — 두 번 익히게 하지 않는다.
 // 더보기(TabBar) · 홈 검색 · 고객센터 소개 셋이 같은 화면을 가리킨다

@@ -2,13 +2,13 @@
   "generated": "2026-09-04",
   "items": [
     {
-      "hash": "9dfbc4e",
+      "hash": "37a7fdf",
       "date": "2026-09-04",
       "type": "fix",
       "label": "고침",
       "scope": "길찾기",
-      "text": "서랍 목록을 값만 있는 파일로 — Fast Refresh 가 깨지고 있었다",
-      "detail": "서랍 목록(DRAWER_ITEMS)을 `components/TabBar.jsx` 에서 내보내고 있었다.\nReact Fast Refresh 는 컴포넌트 파일이 컴포넌트 아닌 것을 같이 내보내면\n그 파일을 고칠 때마다 화면을 통째로 다시 그린다 —\nvite 로그에 그대로 찍혔다: 「Could not Fast Refresh (\"DRAWER_ITEMS\" export is\nincompatible)」. 길찾기를 한 줄 고칠 때마다 보던 화면이 처음으로 돌아간다.\n\n`data/navItems.js` 로 옮겼다. 값만 있는 자리는 값만 있는 파일에 둔다.\n옮기고 나서 TabBar 를 건드려 보니 `hmr update` 만 뜨고 invalidate 가 없다. …"
+      "text": "탭을 누르면 터지던 것 — 없어진 상태를 아직 부르고 있었다",
+      "detail": "「더보기」를 걷으면서 `showMore` 상태를 지웠는데, `handleTab` 첫 줄의\n`setShowMore(false)` 하나가 남았다. **탭을 누르는 순간 터진다.**\n그래서 화면이 통째로 안 움직였다 (`setShowMore is not defined`).\n\n빌드는 통과했고, 화면을 그려보는 검사도 통과했다 —\n**그리기만 하고 누르지는 않기 때문이다.** 오늘 같은 모양의 버그가 두 번째다\n(아침에는 Layout 의 useMemo). 눌러야 도는 코드는 글자로 볼 수밖에 없다. …"
     },
     {
       "hash": "6823fe6",

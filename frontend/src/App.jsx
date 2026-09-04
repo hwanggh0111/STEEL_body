@@ -18,6 +18,8 @@ const WorkoutPage = lazy(() => import('./pages/WorkoutPage'));
 const TrainPage = lazy(() => import('./pages/TrainPage'));
 // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
 const BodyPage = lazy(() => import('./pages/BodyPage'));
+// 앱 소개 — 고객센터에서 갈라 나왔다 (2026-09-04)
+const IntroPage = lazy(() => import('./pages/IntroPage'));
 const InbodyPage = lazy(() => import('./pages/InbodyPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
@@ -66,6 +68,7 @@ export default function App() {
                 <Route path="workout" element={<WorkoutPage />} />
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
+                <Route path="intro" element={<IntroPage />} />
                 <Route path="inbody" element={<InbodyPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="homeworkout" element={<HomeworkoutPage />} />

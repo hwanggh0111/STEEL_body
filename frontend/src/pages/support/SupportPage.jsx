@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIntroStats, FEATURES } from './introData';
 import ReportBox from './ReportBox';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
@@ -74,9 +73,7 @@ const HELP = [
 
 export default function SupportPage() {
   const navigate = useNavigate();
-  const s = useIntroStats();
   const [openFaq, setOpenFaq] = useState(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
   const [faqQ, setFaqQ] = useState('');
   // 제보함은 접어둔다. 펼쳐두면 폼과 목록이 페이지의 절반을 먹어서,
   // 그 아래 자주 묻는 것과 바뀐 것이 한참 밀려난다
@@ -393,101 +390,23 @@ export default function SupportPage() {
         <Satisfaction onOpenReport={() => openReport()} />
       </div>
 
-      {/* 이 앱은 — 소개. 지우지 않고 접었다.
-          처음 온 사람은 펼쳐 읽고, 매일 오는 사람은 안 본다 */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 26, marginBottom: 12 }}>
+      {/* ── 소개는 여기 없다 ── (5차 리모델링, 2026-09-04)
+          8/26 에 소개를 지우지 않고 맨 아래로 접어 뒀다. 볼일 보러 온 사람 앞에
+          소개를 세워두지 않으려는 것이었고 맞는 판단이었다. 그런데 **접어서 같은
+          화면에 두면 여전히 한 화면이 두 가지 일을 한다** — 여기는 도와주는 자리고
+          소개는 보여주는 자리다. 갈라서 `pages/IntroPage.jsx` 로 옮겼다 */}
+      <div style={{ borderTop: '1px solid var(--border)', marginTop: 26, paddingTop: 18 }}>
         <button
-          onClick={() => setAboutOpen(v => !v)}
+          onClick={() => navigate('/intro')}
           style={{
             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-            fontSize: 11, letterSpacing: 3, color: 'var(--text-muted)',
+            fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'inherit',
           }}
         >
-          <span>이 앱은</span>
-          <span style={{
-            marginLeft: 'auto', fontSize: 15,
-            transform: aboutOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
-          }}>+</span>
+          <span>이 앱이 무엇을 하는지 보기</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>&rsaquo;</span>
         </button>
-
-        {aboutOpen && (
-          <div style={{ marginTop: 24 }}>
-            <p style={{
-              fontSize: 24, lineHeight: 1.45, color: 'var(--text-primary)',
-              fontWeight: 300, margin: '0 0 18px', letterSpacing: -0.3,
-            }}>
-              쉬웠던 날은 없었다.<br />
-              그래서 전부 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>값</span>이 있다.
-            </p>
-            <p style={{
-              fontSize: 14.5, lineHeight: 1.85, color: 'var(--text-secondary)',
-              margin: '0 0 32px', maxWidth: 380,
-            }}>
-              빠진 날까지 전부 남는다.<br />
-              언젠가 처음부터 읽게 된다.
-            </p>
-
-            {/* 내 이야기 — 숫자를 문장에 박되, 한 줄에 한 문장씩.
-                한 문단으로 이어 붙이면 기록이 쌓일수록 글자벽이 된다 */}
-            <div style={{ borderLeft: '2px solid var(--accent)', paddingLeft: 18, marginBottom: 32 }}>
-              {s.totalWorkouts > 0 ? (
-                <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 300 }}>
-                  <div style={{ lineHeight: 1.9 }}>지금까지 <Num>{s.totalWorkouts.toLocaleString()}</Num>회 적었다.</div>
-                  <div style={{ lineHeight: 1.9 }}>
-                    {s.weekDays > 0
-                      ? <>이번 주만 <Num>{s.weekDays}</Num>일 나왔다.</>
-                      : <>이번 주는 오늘이 첫 날이 된다.</>}
-                  </div>
-                  {s.latest && (
-                    <div style={{ lineHeight: 1.9 }}>최근 체중은 <Num>{s.latest.weight}</Num>kg.</div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ fontSize: 16, lineHeight: 1.95, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>
-                  누구의 첫 줄도 대단하지 않았다.<br />한 세트면 충분하다.
-                </p>
-              )}
-            </div>
-
-            {/* 무엇을 할 수 있나 — 번호 매긴 목록 */}
-            <div style={{ marginBottom: 8 }}>
-              <Sec>무엇을 할 수 있나</Sec>
-              {FEATURES.map((f, i) => (
-                <div
-                  key={f.path}
-                  onClick={() => navigate(f.path)}
-                  style={{
-                    display: 'flex', gap: 16, alignItems: 'baseline', cursor: 'pointer',
-                    padding: '13px 0', borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
-                    color: 'var(--text-muted)', width: 20, flexShrink: 0,
-                  }}>{String(i + 1).padStart(2, '0')}</span>
-                  {/* 아이콘이 적혀만 있고 **아무 데서도 안 그려지고 있었다** (9/1 까지).
-                      길찾기·홈 검색과 같은 그림이라, 같은 자리로 가는 길이 같아 보인다 */}
-                  <span style={{ color: 'var(--text-muted)', display: 'flex', flexShrink: 0, alignSelf: 'center' }} aria-hidden="true">
-                    <NavIcon name={f.icon} size={17} />
-                  </span>
-                  <span style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 500 }}>{f.name}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto', textAlign: 'right' }}>{f.short}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate('/workout')}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
-                color: 'var(--accent)', borderBottom: '2px solid var(--accent)',
-                paddingBottom: 4, marginTop: 26,
-              }}
-            >기록하러 가기 →</button>
-          </div>
-        )}
       </div>
 
       {/* 앱 정보 — 표로 벌려두면 세 줄짜리가 여섯 줄이 된다. 한 줄로 붙인다.
