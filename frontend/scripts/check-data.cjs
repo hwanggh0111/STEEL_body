@@ -960,19 +960,28 @@ const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx',
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
 const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m => m[1]));
 // 9/3 에 둘이 줄었다 — 더보기의 「특수부대식」 줄(같은 화면으로 가는 둘째 줄)과
-// 미션(MissionSystem.jsx 삭제, 아이콘 열둘을 쓰고 있었다)
-ok('다섯 화면이 아이콘 스물일곱을 쓴다', used.length, 27);
+// 미션(MissionSystem.jsx 삭제, 아이콘 열둘을 쓰고 있었다).
+// 9/4 오후 **5차 리모델링**에 크게 줄었다.
+//   홈의 「바로 가기」 격자 여섯을 걷었고 (탭바 · 서랍과 길이 세 벌이 된다),
+//   더보기에서 루틴 · 운동 검색 · 측정 · 히스토리를 걷었다 (탭바의 「운동」·「몸」·「기록」 안으로).
+//   되돌릴 수 있게 남긴 「옛 기록」·「옛 루틴」 둘이 늘었다.
+// 5차를 마치고 그 둘을 걷으면 이 수는 다시 줄어든다
+ok('다섯 화면이 아이콘 스물을 쓴다', used.length, 20);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다
 ok('여섯 화면에 이모지가 남아 있지 않다',
   FILES.filter(f => /[\u{1F300}-\u{1FAFF}\u{2B50}\u{2705}]/u.test(src[f])), []);
-// 같은 자리로 가는 길은 홈에서도 길찾기에서도 같은 그림이어야 한다
+// 홈의 「바로 가기」 격자는 **5차에 걷었다** (2026-09-04).
+//
+// 길이 세 벌이 되기 때문이다 — 탭바 · 더보기 서랍 · 홈 격자. 4차에 이미 절반을
+// 걷었는데(탭바에 있는 것을 홈에서 또 그리던 셋), 남은 여섯도 같은 문제였다.
+// 그림이 어긋나는지 보던 검사 대신 **격자가 다시 생기지 않는지**를 본다
 const iconFor = (file, path) => (src[file].match(new RegExp("icon: '([a-z]+)'[^\n]*'" + path + "'")) ||
   src[file].match(new RegExp("path: '" + path + "'[^\n]*icon: '([a-z]+)'")) || [])[1];
-ok('홈의 「바로 가기」가 길찾기와 같은 그림을 쓴다',
-  ['/homeworkout', '/search', '/measure', '/history', '/reminders', '/support']
-    .filter(p => iconFor('src/pages/HomePage.jsx', p) !== iconFor('src/components/TabBar.jsx', p)), []);
+ok('홈이 길찾기를 다시 그리지 않는다',
+  ['/homeworkout', '/search', '/measure', '/history', '/reminders', '/support', '/train', '/body']
+    .filter(p => iconFor('src/pages/HomePage.jsx', p) !== undefined), []);
 // 버그 · 문의 · 건의는 고객센터 · 제보함 · 관리자 셋이 같은 그림을 써야 한다 —
 // 사람이 「버그」로 낸 것을 관리자가 딴 그림으로 보면 같은 것인지 한 번 더 생각해야 한다
 // 세 화면이 적는 모양이 조금씩 다르다 (kind: 'bug' · key: 'bug' · bug: {) — 낱말로 찾는다
@@ -1484,7 +1493,7 @@ const HOME_NAME = '기능성운동';
 const nameSpots = [
   ['화면 제목', 'src/pages/HomeworkoutPage.jsx'],
   ['더보기', 'src/components/TabBar.jsx'],
-  ['홈 바로가기', 'src/pages/HomePage.jsx'],
+  // 홈 바로가기는 5차에 걷었다 (2026-09-04) — 이름이 놓일 자리가 하나 줄었다
   ['홈 검색', 'src/components/home/HomeSearch.jsx'],
   ['고객센터 소개', 'src/pages/support/introData.js'],
   ['제보함의 화면 목록', 'src/pages/support/reportMeta.js'],

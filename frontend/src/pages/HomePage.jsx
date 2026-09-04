@@ -35,17 +35,15 @@ import NavIcon from '../components/NavIcon';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 아래 탭바(홈 · 기록 · 인바디 · 루틴)에 없는 것들. 더보기를 열어야 닿는 자리다
-// 아이콘은 길찾기와 같은 것을 쓴다 (NavIcon.jsx). 같은 자리로 가는 길인데 홈에서만
-// 다른 그림이면 두 번 익혀야 한다
-const SHORTCUTS = [
-  { icon: 'homegym', label: '기능성운동', path: '/homeworkout' },
-  { icon: 'search', label: '운동 검색', path: '/search' },
-  { icon: 'ruler', label: '측정', path: '/measure' },
-  { icon: 'calendar', label: '히스토리', path: '/history' },
-  { icon: 'bell', label: '운동 알림', path: '/reminders' },
-  { icon: 'chat', label: '고객센터', path: '/support' },
-];
+// **「바로 가기」 격자를 걷었다** (5차 리모델링, 2026-09-04).
+//
+// 4차에 이미 절반을 걷었다 — 일곱 칸 중 기록 · 인바디 · 루틴은 아래 탭바에 늘 떠
+// 있어서 홈에서 또 그릴 이유가 없었다. 그런데 남은 여섯도 같은 문제였다.
+// 히스토리는 이제 탭바의 「기록」이고, 측정은 「몸」 안에, 운동 검색은 「운동」 안에
+// 있다. 남는 셋(기능성운동 · 운동 알림 · 고객센터)만 두려고 격자 한 판을 그리면,
+// **길이 세 벌**이 된다 — 탭바 · 더보기 · 홈 격자.
+//
+// 홈은 「오늘 무엇을 하면 되는가」 하나만 말한다. 가는 길은 탭바와 서랍이 맡는다.
 
 // 이 날짜 이후로 인바디를 안 적었으면 한 번 짚어준다
 const INBODY_STALE_DAYS = 14;
@@ -236,22 +234,6 @@ export default function HomePage() {
 
           <WeeklyReport workouts={workouts} />
 
-          <SectionTitle>바로 가기</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {SHORTCUTS.map(s => (
-              <div
-                key={s.path}
-                className="card clickable"
-                onClick={() => navigate(s.path)}
-                style={{ textAlign: 'center', padding: '14px 6px' }}
-              >
-                <div style={{ marginBottom: 4, color: 'var(--accent)', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                  <NavIcon name={s.icon} size={22} />
-                </div>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: 1 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
         </>
       )}
     </div>

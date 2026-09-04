@@ -52,9 +52,12 @@ function getCompositionData(record) {
   return parts;
 }
 
-export default function InbodyPage() {
+// `embedded` 는 **「몸」 화면 안에 들어가 있다**는 뜻이다 (5차 리모델링, 2026-09-04).
+// 그때는 제목도 갈래 고르개도 「몸」이 들고 있으니 여기서 또 그리지 않는다 —
+// 같은 것이 두 번 그려지면 어느 쪽이 진짜인지 알 수 없게 된다.
+export default function InbodyPage({ embedded = false }) {
   const location = useLocation();
-  const [tab, setTab] = useState('record');
+  const [tab, setTab] = useState('record');   // embedded 일 때는 늘 'record' 다 (위 참고)
   // 켜둔 채 날이 바뀌면 날짜 칸의 `max` 도 어제에 멈춰서 **오늘을 아예 못 고른다**
   // (useToday 주석 참고)
   const today = useToday();
@@ -269,17 +272,21 @@ export default function InbodyPage() {
 
   return (
     <div>
-      <div className="section-title">
-        <div className="accent-bar" />
-        인바디
-      </div>
+      {!embedded && (
+        <>
+          <div className="section-title">
+            <div className="accent-bar" />
+            인바디
+          </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        <button className={`btn-secondary${tab === 'record' ? ' active' : ''}`}
-          onClick={() => setTab('record')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>기록</button>
-        <button className={`btn-secondary${tab === 'compare' ? ' active' : ''}`}
-          onClick={() => setTab('compare')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>비교</button>
-      </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+            <button className={`btn-secondary${tab === 'record' ? ' active' : ''}`}
+              onClick={() => setTab('record')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>기록</button>
+            <button className={`btn-secondary${tab === 'compare' ? ' active' : ''}`}
+              onClick={() => setTab('compare')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>비교</button>
+          </div>
+        </>
+      )}
 
       {tab === 'compare' && (
         <Suspense fallback={<ChartLoading height={200} />}><ComparePage /></Suspense>

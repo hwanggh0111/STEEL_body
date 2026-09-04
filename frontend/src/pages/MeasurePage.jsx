@@ -30,7 +30,9 @@ const TABS = [
   { key: 'flex', label: '유연성', desc: '앞으로 굽히기 · 스쿼트 깊이' },
 ];
 
-export default function MeasurePage() {
+// `embedded` — 「몸」 화면 안에 들어가 있다 (5차 리모델링, 2026-09-04).
+// 제목은 「몸」이 들고 있다
+export default function MeasurePage({ embedded = false }) {
   const location = useLocation();
   // 검색에서 navigate state로 탭 지정 가능
   // 지정해서 들어오지 않으면 **목록부터** 연다. 예전에는 늘 '전신 사이즈'가 열렸는데,
@@ -118,7 +120,7 @@ export default function MeasurePage() {
   if (loading) {
     return (
       <div>
-        <div className="section-title"><div className="accent-bar" />측정 시스템</div>
+        {!embedded && <div className="section-title"><div className="accent-bar" />측정 시스템</div>}
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
           <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           로딩 중...
@@ -129,7 +131,7 @@ export default function MeasurePage() {
 
   return (
     <div>
-      <div className="section-title"><div className="accent-bar" />측정 시스템</div>
+      {!embedded && <div className="section-title"><div className="accent-bar" />측정 시스템</div>}
 
       {!tab ? (
         <>

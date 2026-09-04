@@ -89,8 +89,12 @@ console.log('── 화면이 터지지 않고 그려지는가 (데이터 없이
 const SCREENS = [
   ['홈', 'src/pages/HomePage.jsx'],
   ['기록', 'src/pages/WorkoutPage.jsx'],
+  // 5차 리모델링 — 루틴 · 기록 · 검색 · 기능성운동을 한 흐름으로 (2026-09-04)
+  ['운동', 'src/pages/TrainPage.jsx'],
   ['히스토리', 'src/pages/HistoryPage.jsx'],
   ['루틴', 'src/pages/RoutinePage.jsx'],
+  // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
+  ['몸', 'src/pages/BodyPage.jsx'],
   ['인바디', 'src/pages/InbodyPage.jsx'],
   ['비교', 'src/pages/ComparePage.jsx'],
   ['측정', 'src/pages/MeasurePage.jsx'],

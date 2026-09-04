@@ -189,7 +189,10 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
 const SAMPLE_BEFORE = { date: '2026-06-10', weight: 78, fat_pct: 22, muscle_kg: 30, bmi: 25.1, water_l: 38 };
 const SAMPLE_AFTER = { date: '2026-09-02', weight: 73, fat_pct: 16, muscle_kg: 33, bmi: 23.5, water_l: 41 };
 
-export default function ComparePage() {
+// `embedded` — 「몸」 화면 안에 들어가 있다 (5차 리모델링, 2026-09-04).
+// 제목은 「몸」이 들고 있다. 아래의 「얼마나 달라졌나」는 **그대로 둔다** —
+// 그건 이 화면의 제목이 아니라 그 덩어리의 이름이다
+export default function ComparePage({ embedded = false }) {
   const { records, loading, fetchAll } = useInbodyStore();
   const [beforeIdx, setBeforeIdx] = useState(null);
   const [afterIdx, setAfterIdx] = useState(null);
@@ -280,10 +283,12 @@ export default function ComparePage() {
 
   return (
     <div>
-      <div className="section-title">
-        <div className="accent-bar" />
-        비교
-      </div>
+      {!embedded && (
+        <div className="section-title">
+          <div className="accent-bar" />
+          비교
+        </div>
+      )}
 
       {/* ── 1. 언제와 언제 ──
           예전에는 날짜 고르는 자리가 사진 **아래**에 있었다. 무엇과 무엇을 견주는지가

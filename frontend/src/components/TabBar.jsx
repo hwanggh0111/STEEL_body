@@ -10,10 +10,14 @@ import { usePendingReports } from './usePendingReports';
 // 아이콘은 이모지가 아니라 직접 그린 선이다 (NavIcon.jsx). 이모지 그림은 폰 만든
 // 회사 것이라 남의 것이고, 폰마다 다르게 나온다 — 금색 화면에 파란 종이 뜬다
 const TABS = [
-  { path: '/home',    label: '홈',    icon: 'home' },
-  { path: '/workout', label: '기록',  icon: 'dumbbell' },
-  { path: '/inbody',  label: '인바디', icon: 'chart' },
-  { path: '/routine', label: '루틴',  icon: 'clipboard' },
+  // 5차 리모델링 (2026-09-04) — **기능 이름이 아니라 하는 일로 나눈다.**
+  //   오늘  무엇을 하면 되는지        운동  고르고 · 찾고 · 적는다
+  //   몸    재고 견준다                기록  되짚는다
+  // 루틴은 「운동」 안에서 시작하고, 인바디 · 측정 · 견주기는 「몸」 안에 있다
+  { path: '/home',    label: '오늘',  icon: 'home' },
+  { path: '/train',   label: '운동',  icon: 'dumbbell' },
+  { path: '/body',    label: '몸',    icon: 'chart' },
+  { path: '/history', label: '기록',  icon: 'calendar' },
   { path: '/more',    label: '더보기', icon: 'dots' },
 ];
 
@@ -25,12 +29,19 @@ const TABS = [
 // 메뉴에 같은 곳으로 가는 줄이 둘 있으면, 쓰는 사람은 둘이 다른 것인 줄 알고 눌러본다.
 // 그래서 지름길 줄을 지웠다 — 프로그램은 그 화면에서 고른다
 const MORE_ITEMS_ALL = [
+  // 5차 리모델링 (2026-09-04) — **여기는 서랍이다.** 늘 쓰는 것은 탭바에 있고,
+  // 가끔 쓰는 것만 남는다. 예전에는 「운동 검색」과 「관리자」가 같은 서랍에 있었다.
+  //
+  // 루틴 · 운동 검색 · 측정 · 인바디는 걷었다 — 탭바의 「운동」과 「몸」 안에 있다.
+  // 기능성운동은 아직 자기 화면이 필요해서 남긴다 (「운동」에서 열린다).
+  //
+  // **옛 화면 둘은 되돌릴 수 있게 남겨둔다** — 새 「운동」이 아직 못 하는 것이 있다
+  // (고치기 · 지우기 · 지난 날짜에 적기). 5차를 마치면 이 둘을 걷는다
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
-  { path: '/search',     label: '운동 검색',  icon: 'search' },
-  { path: '/measure',    label: '측정 시스템', icon: 'ruler' },
-  { path: '/history',    label: '히스토리',   icon: 'calendar' },
   { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
   { path: '/support',    label: '고객센터',   icon: 'chat' },
+  { path: '/workout',    label: '옛 기록',    icon: 'dumbbell' },
+  { path: '/routine',    label: '옛 루틴',    icon: 'clipboard' },
   { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },
 ];
 
