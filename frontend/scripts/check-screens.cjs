@@ -114,7 +114,15 @@ const SCREENS = [
   ['관리자 · 점검 스케줄', 'src/components/admin/MaintAdmin.jsx'],
   ['관리자 · 보안 검사', 'src/components/admin/SecurityScan.jsx'],
   ['관리자 · 못 찾은 말', 'src/components/admin/FaqGapAdmin.jsx'],
-  // 껍데기와 전면 화면
+  // 껍데기와 전면 화면.
+  //
+  // **`Layout` 이 빠져 있었다** (2026-09-04 에 넣었다). 이것은 화면이 아니라
+  // 모든 화면을 감싸는 껍데기라, 여기가 터지면 **안쪽이 전부 안 뜬다.**
+  // 실제로 그날 `useMemo` 를 안 가져온 채로 써서 앱 전체가 흰 화면이 됐고,
+  // 화면 스물넷이 다 통과하는 동안 아무도 못 잡았다
+  ['껍데기 (Layout)', 'src/components/Layout.jsx'],
+  ['아래 길찾기 (TabBar)', 'src/components/TabBar.jsx'],
+  ['내 계정 시트', 'src/components/AccountSheet.jsx'],
   ['점검 화면', 'src/components/MaintenanceScreen.jsx'],
   ['스플래시', 'src/components/SplashScreen.jsx'],
 ];
