@@ -20,7 +20,7 @@ import { useIsPC } from './useIsPC';
 import AccountDeleteModal from './AccountDeleteModal';
 import OfflineBar from './OfflineBar';
 import AccountSheet from './AccountSheet';
-import { DRAWER_ITEMS } from './TabBar';
+import { DRAWER_ITEMS } from '../data/navItems';
 import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';

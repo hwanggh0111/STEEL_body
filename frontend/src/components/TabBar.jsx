@@ -6,6 +6,7 @@ import NavIcon from './NavIcon';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
+import { DRAWER_ITEMS } from '../data/navItems';
 
 // 아이콘은 이모지가 아니라 직접 그린 선이다 (NavIcon.jsx). 이모지 그림은 폰 만든
 // 회사 것이라 남의 것이고, 폰마다 다르게 나온다 — 금색 화면에 파란 종이 뜬다
@@ -33,24 +34,6 @@ const TABS = [
 // 화면이다.** 여섯 중 하나만 지름길을 갖는 것도 이유가 없다(다른 다섯은 없다).
 // 메뉴에 같은 곳으로 가는 줄이 둘 있으면, 쓰는 사람은 둘이 다른 것인 줄 알고 눌러본다.
 // 그래서 지름길 줄을 지웠다 — 프로그램은 그 화면에서 고른다
-// 서랍에 담기는 것. **내 계정 시트가 이 목록을 그린다** (`AccountSheet`).
-// PC 사이드바도 같은 목록을 쓴다 — 두 벌로 적으면 한쪽에만 새 줄이 생기는 날이 온다
-export const DRAWER_ITEMS = [
-  // 5차 리모델링 (2026-09-04) — **여기는 서랍이다.** 늘 쓰는 것은 탭바에 있고,
-  // 가끔 쓰는 것만 남는다. 예전에는 「운동 검색」과 「관리자」가 같은 서랍에 있었다.
-  //
-  // 루틴 · 운동 검색 · 측정 · 인바디는 걷었다 — 탭바의 「운동」과 「몸」 안에 있다.
-  // 기능성운동은 아직 자기 화면이 필요해서 남긴다 (「운동」에서 열린다).
-  //
-  // **옛 화면 둘은 되돌릴 수 있게 남겨둔다** — 새 「운동」이 아직 못 하는 것이 있다
-  // (고치기 · 지우기 · 지난 날짜에 적기). 5차를 마치면 이 둘을 걷는다
-  { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
-  { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
-  { path: '/support',    label: '고객센터',   icon: 'chat' },
-  { path: '/workout',    label: '옛 기록',    icon: 'dumbbell' },
-  { path: '/routine',    label: '옛 루틴',    icon: 'clipboard' },
-  { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },
-];
 
 // ─── 통일 디자인 토큰 ──────────────────
 const NAV_TOKENS = {

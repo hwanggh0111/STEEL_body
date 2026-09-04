@@ -961,7 +961,10 @@ console.log('── 길찾기 아이콘 (이모지를 걷어내고 직접 그린
 const nav = bundleJsx('src/components/NavIcon.jsx', '.t16.cjs');
 // 길찾기 · 홈의 「바로 가기」 · 고객센터가 같은 서랍에서 꺼내 쓴다
 // 9/3 에 미션을 걷어냈다 (MissionSystem.jsx 삭제)
-const FILES = ['src/components/TabBar.jsx', 'src/pages/HomePage.jsx',
+// 서랍 목록은 2026-09-04 에 `data/navItems.js` 로 옮겼다 — 컴포넌트 파일이
+// 컴포넌트 아닌 것을 같이 내보내면 Fast Refresh 가 깨져서, 길찾기를 한 줄
+// 고칠 때마다 보던 화면이 처음으로 돌아간다
+const FILES = ['src/components/TabBar.jsx', 'src/data/navItems.js', 'src/pages/HomePage.jsx',
                'src/pages/support/SupportPage.jsx', 'src/pages/support/reportMeta.js',
                'src/components/admin/ReportAdmin.jsx'];
 const src = Object.fromEntries(FILES.map(f => [f, fs.readFileSync(f, 'utf-8')]));
@@ -973,11 +976,14 @@ const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m 
 //   더보기에서 루틴 · 운동 검색 · 측정 · 히스토리를 걷었다 (탭바의 「운동」·「몸」·「기록」 안으로).
 //   되돌릴 수 있게 남긴 「옛 기록」·「옛 루틴」 둘이 늘었다.
 // 5차를 마치고 그 둘을 걷으면 이 수는 다시 줄어든다
-ok('다섯 화면이 아이콘 열아홉을 쓴다', used.length, 19);
+ok('여섯 자리가 아이콘 열아홉을 쓴다', used.length, 19);
 // 서랍이 하나가 됐다 (2026-09-04) — 아래 「더보기」를 걷고 머리의 내 계정으로 옮겼다.
 // **둘이 있으면 무엇이 어느 쪽에 있는지를 사람이 외워야 한다**
 ok('아래 탭바에 「더보기」가 없다', /label: '더보기'/.test(src['src/components/TabBar.jsx']), false);
-ok('  서랍 목록을 한 곳에서 들고 있다', /export const DRAWER_ITEMS/.test(src['src/components/TabBar.jsx']), true);
+// **값만 있는 자리는 값만 있는 파일에 둔다.** 컴포넌트 파일에서 내보내면
+// Fast Refresh 가 그 파일을 고칠 때마다 화면을 통째로 다시 그린다
+ok('  서랍 목록을 한 곳에서 들고 있다', /export const DRAWER_ITEMS/.test(fs.readFileSync('src/data/navItems.js', 'utf-8')), true);
+ok('  컴포넌트 파일에서 내보내지 않는다', /export const DRAWER_ITEMS/.test(src['src/components/TabBar.jsx']), false);
 ok('  내 계정 시트가 그 목록을 그린다',
   /drawer/.test(fs.readFileSync('src/components/AccountSheet.jsx', 'utf-8')), true);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
@@ -1505,7 +1511,7 @@ ok('이름 저장은 성공했을 때만 칸을 닫는다', /done\?\.\(\)/.test(
 const HOME_NAME = '기능성운동';
 const nameSpots = [
   ['화면 제목', 'src/pages/HomeworkoutPage.jsx'],
-  ['더보기', 'src/components/TabBar.jsx'],
+  ['서랍', 'src/data/navItems.js'],
   // 홈 바로가기는 5차에 걷었다 (2026-09-04) — 이름이 놓일 자리가 하나 줄었다
   ['홈 검색', 'src/components/home/HomeSearch.jsx'],
   ['고객센터 소개', 'src/pages/support/introData.js'],
