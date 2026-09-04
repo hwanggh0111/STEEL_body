@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { AM, PM, HOURS12, parse24, to24, label24, minuteOptions } from '../data/timeOfDay';
 
 // 운동 알림.
 //
@@ -33,6 +34,30 @@ function urlBase64ToUint8Array(base64) {
 const canNotify = typeof Notification !== 'undefined'
   && 'serviceWorker' in navigator
   && 'PushManager' in window;
+
+// ── 서비스 워커를 기다린다. 단, 영영은 아니다 ──
+//
+// **`navigator.serviceWorker.ready` 는 등록이 없으면 끝나지 않는다.** 거절도 안 한다 —
+// 그냥 멈춘다. 그것을 그대로 `await` 하면 `finally` 도 안 돌아서 `busy` 가 영영
+// 안 풀리고, **화면의 단추가 전부 잠긴 채 아무 말도 안 한다.**
+//
+// 이건 개발 중에 늘 일어나는 일이다 — `main.jsx` 가 **개발에서는 서비스 워커를
+// 일부러 안 붙인다**(캐시 먼저 주는 성질 때문에 고친 화면이 안 보여서). 운영에서도
+// 등록이 실패하면(`register(...).catch(() => {})`) 똑같이 멈춘다.
+//
+// 그래서 시간 제한을 둔다. 못 기다리면 **없다고 답한다** — 부른 쪽이 사람에게
+// 무슨 일인지 말할 수 있어야 한다.
+const SW_WAIT_MS = 5000;
+
+function swReady(ms = SW_WAIT_MS) {
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  let timer;
+  const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), ms); });
+  return Promise.race([navigator.serviceWorker.ready, timeout])
+    .then((reg) => reg || null)
+    .catch(() => null)
+    .finally(() => clearTimeout(timer));
+}
 
 // 홈 화면에 추가해서 연 앱인가 (아이폰은 이때만 알림이 온다)
 const isStandalone = typeof window !== 'undefined'
@@ -81,6 +106,10 @@ export default function RemindersPage() {
   const [settings, setSettings] = useState(null);
   const [vapid, setVapid] = useState(null);
   const [devices, setDevices] = useState(0);
+  // **이 기기가 받는가**는 계정의 기기 수로 알 수 없다. 폰에서 켜두고 PC 에서 열면
+  // `devices` 는 1 이지만 이 PC 는 안 받는다 — 그런데 화면은 「이 기기는 알림을
+  // 받습니다」라고 했다. 브라우저에 실제로 구독이 있는지를 본다
+  const [thisDevice, setThisDevice] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -95,6 +124,18 @@ export default function RemindersPage() {
       })
       .catch(() => setError('설정을 불러오지 못했어요'))
       .finally(() => setLoading(false));
+  }, []);
+
+  // 이 브라우저에 구독이 있는지. **`getRegistration()` 을 쓴다** — `ready` 와 달리
+  // 등록이 없으면 곧바로 `undefined` 로 끝난다
+  useEffect(() => {
+    if (!canNotify) return undefined;
+    let dropped = false;
+    navigator.serviceWorker.getRegistration()
+      .then((reg) => (reg ? reg.pushManager.getSubscription() : null))
+      .then((sub) => { if (!dropped) setThisDevice(!!sub); })
+      .catch(() => {});
+    return () => { dropped = true; };
   }, []);
 
   // 바뀐 것만 보낸다. 서버가 나머지는 그대로 둔다
@@ -127,13 +168,18 @@ export default function RemindersPage() {
         toast('알림을 허락하지 않으셨어요', 'error');
         return;
       }
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await swReady();
+      if (!reg) {
+        toast('알림을 켤 준비가 안 됐어요. 새로고침한 뒤 다시 눌러주세요', 'error');
+        return;
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapid),
       });
       const { data } = await client.post('/reminders/subscribe', { subscription: sub.toJSON() });
       setDevices(data.devices);
+      setThisDevice(true);
       toast('이 기기에 알림을 켰어요');
     } catch (err) {
       toast('알림을 켜지 못했어요', 'error');
@@ -151,15 +197,16 @@ export default function RemindersPage() {
     if (!canNotify) return;
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (!sub) { toast('이 기기는 이미 꺼져 있어요'); return; }
+      const reg = await swReady();
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      if (!sub) { setThisDevice(false); toast('이 기기는 이미 꺼져 있어요'); return; }
       const endpoint = sub.endpoint;
       // 브라우저에서 먼저 끊고 서버에 알린다. 순서가 반대면 서버에서 지운 뒤
       // 브라우저 구독이 남아 「알 수 없는 기기」로 계속 붙어 있는다
       await sub.unsubscribe();
       const { data } = await client.delete('/reminders/subscribe', { data: { endpoint } });
       setDevices(data.devices);
+      setThisDevice(false);
       toast('이 기기의 알림을 껐어요');
     } catch {
       toast('끄지 못했어요', 'error');
@@ -200,7 +247,23 @@ export default function RemindersPage() {
   };
 
   const serverReady = !!vapid;
-  const registered = devices > 0 && permission === 'granted';
+  // **이 기기**에 구독이 있고, 이 브라우저가 알림을 허락했을 때만 「받습니다」다
+  const registered = thisDevice && permission === 'granted';
+  // 켜져 있는데 고른 요일이 하나도 없으면 **정한 요일 알림은 영영 안 온다.**
+  // 서버는 이 상태를 막지 않는다(오래 쉴 때 알림만으로도 쓸 수 있어서) —
+  // 대신 화면이 그렇다고 말해야 한다
+  const noDays = settings.enabled && settings.days.length === 0;
+
+  // 담긴 값(24시간)을 고르는 모양으로 편다. 못 읽는 값이 담겨 있어도 화면은 돌아야
+  // 한다 — 그때는 저녁 7시를 보여주고, 사람이 만지면 그때 제대로 저장된다
+  const clock = parse24(settings.time) || { ampm: PM, hour12: 7, minute: 0 };
+
+  const setTime = (ampm, hour12, minute) => {
+    const next = to24(ampm, hour12, minute);
+    // 만들 수 없는 시각이면 보내지 않는다. 서버가 거절해봐야 사람은 이유를 모른다
+    if (!next || next === settings.time) return;
+    patch({ time: next });
+  };
 
   return (
     <div>
@@ -223,7 +286,7 @@ export default function RemindersPage() {
         <div style={{ flexGrow: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>BLACK IRON</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{settings.time}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label24(settings.time)}</span>
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>오늘 운동하는 날이에요</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>기록까지 남기면 이번 주 한 칸이 채워집니다.</div>
@@ -264,6 +327,11 @@ export default function RemindersPage() {
           {!registered ? (
             <>
               <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이 기기는 아직 알림을 안 받습니다</div>
+              {devices > 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  다른 기기 {devices}대에서는 받고 있어요
+                </div>
+              )}
               <button className="btn-primary" disabled={busy} onClick={enableHere}>
                 이 기기에서 알림 켜기
               </button>
@@ -298,7 +366,13 @@ export default function RemindersPage() {
           disabled={busy}
           onClick={() => patch({ enabled: !settings.enabled })}
           label="운동 알림 받기"
-          desc={settings.enabled ? '정한 요일과 시각에 옵니다' : '꺼져 있습니다'}
+          desc={!settings.enabled
+            ? '꺼져 있습니다'
+            : noDays
+              ? (settings.streakGuard
+                ? '고른 요일이 없어요 · 오래 쉴 때만 옵니다'
+                : '고른 요일이 없어 아무것도 안 옵니다')
+              : '정한 요일과 시각에 옵니다'}
         />
         <Toggle
           on={settings.streakGuard}
@@ -343,15 +417,60 @@ export default function RemindersPage() {
         })}
       </div>
 
+      {noDays && (
+        <div style={{
+          fontSize: 12, lineHeight: 1.7, marginBottom: 18,
+          color: settings.streakGuard ? 'var(--text-muted)' : 'var(--danger)',
+        }}>
+          {settings.streakGuard
+            ? '고른 요일이 없습니다. 지금은 오래 쉬었을 때만 한 번 옵니다.'
+            : '고른 요일이 없고 「오래 쉬면 한 번 알리기」도 꺼져 있어 아무 알림도 안 옵니다.'}
+        </div>
+      )}
+
+      {/* ── 시각 ──
+          `<input type="time">` 를 걷었다. 브라우저마다 생김새가 다르고, 폰에서는
+          굴림판이 뜨고, **비우면 빈 값이 서버로 간다**(그러면 저장이 실패한다).
+          무엇보다 「저녁 7시」라고 생각하는 사람에게 19 를 찾게 하는 자리였다.
+          오전/오후 · 시 · 분 셋으로 고른다. 담기는 값(24시간)은 그대로다 */}
       <div className="label">시간</div>
-      <input
-        className="input"
-        type="time"
-        value={settings.time}
-        disabled={busy}
-        onChange={(e) => patch({ time: e.target.value })}
-        style={{ marginBottom: 18 }}
-      />
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+        {[[AM, '오전'], [PM, '오후']].map(([v, label]) => (
+          <button
+            key={v}
+            className={`btn-secondary${clock.ampm === v ? ' active' : ''}`}
+            disabled={busy}
+            onClick={() => setTime(v, clock.hour12, clock.minute)}
+            style={{ width: 'auto', padding: '10px 16px' }}
+            aria-pressed={clock.ampm === v}
+          >{label}</button>
+        ))}
+        <select
+          className="input"
+          value={clock.hour12}
+          disabled={busy}
+          onChange={(e) => setTime(clock.ampm, Number(e.target.value), clock.minute)}
+          aria-label="시"
+          style={{ width: 'auto', flexGrow: 1, marginBottom: 0 }}
+        >
+          {HOURS12.map(h => <option key={h} value={h}>{h}시</option>)}
+        </select>
+        <select
+          className="input"
+          value={clock.minute}
+          disabled={busy}
+          onChange={(e) => setTime(clock.ampm, clock.hour12, Number(e.target.value))}
+          aria-label="분"
+          style={{ width: 'auto', flexGrow: 1, marginBottom: 0 }}
+        >
+          {minuteOptions(clock.minute).map(m => (
+            <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>
+        {label24(settings.time)}에 옵니다
+      </div>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
         정한 시각에 서버가 보냅니다. 그 시각에 서버가 쉬고 있었다면 그날은 건너뜁니다 —

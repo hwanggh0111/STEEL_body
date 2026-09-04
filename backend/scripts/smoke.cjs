@@ -292,6 +292,32 @@ function cleanAll() {
     (await call('PUT', '/reminders', { enabled: true, days: [1, 3, 5], time: '19:00', tzOffset: -540, streakGuard: true })).status, 200);
   step('끄기', (await call('PUT', '/reminders', { enabled: false })).status, 200);
 
+  // **엉뚱한 말을 하지 않는다** (2026-09-04).
+  //
+  // 예전에는 모르는 값을 조용히 버리고, 남은 게 없으면 「바꿀 값이 없어요」라고 했다.
+  // 그래서 시간 칸을 비우면(브라우저가 빈 문자열을 보낸다) 시각을 고치려던 사람에게
+  // 「바꿀 값이 없어요」가 떴다 — 무엇을 고쳐야 할지 알 수 없는 말이다.
+  const badTime = await call('PUT', '/reminders', { time: '', tzOffset: -540 });
+  step('시각이 빈 값이면 시각 이야기를 한다', badTime.status, 400);
+  step('  「바꿀 값이 없어요」가 아니다', badTime.data?.error, '시각을 19:00 처럼 적어주세요');
+  const badTime2 = await call('PUT', '/reminders', { time: '25:00' });
+  step('없는 시각도 같다', badTime2.data?.error, '시각을 19:00 처럼 적어주세요');
+  const badDays = await call('PUT', '/reminders', { days: '월수금' });
+  step('요일 모양이 틀리면 요일 이야기를 한다', badDays.data?.error, '요일은 0~6 사이 숫자 목록으로 주세요');
+  // 시간대만 와도 저장한다 — **보낼 시각을 그 사람 시간대로 재는 값**이라
+  // 여행을 가서 시간대가 바뀌면 그것만 와도 갱신돼야 한다
+  step('시간대만 와도 저장한다', (await call('PUT', '/reminders', { tzOffset: -540 })).status, 200);
+  const nothing = await call('PUT', '/reminders', {});
+  step('진짜 아무것도 없으면 그렇다고 한다', nothing.data?.error, '바꿀 값이 없어요');
+  step('  값을 되돌려 놓는다',
+    (await call('PUT', '/reminders', { time: '19:00' })).status, 200);
+
+  // 없는 기기를 끄려 해도 실패가 아니다 — 두 번 눌렀거나 이미 빠진 기기다.
+  // **남의 것이어서 못 지운 것도 여기로 온다** (있고 없고를 알려주지 않는다)
+  const gone = await call('DELETE', '/reminders/subscribe', { endpoint: 'https://push.example.com/없는것' });
+  step('없는 기기를 끄려 해도 200', gone.status, 200);
+  step('  지운 것은 없다', gone.data?.removed, 0);
+
 
   // ── 화면이 기대하는 모양대로 오는가 ──
   //

@@ -36,6 +36,7 @@ const josa = bundle('src/data/particle.js', '.t8.cjs');
 global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
 const chart = bundle('src/data/chartColors.js', '.t10.cjs');
+const tod = bundle('src/data/timeOfDay.js', '.t28.cjs');
 // 그래프 컴포넌트는 실제로 **그려봐야** 확인된다. react 는 밖에 둔다 —
 // 번들 안에 같이 넣으면 react 사본이 둘이 되어 훅이 안 붙는다
 const React = require('react');
@@ -1502,5 +1503,65 @@ ok('옛 이름이 화면에 남아 있지 않다', oldLeft.map(([w]) => w), []);
 ok('루틴 갈래는 건드리지 않았다',
   /'홈트'/.test(fs.readFileSync('src/pages/RoutinePage.jsx', 'utf-8')), true);
 
+
+console.log('\n── 알림 시각을 고르는 방법 (2026-09-04) ──');
+// `<input type="time">` 을 걷었다. 「저녁 7시」라고 생각하는 사람에게 19 를 찾게 하는
+// 자리였고, **비우면 빈 값이 서버로 가서** 「바꿀 값이 없어요」가 떴다.
+// 담기는 값(24시간)은 그대로다 — 서버 · 스케줄러 · 검사가 전부 그것을 쓴다
+ok('오후 7시를 19:00 으로 담는다', tod.to24('pm', 7, 0), '19:00');
+ok('오전 7시는 07:00 이다', tod.to24('am', 7, 0), '07:00');
+// **자정과 정오가 함정이다.** 0 을 12 로 안 바꾸면 화면에 「오전 0시」가 뜬다
+ok('오전 12시는 자정(00:00)이다', tod.to24('am', 12, 0), '00:00');
+ok('오후 12시는 정오(12:00)이다', tod.to24('pm', 12, 30), '12:30');
+ok('  00:00 을 펴면 오전 12시다', tod.parse24('00:00'), { ampm: 'am', hour12: 12, minute: 0 });
+ok('  12:00 을 펴면 오후 12시다', tod.parse24('12:00'), { ampm: 'pm', hour12: 12, minute: 0 });
+ok('19:00 을 펴면 오후 7시다', tod.parse24('19:00'), { ampm: 'pm', hour12: 7, minute: 0 });
+ok('23:55 도 편다', tod.parse24('23:55'), { ampm: 'pm', hour12: 11, minute: 55 });
+
+// 담긴 값과 고른 값이 서로 오갈 수 있어야 한다. 한쪽만 맞으면 만질 때마다 시각이 밀린다
+const roundTrip = [];
+for (let h = 0; h < 24; h += 1) {
+  const hhmm = String(h).padStart(2, '0') + ':07';
+  const back = tod.parse24(hhmm);
+  if (tod.to24(back.ampm, back.hour12, back.minute) !== hhmm) roundTrip.push(hhmm);
+}
+ok('스물네 시각이 그대로 돌아온다', roundTrip, []);
+
+// 못 만들 시각은 만들지 않는다. 이상한 것을 보내면 서버가 거절하는데,
+// 그때 사람은 자기가 무엇을 잘못했는지 모른다
+ok('13시는 12시간 표기에 없다', tod.to24('pm', 13, 0), null);
+ok('0시도 없다 (12로 적는다)', tod.to24('am', 0, 0), null);
+ok('60분도 없다', tod.to24('pm', 7, 60), null);
+ok('오전도 오후도 아니면 안 만든다', tod.to24('저녁', 7, 0), null);
+ok('못 읽는 값은 null (몰래 기본값을 만들지 않는다)', tod.parse24('24:00'), null);
+ok('빈 값도 null', tod.parse24(''), null);
+
+ok('사람이 읽는 모양으로 적는다', tod.label24('19:00'), '오후 7:00');
+ok('  한 자리 분도 두 자리로', tod.label24('07:05'), '오전 7:05');
+ok('  못 읽으면 받은 것을 그대로 (화면이 안 비게)', tod.label24('이상한값'), '이상한값');
+
+// **담긴 값이 목록에 없으면 넣어준다.** 안 그러면 19:07 로 정해둔 사람의 화면에서
+// 분이 제멋대로 00 으로 보이고, 아무것도 안 만졌는데 저장하면 시각이 바뀐다
+ok('분은 5분 단위 열둘', tod.minuteOptions(0).length, 12);
+ok('담긴 분이 목록에 없으면 끼워 넣는다', tod.minuteOptions(7).includes(7), true);
+ok('  자리도 맞춰서', tod.minuteOptions(7).slice(0, 4), [0, 5, 7, 10]);
+ok('  목록에 있는 것은 안 늘린다', tod.minuteOptions(30).length, 12);
+
+console.log('\n── 운동 알림 화면 (2026-09-04 에 고친 것) ──');
+const rem = stripNotes(fs.readFileSync('src/pages/RemindersPage.jsx', 'utf-8'));
+// **`serviceWorker.ready` 는 등록이 없으면 끝나지 않는다.** 거절도 안 한다 — 그냥
+// 멈춘다. 그대로 await 하면 finally 가 안 돌아 busy 가 영영 안 풀리고 화면이 잠긴다.
+// 개발 중에는 서비스 워커를 일부러 안 붙이므로(main.jsx) 늘 일어나는 일이었다
+ok('서비스 워커를 그냥 기다리지 않는다', /await navigator\.serviceWorker\.ready/.test(rem), false);
+ok('  시간 제한을 두고 기다린다', /swReady\(/.test(rem), true);
+ok('  못 기다리면 사람에게 말한다', /준비가 안 됐어요/.test(rem), true);
+// 폰에서 켜두고 PC 에서 열면 devices 는 1 인데 이 PC 는 안 받는다.
+// 그런데 화면은 「이 기기는 알림을 받습니다」라고 했다
+ok('「이 기기」를 계정 기기 수로 판단하지 않는다',
+  /registered = devices > 0/.test(rem), false);
+ok('  이 브라우저의 구독을 본다', /pushManager\.getSubscription/.test(rem), true);
+// 켜져 있는데 고른 요일이 없으면 정한 요일 알림은 영영 안 온다
+ok('요일이 없으면 그렇다고 말한다', /고른 요일이 없/.test(rem), true);
+ok('시각은 오전·오후로 고른다', /type="time"/.test(rem), false);
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

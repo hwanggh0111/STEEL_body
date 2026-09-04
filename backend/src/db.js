@@ -1284,7 +1284,24 @@ const db = {
     return (data.pushSubs || []).filter(s => s.user_id === userId);
   },
 
-  // 브라우저가 404/410 을 돌려주면 그 구독은 죽은 것이다. 그대로 두면 매번 실패한다
+  // 사람이 「이 기기 끄기」를 눌렀을 때. **주인을 확인하고 지운다.**
+  //
+  // 아래 `deletePushSubByEndpoint` 는 주인을 안 본다 — 죽은 구독을 걷는 쪽이라
+  // 그래야 맞다(그때는 우리가 서버에서 스스로 부른다). 그런데 화면에서 오는 요청까지
+  // 그것을 쓰고 있었다. 구독 주소만 알면 **남의 기기 알림을 끌 수 있었다.**
+  deletePushSubOfUser(userId, endpoint) {
+    const data = load();
+    if (!data.pushSubs) return { changes: 0 };
+    const idx = data.pushSubs.findIndex(s => s.endpoint === endpoint && s.user_id === userId);
+    if (idx === -1) return { changes: 0 };
+    data.pushSubs.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
+  // 브라우저가 404/410 을 돌려주면 그 구독은 죽은 것이다. 그대로 두면 매번 실패한다.
+  // **여기는 주인을 안 본다** — 서버가 스스로 걷는 자리다. 사람이 부르는 길에는
+  // 위의 `deletePushSubOfUser` 를 쓴다
   deletePushSubByEndpoint(endpoint) {
     const data = load();
     if (!data.pushSubs) return { changes: 0 };

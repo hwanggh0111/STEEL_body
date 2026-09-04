@@ -77,5 +77,57 @@ ok('한국 8/28 자정 직전은 8/27', seoulDay('2026-08-27T14:59:00.000Z'), '2
 ok('UTC 로 자르면 틀린다는 것', '2026-08-27T16:00:00.000Z'.slice(0, 10), '2026-08-27');
 ok('없는 값은 빈 문자열', seoulDay(undefined), '');
 
+console.log('\n── 남의 기기 알림을 끌 수 있었다 (2026-09-04) ──');
+//
+// 화면의 「이 기기 끄기」는 구독 주소를 서버로 보내 그 줄을 지운다. 그런데 지우는
+// 갈래가 **주인을 안 봤다** — 주소만 맞으면 지웠다. 구독 주소를 아는 사람은
+// 남의 기기 알림을 끌 수 있었고, 알림은 **조용히 안 오는 것**이라 당한 사람은
+// 한참 뒤에야 안다.
+//
+// 주인을 안 보는 갈래(`deletePushSubByEndpoint`)는 **그대로 둔다** — 브라우저가
+// 404/410 을 돌려준 죽은 구독을 서버가 스스로 걷는 자리다. 사람이 부르는 길만
+// 주인을 보는 갈래로 옮겼다.
+//
+// 진짜 DB 는 건드리지 않는다 — DB_FILE 로 임시 파일을 가리킨 뒤 지운다.
+{
+  const fs = require('fs');
+  const path = require('path');
+  const TMP = path.join(__dirname, '..', '.check-reminder.json');
+  for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+  }
+  process.env.DB_FILE = TMP;
+  const db = require('../src/db');
+
+  const A = 1;   // 나
+  const B = 2;   // 남
+  const mine = 'https://push.example.com/aaa';
+  const yours = 'https://push.example.com/bbb';
+  db.savePushSub(A, { endpoint: mine, keys: { p256dh: 'x', auth: 'y' } });
+  db.savePushSub(B, { endpoint: yours, keys: { p256dh: 'x', auth: 'y' } });
+
+  ok('내 기기는 내가 끌 수 있다', db.deletePushSubOfUser(A, mine).changes, 1);
+  ok('  목록에서 빠진다', db.getPushSubs(A).length, 0);
+
+  ok('**남의 기기는 못 끈다**', db.deletePushSubOfUser(A, yours).changes, 0);
+  ok('  남의 목록은 그대로다', db.getPushSubs(B).length, 1);
+
+  ok('없는 주소를 지우려 해도 안 터진다', db.deletePushSubOfUser(A, '없는주소').changes, 0);
+
+  // 죽은 구독을 걷는 쪽은 주인을 안 본다. **그래야 맞다** — 서버가 스스로 부른다
+  ok('죽은 구독은 주인 없이 걷는다', db.deletePushSubByEndpoint(yours).changes, 1);
+  ok('  걷히고 나면 없다', db.getPushSubs(B).length, 0);
+
+  // 사람이 부르는 길이 주인을 보는 갈래를 쓰는가. 여기가 어긋나면 위 검사가 다 통과해도
+  // 구멍은 그대로다
+  const route = fs.readFileSync(path.join(__dirname, '..', 'src/routes/reminders.js'), 'utf-8');
+  ok('화면이 부르는 길은 주인을 본다', /deletePushSubOfUser\(req\.userId/.test(route), true);
+  ok('  주인 안 보는 갈래를 안 쓴다', /deletePushSubByEndpoint/.test(route), false);
+
+  for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+  }
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

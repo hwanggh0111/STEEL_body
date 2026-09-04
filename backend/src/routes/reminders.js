@@ -23,8 +23,14 @@ const DEFAULTS = {
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+// 받은 값을 다듬는다. **버린 것이 있으면 무엇을 버렸는지 같이 돌려준다.**
+//
+// 예전에는 모르는 값을 조용히 버리고, 남은 게 없으면 「바꿀 값이 없어요」라고 했다.
+// 그래서 **시간 칸을 비우면**(브라우저가 빈 문자열을 보낸다) 「바꿀 값이 없어요」가
+// 떴다 — 사람은 시각을 바꾸려고 만진 것인데 엉뚱한 말을 듣는다.
 function clean(body) {
   const out = {};
+  const bad = [];
 
   if (typeof body?.enabled === 'boolean') out.enabled = body.enabled;
   if (typeof body?.streakGuard === 'boolean') out.streakGuard = body.streakGuard;
@@ -35,15 +41,20 @@ function clean(body) {
       .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
       .sort((a, b) => a - b);
     out.days = days;
+  } else if (body?.days !== undefined) {
+    bad.push('요일은 0~6 사이 숫자 목록으로 주세요');
   }
 
   if (typeof body?.time === 'string' && TIME_RE.test(body.time)) out.time = body.time;
+  else if (body?.time !== undefined) bad.push('시각을 19:00 처럼 적어주세요');
 
-  // 브라우저의 getTimezoneOffset() 값. 실재하는 시간대는 -720 ~ +840 안에 있다
+  // 브라우저의 getTimezoneOffset() 값. 실재하는 시간대는 -720 ~ +840 안에 있다.
+  // **이것만 와도 저장한다** — 보낼 시각을 그 사람 시간대로 재는 값이라,
+  // 여행을 가서 시간대가 바뀌면 그것만 와도 갱신돼야 한다
   const tz = Number(body?.tzOffset);
   if (Number.isInteger(tz) && tz >= -840 && tz <= 840) out.tzOffset = tz;
 
-  return out;
+  return { patch: out, bad };
 }
 
 // 내 설정 + 이 서버가 알림을 보낼 수 있는 상태인지
@@ -59,7 +70,10 @@ router.get('/', auth, (req, res) => {
 });
 
 router.put('/', auth, (req, res) => {
-  const patch = clean(req.body);
+  const { patch, bad } = clean(req.body);
+  // 잘못 온 것이 있으면 **그것부터 말한다.** 「바꿀 값이 없어요」로 뭉뚱그리면
+  // 사람은 무엇을 고쳐야 할지 모른다
+  if (bad.length > 0) return res.status(400).json({ error: bad[0] });
   if (Object.keys(patch).length === 0) {
     return res.status(400).json({ error: '바꿀 값이 없어요' });
   }
@@ -87,11 +101,18 @@ router.post('/subscribe', auth, (req, res) => {
   res.status(201).json({ devices: db.getPushSubs(req.userId).length });
 });
 
+// 이 기기를 뺀다. **자기 것만 뺄 수 있다.**
+//
+// 예전에는 주소만 맞으면 지웠다 — 주인을 안 봤다. 구독 주소를 아는 사람은
+// **남의 기기 알림을 끌 수 있었다.** 알림은 조용히 안 오는 것이라 당한 사람은
+// 한참 뒤에야 안다.
 router.delete('/subscribe', auth, (req, res) => {
   const endpoint = req.body?.endpoint;
   if (typeof endpoint !== 'string') return res.status(400).json({ error: '구독 주소가 없어요' });
-  db.deletePushSubByEndpoint(endpoint);
-  res.json({ devices: db.getPushSubs(req.userId).length });
+  const { changes } = db.deletePushSubOfUser(req.userId, endpoint);
+  // 없어서 못 지운 것은 실패가 아니다 — 두 번 눌렀거나 이미 빠진 기기다.
+  // 남의 것이어서 못 지운 것도 여기로 온다. **있고 없고를 알려주지 않는다**
+  res.json({ devices: db.getPushSubs(req.userId).length, removed: changes });
 });
 
 // 지금 한 통 보내본다.
