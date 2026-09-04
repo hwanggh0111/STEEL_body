@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useNoteStore } from '../store/noteStore';
 import { eul } from '../data/particle';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
@@ -67,17 +68,24 @@ export default function HistoryPage() {
   //
   // **보고 있는 달만 한 번에 받는다.** 칸마다 물어보면 서른 번이고, 통째로 받으면
   // 몇 년치를 들고 온다. 달을 넘길 때마다 그 달치를 받는다 (`?month=YYYY-MM`).
-  const [dayNotes, setDayNotes] = useState({});
+  //
+  // **신호가 없어도 적힌다** (2026-09-04). 담아두고 줄에 세우는 일은
+  // `store/noteStore.js` 가 한다 — 세트를 적는 것과 같은 규칙이다.
+  // 화면은 「됐다」와 「기기에 담아뒀다」만 갈라 말한다.
+  const dayNotes = useNoteStore((s) => s.notes);
+  const notesFailed = useNoteStore((s) => s.loadFailed);
   const [savingNote, setSavingNote] = useState(false);
 
   const saveDayNote = async (date, body, done) => {
     if (savingNote) return;
     setSavingNote(true);
     try {
-      const { data } = await client.post('/notes', { body, date });
-      setDayNotes(prev => ({ ...prev, [date]: data }));
+      const saved = await useNoteStore.getState().saveNote(date, body);
       done?.();   // **성공했을 때만 닫는다** — 실패하고 닫히면 적던 것이 사라진다
-      toast('메모를 저장했어요');
+      // 담아둔 것을 「저장했어요」라고만 하면 다른 기기에서 안 보이는 이유를 모른다
+      toast(saved?.queued
+        ? '신호가 없어 기기에 담아뒀어요. 연결되면 올라가요'
+        : '메모를 저장했어요');
     } catch (err) {
       toast(err.response?.data?.error || '저장하지 못했어요', 'error');
     } finally {
@@ -90,19 +98,9 @@ export default function HistoryPage() {
       { title: '메모 지우기', confirmText: '지웁니다', danger: true });
     if (!ok) return;
     try {
-      await client.delete(`/notes/${note.id}`);
-      setDayNotes(prev => {
-        const next = { ...prev };
-        delete next[note.date];
-        return next;
-      });
+      await useNoteStore.getState().removeNote(note);
       toast('지웠어요');
-    } catch (err) {
-      // 없어서 못 지운 것은 실패가 아니다 (두 번 눌렀거나 다른 기기에서 이미 지웠다)
-      if (err.response?.status === 404) {
-        setDayNotes(prev => { const next = { ...prev }; delete next[note.date]; return next; });
-        return;
-      }
+    } catch {
       toast('지우지 못했어요. 다시 열면 그대로 있어요', 'error');
     }
   };
@@ -184,17 +182,8 @@ export default function HistoryPage() {
   // 오늘 또 잡아줬다
   useEffect(() => {
     const month = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
-    let dropped = false;
-    client.get('/notes', { params: { month } })
-      .then(({ data }) => {
-        if (dropped) return;   // 달을 빨리 넘기면 늦게 온 답이 새 달을 덮는다
-        const map = {};
-        for (const n of Array.isArray(data) ? data : []) if (n && n.date) map[n.date] = n;
-        setDayNotes(map);
-      })
-      // 못 불러와도 화면은 그대로 돈다. 메모는 이 화면의 곁다리다
-      .catch(() => {});
-    return () => { dropped = true; };
+    // 늦게 온 답이 새 달을 덮는 것은 store 가 막는다 (어느 달의 답인지 보고 버린다)
+    useNoteStore.getState().fetchMonth(month);
   }, [ym.year, ym.month]);
   const [selectedDate, setSelectedDate] = useState(incoming);
 
@@ -287,6 +276,7 @@ export default function HistoryPage() {
         workouts={workouts}
         plans={planMap}
         notes={dayNotes}
+        notesFailed={notesFailed}
         selected={selectedDate}
         onSelect={setSelectedDate}
         onSaveNote={(body, done) => saveDayNote(selectedDate, body, done)}

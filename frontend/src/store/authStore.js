@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { PER_USER_KEYS } from '../data/localKeys';
 import client from '../api/client';
 import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore';
+import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
 import { useRoutineSessionStore } from './routineSessionStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
@@ -94,10 +95,13 @@ export const useAuthStore = create((set) => ({
     // 담아둔 목록 · 못 올린 줄까지 비운다. 안 비우면 다음에 로그인한 사람 화면에
     // **앞 사람이 헬스장에서 적은 기록**이 남는다 (localStorage 쪽은 LOGOUT_KEYS 가 지운다)
     useWorkoutStore.setState({ workouts: {}, server: {}, queue: [], loading: false, flushing: false });
+    // 그날 메모도 같다 — 앞 사람이 달력에 적어둔 것이 남으면 안 된다
+    useNoteStore.setState({ notes: {}, server: {}, queue: {}, loading: false, flushing: false, loadFailed: false });
     useInbodyStore.setState({ records: [], loading: false });
     // 목록을 「방금 받아왔다」고 기억해 둔 것까지 비운다.
     // 안 비우면 다음에 로그인한 사람이 앞 사람 목록을 잠깐 본다
     resetWorkoutCache();
+    resetNoteCache();
     resetInbodyCache();
     // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
     useRoutineSessionStore.getState().reset();

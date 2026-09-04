@@ -44,7 +44,7 @@ const firstLine = (body) => {
 };
 
 export default function MonthCalendar({
-  year, month, workouts, plans = {}, notes = {}, selected, onSelect,
+  year, month, workouts, plans = {}, notes = {}, notesFailed = false, selected, onSelect,
   onSaveNote, onDeleteNote, savingNote,
 }) {
   const today = dateKey();
@@ -96,7 +96,16 @@ export default function MonthCalendar({
                   // 계획해둔 날인데 그날 기록이 없다 — 오늘부터면 「할 것」, 지났으면 「못 한 것」
                   const todo = !done && planned > 0 && cell.key >= today;
                   const missed = !done && planned > 0 && cell.key < today;
-                  const memo = firstLine(notes?.[cell.key]?.body);
+                  const dayNote = notes?.[cell.key];
+                  const memo = firstLine(dayNote?.body);
+                  // 아직 안 올라간 메모 · 서버가 안 받은 메모. **칸에서도 구분한다** —
+                  // 신호가 없을 때 적은 것이 서버에 든 것처럼 보이면 안 된다.
+                  // 다만 **칸에는 빨강을 안 쓴다.** 이 달력의 규칙이다 — 못 한 날을
+                  // 빨갛게 칠하면 달력을 열 때마다 혼나는 기분이 되고, 그 규칙은
+                  // 못 올린 메모에도 그대로 간다. 흐리게 + 점선 밑줄로만 가른다.
+                  // 무엇이 잘못됐고 무엇을 눌러야 하는지는 위쪽 띠와 아래 칸이 말한다
+                  const memoPending = !!dayNote?.pending;
+                  const memoFailed = !!dayNote?.failed;
                   const isToday = cell.key === today;
                   const isSelected = cell.key === selected;
                   const part = done ? partOfDay(list) : null;
@@ -108,7 +117,8 @@ export default function MonthCalendar({
                       aria-label={`${month}월 ${cell.day}일`
                         + (done ? ` · 기록 ${list.length}건` : ' · 기록 없음')
                         + (planned ? ` · 할 것 ${planned}개${missed ? ' (못 함)' : ''}` : '')
-                        + (memo ? ` · 메모: ${memo}` : '')}
+                        + (memo ? ` · 메모: ${memo}` : '')
+                        + (memoFailed ? ' (못 올림)' : memoPending ? ' (아직 안 올라감)' : '')}
                       aria-pressed={isSelected}
                       style={{
                         minHeight: 96,
@@ -146,7 +156,9 @@ export default function MonthCalendar({
                       {memo && (
                         <span style={{
                           fontSize: 9, lineHeight: 1.28, marginTop: 1,
-                          color: 'var(--text-secondary)', opacity: 0.95,
+                          color: 'var(--text-secondary)',
+                          opacity: memoPending || memoFailed ? 0.7 : 0.95,
+                          textDecoration: memoFailed ? 'underline dotted' : 'none',
                           textAlign: 'left', wordBreak: 'break-all',
                           display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3,
                           overflow: 'hidden',
@@ -177,6 +189,23 @@ export default function MonthCalendar({
                       <button onClick={() => onDeleteNote?.(note)} style={ghost}>지우기</button>
                     )}
                   </div>
+
+                  {/* **못 불러온 것과 없는 것은 다르다.** 못 불러온 채로 적으면
+                      서버에 있던 그날 메모를 덮어쓴다 — 그렇다고 말해준다 */}
+                  {notesFailed && (
+                    <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                      메모를 못 불러왔어요. 지금 적으면 그날 메모를 덮어쓸 수 있어요
+                    </div>
+                  )}
+                  {note?.failed ? (
+                    <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                      못 올렸어요 — {note.error || '서버가 받지 않았어요'}
+                    </div>
+                  ) : note?.pending ? (
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                      아직 안 올라갔어요 · 이 기기에 담아뒀어요. 연결되면 올라가요
+                    </div>
+                  ) : null}
 
                   {writing ? (
                     <>

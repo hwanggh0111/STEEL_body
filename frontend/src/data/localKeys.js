@@ -33,6 +33,12 @@ export const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
 // (줄에 남은 것이 있으면 로그아웃 전에 화면이 먼저 말린다. `Layout` 참고)
 export const WORKOUT_CACHE_KEY = 'ironlog_workouts_cache';
 export const WORKOUT_QUEUE_KEY = 'ironlog_workout_queue';
+// 달력의 그날 메모도 같은 둘을 쓴다 (`data/offlineNotes.js`).
+// **메모도 헬스장에서 적는다** — 「어깨가 안 좋아 가볍게」는 집에 와서 적는 말이 아니다.
+// 세트를 적는 것만 담아두고 메모는 못 적게 두면, 사람은 같은 자리에서 한 번은 되고
+// 한 번은 안 되는 앱을 쓰게 된다.
+export const NOTE_CACHE_KEY = 'ironlog_day_notes_cache';
+export const NOTE_QUEUE_KEY = 'ironlog_day_note_queue';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
@@ -45,6 +51,8 @@ export const PER_USER_KEYS = [
   SEEN_REPLY_KEY,
   WORKOUT_CACHE_KEY,
   WORKOUT_QUEUE_KEY,
+  NOTE_CACHE_KEY,
+  NOTE_QUEUE_KEY,
 ];
 
 // ── 기기의 것. 로그아웃해도 남긴다 ──

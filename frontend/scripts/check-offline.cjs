@@ -117,6 +117,48 @@ console.log('');
 console.log('── 신호를 끊고 적고, 살리고 올린다 (store 를 실제로) ──');
 
 const fakeClientPath = path.resolve('.fake-client.cjs');
+const fakeNotePath = path.resolve('.fake-note-client.cjs');
+
+// 메모용 가짜 서버. **하루 한 장**을 지킨다 — 같은 날짜로 또 오면 새로 만들지 않고
+// 고친다 (진짜 서버의 `POST /notes` 가 그렇게 한다). 이걸 안 지키면 「줄에 선 것을
+// 다시 보내도 두 장이 안 생긴다」를 확인할 수가 없다
+const FAKE_NOTES = `
+let rows = [];
+let nextId = 500;
+const offlineErr = () => new Error('Network Error');
+const reject = (status, error) => { const e = new Error('bad'); e.response = { status, data: { error } }; return e; };
+module.exports = {
+  __state: { online: true, rejectNext: null, failNext: false },
+  get rows() { return rows; },
+  set rows(v) { rows = v; },
+  async get(url, cfg) {
+    if (!module.exports.__state.online) throw offlineErr();
+    if (module.exports.__state.failNext) { module.exports.__state.failNext = false; throw reject(500, '서버 오류'); }
+    const month = cfg && cfg.params && cfg.params.month;
+    return { data: month ? rows.filter(r => String(r.date).startsWith(month)) : rows };
+  },
+  async post(url, body) {
+    if (!module.exports.__state.online) throw offlineErr();
+    const bad = module.exports.__state.rejectNext;
+    if (bad) { module.exports.__state.rejectNext = null; throw reject(400, bad); }
+    const exist = rows.find(r => r.date === body.date);
+    if (exist) { exist.body = body.body; return { data: exist }; }
+    const row = { ...body, id: nextId++ };
+    rows.push(row);
+    return { data: row };
+  },
+  async put() { if (!module.exports.__state.online) throw offlineErr(); return { data: {} }; },
+  async delete(url) {
+    if (!module.exports.__state.online) throw offlineErr();
+    const id = Number(String(url).split('/').pop());
+    const before = rows.length;
+    rows = rows.filter(r => r.id !== id);
+    if (rows.length === before) throw reject(404, '그 메모를 찾을 수 없어요');
+    return { data: {} };
+  },
+};
+module.exports.default = module.exports;
+`;
 fs.writeFileSync(fakeClientPath, `
 let saved = [];
 let nextId = 100;
@@ -238,11 +280,173 @@ const S = () => useStore.getState();
     await S().fetchAll(true);
     ok('못 받아와도 담아둔 것으로 그린다', Object.keys(S().workouts).length > 0, true);
     ok('  「없습니다」가 되지 않는다', S().workouts['2026-09-03'].length, 4);
+
+    // ── 그날 메모 (2026-09-04) ──
+    //
+    // 9/3 에는 운동 기록에만 붙였다. **메모야말로 헬스장에서 적는 말이다** —
+    // 「어깨가 안 좋아 가볍게」는 집에 와서 적는 것이 아니다.
+    // 줄의 모양이 다르다: 메모는 **하루 한 장**이라 줄이 날짜로 찾는 것이다.
+    console.log('');
+    console.log('── 그날 메모도 신호 없이 적힌다 ──');
+
+    const nt = bundle('src/data/offlineNotes.js', '.onote.cjs');
+
+    // 같은 날을 세 번 고쳐도 줄에는 한 장이다. 배열이면 세 번 올린다
+    let nq = nt.queueSave({}, '2026-09-04', '어깨 안좋아 가볍게', 1);
+    nq = nt.queueSave(nq, '2026-09-04', '어깨 안좋아 가볍게 · 벤치 뺌', 2);
+    nq = nt.queueSave(nq, '2026-09-04', '어깨 안좋아 가볍게 · 벤치 뺌 · 30분', 3);
+    ok('같은 날을 여러 번 고쳐도 줄에는 한 장이다', Object.keys(nq).length, 1);
+    ok('  마지막에 적은 것이 남는다', nq['2026-09-04'].body, '어깨 안좋아 가볍게 · 벤치 뺌 · 30분');
+
+    const nServer = { '2026-09-01': { id: 5, date: '2026-09-01', body: '가슴' } };
+    const nMerged = nt.mergeNotes(nServer, nq);
+    ok('적은 순간 달력에 보인다', nMerged['2026-09-04'].body, '어깨 안좋아 가볍게 · 벤치 뺌 · 30분');
+    ok('  아직 못 올렸다고 표시된다', nMerged['2026-09-04'].pending, true);
+    ok('  id 가 local- 로 시작한다', nt.isLocalNoteId(nMerged['2026-09-04'].id), true);
+    ok('  서버 것은 표시가 없다', nMerged['2026-09-01'].pending, undefined);
+
+    // 지우기 — **서버에 있는 것이냐가 갈림길이다**
+    ok('안 올라간 것을 지우면 줄에서 빠진다',
+      Object.keys(nt.queueDelete(nq, '2026-09-04', null)).length, 0);
+    const delQ = nt.queueDelete({}, '2026-09-01', 5);
+    ok('서버에 있는 것은 지우기가 줄에 선다', delQ['2026-09-01'].op, 'delete');
+    ok('  달력에서는 바로 사라진다', nt.mergeNotes(nServer, delQ)['2026-09-01'], undefined);
+
+    const nFailed = nt.markNoteFailed(nq, '2026-09-04', '메모 내용을 적어주세요');
+    ok('못 올린 것은 줄에 남는다 (버리지 않는다)', Object.keys(nFailed).length, 1);
+    ok('  이유를 들고 있는다', nt.mergeNotes({}, nFailed)['2026-09-04'].error, '메모 내용을 적어주세요');
+    ok('다시 시도하면 표시가 풀린다', nt.clearNoteFailed(nFailed)['2026-09-04'].failed, false);
+    ok('사람이 버리면 그때 지운다', Object.keys(nt.dropFailedNotes(nFailed)).length, 0);
+
+    // 띠는 하나다 — 운동 기록의 줄과 같이 세려면 배열이어야 한다
+    ok('줄을 배열로 바꿔준다 (띠가 같이 센다)', nt.queueList(nFailed)[0].kind, 'note');
+    ok('  못 올린 것으로 세어진다',
+      off.offlineStatus({ online: true, queue: nt.queueList(nFailed) }).kind, 'failed');
+
+    // 담아두는 것 — **달을 넘길 때 앞 달이 사라지면 안 된다**
+    store.delete('ironlog_day_notes_cache');
+    const nToday = new Date('2026-09-04T00:00:00Z');
+    nt.saveNoteCache({ '2026-09-01': { id: 5, date: '2026-09-01', body: '가슴' } }, '2026-09', 90, nToday);
+    nt.saveNoteCache({ '2026-08-20': { id: 4, date: '2026-08-20', body: '등' } }, '2026-08', 90, nToday);
+    ok('앞 달을 담아둔 것이 안 사라진다', !!nt.readNoteCache()['2026-09-01'], true);
+    ok('  그 달만 꺼내 그린다', Object.keys(nt.cachedMonth('2026-08')), ['2026-08-20']);
+    nt.saveNoteCache({}, '2026-09', 90, nToday);
+    ok('그 달에서 지워진 것은 담아둔 것에서도 빠진다', !!nt.readNoteCache()['2026-09-01'], false);
+    ok('  다른 달은 그대로다', !!nt.readNoteCache()['2026-08-20'], true);
+    nt.saveNoteCache({ '2026-01-05': { id: 1, date: '2026-01-05', body: '옛것' } }, '2026-01', 90, nToday);
+    ok('90일보다 오래된 것은 안 담는다', !!nt.readNoteCache()['2026-01-05'], false);
+
+    store.set('ironlog_day_note_queue', '{망가진 값');
+    ok('줄이 깨져 있어도 안 터진다', nt.readNoteQueue(), {});
+    store.set('ironlog_day_note_queue', '{"2026-09-04":{"op":"save"},"아무날":{"op":"save","body":"x"}}');
+    ok('  모양이 안 맞는 줄은 버린다', nt.readNoteQueue(), {});
+    store.delete('ironlog_day_note_queue');
+    store.delete('ironlog_day_notes_cache');
+
+    // ── store 를 실제로 돌린다 ──
+    console.log('');
+    console.log('── 신호를 끊고 메모를 적고, 살리고 올린다 (store 를 실제로) ──');
+
+    fs.writeFileSync(fakeNotePath, FAKE_NOTES, 'utf-8');
+    const fakeNote = require(fakeNotePath);
+    const swapNoteClient = {
+      name: 'swap-note-client',
+      setup(build) {
+        build.onResolve({ filter: /api[/]client$/ }, () => ({ path: fakeNotePath, external: true }));
+      },
+    };
+    await esbuild.build({
+      entryPoints: ['src/store/noteStore.js'], bundle: true, format: 'cjs',
+      outfile: '.nstore.cjs', platform: 'node', plugins: [swapNoteClient], logLevel: 'silent',
+    });
+    const nmod = require(path.resolve('.nstore.cjs'));
+    fs.unlinkSync('.nstore.cjs');
+    const N = () => nmod.useNoteStore.getState();
+
+    await N().fetchMonth('2026-09');
+    await N().saveNote('2026-09-01', '가슴 · 벤치 5kg 올림');
+    ok('신호가 있으면 서버로 간다', fakeNote.rows.length, 1);
+    ok('  줄은 비어 있다', Object.keys(N().queue).length, 0);
+    ok('  달력에 있다', N().notes['2026-09-01'].body, '가슴 · 벤치 5kg 올림');
+
+    // 지하로 내려간다
+    fakeNote.__state.online = false;
+    const nres = await N().saveNote('2026-09-04', '어깨가 안 좋아 가볍게');
+    ok('신호가 없어도 터지지 않는다', !!nres.queued, true);
+    ok('  서버에는 안 갔다', fakeNote.rows.length, 1);
+    ok('  **달력에는 바로 보인다**', N().notes['2026-09-04'].body, '어깨가 안 좋아 가볍게');
+    ok('  아직 못 올렸다고 표시된다', N().notes['2026-09-04'].pending, true);
+    ok('  신호가 없다고 안다', N().online, false);
+
+    await N().saveNote('2026-09-04', '어깨가 안 좋아 가볍게 · 30분만');
+    ok('같은 날을 고쳐도 줄은 한 장이다', Object.keys(N().queue).length, 1);
+    ok('  고친 것이 달력에 보인다', N().notes['2026-09-04'].body, '어깨가 안 좋아 가볍게 · 30분만');
+
+    // 신호가 없는 채로 앱을 껐다 켠다
+    nmod.useNoteStore.setState({ server: {}, notes: {}, queue: {} });
+    N().hydrate();
+    ok('앱을 다시 열어도 적어둔 것이 남아 있다', Object.keys(N().queue).length, 1);
+    ok('  적은 글 그대로다', N().notes['2026-09-04'].body, '어깨가 안 좋아 가볍게 · 30분만');
+
+    // 신호가 없는 채로 **서버에 있는 메모**를 지운다
+    await N().fetchMonth('2026-09');
+    ok('못 받아와도 담아둔 것으로 그린다', N().notes['2026-09-01'].body, '가슴 · 벤치 5kg 올림');
+    await N().removeNote(N().notes['2026-09-01']);
+    ok('신호가 없어도 달력에서 지워진다', N().notes['2026-09-01'], undefined);
+    ok('  서버에는 아직 있다', fakeNote.rows.length, 1);
+    ok('  지우기가 줄에 섰다', N().queue['2026-09-01'].op, 'delete');
+
+    // 신호가 돌아왔다
+    fakeNote.__state.online = true;
+    const nflush = await N().flushQueue();
+    ok('밀린 것을 올린다', nflush.sent, 2);
+    ok('  줄이 비었다', Object.keys(N().queue).length, 0);
+    ok('  적은 메모가 서버에 들어갔다', fakeNote.rows.map(r => r.date), ['2026-09-04']);
+
+    // 하루 한 장 — 줄에 선 것을 올릴 때도 두 장이 되지 않는다
+    fakeNote.__state.online = false;
+    await N().saveNote('2026-09-04', '어깨 · 30분만 · 스트레칭');
+    fakeNote.__state.online = true;
+    await N().flushQueue();
+    ok('같은 날에 두 장이 생기지 않는다', fakeNote.rows.filter(r => r.date === '2026-09-04').length, 1);
+    ok('  마지막에 적은 것이 서버에 있다',
+      fakeNote.rows.find(r => r.date === '2026-09-04').body, '어깨 · 30분만 · 스트레칭');
+
+    // 서버가 거절하는 것 — 버리지 않는다
+    fakeNote.__state.online = false;
+    await N().saveNote('2026-09-05', '거절될 메모');
+    fakeNote.__state.online = true;
+    fakeNote.__state.rejectNext = '메모 내용을 적어주세요';
+    const nbad = await N().flushQueue();
+    ok('서버가 거절하면 못 올렸다고 표시한다', nbad.failed, 1);
+    ok('  **버리지 않는다** (사람이 적은 것이다)', Object.keys(N().queue).length, 1);
+    ok('  이유를 들고 있는다', N().notes['2026-09-05'].error, '메모 내용을 적어주세요');
+    const nretry = await N().retryFailed();
+    ok('다시 시도하면 올라간다', nretry.sent, 1);
+    ok('  줄이 비었다', Object.keys(N().queue).length, 0);
+
+    // 이미 없는 것을 지우러 가는 것은 실패가 아니다 (다른 기기에서 먼저 지웠다)
+    fakeNote.__state.online = false;
+    await N().removeNote(N().notes['2026-09-04']);
+    fakeNote.rows = fakeNote.rows.filter(r => r.date !== '2026-09-04');
+    fakeNote.__state.online = true;
+    const gone = await N().flushQueue();
+    ok('이미 없는 것을 지우려 해도 줄이 안 막힌다', gone.failed, 0);
+    ok('  줄에서 빠진다', Object.keys(N().queue).length, 0);
+
+    // 서버가 답은 했는데 목록을 안 준 것 — 「없습니다」가 아니라 「못 불러왔다」다
+    fakeNote.__state.failNext = true;
+    await N().fetchMonth('2026-09');
+    ok('못 불러온 것과 없는 것을 가른다', N().loadFailed, true);
+    fakeNote.__state.failNext = false;
+    await N().fetchMonth('2026-09');
+    ok('  다시 불러오면 풀린다', N().loadFailed, false);
   } catch (err) {
     bad += 1;
     console.log('FAIL 검사가 도중에 터졌다 -> ' + err.message);
   } finally {
     fs.unlinkSync(fakeClientPath);
+    if (fs.existsSync(fakeNotePath)) fs.unlinkSync(fakeNotePath);
     console.log('');
     console.log(bad ? bad + '건 실패' : '전부 통과');
     process.exit(bad ? 1 : 0);

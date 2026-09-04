@@ -271,8 +271,10 @@ const cmpPage2 = stripNotes(fs.readFileSync('src/pages/ComparePage.jsx', 'utf-8'
 ok('비교 화면도 그렇게 말한다', /다시 열면 되살아납니다/.test(cmpPage2), true);
 // 두 번 눌렀거나 다른 기기에서 이미 뺐으면 404 다. 그때 되돌리면 방금 뺀 것이
 // 눈앞에서 되살아난다
-const hist2 = stripNotes(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8'));
-ok('없어서 못 지운 것은 실패로 안 친다', /err\.response\?\.status === 404/.test(hist2), true);
+// 메모를 지우는 일은 2026-09-04 에 `store/noteStore.js` 로 옮겼다 (신호가 없어도
+// 지워지게 하려고). 404 를 실패로 안 치는 규칙은 그대로 따라갔다
+const noteStore = stripNotes(fs.readFileSync('src/store/noteStore.js', 'utf-8'));
+ok('없어서 못 지운 것은 실패로 안 친다', /err\.response\?\.status !== 404/.test(noteStore), true);
 
 console.log('\n── 달력에 「할 것」 담기 (2026-09-02) ──');
 // 달력은 되짚는 자리이기만 한 게 아니다. **「이번 주에 언제 갈까」를 정하는 자리**이기도
@@ -314,8 +316,15 @@ const cal = stripNotes(fs.readFileSync('src/components/MonthCalendar.jsx', 'utf-
 // 한 날도 할 날도 금색이라 **색으로만 가르면 구별이 안 된다**
 ok('한 날은 실선, 할 날은 점선으로 가른다', /dashed/.test(cal), true);
 ok('할 것이 있는 날에 개수를 적는다', /planned/.test(cal), true);
-// 못 한 날을 빨강으로 두면 달력을 열 때마다 혼나는 기분이 된다
-ok('못 한 날을 위험색으로 칠하지 않는다', /var\(--danger\)/.test(cal), false);
+// 못 한 날을 빨강으로 두면 달력을 열 때마다 혼나는 기분이 된다.
+//
+// **칸에만 건다** (2026-09-04). 달력 아래 메모 칸에는 「못 올렸어요」·「못 불러왔어요」가
+// 붙는데, 그것은 사람이 게으른 것이 아니라 **앱이 아직 못 한 일**이고 눌러서 다시
+// 시도해야 하는 자리다. 거기까지 빨강을 막으면 고쳐야 할 것이 안 보인다.
+// 그래서 자르는 자리를 정해두고, 칸을 그리는 쪽만 본다
+const calCells = cal.split('openHere &&')[0];
+ok('달력 칸을 위험색으로 칠하지 않는다', /var\(--danger\)/.test(calCells), false);
+ok('  자르는 자리가 아직 있다 (없으면 위 검사가 통째로 헛돈다)', cal.includes('openHere &&'), true);
 
 const hist = stripNotes(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8'));
 // **한 것과 할 것을 섞지 않는다** — 섞으면 「이 달에 몇 일 나왔나」에 아직 하지도

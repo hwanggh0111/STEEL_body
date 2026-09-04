@@ -21,6 +21,7 @@ import AccountDeleteModal from './AccountDeleteModal';
 import OfflineBar from './OfflineBar';
 import AccountSheet from './AccountSheet';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useNoteStore } from '../store/noteStore';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
@@ -75,16 +76,28 @@ export default function Layout() {
   // 그 뒤로는 브라우저가 알려주는 `online` 을 듣는다. 이 신호는 **거짓말을 잘 하지만**
   // (와이파이에 붙기만 해도 온다) 보내보고 실패하면 그대로 줄에 남으니 손해가 없다.
   useEffect(() => {
-    const store = useWorkoutStore.getState();
-    store.hydrate();
+    // 운동 기록과 **그날 메모** 둘 다다. 같은 화면(히스토리)에서 하나는 담기고
+    // 하나는 「저장 실패」가 뜨면, 사람은 뭐가 되고 뭐가 안 되는지 모른다
+    useWorkoutStore.getState().hydrate();
+    useNoteStore.getState().hydrate();
     const send = async () => {
       const res = await useWorkoutStore.getState().flushQueue();
       if (res.sent > 0) toast.success(`적어둔 기록 ${res.sent}개를 올렸어요`);
       if (res.failed > 0) toast('서버가 받지 않은 기록이 있어요. 위쪽에서 확인해주세요', 'error');
+      const note = await useNoteStore.getState().flushQueue();
+      if (note.sent > 0) toast.success(`적어둔 메모 ${note.sent}개를 올렸어요`);
+      if (note.failed > 0) toast('서버가 받지 않은 메모가 있어요. 위쪽에서 확인해주세요', 'error');
     };
     send();
-    const onOnline = () => { useWorkoutStore.getState().setOnline(true); send(); };
-    const onOffline = () => useWorkoutStore.getState().setOnline(false);
+    const onOnline = () => {
+      useWorkoutStore.getState().setOnline(true);
+      useNoteStore.getState().setOnline(true);
+      send();
+    };
+    const onOffline = () => {
+      useWorkoutStore.getState().setOnline(false);
+      useNoteStore.getState().setOnline(false);
+    };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     return () => {
@@ -99,18 +112,20 @@ export default function Layout() {
   // 사라진다. 다음 사람 화면에 앞 사람 기록이 뜨면 안 되니 지우는 것이 맞지만,
   // **말없이 지우면 헬스장에서 적은 것이 소리 없이 없어진다.** 한 번 묻는다
   const leave = useCallback(async () => {
-    const pending = useWorkoutStore.getState().queue;
-    if (pending.length > 0) {
-      const sent = await useWorkoutStore.getState().flushQueue();
-      const left = useWorkoutStore.getState().queue.length;
-      if (left > 0) {
+    const left = () => useWorkoutStore.getState().queue.length
+      + Object.keys(useNoteStore.getState().queue).length;
+    if (left() > 0) {
+      const a = await useWorkoutStore.getState().flushQueue();
+      const b = await useNoteStore.getState().flushQueue();
+      const remain = left();
+      if (remain > 0) {
         const ok = await confirmDialog(
-          `아직 올리지 못한 기록이 ${left}개 있어요. 지금 로그아웃하면 이 기기에서 사라집니다.`,
+          `아직 올리지 못한 기록이 ${remain}개 있어요. 지금 로그아웃하면 이 기기에서 사라집니다.`,
           { title: '올리지 못한 기록', confirmText: '그래도 로그아웃', danger: true },
         );
         if (!ok) return false;
-      } else if (sent.sent > 0) {
-        toast.success(`적어둔 기록 ${sent.sent}개를 올렸어요`);
+      } else if (a.sent + b.sent > 0) {
+        toast.success(`적어둔 것 ${a.sent + b.sent}개를 올렸어요`);
       }
     }
     await logout();
