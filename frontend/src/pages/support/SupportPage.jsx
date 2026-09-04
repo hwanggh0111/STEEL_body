@@ -397,14 +397,14 @@ export default function SupportPage() {
           소개는 보여주는 자리다. 갈라서 `pages/IntroPage.jsx` 로 옮겼다 */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 26, paddingTop: 18 }}>
         <button
-          onClick={() => navigate('/site', { state: { tab: 'intro' } })}
+          onClick={() => navigate('/home?v=about')}
           style={{
             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 10, width: '100%',
             fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'inherit',
           }}
         >
-          <span>홈페이지 — 소개 · 소식 · 커뮤니티</span>
+          <span>이 앱이 무엇을 하는지 보기</span>
           <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>&rsaquo;</span>
         </button>
       </div>

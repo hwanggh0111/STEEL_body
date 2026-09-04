@@ -15,7 +15,9 @@ const TABS = [
   //   오늘  무엇을 하면 되는지        운동  고르고 · 찾고 · 적는다
   //   몸    재고 견준다                기록  되짚는다
   // 루틴은 「운동」 안에서 시작하고, 인바디 · 측정 · 견주기는 「몸」 안에 있다
-  { path: '/home',    label: '오늘',  icon: 'home' },
+  // **HOME.** 앱을 열면 나오는 자리고, 그 안에 커뮤니티 · 소식 · 소개가 있다.
+  // 이름을 「오늘」로 뒀었는데, 오늘 할 것만 있는 자리가 아니게 됐다
+  { path: '/home',    label: 'HOME',  icon: 'home' },
   { path: '/train',   label: '운동',  icon: 'dumbbell' },
   { path: '/body',    label: '몸',    icon: 'chart' },
   { path: '/history', label: '기록',  icon: 'calendar' },

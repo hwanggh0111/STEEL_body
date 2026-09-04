@@ -11,7 +11,6 @@ import './styles/globals.css';
 // lazy load 페이지들
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const HomePage = lazy(() => import('./pages/HomePage'));
 const RoutinePage = lazy(() => import('./pages/RoutinePage'));
 const WorkoutPage = lazy(() => import('./pages/WorkoutPage'));
 // 5차 리모델링 — 루틴 · 기록 · 검색 · 기능성운동을 한 흐름으로 (2026-09-04)
@@ -22,9 +21,9 @@ const BodyPage = lazy(() => import('./pages/BodyPage'));
 const IntroPage = lazy(() => import('./pages/IntroPage'));
 // 커뮤니티 — 이 앱에서 **남에게 보이는 첫 글**이다 (2026-09-04)
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
-// 홈페이지 — 소개 · 소식 · 커뮤니티를 한 자리에 (2026-09-04).
-// 읽으러 가는 곳이 서랍에 세 줄로 흩어지지 않게 한다
-const SitePage = lazy(() => import('./pages/SitePage'));
+// HOME — 오늘 + 커뮤니티 · 소식 · 소개 (2026-09-04).
+// 앱을 열면 늘 여기가 나오니 **여기가 곧 홈페이지다**
+const HomeShell = lazy(() => import('./pages/HomeShell'));
 const InbodyPage = lazy(() => import('./pages/InbodyPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
@@ -68,12 +67,11 @@ export default function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route index element={<Navigate to="/home" />} />
-                <Route path="home" element={<HomePage />} />
+                <Route path="home" element={<HomeShell />} />
                 <Route path="routine" element={<RoutinePage />} />
                 <Route path="workout" element={<WorkoutPage />} />
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
-                <Route path="site" element={<SitePage />} />
                 <Route path="inbody" element={<InbodyPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="homeworkout" element={<HomeworkoutPage />} />
