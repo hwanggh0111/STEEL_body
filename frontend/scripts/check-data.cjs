@@ -370,8 +370,15 @@ ok('칸을 그리는 곳이 하나다 (Section)', (daySheet.match(/function Sect
 // 「월요일 가슴+삼두」를 그날에 걸어두는 것이 제일 흔한 쓰임이다
 ok('내 루틴을 통째로 걸 수 있다', /kind: 'routine'/.test(daySheet), true);
 ok('운동 하나만 담을 수도 있다', /kind: 'exercise'/.test(daySheet), true);
-// 달력에서 날짜를 고른 다음 기록 화면에서 날짜를 또 고르게 하지 않는다
-ok('그 날짜를 들고 기록 화면으로 간다', /state: \{ date \}/.test(daySheet), true);
+// 달력에서 날짜를 고른 다음 기록 화면에서 날짜를 또 고르게 하지 않는다.
+//
+// **5차에 한 걸음 더 갔다** (2026-09-04) — 날짜를 들고 가는 대신 **그 자리에서 적는다.**
+// 넘겨주는 길이 있으면 받는 쪽도 그 길을 알아야 한다: 기록 화면은 달력에서 온
+// 날짜를 따로 받아, 자정을 넘겨도 그 날짜를 안 덮도록 예외를 두고 있었다.
+// 넘겨줄 것이 없으면 그 예외도 없다
+ok('기록 화면으로 날짜를 넘기지 않는다', /state: \{ date \}/.test(daySheet), false);
+ok('  그 자리에서 적는다', /onAddWorkout/.test(daySheet), true);
+ok('  이름을 그 자리에서 찾는다', /ExerciseFinder/.test(daySheet), true);
 // 다른 날로 옮겼는데 쓰던 것이 남으면 **다른 날 메모가 이 날에 붙는다**
 ok('날짜가 바뀌면 쓰던 것을 닫는다', /\}, \[date\]\)/.test(daySheet), true);
 const wp2 = stripNotes(fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8'));
@@ -966,7 +973,13 @@ const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m 
 //   더보기에서 루틴 · 운동 검색 · 측정 · 히스토리를 걷었다 (탭바의 「운동」·「몸」·「기록」 안으로).
 //   되돌릴 수 있게 남긴 「옛 기록」·「옛 루틴」 둘이 늘었다.
 // 5차를 마치고 그 둘을 걷으면 이 수는 다시 줄어든다
-ok('다섯 화면이 아이콘 스물을 쓴다', used.length, 20);
+ok('다섯 화면이 아이콘 열아홉을 쓴다', used.length, 19);
+// 서랍이 하나가 됐다 (2026-09-04) — 아래 「더보기」를 걷고 머리의 내 계정으로 옮겼다.
+// **둘이 있으면 무엇이 어느 쪽에 있는지를 사람이 외워야 한다**
+ok('아래 탭바에 「더보기」가 없다', /label: '더보기'/.test(src['src/components/TabBar.jsx']), false);
+ok('  서랍 목록을 한 곳에서 들고 있다', /export const DRAWER_ITEMS/.test(src['src/components/TabBar.jsx']), true);
+ok('  내 계정 시트가 그 목록을 그린다',
+  /drawer/.test(fs.readFileSync('src/components/AccountSheet.jsx', 'utf-8')), true);
 ok('쓰는 이름이 전부 그려져 있다 (틀리면 빈 칸이 된다)',
   used.filter(n => !nav.NAV_ICONS.includes(n)), []);
 // 이모지는 폰마다 그림이 다르다. 하나라도 남으면 그 자리만 딴 그림이 된다

@@ -40,7 +40,7 @@ const exportBtn = {
 export default function HistoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { workouts, loading: wLoading, fetchAll: fetchWorkouts, deleteWorkout } = useWorkoutStore();
+  const { workouts, loading: wLoading, fetchAll: fetchWorkouts, deleteWorkout, addWorkout } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
 
   useEffect(() => {
@@ -102,6 +102,28 @@ export default function HistoryPage() {
       toast('지웠어요');
     } catch {
       toast('지우지 못했어요. 다시 열면 그대로 있어요', 'error');
+    }
+  };
+
+  // ── 그 날에 바로 적는다 ── (5차 리모델링, 2026-09-04)
+  //
+  // 예전에는 「이 날 기록하기」가 **기록 화면으로 날짜를 들고 갔다.** 그 길 때문에
+  // 기록 화면은 달력에서 온 날짜를 따로 받아, 자정을 넘겨도 그 날짜를 안 덮도록
+  // 예외를 두고 있었다. 그 자리에서 적으면 넘겨줄 것이 없다.
+  //
+  // **신호가 없어도 적힌다** — 운동 기록은 9/3 에 오프라인이 됐고, 여기서도 같은
+  // 길(`addWorkout`)을 쓰므로 그대로 따라온다
+  const [writingWorkout, setWritingWorkout] = useState(false);
+  const writeOnDay = async (payload) => {
+    if (writingWorkout) return;
+    setWritingWorkout(true);
+    try {
+      const saved = await addWorkout(payload);
+      toast(saved?.queued
+        ? '신호가 없어 이 기기에 적어뒀어요. 연결되면 저절로 올라가요'
+        : `${dayLabel(payload.date)}에 적었어요`);
+    } finally {
+      setWritingWorkout(false);
     }
   };
 
@@ -299,6 +321,8 @@ export default function HistoryPage() {
           onAddPlan={addPlan}
           onDeletePlan={removePlan}
           addingPlan={addingPlan}
+          onAddWorkout={writeOnDay}
+          addingWorkout={writingWorkout}
           onSeeRecords={() => document.getElementById('history-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
       ) : next.length > 0 ? (

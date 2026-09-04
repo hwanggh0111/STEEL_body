@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { planState, dayLabel, untilLabel } from '../data/plans';
+import ExerciseFinder from './ExerciseFinder';
 
 // 달력에서 날짜를 누르면 나오는 **그날 한 장.**
 //
@@ -26,18 +26,55 @@ export default function DaySheet({
   date, today, plans, dayWorkouts, myRoutines,
   onAddPlan, onDeletePlan, addingPlan,
   onSeeRecords,
+  onAddWorkout, addingWorkout,
 }) {
-  const navigate = useNavigate();
   const [adding, setAdding] = useState(false);      // 할 것 담는 칸을 폈나
   const [name, setName] = useState('');
 
+  // **이 날에 바로 적는 칸** (5차 리모델링, 2026-09-04)
+  const [writing, setWriting] = useState(false);
+  const [finding, setFinding] = useState(false);
+  const [ex, setEx] = useState('');
+  const [weight, setWeight] = useState('');
+  const [sets, setSets] = useState('');
+  const [reps, setReps] = useState('');
+  const [error, setError] = useState('');
+
   // 다른 날로 옮기면 쓰던 것을 닫는다 — **다른 날 메모가 이 날에 붙으면 안 된다**
-  useEffect(() => { setAdding(false); setName(''); }, [date]);
+  useEffect(() => {
+    setAdding(false); setName('');
+    setWriting(false); setFinding(false);
+    setEx(''); setWeight(''); setSets(''); setReps(''); setError('');
+  }, [date]);
 
   const list = Array.isArray(dayWorkouts) ? dayWorkouts : [];
   const state = planState(date, today, list);
   const isPast = date < today;
   const until = untilLabel(date, today);
+
+  // 이 날에 한 줄 적는다. **화면을 옮기지 않는다** —
+  // 예전에는 여기서 기록 화면으로 날짜를 들고 갔다
+  const writeHere = async () => {
+    const nm = ex.trim();
+    if (!nm) { setError('무슨 운동인지 적어주세요'); return; }
+    if (!sets || !reps) { setError('세트와 횟수를 적어주세요'); return; }
+    if (Number(sets) > 100 || Number(reps) > 1000) { setError('숫자가 너무 큽니다'); return; }
+    setError('');
+    try {
+      await onAddWorkout?.({
+        date,
+        exercise: nm,
+        weight: String(weight).trim() || '맨몸',
+        sets: Number(sets),
+        reps: Number(reps),
+      });
+      // **칸은 열어둔 채 비운다.** 한 날에 여러 개를 몰아 적는 자리라
+      // 적을 때마다 다시 펴게 하면 손이 두 배로 간다
+      setEx(''); setWeight(''); setSets(''); setReps('');
+    } catch (err) {
+      setError(err?.response?.data?.error || '적지 못했어요');
+    }
+  };
 
   const addExercise = () => {
     const v = name.trim();
@@ -162,18 +199,72 @@ export default function DaySheet({
         )}
       </Section>
 
-      {/* **기록하는 자리로 그 날짜를 들고 간다.** 예전에는 달력에서 날짜를 고른 다음
-          기록 화면에서 날짜를 또 골라야 했다 */}
-      <button
-        onClick={() => navigate('/workout', { state: { date } })}
-        style={{
-          width: '100%', padding: '12px 15px', cursor: 'pointer',
-          background: 'none', border: 'none', borderTop: '1px solid var(--border)',
-          color: 'var(--accent)', fontSize: 13, fontFamily: 'inherit', textAlign: 'center',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
-      >이 날 기록하기</button>
+      {/* ── 이 날에 적기 ── (5차 리모델링, 2026-09-04)
+          예전에는 여기서 **기록 화면으로 날짜를 들고 갔다.** 그 길을 내려고
+          기록 화면이 달력에서 온 날짜를 받아 자정 넘김까지 따로 다루고 있었다.
+          그 자리에서 적으면 넘겨줄 것이 없다 */}
+      {writing ? (
+        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 15px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>이 날에 적기</span>
+            <button onClick={() => setWriting(false)} style={{ ...chip, marginLeft: 'auto' }}>닫기</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              className="input"
+              value={ex}
+              onChange={(e) => setEx(e.target.value.slice(0, 60))}
+              placeholder="운동 이름"
+              style={{ fontSize: 13, padding: '8px 11px' }}
+            />
+            <button onClick={() => setFinding((v) => !v)} style={{ ...chip, flexShrink: 0 }}>
+              {finding ? '닫기' : '찾기'}
+            </button>
+          </div>
+
+          {finding && (
+            <ExerciseFinder
+              onPick={(n) => { setEx(String(n || '').trim()); setFinding(false); }}
+              pickLabel="이걸로"
+              autoFocus
+              compact
+            />
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+            <input className="input" inputMode="decimal" value={weight}
+              onChange={(e) => setWeight(e.target.value)} placeholder="무게"
+              aria-label="무게 kg" style={{ fontSize: 13, padding: '8px 11px' }} />
+            <input className="input" inputMode="numeric" value={sets}
+              onChange={(e) => setSets(e.target.value)} placeholder="세트"
+              aria-label="세트" style={{ fontSize: 13, padding: '8px 11px' }} />
+            <input className="input" inputMode="numeric" value={reps}
+              onChange={(e) => setReps(e.target.value)} placeholder="횟수"
+              aria-label="횟수" style={{ fontSize: 13, padding: '8px 11px' }} />
+          </div>
+
+          {error && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
+
+          <button
+            className="btn-primary"
+            disabled={addingWorkout}
+            onClick={writeHere}
+            style={{ padding: '10px 0', fontSize: 14 }}
+          >{addingWorkout ? '적는 중…' : '적기'}</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setWriting(true)}
+          style={{
+            width: '100%', padding: '12px 15px', cursor: 'pointer',
+            background: 'none', border: 'none', borderTop: '1px solid var(--border)',
+            color: 'var(--accent)', fontSize: 13, fontFamily: 'inherit', textAlign: 'center',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+        >이 날에 적기</button>
+      )}
     </div>
   );
 }

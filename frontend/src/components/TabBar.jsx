@@ -18,7 +18,12 @@ const TABS = [
   { path: '/train',   label: '운동',  icon: 'dumbbell' },
   { path: '/body',    label: '몸',    icon: 'chart' },
   { path: '/history', label: '기록',  icon: 'calendar' },
-  { path: '/more',    label: '더보기', icon: 'dots' },
+  // **「더보기」 칸을 걷었다** (5차 리모델링, 2026-09-04).
+  //
+  // 서랍이 둘이었다 — 아래의 더보기와 머리의 내 계정. 둘 다 「가끔 쓰는 것」을 담는
+  // 자리라서, 무엇이 어느 쪽에 있는지를 사람이 외워야 했다 (운동 알림은 더보기,
+  // 비밀번호는 내 계정). **서랍은 하나면 된다** — 머리의 내 계정이다.
+  // 아래 넷은 늘 쓰는 것만 남는다.
 ];
 
 // **한 화면에 한 줄이다.**
@@ -28,7 +33,9 @@ const TABS = [
 // 화면이다.** 여섯 중 하나만 지름길을 갖는 것도 이유가 없다(다른 다섯은 없다).
 // 메뉴에 같은 곳으로 가는 줄이 둘 있으면, 쓰는 사람은 둘이 다른 것인 줄 알고 눌러본다.
 // 그래서 지름길 줄을 지웠다 — 프로그램은 그 화면에서 고른다
-const MORE_ITEMS_ALL = [
+// 서랍에 담기는 것. **내 계정 시트가 이 목록을 그린다** (`AccountSheet`).
+// PC 사이드바도 같은 목록을 쓴다 — 두 벌로 적으면 한쪽에만 새 줄이 생기는 날이 온다
+export const DRAWER_ITEMS = [
   // 5차 리모델링 (2026-09-04) — **여기는 서랍이다.** 늘 쓰는 것은 탭바에 있고,
   // 가끔 쓰는 것만 남는다. 예전에는 「운동 검색」과 「관리자」가 같은 서랍에 있었다.
   //
@@ -59,7 +66,6 @@ const NAV_TOKENS = {
 
 
 export default function TabBar() {
-  const [showMore, setShowMore] = useState(false);
   const [splash, setSplash] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(isAdmin());
   const location = useLocation();
@@ -77,17 +83,13 @@ export default function TabBar() {
 
   // 권한 기반 메뉴 필터링
   const moreItems = useMemo(
-    () => MORE_ITEMS_ALL
+    () => DRAWER_ITEMS
       .filter(i => !i.adminOnly || isAdminUser)
       .map(i => (i.path === '/admin' ? { ...i, badge: pending.total } : i)),
     [isAdminUser, pending.total]
   );
 
   const handleTab = (path) => {
-    if (path === '/more') {
-      setShowMore(!showMore);
-      return;
-    }
     setShowMore(false);
     if (path === '/home' && location.pathname === '/home') return;
     if (path === '/home') {
@@ -109,7 +111,6 @@ export default function TabBar() {
   const onItem = (item) => onPath(item.path);
 
   const isActive = (path) => {
-    if (path === '/more') return showMore || moreItems.some(m => onPath(m.path));
     return onPath(path);
   };
 
@@ -199,7 +200,7 @@ export default function TabBar() {
 
           {/* 메인 탭 */}
           <div style={{ flex: 1, padding: '8px 0' }}>
-            {TABS.filter(t => t.path !== '/more').map(tab => (
+            {TABS.map(tab => (
               <NavCell
                 key={tab.path}
                 item={tab}
@@ -244,42 +245,6 @@ export default function TabBar() {
     <>
       {splash && <MiniSplash onDone={() => { setSplash(false); navigate('/home'); }} />}
 
-      {/* 더보기 패널 */}
-      {showMore && (
-        <>
-          <div
-            onClick={() => setShowMore(false)}
-            style={{
-              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0,0,0,0.5)', zIndex: 9998,
-            }}
-          />
-          <div style={{
-            position: 'fixed', bottom: 60, left: 0, right: 0,
-            background: 'var(--bg-secondary)',
-            borderTop: '1px solid var(--border)',
-            zIndex: 9999,
-            padding: '12px 0',
-            animation: 'moreSlide 0.2s ease',
-          }}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 4, maxWidth: 'var(--max-width)', margin: '0 auto', padding: '0 12px',
-            }}>
-              {moreItems.map(item => (
-                <NavCell
-                  key={item.path + (item.param || '')}
-                  item={item}
-                  active={onItem(item)}
-                  onClick={() => { setShowMore(false); navigate(goTo(item)); }}
-                  layout="vertical"
-                />
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
       {/* 하단 탭바 */}
       <nav aria-label="하단 네비게이션" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -296,7 +261,7 @@ export default function TabBar() {
           {TABS.map(tab => (
             <div key={tab.path} style={{ flex: 1 }}>
               <NavCell
-                item={tab.path === '/more' ? { ...tab, badge: pending.total } : tab}
+                item={tab}
                 active={isActive(tab.path)}
                 onClick={() => handleTab(tab.path)}
                 layout="vertical"

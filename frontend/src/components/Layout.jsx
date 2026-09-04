@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
 import RestBar from './RestBar';
@@ -20,6 +20,8 @@ import { useIsPC } from './useIsPC';
 import AccountDeleteModal from './AccountDeleteModal';
 import OfflineBar from './OfflineBar';
 import AccountSheet from './AccountSheet';
+import { DRAWER_ITEMS } from './TabBar';
+import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';
 
@@ -34,6 +36,17 @@ export default function Layout() {
   const [profilePhoto, setProfilePhoto] = useState(readLS(PROFILE_KEY) || '');
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
+
+  // 서랍에 담기는 줄. **목록은 `TabBar` 가 들고 있다** — 아래 길찾기(PC 사이드바)와
+  // 같은 것을 써야 한쪽에만 새 줄이 생기는 일이 없다.
+  // 관리자 줄은 관리자에게만, 손볼 제보 수는 그 줄에 붙인다
+  const pending = usePendingReports();
+  const drawerItems = useMemo(
+    () => DRAWER_ITEMS
+      .filter((i) => !i.adminOnly || checkAdmin())
+      .map((i) => (i.path === '/admin' ? { ...i, badge: pending.total } : i)),
+    [pending.total],
+  );
   const [changingPw, setChangingPw] = useState(false);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const location = useLocation();
@@ -417,6 +430,8 @@ export default function Layout() {
             onZoomPhoto={setZoomImg}
             onSaveNick={saveNickname}
             savingNick={savingNick}
+            drawer={drawerItems}
+            onGo={(item) => { setSideMenu(false); navigate(item.path + (item.param ? `?p=${encodeURIComponent(item.param)}` : '')); }}
             onChangePw={() => { setSideMenu(false); setChangingPw(true); }}
             onLogout={async () => { setSideMenu(false); await leave(); }}
             onDeleteAccount={() => { setSideMenu(false); setDeleting(true); }}

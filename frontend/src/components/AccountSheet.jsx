@@ -31,6 +31,7 @@ export default function AccountSheet({
   onPickPhoto, onDeletePhoto, onZoomPhoto,
   onSaveNick, savingNick,
   onChangePw, onLogout, onDeleteAccount,
+  drawer = [], onGo,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(nickname || '');
@@ -119,6 +120,24 @@ export default function AccountSheet({
         </div>
       </div>
 
+      {/* ── 서랍 ── (5차 리모델링, 2026-09-04)
+          아래 탭바의 「더보기」를 걷고 여기로 옮겼다. **서랍이 둘이면 무엇이 어느
+          쪽에 있는지를 사람이 외워야 한다** — 운동 알림은 더보기, 비밀번호는 여기.
+          한 자리로 모으면 외울 것이 없다 */}
+      {drawer.length > 0 && (
+        <Group>
+          {drawer.map((item) => (
+            <Row
+              key={item.path + (item.param || '')}
+              icon={item.icon}
+              label={item.label}
+              badge={item.badge}
+              onClick={() => onGo?.(item)}
+            />
+          ))}
+        </Group>
+      )}
+
       {/* ── 할 수 있는 것 ── */}
       <Group>
         <Row icon="pencil" label="이름 바꾸기" onClick={startEdit} />
@@ -153,7 +172,7 @@ function Group({ children }) {
 
 // 줄 하나. **모두 같은 모양이다** — 높이 · 글자 · 아이콘 크기가 하나라
 // 무엇이 눌리는 자리인지 한눈에 보인다
-function Row({ icon, label, onClick, muted }) {
+function Row({ icon, label, onClick, muted, badge }) {
   return (
     <button
       onClick={onClick}
@@ -178,6 +197,14 @@ function Row({ icon, label, onClick, muted }) {
         <NavIcon name={icon} size={16} />
       </span>
       {label}
+      {badge > 0 && (
+        <span style={{
+          marginLeft: 'auto',
+          background: 'var(--warning)', color: 'var(--on-accent)',
+          fontSize: 10.5, lineHeight: 1, padding: '3px 6px',
+          borderRadius: 'var(--radius)', fontFamily: "'Barlow', sans-serif",
+        }}>{badge > 99 ? '99+' : badge}</span>
+      )}
     </button>
   );
 }
