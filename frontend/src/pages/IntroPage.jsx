@@ -35,16 +35,20 @@ function Sec({ children }) {
   );
 }
 
-export default function IntroPage() {
+// `embedded` — **홈페이지 안에 들어가 있다** (`pages/SitePage.jsx`).
+// 그때는 제목도 갈래 고르개도 홈페이지가 들고 있다
+export default function IntroPage({ embedded = false }) {
   const navigate = useNavigate();
   const s = useIntroStats();
 
   return (
     <div>
-      <div className="section-title">
-        <div className="accent-bar" />
-        이 앱은
-      </div>
+      {!embedded && (
+        <div className="section-title">
+          <div className="accent-bar" />
+          이 앱은
+        </div>
+      )}
 
       <p style={{
         fontSize: 24, lineHeight: 1.45, color: 'var(--text-primary)',

@@ -33,7 +33,9 @@ function whenLabel(iso) {
   return `${then.getMonth() + 1}월 ${then.getDate()}일`;
 }
 
-export default function CommunityPage() {
+// `embedded` — 홈페이지의 「커뮤니티」 갈래로 들어가 있다 (`pages/SitePage.jsx`).
+// 그때는 제목을 홈페이지가 들고 있다
+export default function CommunityPage({ embedded = false }) {
   const [posts, setPosts] = useState([]);
   const [kinds, setKinds] = useState([]);
   const [kind, setKind] = useState(KIND_ALL);
@@ -83,10 +85,12 @@ export default function CommunityPage() {
 
   return (
     <div>
-      <div className="section-title">
-        <div className="accent-bar" />
-        커뮤니티
-      </div>
+      {!embedded && (
+        <div className="section-title">
+          <div className="accent-bar" />
+          커뮤니티
+        </div>
+      )}
 
       <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 14 }}>
         같이 하는 사람들이 쓰는 자리예요. <span style={{ color: 'var(--text-secondary)' }}>여기 쓴 글은 남이 읽습니다.</span>

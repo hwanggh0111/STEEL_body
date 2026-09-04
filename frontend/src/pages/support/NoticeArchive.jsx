@@ -36,7 +36,9 @@ const DATES_SHOWN = 6;
 
 const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
 
-export default function NoticeArchive() {
+// `embedded` — 홈페이지의 「소식」 갈래로 들어가 있다 (`pages/SitePage.jsx`).
+// 그때는 「고객센터로」 돌아가는 줄을 안 그린다 — 고객센터에서 온 것이 아니다
+export default function NoticeArchive({ embedded = false }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
@@ -85,13 +87,15 @@ export default function NoticeArchive() {
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <button
-        onClick={() => navigate('/support')}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          color: 'var(--text-muted)', fontSize: 12.5, marginBottom: 18,
-        }}
-      >← 고객센터로</button>
+      {!embedded && (
+        <button
+          onClick={() => navigate('/support')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            color: 'var(--text-muted)', fontSize: 12.5, marginBottom: 18,
+          }}
+        >← 고객센터로</button>
+      )}
 
       <div style={{ marginBottom: 20 }}>
         <h2 style={{

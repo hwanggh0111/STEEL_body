@@ -23,9 +23,11 @@
 export const DRAWER_ITEMS = [
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
   { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
-  { path: '/community',  label: '커뮤니티',   icon: 'chat' },
+  // **읽으러 가는 곳은 한 줄이다** (2026-09-04). 소개 · 소식 · 커뮤니티를
+  // 서랍에 세 줄로 늘어놓으면, 무엇이 어느 줄에 있는지를 또 외워야 한다 —
+  // 아래 「더보기」 서랍을 걷은 것과 같은 이유다
+  { path: '/site',       label: '홈페이지',   icon: 'chat' },
   { path: '/support',    label: '고객센터',   icon: 'inbox' },
-  { path: '/intro',      label: '앱 소개',    icon: 'bulb' },
   { path: '/workout',    label: '옛 기록',    icon: 'dumbbell' },
   { path: '/routine',    label: '옛 루틴',    icon: 'clipboard' },
   { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },
