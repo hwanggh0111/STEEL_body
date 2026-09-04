@@ -299,6 +299,8 @@ app.use('/api/reminders',   require('./routes/reminders'));
 app.use('/api/routine-session', require('./routes/routineSession'));
 app.use('/api/plans',       require('./routes/plans'));
 app.use('/api/notes',       require('./routes/notes'));
+// 커뮤니티 — 이 앱에서 **남에게 보이는 첫 글**이다 (2026-09-04)
+app.use('/api/community',   require('./routes/community'));
 app.use('/api/client-error', require('./routes/clientErrors'));
 app.use('/api/export',      require('./routes/export'));
 

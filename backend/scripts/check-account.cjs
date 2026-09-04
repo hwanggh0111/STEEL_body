@@ -51,13 +51,16 @@ const ALL = ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
              // 달력의 계획(8/31)과 루틴 메모(9/3). **둘 다 여기 없었다** —
              // 아래 「user_id 를 쓰는 갈래」 검사는 검사용 DB 에 그 갈래가 심겨 있어야
              // 걸리는데, 이 목록이 곧 심는 목록이라 빠뜨리면 스스로를 못 잡는다
-             'plans', 'notes'];
+             'plans', 'notes',
+             // 커뮤니티 글과 댓글 (2026-09-04). **남이 읽는 글이라 더 중요하다** —
+             // 목록에서 빠지면 계정을 지운 사람의 글이 남에게 계속 보인다
+             'posts', 'postComments'];
 const seed = db.snapshot();
 for (const key of ALL) {
   seed[key] = [{ id: 1, user_id: gone }, { id: 2, user_id: stay }];
 }
 
-ok('한 사람에게 붙는 갈래를 열넷으로 적어뒀다', ALL.filter(k => !db.USER_COLLECTIONS.includes(k)), []);
+ok('한 사람에게 붙는 갈래를 열여섯으로 적어뒀다', ALL.filter(k => !db.USER_COLLECTIONS.includes(k)), []);
 // 목록에서 빠뜨린 갈래가 있으면 그 갈래만 조용히 남는다.
 // DB 에 실제로 있는 것 중 user_id 를 쓰는 것은 전부 목록에 있어야 한다
 const withUser = Object.entries(raw())

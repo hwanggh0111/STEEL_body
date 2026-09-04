@@ -495,6 +495,111 @@ const db = {
     return { changes: 1 };
   },
 
+  // ── 커뮤니티 — 글과 댓글 ──
+  //
+  // **이 앱에서 남에게 보이는 첫 글이다.** 다른 갈래(운동 기록 · 메모 · 제보)는
+  // 전부 자기만 보는 것이라, 지울 때도 그 사람 것만 지우면 끝이었다.
+  // 여기는 다르다 — 글이 사라지면 **달린 댓글도 같이 사라져야** 한다.
+  //
+  // 그리고 계정을 지울 때도 마찬가지다. `USER_COLLECTIONS` 에 둘 다 넣었다.
+  // 8/31 까지 일곱 갈래가 목록에서 빠져 그것만 남아 있던 일이 있었다 —
+  // 남는 것이 **남이 읽는 글**이면 더 나쁘다.
+  getPosts(includeTakenDown = false) {
+    const data = load();
+    return (data.posts || [])
+      .filter(p => includeTakenDown || !p.taken_down)
+      // 최근 것이 위다. id 는 늘어나는 값이라 그대로 쓴다
+      .sort((a, b) => b.id - a.id);
+  },
+  getPost(id) {
+    const data = load();
+    return (data.posts || []).find(p => p.id === id) || null;
+  },
+  createPost(userId, { kind, title, body, flagged = null }) {
+    const data = load();
+    if (!data.posts) data.posts = [];
+    const now = new Date().toISOString();
+    const row = {
+      id: nextId('posts'), user_id: userId,
+      kind, title, body, flagged,
+      taken_down: false,
+      created_at: now, updated_at: now,
+    };
+    data.posts.push(row);
+    save(data);
+    return row;
+  },
+  updatePost(id, userId, { kind, title, body, flagged = null }) {
+    const data = load();
+    const post = (data.posts || []).find(p => p.id === id && p.user_id === userId);
+    if (!post) return null;
+    post.kind = kind;
+    post.title = title;
+    post.body = body;
+    post.flagged = flagged;
+    post.updated_at = new Date().toISOString();
+    save(data);
+    return post;
+  },
+  // 쓴 사람이 지운다. **댓글도 같이 간다** — 안 지우면 없는 글에 달린 댓글이 남는다
+  deletePost(id) {
+    const data = load();
+    if (!data.posts) return { changes: 0 };
+    const before = data.posts.length;
+    data.posts = data.posts.filter(p => p.id !== id);
+    data.postComments = (data.postComments || []).filter(c => c.post_id !== id);
+    if (data.posts.length === before) return { changes: 0 };
+    save(data);
+    return { changes: 1 };
+  },
+  // 관리자가 내린다. **지우지 않고 표시만 한다** — 소리 없이 사라지면
+  // 쓴 사람은 자기 글이 안 올라간 줄 알고 또 쓴다
+  takeDownPost(id) {
+    const data = load();
+    const post = (data.posts || []).find(p => p.id === id);
+    if (!post) return { changes: 0 };
+    post.taken_down = true;
+    post.updated_at = new Date().toISOString();
+    save(data);
+    return { changes: 1 };
+  },
+
+  getPostComments(postId) {
+    const data = load();
+    return (data.postComments || [])
+      .filter(c => c.post_id === postId)
+      // 댓글은 **먼저 쓴 것이 위다** — 주고받은 순서가 그대로 읽혀야 한다
+      .sort((a, b) => a.id - b.id);
+  },
+  countPostComments(postId) {
+    const data = load();
+    return (data.postComments || []).filter(c => c.post_id === postId).length;
+  },
+  getPostComment(id) {
+    const data = load();
+    return (data.postComments || []).find(c => c.id === id) || null;
+  },
+  createPostComment(postId, userId, body, flagged = null) {
+    const data = load();
+    if (!data.postComments) data.postComments = [];
+    const row = {
+      id: nextId('postComments'), post_id: postId, user_id: userId,
+      body, flagged, created_at: new Date().toISOString(),
+    };
+    data.postComments.push(row);
+    save(data);
+    return row;
+  },
+  deletePostComment(id) {
+    const data = load();
+    if (!data.postComments) return { changes: 0 };
+    const before = data.postComments.length;
+    data.postComments = data.postComments.filter(c => c.id !== id);
+    if (data.postComments.length === before) return { changes: 0 };
+    save(data);
+    return { changes: 1 };
+  },
+
   // notes — 루틴 메모장
   getNotes(userId) {
     const data = load();
@@ -885,7 +990,10 @@ const db = {
   // 또 남는다 — `npm run check` 가 이 목록과 실제 컬렉션을 맞춰본다.
   USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
                      'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
-                     'suspensions', 'abuseLogs', 'plans', 'notes'],
+                     'suspensions', 'abuseLogs', 'plans', 'notes',
+                     // 커뮤니티 (2026-09-04). **남이 읽는 글이라 더 중요하다** —
+                     // 목록에서 빠지면 계정을 지운 사람의 글이 남에게 계속 보인다
+                     'posts', 'postComments'],
   // 지금 램에 들고 있는 그대로.
   //
   // 파일은 0.5초 뒤에 쓰이므로 **검사가 파일을 읽으면 옛 내용을 본다.**

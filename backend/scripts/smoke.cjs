@@ -287,6 +287,65 @@ function cleanAll() {
     (await call('POST', '/reports', { kind: 'bug', title: '한 바퀴 돌아봤습니다', body: '화면: 기록\n---\n잘 됩니다' })).status, 201);
   step('별점', (await call('POST', '/ratings', { score: 5 })).status, 201);
 
+  console.log('\n── 커뮤니티 ──');
+  // **이 앱에서 남에게 보이는 첫 글이다.** 그래서 두 가지를 여기서 본다 —
+  // 쓰고 읽고 지우는 것이 되는가, 그리고 **남의 것을 못 건드리는가.**
+  step('없는 갈래로는 못 쓴다',
+    (await call('POST', '/community', { kind: '아무거나', title: 'x', body: 'y' })).status, 400);
+  step('제목이 없으면 안 받는다',
+    (await call('POST', '/community', { kind: '자유', title: '   ', body: 'y' })).status, 400);
+  const post = await call('POST', '/community', {
+    kind: '자유', title: '오늘 벤치 80 처음 들었습니다',
+    body: '3주째 75에서 안 올라갔는데 오늘 됐어요.\n다들 정체기 어떻게 넘기시나요',
+  });
+  step('글을 쓴다', post.status, 201);
+  const pid = post.data?.post?.id;
+  step('  줄바꿈이 살아 있다', String(post.data?.post?.body || '').split('\n').length, 2);
+
+  const list = await call('GET', '/community');
+  step('목록을 받아온다', Array.isArray(list.data?.posts), true);
+  step('  방금 쓴 것이 있다', (list.data?.posts || []).some(p => p.id === pid), true);
+  // 목록에 본문을 실으면 스무 개에 몇십 KB 다. 첫 줄만 잘라 보낸다
+  step('  목록에는 본문을 안 싣는다', (list.data?.posts || []).some(p => 'body' in p), false);
+  step('  누가 썼는지가 보인다',
+    typeof (list.data?.posts || []).find(p => p.id === pid)?.nickname, 'string');
+  step('갈래로 거를 수 있다',
+    (await call('GET', '/community?kind=질문')).data?.posts?.some(p => p.id === pid), false);
+
+  const one = await call('GET', '/community/' + pid);
+  step('글 하나를 연다', one.status, 200);
+  step('  누구 것인지는 안 흘린다', one.data?.post?.user_id, undefined);
+  step('없는 글은 404', (await call('GET', '/community/999999')).status, 404);
+
+  const cm = await call('POST', `/community/${pid}/comments`, { body: '저도 그 구간에서 오래 걸렸어요' });
+  step('댓글을 단다', cm.status, 201);
+  const cid = cm.data?.comment?.id;
+  step('빈 댓글은 안 받는다',
+    (await call('POST', `/community/${pid}/comments`, { body: '  ' })).status, 400);
+  step('  글에 댓글 수가 붙는다',
+    (await call('GET', '/community')).data?.posts?.find(p => p.id === pid)?.comments, 1);
+
+  step('내 댓글을 지운다', (await call('DELETE', '/community/comments/' + cid)).status, 200);
+  step('없는 댓글은 404', (await call('DELETE', '/community/comments/999999')).status, 404);
+
+  // **남의 글은 없는 것으로 답한다.** 있고 없고를 알려주면 그것만으로도 새는 것이다.
+  // 검사 계정이 쓴 글 말고, 이 서버에 있던 남의 글 번호를 하나 집어 본다
+  const others = (await call('GET', '/community')).data?.posts?.filter(p => !p.mine) || [];
+  if (others.length > 0) {
+    step('남의 글은 못 고친다',
+      (await call('PUT', '/community/' + others[0].id, { kind: '자유', title: 'x', body: 'y' })).status, 404);
+    step('남의 글은 못 지운다', (await call('DELETE', '/community/' + others[0].id)).status, 404);
+  } else {
+    step('남의 글이 없어 그 검사는 건너뛴다', true, true);
+  }
+
+  step('내 글을 고친다',
+    (await call('PUT', '/community/' + pid, { kind: '질문', title: '정체기 어떻게 넘기시나요', body: '고쳤습니다' })).status, 200);
+  step('  갈래도 바뀐다',
+    (await call('GET', '/community?kind=질문')).data?.posts?.some(p => p.id === pid), true);
+  step('내 글을 지운다', (await call('DELETE', '/community/' + pid)).status, 200);
+  step('  지우면 안 보인다', (await call('GET', '/community/' + pid)).status, 404);
+
   console.log('\n── 알림 ──');
   step('요일과 시각 정하기',
     (await call('PUT', '/reminders', { enabled: true, days: [1, 3, 5], time: '19:00', tzOffset: -540, streakGuard: true })).status, 200);
