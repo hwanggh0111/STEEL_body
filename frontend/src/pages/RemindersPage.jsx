@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 import { toast } from '../components/Toast';
 import { AM, PM, HOURS12, parse24, to24, label24, minuteOptions } from '../data/timeOfDay';
+import { reminderSummary } from '../data/reminderLabel';
 
 // 운동 알림.
 //
@@ -66,7 +67,15 @@ const isStandalone = typeof window !== 'undefined'
 const isIOS = typeof navigator !== 'undefined'
   && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-function Toggle({ on, onClick, label, desc, disabled }) {
+// 스위치 한 줄.
+//
+// **카드를 두 장 겹쳐 두지 않는다.** 켜고 끄는 것 둘은 한 이야기라서, 테두리가
+// 두 번 그어지면 서로 상관없는 설정처럼 보인다. 한 카드 안에 줄을 나눠 담고
+// 사이에 실선 하나만 긋는다.
+//
+// 설명(`desc`)은 **적을 것이 있을 때만** 적는다. 「꺼져 있습니다」는 스위치가
+// 이미 하고 있는 말이다.
+function Toggle({ on, onClick, label, desc, warn, disabled, divider }) {
   return (
     <div
       role="switch"
@@ -75,16 +84,22 @@ function Toggle({ on, onClick, label, desc, disabled }) {
       tabIndex={disabled ? -1 : 0}
       onClick={disabled ? undefined : onClick}
       onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-      className="card"
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
+        padding: '13px 2px',
+        borderTop: divider ? '1px solid var(--border)' : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <div style={{ flexGrow: 1 }}>
+      <div style={{ flexGrow: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{label}</div>
-        {desc && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{desc}</div>}
+        {desc && (
+          <div style={{
+            fontSize: 12, marginTop: 2, lineHeight: 1.6,
+            color: warn ? 'var(--danger)' : 'var(--text-muted)',
+          }}>{desc}</div>
+        )}
       </div>
       <div style={{
         width: 40, height: 22, borderRadius: 11, padding: 3, flexShrink: 0,
@@ -249,10 +264,10 @@ export default function RemindersPage() {
   const serverReady = !!vapid;
   // **이 기기**에 구독이 있고, 이 브라우저가 알림을 허락했을 때만 「받습니다」다
   const registered = thisDevice && permission === 'granted';
-  // 켜져 있는데 고른 요일이 하나도 없으면 **정한 요일 알림은 영영 안 온다.**
-  // 서버는 이 상태를 막지 않는다(오래 쉴 때 알림만으로도 쓸 수 있어서) —
-  // 대신 화면이 그렇다고 말해야 한다
-  const noDays = settings.enabled && settings.days.length === 0;
+  // 스위치 아래 한 줄. 「꺼져 있습니다」가 아니라 **언제 오는지**를 적는다.
+  // 켜져 있는데 고른 요일이 없으면 그것도 여기서 사실대로 말한다 —
+  // 서버는 그 상태를 막지 않는다(오래 쉴 때 알림만으로도 쓸 수 있어서)
+  const summary = reminderSummary(settings);
 
   // 담긴 값(24시간)을 고르는 모양으로 편다. 못 읽는 값이 담겨 있어도 화면은 돌아야
   // 한다 — 그때는 저녁 7시를 보여주고, 사람이 만지면 그때 제대로 저장된다
@@ -360,26 +375,25 @@ export default function RemindersPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+      {/* 켜고 끄는 것 둘. **한 카드에 담는다** — 한 이야기다.
+          설명 자리에는 「꺼져 있습니다」 같은 말 대신 **언제 오는지**를 적는다
+          (`data/reminderLabel.js`) */}
+      <div className="card" style={{ padding: '3px 16px', marginBottom: 18 }}>
         <Toggle
           on={settings.enabled}
           disabled={busy}
           onClick={() => patch({ enabled: !settings.enabled })}
           label="운동 알림 받기"
-          desc={!settings.enabled
-            ? '꺼져 있습니다'
-            : noDays
-              ? (settings.streakGuard
-                ? '고른 요일이 없어요 · 오래 쉴 때만 옵니다'
-                : '고른 요일이 없어 아무것도 안 옵니다')
-              : '정한 요일과 시각에 옵니다'}
+          desc={summary.text}
+          warn={summary.warn}
         />
         <Toggle
+          divider
           on={settings.streakGuard}
           disabled={busy}
           onClick={() => patch({ streakGuard: !settings.streakGuard })}
           label="오래 쉬면 한 번 알리기"
-          desc="마지막 운동에서 사흘이 지나면, 정한 요일이 아니어도 한 번"
+          desc="사흘 넘게 쉬면 요일과 상관없이 한 번"
         />
       </div>
 
@@ -416,17 +430,6 @@ export default function RemindersPage() {
           );
         })}
       </div>
-
-      {noDays && (
-        <div style={{
-          fontSize: 12, lineHeight: 1.7, marginBottom: 18,
-          color: settings.streakGuard ? 'var(--text-muted)' : 'var(--danger)',
-        }}>
-          {settings.streakGuard
-            ? '고른 요일이 없습니다. 지금은 오래 쉬었을 때만 한 번 옵니다.'
-            : '고른 요일이 없고 「오래 쉬면 한 번 알리기」도 꺼져 있어 아무 알림도 안 옵니다.'}
-        </div>
-      )}
 
       {/* ── 시각 ──
           `<input type="time">` 를 걷었다. 브라우저마다 생김새가 다르고, 폰에서는

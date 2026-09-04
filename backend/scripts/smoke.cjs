@@ -302,6 +302,12 @@ function cleanAll() {
   step('  「바꿀 값이 없어요」가 아니다', badTime.data?.error, '시각을 19:00 처럼 적어주세요');
   const badTime2 = await call('PUT', '/reminders', { time: '25:00' });
   step('없는 시각도 같다', badTime2.data?.error, '시각을 19:00 처럼 적어주세요');
+  // **`Number(null)` 은 0 이고 0 은 일요일이다.** 숫자인지부터 안 보면
+  // `days: [null]` 이 일요일 알림으로 켜진다 (`[]` · `false` 도 0 이 된다)
+  const nully = await call('PUT', '/reminders', { days: [null, false, []] });
+  step('숫자가 아닌 요일은 안 받는다', nully.data?.days, []);
+  step('  진짜 요일은 받는다',
+    (await call('PUT', '/reminders', { days: [1, 3, 5] })).data?.days, [1, 3, 5]);
   const badDays = await call('PUT', '/reminders', { days: '월수금' });
   step('요일 모양이 틀리면 요일 이야기를 한다', badDays.data?.error, '요일은 0~6 사이 숫자 목록으로 주세요');
   // 시간대만 와도 저장한다 — **보낼 시각을 그 사람 시간대로 재는 값**이라

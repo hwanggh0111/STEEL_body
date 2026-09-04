@@ -36,9 +36,13 @@ function clean(body) {
   if (typeof body?.streakGuard === 'boolean') out.streakGuard = body.streakGuard;
 
   if (Array.isArray(body?.days)) {
-    // 중복과 범위 밖을 걸러 오름차순으로. 화면이 무엇을 보내든 서버가 모양을 정한다
-    const days = [...new Set(body.days.map(Number))]
-      .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
+    // 중복과 범위 밖을 걸러 오름차순으로. 화면이 무엇을 보내든 서버가 모양을 정한다.
+    //
+    // **숫자인지부터 본다.** 예전에는 `map(Number)` 로 먼저 바꿨는데,
+    // `Number(null)` 은 0 이고 0 은 일요일이다 — `days: [null]` 을 보내면
+    // 일요일 알림이 켜졌다. `[]` · `false` 도 0 이 된다
+    const days = [...new Set(body.days
+      .filter(d => typeof d === 'number' && Number.isInteger(d) && d >= 0 && d <= 6))]
       .sort((a, b) => a - b);
     out.days = days;
   } else if (body?.days !== undefined) {

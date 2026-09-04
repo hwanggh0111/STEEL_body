@@ -37,6 +37,7 @@ global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () =
 const rest = bundle('src/store/restTimerStore.js', '.t9.cjs');
 const chart = bundle('src/data/chartColors.js', '.t10.cjs');
 const tod = bundle('src/data/timeOfDay.js', '.t28.cjs');
+const rl = bundle('src/data/reminderLabel.js', '.t29.cjs');
 // 그래프 컴포넌트는 실제로 **그려봐야** 확인된다. react 는 밖에 둔다 —
 // 번들 안에 같이 넣으면 react 사본이 둘이 되어 훅이 안 붙는다
 const React = require('react');
@@ -1560,8 +1561,37 @@ ok('  못 기다리면 사람에게 말한다', /준비가 안 됐어요/.test(r
 ok('「이 기기」를 계정 기기 수로 판단하지 않는다',
   /registered = devices > 0/.test(rem), false);
 ok('  이 브라우저의 구독을 본다', /pushManager\.getSubscription/.test(rem), true);
-// 켜져 있는데 고른 요일이 없으면 정한 요일 알림은 영영 안 온다
-ok('요일이 없으면 그렇다고 말한다', /고른 요일이 없/.test(rem), true);
 ok('시각은 오전·오후로 고른다', /type="time"/.test(rem), false);
+// 스위치 아래 설명은 **적을 것이 있을 때만** 적는다. 「꺼져 있습니다」는 스위치가
+// 이미 하고 있는 말이라 자리만 차지했다
+ok('꺼졌다는 말을 글로 또 적지 않는다', /꺼져 있습니다/.test(rem), false);
+ok('  언제 오는지를 적는다', /reminderSummary/.test(rem), true);
+
+console.log('\n── 알림 설정을 한 줄로 (2026-09-04) ──');
+// 예전에는 「정한 요일과 시각에 옵니다」였다. 무슨 요일인지는 화면을 더 내려가야
+// 알 수 있었고, **요일을 하나도 안 골랐을 때도 그대로 그렇게 적었다** — 거짓말이었다
+ok('무슨 요일에 오는지 적는다', rl.daysLabel([1, 3, 5]), '월·수·금');
+ok('  흔한 조합은 이름으로', rl.daysLabel([1, 2, 3, 4, 5]), '평일');
+ok('  매일도', rl.daysLabel([0, 1, 2, 3, 4, 5, 6]), '매일');
+ok('  주말도', rl.daysLabel([0, 6]), '주말');
+ok('  순서가 뒤죽박죽이어도 요일 차례로', rl.daysLabel([5, 1, 3]), '월·수·금');
+ok('  같은 요일이 두 번 와도 한 번', rl.daysLabel([1, 1, 3]), '월·수');
+ok('  없으면 빈 문자열', rl.daysLabel([]), '');
+ok('  이상한 값이 와도 안 터진다', rl.daysLabel(['월', 9, null]), '');
+
+const on = { enabled: true, days: [1, 3, 5], time: '19:00', streakGuard: true };
+ok('켜져 있으면 언제 오는지 한 줄로', rl.reminderSummary(on).text, '월·수·금 · 오후 7:00');
+// **꺼져 있다는 말은 스위치가 이미 하고 있다.** 글로 또 적으면 자리만 차지한다
+ok('꺼져 있으면 아무것도 안 적는다', rl.reminderSummary({ ...on, enabled: false }).text, null);
+// 요일이 없어도 오래 쉴 때 알림만으로 쓸 수 있다. 서버가 막지 않는 이유다
+ok('요일이 없으면 사실대로 말한다',
+  rl.reminderSummary({ ...on, days: [] }).text, '고른 요일 없음 · 오래 쉴 때만 옵니다');
+ok('  그때는 붉게 적지 않는다 (쓸 수 있는 상태다)',
+  rl.reminderSummary({ ...on, days: [] }).warn, false);
+// 요일도 없고 오래 쉴 때 알림도 꺼져 있으면 **켜 놓았는데 아무것도 안 온다**
+ok('아무것도 안 오면 그렇다고 말한다',
+  rl.reminderSummary({ ...on, days: [], streakGuard: false }).text, '고른 요일이 없어 아무 알림도 안 옵니다');
+ok('  그때는 붉게 적는다', rl.reminderSummary({ ...on, days: [], streakGuard: false }).warn, true);
+ok('설정이 아직 없어도 안 터진다', rl.reminderSummary(null).text, null);
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
