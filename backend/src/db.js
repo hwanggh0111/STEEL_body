@@ -547,7 +547,11 @@ const db = {
     if (!data.posts) return { changes: 0 };
     const before = data.posts.length;
     data.posts = data.posts.filter(p => p.id !== id);
+    // **글이 사라지면 딸린 것도 같이 간다** — 댓글 · 공감 · 신고.
+    // 안 지우면 없는 글에 달린 것들이 남는다
     data.postComments = (data.postComments || []).filter(c => c.post_id !== id);
+    data.postLikes = (data.postLikes || []).filter(l => l.post_id !== id);
+    data.postReports = (data.postReports || []).filter(r => r.post_id !== id);
     if (data.posts.length === before) return { changes: 0 };
     save(data);
     return { changes: 1 };
@@ -598,6 +602,84 @@ const db = {
     if (data.postComments.length === before) return { changes: 0 };
     save(data);
     return { changes: 1 };
+  },
+
+  // ── 공감 ──
+  //
+  // **한 사람 한 번이다.** 누른 사람을 줄로 남긴다 — 숫자만 세면 두 번 누르는 것을
+  // 막을 수 없고, 「내가 눌렀나」도 알 수 없다.
+  likePost(postId, userId) {
+    const data = load();
+    if (!data.postLikes) data.postLikes = [];
+    if (data.postLikes.some(l => l.post_id === postId && l.user_id === userId)) return { changed: false };
+    data.postLikes.push({
+      id: nextId('postLikes'), post_id: postId, user_id: userId,
+      created_at: new Date().toISOString(),
+    });
+    save(data);
+    return { changed: true };
+  },
+  unlikePost(postId, userId) {
+    const data = load();
+    if (!data.postLikes) return { changed: false };
+    const before = data.postLikes.length;
+    data.postLikes = data.postLikes.filter(l => !(l.post_id === postId && l.user_id === userId));
+    if (data.postLikes.length === before) return { changed: false };
+    save(data);
+    return { changed: true };
+  },
+  countPostLikes(postId) {
+    const data = load();
+    return (data.postLikes || []).filter(l => l.post_id === postId).length;
+  },
+  likedPost(postId, userId) {
+    const data = load();
+    return (data.postLikes || []).some(l => l.post_id === postId && l.user_id === userId);
+  },
+
+  // ── 신고 ──
+  //
+  // 욕설은 코드가 자동으로 막는다(`abusePolicy`). 그런데 **사전이 못 잡는 것**이
+  // 있다 — 광고 · 남의 이야기 · 사전에 없는 말. 그걸 사람이 알려주는 길이다.
+  //
+  // **같은 사람이 같은 것을 두 번 신고하지 못한다.** 안 막으면 한 사람이 눌러서
+  // 숫자를 올릴 수 있고, 그러면 그 숫자가 뜻을 잃는다.
+  reportPost(postId, userId, reason) {
+    const data = load();
+    if (!data.postReports) data.postReports = [];
+    if (data.postReports.some(r => r.post_id === postId && r.user_id === userId)) {
+      return { changed: false };
+    }
+    data.postReports.push({
+      id: nextId('postReports'), post_id: postId, user_id: userId,
+      reason, reviewed: false, created_at: new Date().toISOString(),
+    });
+    save(data);
+    return { changed: true, count: data.postReports.filter(r => r.post_id === postId).length };
+  },
+  countPostReports(postId) {
+    const data = load();
+    return (data.postReports || []).filter(r => r.post_id === postId).length;
+  },
+  getPostReports() {
+    const data = load();
+    return (data.postReports || []).slice().sort((a, b) => b.id - a.id);
+  },
+  reviewPostReport(id) {
+    const data = load();
+    const r = (data.postReports || []).find(x => x.id === id);
+    if (!r) return { changes: 0 };
+    r.reviewed = true;
+    save(data);
+    return { changes: 1 };
+  },
+
+  // 내가 댓글을 단 글 번호들. 「내가 낀 이야기」를 모아 보는 데 쓴다
+  postIdsCommentedBy(userId) {
+    const data = load();
+    return [...new Set((data.postComments || [])
+      .filter(c => c.user_id === userId)
+      .map(c => c.post_id))];
   },
 
   // notes — 루틴 메모장
@@ -993,7 +1075,7 @@ const db = {
                      'suspensions', 'abuseLogs', 'plans', 'notes',
                      // 커뮤니티 (2026-09-04). **남이 읽는 글이라 더 중요하다** —
                      // 목록에서 빠지면 계정을 지운 사람의 글이 남에게 계속 보인다
-                     'posts', 'postComments'],
+                     'posts', 'postComments', 'postLikes', 'postReports'],
   // 지금 램에 들고 있는 그대로.
   //
   // 파일은 0.5초 뒤에 쓰이므로 **검사가 파일을 읽으면 옛 내용을 본다.**

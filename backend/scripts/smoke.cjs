@@ -26,7 +26,26 @@ let CK = '';
 let CSRF = '';
 let TOKEN = '';
 
-async function call(method, urlPath, body) {
+// **전체 속도 제한(1분 100번)에 걸리면 풀릴 때까지 기다렸다 한 번 더 부른다.**
+//
+// 한 바퀴가 100번을 넘어서면서(2026-09-14, 커뮤니티 공감·신고 검사를 더하고) 뒤쪽
+// 검사가 전부 429 로 FAIL 이 났다. 앱이 틀린 게 아니라 검사가 너무 빨랐다.
+// 서버 제한을 검사 때문에 풀지는 않는다 — 검사가 기다린다.
+// 로그인 제한(15분)처럼 오래 걸리는 것은 기다리지 않는다. 그건 진짜 실패로 보여야 한다
+async function call(method, urlPath, body, retried = false) {
+  const res = await rawCall(method, urlPath, body);
+  if (res.status === 429 && !retried) {
+    const reset = Number(res.reset);
+    if (Number.isFinite(reset) && reset > 0 && reset <= 65) {
+      console.log(`  (속도 제한 — ${reset}초 기다렸다 다시 부릅니다)`);
+      await new Promise(r => setTimeout(r, (reset + 1) * 1000));
+      return call(method, urlPath, body, true);
+    }
+  }
+  return { status: res.status, data: res.data };
+}
+
+async function rawCall(method, urlPath, body) {
   const res = await fetch(BASE + urlPath, {
     method,
     headers: {
@@ -45,7 +64,7 @@ async function call(method, urlPath, body) {
   }
   let data = null;
   try { data = await res.json(); } catch { /* CSV 처럼 JSON 이 아닌 답 */ }
-  return { status: res.status, data };
+  return { status: res.status, data, reset: res.headers.get('ratelimit-reset') };
 }
 
 let bad = 0;
@@ -346,6 +365,35 @@ function cleanAll() {
   step('내 글을 지운다', (await call('DELETE', '/community/' + pid)).status, 200);
   step('  지우면 안 보인다', (await call('GET', '/community/' + pid)).status, 404);
 
+  // ── 공감 · 신고 · 공지 (2026-09-14) ──
+  //
+  // 검사 계정은 하나뿐이라 남의 글에 누르는 것은 여기서 못 본다.
+  // 대신 **내 것에는 안 되는 것**과 **관리자 자리는 막히는 것**을 본다
+  const mine2 = await call('POST', '/community', { kind: '자유', title: '공감 검사', body: '누르면 안 됩니다' });
+  const pid2 = mine2.data?.post?.id;
+  step('내 글에는 공감할 수 없다', (await call('POST', `/community/${pid2}/like`)).status, 400);
+  step('내 글은 신고할 수 없다',
+    (await call('POST', `/community/${pid2}/report`, { reason: '광고 · 홍보' })).status, 400);
+  step('없는 글에는 공감할 수 없다', (await call('POST', '/community/999999/like')).status, 404);
+  step('없는 글은 신고할 수 없다',
+    (await call('POST', '/community/999999/report', { reason: '광고 · 홍보' })).status, 404);
+
+  const list2 = await call('GET', '/community');
+  step('목록에 공감 수가 붙는다',
+    typeof (list2.data?.posts || []).find(p => p.id === pid2)?.likes, 'number');
+  step('  신고 까닭을 같이 준다', Array.isArray(list2.data?.reasons), true);
+  step('  공지는 따로 온다', Array.isArray(list2.data?.notices), true);
+  step('  관리자가 아니면 공지를 못 쓴다고 알려준다', list2.data?.canNotice, false);
+  step('공지는 관리자만 쓴다',
+    (await call('POST', '/community', { kind: '공지', title: 'x', body: 'y' })).status, 403);
+  step('  글을 공지로 바꾸지 못한다',
+    (await call('PUT', '/community/' + pid2, { kind: '공지', title: 'x', body: 'y' })).status, 400);
+  step('「내 글」로 거른다',
+    (await call('GET', '/community?mine=1')).data?.posts?.every(p => p.mine), true);
+  step('「댓글 단 글」에는 댓글 안 단 글이 없다',
+    (await call('GET', '/community?joined=1')).data?.posts?.some(p => p.id === pid2), false);
+  step('검사 글을 지운다', (await call('DELETE', '/community/' + pid2)).status, 200);
+
   console.log('\n── 알림 ──');
   step('요일과 시각 정하기',
     (await call('PUT', '/reminders', { enabled: true, days: [1, 3, 5], time: '19:00', tzOffset: -540, streakGuard: true })).status, 200);
@@ -429,6 +477,7 @@ function cleanAll() {
     ['보안 대시보드', '/security/dashboard'], ['사람 목록', '/security/users'],
     ['보안 기록', '/security/logs'], ['제보 전체', '/reports/all'],
     ['못 찾은 말', '/faq-gaps'], ['만족도 통계', '/ratings/stats'],
+    ['커뮤니티 신고함', '/community/admin/reports'], ['짜증 섞인 글', '/community/admin/flagged'],
   ]) {
     step(label + ' 은 관리자만', (await call('GET', urlPath)).status, 403);
   }

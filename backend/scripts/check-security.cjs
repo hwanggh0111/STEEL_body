@@ -430,7 +430,11 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
     const route = fs.readFileSync(path.join(__dirname, '..', 'src/routes/community.js'), 'utf-8');
     ok('남의 글은 없는 것으로 답한다',
       (route.match(/post\.user_id !== req\.userId/g) || []).length >= 2, true);
-    ok('  403 으로 답하지 않는다 (있다는 것을 알려주게 된다)', /status\(403\)/.test(route), false);
+    // **남의 글에는 403 을 안 쓴다** — 「있긴 있다」를 알려주는 셈이다.
+    // 그런데 공지는 다르다: 숨길 것이 아니라 「여기는 관리자 자리다」라고 말하면 된다.
+    // 그래서 403 을 아예 금하지 않고, **공지 말고 다른 데 쓰였는지**를 본다
+    const forbid = [...route.matchAll(/status\(403\)\.json\(\{ error: '([^']*)'/g)].map(m => m[1]);
+    ok('  403 은 공지 자리에만 쓴다', forbid.filter(msg => !msg.includes('공지')), []);
   }
 
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

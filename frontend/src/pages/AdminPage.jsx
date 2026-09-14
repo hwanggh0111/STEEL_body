@@ -9,6 +9,7 @@ import MaintAdmin from '../components/admin/MaintAdmin';
 import ReportAdmin from '../components/admin/ReportAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 import FaqGapAdmin from '../components/admin/FaqGapAdmin';
+import CommunityAdmin from '../components/admin/CommunityAdmin';
 import { usePendingReports } from '../components/usePendingReports';
 
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -42,6 +43,7 @@ const GROUPS = [
     title: '사람이 기다리는 것',
     items: [
       { key: 'report', label: '제보 관리', icon: 'inbox', desc: '들어온 제보에 답하고, 욕설·비하로 걸린 기록을 판정한다' },
+      { key: 'community', label: '커뮤니티', icon: 'chat', desc: '신고된 글을 보고 내리거나 확인한다 · 짜증 섞인 말로 올라온 글' },
       { key: 'faqgap', label: '못 찾은 말', icon: 'question', desc: '고객센터에서 답을 못 찾고 나간 검색어' },
       { key: 'maint', label: '점검 스케줄', icon: 'wrench', desc: '점검 시각을 예약하고 안내 화면을 띄운다' },
     ],
@@ -61,6 +63,7 @@ const ALL = GROUPS.flatMap(g => g.items);
 
 const PANELS = {
   report: ReportAdmin,
+  community: CommunityAdmin,
   maint: MaintAdmin,
   faqgap: FaqGapAdmin,
   security: SecurityPanel,

@@ -71,6 +71,30 @@ export default function PostView({ id, onBack }) {
     }
   };
 
+  // 공감. 서버가 돌려준 수로 맞춘다 — 두 기기에서 누르면 내 화면 숫자가 어긋난다
+  const toggleLike = async () => {
+    try {
+      const { data } = post.liked
+        ? await client.delete(`/community/${id}/like`)
+        : await client.post(`/community/${id}/like`);
+      setPost((p) => ({ ...p, likes: data.likes, liked: data.liked }));
+    } catch (err) {
+      toast(err.response?.data?.error || '누르지 못했어요', 'error');
+    }
+  };
+
+  // 신고. **까닭을 고르는 칸은 누른 다음에야 펼친다** — 늘 펼쳐두면 글보다 신고가 크게 보인다
+  const [reporting, setReporting] = useState(false);
+  const report = async (reason) => {
+    try {
+      const { data } = await client.post(`/community/${id}/report`, { reason });
+      toast(data?.message || '알려주셔서 고맙습니다');
+      setReporting(false);
+    } catch (err) {
+      toast(err.response?.data?.error || '신고하지 못했어요', 'error');
+    }
+  };
+
   const removeComment = async (cid) => {
     const ok = await confirmDialog('이 댓글을 지울까요?',
       { title: '댓글 지우기', confirmText: '지웁니다', danger: true });
@@ -146,12 +170,72 @@ export default function PostView({ id, onBack }) {
           }}>{post.body}</div>
         )}
 
-        {post.mine && !post.taken_down && (
-          <button
-            className="btn-secondary"
-            style={{ width: 'auto', marginTop: 14, fontSize: 12, padding: '6px 14px', borderColor: 'var(--danger)', color: 'var(--danger)' }}
-            onClick={removePost}
-          >지우기</button>
+        {!post.taken_down && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            {post.mine ? (
+              <>
+                <button
+                  className="btn-secondary"
+                  style={{ width: 'auto', fontSize: 12, padding: '6px 14px', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                  onClick={removePost}
+                >지우기</button>
+                {post.likes > 0 && (
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent)' }}>공감 {post.likes}</span>
+                )}
+              </>
+            ) : (
+              <>
+                {/* 내 글에는 안 그린다 — 누를 수 없는 것을 그려두면 눌러보고 안 된다 */}
+                <button
+                  onClick={toggleLike}
+                  aria-pressed={!!post.liked}
+                  aria-label={post.liked ? '공감 취소' : '공감'}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${post.liked ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius: 'var(--radius)', padding: '6px 14px',
+                    color: post.liked ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12.5,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"
+                    fill={post.liked ? 'currentColor' : 'none'} stroke="currentColor"
+                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 19.4S4.6 15.2 4.6 10.2a3.9 3.9 0 0 1 7.4-1.8 3.9 3.9 0 0 1 7.4 1.8c0 5-7.4 9.2-7.4 9.2z" />
+                  </svg>
+                  공감{post.likes > 0 ? ` ${post.likes}` : ''}
+                </button>
+                {!post.notice && (
+                  <button
+                    onClick={() => setReporting((v) => !v)}
+                    aria-expanded={reporting}
+                    style={{
+                      marginLeft: 'auto', background: 'none', border: 'none', padding: 0,
+                      fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >{reporting ? '닫기' : '신고'}</button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {reporting && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+              무엇이 문제인가요? 누가 신고했는지는 쓴 사람에게 알리지 않아요.
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {(Array.isArray(post.reasons) ? post.reasons : []).map((r) => (
+                <button
+                  key={r}
+                  className="btn-secondary"
+                  style={{ width: 'auto', padding: '5px 12px', fontSize: 12 }}
+                  onClick={() => report(r)}
+                >{r}</button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
