@@ -106,7 +106,17 @@ function Todo({ pending, onGo }) {
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 욕설 신고</div>
             </div>
           )}
-          <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>제보 관리로 ›</div>
+          {pending.community > 0 && (
+            <div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--warning)', lineHeight: 1 }}>
+                {pending.community}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 커뮤니티 신고</div>
+            </div>
+          )}
+          <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>
+            {pending.open > 0 || pending.abuse > 0 ? '제보 관리로 ›' : '커뮤니티로 ›'}
+          </div>
         </>
       )}
     </div>
@@ -148,7 +158,12 @@ export default function AdminPage() {
 
   const current = ALL.find(t => t.key === tab);
   const Panel = PANELS[tab];
-  const badgeOf = (key) => (key === 'report' ? pending.total : 0);
+  // 뱃지는 **그 탭에서 할 일만** 센다. 커뮤니티 신고를 제보 관리에 얹으면 눌러 들어가도 없다
+  const badgeOf = (key) => (
+    key === 'report' ? pending.open + pending.abuse
+      : key === 'community' ? (pending.community || 0)
+        : 0
+  );
 
   const open = (key) => {
     setTab(key);
@@ -177,7 +192,7 @@ export default function AdminPage() {
         )}
       </div>
 
-      <Todo pending={pending} onGo={() => open('report')} />
+      <Todo pending={pending} onGo={() => open(pending.open > 0 || pending.abuse > 0 ? 'report' : 'community')} />
 
       {/* 지금 보고 있는 것 + 항목 고르기 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>

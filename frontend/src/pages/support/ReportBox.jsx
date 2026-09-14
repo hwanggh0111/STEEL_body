@@ -46,7 +46,7 @@ function useDeviceInfo() {
 //   2. 몰아세우지 않는다 — 처음 화면은 사무적인 안내문이었다. 무엇을 쳐야 할지 모르는
 //      사람에게 빈 칸만 들이밀고 "못 찾으면 위에서 고르세요" 라고 하면 쫓아내는 말로 읽힌다.
 //      그래서 주제를 눌러서 바로 볼 수 있게 두고, 문장도 여쭙는 말로 바꿨다
-export default function ReportBox({ embedded = false, initialKind = '' }) {
+export default function ReportBox({ embedded = false, initialKind = '', pick = 0 }) {
   const [kind, setKind] = useState(initialKind);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -79,7 +79,8 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
 
   // 열려 있는 채로 밖에서 다른 갈래를 누르면 그쪽으로 옮겨간다.
   // 빈 값으로는 되돌리지 않는다 — 고르고 쓰던 것을 밖에서 지워버리면 안 된다
-  useEffect(() => { if (initialKind) setKind(initialKind); }, [initialKind]);
+  // `pick` 은 누를 때마다 오르는 번호다 — 같은 갈래를 또 눌러도 다시 고른다
+  useEffect(() => { if (initialKind) setKind(initialKind); }, [initialKind, pick]);
 
   // 유형을 바꾸면 그 유형에만 있던 답은 버린다.
   // 남겨두면 버그로 골랐다가 문의로 바꿨을 때 엉뚱한 화면 이름이 같이 간다.
@@ -123,13 +124,18 @@ export default function ReportBox({ embedded = false, initialKind = '' }) {
 
   // 먼저 화면에서 지우고 서버에 알린다. 실패하면 되돌린다 —
   // 지운 줄 알았는데 새로고침하면 살아 있는 것이 제일 나쁘다
+  //
+  // **되돌릴 때 지운 것 하나만 도로 넣는다.** 예전에는 누르기 전의 목록 통째로 되돌려서,
+  // 지우는 사이에 보낸 제보가 있으면 그것까지 화면에서 사라졌다
   const removeItem = async (id) => {
-    const prev = items;
-    setItems(prev.filter(i => i.id !== id));
+    const removed = items.find(i => i.id === id);
+    setItems(cur => cur.filter(i => i.id !== id));
     try {
       await client.delete(`/reports/${id}`);
     } catch {
-      setItems(prev);
+      if (removed) {
+        setItems(cur => (cur.some(i => i.id === id) ? cur : [...cur, removed].sort((a, b) => b.id - a.id)));
+      }
       setSendError('지우지 못했어요. 잠시 뒤에 다시 해주세요');
       setTimeout(() => setSendError(''), 4000);
     }

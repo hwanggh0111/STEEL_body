@@ -33,4 +33,9 @@ export const useReportStore = create((set, get) => ({
   // 답변이 달린 제보 중 가장 최근 것. 없으면 빈 문자열.
   // ISO 문자열이라 사전순 비교가 곧 시간순 비교다
   latestReplyAt: () => get().items.reduce((max, i) => (i.reply_at && i.reply_at > max ? i.reply_at : max), ''),
+
+  // 로그아웃할 때 비운다. **안 비우면 다음에 로그인한 사람이 앞 사람의 제보를 본다** —
+  // 새로 받아오기 전까지 「내 제보 3건 · 새 답변」이 남의 것으로 뜨고, 받아오기에
+  // 실패하면 그대로 남는다. 진행표(routineSessionStore)에서 막았던 것과 같은 종류다
+  reset: () => { inflight = null; set({ items: [], loading: true, failed: false }); },
 }));

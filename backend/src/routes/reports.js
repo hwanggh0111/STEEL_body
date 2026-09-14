@@ -67,8 +67,13 @@ router.get('/all', adminAuth, (req, res) => {
 router.get('/pending', adminAuth, (req, res) => {
   const reports = db.getAllReports();
   const open = reports.filter(r => r.status === 'received' || r.status === 'checking').length;
-  const abuse = db.getAbuseLogs().filter(a => !a.reviewed && !a.dismissed).length;
-  res.json({ open, abuse });
+  // **짜증(mild)은 세지 않는다.** 막지 않고 기록만 한 것이라 확인할 일이 아니다.
+  // 예전에는 여기서 셌는데 욕설 기록 카드는 안 세서, 머리에는 「확인 안 한 욕설 신고 3」이
+  // 뜨고 카드를 열면 「확인 안 함」이 없었다 — 할 일이 없는데 할 일이 있다고 했다
+  const abuse = db.getAbuseLogs().filter(a => !a.reviewed && !a.dismissed && a.level !== 'mild').length;
+  // 커뮤니티 신고 중 아직 안 본 것 (2026-09-14). 글 단위가 아니라 신고 단위로 센다
+  const community = db.getPostReports().filter(r => !r.reviewed).length;
+  res.json({ open, abuse, community });
 });
 
 // 관리자 — 욕설·비하로 걸린 기록.

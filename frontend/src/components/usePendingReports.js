@@ -12,7 +12,7 @@ import { isAdmin } from '../data/admin';
 const PULL_MS = 3 * 60 * 1000;
 
 export function usePendingReports() {
-  const [count, setCount] = useState({ open: 0, abuse: 0 });
+  const [count, setCount] = useState({ open: 0, abuse: 0, community: 0 });
   // 아직 안 받아온 0 과 정말로 0 건인 것은 다르다.
   // 관리자 화면이 「손볼 것이 없어요」를 띄울지 말지를 이걸 보고 정한다
   const [loaded, setLoaded] = useState(false);
@@ -22,7 +22,11 @@ export function usePendingReports() {
     let alive = true;
     const pull = () => {
       client.get('/reports/pending')
-        .then(({ data }) => { if (alive) { setCount({ open: data?.open || 0, abuse: data?.abuse || 0 }); setLoaded(true); } })
+        .then(({ data }) => {
+          if (!alive) return;
+          setCount({ open: data?.open || 0, abuse: data?.abuse || 0, community: data?.community || 0 });
+          setLoaded(true);
+        })
         // 못 받아온 것 때문에 화면이 시끄러워지면 안 된다. 조용히 넘어간다
         .catch(() => {});
     };
@@ -38,7 +42,7 @@ export function usePendingReports() {
     };
   }, []);
 
-  return { ...count, loaded, total: count.open + count.abuse };
+  return { ...count, loaded, total: count.open + count.abuse + count.community };
 }
 
 export default usePendingReports;

@@ -79,6 +79,10 @@ export default function SupportPage() {
   // 그 아래 자주 묻는 것과 바뀐 것이 한참 밀려난다
   const [reportOpen, setReportOpen] = useState(false);
   const [reportKind, setReportKind] = useState('');
+  // 갈래를 누를 때마다 올린다. **같은 갈래를 두 번 누르면 값이 안 바뀌어서** 제보함이
+  // 모른다 — 버그를 보내고(폼이 비워진다) 「안 되는 게 있어요」를 또 누르면 아무 갈래도
+  // 안 골라진 채로 열렸다
+  const [reportPick, setReportPick] = useState(0);
   const reportRef = useRef(null);
 
   // 접어두는 대신, 답변이 온 것을 놓치지 않게 목록을 여기서도 본다.
@@ -107,7 +111,7 @@ export default function SupportPage() {
   // 어디서 눌러도 같은 길로 연다.
   // 이미 열려 있으면 닫지 않고 그 자리로 데려다만 준다 — 쓰던 글이 사라지면 안 된다
   const openReport = (kind = '') => {
-    if (kind) setReportKind(kind);
+    if (kind) { setReportKind(kind); setReportPick(n => n + 1); }
     setReportOpen(true);
     // 펼쳐진 뒤에 스크롤해야 자리가 맞는다
     requestAnimationFrame(() => reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -251,7 +255,7 @@ export default function SupportPage() {
                 }}
               >접기</button>
             </div>
-            <ReportBox embedded initialKind={reportKind} />
+            <ReportBox embedded initialKind={reportKind} pick={reportPick} />
           </>
         ) : (
           <button
@@ -319,12 +323,14 @@ export default function SupportPage() {
           </div>
         )}
 
-        {shownFaq.map((f, i) => {
-          const on = openFaq === i;
+        {/* **펼친 것을 순번이 아니라 질문으로 기억한다.** 순번으로 두면 찾기를 치는 순간
+            목록이 줄어들면서 같은 순번의 **다른 질문**이 펼쳐져 있었다 */}
+        {shownFaq.map((f) => {
+          const on = openFaq === f.q;
           return (
-            <div key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+            <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
               <div
-                onClick={() => setOpenFaq(on ? null : i)}
+                onClick={() => setOpenFaq(on ? null : f.q)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 0', cursor: 'pointer',

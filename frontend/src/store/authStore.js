@@ -5,6 +5,7 @@ import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore
 import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
 import { useRoutineSessionStore } from './routineSessionStore';
+import { useReportStore } from './reportStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -105,6 +106,8 @@ export const useAuthStore = create((set) => ({
     resetInbodyCache();
     // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
     useRoutineSessionStore.getState().reset();
+    // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다
+    useReportStore.getState().reset();
   },
 
   // 쿠키 기반 인증 상태 확인 (앱 시작 시 호출)
