@@ -1535,6 +1535,17 @@ const db = {
     return row;
   },
 
+  // 세트마다 누른 수. 9/14 전에 시작한 진행표에는 이 칸이 없다 — 없으면 0 으로 친다
+  setRoutineItemSets(userId, index, setsDone) {
+    const data = load();
+    const row = (data.routineSessions || []).find(s => s.user_id === userId);
+    if (!row || !row.items[index]) return null;
+    row.items[index].setsDone = setsDone;
+    row.updated_at = new Date().toISOString();
+    save(data);
+    return row;
+  },
+
   endRoutineSession(userId) {
     const data = load();
     if (!data.routineSessions) return { changes: 0 };

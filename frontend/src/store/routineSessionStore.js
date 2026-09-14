@@ -15,6 +15,9 @@ import client from '../api/client';
 const asSession = (v) =>
   (v && typeof v === 'object' && !Array.isArray(v) && Array.isArray(v.items)) ? v : null;
 
+// 세트 체크를 누른 순번. 늦게 도착한 옛 답이 새 체크를 덮지 않게 한다
+let checkSeq = 0;
+
 export const useRoutineSessionStore = create((set, get) => ({
   session: null,
   loaded: false,
@@ -53,6 +56,32 @@ export const useRoutineSessionStore = create((set, get) => ({
       const fresh = err?.response?.data;
       if (err?.response?.status === 409 && fresh && 'session' in fresh) {
         set({ session: asSession(fresh.session), loaded: true });
+      }
+      throw err;
+    }
+  },
+
+  // 세트 하나를 체크한다(또는 푼다).
+  //
+  // **누르자마자 화면에 먼저 반영한다.** 세트 사이에 누르는 것이라 서버를 기다리면
+  // 눌렀는지 안 눌렀는지 모르는 틈이 생기고, 그 틈에 한 번 더 누른다.
+  // 빨리 연달아 누르면 답이 순서를 바꿔 올 수 있다 — **마지막으로 누른 것의 답만** 쓴다
+  checkSet: async (index, setsDone) => {
+    const prev = get().session;
+    if (prev?.items?.[index]) {
+      const items = prev.items.map((it, i) => (i === index ? { ...it, setsDone } : it));
+      set({ session: { ...prev, items } });
+    }
+    const mine = ++checkSeq;
+    try {
+      const { data } = await client.patch('/routine-session', { index, setsDone });
+      if (mine === checkSeq) set({ session: asSession(data?.session), loaded: true });
+    } catch (err) {
+      const fresh = err?.response?.data;
+      if (err?.response?.status === 409 && fresh && 'session' in fresh) {
+        set({ session: asSession(fresh.session), loaded: true });
+      } else if (mine === checkSeq) {
+        set({ session: prev });
       }
       throw err;
     }

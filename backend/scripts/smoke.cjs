@@ -199,6 +199,24 @@ function cleanAll() {
   step('루틴 시작', ss.status, 201);
   step('  첫 칸이 벤치프레스', ss.data?.session?.items?.[0]?.name, '벤치프레스');
   step("  '4세트' 에서 숫자만 뽑았다", ss.data?.session?.items?.[0]?.sets, 4);
+  step('  세트 체크는 0 에서 시작한다', ss.data?.session?.items?.[0]?.setsDone, 0);
+
+  // ── 세트마다 체크 (2026-09-14) ──
+  // 칸을 넘기는 것은 기록 저장이다. 세트 체크만으로 넘어가면 기록 없이 끝난 운동이 생긴다
+  const c2 = await call('PATCH', '/routine-session', { index: 0, setsDone: 2 });
+  step('세트 둘을 체크한다', c2.status, 200);
+  step('  두 세트가 남는다', c2.data?.session?.items?.[0]?.setsDone, 2);
+  step('  칸은 안 넘어간다', c2.data?.session?.current, 0);
+  step('  새로 불러와도 남아 있다',
+    (await call('GET', '/routine-session')).data?.session?.items?.[0]?.setsDone, 2);
+  step('세트 수가 음수면 안 받는다',
+    (await call('PATCH', '/routine-session', { index: 0, setsDone: -1 })).status, 400);
+  step('세트 수가 글이면 안 받는다',
+    (await call('PATCH', '/routine-session', { index: 0, setsDone: '3' })).status, 400);
+  step('상태도 세트도 없으면 안 받는다',
+    (await call('PATCH', '/routine-session', { index: 0 })).status, 400);
+  step('없는 칸의 세트는 409',
+    (await call('PATCH', '/routine-session', { index: 99, setsDone: 1 })).status, 409);
 
   console.log('\n── 기록한다 ──');
   step('벤치프레스 저장',

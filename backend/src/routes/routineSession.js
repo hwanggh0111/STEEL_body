@@ -32,7 +32,27 @@ function toItem(ex) {
     sets: firstNum(ex?.sets),
     reps: firstNum(ex?.reps),
     state: 'todo',
+    // 세트마다 누른 수 (2026-09-14). 칸이 끝났는지는 여전히 state 가 정한다 —
+    // 세트를 다 누르면 화면이 기록을 저장하고, 그 저장이 칸을 done 으로 넘긴다
+    setsDone: 0,
   };
+}
+
+// 세트 체크의 끝. 기록 화면의 세트 칸이 100 까지 받는다
+const MAX_SETS = 100;
+
+// 진행표가 없는 것과, 있는데 자리가 어긋난 것은 다른 일이다.
+//
+// 이 진행표는 서버에 둔다 — 폰으로 시작해서 다른 기기로 이어가라고. 그러면 한쪽에서
+// 다른 루틴을 시작했을 때 다른 쪽 화면에는 **옛 진행표의 자리 번호**가 남는다.
+// 둘을 묶어 「진행 중인 루틴이 없어요」라고 답하면, 화면에 버젓이 떠 있는 것을 두고
+// 거짓말을 하는 것이고, 화면은 고칠 방법도 못 받는다.
+//
+// 있으면 지금 것을 같이 준다. 화면이 그걸로 갈아끼우면 그 자리에서 이어갈 수 있다
+function missing(req, res) {
+  const current = db.getRoutineSession(req.userId);
+  if (!current) return res.status(404).json({ error: '진행 중인 루틴이 없어요' });
+  return res.status(409).json({ error: '진행표가 바뀌었어요. 새로 불러왔습니다', session: shape(current) });
 }
 
 function shape(row) {
@@ -86,27 +106,30 @@ router.post('/', auth, (req, res) => {
 router.patch('/', auth, (req, res) => {
   const index = Number(req.body?.index);
   const state = req.body?.state;
+  const setsDone = req.body?.setsDone;
   if (!Number.isInteger(index) || index < 0) {
     return res.status(400).json({ error: '잘못된 자리예요' });
   }
+
+  // ── 세트 하나를 체크했다 (또는 풀었다) ──
+  //
+  // 칸을 넘기지는 않는다. 세트를 다 누르면 화면이 기록을 저장하고, 칸은 그 저장이 넘긴다 —
+  // 여기서도 넘기면 기록 없이 「끝난 운동」이 생긴다
+  if (state === undefined && setsDone !== undefined) {
+    if (!Number.isInteger(setsDone) || setsDone < 0 || setsDone > MAX_SETS) {
+      return res.status(400).json({ error: '세트 수가 올바르지 않아요' });
+    }
+    const row = db.setRoutineItemSets(req.userId, index, setsDone);
+    if (!row) return missing(req, res);
+    return res.json({ session: shape(row), finished: false });
+  }
+
   if (!STATES.includes(state)) {
     return res.status(400).json({ error: '잘못된 상태예요' });
   }
 
   const row = db.setRoutineItemState(req.userId, index, state);
-  if (!row) {
-    // 진행표가 아예 없는 것과, 있는데 자리가 어긋난 것은 다른 일이다.
-    //
-    // 이 진행표는 서버에 둔다 — 폰으로 시작해서 다른 기기로 이어가라고. 그러면 한쪽에서
-    // 다른 루틴을 시작했을 때 다른 쪽 화면에는 **옛 진행표의 자리 번호**가 남는다.
-    // 둘을 묶어 「진행 중인 루틴이 없어요」라고 답하면, 화면에 버젓이 떠 있는 것을 두고
-    // 거짓말을 하는 것이고, 화면은 고칠 방법도 못 받는다.
-    //
-    // 있으면 지금 것을 같이 준다. 화면이 그걸로 갈아끼우면 그 자리에서 이어갈 수 있다
-    const current = db.getRoutineSession(req.userId);
-    if (!current) return res.status(404).json({ error: '진행 중인 루틴이 없어요' });
-    return res.status(409).json({ error: '진행표가 바뀌었어요. 새로 불러왔습니다', session: shape(current) });
-  }
+  if (!row) return missing(req, res);
 
   const finished = row.items.every(i => i.state !== 'todo');
   if (finished) {

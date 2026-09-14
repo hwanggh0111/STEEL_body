@@ -146,6 +146,7 @@ export default function WorkoutPage() {
   const session = useRoutineSessionStore(s => s.session);
   const fetchSession = useRoutineSessionStore(s => s.fetch);
   const markItem = useRoutineSessionStore(s => s.mark);
+  const checkSet = useRoutineSessionStore(s => s.checkSet);
   // 폼을 미리 채운 자리를 기억해 둔다 — 같은 칸을 두 번 채우면
   // 사용자가 고친 값을 도로 덮어쓴다
   const filledForRef = useRef(null);
@@ -369,6 +370,15 @@ export default function WorkoutPage() {
   const nextItem = session && session.current >= 0 ? session.items?.[session.current] : null;
   const showNextCard = resting && !editingId && !freeForm && !!nextItem && !!exercise;
 
+  // 지금 운동이 몇 세트인가 — 세트 칸을 몇 개 그릴지, 몇 번째에서 저장할지.
+  // 폼을 채울 때와 같은 순서다: **지난 기록이 먼저**, 없으면 루틴에 적힌 것. 둘 다 없으면 모른다
+  const plannedSets = useMemo(() => {
+    if (!nextItem) return null;
+    const last = findLastRecord(nextItem.name);
+    if (last && Number(last.sets) > 0) return Number(last.sets);
+    return nextItem.sets > 0 ? nextItem.sets : null;
+  }, [nextItem, findLastRecord]);
+
   // 수정 중인데 폼 날짜를 바꾼 경우, 수정 카드를 list에서 잃지 않도록 원본 날짜의 카드도 노출
   const displayedWorkouts = useMemo(() => {
     if (!editingId || !editingOriginalDate || date === editingOriginalDate) return todayWorkouts;
@@ -379,27 +389,43 @@ export default function WorkoutPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    await submitRecord();
+  };
+
+  /**
+   * 기록 한 줄을 저장한다.
+   *
+   * 폼의 저장 단추와 **세트 칸의 마지막 체크**가 같이 쓴다. 따로 두면 최고 기록 ·
+   * 휴식 타이머 · 진행표 넘기기 중 하나가 한쪽에서만 돌게 된다.
+   *
+   * `over` 가 있으면 폼 대신 그 값으로 저장한다 (세트 칸에서 온 것). 그때는 고치는 중이어도
+   * 새 기록으로 넣고, 폼이 그 운동이 아니면 폼을 비우지 않는다 — 쉬는 사이에 다른 운동을
+   * 적던 중일 수 있다
+   */
+  const submitRecord = async (over = null) => {
+    if (saving) return false;
     setError('');
+    const src = over || { exercise, weight, sets, reps };
     // 공백만 친 것은 안 친 것이다. `!exercise` 로만 보면 '   ' 가 통과해서
     // **이름 없는 기록**이 목록에 남는다
-    const trimmedExercise = exercise.trim();
-    if (!trimmedExercise || !sets || !reps) {
+    const trimmedExercise = String(src.exercise ?? '').trim();
+    if (!trimmedExercise || !src.sets || !src.reps) {
       setError(t.required);
-      return;
+      return false;
     }
-    if (!Number.isInteger(Number(sets)) || !Number.isInteger(Number(reps))
-        || Number(sets) < 1 || Number(reps) < 1) {
+    if (!Number.isInteger(Number(src.sets)) || !Number.isInteger(Number(src.reps))
+        || Number(src.sets) < 1 || Number(src.reps) < 1) {
       setError(t.minVal);
-      return;
+      return false;
     }
-    if (Number(sets) > 100 || Number(reps) > 1000) {
+    if (Number(src.sets) > 100 || Number(src.reps) > 1000) {
       setError(t.tooBig);
-      return;
+      return false;
     }
     setSaving(true);
     try {
-      const payload = { date, exercise: trimmedExercise, weight: weight || t.bodyweight, sets: Number(sets), reps: Number(reps) };
-      if (editingId) {
+      const payload = { date, exercise: trimmedExercise, weight: src.weight || t.bodyweight, sets: Number(src.sets), reps: Number(src.reps) };
+      if (editingId && !over) {
         await updateWorkout(editingId, payload);
         toast(t.updated);
         setRecord(null);
@@ -429,12 +455,17 @@ export default function WorkoutPage() {
 
         await advanceRoutine('done', payload.exercise);
       }
-      setWeight('');
-      setSets('');
-      setReps('');
-      setAutofilled(false);
+      if (!over || over.sameForm) {
+        setWeight('');
+        setSets('');
+        setReps('');
+        setAutofilled(false);
+      }
+      return true;
     } catch (err) {
       setError(err.response?.data?.error || t.saveFail);
+      if (over) toast(err.response?.data?.error || t.saveFail, 'error');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -468,6 +499,65 @@ export default function WorkoutPage() {
 
   const skipRoutineItem = async () => {
     await advanceRoutine('skip', null);
+  };
+
+  /**
+   * 세트 칸에서 한 운동을 기록으로 남긴다 — 마지막 세트를 눌렀거나 「여기까지 기록」.
+   *
+   * 무게 · 횟수는 **폼이 그 운동을 적고 있으면 폼의 값**이다. 사람이 고쳐놨을 수 있다.
+   * 폼이 다른 운동이면(쉬는 사이에 다른 것을 적는 중) 그 운동의 지난 기록, 없으면 루틴 값.
+   * 횟수를 알 수 없으면 지어내지 않는다 — 폼으로 돌려보내 적게 한다
+   */
+  const saveRoutineSets = async (item, count) => {
+    const sameForm = !editingId && exercise.trim() === item.name.trim();
+    const last = findLastRecord(item.name);
+    const lastWeight = last && last.weight !== '맨몸' && last.weight !== 'Bodyweight' ? String(last.weight) : '';
+    const w = sameForm ? weight : lastWeight;
+    const r = sameForm && reps ? reps : (last ? String(last.reps) : (item.reps != null ? String(item.reps) : ''));
+    if (!r) {
+      if (!editingId) { setExercise(item.name); setSets(String(count)); setFreeForm(true); }
+      toast('횟수를 적고 「기록 저장」을 눌러주세요', 'error');
+      return false;
+    }
+    return submitRecord({ exercise: item.name, weight: w, sets: String(count), reps: r, sameForm });
+  };
+
+  // 세트 칸을 눌렀다. `next` 는 체크된 세트 수가 될 값이다 (풀면 줄어든다)
+  const tapSet = async (next) => {
+    const s = useRoutineSessionStore.getState().session;
+    if (!s || s.current < 0) return;
+    const idx = s.current;
+    const item = s.items[idx];
+    if (!item) return;
+    const before = item.setsDone || 0;
+
+    // 소리는 사람이 누른 이 순간에 준비해야 브라우저가 막지 않는다
+    if (next > before) primeAudio();
+    try {
+      await checkSet(idx, next);
+    } catch {
+      toast('체크하지 못했어요. 다시 눌러주세요', 'error');
+      return;
+    }
+
+    // 폼이 이 운동을 적고 있으면 세트 칸도 맞춰둔다 — 폼으로 저장해도 한 세트 수만큼 들어가게
+    if (!editingId && exercise.trim() === item.name.trim()) {
+      setSets(next > 0 ? String(next) : (plannedSets ? String(plannedSets) : ''));
+    }
+    if (next <= before) return;   // 푼 것이다
+
+    if (plannedSets && next >= plannedSets) {
+      await saveRoutineSets(item, next);   // 저장이 휴식 타이머도 돌리고 칸도 넘긴다
+      return;
+    }
+    useRestTimerStore.getState().autoStartAfterSet(`${item.name} ${next}세트`);
+  };
+
+  const finishSets = async () => {
+    const s = useRoutineSessionStore.getState().session;
+    const item = s && s.current >= 0 ? s.items[s.current] : null;
+    if (!item || !(item.setsDone > 0)) return;
+    await saveRoutineSets(item, item.setsDone);
   };
 
   // 카드가 memo 라 핸들러가 매 렌더 바뀌면 memo 가 걸리지 않는다
@@ -514,7 +604,13 @@ export default function WorkoutPage() {
         {t.title}
       </div>
 
-      <RoutineRun onSkip={skipRoutineItem} />
+      <RoutineRun
+        onSkip={skipRoutineItem}
+        plannedSets={plannedSets}
+        onSetTap={tapSet}
+        onFinishSets={finishSets}
+        busy={saving}
+      />
 
       <PersonalRecordBanner record={record} onClose={() => setRecord(null)} />
 
@@ -558,7 +654,12 @@ export default function WorkoutPage() {
 
       {showNextCard ? (
         <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
-          <div className="label">다음 운동</div>
+          {/* 세트를 체크하는 중이면 「다음 운동」이 아니라 하던 운동이다 */}
+          <div className="label">
+            {nextItem?.setsDone > 0 && nextItem.name.trim() === exercise.trim()
+              ? `지금 운동 · ${nextItem.setsDone}${plannedSets ? ` / ${plannedSets}` : ''}세트 했어요`
+              : '다음 운동'}
+          </div>
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{
               fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
