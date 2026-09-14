@@ -3,7 +3,8 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
-const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
+// 글자를 지우지 않는 거르개다 — `' " & < >` 를 살린다. 까닭은 sanitize.js 의 plainText 주석
+const { plainText, plainMultiline } = require('../utils/sanitize');
 const { inspect } = require('../utils/profanity');
 const { punish } = require('../utils/abusePolicy');
 const push = require('../utils/push');
@@ -49,8 +50,10 @@ const REASONS = ['욕설 · 비하', '광고 · 홍보', '남의 이야기', '�
 // 여럿이 눌렀다고 글이 사라지면, 미움받는 글이 사라지는 자리가 된다
 const REPORT_LOUD = 3;
 
-const cleanTitle = (v) => sanitize(String(v ?? '')).slice(0, MAX_TITLE).trim();
-const cleanBody = (v) => sanitizeMultiline(String(v ?? '')).slice(0, MAX_BODY).trim();
+// 글이 아닌 것(배열 · 객체)은 빈 글로 본다. `String(['a'])` 은 'a' 가 되어 통과한다
+const asText = (v) => (typeof v === 'string' ? v : '');
+const cleanTitle = (v) => plainText(asText(v)).slice(0, MAX_TITLE).trim();
+const cleanBody = (v) => plainMultiline(asText(v)).slice(0, MAX_BODY).trim();
 
 // 목록에 실어 보내는 모양. **본문은 안 보낸다** — 스무 개의 본문을 다 실으면
 // 목록 한 번에 80KB 가 오간다. 첫 줄만 잘라 붙인다
@@ -263,7 +266,7 @@ router.post('/:id/comments', auth, spamCheck, (req, res) => {
   if (!post) return res.status(404).json({ error: '없는 글이에요' });
   if (post.taken_down) return res.status(400).json({ error: '내려간 글에는 못 답니다' });
 
-  const body = sanitizeMultiline(String((req.body || {}).body ?? '')).slice(0, MAX_COMMENT).trim();
+  const body = plainMultiline(asText((req.body || {}).body)).slice(0, MAX_COMMENT).trim();
   if (!body) return res.status(400).json({ error: '댓글을 적어주세요' });
 
   const { verdict, result } = judge(req.userId, body, 'community-comment');

@@ -339,6 +339,18 @@ function cleanAll() {
   const pid = post.data?.post?.id;
   step('  줄바꿈이 살아 있다', String(post.data?.post?.body || '').split('\n').length, 2);
 
+  // **글자를 지우지 않는다** (2026-09-14). 예전에는 `' " & < >` 가 조용히 사라졌다
+  const marks = await call('POST', '/community', {
+    kind: '자유', title: `I'm 80kg & "스쿼트"`, body: '오늘도 <3\n벤치 & 데드',
+  });
+  step('따옴표 · & · < 가 제목에 남는다', marks.data?.post?.title, `I'm 80kg & "스쿼트"`);
+  step('  본문에도 남는다', marks.data?.post?.body, '오늘도 <3\n벤치 & 데드');
+  step('  방향 뒤집는 글자는 지운다',
+    (await call('PUT', '/community/' + marks.data?.post?.id, { title: 'a‮b', body: 'x' })).data?.post?.title, 'ab');
+  step('  배열 제목은 안 받는다',
+    (await call('POST', '/community', { kind: '자유', title: ['x'], body: 'y' })).status, 400);
+  await call('DELETE', '/community/' + marks.data?.post?.id);
+
   const list = await call('GET', '/community');
   step('목록을 받아온다', Array.isArray(list.data?.posts), true);
   step('  방금 쓴 것이 있다', (list.data?.posts || []).some(p => p.id === pid), true);
