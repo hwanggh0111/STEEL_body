@@ -264,6 +264,11 @@ body::before {
 }
 .accent-bar { width: 3px; height: 18px; background: var(--accent); flex-shrink: 0; }
 
+/* 옆으로 넘기는 거르개 한 줄 (커뮤니티). 넘길 수 있다는 것은 잘린 칩이 알려준다 —
+   금색 스크롤바까지 그으면 줄 밑에 선이 하나 더 생긴다 */
+.filter-row { scrollbar-width: none; }
+.filter-row::-webkit-scrollbar { display: none; }
+
 /* 구분선 — 끝이 사라지고 가운데만 밝다. 곧게 그은 선보다 조용하다 */
 .rule-beam {
   height: 1px;

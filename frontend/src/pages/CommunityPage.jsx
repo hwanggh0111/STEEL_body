@@ -18,6 +18,16 @@ import PostView from './community/PostView';
 
 const KIND_ALL = '전체';
 
+// 갈래마다 무엇을 쓰는 자리인지. 쓰는 칸에서 고를 때 옆에 적는다.
+// 이게 없어서 「루틴 짜는 법을 묻는 글」이 루틴인지 질문인지 알 수 없었다
+const KIND_DESC = {
+  자유: '오늘 한 것, 아무 이야기',
+  루틴: '짠 루틴을 보여주고 봐주기',
+  식단: '무엇을 얼마나 먹는지',
+  질문: '자세 · 통증 · 모르는 것',
+  공지: '관리자만 · 목록 맨 위에 붙어요',
+};
+
 // 언제 썼나. **몇 시 몇 분까지 안 적는다** — 목록에서 필요한 것은 「최근인가」다
 function whenLabel(iso) {
   if (!iso) return '';
@@ -131,44 +141,47 @@ export default function CommunityPage({ embedded = false }) {
         같이 하는 사람들이 쓰는 자리예요. <span style={{ color: 'var(--text-secondary)' }}>여기 쓴 글은 남이 읽습니다.</span>
       </div>
 
-      {/* 갈래 — 적게 둔다. 많으면 어디에 쓸지 고르다 안 쓴다 */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+      {/* ── 거르개 한 줄 ── (2026-09-14, 시안 C안)
+          예전에는 두 줄이 **똑같이 생겼다.** 「전체」와 「모두」가 나란히 켜져 있었다 —
+          위는 무엇에 대한 글인지, 아래는 누구 글인지를 거르는데 모양으로는 알 수 없었다.
+          한 줄에 두고 **금을 긋고 모양을 다르게** 한다: 갈래는 칩, 내 것은 글자.
+          「모두」는 없앴다 — 켜진 것을 한 번 더 누르면 풀린다.
+          좁은 폰에서는 옆으로 넘긴다. 줄을 접으면 다시 두 줄이 된다 */}
+      <div className="filter-row" style={{ display: 'flex', gap: 6, alignItems: 'center', overflowX: 'auto', marginBottom: 14, paddingBottom: 2 }}>
         {[KIND_ALL, ...kinds].map((k) => (
           <button
             key={k}
             className={`btn-secondary${kind === k ? ' active' : ''}`}
-            style={{ width: 'auto', padding: '6px 14px', fontSize: 12.5 }}
+            style={{ width: 'auto', padding: '6px 11px', fontSize: 12.5, flexShrink: 0 }}
             aria-pressed={kind === k}
             onClick={() => pickKind(k)}
           >{k}</button>
         ))}
-      </div>
-
-      {/* 내가 낀 것. **갈래와 줄을 나눈다** — 「자유」와 「내 글」은 다른 종류의 거르개다 */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-        <button
-          className={`btn-secondary${scope === null ? ' active' : ''}`}
-          style={{ width: 'auto', padding: '5px 13px', fontSize: 12 }}
-          aria-pressed={scope === null}
-          onClick={() => pickScope(null)}
-        >모두</button>
-        <button
-          className={`btn-secondary${scope === 'mine' ? ' active' : ''}`}
-          style={{ width: 'auto', padding: '5px 13px', fontSize: 12 }}
-          aria-pressed={scope === 'mine'}
-          onClick={() => pickScope('mine')}
-        >내 글</button>
-        <button
-          className={`btn-secondary${scope === 'joined' ? ' active' : ''}`}
-          style={{ width: 'auto', padding: '5px 13px', fontSize: 12 }}
-          aria-pressed={scope === 'joined'}
-          onClick={() => pickScope('joined')}
-        >댓글 단 글</button>
+        <span aria-hidden="true" style={{ flexShrink: 0, width: 1, height: 20, background: 'var(--border-hover)', margin: '0 4px' }} />
+        {[['mine', '내 글'], ['joined', '댓글 단 글']].map(([key, label]) => {
+          const on = scope === key;
+          return (
+            <button
+              key={key}
+              aria-pressed={on}
+              onClick={() => pickScope(on ? null : key)}
+              style={{
+                flexShrink: 0, whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit',
+                background: 'none', border: 'none', borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                padding: '5px 4px 3px', fontSize: 12.5,
+                color: on ? 'var(--accent)' : 'var(--text-secondary)',
+              }}
+            >{label}</button>
+          );
+        })}
       </div>
 
       {writing ? (
         <PostForm
           kinds={kinds}
+          // 목록에서 갈래를 골라둔 채로 쓰면 그 갈래로 시작한다 — 사람이 고른 것이다.
+          // 「전체」에서 쓰면 아무것도 안 골라져 있다
+          initialKind={kind !== KIND_ALL ? kind : ''}
           canNotice={canNotice}
           onClose={() => setWriting(false)}
           onDone={() => { setWriting(false); load(kind, null, scope); }}
@@ -317,10 +330,14 @@ function Row({ p, onOpen, onLike }) {
 //
 // **성공했을 때만 닫는다** — 실패하고 닫히면 쓰던 글이 사라진다.
 // 이 앱이 메모 · 이름 바꾸기에서 지켜온 규칙이고, 여기는 글이 더 길어서 더 아프다.
-function PostForm({ kinds, canNotice, onClose, onDone }) {
+//
+// **갈래를 미리 골라두지 않는다** (2026-09-14, 시안 C안). 예전에는 「자유」가 골라져 있어서
+// 루틴 질문도 식단 이야기도 자유로 올라갔고, 목록의 갈래 거르기가 쓸모없어졌다.
+// 넷을 무엇을 쓰는 자리인지와 함께 보여주고 고르게 한다. 고르기 전에는 올리기가 꺼져 있다
+function PostForm({ kinds, initialKind = '', canNotice, onClose, onDone }) {
   // 공지는 관리자에게만 보인다. **못 쓰는 것을 고를 수 있게 두지 않는다**
   const all = canNotice ? [...kinds, '공지'] : kinds;
-  const [kind, setKind] = useState(kinds[0] || '자유');
+  const [kind, setKind] = useState(initialKind);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
@@ -328,6 +345,7 @@ function PostForm({ kinds, canNotice, onClose, onDone }) {
 
   const submit = async () => {
     if (saving) return;
+    if (!kind) { setError('무엇에 대한 글인지 골라주세요'); return; }
     if (!title.trim()) { setError('제목을 적어주세요'); return; }
     if (!body.trim()) { setError('내용을 적어주세요'); return; }
     setSaving(true);
@@ -345,16 +363,41 @@ function PostForm({ kinds, canNotice, onClose, onDone }) {
 
   return (
     <div className="card" style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {all.map((k) => (
-          <button
-            key={k}
-            className={`btn-secondary${kind === k ? ' active' : ''}`}
-            style={{ width: 'auto', padding: '5px 13px', fontSize: 12 }}
-            aria-pressed={kind === k}
-            onClick={() => setKind(k)}
-          >{k}</button>
-        ))}
+      <div className="label" id="post-kind-label" style={{ marginBottom: 0 }}>무엇에 대한 글인가요</div>
+      <div role="radiogroup" aria-labelledby="post-kind-label" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {all.map((k) => {
+          const on = kind === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => { setKind(k); setError(''); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, minHeight: 48, padding: '9px 12px',
+                textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 'var(--radius)',
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                background: on ? 'var(--accent-dim)' : 'transparent',
+              }}
+            >
+              <span aria-hidden="true" style={{
+                width: 16, height: 16, borderRadius: 8, flexShrink: 0,
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {on && <span style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--accent)' }} />}
+              </span>
+              <span style={{
+                fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5, width: 38, flexShrink: 0,
+                color: on ? 'var(--accent)' : 'var(--text-primary)',
+              }}>{k}</span>
+              <span style={{ fontSize: 12, color: on ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                {KIND_DESC[k] || ''}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <input
@@ -380,8 +423,14 @@ function PostForm({ kinds, canNotice, onClose, onDone }) {
         <button className="btn-secondary" style={{ width: 'auto', marginLeft: 'auto', fontSize: 12.5, padding: '8px 16px' }}
           onClick={onClose}>취소</button>
         <button className="btn-primary" style={{ width: 'auto', fontSize: 13, padding: '8px 20px' }}
-          disabled={saving} onClick={submit}>{saving ? '올리는 중…' : '올리기'}</button>
+          disabled={saving || !kind} onClick={submit}>{saving ? '올리는 중…' : '올리기'}</button>
       </div>
+      {/* 꺼진 단추만 두면 왜 안 눌리는지 모른다 */}
+      {!kind && !error && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'right' }}>
+          무엇에 대한 글인지 골라주세요
+        </div>
+      )}
     </div>
   );
 }
