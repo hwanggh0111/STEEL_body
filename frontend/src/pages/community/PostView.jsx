@@ -95,6 +95,59 @@ export default function PostView({ id, onBack }) {
     }
   };
 
+  // ── 고치기 ──
+  //
+  // 서버는 처음부터 받고 있었는데(`PUT /community/:id`) **화면에 길이 없었다.** 오타 하나를
+  // 고치려면 지우고 다시 써야 했고, 그러면 달린 댓글과 공감이 같이 날아갔다.
+  // 갈래는 여기서 안 바꾼다 — 「질문」을 「자유」로 옮기는 일은 드물고, 칸이 늘면 고치러 온
+  // 사람이 볼 것이 는다
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const startEdit = () => {
+    setEditTitle(post.title || '');
+    setEditBody(post.body || '');
+    setEditError('');
+    setReporting(false);
+    setEditing(true);
+  };
+
+  // **성공했을 때만 닫는다** — 실패하고 닫히면 고치던 글이 사라진다
+  const saveEdit = async () => {
+    if (editSaving) return;
+    if (!editTitle.trim()) { setEditError('제목을 적어주세요'); return; }
+    if (!editBody.trim()) { setEditError('내용을 적어주세요'); return; }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const { data } = await client.put(`/community/${id}`, { title: editTitle.trim(), body: editBody.trim() });
+      setPost((p) => ({ ...p, title: data.post.title, body: data.post.body, updated_at: data.post.updated_at }));
+      setEditing(false);
+      toast('고쳤어요');
+    } catch (err) {
+      setEditError(err.response?.data?.error || '고치지 못했어요');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // 관리자가 남의 글을 내린다. 지우지 않고 「관리자가 내렸어요」로 남는다
+  const takeDown = async () => {
+    const ok = await confirmDialog('이 글을 내릴까요? 쓴 사람에게는 「관리자가 내렸어요」로 보입니다.',
+      { title: '글 내리기', confirmText: '내립니다', danger: true });
+    if (!ok) return;
+    try {
+      await client.delete(`/community/${id}`);
+      toast('내렸어요');
+      load();
+    } catch {
+      toast('내리지 못했어요', 'error');
+    }
+  };
+
   const removeComment = async (cid) => {
     const ok = await confirmDialog('이 댓글을 지울까요?',
       { title: '댓글 지우기', confirmText: '지웁니다', danger: true });
@@ -146,34 +199,90 @@ export default function PostView({ id, onBack }) {
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 7 }}>
+          {/* 공지는 목록에서처럼 채운 딱지 — 목록에서 본 것과 열어서 본 것이 같아야 한다 */}
           <span style={{
-            fontSize: 10.5, color: 'var(--accent)',
-            border: '1px solid var(--border-hover)', padding: '1px 7px',
+            fontSize: 10.5,
+            color: post.notice ? 'var(--on-accent)' : 'var(--accent)',
+            background: post.notice ? 'var(--accent)' : 'none',
+            border: `1px solid ${post.notice ? 'var(--accent)' : 'var(--border-hover)'}`,
+            padding: '1px 7px',
           }}>{post.kind}</span>
           <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)' }}>
             {whenLabel(post.created_at)}
           </span>
         </div>
 
-        <div className="display-sm" style={{ color: 'var(--text-primary)', marginBottom: 5 }}>{post.title}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 13 }}>{post.nickname}</div>
-
-        {post.taken_down ? (
-          <div style={{ fontSize: 13, color: 'var(--danger)', lineHeight: 1.8 }}>
-            관리자가 내린 글이에요.
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <input
+              className="input"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value.slice(0, 80))}
+              aria-label="제목"
+            />
+            <textarea
+              className="input"
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value.slice(0, 4000))}
+              aria-label="내용"
+              style={{ minHeight: 150, lineHeight: 1.75, resize: 'vertical', fontFamily: 'inherit' }}
+            />
+            {editError && <div style={{ fontSize: 12.5, color: 'var(--danger)' }}>{editError}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{editBody.length}/4000</span>
+              <button className="btn-secondary" style={{ width: 'auto', marginLeft: 'auto', fontSize: 12.5, padding: '8px 16px' }}
+                onClick={() => setEditing(false)}>취소</button>
+              <button className="btn-primary" style={{ width: 'auto', fontSize: 13, padding: '8px 20px' }}
+                disabled={editSaving} onClick={saveEdit}>{editSaving ? '고치는 중…' : '고치기'}</button>
+            </div>
           </div>
         ) : (
-          // 적은 그대로 보여준다 — 줄바꿈이 곧 그 사람의 글이다
-          <div style={{
-            fontSize: 14, lineHeight: 1.85, color: 'var(--text-primary)',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          }}>{post.body}</div>
+          <>
+            <div className="display-sm" style={{ color: 'var(--text-primary)', marginBottom: 5 }}>{post.title}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 13 }}>
+              {post.nickname}
+              {/* 고친 글은 고쳤다고 적는다 — 댓글이 고치기 전 글에 단 것일 수 있다 */}
+              {!post.taken_down && post.updated_at && post.updated_at !== post.created_at && (
+                <span style={{ color: 'var(--text-muted)' }}> · 고침</span>
+              )}
+            </div>
+
+            {post.taken_down ? (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--danger)', lineHeight: 1.8 }}>
+                  관리자가 내린 글이에요.
+                </div>
+                {/* 쓴 사람과 관리자에게는 서버가 본문을 준다 — 무엇이 내려갔는지는 알아야 한다 */}
+                {post.body && (
+                  <div style={{
+                    fontSize: 13, lineHeight: 1.8, color: 'var(--text-muted)', marginTop: 8,
+                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    borderLeft: '2px solid var(--border)', paddingLeft: 10,
+                  }}>{post.body}</div>
+                )}
+              </>
+            ) : (
+              // 적은 그대로 보여준다 — 줄바꿈이 곧 그 사람의 글이다
+              <div style={{
+                fontSize: 14, lineHeight: 1.85, color: 'var(--text-primary)',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>{post.body}</div>
+            )}
+          </>
         )}
 
-        {!post.taken_down && (
+        {/* 내려간 내 글도 지울 수는 있어야 한다 — 예전에는 단추째 사라져서 못 지웠다 */}
+        {!editing && (post.mine || !post.taken_down) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
             {post.mine ? (
               <>
+                {!post.taken_down && (
+                  <button
+                    className="btn-secondary"
+                    style={{ width: 'auto', fontSize: 12, padding: '6px 14px' }}
+                    onClick={startEdit}
+                  >고치기</button>
+                )}
                 <button
                   className="btn-secondary"
                   style={{ width: 'auto', fontSize: 12, padding: '6px 14px', borderColor: 'var(--danger)', color: 'var(--danger)' }}
@@ -205,6 +314,16 @@ export default function PostView({ id, onBack }) {
                   </svg>
                   공감{post.likes > 0 ? ` ${post.likes}` : ''}
                 </button>
+                {post.canModerate && (
+                  <button
+                    onClick={takeDown}
+                    style={{
+                      background: 'none', border: '1px solid var(--danger)', color: 'var(--danger)',
+                      borderRadius: 'var(--radius)', padding: '6px 12px', fontSize: 12,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >내리기</button>
+                )}
                 {!post.notice && (
                   <button
                     onClick={() => setReporting((v) => !v)}
@@ -260,7 +379,8 @@ export default function PostView({ id, onBack }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.nickname}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{whenLabel(c.created_at)}</span>
-                {c.mine && (
+                {/* 관리자는 남의 댓글도 지운다. 서버는 받는데 화면에 단추가 없었다 */}
+                {(c.mine || post.canModerate) && (
                   <button
                     onClick={() => removeComment(c.id)}
                     style={{

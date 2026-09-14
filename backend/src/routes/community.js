@@ -69,7 +69,10 @@ function forList(p, userId) {
     liked: db.likedPost(p.id, userId),
     created_at: p.created_at,
     updated_at: p.updated_at,
-    flagged: p.flagged || null,
+    // 내린 글은 「내 글」에서만 보인다. 쓴 사람이 자기 글이 내려간 것을 알아야 한다
+    takenDown: !!p.taken_down,
+    // `flagged`(짜증 섞인 말로 통과)는 **싣지 않는다** (2026-09-14). 관리자가 흐름을 보려고
+    // 남긴 표시인데 목록으로 모두에게 나가고 있었다. 관리자는 /admin/flagged 로 본다
   };
 }
 
@@ -89,7 +92,9 @@ router.get('/', auth, (req, res) => {
   if (kind !== undefined && kind !== NOTICE && !KINDS.includes(kind)) {
     return res.status(400).json({ error: '없는 갈래에요' });
   }
-  let list = db.getPosts();
+  // **「내 글」에는 내린 글도 싣는다.** 목록에서 빼기만 하면 쓴 사람은 자기 글이
+  // 안 올라간 줄 알고 또 쓴다 — 관리자가 내린 것을 그렇게 남기는 이유가 그것이다
+  let list = db.getPosts(mine === '1');
   if (kind) list = list.filter(p => p.kind === kind);
   // **내 글**과 **내가 낀 이야기**. 둘을 같이 주면 「내 것」이 흐려진다 — 따로 둔다
   if (mine === '1') list = list.filter(p => p.user_id === req.userId);
@@ -102,17 +107,22 @@ router.get('/', auth, (req, res) => {
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '잘못된 자리에요' });
     list = list.filter(p => p.id < id);
   }
-  const page = list.slice(0, PAGE);
-
-  // **공지는 첫 쪽 맨 위에만 붙인다.** 쪽마다 붙이면 내려갈수록 같은 공지를 또 본다.
-  // 거르는 중이거나 내 것만 볼 때는 안 붙인다 — 그때는 공지가 낄 자리가 아니다
-  const pinned = (!kind && !before && mine !== '1' && joined !== '1')
+  // **공지는 최근 셋을 첫 쪽 맨 위에 붙인다.** 쪽마다 붙이면 내려갈수록 같은 공지를 또 본다.
+  // 거르는 중이거나 내 것만 볼 때는 안 붙인다 — 그때는 공지가 낄 자리가 아니다.
+  //
+  // **붙인 셋만 목록에서 뺀다** (2026-09-14). 예전에는 공지를 전부 뺐다 — 그래서 넷째 공지부터는
+  // 어디에도 안 보였고, 「공지」로 거르면 늘 비었고, 관리자의 「내 글」에서 공지가 빠졌다.
+  // 둘째 쪽(`before`)에서도 같은 셋을 빼야 공지가 또 안 나온다
+  const pinned = (!kind && mine !== '1' && joined !== '1')
     ? db.getPosts().filter(p => p.kind === NOTICE).slice(0, 3)
     : [];
+  const pinnedIds = new Set(pinned.map(p => p.id));
+  list = list.filter(p => !pinnedIds.has(p.id));
+  const page = list.slice(0, PAGE);
 
   res.json({
-    notices: pinned.map(p => forList(p, req.userId)),
-    posts: page.filter(p => p.kind !== NOTICE).map(p => forList(p, req.userId)),
+    notices: (before === undefined ? pinned : []).map(p => forList(p, req.userId)),
+    posts: page.map(p => forList(p, req.userId)),
     more: list.length > PAGE,
     kinds: KINDS,
     reasons: REASONS,
@@ -128,20 +138,30 @@ router.get('/:id', auth, (req, res) => {
   const post = db.getPost(id);
   if (!post) return res.status(404).json({ error: '없는 글이에요' });
 
+  const isAdmin = db.findUserById(req.userId)?.role === 'admin';
+  const mine = post.user_id === req.userId;
+
   res.json({
     post: {
       ...post,
       user_id: undefined,
+      flagged: undefined,
+      // **내린 글의 본문은 쓴 사람과 관리자에게만 준다.** 화면이 「관리자가 내린 글이에요」로
+      // 가리고 있었지만 응답에는 본문이 그대로 실려서, 내린 글을 누구나 읽을 수 있었다
+      body: post.taken_down && !mine && !isAdmin ? '' : post.body,
       notice: post.kind === NOTICE,
       nickname: db.findUserById(post.user_id)?.nickname || '알 수 없음',
-      mine: post.user_id === req.userId,
+      mine,
       likes: db.countPostLikes(post.id),
       liked: db.likedPost(post.id, req.userId),
       reasons: REASONS,
+      // 남의 글을 내리고 남의 댓글을 지울 수 있는가. 서버는 이미 받는데 화면에 길이 없었다
+      canModerate: isAdmin,
     },
     comments: db.getPostComments(id).map(c => ({
       ...c,
       user_id: undefined,
+      flagged: undefined,
       nickname: db.findUserById(c.user_id)?.nickname || '알 수 없음',
       mine: c.user_id === req.userId,
     })),
@@ -178,7 +198,7 @@ router.post('/', auth, spamCheck, (req, res) => {
     kind, title: t, body: b,
     flagged: verdict.level === 'mild' ? 'mild' : null,
   });
-  res.status(201).json({ post: { ...post, user_id: undefined, mine: true } });
+  res.status(201).json({ post: { ...post, user_id: undefined, flagged: undefined, mine: true } });
 });
 
 // ── 고친다 ── 쓴 사람만
@@ -189,6 +209,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   if (!post) return res.status(404).json({ error: '없는 글이에요' });
   // **남의 글은 못 고친다.** 있고 없고를 알려주지 않는다
   if (post.user_id !== req.userId) return res.status(404).json({ error: '없는 글이에요' });
+  // 내린 글을 고쳐서 되살리는 길을 막는다. 고쳐도 내려간 채지만, 내린 까닭을 지운 글이 남는다
+  if (post.taken_down) return res.status(400).json({ error: '관리자가 내린 글은 고칠 수 없어요' });
 
   const { kind, title, body } = req.body || {};
   const t = cleanTitle(title);
@@ -209,7 +231,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     kind: kind || post.kind, title: t, body: b,
     flagged: verdict.level === 'mild' ? 'mild' : null,
   });
-  res.json({ post: { ...next, user_id: undefined, mine: true } });
+  res.json({ post: { ...next, user_id: undefined, flagged: undefined, mine: true } });
 });
 
 // ── 지운다 ── 쓴 사람 또는 관리자

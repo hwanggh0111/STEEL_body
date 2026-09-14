@@ -410,6 +410,15 @@ function cleanAll() {
     (await call('GET', '/community?mine=1')).data?.posts?.every(p => p.mine), true);
   step('「댓글 단 글」에는 댓글 안 단 글이 없다',
     (await call('GET', '/community?joined=1')).data?.posts?.some(p => p.id === pid2), false);
+  // 짜증 표시는 관리자가 흐름을 보려고 남긴 것이다. 모두에게 나가면 안 된다
+  step('목록에 짜증 표시를 안 싣는다', (list2.data?.posts || []).some(p => 'flagged' in p), false);
+  const one2 = await call('GET', '/community/' + pid2);
+  step('  글 하나에도 안 싣는다', 'flagged' in (one2.data?.post || {}), false);
+  step('  관리자가 아니면 내릴 수 있다고 안 한다', one2.data?.post?.canModerate, false);
+  step('글을 고친다 (갈래는 그대로)',
+    (await call('PUT', '/community/' + pid2, { title: '공감 검사 고침', body: '고쳤습니다' })).data?.post?.kind, '자유');
+  // 예전에는 공지를 목록에서 전부 빼서 「공지」로 거르면 늘 비었다
+  step('「공지」로 거를 수 있다', Array.isArray((await call('GET', '/community?kind=공지')).data?.posts), true);
   step('검사 글을 지운다', (await call('DELETE', '/community/' + pid2)).status, 200);
 
   console.log('\n── 알림 ──');

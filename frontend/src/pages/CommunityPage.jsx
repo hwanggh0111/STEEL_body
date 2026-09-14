@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import client from '../api/client';
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
@@ -54,7 +54,12 @@ export default function CommunityPage({ embedded = false }) {
   const [openId, setOpenId] = useState(null);
   const [writing, setWriting] = useState(false);
 
+  // **마지막으로 부른 것의 답만 쓴다.** 갈래를 「자유」→「질문」으로 빨리 누르면 답이 순서를
+  // 바꿔 올 수 있고, 늦게 온 「자유」 목록이 「질문」 자리에 앉았다
+  const loadSeq = useRef(0);
+
   const load = useCallback(async (k = kind, before = null, sc = scope) => {
+    const mineSeq = ++loadSeq.current;
     setLoading(true);
     try {
       const params = {};
@@ -63,6 +68,7 @@ export default function CommunityPage({ embedded = false }) {
       if (sc === 'mine') params.mine = 1;
       if (sc === 'joined') params.joined = 1;
       const { data } = await client.get('/community', { params });
+      if (mineSeq !== loadSeq.current) return;
       // **막는 것을 부르는 자리에 둔다.** 서버가 배열이 아닌 것을 주면 목록을
       // 그리는 쪽이 통째로 죽는다 — 이 앱에서 세 번 나온 종류다
       const list = Array.isArray(data?.posts) ? data.posts : [];
@@ -74,9 +80,9 @@ export default function CommunityPage({ embedded = false }) {
       setCanNotice(!!data?.canNotice);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (mineSeq === loadSeq.current) setFailed(true);
     } finally {
-      setLoading(false);
+      if (mineSeq === loadSeq.current) setLoading(false);
     }
   }, [kind, scope]);
 
@@ -185,9 +191,15 @@ export default function CommunityPage({ embedded = false }) {
         </div>
       ) : posts.length === 0 && notices.length === 0 ? (
         <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-          {kind === KIND_ALL
-            ? '아직 글이 없어요. 첫 글을 써보세요.'
-            : `「${kind}」에 아직 글이 없어요.`}
+          {/* 「내 글」 · 「댓글 단 글」이 비었을 때 「첫 글을 써보세요」는 틀린 말이다 —
+              글이 가득한데 내가 안 쓴 것뿐이다 */}
+          {scope === 'mine'
+            ? '아직 쓴 글이 없어요.'
+            : scope === 'joined'
+              ? '댓글을 단 글이 아직 없어요.'
+              : kind === KIND_ALL
+                ? '아직 글이 없어요. 첫 글을 써보세요.'
+                : `「${kind}」에 아직 글이 없어요.`}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -225,7 +237,12 @@ function Row({ p, onOpen, onLike }) {
       role="button"
       tabIndex={0}
       onClick={() => onOpen(p.id)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(p.id); } }}
+      // **안쪽 단추에서 올라온 키는 받지 않는다.** 공감 단추에서 Enter 를 누르면 키가 줄까지
+      // 올라와 여기서 막히고(preventDefault), 공감 대신 글이 열렸다
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(p.id); }
+      }}
       className="card clickable"
       style={{
         textAlign: 'left', cursor: 'pointer', width: '100%',
@@ -243,6 +260,9 @@ function Row({ p, onOpen, onLike }) {
         }}>{p.kind}</span>
         {p.mine && !p.notice && (
           <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>내 글</span>
+        )}
+        {p.takenDown && (
+          <span style={{ fontSize: 10.5, color: 'var(--danger)' }}>관리자가 내림</span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>
           {whenLabel(p.created_at)}
