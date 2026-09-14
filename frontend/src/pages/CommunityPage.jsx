@@ -179,9 +179,6 @@ export default function CommunityPage({ embedded = false }) {
       {writing ? (
         <PostForm
           kinds={kinds}
-          // 목록에서 갈래를 골라둔 채로 쓰면 그 갈래로 시작한다 — 사람이 고른 것이다.
-          // 「전체」에서 쓰면 아무것도 안 골라져 있다
-          initialKind={kind !== KIND_ALL ? kind : ''}
           canNotice={canNotice}
           onClose={() => setWriting(false)}
           onDone={() => { setWriting(false); load(kind, null, scope); }}
@@ -333,11 +330,14 @@ function Row({ p, onOpen, onLike }) {
 //
 // **갈래를 미리 골라두지 않는다** (2026-09-14, 시안 C안). 예전에는 「자유」가 골라져 있어서
 // 루틴 질문도 식단 이야기도 자유로 올라갔고, 목록의 갈래 거르기가 쓸모없어졌다.
-// 넷을 무엇을 쓰는 자리인지와 함께 보여주고 고르게 한다. 고르기 전에는 올리기가 꺼져 있다
-function PostForm({ kinds, initialKind = '', canNotice, onClose, onDone }) {
+// 넷을 무엇을 쓰는 자리인지와 함께 보여주고 고르게 한다. 고르기 전에는 올리기가 꺼져 있다.
+//
+// **목록에서 갈래를 골라둔 채로 들어와도 비워둔다** — 시안 그대로다. 「루틴」을 보다가
+// 쓰기를 눌렀다고 그 글이 루틴 글인 것은 아니다. 늘 한 번은 보고 고른다
+function PostForm({ kinds, canNotice, onClose, onDone }) {
   // 공지는 관리자에게만 보인다. **못 쓰는 것을 고를 수 있게 두지 않는다**
   const all = canNotice ? [...kinds, '공지'] : kinds;
-  const [kind, setKind] = useState(initialKind);
+  const [kind, setKind] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
