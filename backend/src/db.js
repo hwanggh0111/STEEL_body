@@ -308,10 +308,22 @@ const db = {
       .filter(w => w.user_id === userId && w.date === date)
       .sort((a, b) => a.created_at.localeCompare(b.created_at));
   },
-  createWorkout(userId, date, exercise, weight, sets, reps) {
-    const id = nextId('workouts');
+  // clientKey 는 오프라인에서 적어 **줄에 세워둔 것**을 올릴 때 그 줄의 로컬 id 다.
+  //
+  // 지하에서 적은 세트는 신호가 돌아오면 줄에서 하나씩 올린다. 그런데 서버가 받고
+  // 나서 **답이 오는 길에 끊기면**, 화면은 「못 올렸다」로 알고 그 줄을 안 지운다 —
+  // 다음에 또 올린다. 그러면 같은 세트가 서버에 둘로 남는다 (적어도-한-번 전송의 고질).
+  // 그 줄의 id 를 같이 보내면, 두 번째부터는 이미 있는 것을 돌려주고 새로 만들지 않는다.
+  // **온라인에서 바로 저장하는 것에는 이 키가 없다** — 그건 매번 새로 만드는 게 맞다.
+  createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null) {
     const data = load();
+    if (clientKey) {
+      const existing = data.workouts.find(w => w.user_id === userId && w.client_key === clientKey);
+      if (existing) return { lastInsertRowid: existing.id, deduped: true };
+    }
+    const id = nextId('workouts');
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
+    if (clientKey) workout.client_key = clientKey;
     data.workouts.push(workout);
     invalidateQueryCache();
     save(data);

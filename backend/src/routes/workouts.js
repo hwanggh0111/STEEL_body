@@ -36,7 +36,11 @@ router.get('/:date', auth, (req, res) => {
 
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
-  const { date, exercise, weight, sets, reps } = req.body;
+  const { date, exercise, weight, sets, reps, clientKey } = req.body;
+  // 오프라인 줄에서 올라온 것만 이 키를 달고 온다 (`local-...`). 재전송돼도 서버가
+  // 한 번만 만들게 하는 데만 쓴다. 모양이 아니면 그냥 무시(없는 것으로).
+  const key = typeof clientKey === 'string' && clientKey.startsWith('local-') && clientKey.length <= 64
+    ? clientKey : null;
 
   // 0 은 빠뜨린 것이 아니라 잘못 적은 것이다. `!sets` 로 묶으면 「필수에요」라고 답하게 되는데,
   // 친 사람은 칸을 채웠으니 왜 안 되는지 모른다. 아래 「1 이상」 검사로 내려보낸다
@@ -76,7 +80,7 @@ router.post('/', auth, spamCheck, (req, res) => {
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
 
-  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps);
+  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 

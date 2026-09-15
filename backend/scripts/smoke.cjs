@@ -339,6 +339,25 @@ function cleanAll() {
     step('  줄 수', rows, wantRows);
   }
 
+  // 오프라인 줄에서 올라온 것은 한 번만 만든다 (2026-09-15).
+  // 지하에서 적은 세트를 올리다 답이 끊겨 다시 보내도 서버에 둘로 남으면 안 된다.
+  // (개수를 세는 위 내보내기 검사 뒤에 둔다 — 여기서 만든 것이 그 수를 흔들지 않게.)
+  console.log('\n── 오프라인 재전송이 중복을 안 만드는지 ──');
+  const idemKey = 'local-smoke-' + TAG;
+  const mkEx = '멱등테스트' + TAG;
+  await call('POST', '/workouts', { date: '2026-08-28', exercise: mkEx, weight: 40, sets: 3, reps: 12, clientKey: idemKey });
+  await call('POST', '/workouts', { date: '2026-08-28', exercise: mkEx, weight: 40, sets: 3, reps: 12, clientKey: idemKey });
+  const listA = await call('GET', '/workouts');
+  const countCK = Object.values(listA.data || {}).flat().filter(w => w.exercise === mkEx).length;
+  step('같은 줄을 두 번 올려도 하나만 남는다', countCK, 1);
+  // 반대로 clientKey 가 없으면(온라인 저장) 두 번은 두 개다 — 일부러 두 번 적을 수 있다
+  const onEx = '온라인테스트' + TAG;
+  await call('POST', '/workouts', { date: '2026-08-28', exercise: onEx, weight: 40, sets: 3, reps: 12 });
+  await call('POST', '/workouts', { date: '2026-08-28', exercise: onEx, weight: 40, sets: 3, reps: 12 });
+  const listB = await call('GET', '/workouts');
+  const countOn = Object.values(listB.data || {}).flat().filter(w => w.exercise === onEx).length;
+  step('키 없이 두 번은 둘이다 (온라인 의도)', countOn, 2);
+
   console.log('\n── 고객센터 ──');
   // 구분선을 일부러 넣는다. 예전에는 이 줄 때문에 영구 정지될 수 있었다
   step('제보 (구분선 --- 포함)',

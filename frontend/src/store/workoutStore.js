@@ -182,7 +182,8 @@ export const useWorkoutStore = create((set, get) => ({
     try {
       for (const item of queue) {
         try {
-          await client.post('/workouts', item.payload);
+          // 줄의 로컬 id 를 같이 보낸다 — 올리다 답이 끊겨 다시 보내도 서버가 한 번만 만든다
+          await client.post('/workouts', { ...item.payload, clientKey: item.id });
           const next = dropFromQueue(get().queue, item.id);
           saveQueue(next);
           get().apply(null, next);
