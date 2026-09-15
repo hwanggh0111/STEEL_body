@@ -71,8 +71,15 @@ router.get('/pending', adminAuth, (req, res) => {
   // 예전에는 여기서 셌는데 욕설 기록 카드는 안 세서, 머리에는 「확인 안 한 욕설 신고 3」이
   // 뜨고 카드를 열면 「확인 안 함」이 없었다 — 할 일이 없는데 할 일이 있다고 했다
   const abuse = db.getAbuseLogs().filter(a => !a.reviewed && !a.dismissed && a.level !== 'mild').length;
-  // 커뮤니티 신고 중 아직 안 본 것 (2026-09-14). 글 단위가 아니라 신고 단위로 센다
-  const community = db.getPostReports().filter(r => !r.reviewed).length;
+  // 커뮤니티 신고 중 아직 안 본 것 (2026-09-14).
+  //
+  // **글 단위로 센다** — 신고함 화면(`/community/admin/reports`)이 신고를 글로 묶어
+  // 카드 하나에 보여주고 「확인 안 함」도 글 수로 세기 때문이다(2026-09-15에 맞췄다).
+  // 예전에는 여기만 신고 건수로 세서, 한 글을 셋이 신고하면 머리에는 「3」이 뜨는데
+  // 열어 보면 카드가 하나였다 — 두 숫자가 늘 어긋났다.
+  const community = new Set(
+    db.getPostReports().filter(r => !r.reviewed).map(r => r.post_id)
+  ).size;
   res.json({ open, abuse, community });
 });
 
