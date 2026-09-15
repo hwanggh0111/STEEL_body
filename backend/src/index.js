@@ -26,8 +26,23 @@ const db = require('./db');
 
 const app = express();
 
-// 터널/프록시 뒤에서 올바른 프로토콜 감지 (Render는 1 hop)
-app.set('trust proxy', 1);
+// 프록시를 몇 홉이나 믿을지 — **함부로 믿으면 안 된다** (2026-09-15, 자체 침투 테스트에서 잡음).
+//
+// 예전에는 `1` 로 박아뒀다. 그런데 그러면 req.ip 를 X-Forwarded-For 헤더에서 읽는다.
+// 서버에 **직접**(개발·터널) 닿으면 그 헤더는 공격자가 마음대로 쓴다 — 헤더만 바꿔가며
+// 로그인 실패 IP 잠금 · aiGuard IP 차단 · 전역 rate limit 을 통째로 우회할 수 있었다.
+// (계정별 잠금은 이메일 기준이라 단일 계정 무차별 대입은 그대로 막힌다. 뚫린 건 IP 방어다.)
+//
+// 그래서 **앞에 진짜 프록시가 있다고 아는 곳에서만** 믿는다. 기본값은 0(안 믿음) —
+// req.ip 가 소켓 주소가 되어 헤더 위조가 안 통한다. Render 는 1 홉이라 render.yaml 에서
+// TRUST_PROXY=1 을 넣는다. 안 믿으면 터널에서는 모두가 한 IP 로 합쳐지지만, 그건 안전한 쪽이다.
+const trustProxy = (() => {
+  const v = String(process.env.TRUST_PROXY ?? '').trim().toLowerCase();
+  if (v === '' || v === '0' || v === 'false' || v === 'no') return false; // 헤더를 안 믿는다
+  if (/^\d+$/.test(v)) return Number(v);                                    // 홉 수 (Render=1)
+  return false; // 'true'(모두 신뢰)는 일부러 안 받는다 — 그게 바로 이 구멍이다
+})();
+app.set('trust proxy', trustProxy);
 
 // 보안 헤더
 app.use(helmet({
@@ -132,11 +147,33 @@ app.use(express.json({
 app.use(aiGuard);
 
 // CSRF 보호 (쿠키 인증 사용 시에만 double-submit cookie 패턴 적용)
+//
+// **`/api/auth/` 를 통째로 건너뛰면 안 된다** (2026-09-15, 자체 침투 테스트에서 잡음).
+// 예전에는 「인증 경로는 로그인 전이니까」로 `/api/auth/` 전체를 건너뛰었는데, 그 밑에는
+// 로그인 전(login·register·refresh…)만 있는 게 아니라 **로그인 뒤 쿠키로 도는 상태변경**도
+// 있다 — 닉네임·성별·비밀번호 변경·계정 삭제. 그래서 남의 페이지가 로그인된 사용자의
+// 닉네임을 CSRF 토큰 없이 바꿀 수 있었다(비번·삭제는 옛 비번을 또 물어 못 뚫린다).
+// 이제 **로그인 전 경로만 콕 집어** 건너뛰고, 나머지 `/api/auth/*` 는 CSRF 를 탄다.
+// 프론트 axios 는 모든 요청에 X-CSRF-Token 을 실으므로 앱은 그대로 돈다.
+const CSRF_SKIP_AUTH = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',   // refresh 쿠키 + 재사용 탐지로 따로 지킨다
+  '/api/auth/logout',    // 못 나가게 막히는 게 더 나쁘다 (CSRF 로그아웃은 성가심뿐)
+  '/api/auth/send-code',
+  '/api/auth/verify-code',
+  '/api/auth/reset-password',
+  '/api/auth/check-email',
+  '/api/auth/check-username',
+]);
+
 app.use((req, res, next) => {
   // GET, HEAD, OPTIONS는 CSRF 검사 생략
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  // 인증/OAuth 경로는 CSRF 검사 생략 (로그인 전이므로)
-  if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/oauth/')) return next();
+  // 로그인 전 인증 경로만 생략 (닉네임·성별·비번·삭제는 로그인 뒤라 CSRF 를 탄다)
+  if (CSRF_SKIP_AUTH.has(req.path)) return next();
+  // OAuth 는 전부 로그인 흐름이라 생략
+  if (req.path.startsWith('/api/oauth/')) return next();
   // 공개 API는 생략
   if (req.path === '/api/health') return next();
   // 흰 화면 보고는 **로그인 전에도** 온다 (로그인 화면에서 터지면 토큰이 없다).
@@ -355,6 +392,15 @@ app.use((err, req, res, next) => {
   // CORS 에러는 403으로
   if (err.message === 'CORS not allowed') {
     return res.status(403).json({ error: '허용되지 않은 곳에서 온 요청이에요' });
+  }
+  // 본문이 한도(BODY_LIMIT)를 넘으면 express.json 이 여기로 던진다. 예전에는 500(서버 잘못)
+  // 으로 새서, 한도가 도는지도 안 보이고 사용자에게도 우리가 터진 것처럼 보였다 → 413 으로 (2026-09-15)
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: '보낸 내용이 너무 커요. 사진을 줄이거나 나눠서 보내주세요' });
+  }
+  // 깨진 JSON 본문도 서버 잘못이 아니라 요청 잘못이다 → 400
+  if (err.type === 'entity.parse.failed' || (err.status === 400 && 'body' in err)) {
+    return res.status(400).json({ error: '요청 형식이 올바르지 않아요' });
   }
   if (process.env.NODE_ENV !== 'production') {
     console.error(err.message);

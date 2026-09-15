@@ -67,6 +67,22 @@ async function rawCall(method, urlPath, body) {
   return { status: res.status, data, reset: res.headers.get('ratelimit-reset') };
 }
 
+// CSRF 회귀용 — 쿠키는 실어 로그인한 채로, X-CSRF-Token 만 일부러 뺀다.
+// 남의 페이지가 로그인된 사용자를 시켜 보내는 요청을 흉내 낸다 (2026-09-15).
+async function noCsrfCall(method, urlPath, body) {
+  const res = await fetch(BASE + urlPath, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(CK ? { Cookie: CK } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch {}
+  return { status: res.status, data };
+}
+
 let bad = 0;
 function step(label, got, want) {
   const pass = JSON.stringify(got) === JSON.stringify(want);
@@ -179,6 +195,11 @@ function cleanAll() {
   }
   step('내 정보', (await call('GET', '/auth/me')).status, 200);
   step('성별 고르기', (await call('PUT', '/auth/sex', { sex: 'male' })).status, 200);
+
+  // CSRF — 로그인 뒤 상태변경(닉네임·성별)은 토큰이 없으면 막혀야 한다.
+  // 예전에 `/api/auth/` 전체를 CSRF 에서 빼두는 바람에 여기가 뚫려 있었다 (2026-09-15 침투 테스트).
+  step('CSRF 없이 닉네임 변경은 막힌다', (await noCsrfCall('PUT', '/auth/nickname', { nickname: '침투' })).status, 403);
+  step('CSRF 없이 성별 변경은 막힌다', (await noCsrfCall('PUT', '/auth/sex', { sex: 'female' })).status, 403);
 
   console.log('\n── 인바디를 적는다 ──');
   const ib = await call('POST', '/inbody',
