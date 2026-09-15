@@ -10,6 +10,8 @@
     "prebuild": "node scripts/gen-changelog.mjs",
     "build": "vite build",
     "preview": "vite preview",
+    "android": "npm run build && cap sync android",
+    "android:icons": "node scripts/gen-app-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#12100c\" --iconBackgroundColorDark \"#12100c\" --splashBackgroundColor \"#12100c\" --splashBackgroundColorDark \"#12100c\"",
     "check": "node scripts/check-imports.cjs && node scripts/check-lists.cjs && node scripts/check-data.cjs && node scripts/check-offline.cjs && node scripts/check-note.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs",
     "screens": "node scripts/check-screens.cjs",
     "odd": "node scripts/check-odd.cjs",
@@ -19,6 +21,9 @@
     "note": "node scripts/check-note.cjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
     "@vitejs/plugin-react": "^4.2.1",
     "axios": "^1.6.7",
     "react": "^18.2.0",
@@ -28,7 +33,10 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
     "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.19"
+    "@types/react-dom": "^18.2.19",
+    "typescript": "^7.0.2"
   }
 }

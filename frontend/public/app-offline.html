@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- 안드로이드 앱이 서버에 못 닿았을 때 보이는 화면 (capacitor.config.ts 의 errorPath).
+     APK 안에 들어 있어서 인터넷 없이도 뜬다 — 그래서 글꼴을 받아오지 않고 기기 글꼴을 쓴다.
+     크롬의 「웹페이지를 사용할 수 없음」 대신 무엇을 하면 되는지 말한다. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#12100c" />
+  <title>BLACK IRON</title>
+  <style>
+    :root { --bg: #12100c; --accent: #eeb77d; --text: #f3ece2; --muted: #a39a8c; --line: #2a251e; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, 'Noto Sans KR', sans-serif; }
+    main { min-height: 100%; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 32px 28px; text-align: center; }
+    svg { width: 72px; height: 72px; margin-bottom: 28px; }
+    h1 { font-size: 20px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+    p { font-size: 15px; line-height: 1.6; color: var(--muted); margin: 0; max-width: 300px; }
+    button { margin-top: 32px; width: 100%; max-width: 280px; height: 52px; border: 0;
+      border-radius: 14px; background: var(--accent); color: #12100c; font-size: 16px;
+      font-weight: 700; font-family: inherit; }
+    button:disabled { opacity: 0.55; }
+    .addr { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--muted); word-break: break-all; max-width: 280px; }
+    .addr:empty { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 512 512" aria-hidden="true">
+      <circle cx="256" cy="256" r="196" fill="none" stroke="#eeb77d" stroke-width="23" />
+      <path d="M34 256 H478" stroke="#eeb77d" stroke-width="23" stroke-linecap="round" />
+    </svg>
+    <h1>서버에 연결할 수 없어요</h1>
+    <p id="why">인터넷 연결을 확인하고 다시 시도해 주세요.</p>
+    <button id="retry" type="button">다시 시도</button>
+    <div class="addr" id="addr"></div>
+  </main>
+  <script>
+    var app = window.BlackIronApp;
+    var btn = document.getElementById('retry');
+
+    // 어느 주소를 못 열었는지. 집 와이파이 시험판(192.168.x)은 무엇을 봐야 하는지 다르다
+    try {
+      var url = app && app.serverUrl();
+      if (url) {
+        document.getElementById('addr').textContent = url;
+        if (/^http:\/\/(192\.168|10\.|172\.(1[6-9]|2\d|3[01]))/.test(url)) {
+          document.getElementById('why').textContent =
+            '시험용 앱이에요. 폰이 개발 PC 와 같은 와이파이에 있고, PC 에서 서버가 켜져 있어야 열려요.';
+        }
+      }
+    } catch (e) {}
+
+    function retry() {
+      btn.disabled = true;
+      btn.textContent = '연결하는 중…';
+      if (app && app.retry) app.retry();
+      else location.reload();
+    }
+
+    btn.addEventListener('click', retry);
+    // 인터넷이 돌아오면 누르지 않아도 다시 연다
+    window.addEventListener('online', retry);
+  </script>
+</body>
+</html>

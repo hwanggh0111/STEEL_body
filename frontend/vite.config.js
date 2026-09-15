@@ -17,15 +17,31 @@ const swVersionPlugin = () => ({
   },
 });
 
+// 폰 앱 시험용 터널을 열 때만 그 주소를 허락한다 (`cloudflared tunnel --url http://localhost:5173`).
+// **리포에는 주소를 안 박는다.** 개발 서버를 밖에 내놓는 설정이라, `.trycloudflare.com` 을
+// 통째로 박아두면 아무 데서나 켜둔 개발 서버에 그 도메인 호스트 헤더로 들어올 수 있다.
+// 쓸 때만 켠다: `TUNNEL_HOSTS=.trycloudflare.com npm run dev` (쉼표로 여럿).
+const tunnelHosts = (process.env.TUNNEL_HOSTS || '')
+  .split(',')
+  .map((h) => h.trim())
+  .filter(Boolean);
+
 export default defineConfig({
   plugins: [react(), swVersionPlugin()],
   server: {
     host: true,
-    allowedHosts: ['7b3364939ce183.lhr.life'],
+    // 아무것도 안 주면 localhost/LAN 만. 터널을 열 때만 TUNNEL_HOSTS 로 그 주소를 더한다
+    allowedHosts: tunnelHosts,
     proxy: {
       '/api': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        // 터널 주소(https://….trycloudflare.com)로 열면 브라우저가 그 주소를 Origin 에 싣고,
+        // 백엔드 CORS 허용 목록에 없어서 로그인부터 막힌다. 여기를 지난 요청은 화면과 같은
+        // 주소에서 온 것이니 Origin 을 떼서 「같은 서버」로 보낸다. 백엔드 목록은 안 넓힌다
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin'));
+        },
       },
     },
   },

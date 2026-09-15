@@ -8,6 +8,11 @@ node_modules/
 # Build output
 frontend/dist/
 
+# 안드로이드 서명 열쇠 — 새면 남이 우리 이름으로 앱을 올릴 수 있다. 잃어버리면 업데이트를 못 올린다
+*.jks
+*.keystore
+frontend/android/keystore.properties
+
 # Database
 backend/blackiron.json
 backend/photos.json

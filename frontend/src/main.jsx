@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
 import App from './App';
 import { devAutoLogin } from './dev/autoLogin';
 
@@ -19,6 +20,19 @@ devBoot().finally(() => {
     </React.StrictMode>
   );
 });
+
+// 안드로이드 앱의 뒤로 가기 단추
+//
+// 따로 안 받으면 어느 화면에서 누르든 **앱이 통째로 닫힌다.** 앞 화면이 있으면 앞으로,
+// 첫 화면에서만 닫는다. 브라우저에서는 `isNativePlatform()` 이 false 라 조각을 안 받는다
+if (Capacitor.isNativePlatform()) {
+  import('@capacitor/app').then(({ App: NativeApp }) => {
+    NativeApp.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) window.history.back();
+      else NativeApp.exitApp();
+    });
+  });
+}
 
 // Service Worker 등록
 //
