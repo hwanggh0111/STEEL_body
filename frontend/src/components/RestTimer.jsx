@@ -32,11 +32,13 @@ function Ring({ ratio, children }) {
         <circle cx={RING / 2} cy={RING / 2} r={R} fill="none" style={{ stroke: 'var(--bg-tertiary)' }} strokeWidth="10" />
         <circle
           cx={RING / 2} cy={RING / 2} r={R} fill="none"
-          style={{ stroke: 'var(--accent)' }} strokeWidth="10" strokeLinecap="round"
+          strokeWidth="10" strokeLinecap="round"
           strokeDasharray={CIRC}
           strokeDashoffset={CIRC * (1 - Math.max(0, Math.min(1, ratio)))}
           transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
-          style={{ transition: 'stroke-dashoffset 0.25s linear' }}
+          // style 이 둘이면 뒤엣것이 앞엣것을 통째로 덮는다 — 예전에 여기서 색(stroke)이
+          // transition 에 덮여 진행 링이 금색으로 안 그려졌다. 한 style 로 합친다
+          style={{ stroke: 'var(--accent)', transition: 'stroke-dashoffset 0.25s linear' }}
         />
       </svg>
       <div style={{
