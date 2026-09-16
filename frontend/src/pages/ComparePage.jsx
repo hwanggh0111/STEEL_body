@@ -7,6 +7,8 @@ import { readLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
+import OverlayCamera from '../components/OverlayCamera';
+import { pickReference } from '../data/overlayShot';
 import { CHART } from '../data/chartColors';
 import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/compare';
 
@@ -85,22 +87,16 @@ function ChangeRow({ c }) {
 
 function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
   const inputRef = useRef(null);
+  const [camOpen, setCamOpen] = useState(false);
   const photo = photos[photoKey] || null;
   const accentBorder = photoKey === 'after';
 
-  // 폰에서 고른 사진은 대개 3~8MB 다. 거절하지 않고 줄여서 올린다
-  // (shrinkImage 주석 참고)
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    let data;
-    let shrunk = false;
-    try {
-      ({ data, shrunk } = await shrinkImage(file));
-    } catch {
-      toast('사진을 읽지 못했어요', 'error');
-      return;
-    }
+  // **겹칠 지난 사진.** 「나중」을 찍을 때는 「과거」 위에 맞춰야 둘이 같은 각도가 된다
+  const reference = pickReference(photos, photoKey);
+
+  // 고른 사진이든 찍은 사진이든 **저장하는 길은 하나다.** 두 벌로 두면 한쪽만
+  // 고치는 날이 오고, 그러면 같은 사진이 경로에 따라 다르게 저장된다
+  const commit = (data, shrunk) => {
     if (typeof data !== 'string' || data.length > PHOTO_MAX_BASE64) {
       toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`);
       return;
@@ -114,6 +110,21 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
     client.post('/photos', { type: photoKey, data })
       .then(() => toast(shrunk ? '사진 저장! (올리기 좋게 줄였어요)' : '사진 저장!'))
       .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다', 'error'));
+  };
+
+  // 폰에서 고른 사진은 대개 3~8MB 다. 거절하지 않고 줄여서 올린다
+  // (shrinkImage 주석 참고)
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    // 같은 사진을 다시 고를 수 있어야 한다 — 값을 안 비우면 두 번째부터 아무 일도 안 난다
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const { data, shrunk } = await shrinkImage(file);
+      commit(data, shrunk);
+    } catch {
+      toast('사진을 읽지 못했어요', 'error');
+    }
   };
 
   const handleDelete = () => {
@@ -178,7 +189,37 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>사진 추가</div>
         </div>
       )}
+      {/* 찍는 길과 고르는 길. **겹쳐 찍기가 먼저다** — 겹칠 사진이 있으면
+          그쪽이 훨씬 쓸모 있고, 없어도 이번 것이 다음번의 기준이 된다 */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button
+          className="btn-secondary"
+          style={{ flex: 1, padding: '9px 0', fontSize: 12 }}
+          onClick={() => setCamOpen(true)}
+        >겹쳐 찍기</button>
+        <button
+          className="btn-secondary"
+          style={{ flex: 1, padding: '9px 0', fontSize: 12 }}
+          onClick={() => inputRef.current?.click()}
+        >{photo ? '다시 고르기' : '사진 고르기'}</button>
+      </div>
+
       <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
+
+      {camOpen && (
+        <OverlayCamera
+          reference={reference?.data || null}
+          label={reference
+            ? `${reference.from === 'before' ? '과거' : '나중'} 사진에 맞춰서`
+            : '겹칠 사진이 아직 없어요'}
+          onShot={(data) => {
+            setCamOpen(false);
+            // 찍은 것은 이미 1280px · JPEG 이라 더 줄일 것이 없다
+            commit(data, false);
+          }}
+          onClose={() => setCamOpen(false)}
+        />
+      )}
     </div>
   );
 }

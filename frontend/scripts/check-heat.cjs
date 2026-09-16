@@ -23,6 +23,7 @@ const heat = bundle('src/data/bodyHeat.js', '.h1.cjs');
 const wall = bundle('src/data/yearWall.js', '.h2.cjs');
 const sum = bundle('src/data/sessionSummary.js', '.h3.cjs');
 const pace = bundle('src/data/pace.js', '.h4.cjs');
+const shot = bundle('src/data/overlayShot.js', '.h5.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -212,6 +213,38 @@ ok('  그때는 견주지 않는다', pace.buildPace(thin, '2026-09-16').deltaMs
 
 // 결산이 이 값을 같이 들고 다닌다
 ok('결산에 속도가 실린다', sum.buildSummary(PW, '2026-09-16').pace.usable, true);
+
+// ───────────────────────────────────────────
+console.log('\n── 겹쳐 찍기 ──');
+
+// **무엇을 겹칠까.** 「나중」을 찍을 때는 「과거」 위에 맞춰야 둘이 같은 각도가 된다
+ok('나중을 찍을 때는 과거를 겹친다',
+  shot.pickReference({ before: 'B', after: 'A' }, 'after').from, 'before');
+ok('과거를 찍을 때는 나중을 겹친다',
+  shot.pickReference({ before: 'B', after: 'A' }, 'before').from, 'after');
+// 짝이 없으면 자기 자리에 있던 것(다시 찍는 경우)
+ok('짝이 없으면 자기 자리 사진을 겹친다',
+  shot.pickReference({ after: 'A' }, 'after').from, 'after');
+// 겹칠 것이 없으면 그냥 카메라다 — 없는 것을 겹친 척하지 않는다
+ok('한 장도 없으면 안 겹친다', shot.pickReference({}, 'before'), null);
+ok('  사진 뭉치가 없어도 안 터진다', shot.pickReference(null, 'before'), null);
+
+// **보이는 대로 찍힌다.** 화면은 3:4 로 잘라 보여주는데 저장할 때 원본을 통째로
+// 그리면 눈으로 맞춘 자리와 찍힌 자리가 달라진다 — 겹쳐 찍기의 뜻이 사라진다
+ok('넓은 그림(4:3)은 좌우를 자른다', shot.coverCrop(1440, 1080), { sx: 315, sy: 0, sw: 810, sh: 1080 });
+ok('  잘라낸 것이 3:4 다', Math.round((810 / 1080) * 100) / 100, 0.75);
+ok('세로로 긴 그림(9:16)은 위아래를 자른다', shot.coverCrop(1080, 1920), { sx: 0, sy: 240, sw: 1080, sh: 1440 });
+ok('  이것도 3:4 다', Math.round((1080 / 1440) * 100) / 100, 0.75);
+ok('이미 3:4 면 안 자른다', shot.coverCrop(1080, 1440), { sx: 0, sy: 0, sw: 1080, sh: 1440 });
+ok('크기를 모르면 안 자른다', shot.coverCrop(0, 0), null);
+
+// 저장 크기는 shrinkImage 와 같은 자를 쓴다 — 긴 변 1280px
+ok('긴 변이 1280', shot.shotSize(), { width: 960, height: 1280 });
+
+// 겹친 정도는 범위 밖으로 안 나간다. 0 이면 못 맞추고 1 이면 지금 내 몸이 안 보인다
+ok('너무 옅게는 못 내린다', shot.clampOpacity(0), shot.OPACITY_MIN);
+ok('너무 진하게는 못 올린다', shot.clampOpacity(1), shot.OPACITY_MAX);
+ok('이상한 값이 와도 기본으로', shot.clampOpacity('어쩌고'), shot.OPACITY_DEFAULT);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

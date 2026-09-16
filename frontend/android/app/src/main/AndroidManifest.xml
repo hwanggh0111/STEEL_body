@@ -37,4 +37,11 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 겹쳐 찍기 (2026-09-16). 웹뷰가 getUserMedia 로 카메라를 연다 —
+         이 줄이 없으면 앱에서만 「카메라를 열지 못했어요」가 뜨고 브라우저에서는 멀쩡하다.
+         **사진을 저장하거나 읽지 않는다** — 찍은 것은 곧바로 서버로 가므로
+         저장소 권한은 안 받는다 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
