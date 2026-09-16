@@ -507,193 +507,6 @@ const db = {
     return { changes: 1 };
   },
 
-  // ── 커뮤니티 — 글과 댓글 ──
-  //
-  // **이 앱에서 남에게 보이는 첫 글이다.** 다른 갈래(운동 기록 · 메모 · 제보)는
-  // 전부 자기만 보는 것이라, 지울 때도 그 사람 것만 지우면 끝이었다.
-  // 여기는 다르다 — 글이 사라지면 **달린 댓글도 같이 사라져야** 한다.
-  //
-  // 그리고 계정을 지울 때도 마찬가지다. `USER_COLLECTIONS` 에 둘 다 넣었다.
-  // 8/31 까지 일곱 갈래가 목록에서 빠져 그것만 남아 있던 일이 있었다 —
-  // 남는 것이 **남이 읽는 글**이면 더 나쁘다.
-  getPosts(includeTakenDown = false) {
-    const data = load();
-    return (data.posts || [])
-      .filter(p => includeTakenDown || !p.taken_down)
-      // 최근 것이 위다. id 는 늘어나는 값이라 그대로 쓴다
-      .sort((a, b) => b.id - a.id);
-  },
-  getPost(id) {
-    const data = load();
-    return (data.posts || []).find(p => p.id === id) || null;
-  },
-  createPost(userId, { kind, title, body, flagged = null }) {
-    const data = load();
-    if (!data.posts) data.posts = [];
-    const now = new Date().toISOString();
-    const row = {
-      id: nextId('posts'), user_id: userId,
-      kind, title, body, flagged,
-      taken_down: false,
-      created_at: now, updated_at: now,
-    };
-    data.posts.push(row);
-    save(data);
-    return row;
-  },
-  updatePost(id, userId, { kind, title, body, flagged = null }) {
-    const data = load();
-    const post = (data.posts || []).find(p => p.id === id && p.user_id === userId);
-    if (!post) return null;
-    post.kind = kind;
-    post.title = title;
-    post.body = body;
-    post.flagged = flagged;
-    post.updated_at = new Date().toISOString();
-    save(data);
-    return post;
-  },
-  // 쓴 사람이 지운다. **댓글도 같이 간다** — 안 지우면 없는 글에 달린 댓글이 남는다
-  deletePost(id) {
-    const data = load();
-    if (!data.posts) return { changes: 0 };
-    const before = data.posts.length;
-    data.posts = data.posts.filter(p => p.id !== id);
-    // **글이 사라지면 딸린 것도 같이 간다** — 댓글 · 공감 · 신고.
-    // 안 지우면 없는 글에 달린 것들이 남는다
-    data.postComments = (data.postComments || []).filter(c => c.post_id !== id);
-    data.postLikes = (data.postLikes || []).filter(l => l.post_id !== id);
-    data.postReports = (data.postReports || []).filter(r => r.post_id !== id);
-    if (data.posts.length === before) return { changes: 0 };
-    save(data);
-    return { changes: 1 };
-  },
-  // 관리자가 내린다. **지우지 않고 표시만 한다** — 소리 없이 사라지면
-  // 쓴 사람은 자기 글이 안 올라간 줄 알고 또 쓴다
-  takeDownPost(id) {
-    const data = load();
-    const post = (data.posts || []).find(p => p.id === id);
-    if (!post) return { changes: 0 };
-    post.taken_down = true;
-    post.updated_at = new Date().toISOString();
-    save(data);
-    return { changes: 1 };
-  },
-
-  getPostComments(postId) {
-    const data = load();
-    return (data.postComments || [])
-      .filter(c => c.post_id === postId)
-      // 댓글은 **먼저 쓴 것이 위다** — 주고받은 순서가 그대로 읽혀야 한다
-      .sort((a, b) => a.id - b.id);
-  },
-  countPostComments(postId) {
-    const data = load();
-    return (data.postComments || []).filter(c => c.post_id === postId).length;
-  },
-  getPostComment(id) {
-    const data = load();
-    return (data.postComments || []).find(c => c.id === id) || null;
-  },
-  createPostComment(postId, userId, body, flagged = null) {
-    const data = load();
-    if (!data.postComments) data.postComments = [];
-    const row = {
-      id: nextId('postComments'), post_id: postId, user_id: userId,
-      body, flagged, created_at: new Date().toISOString(),
-    };
-    data.postComments.push(row);
-    save(data);
-    return row;
-  },
-  deletePostComment(id) {
-    const data = load();
-    if (!data.postComments) return { changes: 0 };
-    const before = data.postComments.length;
-    data.postComments = data.postComments.filter(c => c.id !== id);
-    if (data.postComments.length === before) return { changes: 0 };
-    save(data);
-    return { changes: 1 };
-  },
-
-  // ── 공감 ──
-  //
-  // **한 사람 한 번이다.** 누른 사람을 줄로 남긴다 — 숫자만 세면 두 번 누르는 것을
-  // 막을 수 없고, 「내가 눌렀나」도 알 수 없다.
-  likePost(postId, userId) {
-    const data = load();
-    if (!data.postLikes) data.postLikes = [];
-    if (data.postLikes.some(l => l.post_id === postId && l.user_id === userId)) return { changed: false };
-    data.postLikes.push({
-      id: nextId('postLikes'), post_id: postId, user_id: userId,
-      created_at: new Date().toISOString(),
-    });
-    save(data);
-    return { changed: true };
-  },
-  unlikePost(postId, userId) {
-    const data = load();
-    if (!data.postLikes) return { changed: false };
-    const before = data.postLikes.length;
-    data.postLikes = data.postLikes.filter(l => !(l.post_id === postId && l.user_id === userId));
-    if (data.postLikes.length === before) return { changed: false };
-    save(data);
-    return { changed: true };
-  },
-  countPostLikes(postId) {
-    const data = load();
-    return (data.postLikes || []).filter(l => l.post_id === postId).length;
-  },
-  likedPost(postId, userId) {
-    const data = load();
-    return (data.postLikes || []).some(l => l.post_id === postId && l.user_id === userId);
-  },
-
-  // ── 신고 ──
-  //
-  // 욕설은 코드가 자동으로 막는다(`abusePolicy`). 그런데 **사전이 못 잡는 것**이
-  // 있다 — 광고 · 남의 이야기 · 사전에 없는 말. 그걸 사람이 알려주는 길이다.
-  //
-  // **같은 사람이 같은 것을 두 번 신고하지 못한다.** 안 막으면 한 사람이 눌러서
-  // 숫자를 올릴 수 있고, 그러면 그 숫자가 뜻을 잃는다.
-  reportPost(postId, userId, reason) {
-    const data = load();
-    if (!data.postReports) data.postReports = [];
-    if (data.postReports.some(r => r.post_id === postId && r.user_id === userId)) {
-      return { changed: false };
-    }
-    data.postReports.push({
-      id: nextId('postReports'), post_id: postId, user_id: userId,
-      reason, reviewed: false, created_at: new Date().toISOString(),
-    });
-    save(data);
-    return { changed: true, count: data.postReports.filter(r => r.post_id === postId).length };
-  },
-  countPostReports(postId) {
-    const data = load();
-    return (data.postReports || []).filter(r => r.post_id === postId).length;
-  },
-  getPostReports() {
-    const data = load();
-    return (data.postReports || []).slice().sort((a, b) => b.id - a.id);
-  },
-  reviewPostReport(id) {
-    const data = load();
-    const r = (data.postReports || []).find(x => x.id === id);
-    if (!r) return { changes: 0 };
-    r.reviewed = true;
-    save(data);
-    return { changes: 1 };
-  },
-
-  // 내가 댓글을 단 글 번호들. 「내가 낀 이야기」를 모아 보는 데 쓴다
-  postIdsCommentedBy(userId) {
-    const data = load();
-    return [...new Set((data.postComments || [])
-      .filter(c => c.user_id === userId)
-      .map(c => c.post_id))];
-  },
-
   // notes — 루틴 메모장
   getNotes(userId) {
     const data = load();
@@ -921,6 +734,63 @@ const db = {
     return { changes: 1 };
   },
 
+  // ── 홈페이지 사진 (2026-09-16) ──
+  //
+  // **관리자가 올리고 누구나 보는 사진이다.** 사람 사진(profile · before · after)과
+  // 같은 파일에 살지만 **줄을 따로 둔다** — 사람 사진은 `user_id` 로 묶여 계정을 지울
+  // 때 같이 지워진다. 홈페이지 사진이 거기 섞이면 **관리자가 계정을 지우는 날
+  // 사이트의 사진이 같이 사라진다.**
+  //
+  // 순서를 `order` 로 들고 있다. 배열 차례를 그대로 쓰면 가운데 한 장을 지웠을 때
+  // 뒤엣것이 전부 한 칸씩 당겨지는데, 그걸 파일에 다시 쓰는 것보다 번호가 싸다.
+  getSitePhotos() {
+    const store = loadPhotos();
+    return (store.sitePhotos || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  },
+  addSitePhoto(dataUrl, caption) {
+    const store = loadPhotos();
+    if (!Array.isArray(store.sitePhotos)) store.sitePhotos = [];
+    const id = store._nextSiteId || 1;
+    store._nextSiteId = id + 1;
+    // 맨 뒤에 붙는다. 새로 올린 것이 위로 튀어 오르면 걸어둔 차례가 흐트러진다
+    const last = store.sitePhotos.reduce((n, p2) => Math.max(n, p2.order || 0), 0);
+    const row = { id, data: dataUrl, caption: caption || '', order: last + 1, created_at: new Date().toISOString() };
+    store.sitePhotos.push(row);
+    savePhotoStore();
+    return row;
+  },
+  updateSitePhoto(id, caption) {
+    const store = loadPhotos();
+    const row = (store.sitePhotos || []).find(p2 => p2.id === id);
+    if (!row) return null;
+    row.caption = caption || '';
+    savePhotoStore();
+    return row;
+  },
+  deleteSitePhoto(id) {
+    const store = loadPhotos();
+    if (!Array.isArray(store.sitePhotos)) return false;
+    const before = store.sitePhotos.length;
+    store.sitePhotos = store.sitePhotos.filter(p2 => p2.id !== id);
+    if (store.sitePhotos.length === before) return false;
+    savePhotoStore();
+    return true;
+  },
+  // 한 칸씩만 옮긴다. 옆엣것과 번호를 맞바꾼다
+  moveSitePhoto(id, dir) {
+    const store = loadPhotos();
+    const list = (store.sitePhotos || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    const i = list.findIndex(p2 => p2.id === id);
+    if (i === -1) return false;
+    const j = dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= list.length) return true;   // 끝이면 그대로 둔다 (실패가 아니다)
+    const tmp = list[i].order;
+    list[i].order = list[j].order;
+    list[j].order = tmp;
+    savePhotoStore();
+    return true;
+  },
+
   // 계정을 지울 때 사진도 같이 지운다 (본체와 파일이 갈렸으니 따로 불러야 한다)
   deleteUserPhotos,
 
@@ -1085,8 +955,9 @@ const db = {
   USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
                      'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
                      'suspensions', 'abuseLogs', 'plans', 'notes',
-                     // 커뮤니티 (2026-09-04). **남이 읽는 글이라 더 중요하다** —
-                     // 목록에서 빠지면 계정을 지운 사람의 글이 남에게 계속 보인다
+                     // **커뮤니티는 2026-09-16 에 걷어냈다.** 그런데 목록에서는 안 뺀다 —
+                     // 기능이 없어져도 **옛 줄은 DB 에 그대로 남아 있다.** 빼면 계정을
+                     // 지운 사람의 글·댓글만 영영 남는다. 지우는 쪽은 계속 지운다
                      'posts', 'postComments', 'postLikes', 'postReports'],
   // 지금 램에 들고 있는 그대로.
   //

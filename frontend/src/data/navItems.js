@@ -23,9 +23,8 @@
 export const DRAWER_ITEMS = [
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
   { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
-  // 커뮤니티 · 소식 · 소개는 **여기 없다** (2026-09-04). 아래 탭바의 HOME 안에
-  // 있다 — 앱을 열면 늘 나오는 자리라 거기가 곧 홈페이지다.
-  // 서랍에 또 줄을 두면 같은 자리로 가는 길이 둘이 된다
+  // 소식 · 소개는 **여기 없다.** 소개는 홈페이지(`/site`)에, 소식(공지함)은
+  // 고객센터 안에 있다. 서랍에 또 줄을 두면 같은 자리로 가는 길이 둘이 된다
   { path: '/support',    label: '고객센터',   icon: 'inbox' },
   { path: '/workout',    label: '옛 기록',    icon: 'dumbbell' },
   { path: '/routine',    label: '옛 루틴',    icon: 'clipboard' },

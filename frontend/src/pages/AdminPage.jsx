@@ -7,9 +7,9 @@ import HackingSecurityPanel from '../components/HackingSecurityPanel';
 import AiAdminPanel from '../components/AiAdminPanel';
 import MaintAdmin from '../components/admin/MaintAdmin';
 import ReportAdmin from '../components/admin/ReportAdmin';
+import SitePhotoAdmin from '../components/admin/SitePhotoAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 import FaqGapAdmin from '../components/admin/FaqGapAdmin';
-import CommunityAdmin from '../components/admin/CommunityAdmin';
 import { usePendingReports } from '../components/usePendingReports';
 
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -43,9 +43,11 @@ const GROUPS = [
     title: '사람이 기다리는 것',
     items: [
       { key: 'report', label: '제보 관리', icon: 'inbox', desc: '들어온 제보에 답하고, 욕설·비하로 걸린 기록을 판정한다' },
-      { key: 'community', label: '커뮤니티', icon: 'chat', desc: '신고된 글을 보고 내리거나 확인한다 · 짜증 섞인 말로 올라온 글' },
       { key: 'faqgap', label: '못 찾은 말', icon: 'question', desc: '고객센터에서 답을 못 찾고 나간 검색어' },
       { key: 'maint', label: '점검 스케줄', icon: 'wrench', desc: '점검 시각을 예약하고 안내 화면을 띄운다' },
+      // 홈페이지에 거는 사진 (2026-09-16). **올리는 사람은 여기 들어온 관리자 하나뿐**이라
+      // 신고도 내리기도 없다 — 여럿이 올리는 자리를 만들면 그 셋이 전부 따라온다
+      { key: 'photos', label: '홈페이지 사진', icon: 'camera', desc: '홈페이지(/site)에 걸리는 사진을 올리고 · 설명을 붙이고 · 차례를 바꾼다' },
     ],
   },
   {
@@ -63,7 +65,7 @@ const ALL = GROUPS.flatMap(g => g.items);
 
 const PANELS = {
   report: ReportAdmin,
-  community: CommunityAdmin,
+  photos: SitePhotoAdmin,
   maint: MaintAdmin,
   faqgap: FaqGapAdmin,
   security: SecurityPanel,
@@ -106,16 +108,8 @@ function Todo({ pending, onGo }) {
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 욕설 신고</div>
             </div>
           )}
-          {pending.community > 0 && (
-            <div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--warning)', lineHeight: 1 }}>
-                {pending.community}
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 커뮤니티 신고</div>
-            </div>
-          )}
           <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>
-            {pending.open > 0 || pending.abuse > 0 ? '제보 관리로 ›' : '커뮤니티로 ›'}
+            제보 관리로 ›
           </div>
         </>
       )}
@@ -158,12 +152,8 @@ export default function AdminPage() {
 
   const current = ALL.find(t => t.key === tab);
   const Panel = PANELS[tab];
-  // 뱃지는 **그 탭에서 할 일만** 센다. 커뮤니티 신고를 제보 관리에 얹으면 눌러 들어가도 없다
-  const badgeOf = (key) => (
-    key === 'report' ? pending.open + pending.abuse
-      : key === 'community' ? (pending.community || 0)
-        : 0
-  );
+  // 뱃지는 **그 탭에서 할 일만** 센다. 딴 탭 일을 얹으면 눌러 들어가도 없다
+  const badgeOf = (key) => (key === 'report' ? pending.open + pending.abuse : 0);
 
   const open = (key) => {
     setTab(key);
@@ -192,7 +182,7 @@ export default function AdminPage() {
         )}
       </div>
 
-      <Todo pending={pending} onGo={() => open(pending.open > 0 || pending.abuse > 0 ? 'report' : 'community')} />
+      <Todo pending={pending} onGo={() => open('report')} />
 
       {/* 지금 보고 있는 것 + 항목 고르기 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>

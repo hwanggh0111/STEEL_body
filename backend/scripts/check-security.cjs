@@ -390,52 +390,8 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }
 
-  console.log('\n── 커뮤니티 — 남의 글 (2026-09-04) ──');
-  //
-  // **이 앱에서 남에게 보이는 첫 글이다.** 그동안 사람이 쓴 것은 전부 자기만 보는
-  // 것이라, 「남의 것을 건드릴 수 있나」를 물을 자리가 없었다. 이제 생겼다.
-  //
-  // 스모크로는 **한 사람만** 세울 수 있어서(검사 계정 하나로 돈다) 남의 글이 있을 때만
-  // 돌아간다 — 빈 서버에서는 그 검사가 조용히 건너뛰어진다. 두 사람을 세워 확실히 본다.
-  {
-    const cdb = require('../src/db');
-    const a = cdb.createUser('a@post.local', 'h', '쓴사람', 'writer').id
-      ?? cdb.findUserByEmail('a@post.local').id;
-    const b = cdb.findUserByEmail('b@post.local')?.id
-      ?? (cdb.createUser('b@post.local', 'h', '남', 'other').id ?? cdb.findUserByEmail('b@post.local').id);
-
-    const post = cdb.createPost(a, { kind: '자유', title: '내 글', body: '본문' });
-    cdb.createPostComment(post.id, a, '내 댓글');
-    cdb.createPostComment(post.id, b, '남의 댓글');
-
-    ok('글에 달린 댓글을 센다', cdb.countPostComments(post.id), 2);
-    // **남이 못 고친다.** updatePost 는 주인을 함께 본다
-    ok('남은 글을 못 고친다', cdb.updatePost(post.id, b, { kind: '자유', title: 'x', body: 'y' }), null);
-    ok('  쓴 사람은 고친다', cdb.updatePost(post.id, a, { kind: '자유', title: '고침', body: 'y' })?.title, '고침');
-
-    // 관리자가 내린 것은 **지우지 않고 표시만 한다** — 소리 없이 사라지면
-    // 쓴 사람은 자기 글이 안 올라간 줄 알고 또 쓴다
-    cdb.takeDownPost(post.id);
-    ok('내린 글은 목록에서 빠진다', cdb.getPosts().some(p => p.id === post.id), false);
-    ok('  그래도 남아 있다 (없어진 것이 아니다)', !!cdb.getPost(post.id), true);
-    ok('  내려갔다고 표시된다', cdb.getPost(post.id).taken_down, true);
-
-    // **글이 사라지면 달린 댓글도 같이 가야 한다** — 안 지우면 없는 글에 달린 댓글이 남는다
-    cdb.deletePost(post.id);
-    ok('지우면 댓글도 같이 지워진다', cdb.countPostComments(post.id), 0);
-    ok('  글도 없다', cdb.getPost(post.id), null);
-
-    // 길이 주인을 보는가. 여기가 어긋나면 위 검사가 다 통과해도 구멍은 그대로다.
-    // **없는 것으로 답한다** — 403 으로 답하면 「있긴 있다」를 알려주는 셈이다
-    const route = fs.readFileSync(path.join(__dirname, '..', 'src/routes/community.js'), 'utf-8');
-    ok('남의 글은 없는 것으로 답한다',
-      (route.match(/post\.user_id !== req\.userId/g) || []).length >= 2, true);
-    // **남의 글에는 403 을 안 쓴다** — 「있긴 있다」를 알려주는 셈이다.
-    // 그런데 공지는 다르다: 숨길 것이 아니라 「여기는 관리자 자리다」라고 말하면 된다.
-    // 그래서 403 을 아예 금하지 않고, **공지 말고 다른 데 쓰였는지**를 본다
-    const forbid = [...route.matchAll(/status\(403\)\.json\(\{ error: '([^']*)'/g)].map(m => m[1]);
-    ok('  403 은 공지 자리에만 쓴다', forbid.filter(msg => !msg.includes('공지')), []);
-  }
+  // 커뮤니티 검사는 **기능과 함께 걷었다** (2026-09-16).
+  // 「남의 글」이라는 갈래가 앱에서 없어졌다 — 이 앱에 남은 것은 다시 자기 것뿐이다.
 
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);

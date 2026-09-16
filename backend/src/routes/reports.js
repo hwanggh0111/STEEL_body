@@ -73,14 +73,7 @@ router.get('/pending', adminAuth, (req, res) => {
   const abuse = db.getAbuseLogs().filter(a => !a.reviewed && !a.dismissed && a.level !== 'mild').length;
   // 커뮤니티 신고 중 아직 안 본 것 (2026-09-14).
   //
-  // **글 단위로 센다** — 신고함 화면(`/community/admin/reports`)이 신고를 글로 묶어
-  // 카드 하나에 보여주고 「확인 안 함」도 글 수로 세기 때문이다(2026-09-15에 맞췄다).
-  // 예전에는 여기만 신고 건수로 세서, 한 글을 셋이 신고하면 머리에는 「3」이 뜨는데
-  // 열어 보면 카드가 하나였다 — 두 숫자가 늘 어긋났다.
-  const community = new Set(
-    db.getPostReports().filter(r => !r.reviewed).map(r => r.post_id)
-  ).size;
-  res.json({ open, abuse, community });
+  res.json({ open, abuse });
 });
 
 // 관리자 — 욕설·비하로 걸린 기록.
