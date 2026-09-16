@@ -29,6 +29,7 @@ cd backend  && npm run smoke:clean  # 쌓인 검사 계정 한 번에 지우기 
 | [docs/BUGS.md](docs/BUGS.md) | 버그 목록과 처리 내역 — 파칭코 · 사다리 · 미니게임 (2026-08-17, 지금은 없는 기능) |
 | [docs/BUGS-2026-08-24.md](docs/BUGS-2026-08-24.md) | 앱 전체 훑기 · 보안 점검 (2026-08-24) |
 | [docs/google-login-setup.md](docs/google-login-setup.md) | **구글 로그인 켜기** — 열쇠 만들기 · 구글 콘솔에 넣을 주소 · 막혔을 때 |
+| [docs/TODO-2026-09-17.md](docs/TODO-2026-09-17.md) | **내일 할 것** — 길찾기 마무리(옛 화면 둘 걷기) · 앱을 훑어 찾은 것 여덟 |
 | [docs/CHECK-2026-08-28.md](docs/CHECK-2026-08-28.md) | **확인 목록** — 8/28 에 바꾼 색이 어떻게 나와야 맞는지 |
 | [docs/CHECK-2026-08-27.md](docs/CHECK-2026-08-27.md) | **확인 목록** — 8/27 에 고친 것이 어떻게 나와야 맞는지 |
 | [docs/qa-report.md](docs/qa-report.md) | QA 검토 결과 |
