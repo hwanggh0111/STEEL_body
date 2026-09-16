@@ -129,8 +129,10 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
  * @param autoFocus   열자마자 입력칸에 커서를 둘지 (기록 화면에서 펼칠 때 쓴다)
  * @param compact     기록 화면 안에 들어갈 때. 머리 설명을 줄인다
  */
-export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false }) {
-  const [query, setQuery] = useState('');
+// `initialQuery` — 열자마자 찾아둔 채로 시작한다. 몸 지도에서 「등 운동 찾기」로
+// 들어오는 자리에 쓴다. 처음 값일 뿐이라 사람이 지우면 그대로 지워진다
+export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false, initialQuery = '' }) {
+  const [query, setQuery] = useState(initialQuery);
   const [external, setExternal] = useState(null);   // null=안 찾음, []=없음
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

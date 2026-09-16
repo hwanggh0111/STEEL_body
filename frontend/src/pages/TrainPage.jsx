@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
@@ -8,6 +8,8 @@ import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import { toast } from '../components/Toast';
+import { showFinish } from '../components/SessionFinish';
+import { buildSummary } from '../data/sessionSummary';
 import { confirmDialog } from '../components/ConfirmModal';
 import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
@@ -58,7 +60,10 @@ export default function TrainPage() {
   const [routinesFailed, setRoutinesFailed] = useState(false);
   // 진행표를 벗어나 직접 고른 운동. 루틴을 하다가 하나 끼워 넣을 때도 이 자리다
   const [picked, setPicked] = useState(null);
-  const [finding, setFinding] = useState(false);
+  // 몸 지도에서 「등 운동 찾기」로 들어오면 그 부위를 찾아둔 채로 연다.
+  // **한 번만 연다** — 뒤로 갔다 오면 state 가 남아 있어, 매번 열면 사람이 닫아도 다시 열린다
+  const enteredPart = useLocation().state?.part || '';
+  const [finding, setFinding] = useState(Boolean(enteredPart));
   const [weight, setWeight] = useState('');
   const [sets, setSets] = useState('');
   const [reps, setReps] = useState('');
@@ -181,7 +186,12 @@ export default function TrainPage() {
     if (savedExercise != null && item.name.trim() !== String(savedExercise).trim()) return;
     try {
       const res = await markItem(s.current, state);
-      if (res?.finished) toast(`${res.name} 완료! ${res.total}개를 마쳤어요`);
+      if (res?.finished) {
+        // **마친 자리에서 하루치를 한 장으로 보여준다** (2026-09-16).
+        // 여태 토스트 한 줄이 4초 지나가고 끝이었다 — 하루 중 제일 뿌듯한 순간이
+        // 제일 조용했다. 기록은 이 위에서 이미 저장됐으므로 스토어에서 바로 꺼낸다
+        showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
+      }
     } catch {
       /* 진행표만 못 넘겼다 */
     }
@@ -428,7 +438,7 @@ export default function TrainPage() {
             화면으로 나갔다 들어와야 했다 — 적으려던 것을 도중에 끊는 셈이었다 */}
         {finding && (
           <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-            <ExerciseFinder onPick={pick} pickLabel="이걸로" autoFocus compact />
+            <ExerciseFinder onPick={pick} pickLabel="이걸로" autoFocus compact initialQuery={enteredPart} />
           </div>
         )}
       </div>

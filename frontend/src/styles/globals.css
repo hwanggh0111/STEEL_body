@@ -411,6 +411,74 @@ body::before {
   }
 }
 
+/* ─── 명조 제목 ────────────────────────
+   로고는 Playfair 세리프 이탤릭인데 화면 안에는 세리프가 한 자도 없었다 —
+   로고만 혼자 놀고 있었다. 새 화면 셋(몸 지도 · 운동 끝 결산 · 1년 기록 벽)의
+   **첫 줄에만** 명조를 앉힌다. 본문까지 명조로 깔면 작은 글씨에서 획이 뭉개진다.
+   한글은 Nanum Myeongjo, 숫자·영문은 Playfair 가 받는다 (둘 다 굵기 400만 부른다). */
+.serif-display {
+  font-family: 'Nanum Myeongjo', 'Playfair Display', serif;
+  font-weight: 400;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+}
+
+/* ─── 달아오른 부위 (몸 지도) ──────────
+   **오늘 건드린 곳만** 숨을 쉰다. 여섯 군데가 다 깜빡이면 아무것도 안 깜빡이는
+   것과 같다. 크게 뛰지 않는다 — 0.86 과 1 사이다. */
+@keyframes heatBreathe {
+  0%, 100% { opacity: 0.86; }
+  50%      { opacity: 1; }
+}
+.heat-breathe { animation: heatBreathe 4.5s ease-in-out infinite; }
+
+/* ─── 운동 끝 결산 ─────────────────────
+   루틴을 마치면 화면을 통째로 덮는다. 토스트(9999)보다 **아래**에 둔다 —
+   결산 위에서도 「저장했어요」 같은 말은 보여야 한다. */
+.finish-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  overflow-y: auto;
+  background: radial-gradient(75% 45% at 50% 34%, #261e15 0%, #191410 55%, #12100c 100%);
+  animation: finishIn 0.5s ease;
+}
+@keyframes finishIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 위에서 드는 빛 한 줄기. 천천히 기울어서 화면이 굳어 보이지 않게 한다 */
+.finish-beam {
+  position: absolute;
+  left: 50%;
+  top: -140px;
+  width: 260px;
+  height: 520px;
+  margin-left: -130px;
+  background: radial-gradient(48% 48% at 50% 50%, rgba(238,183,125,0.13) 0%, rgba(238,183,125,0) 72%);
+  animation: beamLean 9s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes beamLean {
+  0%, 100% { opacity: 0.5; transform: translateX(-6px); }
+  50%      { opacity: 0.9; transform: translateX(6px); }
+}
+
+/* 금가루. **다섯 알뿐이다** — 뿌리면 금세 싸 보인다 */
+.finish-mote {
+  position: absolute;
+  bottom: 12%;
+  border-radius: 50%;
+  background: var(--accent-low);
+  animation: moteRise 11s linear infinite;
+}
+@keyframes moteRise {
+  0%   { transform: translateY(0)      scale(1);   opacity: 0; }
+  20%  { opacity: 0.55; }
+  100% { transform: translateY(-260px) scale(0.5); opacity: 0; }
+}
+
 /* ─── 움직임 줄이기 ───────────────────
    OS 에서 '동작 줄이기' 를 켠 사람에게는 애니메이션을 걷어낸다.
    멀미가 나서 켠 설정이라 지켜야 한다. */

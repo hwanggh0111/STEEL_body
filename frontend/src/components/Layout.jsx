@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
 import RestBar from './RestBar';
+import SessionFinish from './SessionFinish';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -329,6 +330,10 @@ export default function Layout() {
 
       {/* 휴식 띠 — 탭 바 바로 위. PC 는 아래 탭 바가 없으므로 바닥에 붙는다 */}
       <RestBar bottom={isPC ? 0 : 60} />
+
+      {/* 루틴을 마치면 뜨는 결산. 화면 둘(운동 · 옛 기록)이 같은 것을 부른다 —
+          껍데기에 한 벌만 걸어두고 `showFinish()` 로 부른다 (Toast 와 같은 결) */}
+      <SessionFinish />
 
       <TabBar />
 

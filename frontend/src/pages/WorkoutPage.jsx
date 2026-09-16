@@ -8,6 +8,8 @@ import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import RoutineRun from '../components/RoutineRun';
 import BestRecords from '../components/BestRecords';
 import { toast } from '../components/Toast';
+import { showFinish } from '../components/SessionFinish';
+import { buildSummary } from '../data/sessionSummary';
 import { dateKey } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { bestRecords, checkRecord } from '../data/personalRecord';
@@ -490,7 +492,9 @@ export default function WorkoutPage() {
     try {
       const res = await markItem(s.current, state);
       if (res?.finished) {
-        toast(`${res.name} 완료! ${res.total}개를 마쳤어요`);
+        // 운동 화면과 같은 결산을 띄운다 (2026-09-16). 두 화면이 각자 짜지 않도록
+        // 결산은 껍데기에 한 벌만 걸려 있고 여기서는 부르기만 한다
+        showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
       }
     } catch {
       /* 진행표만 못 넘겼다. 기록은 저장됐다 */
