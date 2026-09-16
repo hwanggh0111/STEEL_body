@@ -8,6 +8,8 @@ import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
 import WorkoutCard from '../components/WorkoutCard';
 import MonthCalendar from '../components/MonthCalendar';
+import YearWall from '../components/YearWall';
+import SegRow from '../components/SegRow';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -198,6 +200,13 @@ export default function HistoryPage() {
   const now = incoming ? new Date(`${incoming}T00:00:00`) : new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
 
+  // ── 갈래 셋 ── (2026-09-16, 6차)
+  //
+  // 이 화면은 한 두루마리였다 — 달력 · 목록 · 통계 · 1년 벽 · 체중 그래프가 한 줄로
+  // 이어져서, **벽을 보려면 그 달 목록을 다 지나가야** 했다. 갈래로 나누면 보고 싶은
+  // 것 하나만 본다. 「몸」 탭과 **같은 줄**(`SegRow`)을 쓴다 — 같은 자리는 같게 생겨야 한다.
+  const [seg, setSeg] = useState('calendar');
+
   // **`ym` 보다 아래에 둔다.** 이 효과는 보고 있는 달을 읽는데, `const` 는 선언 줄에
   // 닿기 전에는 못 읽는다(TDZ) — 위에 두면 화면을 여는 순간 터진다.
   // 9/2 에 이 화면을 흰 화면으로 만든 자리가 정확히 이것이고, `npm run screens` 가
@@ -276,11 +285,23 @@ export default function HistoryPage() {
 
   return (
     <div>
-      {/* ── 달력 ── */}
       <div className="section-title">
         <div className="accent-bar" />
-        운동 달력
+        기록
       </div>
+
+      <SegRow
+        items={[
+          { key: 'calendar', label: '달력' },
+          { key: 'wall', label: '기록의 벽' },
+          { key: 'stats', label: '통계' },
+        ]}
+        value={seg}
+        onChange={setSeg}
+        ariaLabel="기록 갈래"
+      />
+
+      {seg === 'calendar' && (<>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <button className="btn-secondary" onClick={() => goMonth(-1)} aria-label="지난 달">‹</button>
@@ -487,7 +508,10 @@ export default function HistoryPage() {
         })
       )}
 
-      {/* 통계와 체중 변화는 되짚는 재료지 본론이 아니다. 달력 아래로 내렸다.
+      </>)}
+
+      {seg === 'stats' && (<>
+      {/* 통계와 체중 변화는 되짚는 재료지 본론이 아니다. 달력에서 갈라 두었다.
           **셀 것이 없으면 안 그린다** — 처음 온 사람에게 0 을 셋 늘어놓는 화면이었다.
           0 은 아무것도 안 알려주면서 「내가 아무것도 안 했다」만 크게 적어둔다 */}
       {totalWorkouts > 0 && (
@@ -510,6 +534,39 @@ export default function HistoryPage() {
         </>
       )}
 
+      </>)}
+
+      {seg === 'wall' && (<>
+      {/* ── 1년 기록 벽 ── (2026-09-16)
+          달력은 한 달씩만 보여준다. 한 해를 통째로 보는 자리가 없어서 「올해 얼마나
+          했나」는 열두 번 넘겨봐야 짐작이 됐다. **통계 아래, 체중 그래프 위**에 둔다 —
+          되짚는 재료 중에 제일 멀리서 보는 것이라 맨 밑은 아니다.
+          기록이 없는 해는 스스로 안 그린다 */}
+      {totalWorkouts > 0 && (
+        <>
+          <div className="section-title">
+            <div className="accent-bar" />
+            기록의 벽
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            {/* 판을 누르면 **위의 달력이 그 달로 간다.** 고른 날짜는 푼다 —
+                다른 달로 가면서 지난 달 날짜를 붙들고 있으면 아래 목록이 어긋난다.
+                달력은 화면 위에 있으므로 거기까지 데려다준다 */}
+            <YearWall onPickMonth={(year, month) => {
+              setYm({ year, month });
+              setSelectedDate(null);
+              // 달력은 다른 갈래에 있다. 달을 골랐으면 **거기로 데려다준다** —
+              // 고르기만 하고 그대로 두면 아무 일도 안 일어난 것처럼 보인다
+              setSeg('calendar');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} />
+          </div>
+        </>
+      )}
+
+      </>)}
+
+      {seg === 'stats' && (<>
       {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
       {records.length > 1 && (
         <>
@@ -522,6 +579,7 @@ export default function HistoryPage() {
           </div>
         </>
       )}
+      </>)}
 
     </div>
   );

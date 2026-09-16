@@ -15,6 +15,9 @@ export const FEATURES = [
   { name: '루틴 따라가기', path: '/train', icon: 'clipboard', short: '고르고 · 이어서',        long: '짜둔 루틴을 그 자리에서 시작한다. 지금 할 운동이 진행표에 뜨고, 한 번 적으면 다음으로 넘어간다' },
   { name: '운동 검색',   path: '/train',   icon: 'search',    short: '이름 · 초성 · 부위로',   long: '앱 안의 운동 사전에서 바로 찾는다. 초성으로도, 부위 이름으로도 찾는다. 적던 것은 안 끊긴다' },
   { name: '기능성운동',  path: '/homeworkout', icon: 'homegym', short: '집에 있는 것으로',     long: '운동기구 없이 의자 · 수건 · 배낭으로 한다. 무엇이 필요한지를 고르기 전에 적어둔다' },
+  // 몸 지도는 「몸」이 아니라 제 화면이다 (2026-09-16). 오늘 할 일을 말하는 화면이라
+  // 「오늘」 탭 첫 카드에서 들어간다
+  { name: '몸 지도',     path: '/map',     icon: 'body',      short: '어디가 식었나',          long: '최근에 자극한 부위가 금빛으로 달아 있고 며칠 지나면 식는다. 오늘 어디를 할지 몸을 보고 정한다' },
   { name: '인바디',      path: '/body',    icon: 'chart',     short: '체중 · 체지방 · 골격근', long: '체중 하나만 적어도 그래프가 이어진다. 지난번과 견줘 무엇이 어느 쪽으로 갔는지 말해준다' },
   { name: '재는 도구',   path: '/body',    icon: 'ruler',     short: '사이즈 · 1RM · 체력',    long: '전신 사이즈 · 1RM · 체력 테스트 · 유연성까지 한곳에', state: { tab: 'measure' } },
   { name: '기록 달력',   path: '/history', icon: 'calendar',  short: '되짚고, 미리 정하기',    long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다. 그 날을 눌러 그 자리에서 적을 수도 있다' },

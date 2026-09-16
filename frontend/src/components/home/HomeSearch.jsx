@@ -44,10 +44,14 @@ function matchSearch(q, item) {
 // 이름을 잘못 적으면 조용히 빈 칸이 된다 — `npm run check` 가 이름을 맞춰본다
 export const SEARCH_ITEMS = [
   // ─── 메인 페이지 ───
-  { label: '홈', keywords: ['홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면'], path: '/home', icon: 'home' },
+  // 탭 이름이 「HOME」에서 「오늘」로 바뀌었다 (2026-09-16). 찾는 말은 둘 다 받는다 —
+  // 쓰던 사람은 아직 「홈」이라고 친다. 그림도 탭바와 같은 것을 쓴다(두 번 익히지 않게)
+  { label: '오늘', keywords: ['오늘', '홈', '메인', 'home', 'main', '대시보드', 'dashboard', '홈화면', '오늘뭐'], path: '/home', icon: 'body' },
   { label: '루틴 추천', keywords: ['루틴', '추천', 'routine', '분할', '운동루틴', '프로그램', '루', '추'], path: '/routine', icon: 'clipboard' },
   { label: '운동 기록', keywords: ['운동', '기록', 'workout', '세트', '횟수', '중량', 'record', '운', '기'], path: '/workout', icon: 'dumbbell' },
   { label: '인바디', keywords: ['인바디', 'inbody', '체중', '체지방', '골격근', '근육량', 'weight', 'body', '인', '체', 'BMI', 'bmi'], path: '/inbody', icon: 'chart' },
+  // 몸 지도 (2026-09-16). 「오늘 뭐하지」로 찾는 사람이 닿아야 하는 자리다
+  { label: '몸 지도', keywords: ['몸지도', '지도', '부위', '오늘뭐', '뭐하지', '회복', '쉰', '식은', 'map', '몸'], path: '/map', icon: 'body' },
   { label: '기능성운동', keywords: ['기능성', '기능성운동', '홈트', '홈트레이닝', 'home training', '맨몸', '집운동', '홈워크아웃', '트레이닝'], path: '/homeworkout', icon: 'homegym' },
   { label: '운동 검색', keywords: ['검색', 'search', '운동찾기', '부위', '근육', '찾기'], path: '/search', icon: 'search' },
   { label: '측정 시스템', keywords: ['측정', 'measure', '시스템'], path: '/measure', icon: 'ruler' },

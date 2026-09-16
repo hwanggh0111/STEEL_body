@@ -4,6 +4,7 @@ import { useInbodyStore } from '../store/inbodyStore';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildChange } from '../data/bodyChange';
+import SegRow from '../components/SegRow';
 
 // 몸 — 5차 리모델링(2026-09-04).
 //
@@ -23,6 +24,13 @@ const InbodyPage = lazy(() => import('./InbodyPage'));
 const MeasurePage = lazy(() => import('./MeasurePage'));
 const ComparePage = lazy(() => import('./ComparePage'));
 
+// **「몸」은 재고 견주는 자리다** (2026-09-16 에 다시 정했다).
+//
+// 몸 지도를 하루 이 탭의 첫 갈래로 뒀다가 곧 뺐다. 지도는 **몸 상태가 아니라 오늘
+// 할 일**을 말하는 화면이라, 「체지방이 어떻게 됐나」와 같은 방에 있을 것이 아니었다.
+// 지금은 「오늘」 탭 첫 카드에서 `/map` 으로 들어간다.
+//
+// 그래서 여기 남는 것은 셋 — 재고(인바디 · 재는 도구) 견준다(견주기).
 const TABS = [
   { key: 'inbody', label: '인바디' },
   { key: 'measure', label: '재는 도구' },
@@ -47,7 +55,9 @@ export default function BodyPage() {
   const fetchAll = useInbodyStore((s) => s.fetchAll);
 
   // 「재는 도구」로 바로 들어올 수 있다 (홈 · 검색에서). 안 정해주면 인바디부터
-  const [tab, setTab] = useState(location.state?.tab === 'measure' ? 'measure' : 'inbody');
+  const [tab, setTab] = useState(
+    TABS.some((t) => t.key === location.state?.tab) ? location.state.tab : 'inbody',
+  );
 
   useEffect(() => { fetchAll?.(); }, [fetchAll]);
 
@@ -109,17 +119,9 @@ export default function BodyPage() {
 
       {/* ── 갈래 셋 ──
           예전에는 인바디(탭바) · 측정(서랍) · 견주기(인바디 안쪽 탭)로 흩어져 있었다 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, marginBottom: 16 }}>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            className={`btn-secondary${tab === t.key ? ' active' : ''}`}
-            style={{ padding: '9px 0', fontSize: 13 }}
-            aria-pressed={tab === t.key}
-            onClick={() => setTab(t.key)}
-          >{t.label}</button>
-        ))}
-      </div>
+      {/* **칸을 똑같이 나누지 않는다.** 넷으로 나눴더니 「재는 도구」가 잘렸다 —
+          갈래 줄은 글자만큼 차지하고 넘치면 옆으로 민다 (`SegRow`) */}
+      <SegRow items={TABS} value={tab} onChange={setTab} ariaLabel="몸 갈래" />
 
       <Suspense fallback={<Panel />}>
         {tab === 'inbody' && <InbodyPage embedded />}

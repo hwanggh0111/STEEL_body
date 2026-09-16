@@ -17,10 +17,10 @@ const WorkoutPage = lazy(() => import('./pages/WorkoutPage'));
 const TrainPage = lazy(() => import('./pages/TrainPage'));
 // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
 const BodyPage = lazy(() => import('./pages/BodyPage'));
+// 몸 지도는 「몸」이 아니라 「오늘」에서 들어온다 (2026-09-16)
+const BodyMapPage = lazy(() => import('./pages/BodyMapPage'));
 // 앱 소개 — 고객센터에서 갈라 나왔다 (2026-09-04)
 const IntroPage = lazy(() => import('./pages/IntroPage'));
-// 커뮤니티 — 이 앱에서 **남에게 보이는 첫 글**이다 (2026-09-04)
-const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 // 홈페이지 — **앱 밖으로 나가 새 화면으로 열린다** (2026-09-04).
 // 껍데기(Layout) 밖에 건다 — 아래 탭바도 내 계정도 없는, 웹사이트 같은 자리다
@@ -66,7 +66,10 @@ export default function App() {
             <Routes>
               {/* 홈페이지 — **껍데기 밖이다.** 아래 탭바도 머리도 없이 열린다.
                   로그인은 그대로 필요하다 (남이 읽는 글이지만 아무나 읽지는 않는다) */}
-              <Route path="/site" element={<PrivateRoute><SiteHome /></PrivateRoute>} />
+              {/* 홈페이지 — **로그인 없이 열린다** (2026-09-16).
+                  앱을 아직 안 쓰는 사람에게 이 앱이 무엇인지 말하는 자리다.
+                  로그인해야 보이면 그 일을 아예 못 한다 */}
+              <Route path="/site" element={<SiteHome />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
@@ -76,6 +79,7 @@ export default function App() {
                 <Route path="workout" element={<WorkoutPage />} />
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
+                <Route path="map" element={<BodyMapPage />} />
                 <Route path="inbody" element={<InbodyPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="homeworkout" element={<HomeworkoutPage />} />

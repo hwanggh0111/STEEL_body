@@ -105,9 +105,6 @@ const SCREENS = [
   ['앱 소개', 'src/pages/IntroPage.jsx'],
   // 홈페이지 — 새 화면으로 열리는 자리 (2026-09-04)
   ['홈페이지', 'src/pages/SiteHome.jsx'],
-  // 커뮤니티 — 이 앱에서 남에게 보이는 첫 글 (2026-09-04)
-  ['커뮤니티', 'src/pages/CommunityPage.jsx'],
-  ['커뮤니티 · 글 하나', 'src/pages/community/PostView.jsx'],
   ['공지함', 'src/pages/support/NoticeArchive.jsx'],
   ['운동 알림', 'src/pages/RemindersPage.jsx'],
   ['로그인', 'src/pages/LoginPage.jsx'],
@@ -121,6 +118,13 @@ const SCREENS = [
   ['관리자 · 점검 스케줄', 'src/components/admin/MaintAdmin.jsx'],
   ['관리자 · 보안 검사', 'src/components/admin/SecurityScan.jsx'],
   ['관리자 · 못 찾은 말', 'src/components/admin/FaqGapAdmin.jsx'],
+  ['관리자 · 홈페이지 사진', 'src/components/admin/SitePhotoAdmin.jsx'],
+  // 새 화면 셋 (2026-09-16). 앞 둘은 탭 안쪽이라 화면 목록에는 안 잡히고,
+  // 결산은 루틴을 끝까지 돌려야 한 번 뜬다 — 눈으로 만나기 제일 어려운 자리들이다
+  ['몸 지도 (그림)', 'src/components/BodyMap.jsx'],
+  ['몸 지도', 'src/pages/BodyMapPage.jsx'],
+  ['1년 기록 벽', 'src/components/YearWall.jsx'],
+  ['운동 끝 결산', 'src/components/SessionFinish.jsx'],
   // 껍데기와 전면 화면.
   //
   // **`Layout` 이 빠져 있었다** (2026-09-04 에 넣었다). 이것은 화면이 아니라

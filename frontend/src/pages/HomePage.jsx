@@ -12,6 +12,9 @@ import TodayCard from '../components/home/TodayCard';
 import { dateKey } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
+import { buildHeat } from '../data/bodyHeat';
+import { buildSummary } from '../data/sessionSummary';
+import { showFinish } from '../components/SessionFinish';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
 import NavIcon from '../components/NavIcon';
 
@@ -101,6 +104,130 @@ function BodyLine({ records, onGo }) {
   );
 }
 
+// ── 오늘 할 곳 ── (2026-09-16, 6차)
+//
+// 「오늘」 탭의 **첫 카드**다. 앞서는 홈이 「오늘 기록이 없어요 · 루틴을 만드세요」
+// 까지만 말했다 — **무엇을 할지는 끝내 안 말해줬다.** 부위별 마지막 자극일은 운동
+// 기록에 이미 다 들어 있었는데 아무 데서도 안 꺼내 썬다.
+//
+// 계산은 몸 지도와 **같은 것 하나**(`data/bodyHeat.js`)를 본다 — 두 벌로 두면
+// 홈과 지도가 서로 다른 부위를 말하는 날이 온다.
+//
+// **몸을 작게 같이 그린다.** 글자만 있으면 다른 운동 기록 앱의 안내 문구와 구별이
+// 안 된다. 식은 자리를 눈으로 짚어주는 것이 이 앱이 하는 말이다.
+function TodayFocus({ workouts, today, onGo }) {
+  const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
+  // 기록이 아예 없으면 안 그린다 — 처음 온 사람에게 빈 몸을 보여줄 자리가 아니다
+  if (!heat.any || !heat.coldest) return null;
+
+  const cold = heat.coldest;
+  const hot = heat.list.filter((p) => p.level > 0).slice(0, 2);
+  // 달아오른 정도 → 칠. 지도와 같은 규칙이다 — 식은 곳은 칠하지 않는다
+  const paint = (lv) => (lv >= 3
+    ? { fill: '#eeb77d', o: 0.72 }
+    : lv === 2 ? { fill: '#d29a5f', o: 0.42 } : { fill: '#d29a5f', o: 0.18 });
+  const P = (part) => {
+    const lv = heat.byPart[part]?.level || 0;
+    return lv > 0 ? paint(lv) : null;
+  };
+
+  return (
+    <div
+      className="card clickable"
+      role="button"
+      tabIndex={0}
+      onClick={onGo}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
+      style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16 }}
+    >
+      {/* 작은 몸 — 지도와 같은 모양을 줄여 쓴다 */}
+      <svg width="58" height="138" viewBox="0 0 120 240" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <g fill="#1c1813" stroke="#2b251c" strokeWidth="0.9">
+          <circle cx="60" cy="17" r="11" /><rect x="54" y="27" width="12" height="8" rx="3" />
+          <ellipse cx="38" cy="45" rx="11.5" ry="9" /><ellipse cx="82" cy="45" rx="11.5" ry="9" />
+          <rect x="44" y="49" width="32" height="24" rx="6" /><rect x="49" y="73" width="22" height="36" rx="5" />
+          <ellipse cx="30" cy="70" rx="7.5" ry="15" /><ellipse cx="90" cy="70" rx="7.5" ry="15" />
+          <ellipse cx="48" cy="142" rx="12.5" ry="31" /><ellipse cx="72" cy="142" rx="12.5" ry="31" />
+          <ellipse cx="46" cy="195" rx="8.5" ry="21" /><ellipse cx="74" cy="195" rx="8.5" ry="21" />
+        </g>
+        {P('가슴') && <rect x="44" y="49" width="32" height="24" rx="6" fill={P('가슴').fill} fillOpacity={P('가슴').o} />}
+        {P('어깨') && (
+          <>
+            <ellipse cx="38" cy="45" rx="11.5" ry="9" fill={P('어깨').fill} fillOpacity={P('어깨').o} />
+            <ellipse cx="82" cy="45" rx="11.5" ry="9" fill={P('어깨').fill} fillOpacity={P('어깨').o} />
+          </>
+        )}
+        {P('팔') && (
+          <>
+            <ellipse cx="30" cy="70" rx="7.5" ry="15" fill={P('팔').fill} fillOpacity={P('팔').o} />
+            <ellipse cx="90" cy="70" rx="7.5" ry="15" fill={P('팔').fill} fillOpacity={P('팔').o} />
+          </>
+        )}
+        {P('코어') && <rect x="49" y="73" width="22" height="36" rx="5" fill={P('코어').fill} fillOpacity={P('코어').o} />}
+        {P('하체') && (
+          <>
+            <ellipse cx="48" cy="142" rx="12.5" ry="31" fill={P('하체').fill} fillOpacity={P('하체').o} />
+            <ellipse cx="72" cy="142" rx="12.5" ry="31" fill={P('하체').fill} fillOpacity={P('하체').o} />
+          </>
+        )}
+      </svg>
+
+      <div style={{ minWidth: 0, flexGrow: 1 }}>
+        <div className="serif-display" style={{ fontSize: 18, lineHeight: 1.5 }}>
+          {cold.days === null ? (
+            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>은(는) 아직<br />한 번도 안 했습니다</>
+          ) : cold.level === 0 ? (
+            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>이(가) {cold.days}일째<br />식어 있습니다</>
+          ) : (
+            <>몸 전체가 아직<br />고루 달아 있습니다</>
+          )}
+        </div>
+        {hot.length > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+            {hot.map((p) => `${p.part} ${p.days === 0 ? '오늘' : `${p.days}일 전`}`).join(' · ')}
+          </div>
+        )}
+        <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 10 }}>몸 지도 펼치기 ›</div>
+      </div>
+    </div>
+  );
+}
+
+// ── 오늘 결산 다시 보기 ── (2026-09-16, 6차)
+//
+// 결산은 루틴을 마치면 저절로 떴다가 닫으면 **그날 안에 다시 볼 길이 없었다.**
+// 길찾기 어디에도 자리가 없었기 때문이다. 오늘 적은 것이 있으면 여기서 다시 열다.
+// **루틴을 안 쓴 사람도 볼 수 있다** — 결산은 루틴의 상이 아니라 그날의 상이다.
+function FinishAgain({ workouts, today }) {
+  const summary = useMemo(() => {
+    const list = workouts?.[today] || [];
+    if (list.length === 0) return null;
+    return buildSummary(workouts, today);
+  }, [workouts, today]);
+  if (!summary) return null;
+
+  return (
+    <button
+      onClick={() => showFinish(summary)}
+      className="card clickable"
+      style={{
+        width: '100%', marginBottom: 20, textAlign: 'left', fontFamily: 'inherit',
+        borderColor: 'var(--accent)', background: 'var(--accent-dim)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      }}
+    >
+      <span style={{ minWidth: 0 }}>
+        <span className="label" style={{ marginBottom: 0, color: 'var(--accent)' }}>오늘 결산</span>
+        <span style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>
+          {summary.kg > 0 ? `${summary.kg.toLocaleString()}kg · ` : ''}{summary.sets}세트
+          {summary.record ? ' · 새 최고기록 1' : ''}
+        </span>
+      </span>
+      <span style={{ fontSize: 12, color: 'var(--accent)', flexShrink: 0 }}>다시 보기 ›</span>
+    </button>
+  );
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
@@ -181,6 +308,11 @@ export default function HomePage() {
         </div>
       ) : (
         <>
+          {/* **오늘 할 곳이 맨 앞이다.** 「오늘」 탭의 질문은 「오늘 뭐 하지」이고,
+              그 답은 하던 루틴보다도 먼저 와야 한다 — 루틴이 없는 사람에게도 답이 있어야 한다 */}
+          <SectionTitle id="home-focus">오늘 할 곳</SectionTitle>
+          <TodayFocus workouts={workouts} today={today} onGo={() => navigate('/map')} />
+
           <SectionTitle id="home-today">오늘</SectionTitle>
           <TodayCard
             todayPlans={todayPlans}
@@ -197,6 +329,9 @@ export default function HomePage() {
             records={records}
             onGo={(stale) => navigate('/inbody', stale ? { state: { write: true } } : undefined)}
           />
+
+          {/* 방금 끝난 운동의 결산. 닫았어도 그날 안에는 여기서 다시 본다 */}
+          <FinishAgain workouts={workouts} today={today} />
 
           <SectionTitle id="home-week">이번 주 운동</SectionTitle>
           <div className="card" style={{ marginBottom: 20 }}>
@@ -234,10 +369,10 @@ export default function HomePage() {
 
           <WeeklyReport workouts={workouts} />
 
-          {/* ── 홈페이지로 ── (2026-09-04)
-              **새 화면으로 연다.** 앱 안에 탭으로 끼워 넣었다가 걷었다 —
-              운동을 적다가 커뮤니티를 보러 갔다 오면 **적던 자리가 그대로 있어야**
-              한다. `rel` 은 새 창이 이 화면을 건드리지 못하게 막는다 */}
+          {/* ── 홈페이지로 ── (2026-09-16 에 다시 썼다)
+              **새 화면으로 연다.** 앱 안에 탭으로 끼워 넣었다가 걷었다 — 운동을 적다가
+              읽을 것을 보러 갔다 오면 **적던 자리가 그대로 있어야** 한다.
+              `rel` 은 새 창이 이 화면을 건드리지 못하게 막는다 */}
           <a
             href="/site"
             target="_blank"
@@ -249,11 +384,11 @@ export default function HomePage() {
               boxShadow: 'var(--card-edge)', borderRadius: 'var(--radius)',
             }}
           >
-            <NavIcon name="chat" size={20} />
+            <NavIcon name="body" size={20} />
             <span style={{ flexGrow: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>커뮤니티</span>
+              <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>블랙아이언 소개</span>
               <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                같이 하는 사람들이 쓰는 자리 · 새 화면으로 열려요
+                이 앱이 무엇을 하는지 · 새 화면으로 열려요
               </span>
             </span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
