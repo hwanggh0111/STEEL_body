@@ -13,6 +13,11 @@
 # 폰: 같은 결과의 APK 를 메일/드라이브로 받아 설치. 터널이라 와이파이·데이터 둘 다 열린다.
 # **테스트가 끝나면 이 스크립트가 띄운 창들(백엔드·프론트·cloudflared)을 닫으면 다 내려간다.**
 
+# `-Check` 를 붙이면 **아무것도 안 띄우고 준비물만 확인한다** (2026-09-16 에 더했다).
+#   powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1 -Check
+# 아침에 이것부터 돌려보면, 서버를 띄운 뒤에야 「자바가 없다」를 아는 일이 없다.
+param([switch]$Check)
+
 $ErrorActionPreference = 'Stop'
 $root     = Split-Path $PSScriptRoot -Parent
 $backend  = Join-Path $root 'backend'
@@ -29,6 +34,36 @@ if (-not $cf) {
   $cf = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages') -Recurse -Filter 'cloudflared.exe' -ErrorAction SilentlyContinue |
         Select-Object -First 1 -ExpandProperty FullName
 }
+if ($Check) {
+  # **아무것도 안 띄운다.** 준비물이 다 있는지만 보고 끝낸다
+  $apk  = Join-Path $androidD 'app\build\outputs\apk\debug\app-debug.apk'
+  $mark = { param($ok) if ($ok) { 'OK  ' } else { '없음' } }
+
+  Write-Host '── 폰 테스트 준비물 ──' -ForegroundColor Cyan
+  Write-Host "$(& $mark (Test-Path $env:JAVA_HOME))  자바 (Android Studio jbr)"
+  Write-Host "$(& $mark (Test-Path $env:ANDROID_HOME))  안드로이드 SDK"
+  Write-Host "$(& $mark ([bool]$cf))  cloudflared   $(if ($cf) { $cf } else { 'winget install Cloudflare.cloudflared' })"
+  Write-Host "$(& $mark (Test-Path (Join-Path $backend 'node_modules')))  백엔드 node_modules"
+  Write-Host "$(& $mark (Test-Path (Join-Path $frontend 'node_modules')))  프론트 node_modules"
+  Write-Host "$(& $mark (Test-Path $apk))  지난 APK       $(if (Test-Path $apk) { '(어차피 새로 만듭니다)' })"
+
+  # 지금 떠 있는 것 — 이미 떠 있으면 스크립트가 그대로 쓴다
+  $b = [bool](Get-NetTCPConnection -State Listen -LocalPort 4000 -ErrorAction SilentlyContinue)
+  $f = [bool](Get-NetTCPConnection -State Listen -LocalPort 5173 -ErrorAction SilentlyContinue)
+  Write-Host ''
+  Write-Host "백엔드(4000) $(if ($b) { '떠 있음' } else { '내려가 있음' }) · 프론트(5173) $(if ($f) { '떠 있음' } else { '내려가 있음' })"
+
+  # **오늘 만진 것 때문에 APK 를 꼭 새로 만들어야 한다** — 매니페스트가 바뀌었다
+  Write-Host ''
+  Write-Host '기억할 것' -ForegroundColor Yellow
+  Write-Host '  · 9/16 에 AndroidManifest 에 CAMERA 권한을 넣었다 → APK 를 반드시 새로 만들어야 겹쳐 찍기가 된다'
+  Write-Host '  · 카메라·마이크는 https 에서만 열린다 → 터널 주소(https)로 들어가야 한다. LAN 주소(http)로는 안 된다'
+  Write-Host '  · 확인 목록: docs/PHONE-TEST-2026-09-17.md'
+  Write-Host ''
+  Write-Host '준비되면 -Check 없이 다시 실행하세요.' -ForegroundColor Cyan
+  exit 0
+}
+
 if (-not $cf) { Write-Error 'cloudflared 를 못 찾았어요. winget install Cloudflare.cloudflared 로 설치하세요.'; exit 1 }
 
 function Test-Port($port) {
