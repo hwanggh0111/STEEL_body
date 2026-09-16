@@ -122,6 +122,7 @@ const SCREENS = [
   // 새 화면 셋 (2026-09-16). 앞 둘은 탭 안쪽이라 화면 목록에는 안 잡히고,
   // 결산은 루틴을 끝까지 돌려야 한 번 뜬다 — 눈으로 만나기 제일 어려운 자리들이다
   ['겹쳐 찍기 (카메라)', 'src/components/OverlayCamera.jsx'],
+  ['말로 적기', 'src/components/VoiceSet.jsx'],
   ['몸 지도 (그림)', 'src/components/BodyMap.jsx'],
   ['몸 지도', 'src/pages/BodyMapPage.jsx'],
   ['1년 기록 벽', 'src/components/YearWall.jsx'],

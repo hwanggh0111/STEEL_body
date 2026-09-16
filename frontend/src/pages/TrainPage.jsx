@@ -6,6 +6,7 @@ import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
 import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
+import VoiceSet from '../components/VoiceSet';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import { toast } from '../components/Toast';
 import { showFinish } from '../components/SessionFinish';
@@ -403,6 +404,20 @@ export default function TrainPage() {
                 <input id="tr-r" className="input" inputMode="numeric" value={reps}
                   onChange={(e) => setReps(e.target.value)} />
               </div>
+            </div>
+
+            {/* 목소리로 적기 (2026-09-16). **폼을 채우는 데까지**만 한다 —
+                헬스장은 시끄럽고 알아듣기는 틀린다. 곧바로 저장하면 틀린 기록이
+                조용히 쌓이고, 그러면 이 앱의 모든 숫자를 못 믿게 된다.
+                알아듣기가 안 되는 브라우저에서는 단추가 아예 안 나온다 */}
+            <div style={{ marginBottom: 10 }}>
+              <VoiceSet onFill={(v) => {
+                // 안 들은 칸은 그대로 둔다. 비우면 지난 기록으로 채워둔 값이 날아간다
+                if (v.weight !== null) setWeight(v.weight === '맨몸' ? '' : String(v.weight));
+                if (v.reps !== null) setReps(String(v.reps));
+                if (v.sets !== null) setSets(String(v.sets));
+                setError('');
+              }} />
             </div>
 
             {error && (

@@ -24,6 +24,7 @@ const wall = bundle('src/data/yearWall.js', '.h2.cjs');
 const sum = bundle('src/data/sessionSummary.js', '.h3.cjs');
 const pace = bundle('src/data/pace.js', '.h4.cjs');
 const shot = bundle('src/data/overlayShot.js', '.h5.cjs');
+const voice = bundle('src/data/voiceLog.js', '.h6.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -245,6 +246,52 @@ ok('긴 변이 1280', shot.shotSize(), { width: 960, height: 1280 });
 ok('너무 옅게는 못 내린다', shot.clampOpacity(0), shot.OPACITY_MIN);
 ok('너무 진하게는 못 올린다', shot.clampOpacity(1), shot.OPACITY_MAX);
 ok('이상한 값이 와도 기본으로', shot.clampOpacity('어쩌고'), shot.OPACITY_DEFAULT);
+
+// ───────────────────────────────────────────
+console.log('\n── 목소리로 적기 ──');
+
+const say = (t) => {
+  const p = voice.parseSpoken(t);
+  return [p.weight, p.reps, p.sets];
+};
+
+// 브라우저는 대개 숫자를 아라비아 숫자로 돌려준다
+ok('「80킬로 8개」', say('80킬로 8개'), ['80', 8, null]);
+ok('「80 8개 3세트」', say('80 8개 3세트'), ['80', 8, 3]);
+// 한글로 돌려줄 때도 있다
+ok('「팔십킬로 여덟개」', say('팔십킬로 여덟개'), ['80', 8, null]);
+ok('「백이십킬로 다섯개 세세트」', say('백이십킬로 다섯개 세세트'), ['120', 5, 3]);
+ok('「스물다섯개」', say('스물다섯개'), [null, 25, null]);
+
+// **단위 없이 수만 둘이면 앞이 무게, 뒤가 횟수다.** 운동 중에 제일 많이 하는 말이고
+// 세트는 대개 안 바뀐다
+ok('「팔십 여덟」', say('팔십 여덟'), ['80', 8, null]);
+ok('「60 12」', say('60 12'), ['60', 12, null]);
+// **수가 하나뿐이면 횟수다.** 무게만 말하는 일은 드물고, 말할 때는 「킬로」를 붙인다
+ok('「열두개」', say('열두개'), [null, 12, null]);
+ok('「10」', say('10'), [null, 10, null]);
+
+// 맨몸이라고 말한 것은 무게를 비우지 않고 「맨몸」으로 적는다 —
+// 안 들은 것과 맨몸이라고 말한 것은 다르다
+ok('「맨몸 스무개」', say('맨몸 스무개'), ['맨몸', 20, null]);
+
+// **지어내지 않는다.** 못 알아들으면 그렇다고 답한다
+ok('못 알아들으면 ok 가 false', voice.parseSpoken('어쩌고 저쩌고').ok, false);
+ok('빈 말도 안 터진다', voice.parseSpoken('').ok, false);
+ok('들은 말은 그대로 들고 있다', voice.parseSpoken('어쩌고').raw, '어쩌고');
+// 안 들은 세트를 1 로 채우지 않는다 — 채우면 그것도 지어내는 것이다
+ok('세트를 안 말하면 비워둔다', voice.parseSpoken('80킬로 8개').sets, null);
+
+// 되읽어주는 줄 — 화면이 「이렇게 들었어요」로 보여주는 그것
+ok('되읽어준다', voice.spokenLabel(voice.parseSpoken('80킬로 8개 3세트')), '80kg · 8회 · 3세트');
+ok('  못 알아들으면 빈 줄', voice.spokenLabel(voice.parseSpoken('어쩌고')), '');
+
+// 한글 수 읽기 자체
+ok('「팔십」 = 80', voice.koreanNumber('팔십'), 80);
+ok('「백이십」 = 120', voice.koreanNumber('백이십'), 120);
+ok('「스물다섯」 = 25', voice.koreanNumber('스물다섯'), 25);
+ok('「여덟」 = 8', voice.koreanNumber('여덟'), 8);
+ok('수가 아니면 null', voice.koreanNumber('바벨'), null);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
