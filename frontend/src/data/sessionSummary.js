@@ -2,6 +2,7 @@ import { volumeOf, buildWeekly } from './weeklyReport';
 import { bodyPartOf } from './bodyPart';
 import { bestRecords, checkRecord } from './personalRecord';
 import { dateKey } from './dateKey';
+import { buildPace } from './pace';
 
 // 운동 끝 결산.
 //
@@ -38,6 +39,7 @@ function shiftDate(key, delta) {
  *   deltaKg                  지난주 같은 요일보다 얼마나 더 들었나 (그날 기록이 없으면 null)
  *   weeks                    몇 주 이어서 하고 있나
  *   record                   오늘 세운 최고기록 하나 (없으면 null)
+ *   pace                     오늘이 늘어졌나 (`data/pace.js`). 못 재는 날은 usable:false
  */
 export function buildSummary(workouts, today, routineName) {
   const list = (workouts || {})[today] || [];
@@ -91,5 +93,8 @@ export function buildSummary(workouts, today, routineName) {
     deltaKg,
     weeks: weekly?.streak || 0,
     record,
+    // **오늘 12,480kg 을 한 시간에 들었는지 두 시간에 들었는지**는 여태 아무 데도
+    // 없었다. 기록을 남긴 시각으로 잰다 — 못 재는 날은 스스로 usable:false 로 답한다
+    pace: buildPace(workouts, today),
   };
 }

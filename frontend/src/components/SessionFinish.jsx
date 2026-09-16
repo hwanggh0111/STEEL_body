@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { shortTime, longTime } from '../data/pace';
 
 // 운동 끝 결산.
 //
@@ -95,7 +96,7 @@ export default function SessionFinish() {
 
   if (!summary) return null;
 
-  const { sets, count, weeks, deltaKg, record, routineName, bodyweightSets, items, parts } = summary;
+  const { sets, count, weeks, deltaKg, record, routineName, bodyweightSets, items, parts, pace } = summary;
   // 맨몸만 한 날은 총 무게가 0 이다. 0kg 을 크게 띄우면 열심히 한 사람에게
   // 아무것도 아니라고 말하는 셈이라, 그때는 세트 수를 대신 세운다
   const weighted = kg > 0;
@@ -219,6 +220,33 @@ export default function SessionFinish() {
           {weeks > 0 && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
           {weeks > 0 && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{weeks}주 연속</span>}
         </div>
+
+        {/* ── 늘어졌나 ── (2026-09-16)
+            결산이 든 무게는 말해줬지만 **그 무게를 얼마 만에 들었는지**는 아무 데도
+            없었다. 헬스장에서 보낸 시간의 절반이 폰 보는 시간이라는 것은 스스로 못 본다.
+
+            **좋다 나쁘다를 매기지 않는다.** 길게 쉬는 날이 있다 — 고중량 하는 날이
+            그렇고 아픈 날도 그렇다. 「평소보다 길다」까지가 우리가 아는 전부다.
+
+            못 재는 날(기록이 둘 이하 · 한꺼번에 적은 날)은 **아무 말도 안 한다** */}
+        {pace?.usable && (
+          <div style={{ marginTop: 'clamp(22px, 5vh, 34px)', textAlign: 'center' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              헬스장에 {longTime(pace.spanMs)} · 기록 사이 보통 {shortTime(pace.medianMs)}
+            </div>
+            {pace.deltaMs !== null && Math.abs(pace.deltaMs) >= 30000 && (
+              <div className="serif-display" style={{
+                fontSize: 14, marginTop: 8,
+                color: pace.deltaMs > 0 ? 'var(--warning)' : 'var(--success)',
+              }}>
+                평소보다 {shortTime(Math.abs(pace.deltaMs))} {pace.deltaMs > 0 ? '길게 쉬었어요' : '짧게 쉬었어요'}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+              기록을 남긴 시각으로 쟀어요{pace.longestMs >= 15 * 60000 ? ` · 제일 길게 쉰 것 ${shortTime(pace.longestMs)}` : ''}
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: 'auto', paddingTop: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <button

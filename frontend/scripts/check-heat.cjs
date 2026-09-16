@@ -22,6 +22,7 @@ const bundle = (entry, out) => {
 const heat = bundle('src/data/bodyHeat.js', '.h1.cjs');
 const wall = bundle('src/data/yearWall.js', '.h2.cjs');
 const sum = bundle('src/data/sessionSummary.js', '.h3.cjs');
+const pace = bundle('src/data/pace.js', '.h4.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -154,6 +155,63 @@ const only = sum.buildSummary({ '2026-09-16': [{ exercise: '푸시업', weight: 
 ok('맨몸만 한 날은 무게가 0', only.kg, 0);
 ok('  그래도 세트는 남는다', only.sets, 4);
 ok('기록이 없는 날도 안 터진다', sum.buildSummary({}, '2026-09-16').count, 0);
+
+// ───────────────────────────────────────────
+console.log('\n── 늘어졌나 (기록을 남긴 시각으로) ──');
+
+// 시각을 손으로 만든다. 분 단위로 떨어뜨려 읽기 쉽게
+const T0 = Date.parse('2026-09-16T19:00:00+09:00');
+const rec = (min) => ({ exercise: 'x', weight: '60', sets: 3, reps: 10, created_at: new Date(T0 + min * 60000).toISOString() });
+
+// 19:00 · 19:05 · 19:12 · 19:40  →  사이 5분 · 7분 · 28분
+const day = [rec(0), rec(5), rec(12), rec(40)];
+const p1 = pace.paceOf(day);
+ok('잴 수 있는 날이다', p1.usable, true);
+ok('첫 기록에서 마지막까지', pace.longTime(p1.spanMs), '40분');
+// **중앙값으로 본다.** 평균(13분 20초)은 한 번 자리를 비운 28분에 통째로 끌려간다
+ok('보통 이만큼 쉰다 (중앙값)', pace.shortTime(p1.medianMs), '7분');
+ok('  평균이었다면 끌려갔을 값', Math.round((5 + 7 + 28) / 3), 13);
+ok('제일 길게 쉰 것', pace.shortTime(p1.longestMs), '28분');
+
+// **못 재는 날에는 아무 말도 안 한다.**
+ok('기록이 둘이면 안 잰다', pace.paceOf([rec(0), rec(20)]).usable, false);
+ok('  왜 안 재는지 말한다', pace.paceOf([rec(0), rec(20)]).why, 'few');
+// 다 끝내고 한꺼번에 적은 날. 「10분 만에 운동을 끝냈다」는 명백한 거짓말이다
+ok('한꺼번에 적은 날은 안 잰다', pace.paceOf([rec(0), rec(1), rec(2), rec(3)]).usable, false);
+ok('  그 까닭도 다르다', pace.paceOf([rec(0), rec(1), rec(2), rec(3)]).why, 'batched');
+ok('시각이 없는 옛 기록도 안 터진다', pace.paceOf([{ exercise: 'x' }, { exercise: 'y' }]).usable, false);
+
+// ── 평소 ──
+//
+// **오늘은 빼고** 지난 4주에서 센다. 오늘을 넣으면 늘어진 날일수록 「평소와 비슷하다」가 된다
+const PW = {};
+const dayAt = (d, mins) => {
+  const base = Date.parse(`2026-09-${String(d).padStart(2, '0')}T19:00:00+09:00`);
+  return mins.map((m) => ({ exercise: 'x', weight: '60', sets: 3, reps: 10, created_at: new Date(base + m * 60000).toISOString() }));
+};
+// 평소는 사이 2분씩 — 9/10 · 9/11 · 9/12
+PW['2026-09-10'] = dayAt(10, [0, 2, 4, 12]);
+PW['2026-09-11'] = dayAt(11, [0, 2, 4, 12]);
+PW['2026-09-12'] = dayAt(12, [0, 2, 4, 12]);
+// 오늘은 사이 7분씩 — 늘어진 날
+PW['2026-09-16'] = dayAt(16, [0, 7, 14, 21]);
+
+const base = pace.baselineOf(PW, '2026-09-16');
+ok('평소를 센다', pace.shortTime(base.medianMs), '2분');
+ok('  센 날 수', base.days, 3);
+
+const built = pace.buildPace(PW, '2026-09-16');
+ok('오늘은 더 길다', pace.shortTime(built.medianMs), '7분');
+ok('  평소보다 얼마나', pace.shortTime(built.deltaMs), '5분');
+
+// 잴 수 있는 날이 셋 미만이면 **평소가 없다고 답한다** —
+// 이틀치로 「평소」를 말하면 그날 하루가 곧 기준이 된다
+const thin = { '2026-09-15': dayAt(15, [0, 2, 4, 12]), '2026-09-16': dayAt(16, [0, 7, 14, 21]) };
+ok('이틀치로는 평소를 안 만든다', pace.baselineOf(thin, '2026-09-16'), null);
+ok('  그때는 견주지 않는다', pace.buildPace(thin, '2026-09-16').deltaMs, null);
+
+// 결산이 이 값을 같이 들고 다닌다
+ok('결산에 속도가 실린다', sum.buildSummary(PW, '2026-09-16').pace.usable, true);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
