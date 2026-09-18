@@ -114,9 +114,10 @@ function oauthErrorText(code) {
     if (oauthSuccess === 'success' && nick) {
       const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, 30);
       const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
-      saveLS('nickname', sanitizedNick);
-      if (sanitizedEmail) saveLS('ironlog_email', sanitizedEmail);
-      useAuthStore.setState({ nickname: sanitizedNick, isLoggedIn: true });
+      // **들어온 뒤 처리는 스토어 한 곳에서** (2026-09-18). 여기서 직접 `setState` 를
+      // 하고 있었더니, 「로그인하면 잠금을 놓는다」가 이 길만 비껴갔다 —
+      // 구글로 들어온 사람에게 네 자리를 또 물었다
+      useAuthStore.getState().socialLoggedIn({ nickname: sanitizedNick, email: sanitizedEmail });
       // 구글 로그인 후 닉네임 설정 단계 — 이전 로그인 실패 메시지 정리
       setError('');
       setNickError('');
@@ -357,8 +358,10 @@ function oauthErrorText(code) {
             </span>
           </label>
 
+          {/* `role="alert"` — 읽어주는 도구를 쓰는 사람에게는 **글자가 바뀐 것을
+              알려주지 않으면 아무 일도 안 일어난 것**이다 (2026-09-18) */}
           {error && (
-            <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>
+            <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>
           )}
 
           <button className="btn-primary" type="submit" disabled={loading || !email || !password} style={{ marginTop: 8 }}>

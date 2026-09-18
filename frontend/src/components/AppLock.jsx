@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLockStore } from '../store/lockStore';
 import { useAuthStore } from '../store/authStore';
 import { LogoMark } from './Logo';
@@ -41,6 +42,14 @@ export default function AppLock() {
   const [left, setLeft] = useState(0);
   const busy = useRef(false);
   const boxRef = useRef(null);
+
+  // ── 안 덮는 자리 ── (2026-09-18)
+  //
+  // 로그인 · 가입 · 홈페이지는 **로그인 없이 보는 자리**다. 쿠키가 남아 있으면
+  // `isLoggedIn` 이 참이라, 홈페이지를 보러 온 사람에게 네 자리를 묻고 있었다 —
+  // 거기에는 가릴 것이 없다. 로그인 화면을 덮으면 잊었을 때 나갈 길도 막힌다.
+  const path = useLocation().pathname;
+  const publicPlace = /^\/(login|register|site)(\/|$)/.test(path);
 
   // 화면을 벗어났다 돌아오는 것을 본다. **`pagehide` 도 같이 듣는다** —
   // 폰에서는 앱을 밀어 없앨 때 `visibilitychange` 가 안 오는 경우가 있다
@@ -114,7 +123,7 @@ export default function AppLock() {
   // 잊었을 때 푸는 길이 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고
   // 그 위에서는 아무것도 할 수 없다. 잠금이 가리려는 것은 **들어와 있는 사람의
   // 기록**이고, 로그인 전에는 가릴 것이 없다
-  if (!enabled || !locked || !loggedIn) return null;
+  if (!enabled || !locked || !loggedIn || publicPlace) return null;
 
   async function push(k) {
     if (busy.current || left > 0) return;

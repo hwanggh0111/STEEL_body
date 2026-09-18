@@ -70,6 +70,28 @@ export const useAuthStore = create((set) => ({
     return { restored: !!data.restored };
   },
 
+  /**
+   * 소셜로 들어왔을 때 (2026-09-18 에 여기로 모았다).
+   *
+   * 여태 **로그인 화면이 직접 `setState` 를 했다.** 그래서 어제 붙인 「로그인하면
+   * 잠금을 놓는다」가 **그 길만 비껴갔다** — 구글로 들어오면 비밀번호보다 센 것을
+   * 통과한 사람에게 네 자리를 또 물었다.
+   *
+   * 들어온 뒤에 해야 하는 일을 한 곳에 둔다: 담아두기 · 상태 · 잠금 놓기.
+   * 세 길(이메일 · 가입 · 소셜)이 이제 같은 자리를 지난다.
+   */
+  socialLoggedIn: ({ nickname, email }) => {
+    if (nickname) {
+      saveLS('nickname', nickname);
+      // **다음에 올 때 인사할 이름도 담는다.** 이메일 로그인은 담는데 소셜만 안 담아서,
+      // 소셜로 쓰는 사람은 늘 「처음 온 사람」 차림의 화면을 봤다
+      saveLS('saved_nickname', nickname);
+    }
+    if (email) saveLS('ironlog_email', email);
+    set({ nickname: nickname || null, isLoggedIn: true });
+    useLockStore.getState().release();
+  },
+
   // 가입 직후 자동 로그인 (백엔드가 토큰/쿠키 발급)
   register: async (email, password, nickname, username) => {
     const { data } = await client.post('/auth/register', { email, password, nickname, username });

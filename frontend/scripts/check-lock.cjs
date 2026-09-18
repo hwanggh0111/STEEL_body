@@ -86,10 +86,15 @@ const overlay = read('src/components/AppLock.jsx');
 const app = read('src/App.jsx');
 // 반쯤 가리면 그 틈으로 오늘 한 운동과 몸 사진 미리보기가 보인다
 ok('통째로 덮는다', /position: 'fixed', inset: 0/.test(overlay), true);
-ok('  껍데기 밖(라우터 밖)에 건다', /<AppLock \/>/.test(app), true);
+ok('  화면 하나가 아니라 앱을 덮는다 (Routes 밖)', /<AppLock \/>/.test(app), true);
+// **라우터 안에는 둔다** — 지금 어느 자리인지를 알아야 한다.
+// 로그인 · 가입 · 홈페이지는 로그인 없이 보는 자리라 안 덮는다 (쿠키가 남아 있으면
+// `isLoggedIn` 이 참이어서, 홈페이지를 보러 온 사람에게 네 자리를 묻고 있었다)
+ok('  공개 화면은 안 덮는다 (/login · /register · /site)',
+  /publicPlace/.test(overlay) && /\(login\|register\|site\)/.test(overlay), true);
 // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 — 잊었을 때 푸는 길이
 // 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고 그 위에서는 아무것도 못 한다
-ok('  로그인 전에는 안 덮는다', /!loggedIn\) return null;/.test(overlay), true);
+ok('  로그인 전에는 안 덮는다', /!loggedIn \|\| publicPlace\) return null;/.test(overlay), true);
 ok('  잊어서 로그아웃할 때 잠긴 것을 놓는다', /release\(\);/.test(overlay), true);
 // 자판을 직접 그린다 — 폰마다 다른 자판에는 붙여넣기 · 자동완성 · 「완료」가 같이 온다
 ok('숫자 자판을 직접 그린다', /const KEYS = \[/.test(overlay), true);
@@ -111,8 +116,15 @@ ok('  풀면 되돌린다 (안 하면 영영 못 내려간다)', /document\.body
 // 방금 비밀번호를 댄 사람에게 네 자리를 또 묻지 않는다 — 로그인은 더 센 자물쇠다
 {
   const auth = read('src/store/authStore.js');
-  ok('로그인·가입 뒤에는 잠금을 놓는다',
-    (auth.match(/useLockStore\.getState\(\)\.release\(\)/g) || []).length, 2);
+  // **들어오는 길 셋이 한 곳을 지난다** — 이메일 · 가입 · 소셜.
+  // 소셜만 화면이 직접 `setState` 하고 있었더니 이 규칙이 그 길만 비껴갔다
+  // (구글로 들어온 사람에게 네 자리를 또 물었다). 2026-09-18 에 스토어로 모았다
+  ok('들어오는 길 셋이 잠금을 놓는다',
+    (auth.match(/useLockStore\.getState\(\)\.release\(\)/g) || []).length, 3);
+  ok('  소셜도 스토어를 지난다', /socialLoggedIn: \(\{ nickname, email \}\)/.test(auth), true);
+  ok('  화면이 직접 로그인 상태를 만들지 않는다',
+    /useAuthStore\.setState\(\{ nickname: sanitizedNick, isLoggedIn: true \}\)/
+      .test(read('src/pages/LoginPage.jsx')), false);
   // 앱을 다시 띄운 것(쿠키로 이어진 것)은 로그인이 아니다 — 그때는 잠근 채로 둔다
   ok('  앱을 다시 띄운 것은 로그인으로 안 본다',
     /checkAuth[\s\S]{0,400}release\(\)/.test(auth), false);

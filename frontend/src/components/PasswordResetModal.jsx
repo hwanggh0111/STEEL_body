@@ -87,6 +87,11 @@ export default function PasswordResetModal({ onClose }) {
           <form onSubmit={sendCode}>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
               가입 시 사용한 이메일을 입력해주세요. 인증번호를 보내드려요.
+              {/* **로그인 칸은 아이디도 받는데 여기는 이메일만이다.** 그걸 안 적으면
+                  아이디를 치고 「그런 계정 없다」는 말을 듣는다 (2026-09-18) */}
+              <br /><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                아이디로는 찾을 수 없어요 — 메일 주소로만 보낼 수 있습니다.
+              </span>
             </p>
             <label className="label" htmlFor="reset-email">이메일</label>
             <input
@@ -99,7 +104,7 @@ export default function PasswordResetModal({ onClose }) {
               onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
               style={{ marginBottom: 12 }}
             />
-            {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
+            {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
             <button className="btn-primary" type="submit" disabled={loading}>
               {loading ? '발송 중...' : '인증번호 받기'}
             </button>
@@ -158,7 +163,7 @@ export default function PasswordResetModal({ onClose }) {
               style={{ marginBottom: 12 }}
             />
 
-            {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
+            {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
