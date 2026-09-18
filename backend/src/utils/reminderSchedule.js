@@ -91,12 +91,34 @@ function decide(reminder, nowMs, lastWorkoutDate) {
   return no('not-a-day');
 }
 
-/** 알림에 실을 말. */
-function messageOf(reason, gap) {
+/**
+ * 알림에 실을 말.
+ *
+ * ── 식은 부위 ── (2026-09-17)
+ *
+ * 여태 이 앱이 보내던 말은 **기록을 안 봐도 보낼 수 있는 말**이었다 —
+ * 「오늘 운동하는 날이에요」는 어느 앱이나 보낸다. 무엇을 해야 하는지는
+ * **부위별 마지막 자극일**을 알아야 말할 수 있고, 그건 이 앱에 이미 있다.
+ *
+ * `cold` 는 `utils/bodyPart.js` 의 `coldPartFor` 가 주는 것이다 —
+ * **없으면 null 이고, 그러면 원래 하던 말을 한다.** 억지로 부위를 찾아 말을
+ * 만들지 않는다: 고루 하고 있는 사람에게 굳이 한 곳을 짚으면 그 말이 틀린 말이 된다.
+ *
+ * **지어내지 않는다.** 「등이 회복됐어요」가 아니라 **「등이 9일째 식었어요」**다 —
+ * 날 수는 기록에 적힌 사실이고, 할지 말지는 사람이 정한다.
+ */
+function messageOf(reason, gap, cold) {
   if (reason === 'streak') {
     return {
       title: '오래 쉬고 계세요',
       body: `마지막 운동에서 ${gap}일이 지났어요. 한 세트라도 괜찮습니다.`,
+    };
+  }
+  if (cold && cold.part && typeof cold.days === 'number') {
+    return {
+      title: `${cold.part}이(가) ${cold.days}일째 식었어요`,
+      body: '몸 지도에서 어디가 식었는지 볼 수 있어요.',
+      cold: cold.part,
     };
   }
   return {

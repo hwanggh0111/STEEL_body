@@ -1,3 +1,4 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 import { toast } from '../components/Toast';
@@ -130,6 +131,9 @@ export default function RemindersPage() {
   const [error, setError] = useState('');
   const [permission, setPermission] = useState(canNotify ? Notification.permission : 'unsupported');
 
+  // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
+  const refreshTick = useRefreshTick();
+
   useEffect(() => {
     client.get('/reminders')
       .then(({ data }) => {
@@ -139,7 +143,8 @@ export default function RemindersPage() {
       })
       .catch(() => setError('설정을 불러오지 못했어요'))
       .finally(() => setLoading(false));
-  }, []);
+  // 다른 기기에서 알림을 켜거나 끄면 여기 「기기 n대」가 바뀐다
+  }, [refreshTick]);
 
   // 이 브라우저에 구독이 있는지. **`getRegistration()` 을 쓴다** — `ready` 와 달리
   // 등록이 없으면 곧바로 `undefined` 로 끝난다
@@ -303,8 +308,28 @@ export default function RemindersPage() {
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>BLACK IRON</span>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label24(settings.time)}</span>
           </div>
-          <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>오늘 운동하는 날이에요</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>기록까지 남기면 이번 주 한 칸이 채워집니다.</div>
+          {/* **미리보기는 설정을 따라가야 한다** (2026-09-17 에 캡처로 잡았다).
+              「무엇이 식었는지 같이 알리기」를 켜뒀는데 미리보기가 옛 문구를 그대로
+              보여주고 있었다 — 스위치와 미리보기가 서로 다른 말을 하면,
+              **둘 중 어느 쪽이 진짜인지 눌러보기 전에는 알 수 없다.**
+              그건 있지도 않은 것을 있다고 읽게 두는 것과 같은 종류의 거짓말이다.
+
+              부위와 날 수는 그때그때 다르므로 **한 예로 적고 그렇다고 밝힌다** —
+              지어내지 않으려면 「예를 들면」이라고 말해야 한다 */}
+          {settings.coldPart !== false ? (
+            <>
+              <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>등이(가) 9일째 식었어요</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>몸 지도에서 어디가 식었는지 볼 수 있어요.</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.65 }}>
+                예를 들면 이렇게 옵니다 · 고루 하고 계시면 「오늘 운동하는 날이에요」로 옵니다
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>오늘 운동하는 날이에요</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>기록까지 남기면 이번 주 한 칸이 채워집니다.</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -394,6 +419,19 @@ export default function RemindersPage() {
           onClick={() => patch({ streakGuard: !settings.streakGuard })}
           label="오래 쉬면 한 번 알리기"
           desc="사흘 넘게 쉬면 요일과 상관없이 한 번"
+        />
+        {/* ── 식은 부위를 알림에 싣는다 ── (2026-09-17)
+            여태 이 앱이 보내던 말은 **기록을 안 봐도 보낼 수 있는 말**이었다 —
+            「오늘 운동하는 날이에요」는 어느 앱이나 보낸다. 무엇을 해야 하는지는
+            부위별 마지막 자극일을 알아야 말할 수 있고, 그건 이 앱에 이미 있다.
+            **못 찾으면 원래 하던 말을 한다** — 켜둬서 손해 보는 사람이 없다 */}
+        <Toggle
+          divider
+          on={settings.coldPart !== false}
+          disabled={busy}
+          onClick={() => patch({ coldPart: settings.coldPart === false })}
+          label="무엇이 식었는지 같이 알리기"
+          desc="「등이 9일째 식었어요」 · 고루 하고 있으면 안 붙습니다"
         />
       </div>
 

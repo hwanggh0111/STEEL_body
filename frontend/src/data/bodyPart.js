@@ -43,18 +43,50 @@ const OVERRIDES = [
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
 
+// ── 낱말은 **한 번만** 다듬는다 ── (2026-09-17)
+//
+// 여기가 앱에서 제일 뜨거운 자리였다. 예전에는 `bodyPartOf` 안에서 `norm(w)` 를
+// 돌렸다 — **부를 때마다 낱말 백 개를 전부 다시 다듬었다**는 뜻이다.
+// 낱말은 이 파일에 적혀 있고 절대 안 바뀌는데도.
+//
+// 3년치(기록 3,125건)로 재보니 몸 지도 계산(`buildHeat`)이 **29.9ms** 였다.
+// 그중 대부분이 여기였다 — 기록마다 정규식 백 번이니 30만 번이다. 홈을 그릴 때마다
+// 돈다. 폰은 이 컴퓨터보다 서너 배 느리니 100ms 가 넘는다.
+const N_OVERRIDES = OVERRIDES.map(([word, part]) => [norm(word), part]);
+const N_RULES = RULES.map(([part, words]) => [part, words.map(norm)]);
+
+// ── 같은 이름을 두 번 풀지 않는다 ──
+//
+// 기록 3,000건에 들어 있는 **운동 이름은 몇십 가지**다. 「벤치프레스」가 300번
+// 나오면 300번 다 같은 답이 나온다. 한 번 풀어두고 다시 쓴다.
+//
+// **한도를 둔다.** 운동명은 자유 입력이라 오타까지 저마다 다른 이름이 된다 —
+// 한도가 없으면 오래 켜둔 화면에서 이 표가 계속 자란다. 넘치면 통째로 비운다
+// (하나씩 골라 버리는 것보다 싸고, 다시 채우는 데 몇 ms 면 된다).
+const CACHE_MAX = 500;
+const _cache = new Map();
+
 /** 운동 이름 → 부위. 못 맞히면 '기타'. */
 export function bodyPartOf(exercise) {
   const n = norm(exercise);
   if (!n) return '기타';
 
-  for (const [word, part] of OVERRIDES) {
-    if (n.includes(norm(word))) return part;
+  const hit = _cache.get(n);
+  if (hit !== undefined) return hit;
+
+  let found = '기타';
+  for (const [word, part] of N_OVERRIDES) {
+    if (n.includes(word)) { found = part; break; }
   }
-  for (const [part, words] of RULES) {
-    if (words.some(w => n.includes(norm(w)))) return part;
+  if (found === '기타') {
+    for (const [part, words] of N_RULES) {
+      if (words.some((w) => n.includes(w))) { found = part; break; }
+    }
   }
-  return '기타';
+
+  if (_cache.size >= CACHE_MAX) _cache.clear();
+  _cache.set(n, found);
+  return found;
 }
 
 /**

@@ -19,6 +19,12 @@ const DEFAULTS = {
   time: '19:00',
   tzOffset: 0,
   streakGuard: true,
+  // 식은 부위를 알림에 싣는다 (2026-09-17).
+  //
+  // **기본으로 켠다.** 이 앱의 알림이 다른 앱과 달라지는 자리이고,
+  // 못 찾으면(고루 하고 있거나 기록이 적으면) 원래 하던 말을 그대로 한다 —
+  // 켜둬서 손해 보는 사람이 없다. 성가신 사람만 끄면 된다
+  coldPart: true,
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -34,6 +40,7 @@ function clean(body) {
 
   if (typeof body?.enabled === 'boolean') out.enabled = body.enabled;
   if (typeof body?.streakGuard === 'boolean') out.streakGuard = body.streakGuard;
+  if (typeof body?.coldPart === 'boolean') out.coldPart = body.coldPart;
 
   if (Array.isArray(body?.days)) {
     // 중복과 범위 밖을 걸러 오름차순으로. 화면이 무엇을 보내든 서버가 모양을 정한다.
@@ -131,7 +138,8 @@ router.post('/test', auth, async (req, res) => {
   const sent = await push.sendToUser(req.userId, {
     title: '알림 확인',
     body: `이렇게 옵니다. 정한 시각에는 「${msg.title}」로 옵니다.`,
-    url: '/workout',
+    // 새 「운동」 탭이다 — `/workout` 은 길찾기에서 걷은 옛 화면이다 (2026-09-18)
+    url: '/train',
     tag: 'reminder-test',
   });
   if (sent === 0) {
