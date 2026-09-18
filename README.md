@@ -30,7 +30,8 @@ cd backend  && npm run smoke:clean  # 쌓인 검사 계정 한 번에 지우기 
 | [docs/BUGS-2026-08-24.md](docs/BUGS-2026-08-24.md) | 앱 전체 훑기 · 보안 점검 (2026-08-24) |
 | [docs/google-login-setup.md](docs/google-login-setup.md) | **구글 로그인 켜기** — 열쇠 만들기 · 구글 콘솔에 넣을 주소 · 막혔을 때 |
 | [docs/PHONE-TEST-2026-09-17.md](docs/PHONE-TEST-2026-09-17.md) | **폰 확인 목록** — 카메라 · 마이크 · 큰 사진 · 오프라인은 실기기에서만 밝혀진다 |
-| [docs/TODO-2026-09-17.md](docs/TODO-2026-09-17.md) | **내일 할 것** — 길찾기 마무리(옛 화면 둘 걷기) · 앱을 훑어 찾은 것 여덟 |
+| [docs/TODO-2026-09-18.md](docs/TODO-2026-09-18.md) | **내일 할 것** — 폰에서 한 바퀴 · 배포 결정 · 판단 둘 (9/17 의 A·B·C 는 다 끝났다) |
+| [docs/TODO-2026-09-17.md](docs/TODO-2026-09-17.md) | 그 전날 할 것 — 길찾기 마무리 · 앱을 훑어 찾은 것 여덟 (**전부 끝냈다**) |
 | [docs/CHECK-2026-08-28.md](docs/CHECK-2026-08-28.md) | **확인 목록** — 8/28 에 바꾼 색이 어떻게 나와야 맞는지 |
 | [docs/CHECK-2026-08-27.md](docs/CHECK-2026-08-27.md) | **확인 목록** — 8/27 에 고친 것이 어떻게 나와야 맞는지 |
 | [docs/qa-report.md](docs/qa-report.md) | QA 검토 결과 |
