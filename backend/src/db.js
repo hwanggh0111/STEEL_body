@@ -344,11 +344,25 @@ const db = {
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
     return result;
   },
+  /**
+   * 그 날 한 것만.
+   *
+   * ── 표를 거쳐 간다 ── (2026-09-18, `npm run bench` 로 잡았다)
+   *
+   * 여태 **표 전체(모든 사람의 모든 줄)를 훑었다.** 재보면 사람 10명 · 5년치
+   * (29만 줄)에서 한 번에 3.3ms 다 — 달력이 날마다 부르면 그만큼 곱해진다.
+   *
+   * 내 목록은 이미 `getWorkouts` 가 표에 들고 있다(5초). 거기서 걸러내면
+   * **남의 줄은 아예 안 본다** — 같은 자료에서 0.06ms 로 떨어진다.
+   * 차례(`created_at`)는 그 자리에서 다시 맞춘다: `getWorkouts` 는 최신이 앞인데,
+   * 하루 안에서는 **적은 차례대로** 보여주는 것이 맞다
+   */
   getWorkoutsByDate(userId, date) {
-    const data = load();
-    return (data.workouts || [])
-      .filter(w => w.user_id === userId && w.date === date)
-      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    // `this` 를 안 쓴다 — 이 파일의 다른 자리가 다 그렇고, 꺼내 쓰는 자리가 생기면
+    // (`const { getWorkoutsByDate } = db`) `this` 는 그 자리에서 조용히 깨진다
+    return db.getWorkouts(userId)
+      .filter(w => w.date === date)
+      .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
   },
   // clientKey 는 오프라인에서 적어 **줄에 세워둔 것**을 올릴 때 그 줄의 로컬 id 다.
   //
@@ -1023,6 +1037,14 @@ const db = {
    * 중에 죽는 것이 바로 그 상황이다). 검사도 다른 프로세스에서 파일을 읽어보려면 이게 필요하다
    */
   flushNow() { _flushImmediate(); },
+  /**
+   * 사진도 지금 쓴다.
+   *
+   * 사진은 딴 파일이고 딴 시계로 쓴다(500ms 모아 쓰기). 서버가 내려갈 때는
+   * `process.on('exit')` 가 부르지만, **재보거나 확인하는 자리에서는 부를 길이
+   * 없었다** — 그래서 재는 쪽이 0.00MB 를 보고 「사진은 가볍다」로 읽을 뻔했다 (2026-09-18)
+   */
+  flushPhotosNow() { _flushPhotos(); },
 
   // ── 계정 삭제 예약 (30일 유예) ──
   //

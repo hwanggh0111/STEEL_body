@@ -37,3 +37,7 @@ backend/.check-*.json
 
 # VS Code 작업 공간 — 사람마다 다르다
 hgh.code-workspace
+
+# 재는 자리가 쓰는 임시 DB (npm run bench). 끝나면 지우지만 중간에 멎으면 남는다
+backend/scripts/.bench*.json
+backend/scripts/.bench-*.cjs

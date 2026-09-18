@@ -16,6 +16,7 @@
     "cold": "node scripts/check-cold.cjs",
     "day": "node scripts/check-day.cjs",
     "import": "node scripts/check-import.cjs",
+    "bench": "node scripts/bench.cjs",
     "oauth": "node scripts/check-oauth.cjs",
     "odd": "node scripts/check-odd-api.cjs"
   },
