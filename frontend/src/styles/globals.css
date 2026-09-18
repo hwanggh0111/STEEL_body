@@ -524,3 +524,15 @@ body::before {
 }
 .site-dot:hover .site-dot-label,
 .site-dot:focus-visible .site-dot-label { opacity: 1; }
+
+/* 앱 잠금 — 틀렸을 때 한 번 흔든다 (2026-09-18).
+   **무엇이 틀렸는지 적을 것이 없다.** 네 자리가 틀렸다는 말을 글로 또 적으면
+   화면에 잔소리가 한 줄 는다 — 흔들리는 것으로 족하다.
+   (동작 줄이기를 켠 사람에게는 위의 규칙이 이 애니메이션도 걷어간다) */
+@keyframes lockShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-9px); }
+  40%      { transform: translateX(8px); }
+  60%      { transform: translateX(-5px); }
+  80%      { transform: translateX(3px); }
+}

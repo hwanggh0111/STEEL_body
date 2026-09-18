@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import NavIcon from './NavIcon';
+import LockSetup from './LockSetup';
+import { useLockStore } from '../store/lockStore';
 
 // 내 계정.
 //
@@ -35,6 +37,10 @@ export default function AccountSheet({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(nickname || '');
+  // 앱 잠금 (2026-09-18). **줄 하나를 펴서 그 자리에서 건다** — 화면을 새로 만들
+  // 크기가 아니고(칸 둘과 단추 하나), 기기·계정에 관한 일은 여기 모여 있다
+  const [lockOpen, setLockOpen] = useState(false);
+  const lockOn = useLockStore((s) => s.enabled);
 
   const startEdit = () => { setDraft(nickname || ''); setEditing(true); };
   const save = () => {
@@ -144,6 +150,18 @@ export default function AccountSheet({
         <Row icon="camera" label={photo ? '사진 바꾸기' : '사진 넣기'} onClick={onPickPhoto} />
         {photo && <Row icon="ban" label="사진 지우기" onClick={onDeletePhoto} muted />}
         <Row icon="lock" label="비밀번호 변경" onClick={onChangePw} />
+        {/* ── 앱 잠금 ── (2026-09-18)
+            **몸 사진이 들어 있는 앱**인데 폰을 잠깐 빌려주면 다 보인다. 앱은 늘
+            로그인된 채로 열려 있어서 여는 데 아무것도 필요 없었다.
+            켜져 있으면 그렇다고 오른쪽에 적는다 — 걸어뒀는지 눌러봐야 아는 것이
+            제일 나쁘다 */}
+        <Row
+          icon="shield"
+          label="앱 잠금"
+          badgeText={lockOn ? '켜짐' : null}
+          onClick={() => setLockOpen((v) => !v)}
+        />
+        {lockOpen && <LockSetup onClose={() => setLockOpen(false)} />}
       </Group>
 
       {/* 되돌릴 수 없는 것은 띄워서 아래에 */}
@@ -172,7 +190,10 @@ function Group({ children }) {
 
 // 줄 하나. **모두 같은 모양이다** — 높이 · 글자 · 아이콘 크기가 하나라
 // 무엇이 눌리는 자리인지 한눈에 보인다
-function Row({ icon, label, onClick, muted, badge }) {
+// `badgeText` 는 **숫자가 아닌 표시**다 (「켜짐」) — 켜져 있는지 눌러봐야 아는 것이
+// 제일 나쁘다. 숫자 배지(`badge`)와 색이 다르다: 그쪽은 「해야 할 것」이고
+// 이쪽은 「지금 이렇다」다
+function Row({ icon, label, onClick, muted, badge, badgeText }) {
   return (
     <button
       onClick={onClick}
@@ -197,6 +218,12 @@ function Row({ icon, label, onClick, muted, badge }) {
         <NavIcon name={icon} size={16} />
       </span>
       {label}
+      {badgeText && (
+        <span style={{
+          marginLeft: 'auto', color: 'var(--accent)',
+          fontSize: 11, lineHeight: 1, fontFamily: "'Barlow', sans-serif",
+        }}>{badgeText}</span>
+      )}
       {badge > 0 && (
         <span style={{
           marginLeft: 'auto',

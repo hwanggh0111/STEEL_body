@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import Toast from './components/Toast';
 import ConfirmModalHost from './components/ConfirmModal';
+import AppLock from './components/AppLock';
 import './styles/globals.css';
 
 // lazy load 페이지들
@@ -76,6 +77,12 @@ export default function App() {
     <MaintenanceScreen>
       <Toast />
       <ConfirmModalHost />
+      {/* ── 앱 잠금 ── (2026-09-18)
+          **껍데기 밖이다.** 탭바도 머리도 통째로 덮어야 한다 — 반쯤 가리면 그 틈으로
+          오늘 한 운동과 몸 사진 미리보기가 보인다.
+          라우터 밖에 두는 것도 같은 까닭이다: 어느 화면에 있든 같은 것이 덮는다.
+          잠금을 안 걸어둔 사람에게는 아무것도 안 그린다 */}
+      <AppLock />
       {/* 화면 하나가 죽어도 앱 전체가 흰 화면이 되지 않게. 배포 직후 옛 조각을
           못 받아오는 것도 여기서 받는다 — 잘못이 아니라 오래된 것이라 저절로 고친다 */}
       <ErrorBoundary>

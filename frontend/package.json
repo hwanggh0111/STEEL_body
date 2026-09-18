@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "android": "npm run build && cap sync android",
     "android:icons": "node scripts/gen-app-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#12100c\" --iconBackgroundColorDark \"#12100c\" --splashBackgroundColor \"#12100c\" --splashBackgroundColorDark \"#12100c\"",
-    "check": "node scripts/check-imports.cjs && node scripts/check-lists.cjs && node scripts/check-data.cjs && node scripts/check-offline.cjs && node scripts/check-note.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs && node scripts/check-heat.cjs && node scripts/check-goal.cjs && node scripts/check-take.cjs && node scripts/check-nav.cjs && node scripts/check-stale.cjs",
+    "check": "node scripts/check-imports.cjs && node scripts/check-lists.cjs && node scripts/check-data.cjs && node scripts/check-offline.cjs && node scripts/check-note.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs && node scripts/check-heat.cjs && node scripts/check-goal.cjs && node scripts/check-take.cjs && node scripts/check-nav.cjs && node scripts/check-stale.cjs && node scripts/check-lock.cjs",
     "screens": "node scripts/check-screens.cjs",
     "odd": "node scripts/check-odd.cjs",
     "imports": "node scripts/check-imports.cjs",
@@ -23,7 +23,8 @@
     "take": "node scripts/check-take.cjs",
     "goal": "node scripts/check-goal.cjs",
     "nav": "node scripts/check-nav.cjs",
-    "stale": "node scripts/check-stale.cjs"
+    "stale": "node scripts/check-stale.cjs",
+    "lock": "node scripts/check-lock.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
