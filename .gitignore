@@ -40,4 +40,5 @@ hgh.code-workspace
 
 # 재는 자리가 쓰는 임시 DB (npm run bench). 끝나면 지우지만 중간에 멎으면 남는다
 backend/scripts/.bench*.json
+backend/scripts/.probe*.json
 backend/scripts/.bench-*.cjs

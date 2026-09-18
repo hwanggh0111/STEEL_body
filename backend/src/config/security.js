@@ -6,7 +6,11 @@
 
 // Rate limit — windowMs(ms) 당 max 회
 const RATE_LIMITS = {
-  global:      { windowMs: 60 * 1000,          max: 100 },
+  // 전역 제한. **개발·검사에서만 열 수 있는 손잡이를 둔다** (2026-09-18) —
+  // 9/17 에 화면을 캡처로 뽑다가 이것에 걸려 「설정을 불러오지 못했어요」를 찍었고,
+  // `npm run probe` 는 한 번에 900번을 두드려 절반이 429 로 막혔다.
+  // **운영에서는 손대지 않는다** — 환경변수를 안 주면 분당 100 그대로다
+  global:      { windowMs: 60 * 1000,          max: Number(process.env.RATE_LIMIT_GLOBAL_MAX) || 100 },
   login:       { windowMs: 15 * 60 * 1000,     max: 20  },
   authCode:    { windowMs: 60 * 1000,          max: 3   },
   verifyCode:  { windowMs: 15 * 60 * 1000,     max: 10  },

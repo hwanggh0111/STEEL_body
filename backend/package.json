@@ -17,6 +17,7 @@
     "day": "node scripts/check-day.cjs",
     "import": "node scripts/check-import.cjs",
     "bench": "node scripts/bench.cjs",
+    "probe": "node scripts/probe.cjs",
     "oauth": "node scripts/check-oauth.cjs",
     "odd": "node scripts/check-odd-api.cjs"
   },
