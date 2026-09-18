@@ -390,6 +390,53 @@ function cleanAll() {
     step('  줄 수', rows, wantRows);
   }
 
+  // ── 챙겨 나갔다 다시 들고 들어오기 ── (2026-09-18)
+  //
+  // 내보내기는 있는데 되돌릴 길이 없었다 — 기기를 바꾸거나 계정을 새로 만들면 파일이
+  // 있어도 못 넣었다. 여기서 보는 것은 한 가지다: **내보낸 것을 이 앱이 다시 읽는가.**
+  // 값으로는 `npm run import` 가 보고, 여기서는 진짜로 한 바퀴 돌려본다.
+  console.log('\n── 내보낸 것을 다시 넣는다 ──');
+  const getCsv = async (what) => {
+    const res = await fetch(BASE + '/export/' + what, { headers: { Authorization: 'Bearer ' + TOKEN, Cookie: CK } });
+    return res.text();
+  };
+  const countRows = (csv) => csv.trim().split('\n').length - 1;   // 머리글 한 줄 뺀다
+
+  const wCsv = await getCsv('workouts');
+  const wBefore = countRows(wCsv);
+  // 1) 있는 것을 그대로 다시 넣는다 — **한 줄도 늘어나면 안 된다**
+  const again = await call('POST', '/import', { kind: 'workouts', csv: wCsv });
+  step('있는 것을 다시 넣으면', again.status, 200);
+  step('  한 줄도 안 늘어난다', [again.data?.added, again.data?.skipped], [0, wBefore]);
+  step('  기록 수도 그대로', countRows(await getCsv('workouts')), wBefore);
+
+  // 2) 없는 줄이 섞인 파일 — 새 줄만 들어가고, 걸린 줄은 몇째 줄인지 말한다
+  const mixed = '날짜,운동명,무게,세트,횟수\n'
+    + '2026-08-20,가져온운동,55,4,10\n'      // 새 줄
+    + '1900-01-01,옛날운동,55,4,10\n'        // 날짜가 이상하다
+    + '2026-08-21,,55,4,10\n';              // 운동명이 없다
+  const mix = await call('POST', '/import', { kind: 'workouts', csv: mixed });
+  step('새 줄만 넣고 나머지는 이유를 말한다', [mix.data?.added, mix.data?.failed], [1, 2]);
+  step('  몇째 줄인지 말한다', mix.data?.reasons?.[0]?.line, 3);
+  step('  넣은 줄이 진짜로 있다', countRows(await getCsv('workouts')), wBefore + 1);
+
+  // 3) 인바디 · 측정도 같은 짝이 있다
+  const iCsv = await getCsv('inbody');
+  const iAgain = await call('POST', '/import', { kind: 'inbody', csv: iCsv });
+  step('인바디도 다시 넣어도 안 늘어난다', [iAgain.data?.added, iAgain.data?.skipped], [0, countRows(iCsv)]);
+  const mCsv = await getCsv('measures');
+  const mAgain = await call('POST', '/import', { kind: 'measures', csv: mCsv });
+  step('측정도 다시 넣어도 안 늘어난다', mAgain.data?.added, 0);
+  step('  측정 줄 수도 그대로', countRows(await getCsv('measures')), countRows(mCsv));
+
+  // 4) 막아야 할 것
+  step('무엇을 넣는지 없으면 안 받는다', (await call('POST', '/import', { csv: 'a,b' })).status, 400);
+  step('빈 파일은 안 받는다', (await call('POST', '/import', { kind: 'workouts', csv: '   ' })).status, 400);
+  // **왜 하나도 못 읽었는지 말한다.** 「0건」만 돌려주면 파일이 잘못된 것인지 앱이 못 읽는
+  // 것인지 알 수가 없다
+  const noHead = await call('POST', '/import', { kind: 'workouts', csv: '가,나\n1,2' });
+  step('머리글이 없으면 무엇이 없는지 말한다', /날짜/.test(noHead.data?.error || ''), true);
+
   // ── 날짜 테두리 ── (2026-09-18)
   //
   // 여태 **모양만** 봤다. 그래서 `1900-01-01` 도 `9999-12-31` 도 들어왔고, 한 번 들어간

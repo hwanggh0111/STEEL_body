@@ -305,6 +305,13 @@ app.use('/api/oauth', rateLimit({
   message: { error: '로그인을 너무 여러 번 시도했어요. 잠시 뒤에 다시 해주세요' },
 }));
 
+// 가져오기(복원) — 파일 한 장에 수만 줄이 들어온다. 사람이 제 기록을 되돌리는 일은
+// 하루 스무 번이면 넉넉하고, 그보다 잦으면 되돌리는 일이 아니다 (2026-09-18)
+app.use('/api/import', rateLimit({
+  ...RATE_LIMITS.importCsv,
+  message: { error: '가져오기를 너무 여러 번 했어요. 잠시 뒤에 다시 해주세요' },
+}));
+
 // API 보안 헤더 (JSON 응답에 추가 보호)
 app.use('/api', (req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
@@ -343,6 +350,8 @@ app.use('/api/gym-settings', require('./routes/gymSettings'));
 app.use('/api/notes',       require('./routes/notes'));
 app.use('/api/client-error', require('./routes/clientErrors'));
 app.use('/api/export',      require('./routes/export'));
+// 내보내기의 짝. 여기만 따로 제한을 둔다 — 파일 한 장에 수만 줄이라 한 번이 비싸다
+app.use('/api/import',      require('./routes/importData'));
 
 // 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)
 const path = require('path');

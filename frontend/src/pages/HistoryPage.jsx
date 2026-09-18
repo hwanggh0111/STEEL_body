@@ -1,4 +1,5 @@
 import { useRefreshTick } from '../store/refreshStore';
+import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -495,13 +496,18 @@ export default function HistoryPage() {
           )}
           {/* 내보내기는 **내려받을 것이 있을 때만.** 이름도 「CSV」가 아니라 무엇을
               내려받는지로 적는다 — CSV 가 뭔지 모르는 사람이 대부분이다 */}
-          <span style={{ display: 'flex', gap: 7, marginLeft: 'auto' }}>
+          <span style={{ display: 'flex', gap: 7, marginLeft: 'auto', flexWrap: 'wrap' }}>
             {dates.length > 0 && (
               <button onClick={() => handleExportCSV('workouts')} style={exportBtn}>운동 내려받기</button>
             )}
             {records.length > 0 && (
               <button onClick={() => handleExportCSV('inbody')} style={exportBtn}>인바디 내려받기</button>
             )}
+            {/* ── 내보내기의 짝 ── (2026-09-18)
+                내보내기는 있는데 되돌릴 길이 없었다 — 기기를 바꾸거나 계정을 새로
+                만들면 내려받아 둔 파일이 있어도 못 넣었다. **짝은 같은 자리에 둔다** */}
+            <ImportCsv kind="workouts" label="운동" onDone={() => fetchWorkouts(true)} />
+            <ImportCsv kind="inbody" label="인바디" onDone={() => fetchInbody(true)} />
           </span>
         </div>
       )}
@@ -521,6 +527,18 @@ export default function HistoryPage() {
               사람을 데려다 놓을 자리가 아니다. 첫 기록을 옛 화면에서 적게 하면
               그 사람에게는 그쪽이 「이 앱의 기록 화면」이 된다 */}
           <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/train')}>첫 운동 기록하기</button>
+          {/* ── 빈 화면에도 가져오기를 둔다 ── (2026-09-18)
+              내보내기는 「내려받을 것이 있을 때만」 나오는 것이 맞지만 가져오기는
+              **정반대**다 — 새 기기에서 처음 열었을 때, 즉 아무것도 없을 때가
+              이것이 제일 필요한 순간이다. 위 줄은 기록이 있을 때만 그려지므로
+              여기에 한 번 더 놓는다 (같은 부품이라 두 벌이 아니다) */}
+          <div style={{ marginTop: 16, display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <ImportCsv kind="workouts" label="운동" onDone={() => fetchWorkouts(true)} />
+            <ImportCsv kind="inbody" label="인바디" onDone={() => fetchInbody(true)} />
+          </div>
+          <div style={{ marginTop: 9, fontSize: 11.5, color: 'var(--text-muted)' }}>
+            기기를 바꾸셨다면 내려받아 둔 파일을 넣으면 그대로 돌아옵니다
+          </div>
         </div>
       ) : shownDates.length === 0 ? (
         <div className="empty-state">

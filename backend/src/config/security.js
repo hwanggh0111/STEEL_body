@@ -13,6 +13,9 @@ const RATE_LIMITS = {
   checkName:   { windowMs: 60 * 1000,          max: 10  },
   checkEmail:  { windowMs: 60 * 1000,          max: 10  },
   oauth:       { windowMs: 60 * 60 * 1000,     max: 10  },
+  // 가져오기(복원)는 파일 한 장에 수만 줄이 들어온다 — 한 번이 비싸다.
+  // 사람이 제 기록을 되돌리는 일은 하루에 몇 번이면 넉넉하다 (2026-09-18)
+  importCsv:   { windowMs: 60 * 60 * 1000,     max: 20  },
 };
 
 const JWT = {

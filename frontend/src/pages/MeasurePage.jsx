@@ -1,4 +1,5 @@
 import { useRefreshTick } from '../store/refreshStore';
+import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import client from '../api/client';
@@ -178,18 +179,33 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
               운동과 인바디는 히스토리에서 CSV 로 뽑을 수 있는데 **측정만 길이 없었다.**
               전신 사이즈를 1년 재둔 사람이 그것만 못 꺼낸다.
               종류마다 칸이 달라서 한 줄에 한 항목으로 길게 편다 */}
-          {measures.length > 0 && (
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* ── 챙겨 나가기와 그 짝 ── (가져오기는 2026-09-18 에 붙였다)
+              내보내기는 잰 것이 있을 때만 나온다. **가져오기는 정반대**다 —
+              새 기기에서 아무것도 없을 때가 제일 필요한 순간이라 늘 그린다 */}
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {measures.length > 0 && (
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 지금까지 {measures.length}건 재두셨어요
               </span>
-              <button
-                className="btn-secondary"
-                onClick={exportMeasures}
-                style={{ width: 'auto', padding: '6px 14px', fontSize: 12, marginLeft: 'auto' }}
-              >CSV 로 내보내기</button>
-            </div>
-          )}
+            )}
+            <span style={{ display: 'flex', gap: 7, marginLeft: 'auto', flexWrap: 'wrap' }}>
+              {measures.length > 0 && (
+                <button
+                  className="btn-secondary"
+                  onClick={exportMeasures}
+                  style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
+                >CSV 로 내보내기</button>
+              )}
+              <ImportCsv
+                kind="measures"
+                label="측정"
+                onDone={() => client.get('/measures')
+                  .then(({ data }) => setMeasures(Array.isArray(data) ? data : []))
+                  .catch(() => {})}
+                style={{ padding: '7px 12px', fontSize: 12 }}
+              />
+            </span>
+          </div>
         </>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
