@@ -101,6 +101,40 @@ const orm = m.rows.find((r) => r.type === 'oneRM');
 ok('  글자는 글자로, 숫자는 숫자로', [orm.data.exercise, orm.data.orm], ['벤치프레스', 95]);
 const sw = m.rows.find((r) => r.type === 'stopwatch');
 ok('  JSON 으로 내보낸 것은 되돌린다', sw.data.laps, [1200, 2400]);
+// ── 같은 날 같은 종류가 여러 줄일 때 ── (2026-09-18 에 고쳤다)
+//
+// 아침·저녁 둘레, 스톱워치 두 판. 여태 (날짜 · 종류)로만 묶어서 그 둘이
+// **있지도 않던 한 줄로 합쳐졌다** — 가슴은 아침 것, 허리는 저녁 것.
+// 지우는 것보다 나쁘다: 없던 값을 만들어낸다.
+const twoNew = `날짜,종류,번호,항목,값
+${TODAY},전신 사이즈,1,가슴둘레,100
+${TODAY},전신 사이즈,1,허리둘레,80
+${TODAY},전신 사이즈,2,가슴둘레,101
+${TODAY},전신 사이즈,2,허리둘레,81
+`;
+const t2 = rows.readMeasures(twoNew);
+ok('번호로 두 줄을 가른다', t2.rows.length, 2);
+ok('  값이 섞이지 않는다', t2.rows.map((r) => r.data),
+  [{ chest: 100, waist: 80 }, { chest: 101, waist: 81 }]);
+
+// **옛 파일에는 「번호」 칸이 없다.** 그때는 같은 항목이 다시 나오면 다음 줄로 본다 —
+// 한 줄에 같은 항목이 두 번 나올 일은 없으니, 다시 나온 것은 다음 줄이라는 뜻이다
+const twoOld = `날짜,종류,항목,값
+${TODAY},전신 사이즈,가슴둘레,100
+${TODAY},전신 사이즈,허리둘레,80
+${TODAY},전신 사이즈,가슴둘레,101
+${TODAY},전신 사이즈,허리둘레,81
+`;
+const t3 = rows.readMeasures(twoOld);
+ok('번호가 없는 옛 파일도 가른다', t3.rows.length, 2);
+ok('  값이 섞이지 않는다', t3.rows.map((r) => r.data),
+  [{ chest: 100, waist: 80 }, { chest: 101, waist: 81 }]);
+// 한 줄짜리는 그대로 한 줄이다
+ok('  한 줄은 한 줄로 둔다',
+  rows.readMeasures(`날짜,종류,항목,값
+${TODAY},1RM,운동,벤치프레스
+${TODAY},1RM,예상 1RM,95`).rows.length, 1);
+
 ok('모르는 종류는 지어내지 않는다',
   rows.readMeasures(`날짜,종류,항목,값\n${TODAY},아무거나,가슴둘레,100`).rows.length, 0);
 
@@ -131,9 +165,15 @@ ok('  무게가 다르면 다른 줄이다', rows.workoutKey(a) === rows.workout
 ok('  앞뒤 공백은 같은 줄로 본다', rows.workoutKey(a), rows.workoutKey({ ...a, exercise: ' 벤치프레스 ' }));
 ok('인바디는 값이 다 같아야 같은 줄이다',
   rows.inbodyKey({ date: TODAY, weight: 78 }) === rows.inbodyKey({ date: TODAY, weight: 79 }), false);
-// 측정은 (날짜 · 종류) 하나에 한 줄이다
-ok('측정은 날짜와 종류로 센다',
-  rows.measureKey({ date: TODAY, type: 'bodySize' }), `${TODAY}|bodySize`);
+// 측정 열쇠는 **값까지 본다** — 안 그러면 같은 날 두 번 잰 사람의 둘째 줄이
+// 「이미 있다」로 건너뛰어져 되돌릴 때 사라진다
+ok('값이 다르면 다른 줄이다',
+  rows.measureKey({ date: TODAY, type: 'bodySize', data: { chest: 100 } })
+  === rows.measureKey({ date: TODAY, type: 'bodySize', data: { chest: 101 } }), false);
+ok('  값이 같으면 같은 줄이다 (파일에 그 이상이 안 적혀 있다)',
+  rows.measureKey({ date: TODAY, type: 'bodySize', data: { chest: 100, waist: 80 } })
+  === rows.measureKey({ date: TODAY, type: 'bodySize', data: { waist: 80, chest: 100 } }), true);
+ok('  값이 없어도 안 터진다', typeof rows.measureKey({ date: TODAY, type: 'oneRM' }), 'string');
 
 console.log('');
 console.log(bad ? bad + '건 실패' : '전부 통과');

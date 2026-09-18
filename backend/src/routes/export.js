@@ -51,16 +51,27 @@ router.get('/inbody', auth, (req, res) => {
 router.get('/measures', auth, (req, res) => {
   const records = db.getMeasures(req.userId);
 
-  const header = '날짜,종류,항목,값';
+  // ── 「번호」를 같이 내보낸다 ── (2026-09-18)
+  //
+  // **같은 날 같은 종류를 두 번 잰 사람이 있다** (아침·저녁 둘레, 스톱워치 두 판).
+  // 여태 내보낸 파일에는 그 둘을 가를 것이 없었다 — 되읽을 때 (날짜 · 종류)로 묶으면
+  // **있지도 않던 한 줄로 합쳐진다**(가슴은 아침 것, 허리는 저녁 것). 지우는 것보다 나쁘다.
+  // 그래서 그 날 그 종류의 **몇 번째 줄인지**를 적는다.
+  const header = '날짜,종류,번호,항목,값';
   const rows = [];
+  // 그 날 그 종류의 몇 번째 줄인가. 받아온 차례를 그대로 쓴다
+  const seen = new Map();
   for (const r of records) {
     const label = MEASURE_LABEL[r.type] || r.type;
     const data = r.data && typeof r.data === 'object' ? r.data : {};
+    const slot = `${r.date}|${r.type}`;
+    const no = (seen.get(slot) || 0) + 1;
+    seen.set(slot, no);
     for (const [key, value] of Object.entries(data)) {
       // date 는 이미 첫 칸에 있다. 두 번 적지 않는다
       if (key === 'date' || value === null || value === undefined || value === '') continue;
       const v = typeof value === 'object' ? JSON.stringify(value) : value;
-      rows.push(`${r.date},${csvCell(label)},${csvCell(FIELD_LABEL[key] || key)},${csvCell(v)}`);
+      rows.push(`${r.date},${csvCell(label)},${no},${csvCell(FIELD_LABEL[key] || key)},${csvCell(v)}`);
     }
   }
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');

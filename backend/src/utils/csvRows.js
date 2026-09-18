@@ -186,13 +186,16 @@ function readMeasures(text) {
   const header = rows[0];
   const iDate = at(header, '날짜', 'date');
   const iType = at(header, '종류', 'type');
+  const iNo = at(header, '번호', 'no');
   const iField = at(header, '항목', 'field');
   const iValue = at(header, '값', 'value');
   if (iDate < 0 || iType < 0 || iField < 0 || iValue < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜 · 종류 · 항목 · 값」 칸이 있어야 해요' }] };
   }
 
-  const bag = new Map();     // `날짜|종류` → { date, type, data }
+  const bag = new Map();     // `날짜|종류|번호` → { date, type, data }
+  // 「번호」가 없는 옛 파일을 위해, 그 자리(날짜|종류)에서 지금 몇 번째를 쌓고 있는지 기억한다
+  const runNo = new Map();
   const bad = [];
   for (let r = 1; r < rows.length; r++) {
     const line = r + 1;
@@ -219,7 +222,33 @@ function readMeasures(text) {
       value = Number(raw);
     }
 
-    const id = `${date}|${type}`;
+    // ── 같은 날 같은 종류가 여러 줄일 수 있다 ── (2026-09-18 에 고쳤다)
+    //
+    // 아침·저녁 둘레, 스톱워치 두 판. 여태 (날짜 · 종류)로만 묶어서 그 둘이
+    // **있지도 않던 한 줄로 합쳐졌다** — 가슴은 아침 것, 허리는 저녁 것.
+    // 지우는 것보다 나쁘다(없던 값을 만들어낸다).
+    //
+    // 내보내기가 「번호」를 같이 적으므로 그것으로 가른다. **옛 파일에는 그 칸이 없다** —
+    // 그때는 **같은 항목이 다시 나오면 다음 줄로 본다**. 한 줄에 같은 항목이 두 번
+    // 나올 일은 없으니, 다시 나온 것은 다음 줄이라는 뜻이다
+    const slot = `${date}|${type}`;
+    let no;
+    if (iNo >= 0 && String(cells[iNo] || '').trim() !== '') {
+      const n = Number(cells[iNo]);
+      no = Number.isInteger(n) && n > 0 ? n : 1;
+    } else {
+      no = runNo.get(slot) || 1;
+      const holder = bag.get(`${slot}|${no}`);
+      // 그 줄에 이 항목이 이미 있으면 다음 줄로 넘긴다
+      if (holder && Object.prototype.hasOwnProperty.call(holder.data, key)) {
+        no += 1;
+        runNo.set(slot, no);
+      } else {
+        runNo.set(slot, no);
+      }
+    }
+
+    const id = `${slot}|${no}`;
     if (!bag.has(id)) bag.set(id, { date, type, data: {} });
     bag.get(id).data[key] = value;
   }
@@ -231,8 +260,22 @@ function readMeasures(text) {
 /** 이 줄이 이미 있는 것과 같은가 — **다시 넣어도 안 늘어나게** 하는 열쇠 */
 const workoutKey = (w) => [w.date, String(w.exercise).trim(), String(w.weight).trim(), w.sets, w.reps].join('|');
 const inbodyKey = (r) => [r.date, r.weight, r.height ?? '', r.fat_pct ?? '', r.muscle_kg ?? '', r.water_l ?? ''].join('|');
-// 측정은 (날짜 · 종류) 하나에 한 줄이다 — 같은 날 같은 종류를 두 번 재는 일은 없다고 본다
-const measureKey = (m) => `${m.date}|${m.type}`;
+/**
+ * 측정 열쇠 — **값까지 본다** (2026-09-18 에 고쳤다).
+ *
+ * 처음에는 (날짜 · 종류)만 봤다. 그러면 같은 날 같은 종류를 두 번 잰 사람의 둘째 줄이
+ * 「이미 있다」로 건너뛰어져 **되돌릴 때 사라진다.** 값이 다르면 다른 줄이다.
+ *
+ * 값이 **똑같은** 두 줄은 가를 방법이 없다(파일에 그 이상이 안 적혀 있다) —
+ * 그때는 하나로 본다. 같은 값을 두 번 적어둔 것을 하나로 만드는 쪽이,
+ * 같은 파일을 두 번 넣을 때마다 줄이 불어나는 것보다 낫다.
+ */
+const measureKey = (m) => {
+  const data = m.data && typeof m.data === 'object' ? m.data : {};
+  // 열쇠의 차례가 달라도 같은 지문이 나오게 정렬한다
+  const print = Object.keys(data).sort().map((k) => `${k}=${JSON.stringify(data[k])}`).join(',');
+  return `${m.date}|${m.type}|${print}`;
+};
 
 module.exports = {
   parseCsv, readWorkouts, readInbody, readMeasures,
