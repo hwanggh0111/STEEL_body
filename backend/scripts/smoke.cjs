@@ -324,6 +324,57 @@ function cleanAll() {
   step('닉네임이 배열 (500 이 나던 자리)',
     (await call('PUT', '/auth/nickname', { nickname: ['a'] })).status, 400);
 
+  // ── 목표 ── (2026-09-17 에 붙였다)
+  //
+  // 한 사람당 한 줄이다. 세우고 · 고치고 · **둘 중 하나만 남기고** · 접는 데까지 본다 —
+  // 접는 길이 없으면 한번 세운 수에 갇힌다.
+  console.log('\n── 목표를 세우고 접는다 ──');
+  step('아직 없으면 null (404 가 아니다)',
+    JSON.stringify((await call('GET', '/goals')).data), 'null');
+  const g1 = await call('PUT', '/goals', { weeklyTarget: 4, weightTarget: 75, weightStart: 80 });
+  step('세운다', g1.status, 200);
+  step('  시작한 날을 서버가 적어준다', /^\d{4}-\d{2}-\d{2}$/.test(g1.data?.startedAt || ''), true);
+  step('주 8회는 없다', (await call('PUT', '/goals', { weeklyTarget: 8 })).status, 400);
+  step('말이 안 되는 체중도 안 받는다', (await call('PUT', '/goals', { weightTarget: 5 })).status, 400);
+  // 하나만 쫓는 사람이 있다. `null` 은 **지우라는 뜻**이라 그대로 받는다
+  const g2 = await call('PUT', '/goals', { weightTarget: null });
+  step('체중만 비운다', [g2.data?.weightTarget, g2.data?.weeklyTarget], [null, 4]);
+  // 주 횟수를 낮췄다고 그동안 이어온 주가 없던 일이 되면 안 된다
+  const g3 = await call('PUT', '/goals', { weeklyTarget: 3 });
+  step('  고쳐도 시작한 날은 안 바뀐다', g3.data?.startedAt, g1.data?.startedAt);
+  step('접는다', (await call('DELETE', '/goals')).status, 200);
+  step('  두 번 접으면 없다고 한다', (await call('DELETE', '/goals')).status, 404);
+  step('  접은 뒤에는 다시 null', JSON.stringify((await call('GET', '/goals')).data), 'null');
+
+  // ── 기구 세팅 ── (2026-09-18 에 붙였다. 9/17 에 만들었는데 한 바퀴에 없었다)
+  //
+  // 열쇠가 (사람 · 헬스장 · 운동) 셋이다. **헬스장마다 따로**인 것이 이 기능의 전부라,
+  // 그게 정말 갈라지는지 · 빈 칸으로 만든 줄이 안 남는지 · 테두리가 있는지를 본다.
+  console.log('\n── 기구 세팅 ──');
+  const put = (body) => call('PUT', '/gym-settings', body);
+  step('적는다', (await put({ gym: '집앞', exercise: '랫풀다운', seat: '4', grip: '넓게' })).status, 200);
+  const gs1 = await call('GET', '/gym-settings?gym=집앞');
+  step('  그 헬스장 것만 준다', gs1.data?.settings?.length, 1);
+  step('  다니는 곳 목록도 같이 준다', gs1.data?.gyms?.[0]?.name, '집앞');
+  // 강남점 세팅을 집 앞에서 그대로 쓰면 **틀린 값을 믿고 맞추는 셈**이다
+  await put({ gym: '강남점', exercise: '랫풀다운', seat: '7' });
+  const gs2 = await call('GET', '/gym-settings?gym=집앞');
+  step('헬스장마다 갈라진다', [gs2.data?.settings?.length, gs2.data?.settings?.[0]?.seat], [1, '4']);
+  step('  내 세팅 전부는 둘이다', (await call('GET', '/gym-settings')).data?.settings?.length, 2);
+  // 어느 칸도 없는 줄은 만들지 않는다 — 다음에 그 운동을 열면 빈 카드가 뜬다
+  step('빈 세팅은 안 만든다', (await put({ gym: '집앞', exercise: '레그컬' })).status, 400);
+  // 있던 것을 다 비운 것은 **지우겠다는 뜻**이다
+  step('다 비우면 지운다',
+    (await put({ gym: '강남점', exercise: '랫풀다운', seat: null })).data?.removed, true);
+  step('  지운 뒤에는 없다', (await call('GET', '/gym-settings?gym=강남점')).data?.settings?.length, 0);
+  step('어느 헬스장인지 없으면 안 받는다', (await put({ exercise: '랫풀다운', seat: '4' })).status, 400);
+  // **곳 수에도 테두리를 둔다** (2026-09-18). 한 곳당 60개만 막고 곳 수는 안 막으면
+  // 이름을 바꿔가며 끝없이 쌓을 수 있다 — 파일 하나를 통째로 쓰는 DB 라 모두의 비용이 된다
+  for (let i = 1; i <= 11; i++) await put({ gym: '테두리' + i, exercise: '스쿼트', seat: '1' });
+  step('헬스장 열두 곳까지만', (await put({ gym: '열세번째', exercise: '스쿼트', seat: '1' })).status, 400);
+  step('  이미 다니는 곳에는 더 적을 수 있다',
+    (await put({ gym: '집앞', exercise: '레그프레스', seat: '2' })).status, 200);
+
   console.log('\n── 측정하고 꺼내 본다 ──');
   step('측정 저장',
     (await call('POST', '/measures', { date: '2026-08-27', type: 'bodySize', data: { chest: 100, waist: 80 } })).status, 201);
@@ -338,6 +389,27 @@ function cleanAll() {
     step(`${label} 내보내기`, res.status, 200);
     step('  줄 수', rows, wantRows);
   }
+
+  // ── 날짜 테두리 ── (2026-09-18)
+  //
+  // 여태 **모양만** 봤다. 그래서 `1900-01-01` 도 `9999-12-31` 도 들어왔고, 한 번 들어간
+  // 줄은 1년 벽 · 달력 · 이어온 주에 계속 남는다 (이어온 주는 첫 기록의 주부터 센다).
+  console.log('\n── 말이 안 되는 날짜는 안 받는다 ──');
+  const badDay = (date) => call('POST', '/workouts', { date, exercise: '테두리', sets: 3, reps: 10, weight: 40 });
+  step('1900년', (await badDay('1900-01-01')).status, 400);
+  step('9999년', (await badDay('9999-12-31')).status, 400);
+  step('달에 없는 날', (await badDay('2026-02-30')).status, 400);
+  // 어제 것을 오늘 적는 길은 열어둔다 — 이 앱이 일부러 낸 길이다
+  step('어제는 받는다',
+    (await badDay(new Date(Date.now() - 86400000).toISOString().slice(0, 10))).status, 201);
+  // 계획은 앞날이 제자리다 (달력의 「할 것」)
+  step('계획은 앞날도 받는다',
+    (await call('POST', '/plans', {
+      date: new Date(Date.now() + 200 * 86400000).toISOString().slice(0, 10),
+      kind: 'exercise', name: '스쿼트',
+    })).status, 201);
+  step('  그래도 9999년은 안 받는다',
+    (await call('POST', '/plans', { date: '9999-01-01', kind: 'exercise', name: '스쿼트' })).status, 400);
 
   // 오프라인 줄에서 올라온 것은 한 번만 만든다 (2026-09-15).
   // 지하에서 적은 세트를 올리다 답이 끊겨 다시 보내도 서버에 둘로 남으면 안 된다.

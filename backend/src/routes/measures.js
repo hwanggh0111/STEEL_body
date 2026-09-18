@@ -6,6 +6,7 @@ const db     = require('../db');
 const VALID_TYPES = ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch'];
 
 const { sanitizeObj } = require('../utils/sanitize');
+const { isRecordDay } = require('../utils/dayRange');
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
@@ -25,7 +26,8 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '올바른 측정 타입이 아니에요' });
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date))) {
+  // 모양 · 실제로 있는 날 · **말이 되는 범위**까지 본다 (2026-09-18)
+  if (!isRecordDay(date)) {
     return res.status(400).json({ error: '올바른 날짜 형식이 아니에요 (YYYY-MM-DD)' });
   }
 

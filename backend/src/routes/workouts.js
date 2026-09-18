@@ -3,6 +3,7 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
+const { isRecordDay } = require('../utils/dayRange');
 
 // 무게는 자유 입력 칸이다 — '60', '20kg', '맨몸', '밴드' 가 다 들어온다.
 // 그래서 더더욱 형식을 정해둬야 하는데 지금까지 아무 검사 없이 body 값을 그대로 저장했다.
@@ -59,6 +60,12 @@ router.post('/', auth, spamCheck, (req, res) => {
   if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
     return res.status(400).json({ error: '존재하지 않는 날짜에요' });
   }
+  // **말이 되는 범위인가** (2026-09-18). 여태 모양만 봐서 `1900-01-01` 도 들어왔다 —
+  // 날짜 칸은 `max` 를 걸어도 연도를 직접 칠 수 있고(2026 대신 1026),
+  // 한 번 들어간 줄은 1년 벽 · 달력 · 이어온 주에 계속 남는다
+  if (!isRecordDay(date)) {
+    return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 오늘까지)' });
+  }
 
   // 운동명. 고치는 쪽(PUT)에는 있던 검사가 여기에는 없어서 공백만 친 것도,
   // 문자열이 아닌 것도 그대로 통과해 **이름 없는 기록**이 남았다
@@ -104,6 +111,12 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const dateObj = new Date(y, m - 1, d);
   if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
     return res.status(400).json({ error: '존재하지 않는 날짜에요' });
+  }
+  // **말이 되는 범위인가** (2026-09-18). 여태 모양만 봐서 `1900-01-01` 도 들어왔다 —
+  // 날짜 칸은 `max` 를 걸어도 연도를 직접 칠 수 있고(2026 대신 1026),
+  // 한 번 들어간 줄은 1년 벽 · 달력 · 이어온 주에 계속 남는다
+  if (!isRecordDay(date)) {
+    return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 오늘까지)' });
   }
 
   const safeExercisePut = cleanName(exercise, 100);

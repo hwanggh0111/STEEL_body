@@ -5,13 +5,16 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs",
+    "check": "node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs",
     "smoke": "node scripts/smoke.cjs",
     "seed": "node scripts/seed.cjs",
     "seed:clear": "node scripts/seed.cjs --clear",
     "smoke:clean": "node scripts/smoke.cjs --clean-all",
     "shield": "node scripts/check-shield.cjs",
     "photos": "node scripts/check-photos.cjs",
+    "cache": "node scripts/check-cache.cjs",
+    "cold": "node scripts/check-cold.cjs",
+    "day": "node scripts/check-day.cjs",
     "oauth": "node scripts/check-oauth.cjs",
     "odd": "node scripts/check-odd-api.cjs"
   },

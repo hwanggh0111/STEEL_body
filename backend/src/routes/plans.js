@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
 const { cleanName } = require('../utils/sanitize');
+const { isPlanDay } = require('../utils/dayRange');
 
 // 앞으로 할 것 — 달력에서 날짜를 골라 미리 정해둔다.
 //
@@ -15,7 +16,10 @@ const { cleanName } = require('../utils/sanitize');
 // 한 날에 너무 많이 담지 않게 한다. 달력 칸에 그릴 수 있는 만큼이고,
 // 그보다 많으면 계획이 아니라 목록이다
 const MAX_PER_DAY = 10;
-const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+// **계획은 앞날이 제자리다** — 달력에 담아두는 「할 것」이다.
+// 그래도 테두리는 있다: 2000년 이후, 앞으로 2년까지 (`utils/dayRange.js`).
+// 여태 모양만 봐서 `9999-12-31` 도 담겼다 — 달력이 그 줄을 영영 들고 있는다 (2026-09-18)
+
 
 // GET /api/plans — 내 계획 전부 (날짜 오름차순)
 router.get('/', auth, (req, res) => {
@@ -30,7 +34,7 @@ router.get('/', auth, (req, res) => {
 router.post('/', auth, spamCheck, (req, res) => {
   const { date, kind, name, routineId } = req.body || {};
 
-  if (!isDate(date)) return res.status(400).json({ error: '날짜를 YYYY-MM-DD 로 주세요' });
+  if (!isPlanDay(date)) return res.status(400).json({ error: '날짜를 YYYY-MM-DD 로 주세요' });
   if (kind !== 'routine' && kind !== 'exercise') {
     return res.status(400).json({ error: '루틴이나 운동 중에 골라주세요' });
   }

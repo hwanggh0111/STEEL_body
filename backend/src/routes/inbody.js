@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
+const { isRecordDay } = require('../utils/dayRange');
 
 // 전체 목록
 router.get('/', auth, (req, res) => {
@@ -34,7 +35,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   const result = db.createInbody(
     req.userId,
-    (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : new Date().toISOString().split('T')[0],
+    // 말이 되는 범위가 아니면 **오늘로 적는다** — 여기는 날짜가 곁다리라
+    // (체중이 본체다) 거절하는 대신 오늘로 둔다. 모양만 보던 것을 범위까지 본다 (2026-09-18)
+    isRecordDay(date) ? date : new Date().toISOString().split('T')[0],
     height || null,
     weight,
     fat_pct || null,
@@ -72,7 +75,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   if (water_l !== null && (isNaN(water_l) || water_l < 0 || water_l > 200)) return res.status(400).json({ error: '체수분 값이 올바르지 않아요' });
 
   const bmi = height && height > 0 ? +(weight / ((height / 100) ** 2)).toFixed(1) : null;
-  const safeDate = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : null;
+  // 고치는 쪽은 안 주면 그대로 둔다. 말이 안 되는 날짜면 **안 바꾼다** (2026-09-18)
+  const safeDate = isRecordDay(date) ? date : null;
 
   const result = db.updateInbody(id, req.userId, {
     ...(safeDate ? { date: safeDate } : {}),
