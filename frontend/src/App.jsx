@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -19,6 +19,12 @@ const TrainPage = lazy(() => import('./pages/TrainPage'));
 const BodyPage = lazy(() => import('./pages/BodyPage'));
 // 몸 지도는 「몸」이 아니라 「오늘」에서 들어온다 (2026-09-16)
 const BodyMapPage = lazy(() => import('./pages/BodyMapPage'));
+// 목표 — 앱이 여태 「한 것」만 보여주던 자리에 「어디까지 가려는가」를 놓는다 (2026-09-17).
+// 홈의 목표 카드에서만 들어온다 — 탭바에도 서랍에도 안 건다 (길을 두 벌로 두지 않는다)
+const GoalPage = lazy(() => import('./pages/GoalPage'));
+// 기구 — 적어둔 세팅을 한눈에 (2026-09-17, 7차). 「운동」 안의 카드는 '하나',
+// 이 탭은 '전부'다 — 같은 자리로 가는 두 벌의 길이 아니다
+const GymPage = lazy(() => import('./pages/GymPage'));
 // 앱 소개 — 고객센터에서 갈라 나왔다 (2026-09-04)
 const IntroPage = lazy(() => import('./pages/IntroPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -48,9 +54,21 @@ function Loading() {
   );
 }
 
+// 로그인해야 열리는 자리.
+//
+// **가려던 곳을 들려 보낸다** (2026-09-17). 예전에는 그냥 `/login` 으로 보냈고,
+// 로그인하면 늘 `/home` 이 열렸다 — **어디로 가려 했는지가 그 자리에서 사라졌다.**
+//
+// 홈페이지(`/site`)가 바로 그 길이다. 로그인 없이 보는 자리라, 거기서 「몸 지도」나
+// 「기록의 벽」을 누르는 사람은 **대개 아직 로그인 전**이다. 눌러서 로그인했더니
+// 홈이 열리면, 보러 가려던 것을 다시 찾아 들어가야 한다. 소식 · 고객센터도 같다.
 function PrivateRoute({ children }) {
   const { isLoggedIn } = useAuthStore();
-  return isLoggedIn ? children : <Navigate to="/login" />;
+  const location = useLocation();
+  if (isLoggedIn) return children;
+  // `replace` 로 보낸다 — 뒤로 가기를 누르면 못 여는 자리로 또 들어가고,
+  // 그러면 로그인 화면으로 다시 튕긴다 (뒤로 가기가 안 먹는 것처럼 보인다)
+  return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
 }
 
 export default function App() {
@@ -80,6 +98,9 @@ export default function App() {
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
                 <Route path="map" element={<BodyMapPage />} />
+                {/* 목표 — 홈의 목표 카드에서만 들어온다 (2026-09-17) */}
+                <Route path="goal" element={<GoalPage />} />
+                <Route path="gym" element={<GymPage />} />
                 <Route path="inbody" element={<InbodyPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="homeworkout" element={<HomeworkoutPage />} />

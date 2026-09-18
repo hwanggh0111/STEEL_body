@@ -739,6 +739,7 @@ export default function WorkoutPage() {
             type="date"
             value={date}
             max={today}
+            min="2000-01-01"
             onChange={(e) => { datePickedRef.current = true; setDate(e.target.value); }}
             style={{ marginBottom: 14 }}
           />

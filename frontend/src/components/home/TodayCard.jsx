@@ -62,7 +62,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
           <div className="progress-fill" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
         </div>
 
-        <button className="btn-primary" onClick={() => navigate('/workout')}>이어서 하기</button>
+        <button className="btn-primary" onClick={() => navigate('/train')}>이어서 하기</button>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
           ))}
         </div>
 
-        <button className="btn-secondary" onClick={() => navigate('/workout')}>기록 더하기</button>
+        <button className="btn-secondary" onClick={() => navigate('/train')}>기록 더하기</button>
       </div>
     );
   }
@@ -134,7 +134,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
               : null;
             const go = () => {
               if (routine) return onStartRoutine(routine);
-              navigate('/workout', p.kind === 'exercise' ? { state: { exercise: p.name } } : undefined);
+              navigate('/train', p.kind === 'exercise' ? { state: { exercise: p.name } } : undefined);
             };
             return (
               <button
@@ -203,7 +203,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
             );
           })}
         </div>
-        <button className="btn-secondary" onClick={() => navigate('/workout')}>루틴 없이 기록하기</button>
+        <button className="btn-secondary" onClick={() => navigate('/train')}>루틴 없이 기록하기</button>
       </div>
     );
   }
@@ -216,7 +216,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         루틴을 만들어두면 다음부터는 순서를 따라가며 기록할 수 있어요.
       </Line>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn-primary" style={{ flexGrow: 1 }} onClick={() => navigate('/workout')}>운동 기록하기</button>
+        <button className="btn-primary" style={{ flexGrow: 1 }} onClick={() => navigate('/train')}>운동 기록하기</button>
         <button className="btn-secondary" style={{ flexGrow: 1 }} onClick={() => navigate('/routine')}>루틴 만들기</button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import client from '../api/client';
@@ -32,21 +33,35 @@ const TABS = [
 
 // `embedded` — 「몸」 화면 안에 들어가 있다 (5차 리모델링, 2026-09-04).
 // 제목은 「몸」이 들고 있다
-export default function MeasurePage({ embedded = false }) {
+export default function MeasurePage({ embedded = false, subTab = null }) {
   const location = useLocation();
   // 검색에서 navigate state로 탭 지정 가능
   // 지정해서 들어오지 않으면 **목록부터** 연다. 예전에는 늘 '전신 사이즈'가 열렸는데,
   // 대부분은 다른 걸 하러 온다
-  const initialTab = location.state?.tab || null;
+  //
+  // ── 아는 칸만 받는다 ── (2026-09-18)
+  //
+  // 여태 `location.state.tab` 을 **그대로 믿었다.** 「몸」 탭 안에 들어가 있을 때
+  // 그 state 는 「몸」의 갈래 이름(`'measure'`)이라 여기 칸 이름이 아니다 —
+  // 그대로 넣으면 `TABS.find` 가 아무것도 못 찾아서 **아무 칸도 아닌 빈 화면**이 열린다.
+  // 주소에 아무나 아무것이나 넣을 수 있는 자리이기도 하다.
+  // 갈래 안의 칸은 「몸」이 `subTab` 으로 따로 넘겨준다
+  const known = (k) => (TABS.some((t) => t.key === k) ? k : null);
+  const initialTab = known(subTab) || known(location.state?.tab);
   const [tab, setTab] = useState(initialTab);
   const [measures, setMeasures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // location.state.tab 변경 시 탭 동기화 (검색에서 다시 들어올 때)
+  // 검색에서 다시 들어올 때 칸을 따라간다. **아는 칸일 때만** 옮긴다 (위 참고)
   useEffect(() => {
-    if (location.state?.tab) setTab(location.state.tab);
-  }, [location.state?.tab]);
+    const want = known(subTab) || known(location.state?.tab);
+    if (want) setTab(want);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subTab, location.state?.tab, location.key]);
+
+  // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
+  const refreshTick = useRefreshTick();
 
   useEffect(() => {
     client.get('/measures')
@@ -55,7 +70,7 @@ export default function MeasurePage({ embedded = false }) {
       .then(({ data }) => setMeasures(Array.isArray(data) ? data : []))
       .catch(() => toast('측정 데이터를 불러오지 못했어요', 'error'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshTick]);
 
   const filterByType = (type) => measures.filter(m => m.type === type);
 

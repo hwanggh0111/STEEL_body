@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
 import { beepDone } from '../data/alertSound';
+import { useWakeLock } from '../data/useWakeLock';
 
 // 휴식 중일 때 탭 바 바로 위에 뜨는 띠.
 //
@@ -30,6 +31,20 @@ export default function RestBar({ bottom = 58 }) {
 
   const running = deadline != null;
   const paused = pausedLeft != null;
+
+  // 쉬는 동안 화면을 안 재운다 (2026-09-17).
+  //
+  // 90초 휴식에 화면이 꺼지면, 다음 세트를 하려고 **폰을 깨워 잠금까지 풀어야 한다** —
+  // 세트마다 그런다. 땀 묻은 손으로.
+  //
+  // **이 자리에 두는 이유.** 이 띠는 껍데기(Layout)에 있어서 어느 화면에서나 떠 있다.
+  // 화면마다 따로 두면 어디에 있느냐에 따라 화면이 꺼지기도 하고 안 꺼지기도 한다 —
+  // 끝났다고 알리는 소리를 여기 한 번만 둔 것과 같은 이유다.
+  //
+  // **오래 잡고 있을 걱정은 없다.** 휴식은 길어야 10분이고(`MAX_SEC`), 다 되면
+  // `deadline` 이 지워지면서 저절로 놓는다. **훅은 이른 반환보다 위에 있어야 한다**
+  useWakeLock(running || paused);
+
   if (!running && !paused && !finished) return null;
 
   const ratio = finished ? 1 : Math.max(0, Math.min(1, (leftMs ?? 0) / (duration * 1000)));
@@ -55,7 +70,7 @@ export default function RestBar({ bottom = 58 }) {
 
       <div
         style={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
-        onClick={() => { if (location.pathname !== '/workout') navigate('/workout'); }}
+        onClick={() => { if (location.pathname !== '/train') navigate('/train'); }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{

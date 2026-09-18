@@ -59,6 +59,20 @@ export default function BodyPage() {
     TABS.some((t) => t.key === location.state?.tab) ? location.state.tab : 'inbody',
   );
 
+  // **들고 온 갈래가 바뀌면 따라간다** (2026-09-18).
+  //
+  // 이 화면에 서서 홈 검색으로 「1RM」을 다시 찾으면 같은 주소로 다시 오는데,
+  // `useState` 의 첫 값은 **처음 한 번만** 읽힌다 — 그래서 주소는 바뀌었는데 화면은
+  // 그대로였다. 무엇을 눌러도 아무 일도 안 일어나는 것으로 보인다
+  useEffect(() => {
+    const want = location.state?.tab;
+    if (want && TABS.some((t) => t.key === want)) setTab(want);
+  }, [location.state?.tab, location.key]);
+
+  // 「재는 도구」 안의 어느 칸까지 들고 왔을 수 있다 (「1RM」 · 「어깨 측정」…).
+  // **그 값을 그대로 넘긴다** — 갈래를 고르고 또 한 번 고르게 하지 않는다
+  const sub = location.state?.sub || null;
+
   useEffect(() => { fetchAll?.(); }, [fetchAll]);
 
   // **달라진 것을 세는 일은 이미 `data/bodyChange.js` 가 한다.**
@@ -125,7 +139,7 @@ export default function BodyPage() {
 
       <Suspense fallback={<Panel />}>
         {tab === 'inbody' && <InbodyPage embedded />}
-        {tab === 'measure' && <MeasurePage embedded />}
+        {tab === 'measure' && <MeasurePage embedded subTab={sub} />}
         {tab === 'compare' && <ComparePage embedded />}
       </Suspense>
     </div>

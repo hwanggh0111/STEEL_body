@@ -1,3 +1,4 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -33,6 +34,38 @@ import { useToday } from '../data/useToday';
 // 「이 날은 쉬셨네요」만 나왔다 — 아직 오지도 않은 날인데.
 // 계획은 기록과 **따로** 저장한다(`/api/plans`). 섞으면 「이 달에 몇 일 나왔나」에
 // 아직 하지도 않은 날이 같이 세어진다.
+// ── 누른 갈래는 반드시 대답한다 ── (2026-09-17)
+//
+// 「기록의 벽」과 「통계」를 누르면 **화면이 통째로 비어 있었다.** 기록이 한 건도
+// 없는 사람에게 둘 다 `{totalWorkouts > 0 && …}` 하나로 막혀 있었기 때문이다.
+//
+// 그 규칙 자체는 이 앱의 것이 맞다 — **없는 것을 크게 안 띄운다.** 0 을 셋 늘어놓는
+// 화면은 아무것도 안 알려주면서 「내가 아무것도 안 했다」만 크게 적어둔다.
+//
+// **그런데 그건 한 두루마리였을 때의 이야기다.** 9/16 에 갈래 셋으로 나누면서
+// 그 자리는 「지나가다 안 보이는 칸」이 아니라 **사람이 일부러 누른 곳**이 됐다.
+// 눌렀는데 아무 일도 안 일어나면 그건 절제가 아니라 **고장으로 보인다.**
+//
+// 그래서 규칙을 이렇게 고쳐 적는다 —
+//   · 스크롤 안의 칸이면: 셀 것이 없을 때 **안 그린다**
+//   · 사람이 누른 갈래면: **무엇을 하면 채워지는지 한 줄로 답한다**
+function EmptyTab({ title, desc, onGo }) {
+  return (
+    <div className="empty-state" style={{ padding: '44px 16px' }}>
+      <div className="empty-state-title" style={{ fontSize: 30, letterSpacing: 3 }}>{title}</div>
+      <div className="empty-state-desc" style={{ lineHeight: 1.8, maxWidth: 340, margin: '0 auto' }}>{desc}</div>
+      {/* **갈 곳까지 준다.** 「없어요」로 끝내면 어디서 만드는지를 또 찾아야 한다 */}
+      <button
+        className="btn-primary"
+        style={{ marginTop: 20, minWidth: 160 }}
+        onClick={onGo}
+      >
+        운동 적으러 가기
+      </button>
+    </div>
+  );
+}
+
 const exportBtn = {
   background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
   padding: '7px 12px', fontSize: 11.5, borderRadius: 'var(--radius)',
@@ -60,11 +93,14 @@ export default function HistoryPage() {
   const [myRoutines, setMyRoutines] = useState([]);
   const [addingPlan, setAddingPlan] = useState(false);
 
+  // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
+  const refreshTick = useRefreshTick();
+
   useEffect(() => {
     // 못 불러와도 화면은 그대로 돈다 — 계획은 이 화면의 곁다리다
     client.get('/plans').then(({ data }) => setPlans(Array.isArray(data) ? data : [])).catch(() => {});
     client.get('/my-routines').then(({ data }) => setMyRoutines(Array.isArray(data) ? data : [])).catch(() => {});
-  }, []);
+  }, [refreshTick]);
 
   // ── 그날 메모 ──
   //
@@ -215,7 +251,7 @@ export default function HistoryPage() {
     const month = `${ym.year}-${String(ym.month).padStart(2, '0')}`;
     // 늦게 온 답이 새 달을 덮는 것은 store 가 막는다 (어느 달의 답인지 보고 버린다)
     useNoteStore.getState().fetchMonth(month);
-  }, [ym.year, ym.month]);
+  }, [ym.year, ym.month, refreshTick]);
   const [selectedDate, setSelectedDate] = useState(incoming);
 
   // ── 계획을 화면 값으로 빚는 자리 ──
@@ -480,7 +516,11 @@ export default function HistoryPage() {
            같은 말을 두 번 한다. 한 줄이면 된다 */
         <div className="empty-state">
           <div className="empty-state-desc">아직 적은 운동이 없어요</div>
-          <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/workout')}>첫 운동 기록하기</button>
+          {/* **새 「운동」으로 보낸다** (2026-09-17 에 고쳤다). `/workout` 은 서랍에
+              남겨둔 **옛 화면**이다 — 되돌릴 수 있게 두려고 남긴 것이지, 처음 온
+              사람을 데려다 놓을 자리가 아니다. 첫 기록을 옛 화면에서 적게 하면
+              그 사람에게는 그쪽이 「이 앱의 기록 화면」이 된다 */}
+          <button className="btn-primary" style={{ marginTop: 12, fontSize: 13 }} onClick={() => navigate('/train')}>첫 운동 기록하기</button>
         </div>
       ) : shownDates.length === 0 ? (
         <div className="empty-state">
@@ -512,8 +552,16 @@ export default function HistoryPage() {
 
       {seg === 'stats' && (<>
       {/* 통계와 체중 변화는 되짚는 재료지 본론이 아니다. 달력에서 갈라 두었다.
-          **셀 것이 없으면 안 그린다** — 처음 온 사람에게 0 을 셋 늘어놓는 화면이었다.
-          0 은 아무것도 안 알려주면서 「내가 아무것도 안 했다」만 크게 적어둔다 */}
+          셀 것이 없으면 0 을 셋 늘어놓지 않는다 — 그건 아무것도 안 알려주면서
+          「내가 아무것도 안 했다」만 크게 적어두는 짓이다.
+          **대신 무엇을 하면 채워지는지 답한다** (누른 갈래는 대답해야 한다) */}
+      {totalWorkouts === 0 && (
+        <EmptyTab
+          title="아직 셀 것이 없어요"
+          desc="운동한 날 · 적은 횟수 · 인바디 잰 횟수를 여기서 셉니다. 한 세트만 적으면 그날부터 채워져요."
+          onGo={() => navigate('/train')}
+        />
+      )}
       {totalWorkouts > 0 && (
         <>
           <div style={{ height: 8 }} />
@@ -542,6 +590,16 @@ export default function HistoryPage() {
           했나」는 열두 번 넘겨봐야 짐작이 됐다. **통계 아래, 체중 그래프 위**에 둔다 —
           되짚는 재료 중에 제일 멀리서 보는 것이라 맨 밑은 아니다.
           기록이 없는 해는 스스로 안 그린다 */}
+      {/* **누르면 대답한다.** 여기가 통째로 비어 있던 자리다 — 벽이 무엇인지도
+          모르는 채로 빈 화면만 봤다. 벽은 이 앱에서 제일 보여주고 싶은 것 중 하나라
+          더 그렇다 */}
+      {totalWorkouts === 0 && (
+        <EmptyTab
+          title="아직 새길 것이 없어요"
+          desc="한 해를 금속판 열두 장에 새깁니다. 운동한 날이 칸 하나가 되고, 무겁게 든 날일수록 깊게 파입니다. 한 세트만 적으면 오늘부터 새겨져요."
+          onGo={() => navigate('/train')}
+        />
+      )}
       {totalWorkouts > 0 && (
         <>
           <div className="section-title">

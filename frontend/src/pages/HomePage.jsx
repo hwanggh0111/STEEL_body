@@ -1,3 +1,4 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
@@ -9,6 +10,9 @@ import { LogoMark, LogoWord } from '../components/Logo';
 import WeeklyReport from '../components/WeeklyReport';
 import HomeSearch from '../components/home/HomeSearch';
 import TodayCard from '../components/home/TodayCard';
+import GoalCard from '../components/home/GoalCard';
+import { useGoalStore } from '../store/goalStore';
+import { weekProgress, weekLine, hasGoal } from '../data/goal';
 import { dateKey } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
@@ -232,6 +236,12 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { workouts, loading: wLoading, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, loading: iLoading, fetchAll: fetchInbody } = useInbodyStore();
+  // 머리의 새로고침을 누르면 이 값이 올라간다 — 아래 effect 가 자기 것을 다시 받는다.
+  // **화면마다 단추를 만들지 않으려고** 이렇게 둔다 (`store/refreshStore.js`)
+  const refreshTick = useRefreshTick();
+  const goal = useGoalStore(s => s.goal);
+  const goalLoaded = useGoalStore(s => s.loaded);
+  const fetchGoal = useGoalStore(s => s.fetch);
   const session = useRoutineSessionStore(s => s.session);
   const fetchSession = useRoutineSessionStore(s => s.fetch);
   const startSession = useRoutineSessionStore(s => s.start);
@@ -245,6 +255,8 @@ export default function HomePage() {
     fetchWorkouts();
     fetchInbody();
     fetchSession();
+    // 목표. 못 받아와도 조용히 넘어간다 — 카드가 안 그려질 뿐이다
+    fetchGoal();
     // 홈에서 루틴을 곧바로 시작하려면 목록이 있어야 한다.
     // 못 받아와도 조용히 넘어간다 — 홈이 토스트로 시끄러워질 자리가 아니다
     client.get('/my-routines')
@@ -255,7 +267,8 @@ export default function HomePage() {
     client.get('/plans')
       .then(({ data }) => setPlans(Array.isArray(data) ? data : []))
       .catch(() => {});
-  }, []);
+  // 머리의 새로고침을 누르면 `refreshTick` 이 올라가면서 여기도 다시 받는다
+  }, [refreshTick]);
 
   // 켜둔 채 날이 바뀌어도 오늘을 가리킨다 (useToday 주석 참고)
   const today = useToday();
@@ -268,6 +281,9 @@ export default function HomePage() {
   const weekDates = useMemo(() => weekKeys(mondayOf()), [today]);
   const weekDone = useMemo(() => weekDates.filter(d => workouts[d]?.length > 0).length, [weekDates, workouts]);
   const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
+  // 주간 달력 위에 거는 한 줄. 달력은 **어느 날** 했는지를 말하고, 이 줄은
+  // **몇 번 남았는지**를 말한다 — 같은 주를 두 번 그리는 것이 아니라 한 번 더 세는 것이다
+  const weekGoal = useMemo(() => weekProgress(workouts, goal, today), [workouts, goal, today]);
 
   const loading = wLoading || iLoading;
 
@@ -278,7 +294,7 @@ export default function HomePage() {
     setStarting(true);
     try {
       await startSession(routine.id ?? routine._id);
-      navigate('/workout');
+      navigate('/train');
     } catch (err) {
       toast(err.response?.data?.error || '루틴을 시작하지 못했어요', 'error');
     } finally {
@@ -310,6 +326,20 @@ export default function HomePage() {
         <>
           {/* **오늘 할 곳이 맨 앞이다.** 「오늘」 탭의 질문은 「오늘 뭐 하지」이고,
               그 답은 하던 루틴보다도 먼저 와야 한다 — 루틴이 없는 사람에게도 답이 있어야 한다 */}
+          {/* ── 내 목표 ── (2026-09-17)
+              **맨 위다.** 「오늘 뭐 하지」의 답은 아래 「오늘 할 곳」이 부위로 말해주는데,
+              **「오늘 꼭 해야 하나」의 답은 여기에만 있다.** 금요일에 3/4 을 보면 나간다.
+              목표를 안 세운 사람에게는 한 줄만 보인다 — 없는 것을 크게 안 띄운다 */}
+          {goalLoaded && hasGoal(goal) && <SectionTitle id="home-goal">내 목표</SectionTitle>}
+          <GoalCard
+            goal={goal}
+            loaded={goalLoaded}
+            workouts={workouts}
+            records={records}
+            today={today}
+            onGo={() => navigate('/goal')}
+          />
+
           <SectionTitle id="home-focus">오늘 할 곳</SectionTitle>
           <TodayFocus workouts={workouts} today={today} onGo={() => navigate('/map')} />
 
@@ -324,10 +354,12 @@ export default function HomePage() {
           />
 
           {/* 오래 안 적었으면 인바디에 가서 폼까지 열어준다 —
-              「기록하러 가기」를 눌렀는데 또 단추를 찾게 두지 않는다 */}
+              「기록하러 가기」를 눌렀는데 또 단추를 찾게 두지 않는다.
+              **「몸」 탭의 인바디 갈래로 보낸다** (2026-09-18) — 옛 단독 화면(`/inbody`)으로
+              보내면 탭바에 아무 칸도 안 켜진 화면에 서서 옆 갈래로 건너갈 수 없다 */}
           <BodyLine
             records={records}
-            onGo={(stale) => navigate('/inbody', stale ? { state: { write: true } } : undefined)}
+            onGo={(stale) => navigate('/body', { state: { tab: 'inbody', ...(stale ? { write: true } : null) } })}
           />
 
           {/* 방금 끝난 운동의 결산. 닫았어도 그날 안에는 여기서 다시 본다 */}
@@ -335,6 +367,34 @@ export default function HomePage() {
 
           <SectionTitle id="home-week">이번 주 운동</SectionTitle>
           <div className="card" style={{ marginBottom: 20 }}>
+            {/* 목표를 세웠으면 달력 **위에** 한 줄이 붙는다 (2026-09-17).
+                달력은 「어느 날 했나」를 그리고 이 줄은 「몇 번 남았나」를 말한다 —
+                달력만 보면 동그라미 셋이 많은 건지 적은 건지 알 길이 없다.
+                목표가 없으면 아무것도 안 붙는다 (예전 그대로다) */}
+            {weekGoal && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    주 <span style={{ color: 'var(--accent)' }}>{weekGoal.target}</span>회 목표
+                  </span>
+                  <span>
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1, color: weekGoal.met ? 'var(--success)' : 'var(--accent)' }}>
+                      {weekGoal.done}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}> / {weekGoal.target}</span>
+                  </span>
+                </div>
+                <div className="progress-bg">
+                  <div className="progress-fill" style={{
+                    width: `${Math.round(weekGoal.ratio * 100)}%`,
+                    background: weekGoal.met ? 'var(--success)' : 'var(--accent)',
+                  }} />
+                </div>
+                <div style={{ fontSize: 11, color: weekGoal.met ? 'var(--success)' : 'var(--accent-low)', marginTop: 7 }}>
+                  {weekLine(weekGoal)}
+                </div>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center' }}>
               {weekDates.map((d, i) => {
                 const done = workouts[d]?.length > 0;

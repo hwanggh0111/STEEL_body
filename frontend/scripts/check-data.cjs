@@ -88,6 +88,23 @@ ok('성별 안 고르면 눈금이 없다', ranges.scaleFor('fat_pct', null), nu
 console.log('\n── 최고 기록 ──');
 ok('1RM 환산 (70kg 12회 > 80kg 5회)', pr.estimate1RM(70, 12) > pr.estimate1RM(80, 5), true);
 ok('맨몸은 무게로 안 센다', pr.strengthOf({ exercise: '푸시업', weight: '맨몸', sets: 3, reps: 30 }).kind, 'bodyweight');
+// **표는 기록이 바뀔 때만 만든다** (2026-09-18).
+//
+// 「운동」 화면이 `[workouts, exercise]` 로 걸어 둬서 **운동을 고를 때마다 기록
+// 전체를 다시 훑었다.** 표는 운동과 상관이 없다 — 다 만든 표에서 한 칸을 꺼낼 뿐이다.
+// 5년치(29,200줄)에서 한 번에 17.4ms 이고, 루틴을 돌면 판마다 그 일이 일어났다.
+// 저장할 때도 같은 표를 한 번 더 만들고 있었다.
+//
+// 빠르기는 값으로 안 보인다(답은 어느 쪽이든 같다) — 그래서 코드를 본다
+{
+  const train = fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8')
+    .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+  ok('운동을 고를 때마다 표를 다시 안 만든다',
+    /useMemo\(\(\) => bestRecords\(workouts\), \[workouts\]\)/.test(train), true);
+  ok('  저장할 때도 그 표를 쓴다', /const before = bestMap;/.test(train), true);
+  ok('  표를 고치지 않는다 (같은 표를 계속 쓴다)',
+    /before\.(set|delete|clear)\(/.test(train), false);
+}
 
 console.log('\n── 그동안 운동은 (인바디 시안 C) ──');
 const workouts = {
@@ -981,7 +998,13 @@ const used = FILES.flatMap(f => [...src[f].matchAll(/icon: '([a-z]+)'/g)].map(m 
 // 9/4 저녁에 정리됐다 — 커뮤니티 · 소식 · 소개를 **아래 탭바의 HOME 안으로**
 // 넣었다. 앱을 열면 늘 나오는 자리라 거기가 곧 홈페이지고, 서랍에 또 줄을 두면
 // 같은 자리로 가는 길이 둘이 된다
-ok('여섯 자리가 아이콘 열아홉을 쓴다', used.length, 19);
+// 2026-09-17 (7차) 에 하나 늘었다 — 아래 탭바에 **「기구」**를 넣었다(`wrench`).
+// 기구 세팅은 「운동」 화면 안에만 있어서 **운동을 고른 뒤에야 보였다** —
+// 「내가 뭘 적어뒀더라」를 보려면 운동을 하나씩 골라봐야 했다
+// 2026-09-18 에 **둘 줄었다** — 서랍의 「옛 기록」·「옛 루틴」을 걷었다.
+// 남겨둔 이유(새 「운동」이 고치기 · 지우기 · 지난 날짜에 적기를 못 했다)가 없어졌다.
+// 위 9/4 주석에 「5차를 마치면 이 수는 다시 줄어든다」고 적어둔 그 줄이다
+ok('여섯 자리가 아이콘 열여덟 개를 쓴다', used.length, 18);
 // 서랍이 하나가 됐다 (2026-09-04) — 아래 「더보기」를 걷고 머리의 내 계정으로 옮겼다.
 // **둘이 있으면 무엇이 어느 쪽에 있는지를 사람이 외워야 한다**
 ok('아래 탭바에 「더보기」가 없다', /label: '더보기'/.test(src['src/components/TabBar.jsx']), false);
@@ -1459,7 +1482,10 @@ ok('쉬는 화면이 다음 운동을 알려준다', /다음/.test(page) && page
 ok('단계가 바뀔 때 소리 · 진동으로 알린다', page.includes('beepDone('), true);
 ok('소리는 사람이 누른 순간에 준비한다 (브라우저가 막는다)', page.includes('primeAudio()'), true);
 // 40초 플랭크 중에 화면이 꺼지면 남은 시간도 다음도 못 본다
-ok('운동하는 동안 화면을 안 재운다', page.includes("wakeLock.request('screen')"), true);
+// **2026-09-17 에 공용 훅으로 옮겼다** (`data/useWakeLock.js`). 여기에만 있어서
+// 정작 매일 겪는 루틴 진행 · 휴식 중에는 세트마다 폰을 깨워야 했다.
+// 잡는 코드가 한 곳에만 있는지는 `npm run take` 가 본다
+ok('운동하는 동안 화면을 안 재운다', page.includes('useWakeLock(running)'), true);
 ok('오늘 안 되는 운동은 건너뛸 수 있다', page.includes('skipStep'), true);
 ok('완료 화면에 이모지를 안 쓴다', /💪|🎉|🔥/.test(page), false);
 

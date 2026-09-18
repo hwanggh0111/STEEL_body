@@ -1,5 +1,6 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import client from '../api/client';
 import NavIcon from '../components/NavIcon';
 import { toast } from '../components/Toast';
@@ -100,10 +101,26 @@ export default function RoutinePage() {
     }
     try {
       await startSession(id);
-      navigate('/workout');
+      navigate('/train');
     } catch (err) {
       toast(err.response?.data?.error || '루틴을 시작하지 못했어요', 'error');
     }
+  };
+
+  // 루틴 하나를 고치는 폼에 얹는다. **목록의 「수정」과 「운동」 탭에서 온 길이
+  // 같은 함수를 쓴다** — 두 벌로 적으면 한쪽만 고쳐지는 날이 온다 (2026-09-18)
+  const editRoutine = (r) => {
+    setEditingId(r.id ?? r._id);
+    setNewRoutine({
+      name: r.name,
+      exercises: (Array.isArray(r.exercises) ? r.exercises : []).map(ex => (
+        typeof ex === 'string'
+          ? { name: ex, sets: '', reps: '' }
+          : { name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
+      )),
+    });
+    setShowCreate(true);
+    setTab('mine');
   };
 
   // 내가 만든 루틴을 받아온다.
@@ -112,15 +129,33 @@ export default function RoutinePage() {
   // 끝내면 그 다음에 무엇을 해야 할지가 화면에 없다. 딱 한 번만 옮긴다 —
   // 그 뒤로는 사람이 고른 탭을 지킨다
   const movedRef = useRef(false);
+  // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
+  const refreshTick = useRefreshTick();
+  // 「운동」 탭에서 루틴 줄의 연필을 누르면 그 루틴을 들고 여기로 온다 (2026-09-18).
+  //
+  // **목록을 받아온 다음에야 열 수 있다** — 들고 온 것은 id 뿐이다. 그래서 받아오는
+  // 자리에서 편다. **한 번만 연다**: 뒤로 갔다 오거나 새로고침이 다시 받아올 때
+  // state 가 남아 있어서, 매번 열면 사람이 닫아도 폼이 다시 펴진다
+  const wantEditId = useLocation().state?.editId ?? null;
+  const openedEditRef = useRef(false);
   useEffect(() => {
     client.get('/my-routines')
       .then(({ data }) => {
         const list = Array.isArray(data) ? data : [];
         setMyRoutines(list);
         if (!movedRef.current && list.length === 0) { movedRef.current = true; setTab('pick'); }
+        if (wantEditId != null && !openedEditRef.current) {
+          openedEditRef.current = true;
+          const found = list.find(r => (r.id ?? r._id) === wantEditId);
+          // **못 찾으면 아무 말도 안 한다.** 다른 기기에서 지운 루틴일 수 있다 —
+          // 목록에 없는 것이 이미 답이다
+          if (found) editRoutine(found);
+        }
       })
       .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
-  }, []);
+  // 머리의 새로고침 — 다른 기기에서 만든 루틴이 여기서 보여야 한다
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTick]);
 
   // 저장 · 수정 · 삭제는 **여기서만 알린다.**
   //
@@ -268,7 +303,7 @@ export default function RoutinePage() {
           <button
             className="btn-secondary"
             style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
-            onClick={() => navigate('/workout')}
+            onClick={() => navigate('/train')}
           >이어서</button>
         </div>
       )}
@@ -302,18 +337,7 @@ export default function RoutinePage() {
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
             <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button
-              onClick={() => {
-                setEditingId(r.id ?? r._id);
-                setNewRoutine({
-                  name: r.name,
-                  exercises: (Array.isArray(r.exercises) ? r.exercises : []).map(ex => (
-                    typeof ex === 'string'
-                      ? { name: ex, sets: '', reps: '' }
-                      : { name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
-                  )),
-                });
-                setShowCreate(true);
-              }}
+              onClick={() => editRoutine(r)}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
             >수정</button>
             <button
@@ -337,7 +361,7 @@ export default function RoutinePage() {
             <button
               className="btn-secondary active"
               style={{ width: '100%', marginTop: 10 }}
-              onClick={() => navigate('/workout')}
+              onClick={() => navigate('/train')}
             >이어서 하기 · {session.done}/{session.total}</button>
           ) : (
             <button
@@ -592,7 +616,7 @@ export default function RoutinePage() {
                   <button
                     className="btn-primary"
                     style={{ marginTop: 12, fontSize: 14, padding: '10px 20px' }}
-                    onClick={(e) => { e.stopPropagation(); navigate('/workout', { state: { exercise: name } }); }}
+                    onClick={(e) => { e.stopPropagation(); navigate('/train', { state: { exercise: name } }); }}
                   >
                     이 운동 기록하기
                   </button>
