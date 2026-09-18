@@ -492,3 +492,35 @@ body::before {
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── 홈페이지(/site) 머리 내비게이션 ─── (2026-09-18)
+   화면 폭에 따라 달라지는 것만 여기 둔다. 색과 크기는 컴포넌트가 들고 있다
+   (`SiteHome.jsx`) — 인라인 스타일이 이 앱의 결이고, 미디어 쿼리만 CSS 의 일이다. */
+
+/* 칸 이름 줄 — **폰에서는 좌우로 흐른다.** 줄바꿈으로 두 줄이 되면 머리가 계속
+   자라고, 줄여서 담으면 글자가 뭉개진다. 흐르게 두는 것이 제일 정직하다.
+   막대는 숨긴다 — 손가락으로 미는 자리고, 막대가 있으면 한 줄이 더 두꺼워진다 */
+.site-nav {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+.site-nav::-webkit-scrollbar { display: none; }
+
+/* 따라오는 점 — **폰에서는 아예 안 그린다.**
+   3px 짜리 여섯 개를 손가락으로 겨냥할 수 없고, 폰에서는 칸 이름 줄이 이미
+   같은 일을 한다. 넓은 화면에서만, 본문(860) 오른쪽에 자리가 남을 때 나온다 */
+.site-dots { display: none; }
+@media (min-width: 1040px) {
+  .site-dots { display: flex; }
+}
+/* 점 이름은 대거나 키보드로 짚었을 때만 나온다 — 늘 적어두면 그것이 또 하나의 목록이 된다 */
+.site-dot-label {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.site-dot:hover .site-dot-label,
+.site-dot:focus-visible .site-dot-label { opacity: 1; }
