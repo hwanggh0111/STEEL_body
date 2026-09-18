@@ -6,6 +6,7 @@ import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homewor
 import { readLS, saveLS } from '../data/safeStorage';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
+import { useWakeLock } from '../data/useWakeLock';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -155,25 +156,11 @@ export default function HomeworkoutPage() {
   // 운동하는 동안 화면을 안 재운다.
   //
   // 40초 플랭크를 하는데 30초에 화면이 꺼지면 남은 시간도, 다음이 뭔지도 못 본다.
-  // 폰을 손으로 만질 수 없는 자세라서 더 그렇다. 안 되는 브라우저(사파리 일부)에서는
-  // 조용히 넘어간다 — 이것만 믿고 다른 것을 빼지 않는다
-  useEffect(() => {
-    if (!running || !navigator.wakeLock) return;
-    let lock = null;
-    let dropped = false;
-    const grab = () => navigator.wakeLock.request('screen')
-      .then((l) => { if (dropped) l.release().catch(() => {}); else lock = l; })
-      .catch(() => {});
-    grab();
-    // 다른 앱을 봤다 돌아오면 잠금이 풀려 있다 — 다시 잡는다
-    const onVisible = () => { if (document.visibilityState === 'visible') grab(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      dropped = true;
-      document.removeEventListener('visibilitychange', onVisible);
-      lock?.release().catch(() => {});
-    };
-  }, [running]);
+  // 폰을 손으로 만질 수 없는 자세라서 더 그렇다.
+  //
+  // **2026-09-17 에 공용 훅으로 옮겼다** (`data/useWakeLock.js`) — 여기에만 있어서
+  // 정작 매일 겪는 루틴 진행과 휴식 중에는 세트마다 폰을 깨워야 했다
+  useWakeLock(running);
 
   // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
   const pausedLeftRef = useRef(0);
@@ -245,7 +232,7 @@ export default function HomeworkoutPage() {
   // 예전에는 운동명만 넘겨서, 빈 폼에 이름만 적힌 채 **세트와 횟수를 지어내야** 했다
   // (둘 다 필수 칸이다). 홈트는 시간으로 하는 것이라 「한 운동 = 한 세트」로 세고,
   // 횟수는 1 로 둔다. 고치고 싶으면 그 자리에서 고치면 된다
-  const goRecord = (count) => navigate('/workout', {
+  const goRecord = (count) => navigate('/train', {
     state: { exercise: `기능성운동 - ${selected}`, sets: String(Math.max(1, count)), reps: '1' },
   });
 

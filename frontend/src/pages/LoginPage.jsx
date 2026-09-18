@@ -37,6 +37,25 @@ export default function LoginPage() {
   const deleted = useLocation().state?.deleted;
   const [searchParams] = useSearchParams();
 
+  // ── 로그인한 뒤 어디로 보낼 것인가 ── (2026-09-17)
+  //
+  // 못 여는 자리를 누르면 `PrivateRoute` 가 **가려던 곳을 들려서** 여기로 보낸다.
+  // 홈페이지(`/site`)에서 「몸 지도」를 누른 사람은 몸 지도를 보러 온 것이지
+  // 홈을 보러 온 것이 아니다.
+  //
+  // **앱 안의 자리만 받는다.** 이 값은 주소로도 들어올 수 있는 자리라(누가 링크를
+  // 만들어 보낼 수 있다), 그대로 믿고 `navigate` 에 넘기면 `//남의사이트.com` 같은
+  // 것을 넣어 **로그인 직후 딴 데로 보내버리는 길**이 된다 (오픈 리다이렉트).
+  // `/` 로 시작하되 `//` 도 `/\` 도 아닌 것만 통과시킨다.
+  const backTo = useLocation().state?.from;
+  const goAfterLogin = () => {
+    const to = typeof backTo === 'string' ? backTo : '';
+    const safe = to.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\')
+      // 로그인·가입으로 되돌리면 그 자리를 맴돈다
+      && !to.startsWith('/login') && !to.startsWith('/register');
+    navigate(safe ? to : '/home', { replace: true });
+  };
+
   // 세션 만료 알림
   useEffect(() => {
     if (readLS('session_expired')) {
@@ -209,7 +228,7 @@ function oauthErrorText(code) {
   }
 
   if (showSplash) {
-    return <SplashScreen onDone={() => navigate('/home')} />;
+    return <SplashScreen onDone={goAfterLogin} />;
   }
 
   // 돌아온 사람인가.

@@ -65,7 +65,20 @@ export const useWorkoutStore = create((set, get) => ({
   setOnline: (online) => set({ online }),
 
   fetchAll: (force = false) => {
-    if (inflight) return inflight;
+    // ── 날아가 있는 요청과 `force` ── (2026-09-18)
+    //
+    // 여태 **`force` 를 보기 전에** 날아가 있는 요청을 돌려줬다. 그런데 `force` 를
+    // 쓰는 자리는 「방금 저장했으니 다시 받아라」다 — 그 요청은 **저장 전에 떠난
+    // 것일 수 있고**, 그것을 기다려서 받으면 방금 넣은 것이 없는 목록이 온다.
+    // 화면은 「저장했어요」를 띄우고도 새 줄을 안 보여준다 (다음 받기까지 30초).
+    //
+    // 그래서 `force` 면 **그것을 기다린 뒤 한 번 더 받는다.** 실패했어도 받는다 —
+    // 남의 실패 때문에 내 새로고침이 사라지면 안 된다.
+    if (inflight) {
+      if (!force) return inflight;
+      const waiting = inflight;
+      return waiting.then(() => get().fetchAll(true), () => get().fetchAll(true));
+    }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
     set({ loading: true });
     inflight = (async () => {

@@ -1,3 +1,4 @@
+import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useRef } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
 import RadarChart from '../components/charts/Radar';
@@ -11,6 +12,7 @@ import OverlayCamera from '../components/OverlayCamera';
 import { pickReference } from '../data/overlayShot';
 import { CHART } from '../data/chartColors';
 import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/compare';
+import { downloadable, dataUrlToBlob } from '../data/photoFile';
 
 // ─────────────────────────────────────────────────────────────
 // 비교 — 2026-09-02 에 다시 짰다.
@@ -240,6 +242,9 @@ export default function ComparePage({ embedded = false }) {
   const [photos, setPhotos] = useState(loadPhotos());
   const [photoAt, setPhotoAt] = useState({});
 
+  // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
+  const refreshTick = useRefreshTick();
+
   useEffect(() => { fetchAll(); }, []);
 
   useEffect(() => {
@@ -262,14 +267,72 @@ export default function ComparePage({ embedded = false }) {
       setPhotoAt(at);
       savePhotos(serverPhotos);
     }).catch(() => {});
-  }, []);
+  // 머리의 새로고침 — 다른 기기에서 올린 사진이 여기서 보여야 한다
+  }, [refreshTick]);
 
+  // 처음 그릴 때 **맨 처음 것과 맨 나중 것**을 견주게 놓아준다.
+  //
+  // ── 사람이 고른 것을 새로고침이 지우지 않는다 ── (2026-09-18 리뷰에서 잡았다)
+  //
+  // 여태 `[records]` 로 걸려 있었다. 목록이 mount 때 한 번만 바뀔 때는 같은 뜻이었는데,
+  // 머리에 새로고침 단추가 생기고 나서는 **보고 있는 동안에도 `records` 가 새 것으로
+  // 바뀐다**(`fetchAll(true)`). 그러면 5월과 8월을 견주려고 골라둔 것이 새로고침 한 번에
+  // 맨 처음·맨 나중으로 돌아갔다 — 사람이 한 일을 우리가 지운 것이다.
+  //
+  // **줄 수가 달라졌을 때만** 다시 놓는다. 새 인바디가 들어오면(또는 지워지면)
+  // 자리가 밀리므로 다시 놓는 것이 맞고, 같은 목록을 다시 받은 것은 아무 일도 아니다.
+  const placedFor = useRef(null);
   useEffect(() => {
-    if (records.length >= 2) {
-      setBeforeIdx(records.length - 1);
-      setAfterIdx(0);
-    }
+    if (records.length < 2) return;
+    if (placedFor.current === records.length) return;
+    placedFor.current = records.length;
+    setBeforeIdx(records.length - 1);
+    setAfterIdx(0);
   }, [records]);
+
+  // ── 사진 챙겨가기 ── (2026-09-17)
+  //
+  // 운동 · 인바디 · 측정은 CSV 로 빼갈 수 있는데 **몸 사진만 길이 없었다.**
+  // 계정을 지우면 30일 뒤에 사라진다 — 그 안에 못 가져가면 반년 모은 전·후가 그냥 없어진다.
+  //
+  // **여기 있는 두 장만이 아니라 서버에 있는 것을 전부** 챙긴다 (프로필도 내 사진이다).
+  // 그래서 화면의 state 가 아니라 서버에 다시 묻는다 — 이 화면은 전·후만 들고 있다.
+  const [saving, setSaving] = useState(false);
+
+  const takePhotos = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const { data } = await client.get('/photos');
+      const files = downloadable(data);
+      if (files.length === 0) { toast('내려받을 사진이 없어요'); return; }
+
+      let done = 0;
+      for (const f of files) {
+        const blob = dataUrlToBlob(f.dataUrl);
+        // 한 장이 망가졌다고 나머지까지 못 챙기면 안 된다 — 건너뛰고 센다
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = f.name;
+        // 문서에 안 붙인 링크는 눌러도 아무 일이 없는 브라우저가 있다.
+        // 곧바로 revoke 하면 내려받기가 시작되기 전에 주소가 사라져 빈 파일이 된다
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        done += 1;
+        // **한꺼번에 쏘면 브라우저가 둘째부터 막는다.** 한 박자씩 띄운다
+        if (done < files.length) await new Promise((r) => setTimeout(r, 400));
+      }
+      toast(done > 0 ? `사진 ${done}장을 내려받았어요` : '사진을 읽지 못했어요', done > 0 ? 'success' : 'error');
+    } catch {
+      toast('사진을 내려받지 못했어요', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // **고른 두 날짜를 늘 과거 → 현재로 바로잡는다.** 막지 않고 앞뒤를 맞춘다
   const picked = orderPick(beforeIdx, afterIdx);
@@ -369,8 +432,28 @@ export default function ComparePage({ embedded = false }) {
       {/* **사진은 위에서 고른 날짜를 따라가지 않는다.** 없는 날짜를 지어내지 않고
           다른 것은 다르다고 적는다 — 안 적으면 사람은 같은 날의 것으로 읽는다 */}
       {(photos.before || photos.after) && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.7 }}>
-          사진은 마지막에 올린 두 장입니다 — 위에서 고른 날짜와는 별개예요.
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          gap: 10, marginBottom: 20,
+        }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
+            사진은 마지막에 올린 두 장입니다 — 위에서 고른 날짜와는 별개예요.
+          </div>
+          {/* **내 것을 챙겨 나가는 길.** 운동 · 인바디 · 측정은 CSV 로 뺄 수 있는데
+              사진만 길이 없었다. 계정을 지우면 30일 뒤에 사라지는 것들이다.
+              프로필 사진까지 같이 내려온다 — 그것도 내 사진이다 */}
+          <button
+            onClick={takePhotos}
+            disabled={saving}
+            style={{
+              flexShrink: 0, background: 'none', border: '1px solid var(--border)',
+              color: saving ? 'var(--text-muted)' : 'var(--text-secondary)',
+              padding: '7px 12px', fontSize: 11.5, borderRadius: 'var(--radius)',
+              cursor: saving ? 'default' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+            }}
+          >
+            {saving ? '챙기는 중…' : '사진 챙겨가기'}
+          </button>
         </div>
       )}
       {!photos.before && !photos.after && <div style={{ marginBottom: 20 }} />}

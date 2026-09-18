@@ -25,6 +25,8 @@ import { DRAWER_ITEMS } from '../data/navItems';
 import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';
+import { useRefreshStore } from '../store/refreshStore';
+import NavIcon from './NavIcon';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
@@ -58,6 +60,17 @@ export default function Layout() {
     s => s.deadline != null || s.pausedLeft != null || s.finished,
   );
   const [showTopBtn, setShowTopBtn] = useState(false);
+
+  // 새로고침. 누르면 여럿이 같이 쓰는 목록을 다시 받고, 화면들이 자기 것을 다시 받는다.
+  // **왜 여기 하나만 두는지**는 `store/refreshStore.js` 에 적어뒀다
+  const refreshing = useRefreshStore((s) => s.busy);
+  const runRefresh = useRefreshStore((s) => s.refresh);
+  const doRefresh = useCallback(async () => {
+    const did = await runRefresh();
+    // 연달아 눌러 건너뛴 것에는 아무 말도 안 한다 — 「방금 했어요」를 두 번 띄우면
+    // 그게 더 시끄럽다
+    if (did) toast('새로 받았어요');
+  }, [runRefresh]);
 
   // 다른 화면으로 가면 맨 위에서 시작한다.
   //
@@ -278,6 +291,31 @@ export default function Layout() {
           >
             <Logo cap={18} />
           </div>
+
+          {/* ── 새로고침 ── (2026-09-17)
+              **앱으로 쓰는 사람에게는 다시 받을 길이 하나도 없었다.** 목록은 30초
+              동안 받아둔 것을 다시 쓰는데, 안드로이드 앱(웹뷰)과 홈 화면에 얹은
+              PWA 에는 **주소창이 아예 없다** — 폰과 PC 를 같이 쓰면 한쪽에서 적은
+              것이 다른 쪽에 안 보이고, 할 수 있는 일은 앱을 껐다 켜는 것뿐이었다.
+              **화면을 다시 띄우지는 않는다** — 무게 칸에 80 을 쳐놓고 세트를 세는
+              중일 수 있다. 데이터만 다시 받고 적던 값은 그대로 둔다 */}
+          <button
+            onClick={doRefresh}
+            disabled={refreshing}
+            aria-label="새로고침"
+            title="새로고침"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              width: 34, height: 34, marginLeft: 'auto', marginRight: 2,
+              background: 'none', border: '1px solid var(--border)', borderRadius: 999,
+              color: refreshing ? 'var(--accent)' : 'var(--text-muted)',
+              cursor: refreshing ? 'default' : 'pointer',
+              // 도는 동안 아이콘이 돈다. 누르고 아무 일도 안 일어난 것처럼 보이면 또 누른다
+              animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
+            }}
+          >
+            <NavIcon name="refresh" size={16} />
+          </button>
 
           {/* 내 계정 — 누르면 시트가 열린다.
               예전에는 이 자리가 「아바타 + 닉네임 + 로그아웃 단추」였고, 계정을 손보려면

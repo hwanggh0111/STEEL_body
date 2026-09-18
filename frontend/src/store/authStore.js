@@ -6,6 +6,8 @@ import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
 import { useRoutineSessionStore } from './routineSessionStore';
 import { useReportStore } from './reportStore';
+import { useGoalStore } from './goalStore';
+import { useGymStore } from './gymStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -108,6 +110,10 @@ export const useAuthStore = create((set) => ({
     useRoutineSessionStore.getState().reset();
     // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다
     useReportStore.getState().reset();
+    // 목표도 — 체중 목표는 남에게 보일 것이 아니다
+    useGoalStore.getState().reset();
+    // 기구 세팅도 — 남의 헬스장 세팅이 내 화면에 뜨면 안 된다
+    useGymStore.getState().reset();
   },
 
   // 쿠키 기반 인증 상태 확인 (앱 시작 시 호출)

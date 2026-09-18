@@ -68,6 +68,31 @@ const DEFAULT_DATA = {
   // 계획대로 하면 기록이 따로 쌓이고, 그날이 지나도 계획은 계획으로 남는다
   // (안 한 날을 지워버리면 왜 못 했는지가 아무 데도 안 남는다).
   plans: [],         // { id, user_id, date, kind: 'routine'|'exercise', name, routine_id, created_at }
+  // 목표. 한 사람당 **한 줄**이다.
+  //
+  // 이 앱은 지나간 것만 보여줬다 — 1년 벽도 주간 요약도 몸 지도도 「무엇을 했나」다.
+  // 「이번 주 3일」이 잘한 것인지 모자란 것인지는 아무 데서도 안 말해줬다.
+  // 목표가 있어야 그 수에 뜻이 생긴다.
+  //
+  // **여러 줄로 두지 않는다.** 목표를 여럿 들고 있으면 홈에 무엇을 띄울지부터
+  // 정해야 하고, 그러면 목표가 또 하나의 목록이 된다. 지금 쫓는 것 하나만 둔다.
+  //
+  // `weight_start` 는 목표를 세운 날의 체중이다. **그때 값을 박아둔다** — 진행률을
+  // 「시작에서 얼마나 왔나」로 재는데, 시작점을 매번 기록에서 다시 찾으면
+  // 옛 기록을 하나 고칠 때마다 진행률이 흔들린다
+  goals: [],         // { user_id, weekly_target, weight_target, weight_start, started_at, created_at, updated_at }
+  // 기구 세팅. 「랫풀다운은 시트 4번, 발판 2번, 넓은 그립」.
+  //
+  // 기구 앞에서 **매번 다시 맞춘다.** 한두 번 틀리게 맞춘 뒤에야 몸이 기억해내고,
+  // 그 사이에 세트 한두 개를 버린다. 운동 이름은 이미 알고 있으니 붙일 자리가 있었다.
+  //
+  // **헬스장마다 따로 둔다.** 기구가 다르면 시트 번호도 다르다 — 강남점 세팅을
+  // 집 앞 헬스장에서 그대로 쓰면 틀린 값을 믿고 맞추는 셈이라, 아예 없느니만 못하다.
+  // 그래서 열쇠는 (사람 · 헬스장 · 운동) 셋이다.
+  //
+  // 칸은 **비워둘 수 있다.** 기구마다 조절하는 것이 다르다 — 시트만 있는 것도 있고
+  // 아무것도 없는 것도 있다. 안 적은 칸은 화면이 안 그린다.
+  gymSettings: [],   // { id, user_id, gym, exercise, seat, foot, grip, note, created_at, updated_at }
   // 화면이 흰 화면이 됐을 때 브라우저가 보내온 것.
   //
   // **사람 것이 아니다** — 어느 계정 것인지 안 적는다. 무엇이 터졌는지와 어느 화면인지만
@@ -86,7 +111,7 @@ const DEFAULT_DATA = {
   loginFails: [],    // { key, count, last, until } — key: 'ip:1.2.3.4' | 'user:12'
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
-  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1, plans: 1 },
+  _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1, plans: 1, gymSettings: 1 },
 };
 
 // In-memory cache + debounced writes + write lock
@@ -220,6 +245,23 @@ function nextId(table) {
 const _queryCache = new Map();
 function invalidateQueryCache() { _queryCache.clear(); }
 
+// **한 사람이 저장했다고 모두의 것을 비우지 않는다** (2026-09-17).
+//
+// 예전에는 기록 하나를 저장할 때마다 `_queryCache.clear()` 로 **표를 통째로** 비웠다.
+// 캐시 열쇠에는 이미 사람 번호가 들어 있는데도 그랬다 — 그래서 **남이 세트 하나를
+// 적으면 내 목록이 캐시에서 떨어져 나가고**, 다음에 내가 홈을 열면 3만 건을 다시 훑는다.
+//
+// 재보면 이렇다 (사람 50명 · 기록 3만 건):
+//   아무도 안 썼을 때 내 목록   0.000 ms   (캐시가 맞는다)
+//   남이 하나 저장한 뒤 내 목록  1.162 ms   ← 남의 저장이 내 비용이 된다
+//
+// 헬스장에서 여럿이 동시에 적는 시간대가 바로 그 시간대다. 쓰는 사람이 늘수록
+// **모두가 서로의 캐시를 계속 떨어뜨린다.** 자기 것만 비우면 그 일이 안 생긴다.
+function invalidateUserQueries(userId) {
+  _queryCache.delete('w_' + userId);
+  _queryCache.delete('i_' + userId);
+}
+
 // ── 인덱스 캐시 (O(n) → O(1) 조회) ──
 const _index = { userById: null, userByEmail: null, userByUsername: null };
 
@@ -325,7 +367,7 @@ const db = {
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
     if (clientKey) workout.client_key = clientKey;
     data.workouts.push(workout);
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { lastInsertRowid: id };
   },
@@ -334,7 +376,7 @@ const db = {
     const idx = data.workouts.findIndex(w => w.id === id && w.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.workouts.splice(idx, 1);
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { changes: 1 };
   },
@@ -348,7 +390,7 @@ const db = {
     if (fields.sets !== undefined) workout.sets = fields.sets;
     if (fields.reps !== undefined) workout.reps = fields.reps;
     workout.updated_at = new Date().toISOString();
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { changes: 1, workout };
   },
@@ -369,7 +411,7 @@ const db = {
     const data = load();
     const record = { id, user_id: userId, date, height, weight, fat_pct, muscle_kg, water_l, bmi, created_at: new Date().toISOString() };
     data.inbody.push(record);
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { lastInsertRowid: id };
   },
@@ -378,7 +420,7 @@ const db = {
     const idx = data.inbody.findIndex(r => r.id === id && r.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.inbody.splice(idx, 1);
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { changes: 1 };
   },
@@ -394,7 +436,7 @@ const db = {
     if (fields.water_l !== undefined) record.water_l = fields.water_l;
     if (fields.bmi !== undefined) record.bmi = fields.bmi;
     record.updated_at = new Date().toISOString();
-    invalidateQueryCache();
+    invalidateUserQueries(userId);
     save(data);
     return { changes: 1, record };
   },
@@ -954,7 +996,7 @@ const db = {
   // 또 남는다 — `npm run check` 가 이 목록과 실제 컬렉션을 맞춰본다.
   USER_COLLECTIONS: ['workouts', 'inbody', 'measures', 'myRoutines', 'refreshTokens',
                      'reports', 'ratings', 'reminders', 'pushSubs', 'routineSessions',
-                     'suspensions', 'abuseLogs', 'plans', 'notes',
+                     'suspensions', 'abuseLogs', 'plans', 'notes', 'goals', 'gymSettings',
                      // **커뮤니티는 2026-09-16 에 걷어냈다.** 그런데 목록에서는 안 뺀다 —
                      // 기능이 없어져도 **옛 줄은 DB 에 그대로 남아 있다.** 빼면 계정을
                      // 지운 사람의 글·댓글만 영영 남는다. 지우는 쪽은 계속 지운다
@@ -965,6 +1007,14 @@ const db = {
   // (서버를 켜둔 채 DB 파일을 손으로 고치면 안 되는 것과 같은 이유다.)
   // 고치지 말고 읽기만 할 것 — 돌려주는 것은 사본이 아니라 그 자체다
   snapshot() { return load(); },
+  /**
+   * 조회 표에 이 열쇠가 들어 있나 — **검사가 보는 창이다** (`npm run cache`).
+   *
+   * 「남이 저장해도 내 목록은 표에 남아 있다」는 **값으로는 확인할 수 없다** —
+   * 비우든 안 비우든 답은 똑같이 맞게 나오고, 다른 것은 빠르기뿐이다.
+   * 그래서 표 안을 한 번 들여다볼 창을 낸다. 읽기만 한다.
+   */
+  cacheHas(key) { return _queryCache.has(key); },
   /**
    * 지금 당장 파일에 쓴다.
    *
@@ -1026,6 +1076,13 @@ const db = {
       data[key] = (data[key] || []).filter(row => row.user_id !== userId);
     }
     invalidateUserIndex();
+    // **표도 비운다** (2026-09-17 에 빠져 있던 것을 채웠다).
+    //
+    // 지운 사람의 기록이 조회 표(`_queryCache`)에 남아 있으면 최대 5초 동안
+    // **없는 사람의 목록이 그대로 나온다.** 다른 자리는 저장할 때마다 비우니
+    // 눈에 안 띄었지만, 계정 삭제는 그 뒤로 아무 저장도 안 일어나는 자리다.
+    // 여기서는 통째로 비운다 — 지우는 일은 드물고, 남기는 것보다 싸다
+    invalidateQueryCache();
     save(data);
     // 사진은 다른 파일에 있다. 여기서 안 부르면 지운 계정의 사진이 남는다
     deleteUserPhotos(userId);
@@ -1280,6 +1337,104 @@ const db = {
     data.faqGaps.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+
+  // ── 목표 ──
+  //
+  // 한 사람당 한 줄. 알림 설정과 같은 모양이라 같은 방식으로 다룬다.
+  getGoal(userId) {
+    const data = load();
+    return (data.goals || []).find(g => g.user_id === userId) || null;
+  },
+
+  saveGoal(userId, patch) {
+    const data = load();
+    if (!data.goals) data.goals = [];
+    const now = new Date().toISOString();
+    let row = data.goals.find(g => g.user_id === userId);
+    if (!row) {
+      row = { user_id: userId, created_at: now };
+      data.goals.push(row);
+    }
+    Object.assign(row, patch, { updated_at: now });
+    save(data);
+    return row;
+  },
+
+  // 목표를 접는다. **줄을 통째로 지운다** — 값만 비워두면 「목표를 세웠다가
+  // 비운 사람」과 「한 번도 안 세운 사람」이 DB 에서 같아 보이지 않는다
+  clearGoal(userId) {
+    const data = load();
+    const before = (data.goals || []).length;
+    data.goals = (data.goals || []).filter(g => g.user_id !== userId);
+    if (data.goals.length === before) return { changes: 0 };
+    save(data);
+    return { changes: 1 };
+  },
+
+  // ── 기구 세팅 ──
+  //
+  // 열쇠는 (사람 · 헬스장 · 운동) 셋이다. 같은 운동이라도 헬스장이 다르면 다른 줄이다.
+
+  /** 내 세팅 전부. 헬스장을 주면 그 헬스장 것만. */
+  getGymSettings(userId, gym) {
+    const data = load();
+    return (data.gymSettings || [])
+      .filter((s) => s.user_id === userId && (gym == null || s.gym === gym))
+      .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+  },
+
+  /** 그 헬스장의 그 운동 하나. 없으면 null. */
+  getGymSetting(userId, gym, exercise) {
+    const data = load();
+    return (data.gymSettings || [])
+      .find((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise) || null;
+  },
+
+  /**
+   * 세우거나 고친다. **같은 (헬스장 · 운동) 은 한 줄뿐이다** —
+   * 여러 줄이 되면 화면이 어느 것을 띄울지 정해야 하고, 그러면 세팅이 목록이 된다.
+   */
+  saveGymSetting(userId, gym, exercise, patch) {
+    const data = load();
+    if (!data.gymSettings) data.gymSettings = [];
+    const now = new Date().toISOString();
+    let row = data.gymSettings.find((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise);
+    if (!row) {
+      row = { id: nextId('gymSettings'), user_id: userId, gym, exercise, created_at: now };
+      data.gymSettings.push(row);
+    }
+    Object.assign(row, patch, { updated_at: now });
+    save(data);
+    return row;
+  },
+
+  deleteGymSetting(userId, gym, exercise) {
+    const data = load();
+    const idx = (data.gymSettings || [])
+      .findIndex((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise);
+    if (idx === -1) return { changes: 0 };
+    data.gymSettings.splice(idx, 1);
+    save(data);
+    return { changes: 1 };
+  },
+
+  /**
+   * 내가 다니는 곳 — **따로 적어두지 않는다.**
+   *
+   * 세팅에 이미 헬스장 이름이 붙어 있으므로 거기서 뽑는다. 목록을 따로 들고 있으면
+   * 세팅을 다 지운 헬스장이 목록에만 남는 날이 온다.
+   */
+  getGyms(userId) {
+    const data = load();
+    const count = new Map();
+    for (const s of data.gymSettings || []) {
+      if (s.user_id !== userId || !s.gym) continue;
+      count.set(s.gym, (count.get(s.gym) || 0) + 1);
+    }
+    return [...count.entries()]
+      .map(([name, settings]) => ({ name, settings }))
+      .sort((a, b) => b.settings - a.settings || a.name.localeCompare(b.name));
   },
 
   // ── 운동 알림 ──
