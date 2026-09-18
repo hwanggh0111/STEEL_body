@@ -69,7 +69,15 @@ function getUrls(req) {
 }
 
 // 소셜 로그인 공통: 유저 찾거나 생성
-async function findOrCreateUser(email, rawNickname, provider) {
+async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
+  // ── 확인 안 된 이메일로는 계정을 잇지 않는다 ── (2026-09-18)
+  //
+  // 이 앱은 **이메일 하나로 계정을 잇는다**(`findUserByEmail`). 그래서 제공자가
+  // 「이 메일 주소가 이 사람 것인지 확인 안 됐다」고 말해주는데 그걸 안 보면,
+  // 남의 메일 주소를 적어둔 계정으로 들어와 **그 사람의 기록을 그대로 받는** 길이 된다.
+  // 구글은 `verified_email` 로 알려준다 — **모른다고 할 때가 아니라 아니라고 할 때만** 막는다
+  // (필드를 안 주는 제공자도 있어서, 없는 것을 거절로 치면 그쪽이 통째로 막힌다).
+  if (opts.emailVerified === false) throw new Error('OAUTH_EMAIL_UNVERIFIED');
   // **이메일이 없으면 계정을 만들지 않는다.**
   //
   // 계정을 찾는 열쇠는 이메일 하나다(`emailKey`). 빈 값이 들어오면 그 열쇠가 `''` 가
@@ -135,6 +143,57 @@ function generateState(referer = '') {
   return s;
 }
 
+// ── state 를 **브라우저에도 묶는다** ── (2026-09-18)
+//
+// 여태 state 는 서버 메모리에만 있었다. 무작위이므로 남이 맞힐 수는 없는데,
+// **이미 제 손에 든 state 를 남의 브라우저에 쓰게 할 수는 있었다** —
+// 공격자가 제 구글 계정으로 로그인을 시작해 콜백 주소를 만들어 두고 그 링크를 누르게
+// 하면, 그 사람 브라우저에 **공격자 계정의 로그인 쿠키**가 심긴다. 그 뒤로 그 사람이
+// 적는 운동이 공격자 계정에 쌓인다 (로그인 CSRF · 세션 고정).
+//
+// 그래서 발급할 때 **같은 값을 쿠키로도 준다.** 콜백에서 둘이 같아야 통과한다 —
+// 남의 브라우저에는 그 쿠키가 없으니 그 길이 막힌다.
+//
+// `SameSite=Lax` 로 둔다: 구글에서 돌아오는 것은 **주소창을 타는 GET 이동**이라
+// Lax 에서도 쿠키가 실려 온다. `Strict` 로 두면 그 순간 안 실려서 로그인이 아예 안 된다.
+const STATE_COOKIE = 'sb_oauth';
+const STATE_TTL_MS = 10 * 60 * 1000;
+
+function setStateCookie(res, state) {
+  res.cookie(STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: IS_PROD,
+    maxAge: STATE_TTL_MS,
+    // 이 쿠키가 쓰이는 자리에만 실어 보낸다
+    path: '/api/oauth',
+  });
+}
+
+function clearStateCookie(res) {
+  res.clearCookie(STATE_COOKIE, { httpOnly: true, sameSite: 'lax', secure: IS_PROD, path: '/api/oauth' });
+}
+
+/** 로그인을 시작한다 — state 를 만들고 브라우저에도 심는다 (둘을 따로 하면 빠뜨린다) */
+function startOauth(req, res) {
+  const state = generateState(req.get('referer') || '');
+  setStateCookie(res, state);
+  return state;
+}
+
+/**
+ * 돌아온 것이 **그 브라우저에서 시작한 것인가.**
+ *
+ * 쿠키를 아예 안 보내는 자리(쿠키를 막아둔 브라우저 · 일부 인앱 브라우저)에서는
+ * 로그인이 통째로 막힌다. 그런데 이 앱은 **로그인 쿠키로 도는 앱**이라 그 브라우저에서는
+ * 어차피 못 쓴다 — 여기서 느슨하게 받아도 다음 걸음에서 막힌다. 그래서 여기서 막는다.
+ */
+function sameBrowser(req) {
+  const cookie = req.cookies?.[STATE_COOKIE];
+  const got = req.query.state;
+  return !!cookie && !!got && cookie === got;
+}
+
 function validateState(state) {
   if (!state || !oauthStates.has(state)) return false;
   const data = oauthStates.get(state);
@@ -170,7 +229,7 @@ router.get('/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=google_not_configured`);
   const { backendUrl } = getUrls(req);
   // state 에 프론트엔드 referer 를 같이 담아둔다 (콜백에서 돌아갈 곳을 정하는 데 쓴다)
-  const state = generateState(req.get('referer') || '');
+  const state = startOauth(req, res);
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: `${backendUrl}/api/oauth/google/callback`,
@@ -185,7 +244,9 @@ router.get('/google', (req, res) => {
 router.get('/google/callback', async (req, res) => {
   const { backendUrl } = getUrls(req);
   const stateData = oauthStates.get(req.query.state);
-  if (!validateState(req.query.state)) {
+  const sameOne = sameBrowser(req);
+  clearStateCookie(res);
+  if (!sameOne || !validateState(req.query.state)) {
     // 다른 오류는 아래에서 정한 frontendUrl 로 돌아가는데 여기만 FRONTEND 였다.
     // 개발용 IP(192.168.x)나 터널로 들어온 사람은 **다른 주소로 튕겨** 로그인 화면이
     // 아니라 낯선 곳에 떨어진다
@@ -210,13 +271,21 @@ router.get('/google/callback', async (req, res) => {
     const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    if (!profile || !profile.email) throw new Error('Google profile missing email');
-    const info = await findOrCreateUser(profile.email, profile.name, 'google');
+    // **이메일이 있는지는 한 곳에서만 본다** (`findOrCreateUser`).
+    // 여기서 따로 던지면 이유가 뭉개져서(`google_failed`) 「다시 시도해주세요」가 되고,
+    // 그건 다시 눌러도 영영 안 되는 일에 하는 말이다 (2026-09-18 에 검사가 잡았다)
+    const info = await findOrCreateUser(profile?.email, profile?.name, 'google',
+      { emailVerified: profile?.verified_email });
     setAuthCookies(res, info.user);
     res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=google_failed`);
+    // **왜 안 됐는지 구분해서 보낸다.** 「다시 시도해주세요」로 뭉치면, 다시 눌러도
+    // 영영 안 되는 일(메일 미확인 · 이메일 미제공)에 그 말을 하게 된다
+    const why = err.message === 'OAUTH_EMAIL_UNVERIFIED' ? 'google_unverified'
+      : err.message === 'OAUTH_NO_EMAIL' ? 'google_no_email'
+        : 'google_failed';
+    res.redirect(`${frontendUrl}/login?error=${why}`);
   }
 });
 
@@ -235,7 +304,8 @@ router.post('/google/code', async (req, res) => {
     const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    const { user, nickname, email, created, restored } = await findOrCreateUser(profile.email, profile.name, 'google');
+    const { user, nickname, email, created, restored } = await findOrCreateUser(
+      profile.email, profile.name, 'google', { emailVerified: profile.verified_email });
     setAuthCookies(res, user);
     res.json({ nickname, email, created, restored });
   } catch (err) {
@@ -244,6 +314,10 @@ router.post('/google/code', async (req, res) => {
     // 앞의 것은 다시 눌러도 똑같으니 그렇게 말한다
     if (err.message === 'OAUTH_NO_EMAIL') {
       return res.status(400).json({ error: '구글 계정에서 이메일을 받지 못했어요. 이메일 제공에 동의하고 다시 시도해주세요' });
+    }
+    // 다시 눌러도 똑같다 — 구글에서 메일 주소를 확인해야 하는 일이다
+    if (err.message === 'OAUTH_EMAIL_UNVERIFIED') {
+      return res.status(400).json({ error: '구글에서 아직 확인되지 않은 메일 주소예요. 구글 계정에서 메일 확인을 끝내고 다시 해주세요' });
     }
     res.status(401).json({ error: '구글 로그인에 실패했어요. 잠시 뒤에 다시 해주세요' });
   }
@@ -257,14 +331,16 @@ router.get('/naver', (req, res) => {
     client_id: process.env.NAVER_CLIENT_ID,
     redirect_uri: `${backendUrl}/api/oauth/naver/callback`,
     response_type: 'code',
-    state: generateState(),
+    state: startOauth(req, res),
   });
   res.redirect(`https://nid.naver.com/oauth2.0/authorize?${params}`);
 });
 
 router.get('/naver/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  if (!validateState(req.query.state)) {
+  const sameOne = sameBrowser(req);
+  clearStateCookie(res);
+  if (!sameOne || !validateState(req.query.state)) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
@@ -300,14 +376,16 @@ router.get('/facebook', (req, res) => {
     redirect_uri: `${backendUrl}/api/oauth/facebook/callback`,
     scope: 'email,public_profile',
     response_type: 'code',
-    state: generateState(),
+    state: startOauth(req, res),
   });
   res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params}`);
 });
 
 router.get('/facebook/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  if (!validateState(req.query.state)) {
+  const sameOne = sameBrowser(req);
+  clearStateCookie(res);
+  if (!sameOne || !validateState(req.query.state)) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
@@ -342,14 +420,16 @@ router.get('/instagram', (req, res) => {
     redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
     scope: 'instagram_business_basic',
     response_type: 'code',
-    state: generateState(),
+    state: startOauth(req, res),
   });
   res.redirect(`https://www.instagram.com/oauth/authorize?${params}`);
 });
 
 router.get('/instagram/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  if (!validateState(req.query.state)) {
+  const sameOne = sameBrowser(req);
+  clearStateCookie(res);
+  if (!sameOne || !validateState(req.query.state)) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {

@@ -91,12 +91,17 @@ function get(p, headers) {
   });
 }
 
+// 받은 쿠키를 다음 요청에 들고 간다 — **브라우저가 하는 일**이다.
+// 2026-09-18 부터 서버가 state 를 쿠키로도 주고 콜백에서 그 둘을 맞춰본다
+const jarOf = (res) => (res.cookies || []).map((c) => c.split(';')[0]).join('; ');
+
 // 구글에 갔다 왔다고 치고 콜백까지 한 번 돈다
-async function login() {
+async function login(opts = {}) {
   const start = await get('/api/oauth/google', { Referer: 'http://localhost:5173/login' });
   const state = new URL(start.loc).searchParams.get('state');
-  const back = await get('/api/oauth/google/callback?code=abc&state=' + state);
-  return { start, loc: back.loc, cookies: back.cookies, status: back.status };
+  const headers = opts.noCookie ? {} : { Cookie: opts.cookie || jarOf(start) };
+  const back = await get('/api/oauth/google/callback?code=abc&state=' + state, headers);
+  return { start, state, loc: back.loc, cookies: back.cookies, status: back.status };
 }
 
 async function run() {
@@ -114,7 +119,11 @@ async function run() {
     ok('  성공이라고 말한다', q(first.loc).oauth, 'success');
     ok('  처음이라고 알려준다 (이름 정하기는 이때만)', q(first.loc).created, '1');
     ok('  로그인 열쇠 셋을 쥐여준다',
-      first.cookies.map((c) => c.split('=')[0]).sort(), ['sb_access', 'sb_csrf', 'sb_refresh']);
+      first.cookies.map((c) => c.split('=')[0]).filter((n) => n !== 'sb_oauth').sort(),
+      ['sb_access', 'sb_csrf', 'sb_refresh']);
+    // **쓰고 나면 버린다.** state 쿠키를 그대로 두면 다음 로그인에 옛 값이 실려 온다
+    ok('  쓰고 난 state 쿠키는 버린다',
+      first.cookies.some((c) => c.startsWith('sb_oauth=') && /(Max-Age=0|Expires=Thu, 01 Jan 1970)/i.test(c)), true);
     ok('  계정이 만들어졌다', !!db.findUserByEmail('me@gmail.com'), true);
     ok('  이름은 구글이 준 것이다', db.findUserByEmail('me@gmail.com').nickname, '근호');
 
@@ -127,7 +136,8 @@ async function run() {
     // 구글이 이메일을 안 주는 경우가 있다 (동의를 안 했거나 scope 가 빠졌을 때)
     PROFILE = { name: '이메일없음' };
     const noEmail = await login();
-    ok('이메일을 안 주면 계정을 안 만든다', q(noEmail.loc).error, 'google_failed');
+    // 오류를 구분해 보낸다 (2026-09-18) — 「다시 시도」로 뭉치면 영영 안 되는 일에 그 말을 한다
+    ok('이메일을 안 주면 계정을 안 만든다', q(noEmail.loc).error, 'google_no_email');
     ok('  빈 이메일 계정이 생기지 않았다', !!db.findUserByEmail(''), false);
     PROFILE = { email: 'me@gmail.com', name: '근호' };
 
@@ -143,6 +153,42 @@ async function run() {
     ok('지난 링크로 오면 로그인 화면으로 돌려보낸다', q(stale.loc).error, 'invalid_state');
 
     console.log('');
+    console.log('── 시작한 그 브라우저에서 돌아온 것인가 ── (2026-09-18)');
+    //
+    // state 는 무작위라 남이 맞힐 수는 없는데, **이미 제 손에 든 state 를 남의
+    // 브라우저에 쓰게 할 수는 있었다** — 공격자가 제 구글 계정으로 시작해 만든 콜백
+    // 링크를 누르게 하면 그 사람 브라우저에 **공격자 계정의 쿠키**가 심긴다.
+    // 그 뒤로 그 사람이 적는 운동이 공격자 계정에 쌓인다 (로그인 CSRF).
+    const startOnly = await get('/api/oauth/google', { Referer: 'http://localhost:5173/login' });
+    ok('시작할 때 state 를 쿠키로도 준다',
+      (startOnly.cookies || []).some((c) => c.startsWith('sb_oauth=')), true);
+    ok('  그 쿠키는 스크립트가 못 읽는다 (HttpOnly)',
+      (startOnly.cookies || []).some((c) => c.startsWith('sb_oauth=') && /HttpOnly/i.test(c)), true);
+    ok('  돌아오는 길에 실리게 Lax 로 둔다 (Strict 면 아예 안 실린다)',
+      (startOnly.cookies || []).some((c) => c.startsWith('sb_oauth=') && /SameSite=Lax/i.test(c)), true);
+
+    const stolen = await login({ noCookie: true });
+    ok('쿠키 없이 콜백에 오면 막는다', q(stolen.loc).error, 'invalid_state');
+    ok('  로그인 열쇠를 안 준다', stolen.cookies.some((c) => c.startsWith('sb_access=')), false);
+    const wrongJar = await login({ cookie: 'sb_oauth=deadbeefdeadbeef' });
+    ok('남의 state 쿠키로 와도 막는다', q(wrongJar.loc).error, 'invalid_state');
+
+    console.log('');
+    console.log('── 구글이 「확인 안 된 메일」이라고 하면 ── (2026-09-18)');
+    //
+    // 이 앱은 **이메일 하나로 계정을 잇는다.** 그래서 확인 안 된 주소를 그대로 받으면
+    // 남의 메일 주소를 적어둔 계정으로 들어와 그 사람의 기록을 그대로 받는 길이 된다
+    PROFILE = { email: 'someone.else@gmail.com', name: '확인안됨', verified_email: false };
+    const unverified = await login();
+    ok('계정을 안 만들고 돌려보낸다', q(unverified.loc).error, 'google_unverified');
+    ok('  그 이메일로 계정이 생기지 않았다', !!db.findUserByEmail('someone.else@gmail.com'), false);
+    // **모른다고 할 때는 막지 않는다** — 그 필드를 안 주는 제공자도 있다
+    PROFILE = { email: 'noflag@gmail.com', name: '모름' };
+    const noFlag = await login();
+    ok('확인 여부를 안 주면 막지 않는다', q(noFlag.loc).oauth, 'success');
+    PROFILE = { email: 'me@gmail.com', name: '근호' };
+
+    console.log('');
     console.log('── 이메일 없이 계정을 만들지 않는가 (함수 자리에서) ──');
     const cases = [
       ['이메일이 없으면 거절한다', undefined],
@@ -153,6 +199,13 @@ async function run() {
       let err = null;
       try { await findOrCreateUser(email, '아무개', 'google'); } catch (e) { err = e.message; }
       ok(name, err, 'OAUTH_NO_EMAIL');
+    }
+    {
+      let err = null;
+      try {
+        await findOrCreateUser('x@y.z', '아무개', 'google', { emailVerified: false });
+      } catch (e) { err = e.message; }
+      ok('확인 안 된 메일도 거절한다', err, 'OAUTH_EMAIL_UNVERIFIED');
     }
 
     // ── 아이디는 대소문자를 가리지 않는다 ──
