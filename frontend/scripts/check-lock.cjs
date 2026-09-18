@@ -103,6 +103,20 @@ ok('지금 잠그는 길이 있다', /지금 잠그기/.test(read('src/component
 ok('걸어뒀으면 설정 줄에 적는다', /badgeText=\{lockOn \? '켜짐' : null\}/.test(read('src/components/AccountSheet.jsx')), true);
 // 듣기만 하고 안 걷으면 화면을 옮길 때마다 하나씩 쌓인다
 ok('보던 것을 걷는다', /removeEventListener\('visibilitychange'/.test(overlay), true);
+// **덮을 뿐이라 뒤의 것들은 그대로 있다** — 탭을 누르면 초점이 가려진 화면의 단추로
+// 넘어가고, 거기서 엔터를 치면 잠긴 앱이 일을 한다 (2026-09-18 에 막았다)
+ok('탭이 뒤로 새지 않는다', /e\.key === 'Tab'/.test(overlay) && /box\.contains\(on\)/.test(overlay), true);
+ok('  덮은 동안 뒤가 안 밀린다', /document\.body\.style\.overflow = 'hidden'/.test(overlay), true);
+ok('  풀면 되돌린다 (안 하면 영영 못 내려간다)', /document\.body\.style\.overflow = before/.test(overlay), true);
+// 방금 비밀번호를 댄 사람에게 네 자리를 또 묻지 않는다 — 로그인은 더 센 자물쇠다
+{
+  const auth = read('src/store/authStore.js');
+  ok('로그인·가입 뒤에는 잠금을 놓는다',
+    (auth.match(/useLockStore\.getState\(\)\.release\(\)/g) || []).length, 2);
+  // 앱을 다시 띄운 것(쿠키로 이어진 것)은 로그인이 아니다 — 그때는 잠근 채로 둔다
+  ok('  앱을 다시 띄운 것은 로그인으로 안 본다',
+    /checkAuth[\s\S]{0,400}release\(\)/.test(auth), false);
+}
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

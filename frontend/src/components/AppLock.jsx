@@ -40,6 +40,7 @@ export default function AppLock() {
   const [shake, setShake] = useState(false);
   const [left, setLeft] = useState(0);
   const busy = useRef(false);
+  const boxRef = useRef(null);
 
   // 화면을 벗어났다 돌아오는 것을 본다. **`pagehide` 도 같이 듣는다** —
   // 폰에서는 앱을 밀어 없앨 때 `visibilitychange` 가 안 오는 경우가 있다
@@ -68,10 +69,30 @@ export default function AppLock() {
     return () => clearInterval(t);
   }, [locked, cooldown]);
 
-  // 자판이 없는 자리(PC)를 위해 키보드도 받는다
+  // 자판이 없는 자리(PC)를 위해 키보드도 받는다.
+  //
+  // ── 탭이 뒤로 새지 않게 한다 ── (2026-09-18)
+  //
+  // 이 화면은 위를 덮을 뿐이라 **뒤의 것들은 그대로 있다** — 탭을 누르면 초점이
+  // 가려진 화면의 단추로 넘어가고, 거기서 엔터를 치면 **잠긴 앱이 일을 한다**
+  // (게다가 읽어주는 도구는 가려진 글을 그대로 읽는다). 그래서 탭을 이 안에서 돌린다.
   useEffect(() => {
     if (!locked) return undefined;
     const onKey = (e) => {
+      if (e.key === 'Tab') {
+        const box = boxRef.current;
+        if (!box) return;
+        const able = [...box.querySelectorAll('button:not([disabled])')];
+        if (able.length === 0) return;
+        const first = able[0];
+        const last = able[able.length - 1];
+        const on = document.activeElement;
+        // 이 안에 없거나 끝에 닿았으면 반대쪽으로 돌린다
+        if (!box.contains(on)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+        if (!e.shiftKey && on === last) { e.preventDefault(); first.focus(); return; }
+        if (e.shiftKey && on === first) { e.preventDefault(); last.focus(); }
+        return;
+      }
       if (e.key >= '0' && e.key <= '9') push(e.key);
       else if (e.key === 'Backspace') push('←');
     };
@@ -79,6 +100,15 @@ export default function AppLock() {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locked, pin, left]);
+
+  // 덮은 동안 뒤가 안 밀리게. **되돌리는 것을 빠뜨리면 풀고 나서도 화면이 안 내려간다**
+  useEffect(() => {
+    if (!locked || !enabled) return undefined;
+    const before = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    boxRef.current?.focus();
+    return () => { document.body.style.overflow = before; };
+  }, [locked, enabled]);
 
   // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 —
   // 잊었을 때 푸는 길이 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고
@@ -126,10 +156,13 @@ export default function AppLock() {
 
   return (
     <div
+      ref={boxRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="앱 잠금"
       style={{
+        outline: 'none',
         position: 'fixed', inset: 0, zIndex: 9000,
         background: 'var(--bg-primary)',
         backgroundImage: 'var(--bg-glow)',

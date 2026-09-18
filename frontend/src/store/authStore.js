@@ -8,6 +8,7 @@ import { useRoutineSessionStore } from './routineSessionStore';
 import { useReportStore } from './reportStore';
 import { useGoalStore } from './goalStore';
 import { useGymStore } from './gymStore';
+import { useLockStore } from './lockStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -58,6 +59,12 @@ export const useAuthStore = create((set) => ({
     if (data.email) saveLS('ironlog_email', data.email);
     if (data.role) saveLS('ironlog_role', data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
+    // **방금 비밀번호를 댄 사람에게 네 자리를 또 묻지 않는다** (2026-09-18).
+    //
+    // 앱 잠금은 기기의 가림막이고, 로그인은 그보다 센 자물쇠다 — 센 것을 통과한
+    // 사람에게 약한 것을 다시 묻는 것은 의미가 없고, 로그인 직후에 잠금 화면이
+    // 덮이면 「로그인이 안 됐나」로 읽힌다. 걸어둔 것은 그대로 남는다
+    useLockStore.getState().release();
     // 지우기로 해뒀던 계정이면 서버가 되살리고 그렇다고 알려준다.
     // 로그인 화면이 이 값을 보고 「되살아났어요」를 띄운다
     return { restored: !!data.restored };
@@ -71,6 +78,8 @@ export const useAuthStore = create((set) => ({
     if (data?.email) saveLS('ironlog_email', data.email);
     if (data?.role) saveLS('ironlog_role', data.role);
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
+    // 가입 직후도 같다 — 방금 계정을 만든 사람에게 네 자리를 묻지 않는다
+    useLockStore.getState().release();
     return data;
   },
 
