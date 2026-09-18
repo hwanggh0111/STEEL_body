@@ -126,6 +126,16 @@ const SCREENS = [
   ['몸 지도 (그림)', 'src/components/BodyMap.jsx'],
   ['몸 지도', 'src/pages/BodyMapPage.jsx'],
   ['1년 기록 벽', 'src/components/YearWall.jsx'],
+  // 목표 (2026-09-17). 홈 카드 · 고리 · 목표 화면 셋.
+  // 목표를 안 세운 사람에게는 카드가 한 줄로 줄어드는데, **그 갈래가 안 그려지면
+  // 홈이 통째로 흰 화면**이 된다 — 홈 맨 위에 있는 자리라 더 그렇다
+  ['목표 고리', 'src/components/GoalRing.jsx'],
+  ['홈 목표 카드', 'src/components/home/GoalCard.jsx'],
+  ['목표 화면', 'src/pages/GoalPage.jsx'],
+  ['기구 탭', 'src/pages/GymPage.jsx'],
+  // 기구 세팅 (2026-09-17). 갈래가 넷이라(어디인지 고르기 · 안 적음 · 적어둠 · 적는 중)
+  // 눈으로 다 보려면 헬스장을 둘 만들고 세팅을 적었다 지워야 한다
+  ['기구 세팅', 'src/components/GymSetting.jsx'],
   ['운동 끝 결산', 'src/components/SessionFinish.jsx'],
   // 껍데기와 전면 화면.
   //
@@ -322,6 +332,23 @@ for (const [name, props] of [
 ]) {
   ok(`홈의 「오늘」 — ${name}`,
     drawWith('src/components/home/TodayCard.jsx', { ...props, onStartRoutine: () => {}, starting: false }), null);
+}
+
+// 홈 목표 카드 — 갈래가 넷이다 (2026-09-17).
+//
+// **홈 맨 위에 있는 카드**라 여기가 터지면 홈이 통째로 흰 화면이다. 목표를 안 세운
+// 사람 · 주 횟수만 · 체중만 · 둘 다 — 넷이 각각 다른 가지를 탄다.
+// 체중 목표는 세웠는데 인바디를 한 번도 안 적은 사람이 특히 잘 빠진다
+for (const [name, props] of [
+  ['목표 없음 (한 줄)', { goal: null, loaded: true, workouts: WORKOUTS, records: [], today: TODAY }],
+  ['아직 못 불러옴', { goal: null, loaded: false, workouts: WORKOUTS, records: [], today: TODAY }],
+  ['주 횟수만', { goal: { weeklyTarget: 4 }, loaded: true, workouts: WORKOUTS, records: [], today: TODAY }],
+  ['체중만 (인바디 없음)', { goal: { weightTarget: 75 }, loaded: true, workouts: WORKOUTS, records: [], today: TODAY }],
+  ['둘 다', { goal: { weeklyTarget: 3, weightTarget: 75, weightStart: 80 }, loaded: true, workouts: WORKOUTS,
+    records: [{ id: 1, date: '2026-09-01', weight: 78 }], today: TODAY }],
+]) {
+  ok(`홈 목표 카드 — ${name}`,
+    drawWith('src/components/home/GoalCard.jsx', { ...props, onGo: () => {} }), null);
 }
 
 // 제보 목록 — 답이 온 것 · 안 온 것 · 아직 못 불러온 것
