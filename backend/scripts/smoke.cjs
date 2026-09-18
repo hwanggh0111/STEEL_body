@@ -434,6 +434,9 @@ function cleanAll() {
   step('빈 파일은 안 받는다', (await call('POST', '/import', { kind: 'workouts', csv: '   ' })).status, 400);
   // **왜 하나도 못 읽었는지 말한다.** 「0건」만 돌려주면 파일이 잘못된 것인지 앱이 못 읽는
   // 것인지 알 수가 없다
+  // **429 가 오면 그것은 파일 잘못이 아니라 제한이다.** 이 한 바퀴는 한 번에 여덟 번
+  // 넣으므로, 짧은 사이에 여러 번 돌리면 시간당 제한(`RATE_LIMITS.importCsv`)에 걸린다 —
+  // 그때 「머리글이 없다」 같은 검사가 엉뚱하게 실패해서 한참 헤맸다 (2026-09-18)
   const noHead = await call('POST', '/import', { kind: 'workouts', csv: '가,나\n1,2' });
   step('머리글이 없으면 무엇이 없는지 말한다', /날짜/.test(noHead.data?.error || ''), true);
 
