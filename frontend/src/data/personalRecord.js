@@ -103,9 +103,20 @@ export function checkRecord(before, record) {
   return { entry: toEntry(record, record.date, s), prev: prev || null };
 }
 
-/** 종목별 최고 기록을 세운 날 최신순으로. */
+/**
+ * 이미 훑어 둔 것을 **세운 날 최신순으로** 줄 세운다.
+ *
+ * 훑는 것과 줄 세우는 것을 나눠 둔다 (2026-09-19) — 화면은 「몇 종목인지」를 접힌
+ * 채로도 보여주고 차례는 펼칠 때만 쓴다. 한 함수로 묶어 두면 그 화면이 같은 훑기를
+ * 두 번 한다 (5년치에서 22ms 짜리다).
+ */
+export function sortBest(best) {
+  return [...best.values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+/** 종목별 최고 기록을 세운 날 최신순으로. 한 번에 다 필요할 때. */
 export function bestList(workouts) {
-  return [...bestRecords(workouts).values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return sortBest(bestRecords(workouts));
 }
 
 /** 'YYYY-MM-DD' 두 개 사이의 날 수. 어느 쪽이 앞이든 0 이상을 돌려준다. */

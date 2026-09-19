@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { bestList, bestRecords, daysBetween } from '../data/personalRecord';
+import { bestRecords, sortBest, daysBetween } from '../data/personalRecord';
 import { dateKey } from '../data/dateKey';
 
 // 종목별 최고 기록.
@@ -26,12 +26,18 @@ export default function BestRecords({ workouts }) {
   const [open, setOpen] = useState(false);
   const today = dateKey();
 
-  // 접혀 있으면 세지 않는다. 기록이 몇 백 개면 열지도 않을 목록을 매번 훑게 된다.
-  // 다만 **몇 종목인지는 접힌 채로도 보여준다** — 그것까지 숨기면 펼칠 이유가 안 보인다.
-  const count = useMemo(() => bestRecords(workouts).size, [workouts]);
+  // **기록 전부를 한 번만 훑는다** (2026-09-19).
+  //
+  // 접힌 채로도 「몇 종목인지」는 보여준다 — 그것까지 숨기면 펼칠 이유가 안 보인다.
+  // 그런데 세는 것도 목록을 만드는 것도 **같은 훑기**(`bestRecords`)다. 예전에는
+  // 펼치는 순간 그 훑기를 한 번 더 했다 — 5년치(29만 줄)에서 22ms 짜리 훑기라
+  // 펼칠 때 화면이 한 번 걸렸다. 한 번 훑어 놓고 세는 것과 줄 세우는 것에 같이 쓴다.
+  const best = useMemo(() => bestRecords(workouts), [workouts]);
+  const count = best.size;
+  // 줄을 세우는 것(정렬)은 펼칠 때만 한다. 접힌 채로는 차례가 필요 없다
   const list = useMemo(() => (open
-    ? bestList(workouts).map(e => ({ ...e, days: daysBetween(e.date, today) }))
-    : []), [open, workouts, today]);
+    ? sortBest(best).map(e => ({ ...e, days: daysBetween(e.date, today) }))
+    : []), [open, best, today]);
 
   if (count === 0) return null;
 

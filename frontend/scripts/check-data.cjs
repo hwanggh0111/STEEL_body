@@ -398,10 +398,13 @@ ok('  그 자리에서 적는다', /onAddWorkout/.test(daySheet), true);
 ok('  이름을 그 자리에서 찾는다', /ExerciseFinder/.test(daySheet), true);
 // 다른 날로 옮겼는데 쓰던 것이 남으면 **다른 날 메모가 이 날에 붙는다**
 ok('날짜가 바뀌면 쓰던 것을 닫는다', /\}, \[date\]\)/.test(daySheet), true);
-const wp2 = stripNotes(fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8'));
-ok('기록 화면이 들고 온 날짜를 쓴다', /location\.state\?\.date/.test(wp2), true);
-// 들고 온 날짜를 자정 넘김 처리가 오늘로 덮으면 그 날짜로 못 적는다
-ok('들고 온 날짜를 자정 넘김이 안 덮는다', /useRef\(!!location\.state\?\.date\)/.test(wp2), true);
+// **옛 기록 화면(`/workout`)을 지웠다** (2026-09-19). 「들고 온 날짜를 쓰는가」는
+// 그 화면에만 있던 약속이고, 지금은 날짜를 넘기는 길 자체가 없다 — 달력의 그날 칸에서
+// 바로 적고(`DaySheet`, 위 두 줄), 지난 날을 적을 때는 「운동」 화면에서 날짜를 고른다.
+// 그래서 지키는 것을 **살아 있는 자리**로 옮긴다
+const train2 = stripNotes(fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8'));
+ok('「운동」에서 지난 날짜에 적을 수 있다', /지난 날짜에 적기/.test(train2), true);
+ok('  날짜를 직접 고르는 칸이 있다', /type="date"/.test(train2), true);
 
 console.log('\n── 루틴 (2026-09-02 에 다시 짰다) ──');
 // 한 화면에 **두 화면**이 있었다 — 「나만의 루틴」(목록 + 만들기 폼 + 고치기)과
@@ -1065,18 +1068,19 @@ ok('부위로 찾는다 (가슴)', found('가슴').length > 0, true);
 ok('오늘 넣은 운동도 찾힌다 (노르딕 컬)', found('노르딕').includes('노르딕 컬'), true);
 ok('한 글자로는 안 찾는다 (거의 다 걸려서 도움이 안 된다)', found('스').length, 0);
 
-const wp = fs.readFileSync('src/pages/WorkoutPage.jsx', 'utf-8');
-ok('기록 화면이 사전을 쓴다', /searchExercises/.test(wp), true);
-// 내가 전에 한 것이 위에 와야 한다 — 무게·횟수가 저절로 채워지는 것들이다
-ok('전에 한 것을 먼저 보여준다', wp.indexOf('mine: true') < wp.indexOf('fromDict'), true);
-ok('사전에서 온 것은 설명을 같이 보여준다', wp.includes('s.desc &&'), true);
-ok('뭘로 찾을 수 있는지 적어준다', wp.includes('이름 · 초성 · 부위로 찾을 수 있어요'), true);
-// **그 줄이 운동명 칸 밑에 있어야 한다.** 9/1 에는 「다음 운동」 카드 안에 들어가 있었다 —
-// 그 카드에는 운동명 칸이 아예 없다(무게·횟수·횟수뿐이다). 찾을 것이 없는 자리에서
-// 찾는 법을 알려주고, 정작 찾는 칸 밑에는 아무 말이 없었다. 빌드도 검사도 통과했다.
-ok('그 줄이 운동명 칸 밑에 있다', wp.indexOf('t.searchHint') > wp.indexOf('ref={exerciseInputRef}'), true);
-// 후보가 뜰 때 줄을 지우면 밑의 무게·횟수 칸이 위로 튄다 — 감추기만 한다
-ok('후보가 뜨면 감춘다 (지우지 않는다)', /visibility: suggestions\.length > 0/.test(wp), true);
+// 사전을 **어느 화면이 쓰는가**도 2026-09-19 에 옮겼다. 옛 기록 화면은 사전을 자기
+// 안에 한 벌 더 들고 있었다(그래서 929줄이었다). 지금은 「운동」이 `ExerciseFinder`
+// 하나를 불러 쓴다 — 찾는 자리가 한 군데면 고칠 자리도 한 군데다
+const finderDict = fs.readFileSync('src/components/ExerciseFinder.jsx', 'utf-8');
+ok('찾는 자리가 사전을 쓴다', /searchExercises/.test(finderDict), true);
+ok('  사전에서 온 것은 자세 설명을 같이 보여준다', /desc=\{e\.desc\}/.test(finderDict), true);
+ok('  뭘로 찾을 수 있는지 적어준다', finderDict.includes('초성'), true);
+// 두 글자부터 찾는다 — 한 글자로는 거의 다 걸려서 도움이 안 된다 (위 사전 검사와 같은 약속)
+ok('  몇 글자부터 찾는지 적어준다', finderDict.includes('두 글자부터'), true);
+// **사전을 두 벌로 들지 않는다.** 화면이 제 손으로 또 검색하면 규칙이 갈린다
+const trainDict = stripNotes(fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8'));
+ok('「운동」은 제 손으로 다시 찾지 않는다', /searchExercises/.test(trainDict), false);
+ok('  찾는 일은 ExerciseFinder 에 맡긴다', /ExerciseFinder/.test(trainDict), true);
 
 console.log('');
 console.log('── 앱 이름이 한 이름인가 ──');

@@ -12,6 +12,8 @@ import WorkoutCard from '../components/WorkoutCard';
 import MonthCalendar from '../components/MonthCalendar';
 import YearWall from '../components/YearWall';
 import SegRow from '../components/SegRow';
+// 종목별 최고 기록 — 2026-09-19 에 옛 기록 화면에서 이리로 옮겼다 (아래 「통계」 갈래)
+import BestRecords from '../components/BestRecords';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -643,6 +645,15 @@ export default function HistoryPage() {
       </>)}
 
       {seg === 'stats' && (<>
+      {/* ── 종목별 최고 기록 ── (2026-09-19 에 **여기로 옮겼다**)
+          이 표는 여태 옛 기록 화면(`/workout`)에만 붙어 있었다. 9/18 에 그 화면을
+          길찾기에서 걷을 때 **표가 같이 묻혔다** — 앱 어디에서도 자기 최고 기록을
+          볼 길이 없었다는 뜻이다. 계산을 9/18 에 22ms 로 줄여 놓기까지 했는데 그렇다.
+
+          「기록 → 통계」가 제 자리다. 되짚는 자리이고, 여기 있던 것은 체중 그래프
+          하나뿐이라 **인바디를 안 적은 사람에게는 이 갈래가 통째로 비어 있었다.** */}
+      <BestRecords workouts={workouts} />
+
       {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
       {records.length > 1 && (
         <>
@@ -654,6 +665,15 @@ export default function HistoryPage() {
             <WeightChart records={records} />
           </div>
         </>
+      )}
+      {/* 최고 기록도 체중 그래프도 없으면 이 갈래는 빈 화면이다 —
+          「없어요」로 끝내지 않고 갈 곳까지 준다 (위 두 갈래와 같은 결) */}
+      {totalWorkouts === 0 && records.length <= 1 && (
+        <EmptyTab
+          title="아직 견줄 것이 없어요"
+          desc="한 세트만 적으면 종목마다 자기 최고 기록이 여기 쌓입니다. 인바디를 두 번 재면 체중 그래프도 같이 그려져요."
+          onGo={() => navigate('/train')}
+        />
       )}
       </>)}
 

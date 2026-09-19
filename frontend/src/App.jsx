@@ -13,7 +13,6 @@ import './styles/globals.css';
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const RoutinePage = lazy(() => import('./pages/RoutinePage'));
-const WorkoutPage = lazy(() => import('./pages/WorkoutPage'));
 // 5차 리모델링 — 루틴 · 기록 · 검색 · 기능성운동을 한 흐름으로 (2026-09-04)
 const TrainPage = lazy(() => import('./pages/TrainPage'));
 // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
@@ -32,10 +31,8 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 // 홈페이지 — **앱 밖으로 나가 새 화면으로 열린다** (2026-09-04).
 // 껍데기(Layout) 밖에 건다 — 아래 탭바도 내 계정도 없는, 웹사이트 같은 자리다
 const SiteHome = lazy(() => import('./pages/SiteHome'));
-const InbodyPage = lazy(() => import('./pages/InbodyPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
-const MeasurePage = lazy(() => import('./pages/MeasurePage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
@@ -106,17 +103,28 @@ export default function App() {
                 <Route index element={<Navigate to="/home" />} />
                 <Route path="home" element={<HomePage />} />
                 <Route path="routine" element={<RoutinePage />} />
-                <Route path="workout" element={<WorkoutPage />} />
+                {/* ── 옛 주소 셋은 **넘긴다** ── (2026-09-19)
+                    `/workout`(옛 기록) · `/inbody` · `/measure` 는 앱 안에서 **가는 길이
+                    하나도 없는데** 화면은 그대로 떠 있었다. 그 자리들에는 아래 탭바에
+                    아무 칸도 안 켜져서, 들어간 사람은 **옆으로 건너갈 수가 없다.**
+                    게다가 옛 기록 화면은 지금 「운동」과 같은 일을 하는 두 벌째 구현
+                    (929줄)이었다 — 한쪽만 고치는 날이 오면 그때는 늦다.
+
+                    **주소는 그대로 살린다** (북마크 · 폰 홈 화면 바로가기 · 옛 PWA
+                    캐시가 그 주소로 온다). 대신 **지금 그 일을 하는 자리로 넘긴다.** */}
+                <Route path="workout" element={<Navigate to="/train" replace />} />
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
                 <Route path="map" element={<BodyMapPage />} />
                 {/* 목표 — 홈의 목표 카드에서만 들어온다 (2026-09-17) */}
                 <Route path="goal" element={<GoalPage />} />
                 <Route path="gym" element={<GymPage />} />
-                <Route path="inbody" element={<InbodyPage />} />
+                {/* 인바디 · 재는 도구는 「몸」 탭의 갈래다. 갈래까지 지정해서 넘긴다 —
+                    그냥 `/body` 로 보내면 「재는 도구」를 북마크한 사람이 인바디를 본다 */}
+                <Route path="inbody" element={<Navigate to="/body" replace state={{ tab: 'inbody' }} />} />
+                <Route path="measure" element={<Navigate to="/body" replace state={{ tab: 'measure' }} />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="homeworkout" element={<HomeworkoutPage />} />
-                <Route path="measure" element={<MeasurePage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="support" element={<SupportPage />} />

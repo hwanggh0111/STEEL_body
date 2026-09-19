@@ -88,7 +88,7 @@ console.log('── 화면이 터지지 않고 그려지는가 (데이터 없이
 // 그려진다 — **그 상태에서도 안 터져야 한다.** 처음 열 때가 정확히 그 상태다
 const SCREENS = [
   ['홈', 'src/pages/HomePage.jsx'],
-  ['기록', 'src/pages/WorkoutPage.jsx'],
+  // 옛 기록 화면은 2026-09-19 에 지웠다 (같은 일을 하는 두 벌째 구현이었다).
   // 5차 리모델링 — 루틴 · 기록 · 검색 · 기능성운동을 한 흐름으로 (2026-09-04)
   ['운동', 'src/pages/TrainPage.jsx'],
   ['히스토리', 'src/pages/HistoryPage.jsx'],
