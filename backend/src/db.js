@@ -1082,7 +1082,38 @@ const db = {
     const data = load();
     return (data.abuseLogs || []).sort((a, b) => b.id - a.id);
   },
-  // 사전이 잘못 잡아 정지된 사람을 풀어준다. 되돌릴 길이 없으면 자동 처벌을 걸 수 없다
+  /**
+   * **욕설로 걸린 정지만** 푼다 (2026-09-19).
+   *
+   * 여태 `clearSuspensions` 로 그 사람의 정지를 **통째로** 지웠다. 그래서 관리자가
+   * 욕설 오탐 하나를 「사전이 틀렸음」 으로 처리하면 **AI 가드가 해킹 시도로 걸어둔
+   * 영구 정지까지 같이 풀렸다** (`middleware/aiGuard.js` 의 level 3·4).
+   * 관리자가 하려던 일은 사전을 고치는 것이고, 차단을 푸는 것이 아니다.
+   *
+   * 다시 걸어야 할지 계산하려고 **제일 먼저 걸린 때**도 같이 돌려준다 —
+   * 지금부터 다시 세면 벌이 늘어난다.
+   */
+  clearAbuseSuspensions(userId) {
+    const data = load();
+    if (!data.suspensions) return { changes: 0, earliest: null };
+    const mine = data.suspensions.filter(
+      (s) => s.user_id === userId && (s.reason === 'abuse' || s.reason === 'abuse-hate'),
+    );
+    if (mine.length === 0) return { changes: 0, earliest: null };
+    const earliest = mine.map((s) => s.created_at).sort()[0] || null;
+    data.suspensions = data.suspensions.filter((s) => !mine.includes(s));
+    save(data);
+    return { changes: mine.length, earliest };
+  },
+
+  /** 그 사람의 욕설 기록만. 다시 계산할 때 쓴다 */
+  abuseLogsOf(userId) {
+    const data = load();
+    return (data.abuseLogs || []).filter((a) => a.user_id === userId);
+  },
+
+  // 정지를 통째로 푼다. **해킹 차단까지 같이 풀리므로** 욕설 되돌리기에는 쓰지 않는다
+  // (위의 `clearAbuseSuspensions` 를 쓴다)
   clearSuspensions(userId) {
     const data = load();
     if (!data.suspensions) return { changes: 0 };

@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
+const { recomputeDays } = require('../utils/abusePolicy');
 const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
 const { inspect } = require('../utils/profanity');
 const { punish } = require('../utils/abusePolicy');
@@ -100,12 +101,38 @@ router.patch('/abuse/:id', adminAuth, (req, res) => {
   const result = db.updateAbuseLog(Number(req.params.id), { reviewed, dismissed });
   if (result.changes === 0) return res.status(404).json({ error: '기록을 찾을 수 없어요' });
 
-  // 사전이 틀렸다고 표시하면 그 사람의 정지도 푼다.
-  // 표시만 해두고 정지가 남아 있으면 되돌린 게 아니다
+  // ── 사전이 틀렸다고 표시하면 정지를 **다시 계산한다** ── (2026-09-19 에 고쳤다)
+  //
+  // 여태 `clearSuspensions` 로 그 사람의 정지를 **통째로** 지웠다. 둘이 틀렸다 —
+  //
+  //   1. **해킹 차단까지 같이 풀렸다.** AI 가드가 걸어둔 정지(영구 포함)가 같은 표에
+  //      있다. 관리자가 하려던 일은 사전을 고치는 것이고 차단을 푸는 것이 아니다
+  //   2. **진짜로 걸린 것까지 없던 일이 됐다.** 세 번 걸려 3일 정지인 사람에서 한 번이
+  //      오탐이었다면 맞는 벌은 1일이다 — 0일이 아니다
+  //
+  // 그래서 욕설로 걸린 정지만 풀고, 남은 기록으로 다시 계산해서 필요하면 다시 건다.
+  // **다시 걸 때는 처음 걸린 때부터 센다** — 지금부터 세면 오탐을 신고한 대가로 벌이 늘어난다
   let unsuspended = 0;
-  if (dismissed) unsuspended = db.clearSuspensions(result.log.user_id).changes;
+  let rebuilt = null;
+  if (dismissed) {
+    const userId = result.log.user_id;
+    const removed = db.clearAbuseSuspensions(userId);
+    unsuspended = removed.changes;
+    const days = recomputeDays(db.abuseLogsOf(userId));
+    if (days > 0 && removed.earliest) {
+      const until = new Date(Date.parse(removed.earliest) + days * 86400000);
+      // 다시 세어보니 이미 지난 벌이면 그냥 풀린 채로 둔다
+      if (until.getTime() > Date.now()) {
+        db.createSuspension(userId, 3, 'abuse', 
+          `사전 오탐 하나를 뺀 뒤 다시 계산했습니다. 남은 누적으로 ${days}일 정지입니다 `
+          + `(${until.toISOString().slice(0, 10)} 해제).`,
+          until.toISOString());
+        rebuilt = { days, until: until.toISOString().slice(0, 10) };
+      }
+    }
+  }
 
-  res.json({ ...result.log, unsuspended });
+  res.json({ ...result.log, unsuspended, rebuilt });
 });
 
 // 제보 등록

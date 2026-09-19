@@ -143,4 +143,20 @@ function punish(userId, verdict, where, text) {
   return { blocked: true, days, count, message };
 }
 
-module.exports = { punish, daysFor, LADDER, MAX_DAYS };
+/**
+ * **남아 있는 기록만으로 다시 계산한다** (2026-09-19).
+ *
+ * 오탐 하나를 빼면 누적이 줄어든다 — 세 번 걸려 3일 정지였던 사람에서 한 번이
+ * 사전 잘못이었다면 맞는 벌은 1일이다. 여태는 **통째로 풀었다.** 그것도 틀렸다:
+ * 진짜로 걸린 둘이 없던 일이 된다.
+ *
+ * 짜증(`mild`)과 오탐(`dismissed`)은 안 센다 — `db.countAbuse` 와 같은 규칙이다.
+ * 비하(`hate`)가 하나라도 남아 있으면 사다리를 안 타고 7일이다.
+ */
+function recomputeDays(logs) {
+  const live = (logs || []).filter((a) => a && a.level !== 'mild' && !a.dismissed);
+  if (live.some((a) => a.level === 'hate')) return MAX_DAYS;
+  return daysFor(live.length);
+}
+
+module.exports = { punish, daysFor, recomputeDays, LADDER, MAX_DAYS };
