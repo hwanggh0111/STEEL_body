@@ -286,25 +286,61 @@ export default function GoalPage() {
                   )}
                 </div>
 
-                {/* 최근 다섯 주. **이번 주는 아직 진행 중**이라 테두리로 표시한다 —
-                    다 지난 주와 같은 색으로 그리면 남은 날이 있는데 못 채운 것처럼 보인다 */}
-                <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', height: 46 }}>
-                  {history.map((w) => (
-                    <div
-                      key={w.monday}
-                      title={`${w.monday} 주 · ${w.done}일`}
-                      style={{
-                        flex: 1,
-                        height: `${Math.max(12, Math.round(w.ratio * 100))}%`,
-                        background: w.met ? 'var(--accent)' : w.done > 0 ? 'var(--accent-low)' : 'var(--bg-tertiary)',
-                        border: w.current ? '1px solid var(--accent)' : '1px solid transparent',
-                        borderRadius: 'var(--radius)',
-                      }}
-                    />
-                  ))}
+                {/* ── 최근 다섯 주 ── (2026-09-19 에 다시 그렸다)
+                    여태 **세 가지가 다 비슷하게 보였다.** 채운 주는 밝은 금, 못 채운 주는
+                    어두운 금 — 어두운 바탕에서 이 둘은 거의 안 갈린다. 그래서 0주 연속인데
+                    막대는 채워진 것처럼 보였다(9/19 에 그 화면을 보고 찾았다).
+
+                    이제 **모양**으로 가른다 — 색은 눈이 속지만 모양은 안 속는다:
+                      · 채운 주       꽉 찬 금 + 윗변에 마감 한 줄
+                      · 못 채운 주    **속을 비우고 테두리만** (윤곽은 있는데 안 찼다)
+                      · 목표 전       바닥에 낮은 선 (평가하지 않는 주다)
+                      · 이번 주       막대 **아래 금색 2px 밑줄** + 「이번 주」
+
+                    이번 주에 점선을 안 쓴 이유 — 46px 짜리 막대에서 점선은 흐려 보이고,
+                    이 앱은 「지금 여기」를 **탭바의 2px 금 바**로 말해 왔다. 같은 말을 쓴다.
+
+                    **숫자를 아래에 적는다.** 여태 몇 일 했는지는 마우스를 올려야 떴는데,
+                    폰에는 올릴 마우스가 없다 */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                  {history.map((w) => {
+                    const pct = Math.max(12, Math.round(w.ratio * 100));
+                    const shape = w.before
+                      ? { height: 4, background: 'var(--bg-tertiary)' }
+                      : w.met
+                        ? { height: `${pct}%`, background: 'var(--accent)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35)' }
+                        : { height: `${pct}%`, background: 'var(--accent-dim)', border: '1px solid var(--accent-low)' };
+                    return (
+                      <div
+                        key={w.monday}
+                        style={{ flex: 1, textAlign: 'center', minWidth: 0 }}
+                        title={w.before
+                          ? `${w.monday} 주 · 목표를 세우기 전이에요`
+                          : `${w.monday} 주 · ${w.done}일${w.met ? ' · 채웠어요' : ''}`}
+                      >
+                        <div style={{ height: 46, display: 'flex', alignItems: 'flex-end' }}>
+                          <div style={{ width: '100%', borderRadius: 'var(--radius)', ...shape }} />
+                        </div>
+                        {/* 이번 주 밑줄 — 탭바의 활성 표시와 같은 말이다 */}
+                        <div style={{
+                          height: 2, marginTop: 4, borderRadius: 1,
+                          background: w.current ? 'var(--accent)' : 'transparent',
+                        }} />
+                        <div style={{
+                          fontSize: 10.5, marginTop: 3,
+                          color: w.met ? 'var(--accent)' : 'var(--text-muted)',
+                          fontFamily: w.before ? 'inherit' : "'Bebas Neue', sans-serif",
+                          letterSpacing: w.before ? 0 : 0.5,
+                        }}>{w.before ? '·' : w.done}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7 }}>
-                  최근 {history.length}주 · 맨 오른쪽이 이번 주
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>
+                  최근 {history.length}주 · 맨 오른쪽(<span style={{ color: 'var(--accent)' }}>밑줄</span>)이 이번 주
+                  <br />
+                  꽉 찬 금은 채운 주 · 테두리만 있는 것은 못 채운 주
+                  {history.some((w) => w.before) && ' · 낮은 선은 목표를 세우기 전'}
                 </div>
               </div>
             </>

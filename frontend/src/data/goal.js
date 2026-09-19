@@ -114,16 +114,22 @@ export function weekHistory(workouts, goal, today = dateKey(), n = 5) {
   const target = goal?.weeklyTarget;
   if (!target) return [];
   const thisMonday = mondayOf(at(today));
+  // **약속하기 전의 주는 지킨 것도 어긴 것도 아니다** (2026-09-19).
+  // 오늘 목표를 세운 사람의 화면에 「못 채운 주」 넷이 먼저 떠 있었다
+  const startMonday = goal?.startedAt ? mondayOf(at(goal.startedAt)) : null;
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
     const monday = weekBack(thisMonday, i);
     const done = doneIn(workouts, weekKeys(monday));
+    const before = startMonday ? monday < startMonday : false;
     out.push({
       monday: dateKey(monday),
       done,
-      met: done >= target,
+      // 목표를 세우기 전 주는 채웠다고도, 못 채웠다고도 하지 않는다
+      met: !before && done >= target,
+      before,
       current: i === 0,
-      ratio: clamp01(done / target),
+      ratio: before ? 0 : clamp01(done / target),
     });
   }
   return out;
@@ -147,9 +153,22 @@ export function weekStreak(workouts, goal, today = dateKey()) {
   if (dates.length === 0) return { current: 0, best: 0, weeks: 0 };
 
   const thisMonday = mondayOf(at(today));
-  const firstMonday = mondayOf(at(dates[0]));
+  // **약속한 주부터 센다** (2026-09-19 에 고쳤다).
+  //
+  // 여태 **첫 운동 기록**의 주부터 셌다. 그래서 오늘 목표를 세우면 그 순간
+  // 지난 주들이 주 3회 기준으로 심사되고, 대개 미달이라 **세우자마자 「0주 연속」**이
+  // 된다. 3년치 기록이 있는 사람은 3년이 통째로 심사된다(520주에서 자르긴 한다).
+  // 약속하기 전의 주는 지킨 것도 어긴 것도 아니다.
+  //
+  // **옛 목표(시작일이 없는 것)는 예전 그대로 둔다** — 값이 없다고 화면이 비면 안 된다.
+  // 둘 중 **늦은 쪽**부터 센다: 목표를 세운 뒤에 처음 적은 사람도 있다.
+  const startMonday = goal?.startedAt ? mondayOf(at(goal.startedAt)) : null;
+  const recordMonday = mondayOf(at(dates[0]));
+  let firstMonday = startMonday && startMonday > recordMonday ? startMonday : recordMonday;
+  // 시작일이 앞날이면(손으로 보낸 값) 이번 주로 잡는다 — span 이 0 이하가 되면 안 된다
+  if (firstMonday > thisMonday) firstMonday = thisMonday;
 
-  // 첫 기록의 주부터 이번 주까지, 주마다 「채웠나」 하나씩
+  // 그 주부터 이번 주까지, 주마다 「채웠나」 하나씩
   const span = Math.min(MAX_WEEKS,
     Math.round((thisMonday - firstMonday) / (7 * 24 * 3600 * 1000)) + 1);
   const met = [];

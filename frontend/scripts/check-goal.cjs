@@ -182,5 +182,75 @@ const page = fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8')
 ok('고칠 때는 안 보낸다', /startedAt: today \}/.test(page), false);
 ok('  처음 세울 때만 보낸다', /if \(!goal\?\.startedAt\) payload\.startedAt = today;/.test(page), true);
 
+console.log('');
+console.log('── 약속하기 전의 주는 평가하지 않는다 ── (2026-09-19)');
+//
+// 9/19 에 화면을 보다가 찾았다. **목표를 오늘 세웠는데 「0주 연속」**이 떠 있었고,
+// 막대 두 칸은 채워진 것처럼 보였다. 값은 「맞았지만」 규칙이 틀렸다 —
+// `weekStreak` 이 **첫 운동 기록**의 주부터 셌다. 그래서 목표를 세우는 순간 지난 주들이
+// 주 N회 기준으로 심사된다. 3년치 기록이 있는 사람은 3년이 통째로 심사된다.
+// 약속하기 전의 주는 지킨 것도 어긴 것도 아니다.
+//
+// 위의 `W` 는 이번 주를 이미 채운 자료라 차이가 안 드러난다. **이번 주가 모자란**
+// 자료로 본다 — 그래야 「과거를 끌어오는가」가 값으로 갈린다.
+//
+//   그 전주 (8/31~9/6)  3일 → 채움
+//   지난주  (9/7~9/13)  3일 → 채움
+//   이번 주 (9/14~)     2일 → 아직
+const W2 = {
+  '2026-08-31': one, '2026-09-02': one, '2026-09-04': one,
+  '2026-09-07': one, '2026-09-09': one, '2026-09-11': one,
+  '2026-09-14': one, '2026-09-16': one,
+};
+const G3 = { weeklyTarget: 3 };
+const fri = '2026-09-18';
+
+// 오래전부터 쫓고 있었으면 — 이번 주는 아직이라 건너뛰고 지난 두 주를 센다
+ok('오래전부터 쫓고 있었으면 두 주가 이어져 있다',
+  g.weekStreak(W2, { ...G3, startedAt: '2026-08-01' }, fri).current, 2);
+// **오늘 세웠으면 그 두 주는 남의 주다.** 예전 규칙이면 여기서도 2 가 나왔다
+ok('  이번 주에 세웠으면 과거를 끌어오지 않는다',
+  g.weekStreak(W2, { ...G3, startedAt: '2026-09-14' }, fri).current, 0);
+ok('  「가장 길게」도 끌어오지 않는다',
+  g.weekStreak(W2, { ...G3, startedAt: '2026-09-14' }, fri).best, 0);
+ok('  세운 뒤로 몇 주째인지도 한 주다',
+  g.weekStreak(W2, { ...G3, startedAt: '2026-09-14' }, fri).weeks, 1);
+// 지난주에 세웠으면 그 주는 센다 (채웠으므로 이어진다)
+ok('지난주에 세웠으면 그 한 주는 이어진다',
+  g.weekStreak(W2, { ...G3, startedAt: '2026-09-07' }, fri).current, 1);
+// **옛 목표(시작일이 없는 것)는 예전 그대로다.** 값이 없다고 화면이 비면 안 된다
+ok('시작일이 없으면 예전처럼 첫 기록부터 센다', g.weekStreak(W2, G3, fri).current, 2);
+// 목표가 먼저고 기록이 나중이면 — 둘 중 **늦은 쪽**(첫 기록)부터다
+ok('  목표가 기록보다 앞서면 기록부터 센다',
+  g.weekStreak(W2, { ...G3, startedAt: '2020-01-01' }, fri).current, 2);
+// 손으로 앞날을 보내도 안 터진다 (span 이 0 이하가 되면 안 된다)
+ok('  시작일이 앞날이어도 안 터진다',
+  typeof g.weekStreak(W2, { ...G3, startedAt: '2099-01-01' }, fri).current, 'number');
+
+console.log('');
+console.log('── 막대가 세 가지를 갈라서 말하는가 ──');
+const histNew = g.weekHistory(W2, { ...G3, startedAt: '2026-09-07' }, fri, 5);
+ok('다섯 주를 준다', histNew.length, 5);
+ok('  목표 전 주는 before 로 표시한다', histNew.map((w) => w.before), [true, true, true, false, false]);
+// 목표 전 주는 「못 채운 주」가 아니다 — 높이(ratio)도 0 이라 낮은 선으로 그려진다
+ok('  목표 전 주는 채웠다고도 못 채웠다고도 안 한다',
+  histNew.filter((w) => w.before).map((w) => [w.met, w.ratio]), [[false, 0], [false, 0], [false, 0]]);
+ok('  목표 뒤의 주는 그대로 센다', histNew.filter((w) => !w.before).map((w) => [w.done, w.met]), [[3, true], [2, false]]);
+ok('  맨 오른쪽이 이번 주다', histNew[histNew.length - 1].current, true);
+// 시작일이 없으면 before 가 하나도 없다 (옛 목표)
+ok('시작일이 없으면 목표 전 주도 없다', g.weekHistory(W2, G3, fri, 5).some((w) => w.before), false);
+
+console.log('');
+console.log('── 화면이 셋을 다른 모양으로 그리는가 ──');
+// 색만 다르면 어두운 바탕에서 안 갈린다 — 9/19 에 그것 때문에 「0주 연속인데 채워진
+// 막대」를 봤다. 그래서 **모양**으로 가른다
+const bars = fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8');
+ok('못 채운 주는 속을 비우고 테두리만', /border: '1px solid var\(--accent-low\)'/.test(bars), true);
+ok('  채운 주는 꽉 찬 금이다', /background: 'var\(--accent\)', boxShadow/.test(bars), true);
+ok('  목표 전 주는 낮은 선이다', /height: 4, background: 'var\(--bg-tertiary\)'/.test(bars), true);
+ok('이번 주는 밑줄로 말한다 (탭바와 같은 언어)', /w\.current \? 'var\(--accent\)' : 'transparent'/.test(bars), true);
+// 폰에는 마우스를 올릴 방법이 없다. 숫자를 눈에 보이게 적는다
+ok('  몇 일 했는지 막대 아래에 적는다', /\{w\.before \? '·' : w\.done\}/.test(bars), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
