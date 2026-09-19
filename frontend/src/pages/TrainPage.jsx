@@ -643,6 +643,26 @@ export default function TrainPage() {
                 기구를 맞추는 일은 무게를 적는 일보다 먼저이되, **어느 운동인지 안 다음**이다 */}
             <GymSetting exercise={exercise} />
 
+            {/* 적어둔 것 **전부**로 가는 길 (2026-09-19, 8차에 탭을 걷으면서).
+                위 카드는 「지금 이 기구를 어떻게 맞추지」 하나를 말하고, 이 줄은
+                「내가 무엇을 적어뒀지」 전부로 간다 — 7차에 탭으로 뒀던 그 질문이다.
+                **길은 하나만 둔다**: 탭에도 서랍에도 안 걸고 여기 한 곳이다 */}
+            <button
+              type="button"
+              onClick={() => navigate('/gym')}
+              style={{
+                background: 'none', border: 0, padding: '0 0 12px', marginTop: -4,
+                color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              적어둔 기구 세팅 전부 보기
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
               <div>
                 <label className="label" htmlFor="tr-w">무게 kg</label>
