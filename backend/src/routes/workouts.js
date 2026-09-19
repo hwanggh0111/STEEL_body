@@ -26,14 +26,14 @@ router.get('/', auth, (req, res) => {
   res.json(workouts);
 });
 
-// 날짜별 조회
-router.get('/:date', auth, (req, res) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) {
-    return res.status(400).json({ error: '올바른 날짜 형식이 아니에요' });
-  }
-  const workouts = db.getWorkoutsByDate(req.userId, req.params.date);
-  res.json(workouts);
-});
+// 날짜별 조회는 **없다** (2026-09-19 에 걷었다).
+//
+// `GET /api/workouts/:date` 가 있었는데 **앱이 한 번도 안 불렀다.** 앱은 목록을 통째로
+// 받아 들고 있고(`workoutStore`), 달력도 거기서 걸러 쓴다 — 하루치를 따로 받으면
+// 오히려 왕복이 한 번 더 붙는다. 9/18 에 이 길의 DB 쪽을 3.28ms → 0.48ms 로 줄였는데,
+// **부르는 사람이 없는 길을 빠르게 만든 것이었다** (`docs/PERF-2026-09-18.md` 참고).
+//
+// 앱이 부르는 길과 서버가 가진 길이 어긋나는 것은 `npm run api` 가 본다.
 
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {

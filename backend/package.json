@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs",
+    "check": "node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs",
     "smoke": "node scripts/smoke.cjs",
     "seed": "node scripts/seed.cjs",
     "seed:clear": "node scripts/seed.cjs --clear",
@@ -16,7 +16,7 @@
     "cold": "node scripts/check-cold.cjs",
     "day": "node scripts/check-day.cjs",
     "import": "node scripts/check-import.cjs",
-    "save": "node scripts/check-save.cjs",
+    "save": "node scripts/check-save.cjs && node scripts/check-api.cjs",
     "bench": "node scripts/bench.cjs",
     "probe": "node scripts/probe.cjs",
     "oauth": "node scripts/check-oauth.cjs",

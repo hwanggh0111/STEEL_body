@@ -243,10 +243,8 @@ const ROUTINES = {
   },
 };
 
-// 전체 루틴
-router.get('/', (req, res) => {
-  res.json(ROUTINES);
-});
+// 전체 목록도 **없다** (2026-09-19). 앱은 갈래를 골라서만 받는다(`/routines/:type`) —
+// 넷을 한꺼번에 받아 쓰는 화면이 없다. `npm run api` 가 이 어긋남을 잡아준다.
 
 // 타입별 (머신 or 맨몸)
 router.get('/:type', (req, res) => {

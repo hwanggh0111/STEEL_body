@@ -515,26 +515,10 @@ const db = {
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
     return result.slice();   // 표에 담아둔 것과 **다른 배열**을 준다 (위 참고)
   },
-  /**
-   * 그 날 한 것만.
-   *
-   * ── 표를 거쳐 간다 ── (2026-09-18, `npm run bench` 로 잡았다)
-   *
-   * 여태 **표 전체(모든 사람의 모든 줄)를 훑었다.** 재보면 사람 10명 · 5년치
-   * (29만 줄)에서 한 번에 3.3ms 다 — 달력이 날마다 부르면 그만큼 곱해진다.
-   *
-   * 내 목록은 이미 `getWorkouts` 가 표에 들고 있다(5초). 거기서 걸러내면
-   * **남의 줄은 아예 안 본다** — 같은 자료에서 0.06ms 로 떨어진다.
-   * 차례(`created_at`)는 그 자리에서 다시 맞춘다: `getWorkouts` 는 최신이 앞인데,
-   * 하루 안에서는 **적은 차례대로** 보여주는 것이 맞다
-   */
-  getWorkoutsByDate(userId, date) {
-    // `this` 를 안 쓴다 — 이 파일의 다른 자리가 다 그렇고, 꺼내 쓰는 자리가 생기면
-    // (`const { getWorkoutsByDate } = db`) `this` 는 그 자리에서 조용히 깨진다
-    return db.getWorkouts(userId)
-      .filter(w => w.date === date)
-      .sort((a, b) => ascStr(a.created_at || '', b.created_at || ''));
-  },
+  // 「그 날 한 것만」(`getWorkoutsByDate`) 은 2026-09-19 에 걷었다 —
+  // 그것을 쓰던 길(`GET /api/workouts/:date`)을 앱이 한 번도 안 불렀다.
+  // 하루치는 앱이 들고 있는 목록에서 걸러 쓴다 (`routes/workouts.js` 참고)
+
   // clientKey 는 오프라인에서 적어 **줄에 세워둔 것**을 올릴 때 그 줄의 로컬 id 다.
   //
   // 지하에서 적은 세트는 신호가 돌아오면 줄에서 하나씩 올린다. 그런데 서버가 받고
