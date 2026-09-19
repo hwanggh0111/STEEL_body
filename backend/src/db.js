@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 
@@ -134,10 +135,29 @@ function loadPhotos() {
   return _photoCache;
 }
 
+// 사진도 같은 대접을 한다 — 재보면 40MB 에 196ms 다 (2026-09-18).
+// **여기는 들여쓰기를 안 넣는다** — 사람이 읽을 파일이 아니고 base64 덩어리다
 function _flushPhotos() {
   if (!_photoDirty || !_photoCache) return;
+  let text;
   try {
-    fs.writeFileSync(PHOTOS_PATH, JSON.stringify(_photoCache), 'utf-8');
+    text = JSON.stringify(_photoCache);
+  } catch (err) {
+    console.error('[DB] 사진 저장 실패(문자열):', err.message);
+    return;
+  }
+  _photoDirty = false;
+  _writeAtomic(PHOTOS_PATH, text).catch((err) => {
+    console.error('[DB] 사진 저장 실패:', err.message);
+    _photoDirty = true;
+  });
+}
+
+/** 끝나는 자리용 — 동기로, 원자적으로 */
+function _flushPhotosSync() {
+  if (!_photoDirty || !_photoCache) return;
+  try {
+    _writeAtomicSync(PHOTOS_PATH, JSON.stringify(_photoCache));
     _photoDirty = false;
   } catch (err) {
     console.error('[DB] 사진 저장 실패:', err.message);
@@ -176,7 +196,18 @@ function load() {
       return _cache;
     }
   } catch (err) {
+    // **깨진 파일을 덮어쓰지 않는다** (2026-09-19). 아래 `_flushSync` 가 곧 이 자리에
+    // 빈 DB 를 쓴다 — 그 전에 옆으로 치워두지 않으면 **되살릴 파일이 남지 않는다.**
+    // 원자적 쓰기를 붙인 뒤로는 여기까지 올 일이 거의 없지만, 그 「거의」에 걸리는 날은
+    // 기록 전부가 걸린 날이다. 사람이 손으로 꺼낼 수 있게 남긴다
     console.error('[DB] blackiron.json 파싱 실패, 초기화합니다:', err.message);
+    try {
+      const kept = DB_PATH + '.broken-' + new Date().toISOString().replace(/[:.]/g, '-');
+      fs.renameSync(DB_PATH, kept);
+      console.error('[DB] 깨진 파일을 옆에 치워뒀습니다:', path.basename(kept));
+    } catch (e2) {
+      console.error('[DB] 깨진 파일을 치우지도 못했습니다:', e2.message);
+    }
   }
   _cache = { ...DEFAULT_DATA, refreshTokens: [] };
   _flushSync(_cache);
@@ -190,47 +221,99 @@ function save(data) {
   _saveTimer = setTimeout(_flush, 500);
 }
 
+const INDENT = () => (process.env.NODE_ENV === 'production' ? undefined : 2);
+// 쓰다 죽어도 앞의 것이 남게 — **딴 이름으로 다 쓴 뒤 이름을 바꿔 끼운다**
+const TMP_SUFFIX = '.writing';
+
+/**
+ * 파일 한 장을 **원자적으로** 쓴다 (2026-09-18).
+ *
+ * 여태 `writeFileSync(DB_PATH, …)` 로 제자리에 덮어썼다. 그 사이에 프로세스가 죽거나
+ * (Render 는 메모리를 넘기면 바로 죽인다) 전원이 끊기면 **파일이 잘린 채로 남는다.**
+ * 그러면 다음에 뜰 때 `JSON.parse` 가 터지고, `load()` 는 그것을 기본값으로 되돌린다 —
+ * **기록 전부가 사라진다는 뜻이다.** 딴 이름으로 다 쓴 뒤 `rename` 으로 갈아끼우면
+ * 그 순간이 없다 (같은 볼륨에서 rename 은 원자적이다. 재보면 6ms).
+ */
+function _writeAtomicSync(file, text) {
+  const tmp = file + TMP_SUFFIX;
+  fs.writeFileSync(tmp, text, 'utf-8');
+  fs.renameSync(tmp, file);
+}
+
+async function _writeAtomic(file, text) {
+  const tmp = file + TMP_SUFFIX;
+  await fsp.writeFile(tmp, text, 'utf-8');
+  await fsp.rename(tmp, file);
+}
+
+/**
+ * 모아둔 것을 파일에 쓴다 — **기다리지 않고.** (2026-09-18)
+ *
+ * 여태 `writeFileSync` 였다. 재보면 사람 10명 · 5년치(29만 줄 · 61MB)에서 한 번에
+ * **173ms** 이고, 그동안 **서버는 아무 요청도 못 받는다** (노드는 한 줄로 돈다).
+ * 헬스장에서 여럿이 동시에 적는 시간대에 그 멈춤이 그대로 모두의 기다림이 된다.
+ *
+ * 쪼개 재보면 문자열로 바꾸는 데 196ms, 파일에 쓰는 데 215ms 다 (38MB 기준).
+ * **쓰는 쪽 절반을 비동기로 넘긴다.** 문자열은 기다리기 전에 만들어 두므로,
+ * 쓰는 동안 들어온 저장이 섞이지 않는다 (그 사이 것은 `_dirty` 로 남아 다음에 쓴다).
+ */
 function _flush() {
   if (!_dirty || !_cache) return;
   if (_writeLock) {
+    // 쓰는 중에 또 바뀌었다 — 지금 것을 다 쓴 뒤 한 번 더
     _writeQueue.push(() => _flush());
     return;
   }
   _writeLock = true;
+  // **기다리기 전에** 찍어둔다. 기다리는 동안 `_cache` 가 바뀌어도 이 판은 온전하다
+  let text;
   try {
-    const indent = process.env.NODE_ENV === 'production' ? undefined : 2;
-    fs.writeFileSync(DB_PATH, JSON.stringify(_cache, null, indent), 'utf-8');
-    _dirty = false;
+    text = JSON.stringify(_cache, null, INDENT());
   } catch (err) {
-    console.error('[DB] 저장 실패:', err.message);
-  } finally {
+    console.error('[DB] 저장 실패(문자열):', err.message);
     _writeLock = false;
-    if (_writeQueue.length > 0) {
-      const next = _writeQueue.shift();
-      next();
-    }
+    return;
   }
+  _dirty = false;
+  _writeAtomic(DB_PATH, text)
+    .catch((err) => {
+      console.error('[DB] 저장 실패:', err.message);
+      // 못 썼으면 **다시 써야 한다고 표시해 둔다** — 안 그러면 그 판이 조용히 사라진다
+      _dirty = true;
+    })
+    .finally(() => {
+      _writeLock = false;
+      if (_writeQueue.length > 0) {
+        const next = _writeQueue.shift();
+        next();
+      } else if (_dirty) {
+        // 쓰는 동안 또 바뀌었거나 실패했다
+        if (_saveTimer) clearTimeout(_saveTimer);
+        _saveTimer = setTimeout(_flush, 500);
+      }
+    });
 }
 
 function _flushSync(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  _writeAtomicSync(DB_PATH, JSON.stringify(data, null, 2));
 }
 
 // Flush on process exit (즉시 동기 저장)
 function _flushImmediate() {
   if (_dirty && _cache) {
     try {
-      const indent = process.env.NODE_ENV === 'production' ? undefined : 2;
-      fs.writeFileSync(DB_PATH, JSON.stringify(_cache, null, indent), 'utf-8');
+      // 끝나는 자리에서는 기다릴 수 없다 — 동기로 쓴다. **그래도 원자적으로** 쓴다:
+      // 종료 중에 죽는 것이 제일 흔하고, 그때 잘리면 기록 전부가 사라진다
+      _writeAtomicSync(DB_PATH, JSON.stringify(_cache, null, INDENT()));
       _dirty = false;
     } catch (err) {
       console.error('[DB] 종료 시 저장 실패:', err.message);
     }
   }
 }
-process.on('exit', () => { _flushImmediate(); _flushPhotos(); });
-process.on('SIGINT', () => { _flushImmediate(); _flushPhotos(); process.exit(); });
-process.on('SIGTERM', () => { _flushImmediate(); _flushPhotos(); process.exit(); });
+process.on('exit', () => { _flushImmediate(); _flushPhotosSync(); });
+process.on('SIGINT', () => { _flushImmediate(); _flushPhotosSync(); process.exit(); });
+process.on('SIGTERM', () => { _flushImmediate(); _flushPhotosSync(); process.exit(); });
 
 // 다음 ID 가져오기
 function nextId(table) {
@@ -262,8 +345,89 @@ function invalidateUserQueries(userId) {
   _queryCache.delete('i_' + userId);
 }
 
+/**
+ * 운동·인바디 줄이 바뀌었다 — 표와 **사람별 색인**을 같이 버린다 (2026-09-18).
+ *
+ * 둘을 따로 부르면 한쪽을 빠뜨리는 날이 온다. 그날의 증상은 「지운 것이 계속 보인다」다.
+ */
+function afterRowChange(table, userId, change) {
+  invalidateUserQueries(userId);
+  // **색인은 그 자리만 고친다** (위 참고). 못 알아들을 것이 오면 통째로 버린다 —
+  // 틀린 색인을 들고 있는 것보다 다시 만드는 것이 낫다
+  if (change?.added) rowAdded(table, change.added);
+  else if (change?.removedId != null) rowRemoved(table, userId, change.removedId);
+  else if (change?.updated) { /* 같은 객체라 손댈 것이 없다 */ }
+  else invalidateRows(table);
+}
+
 // ── 인덱스 캐시 (O(n) → O(1) 조회) ──
 const _index = { userById: null, userByEmail: null, userByUsername: null };
+
+// ── 사람별 줄 색인 ── (2026-09-18, `npm run bench` 로 잡았다)
+//
+// 목록을 받을 때마다 **모든 사람의 모든 줄**을 훑어 걸렀다. 재보면 사람 10명 ·
+// 5년치(29만 줄)에서 한 번에 10.5ms 다 — 쓰는 사람이 늘면 그만큼 길어진다.
+// 내 줄만 모아 들고 있으면 그 일이 없어진다.
+//
+// **표(`_queryCache`)와 다르다.** 표는 5초짜리 사본이고 이건 **어느 줄이 누구 것인지**를
+// 들고 있는 것이다 — 줄이 생기거나 사라질 때만 버린다.
+const _rowIndex = { workouts: null, inbody: null };
+
+// ── 날짜 정렬은 **그냥 비교**로 한다 ── (2026-09-18, `npm run bench` 로 잡았다)
+//
+// `localeCompare` 는 나라별 규칙을 보는 함수다. 그런데 여기서 견주는 것은
+// `2026-09-18` 같은 **ISO 날짜와 시각**이고, 그런 글자는 **사전 순서가 곧 시간 순서**다 —
+// 나라 규칙을 볼 일이 없다. 재보면 29,200줄 정렬에 **29.1ms → 4.3ms** 이고,
+// 결과는 한 줄도 다르지 않다 (같은지 값으로 맞춰봤다).
+//
+// 이 자리는 **목록을 받을 때마다** 지난다 — 화면이 뜰 때, 저장한 뒤, 새로고침 때.
+const descStr = (a, b) => (a < b ? 1 : a > b ? -1 : 0);   // 최신이 앞
+const ascStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0);    // 적은 차례대로
+
+function _buildRowIndex(table) {
+  const data = load();
+  const map = new Map();
+  for (const row of data[table] || []) {
+    if (!row || row.user_id == null) continue;
+    const list = map.get(row.user_id);
+    if (list) list.push(row); else map.set(row.user_id, [row]);
+  }
+  _rowIndex[table] = map;
+  return map;
+}
+
+/** 그 사람의 줄만. **돌려주는 것을 고치지 말 것** — 색인이 들고 있는 그 배열이다 */
+function rowsOf(table, userId) {
+  const map = _rowIndex[table] || _buildRowIndex(table);
+  return map.get(userId) || [];
+}
+
+/** 통째로 버린다. **계정을 지울 때만** 쓴다 — 그때는 어느 줄이 사라졌는지 세지 않는다 */
+function invalidateRows(table) { _rowIndex[table] = null; }
+
+// ── 색인은 **버리지 않고 그 자리만 고친다** ── (2026-09-18)
+//
+// 처음에는 줄이 바뀔 때마다 색인을 버렸다. 그런데 그러면 **저장한 뒤 첫 조회가 29만
+// 줄을 다시 훑는다** — 고치려던 것과 같은 일을 하는 셈이다(재보니 13ms).
+// 한 줄 늘었으면 그 사람 자리에 한 줄만 밀어 넣으면 된다.
+//
+// **고치기(update)는 아무것도 안 한다** — 줄은 제자리에서 값만 바뀌고, 색인이 들고
+// 있는 것은 그 줄 자체(같은 객체)라 이미 바뀐 값을 들고 있다.
+function rowAdded(table, row) {
+  const map = _rowIndex[table];
+  if (!map || !row || row.user_id == null) return;
+  const list = map.get(row.user_id);
+  if (list) list.push(row); else map.set(row.user_id, [row]);
+}
+
+function rowRemoved(table, userId, id) {
+  const map = _rowIndex[table];
+  if (!map) return;
+  const list = map.get(userId);
+  if (!list) return;
+  const i = list.findIndex((r) => r.id === id);
+  if (i >= 0) list.splice(i, 1);
+}
 
 // 이메일은 대소문자를 가리지 않는다.
 //
@@ -336,13 +500,20 @@ const db = {
   // workouts
   getWorkouts(userId) {
     const cacheKey = 'w_' + userId;
-    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d;
-    const data = load();
-    const result = (data.workouts || [])
-      .filter(w => w.user_id === userId)
-      .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at));
+    // **표에 있는 것도 사본으로 준다** (2026-09-19, `npm run save` 로 잡았다).
+    // 여태 표에 담아둔 그 배열을 그대로 돌려줬다 — 받은 쪽이 `sort`·`reverse`·`push` 를
+    // 한 번만 해도 **표가 그대로 오염되고, 5초 동안 모두가 그것을 본다.**
+    // 줄을 베끼는 것이 아니라 가리키는 것만 베낀다 (29만 줄에 0.1ms 였다)
+    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d.slice();
+    // **내 줄만 모아둔 것에서 가져온다** (2026-09-18) — 여태 모든 사람의 모든 줄을
+    // 훑었다. 사람 10명 · 5년치에서 10.5ms → 0.2ms.
+    // 정렬은 여기서 한다: 색인은 「누구 것인가」만 들고, 차례는 화면이 정하는 것이다.
+    // **사본에 정렬한다** — 색인이 들고 있는 배열을 제자리에서 뒤집으면 그 배열을
+    // 쓰는 다음 사람이 뒤집힌 것을 본다
+    const result = [...rowsOf('workouts', userId)]
+      .sort((a, b) => descStr(a.date, b.date) || descStr(a.created_at || '', b.created_at || ''));
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
-    return result;
+    return result.slice();   // 표에 담아둔 것과 **다른 배열**을 준다 (위 참고)
   },
   /**
    * 그 날 한 것만.
@@ -362,7 +533,7 @@ const db = {
     // (`const { getWorkoutsByDate } = db`) `this` 는 그 자리에서 조용히 깨진다
     return db.getWorkouts(userId)
       .filter(w => w.date === date)
-      .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+      .sort((a, b) => ascStr(a.created_at || '', b.created_at || ''));
   },
   // clientKey 는 오프라인에서 적어 **줄에 세워둔 것**을 올릴 때 그 줄의 로컬 id 다.
   //
@@ -381,7 +552,7 @@ const db = {
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
     if (clientKey) workout.client_key = clientKey;
     data.workouts.push(workout);
-    invalidateUserQueries(userId);
+    afterRowChange('workouts', userId, { added: workout });
     save(data);
     return { lastInsertRowid: id };
   },
@@ -390,7 +561,7 @@ const db = {
     const idx = data.workouts.findIndex(w => w.id === id && w.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.workouts.splice(idx, 1);
-    invalidateUserQueries(userId);
+    afterRowChange('workouts', userId, { removedId: id });
     save(data);
     return { changes: 1 };
   },
@@ -404,7 +575,7 @@ const db = {
     if (fields.sets !== undefined) workout.sets = fields.sets;
     if (fields.reps !== undefined) workout.reps = fields.reps;
     workout.updated_at = new Date().toISOString();
-    invalidateUserQueries(userId);
+    afterRowChange('workouts', userId, { updated: true });
     save(data);
     return { changes: 1, workout };
   },
@@ -412,20 +583,18 @@ const db = {
   // inbody
   getInbody(userId) {
     const cacheKey = 'i_' + userId;
-    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d;
-    const data = load();
-    const result = (data.inbody || [])
-      .filter(r => r.user_id === userId)
-      .sort((a, b) => b.date.localeCompare(a.date));
+    // 운동 쪽과 같은 이유로 **사본을 준다** (위 `getWorkouts` 참고)
+    if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d.slice();
+    const result = [...rowsOf('inbody', userId)].sort((a, b) => descStr(a.date, b.date));
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
-    return result;
+    return result.slice();
   },
   createInbody(userId, date, height, weight, fat_pct, muscle_kg, water_l, bmi) {
     const id = nextId('inbody');
     const data = load();
     const record = { id, user_id: userId, date, height, weight, fat_pct, muscle_kg, water_l, bmi, created_at: new Date().toISOString() };
     data.inbody.push(record);
-    invalidateUserQueries(userId);
+    afterRowChange('inbody', userId, { added: record });
     save(data);
     return { lastInsertRowid: id };
   },
@@ -434,7 +603,7 @@ const db = {
     const idx = data.inbody.findIndex(r => r.id === id && r.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.inbody.splice(idx, 1);
-    invalidateUserQueries(userId);
+    afterRowChange('inbody', userId, { removedId: id });
     save(data);
     return { changes: 1 };
   },
@@ -450,7 +619,7 @@ const db = {
     if (fields.water_l !== undefined) record.water_l = fields.water_l;
     if (fields.bmi !== undefined) record.bmi = fields.bmi;
     record.updated_at = new Date().toISOString();
-    invalidateUserQueries(userId);
+    afterRowChange('inbody', userId, { updated: true });
     save(data);
     return { changes: 1, record };
   },
@@ -496,7 +665,7 @@ const db = {
     const data = load();
     return (data.measures || [])
       .filter(m => m.user_id === userId)
-      .sort((a, b) => b.date.localeCompare(a.date));
+      .sort((a, b) => descStr(a.date, b.date));
   },
   createMeasure(userId, type, date, measureData) {
     const id = nextId('measures');
@@ -542,7 +711,7 @@ const db = {
     const data = load();
     return (data.plans || [])
       .filter(p => p.user_id === userId)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+      .sort((a, b) => ascStr(a.date, b.date) || a.id - b.id);
   },
   createPlan(userId, plan) {
     const id = nextId('plans');
@@ -569,7 +738,7 @@ const db = {
     return (data.notes || [])
       .filter(n => n.user_id === userId)
       // 최근에 고친 것이 위다. 메모장은 **지금 짜고 있는 것**을 보러 오는 자리다
-      .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+      .sort((a, b) => descStr(String(a.updated_at), String(b.updated_at)));
   },
   // date 를 주면 **달력의 그날 메모**, 안 주면 루틴 메모다 (`routes/notes.js` 참고)
   createNote(userId, body, date = null) {
@@ -1044,7 +1213,7 @@ const db = {
    * `process.on('exit')` 가 부르지만, **재보거나 확인하는 자리에서는 부를 길이
    * 없었다** — 그래서 재는 쪽이 0.00MB 를 보고 「사진은 가볍다」로 읽을 뻔했다 (2026-09-18)
    */
-  flushPhotosNow() { _flushPhotos(); },
+  flushPhotosNow() { _flushPhotosSync(); },
 
   // ── 계정 삭제 예약 (30일 유예) ──
   //
@@ -1105,6 +1274,11 @@ const db = {
     // 눈에 안 띄었지만, 계정 삭제는 그 뒤로 아무 저장도 안 일어나는 자리다.
     // 여기서는 통째로 비운다 — 지우는 일은 드물고, 남기는 것보다 싸다
     invalidateQueryCache();
+    // **사람별 색인도 버린다** (2026-09-18). 색인은 「어느 줄이 누구 것인가」를 들고
+    // 있으므로, 줄이 사라진 것을 모르면 지운 사람의 목록을 계속 돌려준다 —
+    // 표(5초)와 달리 이건 저절로 낡지 않는다
+    invalidateRows('workouts');
+    invalidateRows('inbody');
     save(data);
     // 사진은 다른 파일에 있다. 여기서 안 부르면 지운 계정의 사진이 남는다
     deleteUserPhotos(userId);
@@ -1403,7 +1577,7 @@ const db = {
     const data = load();
     return (data.gymSettings || [])
       .filter((s) => s.user_id === userId && (gym == null || s.gym === gym))
-      .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+      .sort((a, b) => descStr(a.updated_at || '', b.updated_at || ''));
   },
 
   /** 그 헬스장의 그 운동 하나. 없으면 null. */

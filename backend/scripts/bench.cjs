@@ -62,7 +62,21 @@ console.log('');
 console.log('── 파일에 쓰기 (이 DB 는 한 장을 통째로 쓴다) ──');
 // **여기가 이 앱의 천장이다.** 줄이 늘면 저장 한 번이 그만큼 길어진다 —
 // 그래서 `db.js` 는 500ms 동안 모아서 한 번만 쓴다(디바운스). 그 한 번의 값이다
-say('한 번 쓰기 (flushNow)', ms(() => db.flushNow(), 3));
+// ── 저장할 때 **서버가 멈추는 시간** ── (2026-09-18)
+//
+// 노드는 한 줄로 돈다. 저장이 동기면 그동안 **아무 요청도 못 받는다** — 그래서 재야
+// 하는 것은 「저장에 걸린 시간」이 아니라 **멈춘 시간**이다.
+// 이제 문자열을 만드는 동안만 멈추고, 파일에 쓰는 몫은 비동기로 넘긴다.
+{
+  const snap = db.snapshot();
+  const strMs = ms(() => JSON.stringify(snap), 2);
+  const tmp2 = TMP + '.bench-write';
+  const writeMs = ms(() => { fs.writeFileSync(tmp2, JSON.stringify(snap)); }, 1) - strMs;
+  try { fs.unlinkSync(tmp2); } catch { /* 없으면 그만 */ }
+  say('저장할 때 멈추는 시간 (문자열 만들기)', strMs);
+  say('  비동기로 넘긴 몫 (파일에 쓰기)', writeMs > 0 ? writeMs : 0);
+  say('  끝날 때 쓰는 동기 길 (flushNow)', ms(() => db.flushNow(), 2));
+}
 const size = fs.existsSync(TMP) ? fs.statSync(TMP).size : 0;
 say('파일 크기', (size / 1048576).toFixed(2), 'MB');
 // **힙을 따로 적는다.** 서버는 `--max-old-space-size=256` 으로 뜨는데 그것은 힙의 뚜껑이다 —
@@ -104,9 +118,15 @@ console.log('── 사진 (제일 무거운 것) ──');
 console.log('');
 console.log('── 목록 읽기 (화면이 뜰 때마다 한 번) ──');
 // 표에 남아 있으면 0 에 가깝다. **남이 저장하면 비워지는지**가 오래 걸리던 자리였다
-say('내 운동 전부 (표에 없을 때)', ms(() => { db.snapshot(); db.getWorkouts(1); }, 3));
-db.getWorkouts(1);                                   // 표에 올려둔다
+// 첫 조회는 **사람별 색인을 만드는 값**이 같이 든다 (프로세스에 한 번)
+say('첫 조회 (색인 만들기 포함)', ms(() => db.getWorkouts(1), 1));
 say('  표에 있을 때', ms(() => db.getWorkouts(1), 50));
+// **이 값이 실제로 겪는 값이다** — 저장하면 표가 비워지므로 다음 조회는 여기를 지난다.
+// 색인은 그 자리만 고치므로(버리지 않는다) 남의 줄은 안 훑고 정렬만 다시 한다
+say('  저장한 뒤 조회 (실제로 겪는 값)', ms(() => {
+  db.createWorkout(1, '2026-09-18', '벤치프레스', '80', 5, 8);
+  db.getWorkouts(1);
+}, 5));
 if (PEOPLE > 1) {
   // 2026-09-17 에 고친 자리 — 남의 저장이 내 비용이 되면 안 된다
   db.createWorkout(2, '2026-09-18', '벤치프레스', '80', 5, 8);
