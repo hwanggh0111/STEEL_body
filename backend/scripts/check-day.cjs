@@ -66,5 +66,39 @@ ok('측정은 모양만 보던 옛 검사를 안 쓴다',
   /\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(date\) \|\| isNaN/.test(read('measures.js')), false);
 
 console.log('');
+console.log('── 서버가 「오늘」을 만들 때 UTC 를 쓰지 않는가 ── (2026-09-19)');
+//
+// 서버는 UTC 로 돈다(Render 도 그렇다). `new Date().toISOString().slice(0,10)` 으로
+// 오늘을 만들면 **한국 새벽 0~9시가 어제로 밀린다.** 9/19 에 두 자리가 그랬다 —
+//
+//   · 목표 시작일(`goals.js`) — 그 어제가 지난 주면 「이어온 주」를 지난 주부터 세고,
+//     그 주엔 운동이 없으니 **목표를 세우는 순간 끊긴 것으로 보인다**
+//   · 인바디 대체 날짜(`inbody.js`) — 체중 그래프의 점이 하루 왼쪽에 찍힌다
+//
+// `utils/seoulDay.js` 가 이 일을 하려고 있던 함수인데, 관리자 화면에서만 쓰고 있었다.
+const { seoulDay } = require('../src/utils/seoulDay');
+
+// 한국 새벽 세 시 — UTC 로는 아직 어제다. 여기서 갈린다
+const dawnKST = Date.parse('2026-09-20T03:00:00+09:00');
+ok('한국 새벽 3시의 「오늘」', seoulDay(dawnKST), '2026-09-20');
+ok('  UTC 로 만들면 어제가 된다 (그래서 안 쓴다)', new Date(dawnKST).toISOString().slice(0, 10), '2026-09-19');
+ok('한국 밤 11시의 「오늘」', seoulDay(Date.parse('2026-09-20T23:00:00+09:00')), '2026-09-20');
+ok('한국 자정 직후의 「오늘」', seoulDay(Date.parse('2026-09-20T00:00:30+09:00')), '2026-09-20');
+ok('한국 자정 직전은 어제다', seoulDay(Date.parse('2026-09-19T23:59:30+09:00')), '2026-09-19');
+
+// 두 자리가 그 함수를 쓰는가
+ok('목표 시작일이 서울 기준이다', /out\.started_at = seoulDay\(/.test(read('goals.js')), true);
+ok('인바디 대체 날짜도 서울 기준이다', /seoulDay\(Date\.now\(\)\)/.test(read('inbody.js')), true);
+
+// 코드에도 남지 않게 본다 — 라우트에서 UTC 로 오늘을 만드는 자리가 다시 생기면 잡는다.
+// `new Date().toISOString()` 을 통째로 쓰는 것(시각)은 괜찮다 — **날짜만 자르는 것**이 문제다
+const utcToday = [];
+for (const f of fs.readdirSync(path.join(__dirname, '../src/routes'))) {
+  if (!f.endsWith('.js')) continue;
+  if (/new Date\(\)\.toISOString\(\)\s*\.(slice\(0,\s*10\)|split\('T'\)\[0\])/.test(read(f))) utcToday.push(f);
+}
+ok('라우트에서 UTC 로 오늘을 만드는 자리', utcToday, []);
+
+console.log('');
 console.log(bad ? bad + '건 실패' : '전부 통과');
 process.exit(bad ? 1 : 0);

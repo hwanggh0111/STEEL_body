@@ -13,7 +13,7 @@ import { useWakeLock } from '../data/useWakeLock';
 // 소리가 나기도 하고 안 나기도 한다 — 언제나 떠 있는 이 자리에 한 번만 둔다.
 
 export default function RestBar({ bottom = 58 }) {
-  const { leftMs, deadline, pausedLeft, finished, label, duration, sound, vibrate, tone, volume, add, pause, resume, stop, ackFinished } = useRestTimerStore();
+  const { leftMs, deadline, pausedLeft, finished, label, runSec, duration, sound, vibrate, tone, volume, add, pause, resume, stop, ackFinished } = useRestTimerStore();
   const navigate = useNavigate();
   const location = useLocation();
   const alerted = useRef(false);
@@ -47,7 +47,16 @@ export default function RestBar({ bottom = 58 }) {
 
   if (!running && !paused && !finished) return null;
 
-  const ratio = finished ? 1 : Math.max(0, Math.min(1, (leftMs ?? 0) / (duration * 1000)));
+  // **지금 도는 휴식이 몇 초짜리인가(`runSec`)로 잰다** (2026-09-19 에 고쳤다).
+  //
+  // 여태 `duration` — **다음 휴식에 쓸 기본값** — 으로 쟀다. 그래서 둘이 어긋나는
+  // 순간마다 띠가 거짓말을 했다:
+  //   · +30초를 누르면 120초를 쉬는데 잣대는 90초다 → 비율이 1을 넘어 **띠가 꽉 찬 채로
+  //     30초를 멈춰 있다** (`Math.min(1, …)` 에 잘린다)
+  //   · 쉬는 중에 프리셋을 180초로 바꾸면 **띠가 그 자리에서 반으로 줄어든다**
+  // 같은 것을 2026-09-14 에 링(`RestTimer`)에서 고쳤는데, 이 띠는 그대로 남아 있었다.
+  const span = runSec > 0 ? runSec : duration;
+  const ratio = finished ? 1 : Math.max(0, Math.min(1, (leftMs ?? 0) / (span * 1000)));
   const color = finished ? 'var(--success)' : 'var(--accent)';
 
   return (
@@ -84,7 +93,7 @@ export default function RestBar({ bottom = 58 }) {
         </div>
         {!finished && (
           <div className="progress-bg" style={{ height: 4, marginTop: 5 }}>
-            <div style={{ height: 4, width: `${ratio * 100}%`, background: color, borderRadius: 'var(--radius)', transition: 'width 0.25s linear' }} />
+            <div style={{ height: 4, width: `${ratio * 100}%`, background: color, borderRadius: 'var(--radius)', transition: 'width 1s linear'   /* 스토어가 초당 한 번만 알려준다 (restTimerStore 의 tick) */ }} />
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { seoulDay } = require('../utils/seoulDay');
 
 // ─────────────────────────────────────────────────────────────
 // 목표.
@@ -100,7 +101,11 @@ router.put('/', auth, (req, res) => {
   // 주 횟수를 4에서 3으로 낮췄다고 그동안 이어온 주가 없던 일이 되면 안 된다
   const before = db.getGoal(req.userId);
   if (!before?.started_at && !out.started_at) {
-    out.started_at = new Date().toISOString().slice(0, 10);
+    // **서울 기준 오늘이다** (2026-09-19 에 고쳤다). 서버는 UTC 로 돈다(Render 도 그렇다)
+    // — `new Date().toISOString()` 으로 오늘을 만들면 **한국 새벽 0~9시에 목표를 세운
+    // 사람의 시작일이 어제로 찍힌다.** 그 어제가 지난 주면 「이어온 주」를 지난 주부터
+    // 세기 시작하고, 그 주에 운동이 없으므로 **세우는 순간 끊긴 것으로 보인다.**
+    out.started_at = seoulDay(Date.now());
   }
 
   res.json(toClient(db.saveGoal(req.userId, out)));

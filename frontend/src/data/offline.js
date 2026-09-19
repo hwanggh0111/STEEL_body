@@ -14,6 +14,7 @@
 // 브라우저에 실제로 담는 일은 아래 `readQueue`/`saveQueue` 몇 줄이 한다.
 
 import { readLS, saveLS, removeLS } from './safeStorage';
+import { dateKey } from './dateKey';
 import { WORKOUT_CACHE_KEY, WORKOUT_QUEUE_KEY } from './localKeys';
 
 // ── 이 실패는 「신호가 없다」인가, 「서버가 안 받는다」인가 ──
@@ -177,7 +178,9 @@ export function readCache() {
 // 찬다(대개 5MB). 신호가 없을 때 보려는 것은 최근이지 3년 전이 아니다
 export function saveCache(workouts, days = 90, today = new Date()) {
   const base = workouts && typeof workouts === 'object' && !Array.isArray(workouts) ? workouts : {};
-  const limit = new Date(today.getTime() - days * 86400000).toISOString().slice(0, 10);
+  // **그 기기의 날짜로 센다** (2026-09-19). `toISOString()` 은 UTC 라 한국에서는
+  // 새벽 0~9시에 하루 덜 담는다 — `dateKey` 가 이 앱의 「그날」이다
+  const limit = dateKey(new Date(today.getTime() - days * 86400000));
   const kept = {};
   for (const [date, items] of Object.entries(base)) {
     if (date >= limit && Array.isArray(items) && items.length > 0) kept[date] = items;

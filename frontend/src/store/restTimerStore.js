@@ -139,11 +139,26 @@ export const useRestTimerStore = create((set, get) => ({
     set({ deadline: null, pausedLeft: null, leftMs: null, finished: false, label: '', runSec: 0 });
   },
 
+  /**
+   * 250ms 마다 시계를 다시 본다. 그런데 **화면에 적히는 것은 초다** (`M:SS`).
+   *
+   * 여태 볼 때마다 `leftMs` 를 새로 넣었다 — 초당 네 번. 그때마다 이 값을 보는
+   * 화면(휴식 띠 · 링 · 기록 화면의 남은 시간)이 다시 그려졌고, **적히는 글자는
+   * 네 번 중 세 번 그대로였다.** 폰에서 90초를 쉬면 360번 그리던 것이 90번이 된다.
+   *
+   * 자주 보는 것은 그대로 둔다(250ms) — 끝나는 순간을 늦게 알면 안 된다.
+   * 바뀐 것은 **언제 넣는가**다: 적히는 초가 달라졌을 때만 넣는다.
+   */
   tick: () => {
-    const { deadline } = get();
+    const { deadline, leftMs } = get();
     if (deadline == null) { stopTicker(); return; }
     const left = deadline - Date.now();
-    if (left > 0) { set({ leftMs: left }); return; }
+    if (left > 0) {
+      const shown = Math.ceil(left / 1000);
+      const before = leftMs == null ? null : Math.ceil(leftMs / 1000);
+      if (shown !== before) set({ leftMs: left });
+      return;
+    }
     stopTicker();
     set({ deadline: null, pausedLeft: null, leftMs: 0, finished: true });
   },

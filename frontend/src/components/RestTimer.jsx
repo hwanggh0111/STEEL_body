@@ -38,7 +38,9 @@ function Ring({ ratio, children }) {
           transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
           // style 이 둘이면 뒤엣것이 앞엣것을 통째로 덮는다 — 예전에 여기서 색(stroke)이
           // transition 에 덮여 진행 링이 금색으로 안 그려졌다. 한 style 로 합친다
-          style={{ stroke: 'var(--accent)', transition: 'stroke-dashoffset 0.25s linear' }}
+          // 1초 — 스토어가 **적히는 초가 바뀔 때만** 알려주기 때문이다 (2026-09-19).
+          // 0.25s 로 두면 한 칸 움직이고 0.75초를 멈춰 있어 뚝뚝 끊겨 보인다
+          style={{ stroke: 'var(--accent)', transition: 'stroke-dashoffset 1s linear' }}
         />
       </svg>
       <div style={{

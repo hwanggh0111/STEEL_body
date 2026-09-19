@@ -3,6 +3,7 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { isRecordDay } = require('../utils/dayRange');
+const { seoulDay } = require('../utils/seoulDay');
 
 // 전체 목록
 router.get('/', auth, (req, res) => {
@@ -37,7 +38,9 @@ router.post('/', auth, spamCheck, (req, res) => {
     req.userId,
     // 말이 되는 범위가 아니면 **오늘로 적는다** — 여기는 날짜가 곁다리라
     // (체중이 본체다) 거절하는 대신 오늘로 둔다. 모양만 보던 것을 범위까지 본다 (2026-09-18)
-    isRecordDay(date) ? date : new Date().toISOString().split('T')[0],
+    // 대체값도 **서울 기준 오늘**이다 (2026-09-19). UTC 로 만들면 한국 새벽 0~9시에
+    // 적은 것이 어제 날짜로 들어간다 — 체중 그래프의 점 하나가 하루 왼쪽에 찍힌다
+    isRecordDay(date) ? date : seoulDay(Date.now()),
     height || null,
     weight,
     fat_pct || null,

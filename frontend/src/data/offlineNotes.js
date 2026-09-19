@@ -20,6 +20,7 @@
 // 없이 돌려본다. 브라우저에 담는 일은 맨 아래 몇 줄이 한다.
 
 import { readLS, saveLS, removeLS } from './safeStorage';
+import { dateKey } from './dateKey';
 import { NOTE_CACHE_KEY, NOTE_QUEUE_KEY } from './localKeys';
 
 // 실패의 모양을 가르는 것(`isOfflineError`)은 운동 기록과 **똑같은 규칙**이다.
@@ -175,7 +176,9 @@ export function readNoteCache() {
 export function saveNoteCache(notes, month, days = 90, today = new Date()) {
   const base = notes && typeof notes === 'object' && !Array.isArray(notes) ? notes : {};
   const prev = readNoteCache() || {};
-  const limit = new Date(today.getTime() - days * 86400000).toISOString().slice(0, 10);
+  // **그 기기의 날짜로 센다** (2026-09-19). `toISOString()` 은 UTC 라 한국에서는
+  // 새벽 0~9시에 하루 덜 담는다 — `dateKey` 가 이 앱의 「그날」이다
+  const limit = dateKey(new Date(today.getTime() - days * 86400000));
   const kept = {};
   // 받아온 달은 통째로 갈아끼운다 — 그 달에서 지워진 것이 남아 있으면 안 된다
   for (const [date, note] of Object.entries(prev)) {
