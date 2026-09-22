@@ -66,8 +66,28 @@ const N_RULES = RULES.map(([part, words]) => [part, words.map(norm)]);
 const CACHE_MAX = 500;
 const _cache = new Map();
 
+/**
+ * 이름 끝에 **부위가 적혀 있나** (2026-09-22).
+ *
+ * 앱이 스스로 만드는 이름이 있다 — 홈트 한 판을 기록에 남기면
+ * 「기능성(특수부대식) · 하체」 같은 줄이 된다. 그 부위는 **동작마다 적어둔 것**에서
+ * 온 것이라(`homeworkoutPrograms.js`), 이름으로 다시 맞힐 이유가 없다.
+ *
+ * 맞히는 규칙보다 **먼저** 본다. 「기능성 · 팔」을 낱말로 풀면 「기능」이 걸려
+ * 엉뚱한 데로 갈 수 있다 — 적어둔 것이 있으면 그것이 이긴다.
+ *
+ * 사람이 손으로 「벤치프레스 · 가슴」이라 적어도 같은 답이 나오므로 해롭지 않다.
+ */
+function taggedPart(exercise) {
+  const m = String(exercise || '').match(/·\s*(가슴|등|어깨|하체|팔|코어)\s*$/);
+  return m ? m[1] : null;
+}
+
 /** 운동 이름 → 부위. 못 맞히면 '기타'. */
 export function bodyPartOf(exercise) {
+  const tagged = taggedPart(exercise);
+  if (tagged) return tagged;
+
   const n = norm(exercise);
   if (!n) return '기타';
 

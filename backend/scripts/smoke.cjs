@@ -251,6 +251,27 @@ function cleanAll() {
   step('진행표 끝', p2.status, 200);
   step('  다 했다고 알려준다', p2.data?.finished, true);
 
+  // ── 홈트 한 판이 몸 지도까지 가는가 (2026-09-22) ──
+  //
+  // 여태 「기능성운동 - 이름」 한 줄로 갔고, 지도는 그 이름을 못 읽어 '기타' 로 봤다 —
+  // 판을 다 해도 지도에 아무것도 안 칠해졌다. 이제 **부위별로 나눠** 보낸다.
+  // 이름 끝의 부위를 화면이 읽으므로(`bodyPart.js` 의 `taggedPart`),
+  // **서버가 그 이름을 안 자르는지**가 여기서 확인해야 할 것이다.
+  step('홈트 · 하체 저장',
+    (await call('POST', '/workouts', { date: '2026-08-27', exercise: '기능성(특수부대식) · 하체', weight: '', sets: 5, reps: 1 })).status, 201);
+  step('홈트 · 코어 저장',
+    (await call('POST', '/workouts', { date: '2026-08-27', exercise: '기능성(특수부대식) · 코어', weight: '', sets: 4, reps: 1 })).status, 201);
+  const hw = await call('GET', '/workouts');
+  const hwRows = (Array.isArray(hw.data) ? hw.data : []).filter((r) => String(r.exercise).includes('기능성(특수부대식)'));
+  step('  두 줄이 다 남았다', hwRows.length, 2);
+  // **이름이 잘리면 부위를 못 읽는다.** 서버가 `·` 를 지우거나 뒤를 자르면 지도가 못 본다
+  step('  부위가 이름 끝에 그대로 있다',
+    hwRows.every((r) => / · (하체|코어)$/.test(r.exercise)), true);
+  // 맨몸이라 무게를 비워 보냈다. 서버는 그것을 **'맨몸'** 으로 적는다 —
+  // 0 으로 두면 「0kg 로 들었다」가 되고, 볼륨 세는 쪽이 맨몸 세트로 안 센다
+  step('  빈 무게는 맨몸으로 적힌다',
+    hwRows.every((r) => r.weight === '맨몸'), true);
+
   console.log('\n── 달력에 할 것을 담는다 ──');
   // 한 것과 할 것은 다른 이야기다. 계획은 따로 저장한다
   const pl1 = await call('POST', '/plans', { date: '2026-12-24', kind: 'routine', name: '가슴 등', routineId: rt.data?.id });
@@ -379,7 +400,8 @@ function cleanAll() {
   step('측정 저장',
     (await call('POST', '/measures', { date: '2026-08-27', type: 'bodySize', data: { chest: 100, waist: 80 } })).status, 201);
   for (const [label, urlPath, wantRows] of [
-    ['운동', '/export/workouts', 2],
+    // 운동 넷 — 벤치프레스 · 랫풀다운 + 홈트 두 줄(9/22 에 부위별로 나눠 저장하게 됐다)
+    ['운동', '/export/workouts', 4],
     ['인바디', '/export/inbody', 1],
     ['측정', '/export/measures', 2],
   ]) {

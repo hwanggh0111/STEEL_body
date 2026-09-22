@@ -5,10 +5,12 @@ import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
 import { HOME_LAST_KEY } from '../data/localKeys';
-import { buildPump, programPump, partsOf } from '../data/homeworkoutParts';
+import { buildPump, programPump, partsOf, toRecords } from '../data/homeworkoutParts';
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import PumpBody from '../components/PumpBody';
+import { useWorkoutStore } from '../store/workoutStore';
+import { useToday } from '../data/useToday';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
@@ -16,7 +18,8 @@ import { useWakeLock } from '../data/useWakeLock';
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
 // 지난번에 한 프로그램. **여기에만 남는다** — 홈트는 아직 서버에 안 쌓인다
-// (「운동 기록에 남기기」를 눌러야 기록이 된다). 그래서 기기의 것으로만 적는다.
+// (「운동 기록에 남기기」를 눌러야 기록이 된다 — **2026-09-22 부터 그 단추가 부위별로
+// 나눠 서버에 바로 저장하고, 몸 지도까지 간다**). 그래서 기기의 것으로만 적는다.
 //
 // 이름은 `data/localKeys.js` 에 둔다 — **그 사람이 한 것**이라 로그아웃하면 지운다
 // (열쇠의 `steelbody_` 는 옛 앱 이름이다. 앱 이름이 바뀌어도 안 바꾼다)
@@ -283,6 +286,9 @@ export default function HomeworkoutPage() {
   // 확인하려면 매번 45초를 기다려야 했다 — 만든 사람도, 쓰는 사람도.
   // 여기서 **그 화면 그대로**를 열어본다. 열어두고 숨을 쉬면 파형이 움직인다
   const [peek, setPeek] = useState(false);
+  // 판을 끝내면 여기서 바로 저장한다 — 기록 화면으로 보내 한 번 더 누르게 하지 않는다
+  const addWorkout = useWorkoutStore((st) => st.addWorkout);
+  const today = useToday();
   // 이 휴식에서 이미 더 준 초. 휴식이 끝나면 0 으로 돌아간다
   const [extraGiven, setExtraGiven] = useState(0);
   // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
@@ -518,9 +524,32 @@ export default function HomeworkoutPage() {
   // 예전에는 운동명만 넘겨서, 빈 폼에 이름만 적힌 채 **세트와 횟수를 지어내야** 했다
   // (둘 다 필수 칸이다). 홈트는 시간으로 하는 것이라 「한 운동 = 한 세트」로 세고,
   // 횟수는 1 로 둔다. 고치고 싶으면 그 자리에서 고치면 된다
-  const goRecord = (count) => navigate('/train', {
-    state: { exercise: `기능성운동 - ${selected}`, sets: String(Math.max(1, count)), reps: '1' },
-  });
+  /**
+   * 판을 **몸 지도까지** 남긴다 (2026-09-22).
+   *
+   * 여태 「기능성운동 - 이름」 한 줄로 기록 화면에 넘겼다. 그런데 몸 지도는 그 이름을
+   * 못 읽어 **'기타'** 로 봤다 — 판을 다 해도 지도에 아무것도 안 칠해졌다.
+   * 부위를 52개에 다 적어놓고 정작 지도로는 못 보내고 있었던 셈이다.
+   *
+   * 이제 **부위별로 묶어 그 자리에서 저장한다.** 기록 화면으로 보내 한 번 더 누르게
+   * 하지 않는다 — 판을 끝낸 사람에게 저장 버튼을 두 번 누르게 할 이유가 없다.
+   *
+   * 못 올려도 **앱은 그대로 돈다**: 신호가 없으면 줄에 담겼다가 나중에 올라간다
+   * (`workoutStore` 가 이미 그렇게 한다).
+   */
+  const goRecord = async (count) => {
+    const rows = toRecords(exercises, count, selected);
+    if (rows.length === 0) { toast('적을 것이 없어요'); return; }
+    try {
+      for (const r of rows) await addWorkout({ ...r, date: today });
+      toast(`${rows.length}줄로 기록했어요 · 몸 지도에도 쌓였어요`);
+      navigate('/history', { state: { date: today } });
+    } catch {
+      // 서버가 거절한 것은 다시 보내도 마찬가지다. 기록 화면으로 보내 손으로 적게 한다
+      toast('기록을 못 올렸어요. 직접 적어주세요');
+      navigate('/train', { state: { exercise: `${selected} · ${rows[0].exercise.split(' · ').pop()}` } });
+    }
+  };
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
   // 진행 막대는 **움직인 시간**으로 잰다. 쉬는 시간까지 넣으면 가만히 있는 동안에도
@@ -803,6 +832,18 @@ export default function HomeworkoutPage() {
               })}
             </div>
           )}
+
+          {/* 눌렀을 때 **무슨 일이 나는지** 미리 적는다. 「기록에 남기기」가 몸 지도까지
+              간다는 것은 눌러보기 전에는 모른다 */}
+          <div style={{
+            marginTop: 12, padding: '9px 11px', borderRadius: 6,
+            border: '1px solid var(--border-hover)', background: 'var(--bg-secondary)',
+            fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6,
+          }}>
+            아래를 누르면 <b style={{ color: 'var(--accent)' }}>부위별 {donePump.touched.length}줄</b>로 적히고
+            <b style={{ color: 'var(--accent)' }}> 몸 지도</b>에도 쌓여요.
+            {donePump.untouched.length > 0 && <> 안 한 {donePump.untouched[0]}이 「오늘 뭘 하지」에 올라옵니다.</>}
+          </div>
         </div>
 
         <button className="btn-primary" onClick={() => goRecord(exercises.length)}>

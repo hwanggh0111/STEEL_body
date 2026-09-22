@@ -99,29 +99,47 @@ export function programPump(list) {
 /**
  * 몸 지도(`bodyHeat`)가 읽을 수 있는 줄로 바꾼다.
  *
- * 홈트는 여태 **몸 지도와 따로 놀았다** — 판을 다 해도 지도는 아무것도 몰랐다.
- * 「운동 기록에 남기기」로 넘어갈 때 부위가 실려 가야 지도가 안다.
+ * 홈트는 여태 **몸 지도와 따로 놀았다.** 판을 다 해도 지도는 아무것도 몰랐다 —
+ * 「기능성운동 - 기능성(특수부대식)」 한 줄로 넘어갔고, 지도는 그 이름을 못 읽어
+ * **'기타'** 로 봤다(어느 부위도 안 칠해진다).
  *
- * 세트로 적는다 — 이 앱의 기록 한 줄은 「운동 + 무게 + 세트 + 횟수」다.
- * **시간을 세트로 지어내지 않는다**: 한 동작을 한 번 한 것이 1세트다.
+ * ── 왜 **부위별로 묶나** ──
+ *
+ * 동작마다 한 줄이면 판 하나에 열두 줄이 쌓인다. 기록 화면은 그날 한 것을 읽는
+ * 자리인데, 열두 줄이 들어오면 헬스장에서 적은 서너 줄이 묻힌다.
+ * 그래서 **부위로 묶는다** — 「기능성(특수부대식) · 하체」 5세트처럼.
+ * 지도는 이름 끝의 부위를 읽는다(`bodyPart.js` 의 `taggedPart`).
+ *
+ * ── 왜 **주로 쓴 곳만** 세나 ──
+ *
+ * 곁들여 쓴 것까지 「했다」고 적으면, 베어 크롤 한 번으로 하체까지 한 것이 된다.
+ * 지도는 「마지막으로 언제 건드렸나」를 말하는 자리다 — 곁들인 것으로 부위가
+ * 달아오르면 **오늘 할 곳을 잘못 가리킨다.** 주로 쓴 것만 적는다.
+ *
+ * 세트는 **그 부위를 주로 쓴 동작 수**다. 시간을 세트로 지어내지 않는다 —
+ * 한 동작을 한 번 한 것이 1세트다.
  */
-export function toRecords(list, done, today) {
+export function toRecords(list, done, program) {
   const rows = Array.isArray(list) ? list : [];
   const upto = Math.max(0, Math.min(rows.length, Number(done) || 0));
-  const out = [];
+
+  const count = {};
+  const seconds = {};
   for (let i = 0; i < upto; i += 1) {
     const ex = rows[i];
-    if (!ex?.name) continue;
-    out.push({
-      date: today,
-      exercise: ex.name,
-      weight: '',                 // 맨몸이다. 0 을 적으면 「0kg 로 들었다」가 된다
-      sets: 1,
-      reps: 1,
-      seconds: Number(ex.duration) || 0,
-      main: partsOf(ex).main,
-      sub: partsOf(ex).sub,
+    partsOf(ex).main.forEach((p) => {
+      count[p] = (count[p] || 0) + 1;
+      seconds[p] = (seconds[p] || 0) + (Number(ex?.duration) || 0);
     });
   }
-  return out;
+
+  const name = String(program || '홈트').trim();
+  // 몸 지도의 차례를 따른다 — 부를 때마다 순서가 바뀌면 같은 판이 다르게 쌓인다
+  return MAP_PARTS.filter((p) => count[p] > 0).map((p) => ({
+    exercise: `${name} · ${p}`,
+    weight: '',                 // 맨몸이다. 0 을 적으면 「0kg 로 들었다」가 된다
+    sets: count[p],
+    // 초를 횟수로 옮기지 않는다. 45초 버틴 것을 「45회」라고 적으면 거짓말이 된다
+    reps: 1,
+  }));
 }

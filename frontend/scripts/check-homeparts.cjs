@@ -98,20 +98,44 @@ ok('동점은 몸 지도 차례대로', whole.order[whole.order.length - 1].part
 
 console.log('── 몸 지도로 넘기기 ──');
 //
-// 홈트는 여태 몸 지도와 따로 놀았다. 판을 다 해도 지도는 아무것도 몰랐다
-const recs = H.toRecords(FUNC, 3, '2026-09-22');
-ok('한 동작이 한 줄', recs.length, 3);
-ok('맨몸이라 무게는 비운다', recs[0].weight, '');
-ok('한 번 한 것이 1세트', [recs[0].sets, recs[0].reps], [1, 1]);
-ok('시간도 같이 넘긴다', recs[0].seconds, 45);
-ok('부위가 실려 간다', recs[0].main, ['어깨', '코어']);
-ok('날짜가 붙는다', recs[0].date, '2026-09-22');
+// 홈트는 여태 몸 지도와 따로 놀았다. 판을 다 해도 지도는 아무것도 몰랐다 —
+// 한 줄로 넘어갔고 지도는 그 이름을 못 읽어 '기타' 로 봤다
+const recs = H.toRecords(FUNC, 3, '기능성(특수부대식)');
 
-// 몸 지도가 이 줄을 실제로 읽는가 — 이름으로 부위를 맞히는 그 길로 들어간다.
-// **넘긴 것이 지도에 안 잡히면 이은 것이 아니다**
-const W = { '2026-09-22': recs };
-const heat = B.buildHeat(W, '2026-09-22');
+// 처음 셋: 베어 크롤(어깨·코어) · 로우 크롤(코어) · 크랩 워크(어깨·팔)
+ok('부위별로 묶인다', recs.map((r) => r.exercise), [
+  '기능성(특수부대식) · 어깨',
+  '기능성(특수부대식) · 팔',
+  '기능성(특수부대식) · 코어',
+]);
+ok('세트는 그 부위를 주로 쓴 동작 수', recs.map((r) => r.sets), [2, 1, 2]);
+ok('맨몸이라 무게는 비운다', recs[0].weight, '');
+// 45초 버틴 것을 「45회」라고 적으면 거짓말이 된다
+ok('초를 횟수로 안 옮긴다', recs.every((r) => r.reps === 1), true);
+// 곁들여 쓴 것으로 「했다」고 하면, 베어 크롤 한 번으로 하체까지 한 것이 된다
+ok('곁들인 하체는 안 적는다', recs.some((r) => r.exercise.includes('하체')), false);
+ok('시작 전에는 아무것도 안 만든다', H.toRecords(FUNC, 0, '기능성'), []);
+ok('목록이 없어도 안 터진다', H.toRecords(null, 5, '기능성'), []);
+ok('판 이름이 없어도 이름이 선다', H.toRecords(FUNC, 1, '')[0].exercise.startsWith('홈트'), true);
+
+// **여기가 진짜 확인이다.** 이 줄을 몸 지도에 넣어서 실제로 읽히는가 —
+// 넘긴 것이 지도에 안 잡히면 이은 것이 아니다
+const dated = recs.map((r) => ({ ...r, date: '2026-09-22' }));
+const heat = B.buildHeat({ '2026-09-22': dated }, '2026-09-22');
 ok('지도가 이 판을 본다', heat.any, true);
+ok('어깨가 오늘 달아올랐다', heat.byPart['어깨'].days, 0);
+ok('코어도', heat.byPart['코어'].days, 0);
+ok('팔도', heat.byPart['팔'].days, 0);
+// 안 한 부위는 안 달아오른다 — 이것이 「오늘 뭘 하지」의 답이 된다
+ok('안 한 가슴은 그대로다', heat.byPart['가슴'].days, null);
+ok("'기타' 로 새지 않는다", heat.other.count, 0);
+ok('세트도 지도에 실린다 (어깨 2)', heat.byPart['어깨'].sets7, 2);
+
+// 고치기 전에는 어땠나 — **그 한 줄은 '기타' 였다**
+const oldWay = [{ date: '2026-09-22', exercise: '기능성운동 - 기능성(특수부대식)', weight: '', sets: 12, reps: 1 }];
+const oldHeat = B.buildHeat({ '2026-09-22': oldWay }, '2026-09-22');
+ok('옛 방식은 지도에 아무것도 안 남겼다', oldHeat.any, false);
+ok('통째로 기타로 샜다', oldHeat.other.count, 1);
 
 console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
