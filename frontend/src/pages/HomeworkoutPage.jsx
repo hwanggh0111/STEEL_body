@@ -5,7 +5,7 @@ import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
 import { HOME_LAST_KEY } from '../data/localKeys';
-import { buildPump, partsOf } from '../data/homeworkoutParts';
+import { buildPump, programPump, partsOf } from '../data/homeworkoutParts';
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import PumpBody from '../components/PumpBody';
@@ -155,6 +155,104 @@ function PumpRow({ pump, next }) {
   );
 }
 
+/**
+ * 이 판이 **어디를 채우는 판인가** — 고르기 전에 보는 것.
+ *
+ * 이름만으로는 모른다. 「상체 집중」이 가슴만 하는 판인지 등까지 하는 판인지,
+ * 「기능성」이 하체 판인지 온몸 판인지는 **동작을 다 읽어야** 나온다.
+ */
+function ProgramPump({ list }) {
+  const pump = useMemo(() => programPump(list), [list]);
+  if (!pump.touched.length) return null;
+  return (
+    <div style={{
+      display: 'flex', gap: 12, alignItems: 'center',
+      padding: '12px 0', marginBottom: 12,
+      borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
+    }}>
+      <PumpBody pump={pump} width={56} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+          이 판이 채우는 곳
+        </div>
+        {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
+          <div key={r.part} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, marginBottom: 5 }}>
+            <span style={{ width: 26, color: 'var(--text-secondary)', flexShrink: 0 }}>{r.part}</span>
+            <span style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+              <span style={{
+                display: 'block', height: '100%', borderRadius: 2,
+                width: `${Math.round((r.score / Math.max(1, pump.max)) * 100)}%`,
+                background: r.main > 0 ? 'var(--accent)' : 'var(--accent-low)',
+                opacity: r.main > 0 ? 1 : 0.5,
+              }} />
+            </span>
+          </div>
+        ))}
+        {pump.untouched.length > 0 && (
+          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+            안 하는 곳: {pump.untouched.join(' · ')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 숨 보고 쉬기 스위치.
+ *
+ * **고르는 자리에 둔다.** 시작한 뒤에 켜게 하면 기준선을 3초 재는 동안 첫 동작이
+ * 지나가서 첫 휴식을 놓친다. 그리고 **켜는 자리에서 무엇을 하는지 · 소리를 안
+ * 남긴다는 것**을 같이 적는다 — 마이크를 켜라고 하면서 까닭을 안 적으면 아무도 안 켠다.
+ */
+function BreathSwitch({ breath, wanted, setWanted }) {
+  return (
+    <div style={{
+      border: `1px solid ${breath.on ? 'var(--accent)' : 'var(--border)'}`,
+      background: breath.on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
+      borderRadius: 'var(--radius)', padding: 12, marginBottom: 12,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>숨 보고 쉬기</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.65 }}>
+            숨이 아직 올라있으면 <b>쉬는 시간을 몇 초 더</b> 드려요.
+            소리 크기만 재고 <b>녹음하지 않아요</b> — 어디로도 안 보냅니다.
+          </div>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (breath.on) { breath.stop(); setWanted(false); return; }
+            setWanted(true);
+            breath.start();
+          }}
+          className="btn-secondary"
+          style={{
+            width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12,
+            fontFamily: 'inherit', cursor: 'pointer',
+            borderColor: breath.on ? 'var(--accent)' : 'var(--border-hover)',
+            color: breath.on ? 'var(--accent)' : 'var(--text-secondary)',
+            background: breath.on ? 'var(--accent-dim)' : 'none',
+          }}
+          aria-pressed={breath.on}
+        >{breath.on ? '켜짐' : '켜기'}</button>
+      </div>
+
+      {/* 못 쓰는 자리면 **까닭을 적는다.** 켰는데 아무 일도 안 일어나면 고장으로 읽힌다 */}
+      {wanted && breath.phase === 'blocked' && (
+        <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.6 }}>{breath.why}</div>
+      )}
+      {breath.on && breath.phase === 'calibrating' && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>조용한 소리를 재는 중이에요 — 잠깐만요.</div>
+      )}
+      {breath.on && breath.phase === 'ready' && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>준비됐어요. 쉬는 동안에만 봅니다.</div>
+      )}
+    </div>
+  );
+}
+
 export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
   // 시작하기 전에 무엇을 하는지 펼쳐 보는 자리
@@ -179,6 +277,12 @@ export default function HomeworkoutPage() {
   // **사용자가 켤 때만 켜진다.** 화면을 연다고 마이크가 켜지지 않는다
   const breath = useBreath();
   const [breathWanted, setBreathWanted] = useState(false);
+  // **판을 안 돌려도 보는 자리** (2026-09-22).
+  //
+  // 쉬는 화면은 판을 시작하고 첫 동작(45초)을 버텨야 한 번 나온다. 그래서 눈으로
+  // 확인하려면 매번 45초를 기다려야 했다 — 만든 사람도, 쓰는 사람도.
+  // 여기서 **그 화면 그대로**를 열어본다. 열어두고 숨을 쉬면 파형이 움직인다
+  const [peek, setPeek] = useState(false);
   // 이 휴식에서 이미 더 준 초. 휴식이 끝나면 0 으로 돌아간다
   const [extraGiven, setExtraGiven] = useState(0);
   // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
@@ -581,7 +685,47 @@ export default function HomeworkoutPage() {
                       );
                     })}
                   </div>
+                  {/* ── 이 판이 어디를 채우나 (2026-09-22) ──
+                      **고르기 전에 보여준다.** 「상체 집중」이라는 이름만으로는
+                      가슴만 하는 판인지 등까지 하는 판인지 모른다. 부위는
+                      `data/homeworkoutParts.js` 가 적어둔 것에서 온다 */}
+                  <ProgramPump list={exs} />
+
+                  {/* 숨 보고 쉬기 — **기능성에만.** 고르는 자리에서 켠다:
+                      시작한 뒤에 켜게 하면 첫 휴식을 놓친다(기준선을 3초 재야 한다) */}
+                  {name === '기능성(특수부대식)' && micSupported() && (
+                    <BreathSwitch breath={breath} wanted={breathWanted} setWanted={setBreathWanted} />
+                  )}
+
                   <button className="btn-primary" onClick={() => setSelected(name)}>시작하기</button>
+
+                  {/* **쉬는 화면을 미리 본다.** 판을 시작해 45초를 버텨야 한 번
+                      나오는 화면이라, 확인할 길이 없으면 아무도 확인을 못 한다 */}
+                  <button
+                    className="btn-secondary"
+                    style={{ width: '100%', marginTop: 8, fontFamily: 'inherit', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); setPeek(peek === name ? false : name); }}
+                  >{peek === name ? '미리 보기 닫기' : '쉬는 화면 미리 보기'}</button>
+
+                  {peek === name && (
+                    <div style={{
+                      marginTop: 10, padding: 13, borderRadius: 'var(--radius)',
+                      border: '1px dashed var(--border-hover)', background: 'var(--bg-secondary)',
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.6 }}>
+                        <b style={{ color: 'var(--text-secondary)' }}>미리 보기</b> — 판의 절반쯤 왔을 때
+                        쉬는 화면이 이렇게 나와요. 숨을 켜두셨으면 <b style={{ color: 'var(--text-secondary)' }}>지금 숨을 쉬어보세요</b>,
+                        파형이 움직입니다.
+                      </div>
+                      {name === '기능성(특수부대식)' && micSupported() && (
+                        <BreathRow breath={breath} extraGiven={0} onSkip={() => {}} />
+                      )}
+                      <PumpRow
+                        pump={buildPump(exs, Math.ceil(exs.length / 2))}
+                        next={exs[Math.ceil(exs.length / 2)]}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -756,57 +900,10 @@ export default function HomeworkoutPage() {
         </div>
       )}
 
-      {/* ── 숨 보고 쉬기 스위치 (2026-09-22) ──
-          **기능성에만 있다.** 그리고 **사용자가 켤 때만 켜진다** — 화면을 연다고
-          마이크가 켜지지 않는다. 켜는 자리에서 무엇을 하는지 · 소리를 안 남긴다는
-          것을 같이 적는다: 마이크를 켜라고 하면서 까닭을 안 적으면 아무도 안 켠다 */}
+      {/* 시작 화면에서 켜고 왔어도 **여기서 끌 수 있다.** 같은 스위치를 두 벌로
+          두지 않는다 — 한쪽만 고치는 날이 온다 */}
       {breathable && !running && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>
-                숨 보고 쉬기
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.65 }}>
-                숨이 아직 올라있으면 <b>쉬는 시간을 몇 초 더</b> 드려요.
-                소리 크기만 재고 <b>녹음하지 않아요</b> — 어디로도 안 보냅니다.
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (breath.on) { breath.stop(); setBreathWanted(false); return; }
-                setBreathWanted(true);
-                breath.start();
-              }}
-              className={breath.on ? 'btn-secondary' : 'btn-secondary'}
-              style={{
-                width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12,
-                fontFamily: 'inherit', cursor: 'pointer',
-                borderColor: breath.on ? 'var(--accent)' : 'var(--border-hover)',
-                color: breath.on ? 'var(--accent)' : 'var(--text-secondary)',
-                background: breath.on ? 'var(--accent-dim)' : 'none',
-              }}
-              aria-pressed={breath.on}
-            >{breath.on ? '켜짐' : '켜기'}</button>
-          </div>
-
-          {/* 못 쓰는 자리면 **까닭을 적는다.** 켰는데 아무 일도 안 일어나면 고장으로 읽힌다 */}
-          {breathWanted && breath.phase === 'blocked' && (
-            <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.6 }}>
-              {breath.why}
-            </div>
-          )}
-          {breath.on && breath.phase === 'calibrating' && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
-              조용한 소리를 재는 중이에요 — 잠깐만요.
-            </div>
-          )}
-          {breath.on && breath.phase === 'ready' && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
-              준비됐어요. 쉬는 동안에만 봅니다.
-            </div>
-          )}
-        </div>
+        <BreathSwitch breath={breath} wanted={breathWanted} setWanted={setBreathWanted} />
       )}
 
       {/* 시작 · 이어서 하기 */}
