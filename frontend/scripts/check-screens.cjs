@@ -110,6 +110,9 @@ const SCREENS = [
   ['홈페이지', 'src/pages/SiteHome.jsx'],
   ['공지함', 'src/pages/support/NoticeArchive.jsx'],
   ['운동 알림', 'src/pages/RemindersPage.jsx'],
+  // 설정함 — 머리의 기어에서 들어온다 (2026-09-22). 스위치가 열일곱이라
+  // 하나가 터지면 화면 전체가 안 나온다
+  ['설정', 'src/pages/SettingsPage.jsx'],
   ['로그인', 'src/pages/LoginPage.jsx'],
   ['회원가입', 'src/pages/RegisterPage.jsx'],
   // 관리자 화면은 탭 하나가 화면 하나다. 관리자만 보는 자리라 더 늦게 들킨다

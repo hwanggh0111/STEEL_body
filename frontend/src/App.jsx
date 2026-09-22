@@ -17,6 +17,7 @@ const RoutinePage = lazy(() => import('./pages/RoutinePage'));
 const TrainPage = lazy(() => import('./pages/TrainPage'));
 // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
 const BodyPage = lazy(() => import('./pages/BodyPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 // 몸 지도는 「몸」이 아니라 「오늘」에서 들어온다 (2026-09-16)
 const BodyMapPage = lazy(() => import('./pages/BodyMapPage'));
 // 목표 — 앱이 여태 「한 것」만 보여주던 자리에 「어디까지 가려는가」를 놓는다 (2026-09-17).
@@ -129,6 +130,9 @@ export default function App() {
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="reminders" element={<RemindersPage />} />
+                {/* 설정함 — 머리의 기어에서 들어온다 (2026-09-22).
+                    설정이 일곱 군데에 흩어져 있었다 */}
+                <Route path="settings" element={<SettingsPage />} />
                 <Route path="support/notices" element={<NoticeArchive />} />
                 {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
                     이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면

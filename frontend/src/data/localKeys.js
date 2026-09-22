@@ -87,6 +87,26 @@ export const REST_KEYS = {
   vibrate: 'steelbody_rest_vibrate',
   volume: 'steelbody_rest_volume',
 };
+// 설정함이 들고 있는 것들 (`store/settingsStore.js`, 2026-09-22).
+//
+// 여태 **아무 데서도 못 끄던 것들**이다 — 화면 켜두기는 코드에만 있었고, 목소리로
+// 적기는 운동 화면 안에만 있었다. 전부 **그 기기에서 어떻게 쓰는지**에 대한 취향이라
+// 로그아웃해도 남긴다.
+//
+// 휴식 타이머 여섯(소리 · 음색 · 볼륨 · 진동 · 자동 · 길이)은 여기 없다 —
+// `REST_KEYS` 가 이미 갖고 있고, 설정 화면은 그쪽을 그대로 불러 쓴다.
+// **같은 값을 두 벌로 두지 않는다.**
+export const SETTINGS_KEYS = {
+  keepAwake:   'steelbody_set_keepawake',
+  voiceLog:    'steelbody_set_voicelog',
+  prBanner:    'steelbody_set_prbanner',
+  finishCard:  'steelbody_set_finishcard',
+  breath:      'steelbody_set_breath',
+  breathWhere: 'steelbody_set_breath_where',
+  breathMax:   'steelbody_set_breath_max',
+  breathSense: 'steelbody_set_breath_sense',
+};
+
 // 앱 잠금 (`data/appLock.js` 가 들고 있다 — 계산이 거기 있어서 이름도 거기 둔다).
 // **기기의 가림막**이라 로그아웃해도 남긴다: 로그인은 그보다 센 자물쇠다.
 export const LOCK_KEY_NAME = 'steelbody_lock';

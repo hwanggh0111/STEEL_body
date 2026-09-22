@@ -53,6 +53,9 @@ export default function Layout() {
   const [changingPw, setChangingPw] = useState(false);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const location = useLocation();
+  // 설정함에 서 있으면 기어에 불이 들어온다 — 아래 탭바가 안 켜지는 자리라
+  // (탭의 자식이 아니다) 여기라도 켜주지 않으면 내가 어디인지 모른다
+  const onSettings = location.pathname === '/settings';
   const navType = useNavigationType();
   const isPC = useIsPC();
   // 휴식 띠가 떠 있으면 그만큼 아래를 비워둔다 — 안 그러면 마지막 줄이 띠에 가린다
@@ -315,6 +318,28 @@ export default function Layout() {
             }}
           >
             <NavIcon name="refresh" size={16} />
+          </button>
+
+          {/* 설정함 — 기어 하나에 전부 (2026-09-22).
+              설정이 일곱 군데에 흩어져 있었다: 휴식 타이머는 운동을 시작해 타이머를
+              띄워야, 숨은 홈트에서 기능성을 고른 뒤에만, 화면 켜두기와 목소리로 적기는
+              **끌 길이 아예 없었다.** 새로고침 옆에 둔다 — 둘 다 「화면이 아니라 앱에
+              대한 것」이라 같은 자리가 맞다 */}
+          <button
+            onClick={() => navigate('/settings')}
+            aria-label="설정"
+            title="설정"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              width: 34, height: 34, marginRight: 6,
+              background: onSettings ? 'var(--accent-dim)' : 'none',
+              border: `1px solid ${onSettings ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: 999,
+              color: onSettings ? 'var(--accent)' : 'var(--text-muted)',
+              cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s',
+            }}
+          >
+            <NavIcon name="gear" size={16} />
           </button>
 
           {/* 내 계정 — 누르면 시트가 열린다.

@@ -65,6 +65,26 @@ let given = 0;
 for (let i = 0; i < 10; i += 1) given += B.extraFor('high', given);
 ok('계속 차 있어도 15초에서 멈춘다', given, 15);
 
+console.log('── 설정함이 정하는 것 (2026-09-22) ──');
+//
+// 예민도와 최대 연장은 **설정함이 넘긴다.** 규칙을 바꾼 것이 아니라 고를 수 있게 한 것이라,
+// **안 넘기면 기본값 그대로**여야 한다 — 안 그러면 설정을 안 건드린 사람의 동작이 바뀐다
+ok('안 넘기면 기본값 그대로', B.breathState(0.03, base), 'mid');
+const LOOSE = { mid: 1.8, up: 2.6 };
+const TIGHT = { mid: 1.3, up: 1.9 };
+ok('느슨하게 — 1.5배는 아직 가라앉음', B.breathState(0.03, base, LOOSE), 'calm');
+ok('예민하게 — 1.5배도 올라옴', B.breathState(0.03, base, TIGHT), 'mid');
+ok('예민하게 — 2배면 차 있음', B.breathState(0.04, base, TIGHT), 'high');
+ok('느슨하게 — 2배는 아직 올라온 것', B.breathState(0.04, base, LOOSE), 'mid');
+// 이상한 값이 와도 기본값으로 돌아간다 (설정이 깨져도 판은 돌아야 한다)
+ok('0 을 넘기면 기본값', B.breathState(0.03, base, { mid: 0, up: 0 }), 'mid');
+ok('글자를 넘겨도 기본값', B.breathState(0.03, base, { mid: 'x', up: 'y' }), 'mid');
+
+ok('최대 연장도 설정이 정한다 (5초)', B.extraFor('high', 0, 5), 5);
+ok('  거기서 멈춘다', B.extraFor('high', 5, 5), 0);
+ok('30초까지 고르면', B.extraFor('high', 20, 30), 10);
+ok('안 넘기면 기본 15초', B.extraFor('high', 10), 5);
+
 console.log('── 쓸 수 있는 자리인가 ──');
 ok('조용하면 쓴다', B.usable(0.02).ok, true);
 // 음악·TV 가 켜져 있으면 기준선이 높아 숨이 묻힌다. **틀린 값으로 시간을 조절하지 않는다**

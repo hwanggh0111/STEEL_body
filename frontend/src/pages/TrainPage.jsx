@@ -20,6 +20,7 @@ import { bestRecords, checkRecord } from '../data/personalRecord';
 import { useWakeLock } from '../data/useWakeLock';
 import GymSetting from '../components/GymSetting';
 import { useGymStore } from '../store/gymStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 // 운동 — 5차 리모델링(2026-09-04).
 //
@@ -164,7 +165,13 @@ export default function TrainPage() {
   // **이 화면에 있을 때만이다.** 진행 중인 루틴은 서버에 남아 있어서 끝내기를 안
   // 누르면 밤새 「진행 중」이다 — 그것만 보고 잠그면 폰을 놔둔 채 자도 화면이 켜져
   // 있다. 이 화면을 벗어나면 놓고, 쉬는 동안은 아래 띠(`RestBar`)가 이어받는다
-  useWakeLock(Boolean(session));
+  // 설정함에서 끌 수 있다 (2026-09-22). 여태 코드에만 있어서, 배터리가 걱정되는
+  // 사람에게는 끌 길이 없었다
+  const keepAwake = useSettingsStore((st) => st.keepAwake);
+  const prBanner = useSettingsStore((st) => st.prBanner);
+  const finishCard = useSettingsStore((st) => st.finishCard);
+  const voiceLog = useSettingsStore((st) => st.voiceLog);
+  useWakeLock(Boolean(session) && keepAwake);
   const exercise = picked ?? current?.name ?? '';
 
   // 이 운동을 마지막으로 한 기록. 미리 채울 값이고 화면에도 적는다
@@ -275,7 +282,8 @@ export default function TrainPage() {
       toast(saved?.queued
         ? '신호가 없어 이 기기에 적어뒀어요. 연결되면 저절로 올라가요'
         : isToday ? '적었어요' : `${dayLabel(date)} 자리에 적었어요`);
-      setRecord(checkRecord(before, payload));
+      // 최고 기록 알림을 꺼둔 사람에게는 안 띄운다 — 견주는 일은 그대로 한다
+      setRecord(prBanner ? checkRecord(before, payload) : null);
 
       // **지난 날짜에 적을 때는 쉬라고 하지 않고 진행표도 안 넘긴다.**
       // 어제 한 운동을 오늘 적어 넣는 중인데 휴식 타이머가 돌면 틀린 말이고,
@@ -319,7 +327,7 @@ export default function TrainPage() {
         // **마친 자리에서 하루치를 한 장으로 보여준다** (2026-09-16).
         // 여태 토스트 한 줄이 4초 지나가고 끝이었다 — 하루 중 제일 뿌듯한 순간이
         // 제일 조용했다. 기록은 이 위에서 이미 저장됐으므로 스토어에서 바로 꺼낸다
-        showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
+        if (finishCard) showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
       }
     } catch {
       /* 진행표만 못 넘겼다 */
@@ -686,13 +694,13 @@ export default function TrainPage() {
                 조용히 쌓이고, 그러면 이 앱의 모든 숫자를 못 믿게 된다.
                 알아듣기가 안 되는 브라우저에서는 단추가 아예 안 나온다 */}
             <div style={{ marginBottom: 10 }}>
-              <VoiceSet onFill={(v) => {
+              {voiceLog && <VoiceSet onFill={(v) => {
                 // 안 들은 칸은 그대로 둔다. 비우면 지난 기록으로 채워둔 값이 날아간다
                 if (v.weight !== null) setWeight(v.weight === '맨몸' ? '' : String(v.weight));
                 if (v.reps !== null) setReps(String(v.reps));
                 if (v.sets !== null) setSets(String(v.sets));
                 setError('');
-              }} />
+              }} />}
             </div>
 
             {/* ── 어느 날 것인가 ── (2026-09-18)

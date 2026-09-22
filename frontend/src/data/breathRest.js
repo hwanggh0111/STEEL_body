@@ -86,17 +86,21 @@ export function baselineOf(samples) {
  *
  * 돌려주는 것: 'calm' 가라앉음 · 'mid' 올라와 있음 · 'high' 아직 차 있음 · null 못 잼
  */
-export function breathState(level, base) {
+export function breathState(level, base, th) {
   const v = num(level);
   const b = num(base);
   if (v === null || b === null || b <= 0) return null;
+  // 예민도는 **설정함이 정한다** (2026-09-22). 안 넘기면 여기 적힌 기본값 —
+  // 규칙을 바꾼 것이 아니라, 고를 수 있게 한 것이다
+  const midTh = Number(th?.mid) > 0 ? Number(th.mid) : RATIO_MID;
+  const upTh = Number(th?.up) > 0 ? Number(th.up) : RATIO_UP;
   // 기준선이 너무 조용하면(무음에 가까우면) 나눗셈이 폭발한다 — 바닥을 깐다.
   // **둘째 자리에서 끊는다**: 0.044 / 0.02 가 2.1999999999999997 로 나와서
   // 2.2 를 안 넘는다(부동소수점). 경계가 흔들리면 같은 숨이 어떤 날은 5초,
   // 어떤 날은 10초가 된다
   const ratio = Math.round((v / Math.max(b, 0.004)) * 100) / 100;
-  if (ratio >= RATIO_UP) return 'high';
-  if (ratio >= RATIO_MID) return 'mid';
+  if (ratio >= upTh) return 'high';
+  if (ratio >= midTh) return 'mid';
   return 'calm';
 }
 
@@ -109,9 +113,11 @@ export function breathState(level, base) {
  * 한 번에 5초씩만 늘린다. 20초를 한꺼번에 주면 사람은 「고장났나」 한다.
  * `MAX_EXTRA` 에서 멈춘다 — 숨이 안 가라앉는 날도 판은 끝나야 한다.
  */
-export function extraFor(state, given = 0) {
+export function extraFor(state, given = 0, max) {
   const used = Math.max(0, Number(given) || 0);
-  const room = MAX_EXTRA - used;
+  // 최대치도 **설정함이 정한다.** 안 넘기면 여기 적힌 기본값
+  const cap = Number(max) > 0 ? Number(max) : MAX_EXTRA;
+  const room = cap - used;
   if (room <= 0) return 0;
   if (state === 'high') return Math.min(10, room);
   if (state === 'mid') return Math.min(5, room);

@@ -1532,7 +1532,10 @@ ok('소리는 사람이 누른 순간에 준비한다 (브라우저가 막는다
 // **2026-09-17 에 공용 훅으로 옮겼다** (`data/useWakeLock.js`). 여기에만 있어서
 // 정작 매일 겪는 루틴 진행 · 휴식 중에는 세트마다 폰을 깨워야 했다.
 // 잡는 코드가 한 곳에만 있는지는 `npm run take` 가 본다
-ok('운동하는 동안 화면을 안 재운다', page.includes('useWakeLock(running)'), true);
+// **2026-09-22 에 설정함에서 끌 수 있게 했다.** 여태 코드에만 있어서 배터리가
+// 걱정되는 사람에게는 끌 길이 없었다. 그래서 조건이 붙는다 — 켜져 있으면 안 재운다
+ok('운동하는 동안 화면을 안 재운다', page.includes('useWakeLock(running && keepAwake)'), true);
+ok('  그리고 설정함에서 끌 수 있다', page.includes("st) => st.keepAwake"), true);
 ok('오늘 안 되는 운동은 건너뛸 수 있다', page.includes('skipStep'), true);
 ok('완료 화면에 이모지를 안 쓴다', /💪|🎉|🔥/.test(page), false);
 

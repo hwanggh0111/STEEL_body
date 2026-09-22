@@ -112,14 +112,25 @@ console.log('── 그 자리에 서면 내가 어디인지 아는가 ──');
 const parentOf = Object.fromEntries(
   [...tabbar.matchAll(/'(\/[a-z]+)':\s*'(\/[a-z]+)'/g)].map((m) => [m[1], m[2]]),
 );
+// **머리에서 열리는 화면**도 서랍과 같은 부류다 (2026-09-22 에 설정함이 생겼다).
+// 탭바가 아니라 머리의 단추에 불이 들어온다 — 아래에서 그 불을 실제로 확인한다
+const HEAD_PATHS = ['/settings'];
 const homeless = renders
   .map((r) => r.url)
   .filter((url) => url !== '/'
     && !tabPaths.includes(url)
     && !drawerPaths.includes(url)
+    && !HEAD_PATHS.includes(url)
     && !parentOf[url]
     && !drawerPaths.some((d) => url.startsWith(d + '/')));   // /support/notices 같은 하위 자리
-ok('탭도 서랍도 안 켜지는 화면', homeless, []);
+ok('탭도 서랍도 머리도 안 켜지는 화면', homeless, []);
+
+// 머리에서 열리는 화면은 **그 단추에 불이 들어와야** 한다. 안 들어오면 아래 탭바도
+// 안 켜진 채로 서 있게 되어, 내가 어디인지 알 길이 없다
+const layout = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
+ok('설정함으로 가는 기어가 머리에 있다', /navigate\('\/settings'\)/.test(layout), true);
+ok('  거기 서면 기어에 불이 들어온다',
+  /onSettings/.test(layout) && /location\.pathname === '\/settings'/.test(layout), true);
 // 켜라고 적어둔 부모가 **실제로 탭에 있는 칸**이어야 한다
 ok('  적어둔 부모가 다 실제 탭이다',
   Object.values(parentOf).filter((t) => !tabPaths.includes(t)), []);

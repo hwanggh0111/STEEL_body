@@ -49,7 +49,7 @@ function rmsOf(buf) {
  *   blind()   지금부터 잠깐 흘려보낸다 (알림 소리가 울릴 때 부른다)
  *   peakSince(ms) 그 시각 이후의 가장 큰 값 — 「숨이 제일 찼던 동작」에 쓴다
  */
-export function useBreath() {
+export function useBreath(th) {
   const [on, setOn] = useState(false);
   const [phase, setPhase] = useState('off');
   const [why, setWhy] = useState(null);
@@ -69,6 +69,10 @@ export function useBreath() {
   // state 를 붙잡고 있어서, `base` 를 state 로만 두면 **언제까지나 null 로 보인다**
   // (`HomeworkoutPage` 가 단계 전환에서 `phaseRef` 를 쓰는 것과 같은 자리다)
   const baseRef = useRef(null);
+  // 예민도도 ref 로 든다 — 1초에 여덟 번 도는 타이머가 옛 값을 붙잡고 있으면
+  // 설정을 바꿔도 안 바뀐다 (기준선과 같은 자리다)
+  const thRef = useRef(th);
+  thRef.current = th;
   // 동작마다 가장 컸던 값을 찾으려면 **언제 얼마였나**가 있어야 한다.
   // 판 하나(10분)면 5천 개쯤이라 메모리에 두어도 된다 — 끝나면 버린다
   const marksRef = useRef([]);
@@ -156,7 +160,7 @@ export function useBreath() {
         const w = windowRef.current;
         w.push(v);
         if (w.length > WINDOW) w.shift();
-        setState(breathState(baselineOf(w), baseRef.current));
+        setState(breathState(baselineOf(w), baseRef.current, thRef.current));
       }, TICK_MS);
     } catch (err) {
       // 막힌 것과 아예 없는 것을 가른다 — 사람이 할 수 있는 일이 다르다

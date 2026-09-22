@@ -11,6 +11,7 @@ import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import PumpBody from '../components/PumpBody';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
+import { useSettingsStore, senseOf } from '../store/settingsStore';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
@@ -201,61 +202,6 @@ function ProgramPump({ list }) {
   );
 }
 
-/**
- * 숨 보고 쉬기 스위치.
- *
- * **고르는 자리에 둔다.** 시작한 뒤에 켜게 하면 기준선을 3초 재는 동안 첫 동작이
- * 지나가서 첫 휴식을 놓친다. 그리고 **켜는 자리에서 무엇을 하는지 · 소리를 안
- * 남긴다는 것**을 같이 적는다 — 마이크를 켜라고 하면서 까닭을 안 적으면 아무도 안 켠다.
- */
-function BreathSwitch({ breath, wanted, setWanted }) {
-  return (
-    <div style={{
-      border: `1px solid ${breath.on ? 'var(--accent)' : 'var(--border)'}`,
-      background: breath.on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
-      borderRadius: 'var(--radius)', padding: 12, marginBottom: 12,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>숨 보고 쉬기</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.65 }}>
-            숨이 아직 올라있으면 <b>쉬는 시간을 몇 초 더</b> 드려요.
-            소리 크기만 재고 <b>녹음하지 않아요</b> — 어디로도 안 보냅니다.
-          </div>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (breath.on) { breath.stop(); setWanted(false); return; }
-            setWanted(true);
-            breath.start();
-          }}
-          className="btn-secondary"
-          style={{
-            width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12,
-            fontFamily: 'inherit', cursor: 'pointer',
-            borderColor: breath.on ? 'var(--accent)' : 'var(--border-hover)',
-            color: breath.on ? 'var(--accent)' : 'var(--text-secondary)',
-            background: breath.on ? 'var(--accent-dim)' : 'none',
-          }}
-          aria-pressed={breath.on}
-        >{breath.on ? '켜짐' : '켜기'}</button>
-      </div>
-
-      {/* 못 쓰는 자리면 **까닭을 적는다.** 켰는데 아무 일도 안 일어나면 고장으로 읽힌다 */}
-      {wanted && breath.phase === 'blocked' && (
-        <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.6 }}>{breath.why}</div>
-      )}
-      {breath.on && breath.phase === 'calibrating' && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>조용한 소리를 재는 중이에요 — 잠깐만요.</div>
-      )}
-      {breath.on && breath.phase === 'ready' && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>준비됐어요. 쉬는 동안에만 봅니다.</div>
-      )}
-    </div>
-  );
-}
-
 export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
   // 시작하기 전에 무엇을 하는지 펼쳐 보는 자리
@@ -278,8 +224,8 @@ export default function HomeworkoutPage() {
   // 늘려줄 것이 없다 — 되는 자리에만 두고, 되는지 봐서 넓힌다.
   //
   // **사용자가 켤 때만 켜진다.** 화면을 연다고 마이크가 켜지지 않는다
-  const breath = useBreath();
-  const [breathWanted, setBreathWanted] = useState(false);
+  const breathSense = useSettingsStore((st) => st.breathSense);
+  const breath = useBreath(senseOf(breathSense));
   // **판을 안 돌려도 보는 자리** (2026-09-22).
   //
   // 쉬는 화면은 판을 시작하고 첫 동작(45초)을 버텨야 한 번 나온다. 그래서 눈으로
@@ -289,6 +235,12 @@ export default function HomeworkoutPage() {
   // 판을 끝내면 여기서 바로 저장한다 — 기록 화면으로 보내 한 번 더 누르게 하지 않는다
   const addWorkout = useWorkoutStore((st) => st.addWorkout);
   const today = useToday();
+  const keepAwake = useSettingsStore((st) => st.keepAwake);
+  // 숨은 **설정함에서 켠다** (2026-09-22). 화면마다 따로 켜게 두면 한쪽만 켜둔 것을
+  // 잊는다 — 소리·진동을 휴식 타이머 설정 하나로 모은 것과 같은 결이다
+  const breathOn = useSettingsStore((st) => st.breath);
+  const breathWhere = useSettingsStore((st) => st.breathWhere);
+  const breathMax = useSettingsStore((st) => st.breathMax);
   // 이 휴식에서 이미 더 준 초. 휴식이 끝나면 0 으로 돌아간다
   const [extraGiven, setExtraGiven] = useState(0);
   // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
@@ -326,12 +278,17 @@ export default function HomeworkoutPage() {
 
   const exercises = selected ? PROGRAMS[selected] : EMPTY;
 
-  // ── 숨 보고 쉬기는 **기능성에만** 붙는다 ──
+  // ── 숨 보고 쉬기 — **켜고 끄는 것은 설정함이 한다** (2026-09-22) ──
   //
-  // 10분을 쉬지 않고 도는 판이라 숨이 실제로 차고, 쉬는 시간이 10~20초로 짧아서
-  // 「조금 더」가 뜻이 있다. 30초씩 쉬는 판에서는 늘려줄 것이 없다.
-  // 되는 자리에만 두고, **실제로 쓸 만하면 그때 넓힌다**
-  const breathable = selected === '기능성(특수부대식)' && micSupported();
+  // 처음에는 이 화면 안에 스위치를 뒀다. 그런데 루틴 휴식 타이머까지 넓히면
+  // **화면마다 스위치가 생긴다** — 한쪽만 켜둔 것을 잊는다.
+  // 소리·진동을 휴식 타이머 설정 하나로 모은 것과 같은 결이다.
+  //
+  // 기능성은 10분을 쉬지 않고 도는 판이라 숨이 실제로 차고, 쉬는 시간이 10~20초로
+  // 짧아서 「조금 더」가 뜻이 있다. 30초씩 쉬는 판에서는 늘려줄 것이 없다 —
+  // 그래서 설정에서 「운동할 때도」를 고르지 않는 한 **기능성에서만** 본다
+  const breathable = micSupported() && breathOn
+    && (breathWhere === 'all' || selected === '기능성(특수부대식)');
 
   // 여기까지 몸의 어디를 채웠나. 계산은 `data/homeworkoutParts.js` 가 한다 —
   // **쉬는 중이면 방금 끝낸 것까지** 센다(쉬는 동안은 그 동작을 이미 한 것이다)
@@ -388,7 +345,7 @@ export default function HomeworkoutPage() {
     // **끝나려는 그 순간에 한 번만 본다.** 쉬는 내내 보면 숨이 한 번 튈 때마다
     // 늘어나서 휴식이 언제 끝날지 모르게 된다
     if (rest && breath.on && breath.phase === 'ready') {
-      const add = extraFor(breath.state, extraGiven);
+      const add = extraFor(breath.state, extraGiven, breathMax);
       if (add > 0) { addRest(add); return; }
     }
 
@@ -452,7 +409,8 @@ export default function HomeworkoutPage() {
   //
   // **2026-09-17 에 공용 훅으로 옮겼다** (`data/useWakeLock.js`) — 여기에만 있어서
   // 정작 매일 겪는 루틴 진행과 휴식 중에는 세트마다 폰을 깨워야 했다
-  useWakeLock(running);
+  // 설정함에서 끌 수 있다 (2026-09-22)
+  useWakeLock(running && keepAwake);
 
   // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
   const pausedLeftRef = useRef(0);
@@ -463,6 +421,10 @@ export default function HomeworkoutPage() {
     // 소리는 **사람이 누른 그 순간에** 준비해야 한다. 시간이 다 되는 시점은 아무도
     // 누르지 않은 시점이라, 그때 처음 만들면 브라우저가 막는다
     primeAudio();
+    // **설정에서 켜뒀으면 여기서 같이 켠다.** 마이크 권한 창은 사람이 누른 그 순간에만
+    // 뜨므로, 「시작하기」를 누른 이 자리가 유일하게 물어볼 수 있는 때다.
+    // (기준선을 3초 재는 동안 첫 동작이 지나가지만, 첫 휴식 전에는 끝난다)
+    if (breathable && !breath.on) breath.start();
     pausedLeftRef.current = 0;
     setFinished(false);
     setRunning(true);
@@ -720,10 +682,17 @@ export default function HomeworkoutPage() {
                       `data/homeworkoutParts.js` 가 적어둔 것에서 온다 */}
                   <ProgramPump list={exs} />
 
-                  {/* 숨 보고 쉬기 — **기능성에만.** 고르는 자리에서 켠다:
-                      시작한 뒤에 켜게 하면 첫 휴식을 놓친다(기준선을 3초 재야 한다) */}
-                  {name === '기능성(특수부대식)' && micSupported() && (
-                    <BreathSwitch breath={breath} wanted={breathWanted} setWanted={setBreathWanted} />
+                  {/* 숨 보고 쉬기가 켜져 있으면 **그렇다고만 적는다.** 켜고 끄는 것은
+                      설정함이 한다 — 화면마다 스위치를 두면 한쪽만 켜둔 것을 잊는다 */}
+                  {micSupported() && breathOn
+                    && (breathWhere === 'all' || name === '기능성(특수부대식)') && (
+                    <div style={{
+                      fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+                      marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)',
+                    }}>
+                      <b style={{ color: 'var(--accent)' }}>숨 보고 쉬기</b>가 켜져 있어요 —
+                      시작하면 마이크를 한 번 묻습니다.
+                    </div>
                   )}
 
                   <button className="btn-primary" onClick={() => setSelected(name)}>시작하기</button>
@@ -939,12 +908,6 @@ export default function HomeworkoutPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* 시작 화면에서 켜고 왔어도 **여기서 끌 수 있다.** 같은 스위치를 두 벌로
-          두지 않는다 — 한쪽만 고치는 날이 온다 */}
-      {breathable && !running && (
-        <BreathSwitch breath={breath} wanted={breathWanted} setWanted={setBreathWanted} />
       )}
 
       {/* 시작 · 이어서 하기 */}
