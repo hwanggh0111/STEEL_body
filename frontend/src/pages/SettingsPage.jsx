@@ -8,6 +8,10 @@ import { micSupported } from '../data/useBreath';
 import { speechSupported } from '../data/voiceLog';
 import { canLock } from '../data/appLock';
 import LockSetup from '../components/LockSetup';
+import PasswordChangeModal from '../components/PasswordChangeModal';
+import AccountDeleteModal from '../components/AccountDeleteModal';
+import { leaveApp } from '../data/leaveApp';
+import client from '../api/client';
 import BreathCheck from '../components/BreathCheck';
 import NavIcon from '../components/NavIcon';
 import { toast } from '../components/Toast';
@@ -139,12 +143,35 @@ function GoRow({ title, sub, warn, onClick }) {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [lockOpen, setLockOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
+  const [nickEdit, setNickEdit] = useState(false);
+  const [nickDraft, setNickDraft] = useState('');
+  const [savingNick, setSavingNick] = useState(false);
 
   // 휴식 타이머 여섯은 **그쪽 스토어를 그대로 쓴다.** 옮기면 두 벌이 된다
   const rest = useRestTimerStore();
   const s = useSettingsStore();
   const sex = useAuthStore((st) => st.sex);
   const setSex = useAuthStore((st) => st.setSex);
+  const nickname = useAuthStore((st) => st.nickname);
+
+  // 이름 바꾸기. 계정 시트가 하던 것과 **같은 길**을 쓴다 (`PUT /auth/nickname`) —
+  // 화면이 둘이어도 서버로 가는 길은 하나다
+  const saveNick = () => {
+    const trimmed = String(nickDraft || '').trim();
+    if (!trimmed || savingNick) return;
+    setSavingNick(true);
+    client.put('/auth/nickname', { nickname: trimmed })
+      .then(() => {
+        useAuthStore.setState({ nickname: trimmed });
+        try { localStorage.setItem('nickname', trimmed); } catch { /* 막아둔 브라우저 */ }
+        setNickEdit(false);
+        toast('이름이 바뀌었어요');
+      })
+      .catch((err) => toast(err.response?.data?.error || '이름을 바꾸지 못했어요', 'error'))
+      .finally(() => setSavingNick(false));
+  };
 
   const tone = TONES.find((t) => t.id === rest.tone) || TONES[0];
   const locked = canLock();
@@ -306,6 +333,63 @@ export default function SettingsPage() {
         </div>
       </Group>
 
+      {/* ── 계정 (2026-09-22) ──
+          계정 시트에만 있던 것들을 여기서도 한다. **길은 하나다** — 이름은 같은
+          서버 길로 가고, 비밀번호와 삭제는 계정 시트가 쓰는 그 모달을 그대로 연다 */}
+      <Group title="계정">
+        <div style={{ padding: '11px 0 0' }}>
+          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이름</div>
+          {nickEdit ? (
+            <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
+              <input
+                value={nickDraft}
+                onChange={(e) => setNickDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveNick(); }}
+                maxLength={20}
+                autoFocus
+                style={{
+                  flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px',
+                  background: 'var(--bg-primary)', border: '1px solid var(--border-hover)',
+                  borderRadius: 6, color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                }}
+              />
+              <button
+                onClick={saveNick}
+                disabled={savingNick}
+                className="btn-primary"
+                style={{ width: 'auto', padding: '0 14px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+              >저장</button>
+              <button
+                onClick={() => setNickEdit(false)}
+                className="btn-secondary"
+                style={{ width: 'auto', padding: '0 12px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+              >취소</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <span style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>{nickname || '이름 없음'}</span>
+              <button
+                onClick={() => { setNickDraft(nickname || ''); setNickEdit(true); }}
+                className="btn-secondary"
+                style={{ width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer' }}
+              >바꾸기</button>
+            </div>
+          )}
+        </div>
+
+        <GoRow title="비밀번호 바꾸기" onClick={() => setPwOpen(true)} />
+        {/* 프로필 사진은 **계정 시트에 그대로 둔다.** 거기서 아바타를 누르면 바로
+            고르는 자리가 열린다 — 사진을 바꾸는 사람은 제 얼굴을 보면서 바꾼다.
+            여기서는 **어디로 가면 되는지**만 적는다 (길을 두 벌로 만들지 않는다) */}
+        <div style={{
+          padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11,
+          fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+        }}>
+          프로필 사진은 머리 오른쪽의 <b style={{ color: 'var(--text-secondary)' }}>내 이름</b>을
+          누르면 바꿀 수 있어요.
+        </div>
+      </Group>
+
       {/* ── 잠금과 알림 ──
           **길만 내지 않는다.** 앱 잠금은 여기서 바로 열고, 알림은 왜 안 되는지 적는다 */}
       <Group title="잠금과 알림">
@@ -330,12 +414,39 @@ export default function SettingsPage() {
         />
       </Group>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4, marginBottom: 18 }}>
         여기 있는 것은 <b>이 기기에서 어떻게 쓸지</b>예요 — 로그아웃해도 남습니다.
-        성별만 서버에 있어서 기기를 바꿔도 따라갑니다.
+        이름 · 성별만 서버에 있어서 기기를 바꿔도 따라갑니다.
       </div>
 
+      {/* ── 나가기 ──
+          **맨 아래에 둔다.** 설정을 보다가 잘못 누를 자리가 아니다.
+          나가기 전에 줄에 남은 기록을 올린다 — 그 일은 `data/leaveApp.js` 가 한다 */}
+      <button
+        onClick={async () => { if (await leaveApp()) navigate('/login'); }}
+        className="btn-secondary"
+        style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: 'pointer' }}
+      >로그아웃</button>
+
+      {/* 계정 삭제는 **되돌리기 어려운 일**이라 로그아웃과 붙여두되 색으로 가른다.
+          30일 안에 다시 로그인하면 되살아난다는 것은 모달이 적는다 */}
+      <button
+        onClick={() => setDelOpen(true)}
+        style={{
+          width: '100%', minHeight: 40, marginTop: 8, borderRadius: 'var(--radius)',
+          background: 'none', border: '1px solid var(--border)',
+          color: 'var(--text-muted)', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer',
+        }}
+      >계정 삭제</button>
+
       {lockOpen && <LockSetup onClose={() => setLockOpen(false)} />}
+      {pwOpen && <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />}
+      {delOpen && (
+        <AccountDeleteModal
+          onClose={() => setDelOpen(false)}
+          onDeleted={() => { setDelOpen(false); navigate('/login'); }}
+        />
+      )}
     </div>
   );
 }

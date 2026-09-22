@@ -1132,6 +1132,36 @@ ok('마크가 링 하나 + 봉 하나다',
 ok('밑줄은 곧은 선이 아니라 그은 획이다',
   /function Flourish/.test(logo) && /fill="currentColor"/.test(logo), true);
 ok('글자를 흘려 쓴다 (싸인 결)', /fontStyle: 'italic'/.test(logo), true);
+// ── 나가기는 한 곳에만 (2026-09-22) ──
+//
+// 로그아웃은 「토큰을 비우고 로그인 화면으로」가 아니다. 그 전에 **줄에 남은 것**을
+// 올려야 한다 — 신호가 없는 헬스장에서 적은 기록은 이 기기에만 담겨 있다.
+// 그대로 나가면 **사람이 손으로 적은 것이 사라진다.**
+//
+// 설정함에서도 로그아웃할 수 있게 되면서 두 벌이 될 뻔했다. 한쪽만 고치는 날이 오면
+// 그날 누군가의 기록이 날아간다 — 그래서 `data/leaveApp.js` 한 곳에 둔다
+const leaveSrc = fs.readFileSync('src/data/leaveApp.js', 'utf-8');
+ok('나가기 전에 줄에 남은 것을 올린다', /flushQueue\(\)/.test(leaveSrc), true);
+ok('  못 올린 것이 있으면 묻는다', /confirmDialog/.test(leaveSrc) && /사라집니다/.test(leaveSrc), true);
+ok('  그만두기를 고르면 안 나간다', /return false/.test(leaveSrc), true);
+// 부르는 쪽이 제 나름으로 또 짜면 두 벌이 된다
+for (const f of ['src/components/Layout.jsx', 'src/pages/SettingsPage.jsx']) {
+  const src = fs.readFileSync(f, 'utf-8');
+  ok(f.split('/').pop() + ' 는 leaveApp 을 쓴다', /leaveApp\(\)/.test(src), true);
+}
+// **줄을 안 비우고 나가는 길**이 새로 생기면 안 된다.
+// 남겨둔 두 자리는 그래도 되는 자리다 —
+//   계정 삭제 뒤 : 기록도 같이 지우는 길이다
+//   앱 잠금 포기 : 네 자리를 잊어 이 기기를 비우는 길이다 (줄도 같이 비운다고 적혀 있다)
+const layoutSrc = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
+const lockSrc = fs.readFileSync('src/components/AppLock.jsx', 'utf-8');
+ok('그냥 나가는 자리는 둘뿐이다',
+  (layoutSrc.match(/await logout\(\)/g) || []).length + (lockSrc.match(/logout\(\)/g) || []).length, 2);
+// 비밀번호를 바꾸면 다시 로그인해야 하는데, **계속 쓸 계정**이다 —
+// 그냥 나가면 신호 없을 때 적어둔 기록이 사라진다 (2026-09-22 에 찾았다)
+ok('비밀번호를 바꾼 뒤에도 줄을 올리고 나간다',
+  /onChanged=\{async[\s\S]{0,400}leaveApp\(\)/.test(layoutSrc), true);
+
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);

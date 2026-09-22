@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
+import { leaveApp } from '../data/leaveApp';
 import ErrorBoundary from './ErrorBoundary';
 import Logo from './Logo';
 import { confirmDialog } from './ConfirmModal';
@@ -141,27 +142,14 @@ export default function Layout() {
   // 로그아웃하면 그 사람 것을 다 지운다(`PER_USER_KEYS`) — 줄에 남은 기록도 같이
   // 사라진다. 다음 사람 화면에 앞 사람 기록이 뜨면 안 되니 지우는 것이 맞지만,
   // **말없이 지우면 헬스장에서 적은 것이 소리 없이 없어진다.** 한 번 묻는다
+  // 나가기 전에 줄에 남은 것을 올린다. **그 일은 `data/leaveApp.js` 한 곳에 있다** —
+  // 설정함에서도 로그아웃할 수 있게 되면서 두 벌이 될 뻔했고, 한쪽만 고치는 날이 오면
+  // 그날 누군가의 기록이 날아간다 (2026-09-22 에 옮겼다)
   const leave = useCallback(async () => {
-    const left = () => useWorkoutStore.getState().queue.length
-      + Object.keys(useNoteStore.getState().queue).length;
-    if (left() > 0) {
-      const a = await useWorkoutStore.getState().flushQueue();
-      const b = await useNoteStore.getState().flushQueue();
-      const remain = left();
-      if (remain > 0) {
-        const ok = await confirmDialog(
-          `아직 올리지 못한 기록이 ${remain}개 있어요. 지금 로그아웃하면 이 기기에서 사라집니다.`,
-          { title: '올리지 못한 기록', confirmText: '그래도 로그아웃', danger: true },
-        );
-        if (!ok) return false;
-      } else if (a.sent + b.sent > 0) {
-        toast.success(`적어둔 것 ${a.sent + b.sent}개를 올렸어요`);
-      }
-    }
-    await logout();
-    navigate('/login');
-    return true;
-  }, [logout, navigate]);
+    const gone = await leaveApp();
+    if (gone) navigate('/login');
+    return gone;
+  }, [navigate]);
 
   useEffect(() => {
     // **서버가 답했으면 서버가 진실이다** — 「없다」는 답도 답이다.
@@ -426,7 +414,11 @@ export default function Layout() {
           onClose={() => setChangingPw(false)}
           onChanged={async () => {
             setChangingPw(false);
-            await logout();
+            // **여기서도 줄을 먼저 올린다** (2026-09-22 에 찾았다).
+            // 비밀번호를 바꾸면 다시 로그인해야 하는데, 그냥 `logout()` 을 부르고 있어서
+            // **신호 없을 때 적어둔 기록이 그대로 사라졌다.** 계정 삭제와는 다르다 —
+            // 그쪽은 기록도 같이 지우는 것이지만, 이쪽은 계속 쓸 계정이다
+            await leaveApp();
             navigate('/login');
           }}
         />
