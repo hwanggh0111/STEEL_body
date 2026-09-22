@@ -80,6 +80,41 @@ const srv = app.listen(0, async () => {
   ok('화면이 「공식 프로그램이 아니다」라고 적어둔다', /공식 프로그램은 아닙니다/.test(page), true);
   ok('화면이 「배낭으로 대신한다」고 적어둔다', /배낭/.test(page), true);
 
+  // ── 부위가 다 붙어 있는가 (2026-09-22) ──
+  //
+  // 앱은 여태 이름으로 부위를 맞혔다. 그런데 여기 있는 것들은 **이미 부위 칸 안에**
+  // 들어 있다 — 맞힐 필요가 없는 것을 맞히다 틀리기도 했다(「카프레이즈」→ 어깨).
+  // 이제 서버가 부위를 같이 준다. **하나라도 빠지면 그 운동만 몸 지도에서 조용히
+  // 사라지므로** 글자로 잡는다.
+  console.log('── 부위가 다 붙어 있는가 ──');
+  const MAPP = ['가슴', '등', '어깨', '하체', '팔', '코어'];
+  const everyRow = [];
+  for (const type of Object.keys(all)) {
+    for (const [col, list] of Object.entries(all[type])) {
+      list.forEach((e) => everyRow.push({ type, col, ...e }));
+    }
+  }
+  ok('운동이 84개다', everyRow.length, 84);
+  ok('부위가 없는 운동', everyRow.filter((e) => !e.main || !e.main.length).map((e) => e.type + '/' + e.col + '/' + e.name), []);
+  // 몸 지도에 자리가 없는 이름을 적으면 그 줄은 조용히 사라진다
+  ok('몸 지도에 없는 부위를 안 쓴다',
+    everyRow.flatMap((e) => (e.main || []).concat(e.sub || []).filter((p) => !MAPP.includes(p))), []);
+  ok('주와 곁이 겹치지 않는다',
+    everyRow.filter((e) => (e.sub || []).some((p) => (e.main || []).includes(p))).map((e) => e.name), []);
+
+  // 칸 이름이 부위면 **그 칸 이름이 그대로** 와야 한다 (지어내지 않는다)
+  const fromCol = everyRow.filter((e) => MAPP.includes(e.col));
+  ok('부위 칸은 칸 이름을 그대로 쓴다', fromCol.filter((e) => e.main[0] !== e.col).map((e) => e.name), []);
+
+  // 부위 칸이 **아닌** 자리(홈트 「전신」 · 기능성 다섯)는 직접 적어둔 것이라야 한다
+  const notCol = everyRow.filter((e) => !MAPP.includes(e.col));
+  ok('부위가 아닌 칸은 스물넷', notCol.length, 24);
+  ok('  거기도 부위가 다 있다', notCol.filter((e) => !e.main || !e.main.length).map((e) => e.name), []);
+  // 「레이즈」 · 「워크」 같은 낱말에 속지 않는지 — 이름으로 맞히면 틀리는 것들이다
+  ok('오버헤드 배낭 워크는 어깨다', notCol.find((e) => e.name === '오버헤드 배낭 워크')?.main, ['어깨']);
+  ok('월싯은 하체다 (이름으로는 못 맞힌다)', notCol.find((e) => e.name === '월싯')?.main, ['하체']);
+  ok('2.4km 달리기는 하체다', notCol.find((e) => e.name === '2.4km 달리기')?.main, ['하체']);
+
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 
   // ── 끝내는 법 (2026-09-22) ──
