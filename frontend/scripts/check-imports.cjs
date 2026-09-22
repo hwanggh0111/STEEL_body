@@ -60,6 +60,7 @@ console.log('── 쓰는데 안 가져온 것 ──');
 
 const missing = [];
 const missingComp = [];
+const missingConst = [];
 
 for (const file of files) {
   const raw = fs.readFileSync(file, 'utf-8');
@@ -110,10 +111,31 @@ for (const file of files) {
     const name = m[1];
     if (!imported.has(name) && !declared.has(name)) missingComp.push(`${rel(file)} — <${name}>`);
   }
+
+  // 3. **밑줄 대문자 상수** (2026-09-22 에 더했다)
+  //
+  // 위 둘은 **미리 적어둔 이름**만 본다. 그래서 9/22 에 `HOME_LAST_KEY` 를
+  // 다른 파일로 옮기면서 가져오는 줄을 빠뜨린 것을 **못 잡았다** — 빌드는 통과하고
+  // 홈트 화면을 여는 순간 터지는, 이 검사가 막으려던 바로 그 사고다.
+  //
+  // `GYM_KEY` · `PER_USER_KEYS` 처럼 **밑줄이 든 대문자 이름**만 본다. 이 모양은
+  // 이 앱에서 늘 상수라서 오탐이 없다(자바스크립트 내장에는 이런 이름이 없다).
+  //
+  // 만든 자리는 **원문에서** 찾는다. `stripped()` 는 따옴표를 짝지어 지우는데,
+  // 운동 이름이 수백 개 든 목록처럼 따옴표가 많은 파일에서는 짝이 어긋나 **멀쩡한
+  // 줄까지 삼킨다**(`bodyPart.js` 의 `const N_RULES` 가 그렇게 사라졌다).
+  // 여기서는 「만들었나」만 보므로 주석 속 `const` 를 세어도 해롭지 않다 —
+  // 놓치는 쪽으로 틀리지, **없는 것을 있다고 하지 않는다.**
+  for (const m of raw.matchAll(/\b(?:const|let|var|function|class)\s+([A-Z][A-Z0-9_]*)/g)) declared.add(m[1]);
+  for (const m of code.matchAll(/(?<![\w$.'"])([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\s*(?![\w$:])/g)) {
+    const name = m[1];
+    if (!imported.has(name) && !declared.has(name)) missingConst.push(`${rel(file)} — ${name}`);
+  }
 }
 
 ok('훅 · 길찾기 · client · toast 를 다 가져왔다', [...new Set(missing)], []);
 ok('JSX 로 그리는 것을 다 가져왔다', [...new Set(missingComp)], []);
+ok('대문자 상수도 다 가져왔다', [...new Set(missingConst)], []);
 
 // ── 없어진 상태를 아직 부르는 자리 ── (2026-09-04)
 //

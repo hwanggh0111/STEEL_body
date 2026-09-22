@@ -6,6 +6,7 @@ import { buildShapeRead, mergeShape } from '../data/shapeRead';
 import { buildRatios, ratioLines } from '../data/shapeRatio';
 import { readPose } from '../data/poseModel';
 import ShapeSilhouette from '../components/ShapeSilhouette';
+import { SHAPE_RATIOS_KEY } from '../data/localKeys';
 
 // 체형 — 사진을 올리면 **그 사진에서 잰 비율로 실루엣을 다시 그리고**, 기록 · 인바디와
 // 합쳐 어디가 좋고 어디가 덜 했는지 말한다 (2026-09-22, 계획은 `docs/SHAPE-READ-2026-09-19.md`).
@@ -20,17 +21,20 @@ import ShapeSilhouette from '../components/ShapeSilhouette';
 // 2. **못 잰 것은 못 쟀다고 한다.** 허리는 관절이 아니라 아예 못 잰다. 옆으로 선
 //    사진은 어깨가 좁게 찍히므로 그 숫자로 단정하지 않는다.
 // 3. **한 장으로는 단정하지 않는다.** 견줄 상대는 지난 번의 나다.
-const LAST_KEY = 'shape:lastRatios';
+//
+// 잰 값을 두는 이름은 **여기서 짓지 않는다** — `data/localKeys.js` 에 둔다.
+// 거기 있어야 로그아웃할 때 저절로 지워진다(`PER_USER_KEYS`). 사진이 아니라 숫자
+// 몇 개지만 **그 사람의 몸**이라, 다음에 로그인한 사람에게 남으면 안 된다.
 
 /** 지난 번 비율. **사진이 아니라 잰 값만** 둔다 — 이 화면은 사진을 안 들고 있는다. */
 function loadLast() {
   try {
-    const raw = localStorage.getItem(LAST_KEY);
+    const raw = localStorage.getItem(SHAPE_RATIOS_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 function saveLast(r, today) {
-  try { localStorage.setItem(LAST_KEY, JSON.stringify({ ...r, date: today })); } catch { /* 저장 못 해도 화면은 돈다 */ }
+  try { localStorage.setItem(SHAPE_RATIOS_KEY, JSON.stringify({ ...r, date: today })); } catch { /* 저장 못 해도 화면은 돈다 */ }
 }
 
 const STAGE_LABEL = {
@@ -62,6 +66,11 @@ export default function ShapePage({ embedded = false }) {
   // 사진이 없으면 01 단계 그대로다 — **사진 없이도 말이 된다**는 것이 그날의 조건이었다
   const merged = useMemo(() => mergeShape(read, ratios, prev), [read, ratios, prev]);
   const photoLines = useMemo(() => ratioLines(ratios), [ratios]);
+  // 기록이 모자랄 때 위 카드 아래에 따로 낼 것 — **사진에서 온 줄만** 추린다
+  const photoOnly = useMemo(
+    () => merged.lines.filter((l) => l.basis.includes('사진')),
+    [merged],
+  );
 
   const onPick = async (e) => {
     const file = e.target.files?.[0];
@@ -95,7 +104,7 @@ export default function ShapePage({ embedded = false }) {
       setRatios(r);
       saveLast(r, today);
       setStage(null);
-    } catch (err) {
+    } catch {
       setError('사진을 읽다가 막혔어요. 인터넷이 잠깐 끊겼다면 다시 해보세요.');
       setStage(null);
     } finally {
@@ -201,9 +210,18 @@ export default function ShapePage({ embedded = false }) {
         />
       </div>
 
-      {/* ── 자료가 모자라면 아무 말도 안 한다 ── */}
+      {/* ── 자료가 모자라면 아무 말도 안 한다 ──
+          **그래도 사진 줄은 보여준다.** 기록이 없는 사람이 사진을 올렸을 때
+          아래를 통째로 안 그리면, 「견줄 것이 없어요」 같은 안내가 갈 곳이 없어져
+          **사진을 올렸는데 아무 일도 안 일어난 것처럼** 보인다 */}
       {!read.ready ? (
         <div className="card">
+          {photoOnly.map((line, i) => (
+            <div key={i} style={{
+              fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7,
+              paddingBottom: 10, marginBottom: 10, borderBottom: '1px solid var(--border)',
+            }}>{line.text}</div>
+          ))}
           <div style={{ fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>{read.need}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7 }}>
             여기는 <b>최근 8주</b>를 봐요. 앞 4주와 지난 4주를 견줍니다.

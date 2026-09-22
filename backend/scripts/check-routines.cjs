@@ -28,7 +28,27 @@ const app = express();
 app.use('/r', require('../src/routes/routines'));
 const srv = app.listen(0, async () => {
   const base = 'http://localhost:' + srv.address().port + '/r';
-  const all = await (await fetch(base + '/')).json();
+
+  // ── 갈래 목록을 **어떻게 아나** (2026-09-22 에 고쳤다) ──
+  //
+  // 여태 `GET /` 로 넷을 한꺼번에 받아 봤다. 그런데 그 길은 **9/19 에 걷혔다**
+  // (아무 화면도 안 부르는 길이었다 — 그날 `npm run api` 가 잡아낸 것이다).
+  // 그 뒤로 이 검사는 404 HTML 을 JSON 으로 읽다가 **터져 있었다.** 검사가 터지면
+  // 「실패」가 아니라 아예 아무것도 안 보는 것이라, 루틴이 어긋나도 모른다.
+  //
+  // 이제 **없는 갈래를 한 번 물어서** 목록을 받는다. 서버가 400 과 함께
+  // 「머신 · 맨몸 · … 중에서 고를 수 있어요」를 주므로, 그것이 곧 갈래 목록이다.
+  // 목록을 여기 또 적어두면 **셋째 벌**이 되어(서버 · 화면 · 검사) 더 어긋난다.
+  const probe = await fetch(base + '/없는갈래');
+  ok('없는 갈래는 400 으로 막는다', probe.status, 400);
+  const types = String((await probe.json()).error || '').split('중에서')[0].trim().split(' · ').filter(Boolean);
+
+  const all = {};
+  for (const t of types) {
+    const r = await fetch(base + '/' + encodeURIComponent(t));
+    if (r.status !== 200) { ok(t + ' — 200 으로 온다', r.status, 200); continue; }
+    all[t] = await r.json();
+  }
 
   // 화면의 PARTS_MAP 을 글자 그대로 읽는다
   const page = fs.readFileSync(pageFile, 'utf-8');
@@ -60,7 +80,17 @@ const srv = app.listen(0, async () => {
   ok('화면이 「공식 프로그램이 아니다」라고 적어둔다', /공식 프로그램은 아닙니다/.test(page), true);
   ok('화면이 「배낭으로 대신한다」고 적어둔다', /배낭/.test(page), true);
 
-  srv.close();
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
-  process.exit(bad ? 1 : 0);
+
+  // ── 끝내는 법 (2026-09-22) ──
+  //
+  // `srv.close()` 바로 뒤에 `process.exit()` 를 부르면 **윈도우에서 터진다** —
+  // libuv 가 닫는 중인 손잡이를 다시 건드리고(`UV_HANDLE_CLOSING`), 종료 코드가
+  // 127 이 된다. 검사가 **전부 통과했는데도** `npm run check` 가 여기서 멈춘다.
+  //
+  // 그래서 끝낼 값만 적어두고 **자연히 끝나게** 둔다. `fetch` 는 연결을 살려두므로
+  // (keep-alive) 그것부터 끊는다 — 안 끊으면 닫히기를 기다리며 안 끝난다.
+  process.exitCode = bad ? 1 : 0;
+  srv.closeAllConnections?.();
+  srv.close();
 });

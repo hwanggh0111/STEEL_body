@@ -12,7 +12,6 @@
 // `BodyMap` 에서 겪은 것과 같은 자리라 같은 토큰 값을 직접 적는다.
 const GOLD = '#eeb77d';
 const SKIN = '#1c1813';
-const SKIN_EDGE = '#2b251c';
 const GHOST = '#5a5348';
 
 /** 총 길이를 고정해두고 비율로 나눈다 — **키를 모르기 때문이다.** */
@@ -38,8 +37,12 @@ function layout(r) {
   const hipW = HIP_W;
   const shoulderW = Math.round(hipW * (sh && sh > 0 ? sh : 1.3));
 
+  // 팔 길이. 잰 것이 있으면 **그것을 쓴다** — 없으면 몸통에 붙여 그린다.
+  // (여태 주석만 「쓴다」고 적어놓고 안 쓰고 있었다 — 9/22 에 맞췄다)
+  const arm = r?.armLeg && r.armLeg > 0 ? Math.round(leg * r.armLeg) : Math.round(torso * 0.95);
+
   return {
-    torso, leg, hipW, shoulderW,
+    torso, leg, hipW, shoulderW, arm,
     ghostTorso: !tl,
     ghostShoulder: !sh,
     // 기울기는 **3도부터만** 그린다 (`shapeRatio.js` 와 같은 선). 0.4도를 기울여
@@ -87,18 +90,22 @@ export default function ShapeSilhouette({ ratios, compare = null, height = 260 }
             무릎 자리를 그리면 서 있는 자세를 체형으로 읽게 된다) */}
         <path d={`M ${-S.hipW / 2} ${hY - hy} L ${-S.hipW / 2 + 1} ${fY} L ${-2} ${fY} L ${-1.5} ${hY} Z`} />
         <path d={`M ${S.hipW / 2} ${hY + hy} L ${S.hipW / 2 - 1} ${fY} L ${2} ${fY} L ${1.5} ${hY} Z`} />
-        {/* 팔 둘 — 어깨에서 내려온다. 길이는 잰 것(`armLeg`)이 있으면 그것을 쓴다 */}
-        <path d={`M ${-S.shoulderW / 2} ${sTop - sy} L ${-S.shoulderW / 2 - 3} ${sTop + S.torso * 0.95} L ${-S.shoulderW / 2 + 2} ${sTop + S.torso * 0.95} L ${-S.shoulderW / 2 + 5} ${sTop - sy} Z`} />
-        <path d={`M ${S.shoulderW / 2} ${sTop + sy} L ${S.shoulderW / 2 + 3} ${sTop + S.torso * 0.95} L ${S.shoulderW / 2 - 2} ${sTop + S.torso * 0.95} L ${S.shoulderW / 2 - 5} ${sTop + sy} Z`} />
+        {/* 팔 둘 — 어깨에서 내려온다. 길이는 **잰 것**(`armLeg`)이 있으면 그것을 쓴다 */}
+        <path d={`M ${-S.shoulderW / 2} ${sTop - sy} L ${-S.shoulderW / 2 - 3} ${sTop + S.arm} L ${-S.shoulderW / 2 + 2} ${sTop + S.arm} L ${-S.shoulderW / 2 + 5} ${sTop - sy} Z`} />
+        <path d={`M ${S.shoulderW / 2} ${sTop + sy} L ${S.shoulderW / 2 + 3} ${sTop + S.arm} L ${S.shoulderW / 2 - 2} ${sTop + S.arm} L ${S.shoulderW / 2 - 5} ${sTop + sy} Z`} />
       </g>
     );
   };
 
   const W = Math.max(L.shoulderW, C?.shoulderW || 0) + 26;
+  // **둘 중 긴 쪽에 맞춘다.** 지금 것만 재면 지난 번이 더 길 때 발이 잘린다 —
+  // 상체:다리가 달라지면 둘의 전체 길이도 달라진다(총 길이는 고정이지만
+  // 머리와 기울기가 얹혀서 아래 끝이 어긋난다)
+  const bottom = Math.max(footY, C ? top + C.torso + C.leg : 0);
 
   return (
     <svg
-      viewBox={`${-W / 2} -4 ${W} ${footY + 12}`}
+      viewBox={`${-W / 2} -4 ${W} ${bottom + 12}`}
       style={{ width: '100%', height, display: 'block' }}
       role="img"
       aria-label={`어깨가 골반의 ${ratios?.shoulderHip ?? '?'}배, 상체가 다리의 ${ratios?.torsoLeg ?? '?'}배인 실루엣`}
@@ -122,7 +129,6 @@ export default function ShapeSilhouette({ ratios, compare = null, height = 260 }
           <line x1={-L.hipW / 2} y1={hipY + 6} x2={L.hipW / 2} y2={hipY + 6} />
         </g>
       )}
-      <g fill={SKIN_EDGE} />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import client from '../api/client';
 import { readLS, saveLS } from '../data/safeStorage';
+import { GYM_KEY } from '../data/localKeys';
 
 // 기구 세팅.
 //
@@ -11,7 +12,8 @@ import { readLS, saveLS } from '../data/safeStorage';
 // 집 PC 도 그 헬스장이 된다.
 //
 // 세팅 자체는 서버에 있다. 기기를 바꿔도 남아야 하는 것은 그쪽이다.
-const LS_GYM = 'steelbody_gym';
+// 이름은 `data/localKeys.js` 에 둔다 — 거기 있어야 로그아웃할 때 저절로 지워진다
+const LS_GYM = GYM_KEY;
 // 열쇠의 `steelbody_` 는 옛 앱 이름이다. **앱 이름이 바뀌어도 안 바꾼다** —
 // 바꾸면 쓰던 사람의 설정이 통째로 사라진다 (8/28 · 9/1 에 정한 규칙이다)
 

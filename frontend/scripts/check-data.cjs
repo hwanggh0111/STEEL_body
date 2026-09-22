@@ -1135,6 +1135,42 @@ ok('글자를 흘려 쓴다 (싸인 결)', /fontStyle: 'italic'/.test(logo), tru
 // 브라우저에 남는 열쇠는 **바꾸지 않는다** — 바꾸면 쓰던 사람의 설정과 사진이 사라진다
 const keys = fs.readFileSync('src/data/localKeys.js', 'utf-8');
 ok('브라우저 열쇠는 그대로 둔다', /ironlog_profile_photo/.test(keys), true);
+
+// ── 저장하는 이름은 **한 곳에서만 짓는다** (2026-09-22 에 더했다) ──
+//
+// `localKeys.js` 주석에 「새 키를 여기 만들면 지우는 일은 저절로 따라온다」고 적어놓고,
+// 정작 **그것을 보는 검사가 없었다.** 그래서 같은 사고가 세 번 났고(몸 사진 · 검색
+// 기록 · 답변 확인 시각), 9/22 에 두 개를 더 찾았다 —
+//
+//   steelbody_home_last  지난번에 한 홈트 → 다음 사람이 앞 사람 것을 봤다
+//   shape:lastRatios     체형에서 잰 비율 → 앞 사람 실루엣이 점선으로 겹쳤다
+//
+// 규칙은 하나다. **`localKeys.js` 밖에서 저장 키를 글자로 짓지 않는다.** 이름을 거기
+// 만들면 「사람 것이냐 기기 것이냐」를 그 자리에서 고르게 되고, 사람 것이면
+// `PER_USER_KEYS` 에 들어가 로그아웃 때 저절로 지워진다.
+const keyScanFiles = [];
+(function walk(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) walk(full);
+    else if (/\.(jsx|js)$/.test(e.name)) keyScanFiles.push(full);
+  }
+})('src');
+
+const literalKeys = [];
+for (const f of keyScanFiles) {
+  if (f.replace(/\\/g, '/').endsWith('src/data/localKeys.js')) continue;   // 여기가 이름을 짓는 곳이다
+  const src = fs.readFileSync(f, 'utf-8');
+  // `saveLS('이름'` · `localStorage.setItem('이름'` 처럼 **글자로 적은** 것만 본다.
+  // 상수를 넘기는 자리는 그 상수가 어디서 왔는지를 `npm run imports` 가 따로 본다
+  for (const m of src.matchAll(/(?:saveLS|removeLS|localStorage\.(?:setItem|removeItem))\(\s*'([^']+)'/g)) {
+    literalKeys.push(path.relative('.', f).replace(/\\/g, '/') + ' — ' + m[1]);
+  }
+}
+// `authStore` 가 목록을 지울 때 쓰는 이름들은 `localKeys.js` 에 적혀 있으므로 통과한다.
+// 걸리는 것은 **다른 데서 새로 지은 이름**뿐이다
+const strayKeys = literalKeys.filter((row) => !keys.includes("'" + row.split(' — ')[1] + "'"));
+ok('저장하는 이름을 localKeys 밖에서 짓지 않는다', strayKeys, []);
 // 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
 // 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
 const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
@@ -1473,8 +1509,11 @@ ok('화면에 좁히는 단추 둘이 있다',
   /onlyQuiet/.test(page) && /onlyBare/.test(page), true);
 // 좁혀서 아무것도 안 남으면 고장으로 읽힌다 — 되돌릴 길을 같이 준다
 ok('아무것도 안 남으면 조건 지우는 길을 준다', /조건 지우기/.test(page), true);
-// 홈트는 이어서 하는 물건이다. 지난번에 한 것을 맨 위에 둔다
-ok('지난번에 한 것을 적어둔다', /steelbody_home_last/.test(page), true);
+// 홈트는 이어서 하는 물건이다. 지난번에 한 것을 맨 위에 둔다.
+// **이름은 `localKeys.js` 에 있다** (2026-09-22 에 옮겼다 — 그 사람이 한 것이라
+// 로그아웃하면 지워야 하는데, 화면이 이름을 혼자 갖고 있어서 안 지워지고 있었다)
+ok('지난번에 한 것을 적어둔다', /HOME_LAST_KEY/.test(page), true);
+ok('그 이름은 지우는 목록에 있다', /HOME_LAST_KEY,/.test(keys) && /export const HOME_LAST_KEY/.test(keys), true);
 ok('열쇠를 앱 이름 따라 안 바꿨다', /blackiron_home/.test(page), false);
 
 // 운동마다 **어떻게 하는지**가 있어야 한다. 이름만 있으면 「스캡 푸시업」에서 멈춘다

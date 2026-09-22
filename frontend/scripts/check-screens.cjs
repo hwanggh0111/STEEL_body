@@ -98,6 +98,9 @@ const SCREENS = [
   ['인바디', 'src/pages/InbodyPage.jsx'],
   ['비교', 'src/pages/ComparePage.jsx'],
   ['측정', 'src/pages/MeasurePage.jsx'],
+  // 체형 — 「몸」의 넷째 갈래 (2026-09-22). **사진 없이 열린 상태**가 첫 화면이라,
+  // 여기서 그려보는 것이 실제로 사람이 처음 보는 그 화면이다
+  ['체형', 'src/pages/ShapePage.jsx'],
   ['기능성운동', 'src/pages/HomeworkoutPage.jsx'],
   ['운동 검색', 'src/pages/SearchPage.jsx'],
   ['고객센터', 'src/pages/support/SupportPage.jsx'],

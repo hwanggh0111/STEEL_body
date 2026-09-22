@@ -242,6 +242,14 @@ ok('각도일 수 있다고 적는다', m4.lines.some((l) => l.text.includes('�
 
 ok('사진이 없으면 01 그대로다', shape.mergeShape(base, null, null).lines.length, base.lines.length);
 
+// ── 안내 줄에 「각도일 수 있어요」가 붙으면 안 된다 (2026-09-22 에 찾은 것) ──
+//
+// 화면은 `sure === false` 인 사진 줄에 「각도일 수 있어요」를 덧붙인다. 첫 장 안내는
+// **잰 값이 아니라 안내**라, 거기 붙으면 「견줄 것이 없어요. 각도일 수 있어요.」가 된다
+const firstLine = m1.lines[m1.lines.length - 1];
+ok('안내 줄에는 sure 를 안 단다', firstLine.sure, undefined);
+ok('그래서 각도 꼬리가 안 붙는다', firstLine.sure === false, false);
+
 console.log('── 가장 챙긴 곳도 말한다 ──');
 ok('가장 많이 한 곳을 안다', base.most.sets >= base.least.sets, true);
 ok('덜 한 곳과 다르다', base.most.part !== base.least.part, true);

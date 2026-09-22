@@ -39,6 +39,19 @@ export const WORKOUT_QUEUE_KEY = 'ironlog_workout_queue';
 // 한 번은 안 되는 앱을 쓰게 된다.
 export const NOTE_CACHE_KEY = 'ironlog_day_notes_cache';
 export const NOTE_QUEUE_KEY = 'ironlog_day_note_queue';
+// 체형에서 **지난 번 사진으로 잰 비율** (2026-09-22). 사진이 아니라 숫자 몇 개지만
+// **그 사람의 몸**이다 — 안 지우면 다음에 로그인한 사람이 앞 사람 실루엣을
+// 점선으로 겹쳐 보게 된다. 위에 적힌 「몸 사진 두 개」와 똑같은 자리다.
+export const SHAPE_RATIOS_KEY = 'shape:lastRatios';
+// 지금 있는 헬스장 (`store/gymStore.js`). 세팅 자체는 서버에 있고, **어디 있는지만**
+// 기기에 남긴다 — 폰에서 고른 곳이 집 PC 까지 바뀌면 안 되기 때문이다.
+// 그래도 **사람이 바뀌면 지운다**: 다음에 로그인한 사람이 앞 사람이 다니는 헬스장
+// 이름으로 시작하게 둘 이유가 없다 (2026-09-22 에 옮겼다).
+export const GYM_KEY = 'steelbody_gym';
+// 지난번에 한 홈트 프로그램 (`pages/HomeworkoutPage.jsx`). 홈트는 아직 서버에 안
+// 쌓여서 기기에만 남는데, **그 사람이 한 것**이다 — 안 지우면 다음 사람 화면에
+// 「지난번에 ○○ 하셨네요」가 앞 사람 것으로 뜬다 (2026-09-22 에 찾았다).
+export const HOME_LAST_KEY = 'steelbody_home_last';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
@@ -53,6 +66,9 @@ export const PER_USER_KEYS = [
   WORKOUT_QUEUE_KEY,
   NOTE_CACHE_KEY,
   NOTE_QUEUE_KEY,
+  SHAPE_RATIOS_KEY,
+  GYM_KEY,
+  HOME_LAST_KEY,
 ];
 
 // ── 기기의 것. 로그아웃해도 남긴다 ──
@@ -61,3 +77,19 @@ export const PER_USER_KEYS = [
 // 어떻게 쓰는지에 대한 취향이다. 사람이 바뀐다고 다시 정하게 할 이유가 없다.
 export const MAINT_KEY = 'ironlog_maintenance';
 export const MAINT_VERSION_KEY = 'ironlog_maint_version';
+// 휴식 타이머 취향 여섯 (`store/restTimerStore.js`). 길이 · 소리 · 음색 · 진동 · 볼륨 ·
+// 자동 시작 — 그 기기에서 어떻게 쓰는지에 대한 취향이라 사람이 바뀌어도 남긴다.
+export const REST_KEYS = {
+  auto: 'steelbody_rest_auto',
+  duration: 'steelbody_rest_duration',
+  sound: 'steelbody_rest_sound',
+  tone: 'steelbody_rest_tone',
+  vibrate: 'steelbody_rest_vibrate',
+  volume: 'steelbody_rest_volume',
+};
+// 앱 잠금 (`data/appLock.js` 가 들고 있다 — 계산이 거기 있어서 이름도 거기 둔다).
+// **기기의 가림막**이라 로그아웃해도 남긴다: 로그인은 그보다 센 자물쇠다.
+export const LOCK_KEY_NAME = 'steelbody_lock';
+// 「로그인이 풀렸어요」를 로그인 화면에 한 번 알리는 쪽지 (`api/client.js`).
+// 로그인 화면이 읽고 그 자리에서 지운다 — 사람에 딸린 것이 아니다.
+export const SESSION_EXPIRED_KEY = 'session_expired';

@@ -4,6 +4,7 @@ import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
+import { HOME_LAST_KEY } from '../data/localKeys';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
@@ -13,8 +14,9 @@ const PROGRAM_NAMES = Object.keys(PROGRAMS);
 // 지난번에 한 프로그램. **여기에만 남는다** — 홈트는 아직 서버에 안 쌓인다
 // (「운동 기록에 남기기」를 눌러야 기록이 된다). 그래서 기기의 것으로만 적는다.
 //
-// 열쇠의 `steelbody_` 는 옛 앱 이름이다. 앱 이름이 바뀌어도 안 바꾼다
-const LS_LAST = 'steelbody_home_last';
+// 이름은 `data/localKeys.js` 에 둔다 — **그 사람이 한 것**이라 로그아웃하면 지운다
+// (열쇠의 `steelbody_` 는 옛 앱 이름이다. 앱 이름이 바뀌어도 안 바꾼다)
+const LS_LAST = HOME_LAST_KEY;
 
 function readLastDone() {
   try {

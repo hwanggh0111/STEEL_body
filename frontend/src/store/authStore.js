@@ -4,6 +4,7 @@ import client from '../api/client';
 import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore';
 import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
+import { resetPose } from '../data/poseModel';
 import { useRoutineSessionStore } from './routineSessionStore';
 import { useReportStore } from './reportStore';
 import { useGoalStore } from './goalStore';
@@ -137,6 +138,10 @@ export const useAuthStore = create((set) => ({
     resetWorkoutCache();
     resetNoteCache();
     resetInbodyCache();
+    // 체형의 자세 인식 모델도 놓아준다. 목록과 달리 **남의 것이 보이는 문제는
+    // 아니지만**(모델은 누구에게나 같다), 10MB 를 든 채로 로그인 화면에 서 있을
+    // 이유가 없다. 다음에 「체형」을 열면 CDN 이 아니라 브라우저 캐시에서 온다
+    resetPose();
     // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
     useRoutineSessionStore.getState().reset();
     // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다

@@ -235,9 +235,10 @@ export function mergeShape(read, photo, prev) {
   // 사진이 오늘 처음이면 **견줄 것이 없다고 적는다.** 조용히 넘어가면 사진을
   // 올렸는데 아무 일도 안 일어난 것으로 보인다
   if (!prev || !prev.ok) {
+    // **`sure` 를 안 단다.** 이 줄은 잰 값이 아니라 안내라서, 화면이 붙이는
+    // 「각도일 수 있어요」가 따라오면 「견줄 것이 없어요. 각도일 수 있어요.」가 된다
     lines.push({
       basis: '사진',
-      sure: false,
       text: '사진은 오늘이 처음이라 아직 견줄 것이 없어요. 다음에 같은 자리·같은 옷으로 찍으면 달라진 것을 말해줄 수 있어요.',
     });
     return { lines, verdict: read?.verdict || null, shoulderMove: null };
