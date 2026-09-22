@@ -107,6 +107,11 @@ export const SETTINGS_KEYS = {
   breathSense: 'steelbody_set_breath_sense',
 };
 
+// 내가 만든 알림 소리 (`data/customTones.js`, 2026-09-22).
+// 고른 재료(높이 · 몇 번 · 빠르기 · 결)만 남긴다 — **소리 파일은 안 받는다**.
+// 그 기기에서 어떻게 쓰는지에 대한 취향이라 로그아웃해도 남긴다.
+export const CUSTOM_TONES_KEY = 'steelbody_my_tones';
+
 // 앱 잠금 (`data/appLock.js` 가 들고 있다 — 계산이 거기 있어서 이름도 거기 둔다).
 // **기기의 가림막**이라 로그아웃해도 남긴다: 로그인은 그보다 센 자물쇠다.
 export const LOCK_KEY_NAME = 'steelbody_lock';

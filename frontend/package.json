@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "android": "npm run build && cap sync android",
     "android:icons": "node scripts/gen-app-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#12100c\" --iconBackgroundColorDark \"#12100c\" --splashBackgroundColor \"#12100c\" --splashBackgroundColorDark \"#12100c\"",
-    "check": "node scripts/check-imports.cjs && node scripts/check-lists.cjs && node scripts/check-data.cjs && node scripts/check-offline.cjs && node scripts/check-note.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs && node scripts/check-heat.cjs && node scripts/check-goal.cjs && node scripts/check-take.cjs && node scripts/check-nav.cjs && node scripts/check-stale.cjs && node scripts/check-lock.cjs && node scripts/check-reach.cjs && node scripts/check-rest.cjs && node scripts/check-shape.cjs && node scripts/check-homeparts.cjs && node scripts/check-breath.cjs",
+    "check": "node scripts/check-imports.cjs && node scripts/check-lists.cjs && node scripts/check-data.cjs && node scripts/check-offline.cjs && node scripts/check-note.cjs && node scripts/check-screens.cjs && node scripts/check-odd.cjs && node scripts/check-heat.cjs && node scripts/check-goal.cjs && node scripts/check-take.cjs && node scripts/check-nav.cjs && node scripts/check-stale.cjs && node scripts/check-lock.cjs && node scripts/check-reach.cjs && node scripts/check-rest.cjs && node scripts/check-shape.cjs && node scripts/check-homeparts.cjs && node scripts/check-breath.cjs && node scripts/check-tone.cjs",
     "screens": "node scripts/check-screens.cjs",
     "odd": "node scripts/check-odd.cjs",
     "imports": "node scripts/check-imports.cjs",
@@ -28,7 +28,8 @@
     "lock": "node scripts/check-lock.cjs",
     "shape": "node scripts/check-shape.cjs",
     "homeparts": "node scripts/check-homeparts.cjs",
-    "breath": "node scripts/check-breath.cjs"
+    "breath": "node scripts/check-breath.cjs",
+    "tone": "node scripts/check-tone.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

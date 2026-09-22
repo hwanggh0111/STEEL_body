@@ -118,7 +118,27 @@ export const TONES = [
 ];
 export const DEFAULT_TONE = 'ding';
 
-const toneOf = (id) => TONES.find((t) => t.id === id) || TONES[0];
+// ── 만든 소리도 같이 찾는다 (2026-09-22) ──
+//
+// 사람이 만든 소리는 `customTones.js` 가 브라우저에서 읽어온다. 여기서 그 파일을
+// 들여오지 **않는다** — 이 파일은 휴식 타이머 · 홈트 · 스톱워치 셋이 쓰는 바닥이라,
+// 저장을 읽는 일까지 여기서 하면 켜질 때마다 localStorage 를 뒤진다.
+//
+// 대신 **찾는 자리를 하나 열어둔다.** 화면이 만든 소리를 여기 얹어두면 그때부터
+// 같이 찾는다. 얹은 것이 없으면 여태와 똑같이 돈다.
+let extraTones = [];
+
+/** 만든 소리를 얹는다 (설정함이 부른다). 모양은 `TONES` 와 같다. */
+export function setExtraTones(list) {
+  extraTones = Array.isArray(list) ? list : [];
+}
+
+/** 기본 넷 + 만든 것. 화면이 고르개를 그릴 때 쓴다. */
+export function allTones() {
+  return [...TONES, ...extraTones];
+}
+
+const toneOf = (id) => allTones().find((t) => t.id === id) || TONES[0];
 
 /** 소리 하나를 지금 낸다. 준비가 안 됐으면 조용히 넘어간다. */
 export function playTone(toneId = DEFAULT_TONE, volumeId = DEFAULT_VOLUME) {

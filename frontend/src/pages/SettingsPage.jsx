@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useRestTimerStore, PRESETS } from '../store/restTimerStore';
 import { useSettingsStore, BREATH_WHERE, BREATH_MAX, BREATH_SENSE } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
-import { TONES, VOLUMES, previewTone } from '../data/alertSound';
+import { VOLUMES, previewTone, allTones, setExtraTones } from '../data/alertSound';
+import { loadTones, saveTones } from '../data/customTones';
+import ToneMaker from '../components/ToneMaker';
 import { micSupported } from '../data/useBreath';
 import { speechSupported } from '../data/voiceLog';
 import { canLock } from '../data/appLock';
@@ -148,6 +150,13 @@ export default function SettingsPage() {
   const [nickEdit, setNickEdit] = useState(false);
   const [nickDraft, setNickDraft] = useState('');
   const [savingNick, setSavingNick] = useState(false);
+  // 만든 소리는 브라우저에서 읽는다. **읽자마자 재생 쪽에 얹는다** —
+  // 안 얹으면 고른 소리가 목록에는 있는데 안 울린다
+  const [myTones, setMyTones] = useState(() => {
+    const list = loadTones();
+    setExtraTones(list);
+    return list;
+  });
 
   // 휴식 타이머 여섯은 **그쪽 스토어를 그대로 쓴다.** 옮기면 두 벌이 된다
   const rest = useRestTimerStore();
@@ -173,7 +182,8 @@ export default function SettingsPage() {
       .finally(() => setSavingNick(false));
   };
 
-  const tone = TONES.find((t) => t.id === rest.tone) || TONES[0];
+  const tones = allTones();
+  const tone = tones.find((t) => t.id === rest.tone) || tones[0];
   const locked = canLock();
 
   return (
@@ -198,10 +208,25 @@ export default function SettingsPage() {
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
               <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어떤 소리로</div>
               {/* **고르면 그 자리에서 들려준다.** 이름(「종」·「나무」)만으로는 아무도 모른다 */}
-              <Pick items={TONES} value={rest.tone} onPick={(id) => { rest.setTone(id); previewTone(id, rest.volume); }} />
+              <Pick items={tones} value={rest.tone} onPick={(id) => { rest.setTone(id); previewTone(id, rest.volume); }} />
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
                 {tone.name} — {tone.desc}
               </div>
+
+              {/* **소리를 더 만들 수 있다** (2026-09-22). 파일은 안 받는다 —
+                  재료(높이 · 몇 번 · 빠르기 · 결)를 주고 그 자리에서 만들게 한다 */}
+              <ToneMaker
+                tones={myTones}
+                volume={rest.volume}
+                onSave={(next) => {
+                  const saved = saveTones(next);
+                  setExtraTones(saved);
+                  setMyTones(saved);
+                  // **지운 소리를 고른 채로 두지 않는다** — 그러면 아무 소리도 안 난다
+                  if (!allTones().some((t) => t.id === rest.tone)) rest.setTone('ding');
+                }}
+                onPicked={(id) => { rest.setTone(id); previewTone(id, rest.volume); }}
+              />
             </div>
 
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
@@ -378,6 +403,10 @@ export default function SettingsPage() {
         </div>
 
         <GoRow title="비밀번호 바꾸기" onClick={() => setPwOpen(true)} />
+        {/* **계정 삭제도 여기 둔다.** 계정에 대한 일이라 계정 무리가 맞다 —
+            다만 30일 유예가 있다는 것을 옆에 적어, 누르기 전에 알게 한다
+            (되돌릴 수 있다는 것을 모르면 아무도 안 누르고, 그게 더 나쁘다) */}
+        <GoRow title="계정 삭제" sub="30일 안에 다시 로그인하면 되살아나요" onClick={() => setDelOpen(true)} />
         {/* 프로필 사진은 **계정 시트에 그대로 둔다.** 거기서 아바타를 누르면 바로
             고르는 자리가 열린다 — 사진을 바꾸는 사람은 제 얼굴을 보면서 바꾼다.
             여기서는 **어디로 가면 되는지**만 적는다 (길을 두 벌로 만들지 않는다) */}
@@ -427,17 +456,6 @@ export default function SettingsPage() {
         className="btn-secondary"
         style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: 'pointer' }}
       >로그아웃</button>
-
-      {/* 계정 삭제는 **되돌리기 어려운 일**이라 로그아웃과 붙여두되 색으로 가른다.
-          30일 안에 다시 로그인하면 되살아난다는 것은 모달이 적는다 */}
-      <button
-        onClick={() => setDelOpen(true)}
-        style={{
-          width: '100%', minHeight: 40, marginTop: 8, borderRadius: 'var(--radius)',
-          background: 'none', border: '1px solid var(--border)',
-          color: 'var(--text-muted)', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer',
-        }}
-      >계정 삭제</button>
 
       {lockOpen && <LockSetup onClose={() => setLockOpen(false)} />}
       {pwOpen && <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />}
