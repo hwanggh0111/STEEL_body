@@ -23,6 +23,7 @@ import SegRow from '../components/SegRow';
 const InbodyPage = lazy(() => import('./InbodyPage'));
 const MeasurePage = lazy(() => import('./MeasurePage'));
 const ComparePage = lazy(() => import('./ComparePage'));
+const ShapePage = lazy(() => import('./ShapePage'));
 
 // **「몸」은 재고 견주는 자리다** (2026-09-16 에 다시 정했다).
 //
@@ -31,10 +32,16 @@ const ComparePage = lazy(() => import('./ComparePage'));
 // 지금은 「오늘」 탭 첫 카드에서 `/map` 으로 들어간다.
 //
 // 그래서 여기 남는 것은 셋 — 재고(인바디 · 재는 도구) 견준다(견주기).
+//
+// **넷째로 「체형」이 붙었다** (2026-09-22, `docs/SHAPE-READ-2026-09-19.md` 의 01 단계).
+// 새 탭을 만들지 않고 여기 붙인 것은 9/19 에 「기구」 탭을 걷은 것과 같은 이유다 —
+// 탭바는 늘릴 수 있는 자리가 아니고, 체형은 **몸을 읽는 일**이라 이 방이 맞다.
+// 갈래가 넷이 되어도 안 잘린다(`SegRow` 는 글자만큼만 차지한다 — 9/16 에 고쳤다).
 const TABS = [
   { key: 'inbody', label: '인바디' },
   { key: 'measure', label: '재는 도구' },
   { key: 'compare', label: '견주기' },
+  { key: 'shape', label: '체형' },
 ];
 
 function Panel({ height = 200 }) {
@@ -141,6 +148,7 @@ export default function BodyPage() {
         {tab === 'inbody' && <InbodyPage embedded />}
         {tab === 'measure' && <MeasurePage embedded subTab={sub} />}
         {tab === 'compare' && <ComparePage embedded />}
+        {tab === 'shape' && <ShapePage embedded />}
       </Suspense>
     </div>
   );
