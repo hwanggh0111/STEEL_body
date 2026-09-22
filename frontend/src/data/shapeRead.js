@@ -195,5 +195,85 @@ export function buildShapeRead(workouts, inbody, today) {
     lines.push({ basis: '기록', text: `${least.part}가 덜 했어요.` });
   }
 
-  return { ready: true, need: null, parts, least, verdict, muscle, lines, total, from, today };
+  // **가장 챙긴 곳**도 말한다. 「덜 한 곳」만 말하면 이 화면은 지적만 하는 자리가 된다 —
+  // 9/19 에 「어디가 좋은지도」라고 한 것이 이것이다. 점수가 아니라 **순위**라서
+  // 말할 수 있다(가장 많이 한 곳은 견줄 기준 없이도 자기 안에서 정해진다)
+  const most = parts[parts.length - 1];
+
+  return { ready: true, need: null, parts, least, most, verdict, muscle, lines, total, from, today };
+}
+
+// ── 03 단계: 사진 · 기록 · 인바디를 합친다 (2026-09-22) ──
+//
+// 9/19 에 정한 것: **셋이 같은 말을 할 때만 단정한다.** 사진만 그러고 기록은 아니면
+// 「각도일 수 있어요」라고 적는다.
+//
+// 그런데 손대보니 **사진 한 장은 단정에 낄 수가 없었다.** 「어깨가 좁다」고 하려면
+// 무엇과 견줘 좁은지가 있어야 하는데, 이 앱은 또래 · 이상적인 비율과 견주지 않기로
+// 했다(그것이 말투 규칙의 첫 줄이다). 그래서 사진이 판단에 끼는 길은 하나뿐이다 —
+// **지난 번의 나와 견주는 것.** 첫 장은 그 말을 할 수 없고, 못 한다고 적는다.
+//
+// 대신 사진이 **한 장으로도 말할 수 있는 것**이 있다: 좌우와 기울기다. 그건 바깥
+// 기준이 아니라 **자기 몸 안에서** 재는 것이라 첫 장에도 말이 된다.
+
+/** 비율이 이만큼 달라져야 「달라졌다」고 한다. 옷과 서 있는 자세가 그만큼 흔든다. */
+const RATIO_SURE = 0.06;
+
+/**
+ * 셋을 합쳐 마지막 한 줄까지.
+ *
+ * read  `buildShapeRead` 가 준 것 (기록 · 인바디)
+ * photo `buildRatios` 가 준 것 (오늘 사진) — 없으면 01 단계 그대로다
+ * prev  지난 번 사진의 비율 — 없으면 사진은 숫자만 적고 판단에 안 낀다
+ *
+ * 돌려주는 것은 `{ lines, verdict, shoulderMove }` — 화면은 이것만 그린다.
+ */
+export function mergeShape(read, photo, prev) {
+  const lines = [...(read?.lines || [])];
+  if (!photo || !photo.ok) return { lines, verdict: read?.verdict || null, shoulderMove: null };
+
+  // 사진이 오늘 처음이면 **견줄 것이 없다고 적는다.** 조용히 넘어가면 사진을
+  // 올렸는데 아무 일도 안 일어난 것으로 보인다
+  if (!prev || !prev.ok) {
+    lines.push({
+      basis: '사진',
+      sure: false,
+      text: '사진은 오늘이 처음이라 아직 견줄 것이 없어요. 다음에 같은 자리·같은 옷으로 찍으면 달라진 것을 말해줄 수 있어요.',
+    });
+    return { lines, verdict: read?.verdict || null, shoulderMove: null };
+  }
+
+  // ── 지난 번의 나와 견준다 ──
+  let shoulderMove = null;
+  if (photo.shoulderHip !== null && prev.shoulderHip !== null) {
+    const d = Math.round((photo.shoulderHip - prev.shoulderHip) * 100) / 100;
+    shoulderMove = Math.abs(d) < RATIO_SURE ? 'flat' : d > 0 ? 'up' : 'down';
+    lines.push({
+      basis: '사진',
+      sure: photo.facing === 'front',
+      text: shoulderMove === 'flat'
+        ? `어깨:골반은 지난 번과 거의 같아요 (${prev.shoulderHip} → ${photo.shoulderHip}배).`
+        : `어깨:골반이 ${prev.shoulderHip} → ${photo.shoulderHip}배로 ${d > 0 ? '넓어' : '좁아'}졌어요.`,
+    });
+  }
+
+  // ── 셋이 같은 곳을 가리킬 때만 단정한다 ──
+  //
+  // 기록에서 어깨가 덜 했고, 사진에서도 어깨:골반이 줄었다면 그때는 단정한다.
+  // 사진만 줄었고 기록은 아니면 **「각도일 수 있어요」**로 끝낸다
+  let verdict = read?.verdict || null;
+  const leastIsShoulder = read?.least?.part === '어깨';
+
+  if (shoulderMove === 'down' && leastIsShoulder && read?.verdict === 'less') {
+    verdict = 'sure';
+    lines.push({ basis: '사진·기록', sure: true, text: '기록과 사진이 같은 곳을 가리켜요 — 어깨예요.' });
+  } else if (shoulderMove === 'down' && !leastIsShoulder) {
+    lines.push({
+      basis: '사진',
+      sure: false,
+      text: '사진에서는 어깨가 좁아졌는데 기록은 그렇지 않아요. 각도일 수 있어요.',
+    });
+  }
+
+  return { lines, verdict, shoulderMove };
 }

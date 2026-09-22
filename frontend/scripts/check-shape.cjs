@@ -18,6 +18,7 @@ const bundle = (entry, out) => {
 };
 
 const shape = bundle('src/data/shapeRead.js', '.s1.cjs');
+const ratio = bundle('src/data/shapeRatio.js', '.s2.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -109,5 +110,141 @@ const allText = d.lines.map(l => l.text).join(' ');
 ok('점수·등급·「부족」을 안 쓴다', words.filter(w => allText.includes(w)), []);
 ok('줄마다 근거가 붙는다', d.lines.every(l => ['기록', '인바디', '기록·인바디'].includes(l.basis)), true);
 
-console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 어긋남`);
+
+// ═══════════════════════════════════════════
+// 02 단계 — 사진에서 잰 비율
+// ═══════════════════════════════════════════
+//
+// 관절 자리를 손으로 만들어 넣는다. 사진을 넣어 보려면 모델을 받아야 하고, 모델은
+// 사진마다 조금씩 다르게 잡는다 — **계산이 맞는지는 자리를 정해놓고 봐야 안다.**
+console.log('\n── 사진에서 잰 비율 ──');
+
+const L = ratio.LM;
+/** 정규화 좌표로 사람 하나를 세운다. 안 적은 자리는 가운데에 두고 잘 보인다고 친다. */
+function stand(over, vis) {
+  const marks = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, visibility: vis === undefined ? 1 : vis }));
+  Object.entries(over || {}).forEach(([k, v]) => {
+    marks[L[k]] = { x: v[0], y: v[1], visibility: v[2] === undefined ? 1 : v[2] };
+  });
+  return marks;
+}
+const SIZE = { width: 1000, height: 1000 };   // 정사각이라 x·y 가 같은 자로 잰다
+
+// 어깨 폭 0.30 · 골반 폭 0.20 → 1.5배. 몸통 0.25 · 다리 0.20+0.20=0.40 → 0.63배
+const A = stand({
+  shoulderL: [0.35, 0.30], shoulderR: [0.65, 0.30],
+  hipL: [0.40, 0.55], hipR: [0.60, 0.55],
+  kneeL: [0.40, 0.75], kneeR: [0.60, 0.75],
+  ankleL: [0.40, 0.95], ankleR: [0.60, 0.95],
+  elbowL: [0.33, 0.45], elbowR: [0.67, 0.45],
+  wristL: [0.33, 0.58], wristR: [0.67, 0.58],
+});
+const a2 = ratio.buildRatios(A, SIZE);
+ok('어깨:골반 (0.30 / 0.20)', a2.shoulderHip, 1.5);
+ok('상체:다리 (0.25 / 0.40)', a2.torsoLeg, 0.63);
+ok('똑바로 서면 기울기 0', a2.shoulderTilt, 0);
+ok('좌우가 같으면 차이 0', a2.sideGap, 0);
+ok('정면으로 본다', a2.facing, 'front');
+ok('못 본 자리 없음', a2.missing, []);
+
+// ── 세로로 긴 사진에서도 같은 값이 나와야 한다 ──
+//
+// 정규화 좌표를 그대로 빼면 세로가 짧게 잡힌다. 픽셀로 되돌리는지 여기서 본다 —
+// 세로를 2배로 늘리면서 y 를 반으로 접으면 **실제 몸은 같은 몸**이다
+const TALL = stand({
+  shoulderL: [0.35, 0.15], shoulderR: [0.65, 0.15],
+  hipL: [0.40, 0.275], hipR: [0.60, 0.275],
+  kneeL: [0.40, 0.375], kneeR: [0.60, 0.375],
+  ankleL: [0.40, 0.475], ankleR: [0.60, 0.475],
+});
+ok('세로로 긴 사진도 같은 상체:다리', ratio.buildRatios(TALL, { width: 1000, height: 2000 }).torsoLeg, 0.63);
+
+// ── 안 보이는 관절은 안 쓴다 ──
+//
+// 모델은 가려진 관절도 자리를 지어낸다. 그 점으로 재면 옷과 각도가 만든 숫자를
+// 몸이라고 말하게 된다
+const HIDDEN = stand({
+  shoulderL: [0.35, 0.30], shoulderR: [0.65, 0.30],
+  hipL: [0.40, 0.55], hipR: [0.60, 0.55],
+  kneeL: [0.40, 0.75, 0.2], kneeR: [0.60, 0.75, 0.2],
+  ankleL: [0.40, 0.95, 0.1], ankleR: [0.60, 0.95, 0.1],
+});
+const h2 = ratio.buildRatios(HIDDEN, SIZE);
+ok('안 보이는 다리는 안 잰다', h2.torsoLeg, null);
+ok('못 본 자리를 적는다', h2.missing, ['무릎', '발목']);
+ok('그래도 어깨:골반은 나온다', h2.shoulderHip, 1.5);
+
+// ── 옆으로 선 사진을 걸러낸다 ──
+const SIDE = stand({
+  shoulderL: [0.48, 0.30], shoulderR: [0.55, 0.30],
+  hipL: [0.48, 0.55], hipR: [0.54, 0.55],
+  kneeL: [0.48, 0.75], kneeR: [0.54, 0.75],
+  ankleL: [0.48, 0.95], ankleR: [0.54, 0.95],
+});
+const s3 = ratio.buildRatios(SIDE, SIZE);
+ok('옆으로 서면 정면이 아니라고 본다', s3.facing, 'side');
+ok('그 줄은 확실하지 않다고 적는다', ratio.ratioLines(s3).every((l) => l.sure === false), true);
+
+// ── 기울기는 3도부터만 말한다 ──
+//
+// 0.4도를 적어주면 사람은 그것을 고쳐야 할 것으로 읽는다. 우리 정밀도가 그게 아니다
+const TILT = stand({
+  shoulderL: [0.35, 0.30], shoulderR: [0.65, 0.34],
+  hipL: [0.40, 0.55], hipR: [0.60, 0.553],
+  kneeL: [0.40, 0.75], kneeR: [0.60, 0.75],
+  ankleL: [0.40, 0.95], ankleR: [0.60, 0.95],
+});
+const ti = ratio.buildRatios(TILT, SIZE);
+ok('어깨 기울기를 잰다 (7~8도)', ti.shoulderTilt > 7 && ti.shoulderTilt < 8, true);
+const tl = ratio.ratioLines(ti).map((l) => l.key);
+ok('7도는 말한다', tl.includes('shoulderTilt'), true);
+ok('1도 안쪽은 아무 말도 안 한다', tl.includes('hipTilt'), false);
+
+console.log('── 사진 말투 ──');
+const pText = ratio.ratioLines(a2).map((l) => l.text).join(' ');
+// 자세 인식은 관절만 잡는다. 허리 둘레를 아는 점이 없으므로 **허리라고 하면 안 된다**
+ok('허리라고 안 한다 (못 재니까)', pText.includes('허리'), false);
+ok('골반이라고 적는다', pText.includes('골반'), true);
+ok('점수·이상비율을 안 쓴다', ['황금', '이상적', '평균', '정상'].filter((w) => pText.includes(w)), []);
+
+// ═══════════════════════════════════════════
+// 03 단계 — 사진 · 기록 · 인바디를 합친다
+// ═══════════════════════════════════════════
+console.log('── 셋을 합친다 ──');
+
+const base = shape.buildShapeRead(W, IN, TODAY);   // 어깨 꼴찌 + 줄고 있음 + 골격근 늘고 있음
+const wide = { ok: true, shoulderHip: 1.50, torsoLeg: 0.63, facing: 'front', missing: [] };
+const narrow = { ok: true, shoulderHip: 1.35, torsoLeg: 0.63, facing: 'front', missing: [] };
+
+const m1 = shape.mergeShape(base, wide, null);
+ok('첫 장은 견줄 것이 없다고 적는다', m1.lines[m1.lines.length - 1].text.includes('처음'), true);
+ok('첫 장으로는 단정을 안 바꾼다', m1.verdict, base.verdict);
+
+const m2 = shape.mergeShape(base, narrow, wide);
+ok('지난 번보다 좁아진 것을 안다', m2.shoulderMove, 'down');
+ok('기록과 사진이 같은 곳이면 단정한다', m2.verdict, 'sure');
+ok('그 줄의 근거는 사진·기록', m2.lines[m2.lines.length - 1].basis, '사진·기록');
+
+// 0.06 안쪽은 안 움직인 것으로 본다 — 옷과 서 있는 자세가 그만큼 흔든다
+const m3 = shape.mergeShape(base, { ...wide, shoulderHip: 1.47 }, wide);
+ok('조금 다른 것은 같다고 본다', m3.shoulderMove, 'flat');
+ok('그때는 단정을 안 올린다', m3.verdict, base.verdict);
+
+// 사진만 그러고 기록은 아닐 때 — **「각도일 수 있어요」로 끝낸다** (9/19 에 정한 것)
+const LEG = { ...W };
+delete LEG['2026-09-19'];
+delete LEG['2026-08-18'];
+const legBase = shape.buildShapeRead(LEG, IN, TODAY);
+const m4 = shape.mergeShape(legBase, narrow, wide);
+ok('꼴찌가 어깨가 아니게 만든다', legBase.least.part !== '어깨', true);
+ok('사진만 그러면 단정하지 않는다', m4.verdict !== 'sure', true);
+ok('각도일 수 있다고 적는다', m4.lines.some((l) => l.text.includes('각도일 수 있어요')), true);
+
+ok('사진이 없으면 01 그대로다', shape.mergeShape(base, null, null).lines.length, base.lines.length);
+
+console.log('── 가장 챙긴 곳도 말한다 ──');
+ok('가장 많이 한 곳을 안다', base.most.sets >= base.least.sets, true);
+ok('덜 한 곳과 다르다', base.most.part !== base.least.part, true);
+
+console.log(bad === 0 ? '\n모두 통과' : '\n' + bad + '건 어긋남');
 process.exit(bad === 0 ? 0 : 1);
