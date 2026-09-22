@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
 import { HOME_LAST_KEY } from '../data/localKeys';
+import { buildPump, partsOf } from '../data/homeworkoutParts';
+import { useBreath, micSupported } from '../data/useBreath';
+import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
+import PumpBody from '../components/PumpBody';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
@@ -42,6 +46,115 @@ function agoLabel(at) {
 // 고르기 전 빈 목록. 매 렌더 새로 만들면 effect 가 그때마다 다시 돈다
 const EMPTY = [];
 
+/**
+ * 쉬는 동안의 숨 한 줄.
+ *
+ * **점수도 숫자도 안 적는다.** 적는 것은 「숨이 아직 올라있어요」 한 마디와,
+ * 몇 초를 더 줬는지뿐이다. 판단 규칙은 `data/breathRest.js` 에 있다.
+ *
+ * 파형은 **읽으라고 있는 것이 아니다** — 마이크가 실제로 듣고 있다는 표시다.
+ * 이것이 없으면 「켰는데 아무 일도 안 일어난다」로 읽힌다.
+ */
+function BreathRow({ breath, extraGiven, onSkip }) {
+  if (!breath.on) return null;
+
+  // 기준선을 재는 중 · 못 쓰는 자리 — **까닭을 적는다.** 조용히 아무 일도 안 하면
+  // 켜둔 사람이 고장으로 읽는다
+  if (breath.phase !== 'ready') {
+    return (
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        {breath.phase === 'calibrating' && '조용한 소리를 재는 중이에요…'}
+        {breath.phase === 'asking' && '마이크를 여는 중이에요…'}
+        {breath.phase === 'blocked' && `숨이 안 잡혀요 — ${breath.why}`}
+      </div>
+    );
+  }
+
+  const label = breathLabel(breath.state);
+  const bars = breath.history.slice(-14);
+  const top = Math.max(0.02, ...bars);
+
+  return (
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)' }}>
+          {/* 듣고 있다는 표시는 **늘 켜둔다** — 마이크가 켜진 것을 모르는 채로 두지 않는다 */}
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', boxShadow: '0 0 0 3px rgba(127,168,217,0.16)' }} />
+          숨
+        </span>
+        {label && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 26 }} aria-hidden="true">
+        {bars.map((v, i) => (
+          <span key={i} style={{
+            flex: 1, borderRadius: 1,
+            height: `${Math.max(8, Math.round((v / top) * 100))}%`,
+            background: breath.state === 'calm' ? 'var(--info)' : 'var(--accent)',
+            opacity: breath.state === 'calm' ? 0.4 : 0.85,
+          }} />
+        ))}
+      </div>
+
+      {/* 더 준 것이 있으면 **그렇다고 말한다.** 말 없이 시간이 늘면 타이머가 고장난 것으로 읽힌다 */}
+      {extraGiven > 0 && (
+        <div style={{
+          marginTop: 11, padding: '9px 11px', borderRadius: 6,
+          border: '1px solid var(--accent)', background: 'var(--accent-dim)',
+          fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.6,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+        }}>
+          <span>숨이 아직 올라있어서 <b style={{ color: 'var(--accent)' }}>{extraGiven}초</b> 더 드렸어요</span>
+          {/* **언제든 무시할 수 있다.** 앱이 정한 것을 사람이 못 넘기면 그것은 규칙이 아니라 벽이다 */}
+          <button
+            onClick={onSkip}
+            className="btn-secondary"
+            style={{ width: 'auto', flexShrink: 0, padding: '5px 11px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
+          >그냥 시작</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 여기까지 몸의 어디를 채웠나.
+ *
+ * 막대는 **부위끼리만 견준다** — 세트 수로 많고 적음을 말하지 않는 몸 지도의 선을
+ * 여기서도 따른다. 안 건드린 곳은 칠하지 않고 `PumpBody` 가 점선으로 두른다.
+ */
+function PumpRow({ pump, next }) {
+  const nextParts = next ? partsOf(next) : null;
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
+      <PumpBody pump={pump} width={62} now={nextParts} />
+      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+          여기까지 채운 곳
+        </div>
+        {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
+          <div key={r.part} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, marginBottom: 5 }}>
+            <span style={{ width: 26, color: 'var(--text-secondary)', flexShrink: 0 }}>{r.part}</span>
+            <span style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+              <span style={{
+                display: 'block', height: '100%', borderRadius: 2,
+                width: `${Math.round((r.score / Math.max(1, pump.max)) * 100)}%`,
+                background: r.main > 0 ? 'var(--accent)' : 'var(--accent-low)',
+                opacity: r.main > 0 ? 1 : 0.5,
+              }} />
+            </span>
+          </div>
+        ))}
+        {pump.untouched.length > 0 && (
+          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
+            아직 안 건드린 곳: {pump.untouched.join(' · ')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomeworkoutPage() {
   const [selected, setSelected] = useState(null);
   // 시작하기 전에 무엇을 하는지 펼쳐 보는 자리
@@ -56,6 +169,21 @@ export default function HomeworkoutPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [finished, setFinished] = useState(false);
   const navigate = useNavigate();
+
+  // ── 숨 보고 쉬기 (2026-09-22) ──
+  //
+  // **기능성에만 붙인다.** 10분을 쉬지 않고 도는 판이라 숨이 실제로 차고, 쉬는 시간이
+  // 10~20초로 짧아서 「조금 더」가 뜻이 있다. 전신 초급에서 30초씩 쉬는 사람에게는
+  // 늘려줄 것이 없다 — 되는 자리에만 두고, 되는지 봐서 넓힌다.
+  //
+  // **사용자가 켤 때만 켜진다.** 화면을 연다고 마이크가 켜지지 않는다
+  const breath = useBreath();
+  const [breathWanted, setBreathWanted] = useState(false);
+  // 이 휴식에서 이미 더 준 초. 휴식이 끝나면 0 으로 돌아간다
+  const [extraGiven, setExtraGiven] = useState(0);
+  // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
+  const peaksRef = useRef([]);
+  const stepStartRef = useRef(0);
   // 소리와 진동은 휴식 타이머에서 이미 정한 값을 그대로 쓴다. 같은 「시간이 다 됐다」인데
   // 화면마다 따로 켜고 끄게 하면 한쪽만 꺼둔 것을 잊는다.
   //
@@ -87,6 +215,18 @@ export default function HomeworkoutPage() {
   }, [wanted]);
 
   const exercises = selected ? PROGRAMS[selected] : EMPTY;
+
+  // ── 숨 보고 쉬기는 **기능성에만** 붙는다 ──
+  //
+  // 10분을 쉬지 않고 도는 판이라 숨이 실제로 차고, 쉬는 시간이 10~20초로 짧아서
+  // 「조금 더」가 뜻이 있다. 30초씩 쉬는 판에서는 늘려줄 것이 없다.
+  // 되는 자리에만 두고, **실제로 쓸 만하면 그때 넓힌다**
+  const breathable = selected === '기능성(특수부대식)' && micSupported();
+
+  // 여기까지 몸의 어디를 채웠나. 계산은 `data/homeworkoutParts.js` 가 한다 —
+  // **쉬는 중이면 방금 끝낸 것까지** 센다(쉬는 동안은 그 동작을 이미 한 것이다)
+  const pumpDone = isRest ? currentIdx + 1 : currentIdx;
+  const pump = useMemo(() => buildPump(exercises, pumpDone), [exercises, pumpDone]);
   const current = exercises[currentIdx];
 
   // 지금 어느 단계인지. 화면 상태와 따로 ref 로도 들고 있는다 —
@@ -111,13 +251,53 @@ export default function HomeworkoutPage() {
     setCurrentIdx(idx);
     setIsRest(rest);
     setTimeLeft(seconds);
+    // 새 단계가 시작되면 **더 준 초를 0 으로** 돌린다. 안 돌리면 앞 휴식에서 쓴 만큼이
+    // 남아서, 다음 휴식에는 숨이 차 있어도 안 늘려준다
+    setExtraGiven(0);
+    stepStartRef.current = Date.now();
+  };
+
+  /**
+   * 휴식을 몇 초 더 준다.
+   *
+   * 늘리는 것은 **끝나는 시각**이다 — 남은 초를 더하면 1초마다 도는 자리가 다음 칸에서
+   * 다시 계산해 덮어쓴다(이 화면이 시계로 세는 까닭이 그것이다).
+   */
+  const addRest = (sec) => {
+    if (sec <= 0) return;
+    deadlineRef.current += sec * 1000;
+    setExtraGiven((n) => n + sec);
+    setTimeLeft(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
   };
 
   const advance = () => {
     const { idx, rest } = phaseRef.current;
+
+    // ── 숨을 보고 쉬는 시간을 늘린다 ──
+    //
+    // **끝나려는 그 순간에 한 번만 본다.** 쉬는 내내 보면 숨이 한 번 튈 때마다
+    // 늘어나서 휴식이 언제 끝날지 모르게 된다
+    if (rest && breath.on && breath.phase === 'ready') {
+      const add = extraFor(breath.state, extraGiven);
+      if (add > 0) { addRest(add); return; }
+    }
+
+    // 동작이 끝났으면 그 동안 가장 컸던 숨을 적어둔다 (끝 화면의 순위에 쓴다)
+    if (!rest && breath.on && breath.phase === 'ready') {
+      const ex = exercises[idx];
+      if (ex?.name) {
+        peaksRef.current = [
+          ...peaksRef.current.filter((m) => m.index !== idx),
+          { index: idx, name: ex.name, peak: breath.peakSince(stepStartRef.current) },
+        ];
+      }
+    }
+
     // 단계가 바뀌는 그 순간에 알린다. 소리도 진동도 안 될 수 있어서(사파리는 진동이
     // 없고, 브라우저가 소리를 막기도 한다) 화면 표시는 언제나 같이 둔다
     beepDone(alertRef.current);
+    // **그 소리를 마이크가 같이 듣는다.** 안 버리면 앱이 제 소리를 듣고 「숨이 찼다」고 한다
+    breath.blind();
     // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
     if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
       beginPhase(idx, true);
@@ -419,6 +599,11 @@ export default function HomeworkoutPage() {
     );
   }
 
+  // 판을 다 했을 때의 몸 — **전부를 센다**(`pump` 는 진행 중 것이라 여기서는 못 쓴다)
+  const donePump = buildPump(exercises, exercises.length);
+  // 숨을 켜고 했으면 순위가 나온다. 안 켰으면 빈 것이라 그 칸이 통째로 안 그려진다
+  const hardest = hardestOf(peaksRef.current, breath.base);
+
   // 완료 화면.
   //
   // 예전에는 「COMPLETE!」 한 줄이 전부였다 — **무엇을 얼마나 했는지가 없었다.**
@@ -442,6 +627,38 @@ export default function HomeworkoutPage() {
               {exercises.length}개 운동 · 움직인 시간 {Math.round(doneSeconds / 60)}분
             </span>
           </div>
+        </div>
+
+        {/* ── 오늘 채운 곳 (2026-09-22) ──
+            홈트는 여태 **몸 지도와 따로 놀았다** — 판을 다 해도 지도는 아무것도 몰랐다.
+            여기서 무엇을 채웠는지 보여주고, 안 건드린 곳이 곧 다음에 할 곳이 된다 */}
+        <div className="card" style={{ marginBottom: 14 }}>
+          <PumpRow pump={donePump} next={null} />
+
+          {/* 숨을 켜고 했으면 **순위만** 적는다. 점수가 아니고, 「하체가 뜨겁다」도 아니다 —
+              숨이 찬 것과 근육이 타는 것은 다른 일이고 마이크는 앞의 것만 듣는다 */}
+          {hardest.length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+                숨이 제일 찼던 동작
+              </div>
+              {hardest.map((m, i) => {
+                const ex = exercises[m.index];
+                const where = ex ? partsOf(ex).main.join('·') : '';
+                const top = hardest[0].ratio || 1;
+                return (
+                  <div key={m.index} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, marginBottom: 6 }}>
+                    <span style={{ width: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ flex: 1, color: 'var(--text-primary)', minWidth: 0, textAlign: 'left' }}>{m.name}</span>
+                    <span style={{ width: 46, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
+                      <span style={{ display: 'block', height: '100%', borderRadius: 2, background: 'var(--info)', width: `${Math.round((m.ratio / top) * 100)}%` }} />
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{where}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <button className="btn-primary" onClick={() => goRecord(exercises.length)}>
@@ -497,6 +714,16 @@ export default function HomeworkoutPage() {
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>초</div>
 
+            {/* ── 숨과 몸 (2026-09-22) ──
+                **쉴 때만 그린다.** 버티는 45초 동안은 아무도 화면을 안 본다 —
+                그때 파형을 흔들어봐야 볼 사람이 없다 */}
+            {isRest && breathable && (
+              <BreathRow breath={breath} extraGiven={extraGiven} onSkip={() => { setExtraGiven(99); advanceRef.current(); }} />
+            )}
+            {isRest && pump.done > 0 && (
+              <PumpRow pump={pump} next={exercises[currentIdx + 1]} />
+            )}
+
             {/* 쉴 때는 다음 운동을, 할 때는 지금 하는 것을 어떻게 하는지 적는다 */}
             {isRest ? (
               nextEx && (
@@ -526,6 +753,59 @@ export default function HomeworkoutPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── 숨 보고 쉬기 스위치 (2026-09-22) ──
+          **기능성에만 있다.** 그리고 **사용자가 켤 때만 켜진다** — 화면을 연다고
+          마이크가 켜지지 않는다. 켜는 자리에서 무엇을 하는지 · 소리를 안 남긴다는
+          것을 같이 적는다: 마이크를 켜라고 하면서 까닭을 안 적으면 아무도 안 켠다 */}
+      {breathable && !running && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>
+                숨 보고 쉬기
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.65 }}>
+                숨이 아직 올라있으면 <b>쉬는 시간을 몇 초 더</b> 드려요.
+                소리 크기만 재고 <b>녹음하지 않아요</b> — 어디로도 안 보냅니다.
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (breath.on) { breath.stop(); setBreathWanted(false); return; }
+                setBreathWanted(true);
+                breath.start();
+              }}
+              className={breath.on ? 'btn-secondary' : 'btn-secondary'}
+              style={{
+                width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12,
+                fontFamily: 'inherit', cursor: 'pointer',
+                borderColor: breath.on ? 'var(--accent)' : 'var(--border-hover)',
+                color: breath.on ? 'var(--accent)' : 'var(--text-secondary)',
+                background: breath.on ? 'var(--accent-dim)' : 'none',
+              }}
+              aria-pressed={breath.on}
+            >{breath.on ? '켜짐' : '켜기'}</button>
+          </div>
+
+          {/* 못 쓰는 자리면 **까닭을 적는다.** 켰는데 아무 일도 안 일어나면 고장으로 읽힌다 */}
+          {breathWanted && breath.phase === 'blocked' && (
+            <div style={{ fontSize: 11.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.6 }}>
+              {breath.why}
+            </div>
+          )}
+          {breath.on && breath.phase === 'calibrating' && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
+              조용한 소리를 재는 중이에요 — 잠깐만요.
+            </div>
+          )}
+          {breath.on && breath.phase === 'ready' && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
+              준비됐어요. 쉬는 동안에만 봅니다.
+            </div>
+          )}
         </div>
       )}
 

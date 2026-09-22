@@ -51,7 +51,14 @@ function daysApart(a, b) {
   return Number.isFinite(ms) ? Math.round(ms / 86400000) : null;
 }
 
+// **`Number(null)` 은 `0` 이다** (2026-09-22 에 물렸다).
+//
+// 빈 칸을 `0` 으로 읽으면 「안 적은 것」과 「0 이라고 적은 것」이 같아진다.
+// 인바디는 골격근을 안 적으면 `null` 을 넣는데(앱이 「체중만 적어도 된다」고 권한다),
+// 그것이 0kg 으로 끼어들어 **「골격근이 33kg 줄었어요」**가 됐다.
+// 빈 것은 **없는 것**으로 둔다.
 const num = (v) => {
+  if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };

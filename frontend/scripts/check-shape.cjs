@@ -92,6 +92,23 @@ const ONE = [{ date: '2026-09-20', muscle_kg: 34.2, weight: 72 }];
 ok('점 하나면 방향이 없다', shape.buildShapeRead(W, ONE, TODAY).muscle, null);
 const OUT = [{ date: '2026-05-02', muscle_kg: 30 }, { date: '2026-05-20', muscle_kg: 31 }];
 ok('창 밖 둘도 안 쓴다', shape.buildShapeRead(W, OUT, TODAY).muscle, null);
+// ── **`Number(null)` 은 `0` 이다** (2026-09-22 에 물렸다) ──
+//
+// 인바디는 골격근을 안 적으면 `null` 을 넣는다. 그런데 앱은 **「체중만 적어도 된다」**고
+// 권한다 — 그 줄이 **0kg 으로 끼어들어** 「골격근이 33kg 줄었어요」가 됐다
+const BLANK = [
+  { date: '2026-09-20', muscle_kg: 34.2, weight: 72 },
+  { date: '2026-09-10', muscle_kg: null, weight: 72 },   // 체중만 적은 날
+  { date: '2026-09-01', muscle_kg: '', weight: 71 },     // 칸을 비운 날
+  { date: '2026-08-05', muscle_kg: 33.1, weight: 71 },
+];
+const blank = shape.buildShapeRead(W, BLANK, TODAY);
+ok('안 적은 골격근을 0 으로 안 읽는다', [blank.muscle.from, blank.muscle.to], [33.1, 34.2]);
+ok('그래서 늘었다고 바로 본다', blank.muscle.dir, 'up');
+ok('0 이라고 적은 것은 살린다', shape.muscleTrend([
+  { date: '2026-09-20', muscle_kg: 0 },
+  { date: '2026-08-05', muscle_kg: 0 },
+], TODAY, '2026-07-29').dir, 'flat');
 const FLAT = [{ date: '2026-09-20', muscle_kg: 33.2 }, { date: '2026-08-05', muscle_kg: 33.1 }];
 ok('0.3kg 안쪽은 방향을 안 매긴다', shape.buildShapeRead(W, FLAT, TODAY).muscle.dir, 'flat');
 ok('그때는 합친 말도 안 한다', shape.buildShapeRead(W, FLAT, TODAY).lines.every(l => l.basis !== '기록·인바디'), true);
