@@ -3,7 +3,7 @@ import {
   PITCHES, COUNTS, SPEEDS, SHAPES, NAME_MAX, MAX_TONES,
   buildTone, canAdd,
 } from '../data/customTones';
-import { playTone, setExtraTones } from '../data/alertSound';
+import { previewTone, setExtraTones } from '../data/alertSound';
 
 // 내 소리 만들기 (2026-09-22).
 //
@@ -61,7 +61,11 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
   const tryIt = (next) => {
     const t = buildTone({ ...next, id: 'preview' });
     setExtraTones([...tones, t]);
-    playTone('preview', volume);
+    // **`playTone` 이 아니라 `previewTone` 이다.** 앞의 것은 소리 기계가 이미 깨어
+    // 있을 때만 울린다 — 브라우저는 사람이 누르기 전에는 소리를 못 내게 막아둔다.
+    // 설정 화면은 **소리를 처음 내는 자리**라, 여기서 깨우지 않으면
+    // 만드는 내내 아무 소리도 안 난다 (2026-09-22 에 잡았다)
+    previewTone('preview', volume);
   };
 
   const pick = (key) => (val) => {
@@ -108,7 +112,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
                 {t.desc}
               </span>
               <button
-                onClick={() => { setExtraTones(tones); playTone(t.id, volume); }}
+                onClick={() => { setExtraTones(tones); previewTone(t.id, volume); }}
                 className="btn-secondary"
                 style={{ width: 'auto', marginLeft: 'auto', flexShrink: 0, padding: '4px 9px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
               >▶</button>

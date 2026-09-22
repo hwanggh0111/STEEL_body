@@ -109,6 +109,42 @@ ok('최대는 여섯', C.MAX_TONES, 6);
 ok('꽉 차면 더 못 만든다', C.canAdd(many), false);
 ok('비었으면 만들 수 있다', C.canAdd([]), true);
 
+console.log('── 붙는 자리 (2026-09-22 에 잡은 것들) ──');
+//
+// 아래 셋은 **귀로만 드러나는 버그**였다. 값으로는 다 맞는데 소리가 안 나거나
+// 다른 소리가 난다 — 글자로 잡을 수밖에 없다.
+const fsrc = (f) => fs.readFileSync(f, 'utf-8');
+
+// ① 소리 기계는 **사람이 누른 그 순간**에만 깨울 수 있다. `playTone` 은 이미 깨어
+//    있을 때만 울린다 — 설정 화면은 소리를 **처음** 내는 자리라 거기서 깨워야 한다
+const maker = fsrc('src/components/ToneMaker.jsx');
+ok('만들면서 들려주는 쪽은 previewTone 을 쓴다', /previewTone\(/.test(maker), true);
+ok('  playTone 을 그냥 쓰지 않는다', /[^w]playTone\(/.test(maker), false);
+
+// ② 만든 소리를 골라둬도 **앱이 켜질 때 얹지 않으면 안 울린다** —
+//    재생하는 쪽은 얹어준 것만 알고, 없으면 기본 소리로 떨어진다(다른 소리가 난다)
+const layout = fsrc('src/components/Layout.jsx');
+ok('앱이 켜질 때 만든 소리를 얹는다',
+  /setExtraTones\(loadTones\(\)\)/.test(layout), true);
+
+// ③ 지운 소리를 고른 채로 두면 **아무 소리도 안 난다**
+const setpage = fsrc('src/pages/SettingsPage.jsx');
+ok('지운 소리를 고른 채로 두지 않는다',
+  /some\(\(t\) => t\.id === toneId\)\) setTone\('ding'\)/.test(setpage), true);
+
+// ④ 설정 화면은 휴식 타이머 스토어를 **통째로 구독하면 안 된다** —
+//    그 스토어는 쉬는 동안 250ms 마다 남은 초를 바꾼다. 스위치 열일곱이 초당 네 번씩
+//    다시 그려진다
+// 주석에도 그 글자가 나오므로(왜 그러면 안 되는지 적어뒀다) **주석을 걷고** 본다
+const noComment = setpage.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+ok('설정 화면이 타이머 스토어를 통째로 안 본다',
+  /useRestTimerStore\(\)/.test(noComment), false);
+ok('  값 하나씩 고른다', (noComment.match(/useRestTimerStore\(\(st\)/g) || []).length >= 6, true);
+
+// ⑤ 「켜짐/꺼짐」은 **걸려 있나**를 봐야 한다. `canLock()` 은 「이 브라우저에서
+//    쓸 수 있나」라, 그걸로 적으면 안 걸었는데 「켜짐」이라고 나온다
+ok('앱 잠금은 걸렸는지로 적는다', /isLockSet/.test(setpage), true);
+
 console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
 process.exitCode = bad ? 1 : 0;

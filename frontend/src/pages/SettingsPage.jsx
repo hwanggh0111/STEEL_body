@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRestTimerStore, PRESETS } from '../store/restTimerStore';
 import { useSettingsStore, BREATH_WHERE, BREATH_MAX, BREATH_SENSE } from '../store/settingsStore';
@@ -8,10 +8,12 @@ import { loadTones, saveTones } from '../data/customTones';
 import ToneMaker from '../components/ToneMaker';
 import { micSupported } from '../data/useBreath';
 import { speechSupported } from '../data/voiceLog';
-import { canLock } from '../data/appLock';
-import LockSetup from '../components/LockSetup';
-import PasswordChangeModal from '../components/PasswordChangeModal';
-import AccountDeleteModal from '../components/AccountDeleteModal';
+import { canLock, isLockSet } from '../data/appLock';
+// 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
+// 비밀번호를 바꾸거나 계정을 지우는 일은 몇 달에 한 번이다
+const LockSetup = lazy(() => import('../components/LockSetup'));
+const PasswordChangeModal = lazy(() => import('../components/PasswordChangeModal'));
+const AccountDeleteModal = lazy(() => import('../components/AccountDeleteModal'));
 import { leaveApp } from '../data/leaveApp';
 import client from '../api/client';
 import BreathCheck from '../components/BreathCheck';
@@ -128,7 +130,8 @@ function GoRow({ title, sub, warn, onClick }) {
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-        padding: '11px 0', borderTop: '1px solid var(--border)',
+        padding: '11px 0',
+        // `border: 'none'` 을 뒤에 두면 위 줄을 지운다 — 테두리는 **위쪽만** 두른다
         background: 'none', border: 'none', borderTop: '1px solid var(--border)',
         fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
       }}
@@ -158,8 +161,28 @@ export default function SettingsPage() {
     return list;
   });
 
-  // 휴식 타이머 여섯은 **그쪽 스토어를 그대로 쓴다.** 옮기면 두 벌이 된다
-  const rest = useRestTimerStore();
+  // ── 필요한 것만 구독한다 (2026-09-22) ──
+  //
+  // 처음에는 `useRestTimerStore()` 를 통째로 구독했다. 그런데 그 스토어는 휴식이
+  // 도는 동안 **250ms 마다 `leftMs` 를 바꾼다** — 설정 화면이 열려 있으면
+  // 초당 네 번씩 통째로 다시 그려진다. 스위치 열일곱과 고르개 스물이 전부.
+  //
+  // 값 하나씩 고른다. 그러면 남은 초가 바뀌어도 여기는 안 움직인다.
+  const sound = useRestTimerStore((st) => st.sound);
+  const vibrate = useRestTimerStore((st) => st.vibrate);
+  const autoStart = useRestTimerStore((st) => st.autoStart);
+  const duration = useRestTimerStore((st) => st.duration);
+  const toneId = useRestTimerStore((st) => st.tone);
+  const volume = useRestTimerStore((st) => st.volume);
+  // 값을 바꾸는 함수들은 **한 번 만들어지고 안 바뀐다**(zustand 가 그렇게 둔다).
+  // 그래서 통째로 집어와도 다시 그려지지 않는다
+  const setSound = useRestTimerStore((st) => st.setSound);
+  const setVibrate = useRestTimerStore((st) => st.setVibrate);
+  const setAutoStart = useRestTimerStore((st) => st.setAutoStart);
+  const setDuration = useRestTimerStore((st) => st.setDuration);
+  const setTone = useRestTimerStore((st) => st.setTone);
+  const setVolume = useRestTimerStore((st) => st.setVolume);
+
   const s = useSettingsStore();
   const sex = useAuthStore((st) => st.sex);
   const setSex = useAuthStore((st) => st.setSex);
@@ -182,10 +205,16 @@ export default function SettingsPage() {
       .finally(() => setSavingNick(false));
   };
 
+  // ── 앱 잠금이 걸려 있나 (2026-09-22 에 고쳤다) ──
+  //
+  // 처음에 `canLock()` 을 썼는데 그것은 **「이 브라우저에서 쓸 수 있나」**지
+  // 「지금 켜져 있나」가 아니다 — 잠금을 안 걸었는데도 「켜짐」이라고 적혀 있었다.
+  //
+  // 그리고 **잠금 창을 닫을 때 다시 본다.** 거기서 걸거나 풀었는데 이 줄이 그대로면,
+  // 사람은 걸린 줄 알고(또는 안 걸린 줄 알고) 나간다
+  const [locked, setLocked] = useState(isLockSet);
   const tones = allTones();
-  const tone = tones.find((t) => t.id === rest.tone) || tones[0];
-  const locked = canLock();
-
+  const tone = tones.find((t) => t.id === toneId) || tones[0];
   return (
     <div>
       <div className="section-title">
@@ -198,17 +227,17 @@ export default function SettingsPage() {
         <Toggle
           title="끝나면 소리로 알리기"
           desc="폰이 무음이면 소리가 안 나요 — 진동도 같이 켜두세요"
-          on={rest.sound}
-          onChange={rest.setSound}
+          on={sound}
+          onChange={setSound}
         />
 
         {/* 소리를 끈 사람에게는 고를 것을 안 보여준다 — 눌러도 아무 일이 안 일어난다 */}
-        {rest.sound && (
+        {sound && (
           <>
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
               <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어떤 소리로</div>
               {/* **고르면 그 자리에서 들려준다.** 이름(「종」·「나무」)만으로는 아무도 모른다 */}
-              <Pick items={tones} value={rest.tone} onPick={(id) => { rest.setTone(id); previewTone(id, rest.volume); }} />
+              <Pick items={tones} value={toneId} onPick={(id) => { setTone(id); previewTone(id, volume); }} />
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
                 {tone.name} — {tone.desc}
               </div>
@@ -217,21 +246,21 @@ export default function SettingsPage() {
                   재료(높이 · 몇 번 · 빠르기 · 결)를 주고 그 자리에서 만들게 한다 */}
               <ToneMaker
                 tones={myTones}
-                volume={rest.volume}
+                volume={volume}
                 onSave={(next) => {
                   const saved = saveTones(next);
                   setExtraTones(saved);
                   setMyTones(saved);
                   // **지운 소리를 고른 채로 두지 않는다** — 그러면 아무 소리도 안 난다
-                  if (!allTones().some((t) => t.id === rest.tone)) rest.setTone('ding');
+                  if (!allTones().some((t) => t.id === toneId)) setTone('ding');
                 }}
-                onPicked={(id) => { rest.setTone(id); previewTone(id, rest.volume); }}
+                onPicked={(id) => { setTone(id); previewTone(id, volume); }}
               />
             </div>
 
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
               <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>소리 크기</div>
-              <Pick items={VOLUMES} value={rest.volume} onPick={(id) => { rest.setVolume(id); previewTone(rest.tone, id); }} />
+              <Pick items={VOLUMES} value={volume} onPick={(id) => { setVolume(id); previewTone(toneId, id); }} />
             </div>
           </>
         )}
@@ -239,8 +268,8 @@ export default function SettingsPage() {
         <Toggle
           title="진동"
           desc="아이폰 사파리는 진동이 없어요"
-          on={rest.vibrate}
-          onChange={rest.setVibrate}
+          on={vibrate}
+          onChange={setVibrate}
         />
       </Group>
 
@@ -248,15 +277,15 @@ export default function SettingsPage() {
       <Group title="쉴 때">
         <Toggle
           title="세트를 적으면 타이머가 저절로"
-          on={rest.autoStart}
-          onChange={rest.setAutoStart}
+          on={autoStart}
+          onChange={setAutoStart}
         />
         <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>기본 휴식 시간</div>
           <Pick
             items={PRESETS.map((n) => ({ id: n, name: `${n}초` }))}
-            value={rest.duration}
-            onPick={rest.setDuration}
+            value={duration}
+            onPick={setDuration}
           />
         </div>
       </Group>
@@ -422,11 +451,15 @@ export default function SettingsPage() {
       {/* ── 잠금과 알림 ──
           **길만 내지 않는다.** 앱 잠금은 여기서 바로 열고, 알림은 왜 안 되는지 적는다 */}
       <Group title="잠금과 알림">
-        <GoRow
-          title="앱 잠금"
-          sub={locked ? '켜짐' : '꺼짐'}
-          onClick={() => setLockOpen(true)}
-        />
+        {/* 잠금을 못 쓰는 브라우저에서는 **아예 안 그린다** — 눌러도 아무 일이
+            안 일어나는 줄을 두지 않는다 (`canLock` 은 쓸 수 있나를 본다) */}
+        {canLock() && (
+          <GoRow
+            title="앱 잠금"
+            sub={locked ? '켜짐' : '꺼짐'}
+            onClick={() => setLockOpen(true)}
+          />
+        )}
         <GoRow
           title="운동 알림"
           sub="시간 정하기"
@@ -457,14 +490,18 @@ export default function SettingsPage() {
         style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: 'pointer' }}
       >로그아웃</button>
 
-      {lockOpen && <LockSetup onClose={() => setLockOpen(false)} />}
-      {pwOpen && <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />}
-      {delOpen && (
-        <AccountDeleteModal
-          onClose={() => setDelOpen(false)}
-          onDeleted={() => { setDelOpen(false); navigate('/login'); }}
-        />
-      )}
+      {/* 떨어지는 화면은 안 그린다 — 모달이 뜨기 전 한 프레임 빈 판이 번쩍이면
+          그게 더 거슬린다 */}
+      <Suspense fallback={null}>
+        {lockOpen && <LockSetup onClose={() => { setLockOpen(false); setLocked(isLockSet()); }} />}
+        {pwOpen && <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />}
+        {delOpen && (
+          <AccountDeleteModal
+            onClose={() => setDelOpen(false)}
+            onDeleted={() => { setDelOpen(false); navigate('/login'); }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

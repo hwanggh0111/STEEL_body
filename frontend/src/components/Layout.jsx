@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import TabBar from './TabBar';
 import RestBar from './RestBar';
@@ -9,6 +9,8 @@ import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
 import { toast } from './Toast';
 import { leaveApp } from '../data/leaveApp';
+import { loadTones } from '../data/customTones';
+import { setExtraTones } from '../data/alertSound';
 import ErrorBoundary from './ErrorBoundary';
 import Logo from './Logo';
 import { confirmDialog } from './ConfirmModal';
@@ -16,12 +18,15 @@ import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { PROFILE_PHOTO_KEY } from '../data/localKeys';
-import { shrinkImage } from '../data/shrinkImage';
-import PasswordChangeModal from './PasswordChangeModal';
+// **사진을 고를 때만 받는다** (2026-09-22). 이미지를 줄이는 코드는 캔버스를 다루는
+// 덩어리라, 사진을 한 번도 안 올리는 사람에게까지 첫 화면에서 받게 할 이유가 없다
+// 모달 둘과 계정 시트는 **열 때 받는다.** 비밀번호를 바꾸거나 계정을 지우는 일은
+// 몇 달에 한 번이고, 시트도 눌러야 열린다 — 셋이 첫 화면에 얹힐 이유가 없다
+const PasswordChangeModal = lazy(() => import('./PasswordChangeModal'));
 import { useIsPC } from './useIsPC';
-import AccountDeleteModal from './AccountDeleteModal';
+const AccountDeleteModal = lazy(() => import('./AccountDeleteModal'));
 import OfflineBar from './OfflineBar';
-import AccountSheet from './AccountSheet';
+const AccountSheet = lazy(() => import('./AccountSheet'));
 import { DRAWER_ITEMS } from '../data/navItems';
 import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -151,6 +156,15 @@ export default function Layout() {
     return gone;
   }, [navigate]);
 
+  // ── 만든 소리를 앱이 켜질 때 얹는다 (2026-09-22 에 잡았다) ──
+  //
+  // 만든 소리를 알림음으로 골라둬도, **설정 화면을 안 열면 안 울렸다** —
+  // 재생하는 쪽은 얹어준 것만 알고, 얹는 일을 설정 화면만 하고 있었다.
+  // 골라둔 소리가 목록에 없으면 기본 소리로 떨어진다: 고른 것과 **다른 소리가 난다.**
+  //
+  // 여기는 로그인한 뒤 모든 화면을 감싸는 자리라, 한 번만 읽으면 된다
+  useEffect(() => { setExtraTones(loadTones()); }, []);
+
   useEffect(() => {
     // **서버가 답했으면 서버가 진실이다** — 「없다」는 답도 답이다.
     // 예전에는 사진이 있을 때만 맞췄다. 다른 기기에서 지우면 이쪽은 브라우저에
@@ -189,6 +203,7 @@ export default function Layout() {
     if (!file) return;
     let photoData;
     try {
+      const { shrinkImage } = await import('../data/shrinkImage');
       ({ data: photoData } = await shrinkImage(file));
     } catch {
       toast('사진을 읽지 못했어요', 'error');
@@ -399,18 +414,18 @@ export default function Layout() {
       {/* 계정 삭제 — 30일 뒤에 지워지고, 그 안에 다시 로그인하면 되살아난다.
           예약하면 서버가 그 자리에서 로그아웃시키므로 여기서도 나가야 한다 */}
       {deleting && (
-        <AccountDeleteModal
+        <Suspense fallback={null}><AccountDeleteModal
           onClose={() => setDeleting(false)}
           onDeleted={async (info) => {
             setDeleting(false);
             await logout();
             navigate('/login', { state: { deleted: info } });
           }}
-        />
+        /></Suspense>
       )}
 
       {changingPw && (
-        <PasswordChangeModal
+        <Suspense fallback={null}><PasswordChangeModal
           onClose={() => setChangingPw(false)}
           onChanged={async () => {
             setChangingPw(false);
@@ -421,7 +436,7 @@ export default function Layout() {
             await leaveApp();
             navigate('/login');
           }}
-        />
+        /></Suspense>
       )}
 
       {/* 이미지 확대 모달 */}
@@ -481,7 +496,7 @@ export default function Layout() {
         flexDirection: 'column', alignItems: 'flex-end',
       }}>
         {sideMenu && (
-          <AccountSheet
+          <Suspense fallback={null}><AccountSheet
             nickname={nickname}
             email={readLS('ironlog_email') || ''}
             photo={profilePhoto}
@@ -495,7 +510,7 @@ export default function Layout() {
             onChangePw={() => { setSideMenu(false); setChangingPw(true); }}
             onLogout={async () => { setSideMenu(false); await leave(); }}
             onDeleteAccount={() => { setSideMenu(false); setDeleting(true); }}
-          />
+          /></Suspense>
         )}
         {/* 사진 고르는 칸은 시트 밖에 둔다 — 시트가 닫히면서 같이 사라지면
             고른 파일이 `onChange` 에 닿기 전에 입력칸이 없어진다 */}
