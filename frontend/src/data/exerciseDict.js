@@ -6,186 +6,210 @@
 //
 // 이제 검색은 이 사전을 먼저 본다. 외부 DB 는 여기서 못 찾았을 때만, 그것도
 // 눌러야 나간다. 한국어 이름 · 영어 이름 · 설명 · 같은 갈래까지 다 여기 있다.
+//
+// ── 부위(`part`)는 칸마다 적는다 (2026-09-29) ──
+//
+// 여태 부위를 **두 곳에서 따로** 알아냈다. 검색은 갈래(`group`)에서 뽑고
+// (`PART_OF_GROUP`), 몸 지도 · 체형 읽기는 이름의 낱말로 맞혔다
+// (`bodyPart.js` 의 `RULES`). 그래서 **같은 운동이 화면마다 다른 부위였다** —
+// 사전 151개를 맞춰보니 **서른아홉 개가 어긋났다.**
+//
+//   레그컬        검색 하체 · 지도 팔    ← 이름에 「컬」이 있다
+//   카프레이즈     검색 하체 · 지도 어깨   ← 이름에 「레이즈」가 있다
+//   할로우 홀드    검색 코어 · 지도 등     ← 이름에 「로우」가 있다
+//   페이스풀      검색 어깨 · 지도 기타   ← 맞히는 낱말이 아예 없었다
+//
+// 그래서 **사전이 정답을 갖는다.** 칸마다 `part` 를 적고, 지도도 이름을 맞히기 전에
+// 사전을 먼저 본다(`bodyPart.bodyPartOf`). 낱말 규칙은 사전에 없는 이름
+// (「라잉 레그컬」 같은 변형과 손으로 친 것)만 맡는다.
+//
+// **계열이 항상 이기지는 않는다.** 141개는 갈래를 따라가면 맞지만 열 개는 아니다 —
+// 클로즈그립 벤치프레스 · 다이아몬드 푸시업은 **삼두**(팔), 파이크 · 핸드스탠드 ·
+// 스캡 푸시업은 **어깨**, 업라이트로우는 **어깨**, 스쿼트 펀치 · 사이드킥은 앉았다
+// 일어서므로 **하체**, 마운틴 클라이머 · 플랭크 잭은 플랭크로 버티므로 **코어**다.
+//
+// 「전신 · 유산소」는 지도의 여섯 부위에 없다. 지도는 그것을 **「기타」로 둔다** —
+// 버피를 복근 세트로 세면 하지 않은 운동을 했다고 말하는 것이다.
 
 export const EXERCISE_DICT = [
   // ─── 벤치프레스 종류 ───
-  { ko: '벤치프레스', en: 'bench press', group: '벤치프레스', desc: '평평한 벤치에서 바벨을 밀어올림. 가슴 중앙부 전체 자극' },
-  { ko: '인클라인 벤치프레스', en: 'incline bench press', group: '벤치프레스', desc: '벤치를 30~45도 올려서 수행. 가슴 상부(쇄골부) 집중' },
-  { ko: '디클라인 벤치프레스', en: 'decline bench press', group: '벤치프레스', desc: '벤치를 15~30도 내려서 수행. 가슴 하부 집중' },
-  { ko: '클로즈그립 벤치프레스', en: 'close grip bench press', group: '벤치프레스', desc: '손 간격을 좁게 잡고 수행. 삼두근 + 가슴 안쪽 집중' },
-  { ko: '덤벨 벤치프레스', en: 'dumbbell bench press', group: '벤치프레스', desc: '덤벨 사용. 가동범위가 넓고 좌우 균형 발달에 좋음' },
-  { ko: '인클라인 덤벨프레스', en: 'incline dumbbell press', group: '벤치프레스', desc: '인클라인 벤치 + 덤벨. 가슴 상부 + 넓은 가동범위' },
-  { ko: '스미스머신 벤치프레스', en: 'smith machine bench press', group: '벤치프레스', desc: '스미스머신 사용. 궤도가 고정되어 초보자에게 안전' },
-  { ko: '플로어프레스', en: 'floor press', group: '벤치프레스', desc: '바닥에 누워서 수행. 어깨 부담 적고 삼두 자극 강함' },
+  { ko: '벤치프레스', en: 'bench press', group: '벤치프레스', part: '가슴', desc: '평평한 벤치에서 바벨을 밀어올림. 가슴 중앙부 전체 자극' },
+  { ko: '인클라인 벤치프레스', en: 'incline bench press', group: '벤치프레스', part: '가슴', desc: '벤치를 30~45도 올려서 수행. 가슴 상부(쇄골부) 집중' },
+  { ko: '디클라인 벤치프레스', en: 'decline bench press', group: '벤치프레스', part: '가슴', desc: '벤치를 15~30도 내려서 수행. 가슴 하부 집중' },
+  { ko: '클로즈그립 벤치프레스', en: 'close grip bench press', group: '벤치프레스', part: '팔', desc: '손 간격을 좁게 잡고 수행. 삼두근 + 가슴 안쪽 집중' },
+  { ko: '덤벨 벤치프레스', en: 'dumbbell bench press', group: '벤치프레스', part: '가슴', desc: '덤벨 사용. 가동범위가 넓고 좌우 균형 발달에 좋음' },
+  { ko: '인클라인 덤벨프레스', en: 'incline dumbbell press', group: '벤치프레스', part: '가슴', desc: '인클라인 벤치 + 덤벨. 가슴 상부 + 넓은 가동범위' },
+  { ko: '스미스머신 벤치프레스', en: 'smith machine bench press', group: '벤치프레스', part: '가슴', desc: '스미스머신 사용. 궤도가 고정되어 초보자에게 안전' },
+  { ko: '플로어프레스', en: 'floor press', group: '벤치프레스', part: '가슴', desc: '바닥에 누워서 수행. 어깨 부담 적고 삼두 자극 강함' },
 
   // ─── 스쿼트 종류 ───
-  { ko: '스쿼트', en: 'squat', group: '스쿼트', desc: '바벨을 등에 메고 앉았다 일어남. 하체 운동의 왕' },
-  { ko: '프론트 스쿼트', en: 'front squat', group: '스쿼트', desc: '바벨을 앞쪽(쇄골)에 올림. 대퇴사두근 + 코어 집중' },
-  { ko: '핵스쿼트', en: 'hack squat', group: '스쿼트', desc: '머신 사용. 등 부담 없이 대퇴사두근 집중' },
-  { ko: '고블릿 스쿼트', en: 'goblet squat', group: '스쿼트', desc: '덤벨/케틀벨을 가슴 앞에 들고 수행. 초보자 입문용' },
-  { ko: '불가리안 스플릿 스쿼트', en: 'bulgarian split squat', group: '스쿼트', desc: '뒷발을 벤치에 올리고 한쪽씩. 좌우 불균형 교정' },
-  { ko: '오버헤드 스쿼트', en: 'overhead squat', group: '스쿼트', desc: '바벨을 머리 위로 들고 수행. 전신 안정성 + 유연성 필요' },
-  { ko: '점프 스쿼트', en: 'jump squat', group: '스쿼트', desc: '스쿼트 후 점프. 폭발력 + 유산소 효과' },
-  { ko: '시시 스쿼트', en: 'sissy squat', group: '스쿼트', desc: '뒤로 기울이며 무릎을 앞으로. 대퇴사두근 고립' },
+  { ko: '스쿼트', en: 'squat', group: '스쿼트', part: '하체', desc: '바벨을 등에 메고 앉았다 일어남. 하체 운동의 왕' },
+  { ko: '프론트 스쿼트', en: 'front squat', group: '스쿼트', part: '하체', desc: '바벨을 앞쪽(쇄골)에 올림. 대퇴사두근 + 코어 집중' },
+  { ko: '핵스쿼트', en: 'hack squat', group: '스쿼트', part: '하체', desc: '머신 사용. 등 부담 없이 대퇴사두근 집중' },
+  { ko: '고블릿 스쿼트', en: 'goblet squat', group: '스쿼트', part: '하체', desc: '덤벨/케틀벨을 가슴 앞에 들고 수행. 초보자 입문용' },
+  { ko: '불가리안 스플릿 스쿼트', en: 'bulgarian split squat', group: '스쿼트', part: '하체', desc: '뒷발을 벤치에 올리고 한쪽씩. 좌우 불균형 교정' },
+  { ko: '오버헤드 스쿼트', en: 'overhead squat', group: '스쿼트', part: '하체', desc: '바벨을 머리 위로 들고 수행. 전신 안정성 + 유연성 필요' },
+  { ko: '점프 스쿼트', en: 'jump squat', group: '스쿼트', part: '하체', desc: '스쿼트 후 점프. 폭발력 + 유산소 효과' },
+  { ko: '시시 스쿼트', en: 'sissy squat', group: '스쿼트', part: '하체', desc: '뒤로 기울이며 무릎을 앞으로. 대퇴사두근 고립' },
 
   // ─── 데드리프트 종류 ───
-  { ko: '데드리프트', en: 'deadlift', group: '데드리프트', desc: '바닥에서 바벨을 들어올림. 후면 사슬(등+둔근+햄스트링) 전체' },
-  { ko: '컨벤셔널 데드리프트', en: 'conventional deadlift', group: '데드리프트', desc: '일반 데드리프트. 발 어깨 너비, 등 하부 + 둔근 집중' },
-  { ko: '스모 데드리프트', en: 'sumo deadlift', group: '데드리프트', desc: '발을 넓게 벌림. 내전근 + 둔근 자극 강화, 허리 부담 적음' },
-  { ko: '루마니안 데드리프트', en: 'romanian deadlift', group: '데드리프트', desc: '무릎 살짝 굽히고 엉덩이만 뒤로. 햄스트링 + 둔근 집중' },
-  { ko: '스티프레그 데드리프트', en: 'stiff leg deadlift', group: '데드리프트', desc: '무릎 거의 안 굽힘. 햄스트링 스트레칭 극대화' },
-  { ko: '트랩바 데드리프트', en: 'trap bar deadlift', group: '데드리프트', desc: '육각 바 사용. 허리 부담 적고 대퇴사두근도 관여' },
-  { ko: '디피셋 데드리프트', en: 'deficit deadlift', group: '데드리프트', desc: '발판 위에 서서 수행. 가동범위 늘려 바닥 초반 힘 강화' },
+  { ko: '데드리프트', en: 'deadlift', group: '데드리프트', part: '등', desc: '바닥에서 바벨을 들어올림. 후면 사슬(등+둔근+햄스트링) 전체' },
+  { ko: '컨벤셔널 데드리프트', en: 'conventional deadlift', group: '데드리프트', part: '등', desc: '일반 데드리프트. 발 어깨 너비, 등 하부 + 둔근 집중' },
+  { ko: '스모 데드리프트', en: 'sumo deadlift', group: '데드리프트', part: '등', desc: '발을 넓게 벌림. 내전근 + 둔근 자극 강화, 허리 부담 적음' },
+  { ko: '루마니안 데드리프트', en: 'romanian deadlift', group: '데드리프트', part: '등', desc: '무릎 살짝 굽히고 엉덩이만 뒤로. 햄스트링 + 둔근 집중' },
+  { ko: '스티프레그 데드리프트', en: 'stiff leg deadlift', group: '데드리프트', part: '등', desc: '무릎 거의 안 굽힘. 햄스트링 스트레칭 극대화' },
+  { ko: '트랩바 데드리프트', en: 'trap bar deadlift', group: '데드리프트', part: '등', desc: '육각 바 사용. 허리 부담 적고 대퇴사두근도 관여' },
+  { ko: '디피셋 데드리프트', en: 'deficit deadlift', group: '데드리프트', part: '등', desc: '발판 위에 서서 수행. 가동범위 늘려 바닥 초반 힘 강화' },
 
   // ─── 프레스 종류 ───
-  { ko: '숄더프레스', en: 'shoulder press', group: '프레스', desc: '어깨 위로 밀어올림. 전면삼각근 + 삼두근' },
-  { ko: '오버헤드프레스', en: 'overhead press', group: '프레스', desc: '서서 바벨을 머리 위로. 어깨 전체 + 코어 안정화' },
-  { ko: '밀리터리프레스', en: 'military press', group: '프레스', desc: '발 모으고 서서 수행. 오버헤드프레스의 엄격한 버전' },
-  { ko: '아놀드프레스', en: 'arnold press', group: '프레스', desc: '덤벨을 회전시키며 올림. 삼각근 전체(전면+측면) 자극' },
-  { ko: '덤벨 숄더프레스', en: 'dumbbell shoulder press', group: '프레스', desc: '덤벨 사용. 좌우 독립적으로 움직여 균형 발달' },
-  { ko: '푸시프레스', en: 'push press', group: '프레스', desc: '무릎 반동으로 밀어올림. 더 무거운 중량 가능, 폭발력 훈련' },
-  { ko: '비하인드넥프레스', en: 'behind the neck press', group: '프레스', desc: '머리 뒤에서 밀어올림. 측면삼각근 자극. 어깨 유연성 필요' },
+  { ko: '숄더프레스', en: 'shoulder press', group: '프레스', part: '어깨', desc: '어깨 위로 밀어올림. 전면삼각근 + 삼두근' },
+  { ko: '오버헤드프레스', en: 'overhead press', group: '프레스', part: '어깨', desc: '서서 바벨을 머리 위로. 어깨 전체 + 코어 안정화' },
+  { ko: '밀리터리프레스', en: 'military press', group: '프레스', part: '어깨', desc: '발 모으고 서서 수행. 오버헤드프레스의 엄격한 버전' },
+  { ko: '아놀드프레스', en: 'arnold press', group: '프레스', part: '어깨', desc: '덤벨을 회전시키며 올림. 삼각근 전체(전면+측면) 자극' },
+  { ko: '덤벨 숄더프레스', en: 'dumbbell shoulder press', group: '프레스', part: '어깨', desc: '덤벨 사용. 좌우 독립적으로 움직여 균형 발달' },
+  { ko: '푸시프레스', en: 'push press', group: '프레스', part: '어깨', desc: '무릎 반동으로 밀어올림. 더 무거운 중량 가능, 폭발력 훈련' },
+  { ko: '비하인드넥프레스', en: 'behind the neck press', group: '프레스', part: '어깨', desc: '머리 뒤에서 밀어올림. 측면삼각근 자극. 어깨 유연성 필요' },
 
   // ─── 로우 종류 ───
-  { ko: '바벨로우', en: 'barbell row', group: '로우', desc: '상체 숙이고 바벨 당김. 등 중앙부 전체 자극' },
-  { ko: '펜들레이로우', en: 'pendlay row', group: '로우', desc: '매 반복 바닥에서 시작. 폭발력 + 등 두께' },
-  { ko: '덤벨로우', en: 'dumbbell row', group: '로우', desc: '한 손씩 수행. 광배근 집중 + 좌우 균형' },
-  { ko: '시티드 로우', en: 'seated row', group: '로우', desc: '케이블 머신 앉아서 당김. 등 중앙부 + 견갑골' },
-  { ko: '케이블 로우', en: 'cable row', group: '로우', desc: '케이블로 당기기. 다양한 그립으로 자극 변경' },
-  { ko: '티바 로우', en: 't-bar row', group: '로우', desc: 'T자 바벨 당김. 등 두께 발달에 효과적' },
-  { ko: '원암 덤벨로우', en: 'one arm dumbbell row', group: '로우', desc: '벤치에 한 손 짚고 수행. 광배근 고립' },
-  { ko: '업라이트로우', en: 'upright row', group: '로우', desc: '바벨을 턱까지 당김. 승모근 + 측면삼각근' },
+  { ko: '바벨로우', en: 'barbell row', group: '로우', part: '등', desc: '상체 숙이고 바벨 당김. 등 중앙부 전체 자극' },
+  { ko: '펜들레이로우', en: 'pendlay row', group: '로우', part: '등', desc: '매 반복 바닥에서 시작. 폭발력 + 등 두께' },
+  { ko: '덤벨로우', en: 'dumbbell row', group: '로우', part: '등', desc: '한 손씩 수행. 광배근 집중 + 좌우 균형' },
+  { ko: '시티드 로우', en: 'seated row', group: '로우', part: '등', desc: '케이블 머신 앉아서 당김. 등 중앙부 + 견갑골' },
+  { ko: '케이블 로우', en: 'cable row', group: '로우', part: '등', desc: '케이블로 당기기. 다양한 그립으로 자극 변경' },
+  { ko: '티바 로우', en: 't-bar row', group: '로우', part: '등', desc: 'T자 바벨 당김. 등 두께 발달에 효과적' },
+  { ko: '원암 덤벨로우', en: 'one arm dumbbell row', group: '로우', part: '등', desc: '벤치에 한 손 짚고 수행. 광배근 고립' },
+  { ko: '업라이트로우', en: 'upright row', group: '로우', part: '어깨', desc: '바벨을 턱까지 당김. 승모근 + 측면삼각근' },
 
   // ─── 컬 종류 ───
-  { ko: '바이셉컬', en: 'bicep curl', group: '컬', desc: '이두근 기본 운동. 팔꿈치 고정하고 굽히기' },
-  { ko: '바벨컬', en: 'barbell curl', group: '컬', desc: '바벨 사용. 양손 동시에 고중량 이두 훈련' },
-  { ko: '덤벨컬', en: 'dumbbell curl', group: '컬', desc: '덤벨 사용. 좌우 독립 + 회전 가능' },
-  { ko: '해머컬', en: 'hammer curl', group: '컬', desc: '손바닥 마주보는 그립. 이두 + 전완근(상완요골근)' },
-  { ko: '프리쳐컬', en: 'preacher curl', group: '컬', desc: '패드에 팔 고정. 이두 하부(짧은두) 집중' },
-  { ko: '컨센트레이션컬', en: 'concentration curl', group: '컬', desc: '앉아서 한 팔씩. 이두 피크(봉우리) 만들기' },
-  { ko: '인클라인 덤벨컬', en: 'incline dumbbell curl', group: '컬', desc: '인클라인 벤치에 기대어 수행. 이두 장두 스트레칭 극대화' },
-  { ko: '케이블 컬', en: 'cable curl', group: '컬', desc: '케이블 사용. 전 구간 일정한 텐션 유지' },
+  { ko: '바이셉컬', en: 'bicep curl', group: '컬', part: '팔', desc: '이두근 기본 운동. 팔꿈치 고정하고 굽히기' },
+  { ko: '바벨컬', en: 'barbell curl', group: '컬', part: '팔', desc: '바벨 사용. 양손 동시에 고중량 이두 훈련' },
+  { ko: '덤벨컬', en: 'dumbbell curl', group: '컬', part: '팔', desc: '덤벨 사용. 좌우 독립 + 회전 가능' },
+  { ko: '해머컬', en: 'hammer curl', group: '컬', part: '팔', desc: '손바닥 마주보는 그립. 이두 + 전완근(상완요골근)' },
+  { ko: '프리쳐컬', en: 'preacher curl', group: '컬', part: '팔', desc: '패드에 팔 고정. 이두 하부(짧은두) 집중' },
+  { ko: '컨센트레이션컬', en: 'concentration curl', group: '컬', part: '팔', desc: '앉아서 한 팔씩. 이두 피크(봉우리) 만들기' },
+  { ko: '인클라인 덤벨컬', en: 'incline dumbbell curl', group: '컬', part: '팔', desc: '인클라인 벤치에 기대어 수행. 이두 장두 스트레칭 극대화' },
+  { ko: '케이블 컬', en: 'cable curl', group: '컬', part: '팔', desc: '케이블 사용. 전 구간 일정한 텐션 유지' },
 
   // ─── 푸시업 종류 ───
-  { ko: '푸시업', en: 'push up', group: '푸시업', desc: '기본 맨몸 가슴 운동. 가슴 + 삼두 + 전면삼각근' },
-  { ko: '와이드 푸시업', en: 'wide push up', group: '푸시업', desc: '손 넓게. 가슴 바깥쪽 자극 강화' },
-  { ko: '다이아몬드 푸시업', en: 'diamond push up', group: '푸시업', desc: '손 모아 다이아몬드. 삼두 + 가슴 안쪽' },
-  { ko: '인클라인 푸시업', en: 'incline push up', group: '푸시업', desc: '높은 곳에 손. 난이도 낮아 초보자용' },
-  { ko: '디클라인 푸시업', en: 'decline push up', group: '푸시업', desc: '발을 높은 곳에. 가슴 상부 + 어깨 자극 증가' },
-  { ko: '파이크 푸시업', en: 'pike push up', group: '푸시업', desc: '엉덩이 높이 올려 역V자. 어깨(삼각근) 집중' },
-  { ko: '핸드스탠드 푸시업', en: 'handstand push up', group: '푸시업', desc: '물구나무 서서 수행. 맨몸 최강 어깨 운동' },
+  { ko: '푸시업', en: 'push up', group: '푸시업', part: '가슴', desc: '기본 맨몸 가슴 운동. 가슴 + 삼두 + 전면삼각근' },
+  { ko: '와이드 푸시업', en: 'wide push up', group: '푸시업', part: '가슴', desc: '손 넓게. 가슴 바깥쪽 자극 강화' },
+  { ko: '다이아몬드 푸시업', en: 'diamond push up', group: '푸시업', part: '팔', desc: '손 모아 다이아몬드. 삼두 + 가슴 안쪽' },
+  { ko: '인클라인 푸시업', en: 'incline push up', group: '푸시업', part: '가슴', desc: '높은 곳에 손. 난이도 낮아 초보자용' },
+  { ko: '디클라인 푸시업', en: 'decline push up', group: '푸시업', part: '가슴', desc: '발을 높은 곳에. 가슴 상부 + 어깨 자극 증가' },
+  { ko: '파이크 푸시업', en: 'pike push up', group: '푸시업', part: '어깨', desc: '엉덩이 높이 올려 역V자. 어깨(삼각근) 집중' },
+  { ko: '핸드스탠드 푸시업', en: 'handstand push up', group: '푸시업', part: '어깨', desc: '물구나무 서서 수행. 맨몸 최강 어깨 운동' },
 
   // ─── 기타 개별 운동 ───
-  { ko: '풀업', en: 'pull up', group: '풀업', desc: '오버그립으로 바 매달려 당기기. 등 운동의 왕' },
-  { ko: '친업', en: 'chin up', group: '풀업', desc: '언더그립. 이두 + 등 동시 자극. 풀업보다 쉬움' },
-  { ko: '런지', en: 'lunge', group: '런지', desc: '한 발 앞으로 내딛기. 대퇴사두 + 둔근' },
-  { ko: '워킹런지', en: 'walking lunge', group: '런지', desc: '걸으면서 런지. 유산소 + 하체 동시' },
-  { ko: '리버스런지', en: 'reverse lunge', group: '런지', desc: '뒤로 내딛기. 무릎 부담 적음' },
-  { ko: '플랭크', en: 'plank', group: '코어', desc: '엎드려 버티기. 코어 안정화 기본' },
-  { ko: '사이드 플랭크', en: 'side plank', group: '코어', desc: '옆으로 버티기. 복사근 + 코어' },
-  { ko: '크런치', en: 'crunch', group: '코어', desc: '윗몸일으키기. 복직근 상부 집중' },
-  { ko: '바이시클 크런치', en: 'bicycle crunch', group: '코어', desc: '좌우 비틀기. 복사근 + 복직근 동시' },
-  { ko: '레그레이즈', en: 'leg raise', group: '코어', desc: '누워서 다리 들기. 복직근 하부 집중' },
-  { ko: '행잉 레그레이즈', en: 'hanging leg raise', group: '코어', desc: '매달려서 다리 들기. 복근 전체 + 그립' },
-  { ko: '버피', en: 'burpee', group: '유산소', desc: '전신 유산소 운동. 스쿼트+푸시업+점프 결합' },
-  { ko: '딥스', en: 'dips', group: '딥스', desc: '평행봉에서 밀기. 삼두 + 가슴 하부' },
-  { ko: '랫풀다운', en: 'lat pulldown', group: '풀다운', desc: '케이블로 바 당기기. 광배근 집중' },
-  { ko: '레그프레스', en: 'leg press', group: '하체머신', desc: '머신으로 다리 밀기. 대퇴사두 + 둔근' },
-  { ko: '레그컬', en: 'leg curl', group: '하체머신', desc: '머신으로 다리 굽히기. 햄스트링 고립' },
-  { ko: '레그 익스텐션', en: 'leg extension', group: '하체머신', desc: '머신으로 다리 펴기. 대퇴사두근 고립' },
-  { ko: '케이블 크로스오버', en: 'cable crossover', group: '케이블', desc: '케이블 교차. 가슴 안쪽 수축' },
-  { ko: '케이블 플라이', en: 'cable fly', group: '케이블', desc: '케이블로 가슴 모으기. 전 구간 텐션' },
-  { ko: '덤벨플라이', en: 'dumbbell fly', group: '플라이', desc: '덤벨로 가슴 벌렸다 모으기. 가슴 스트레칭' },
-  { ko: '체스트프레스', en: 'chest press', group: '머신프레스', desc: '머신으로 가슴 밀기. 안전하고 초보자 친화적' },
-  { ko: '펙덱', en: 'pec deck', group: '머신플라이', desc: '머신으로 가슴 모으기. 가슴 수축 집중' },
-  { ko: '트라이셉 푸시다운', en: 'tricep pushdown', group: '삼두', desc: '케이블 아래로 밀기. 삼두근 기본 운동' },
-  { ko: '트라이셉 익스텐션', en: 'tricep extension', group: '삼두', desc: '머리 뒤에서 펴기. 삼두 장두 스트레칭' },
-  { ko: '스컬크러셔', en: 'skull crusher', group: '삼두', desc: '누워서 이마 쪽으로 내림. 삼두 전체 자극' },
-  { ko: '레터럴 레이즈', en: 'lateral raise', group: '레이즈', desc: '옆으로 들기. 측면삼각근 고립' },
-  { ko: '사이드레이즈', en: 'lateral raise', group: '레이즈', desc: '레터럴 레이즈와 동일. 어깨 옆면' },
-  { ko: '프론트레이즈', en: 'front raise', group: '레이즈', desc: '앞으로 들기. 전면삼각근 고립' },
-  { ko: '리어델트 플라이', en: 'rear delt fly', group: '레이즈', desc: '뒤로 벌리기. 후면삼각근 고립' },
-  { ko: '리어델트', en: 'rear delt', group: '레이즈', desc: '어깨 뒤쪽 운동 통칭' },
-  { ko: '페이스풀', en: 'face pull', group: '레이즈', desc: '케이블을 얼굴 쪽으로 당기기. 후면삼각근 + 회전근개' },
-  { ko: '슈러그', en: 'shrug', group: '승모근', desc: '어깨를 귀 쪽으로 으쓱. 승모근 상부' },
-  { ko: '힙쓰러스트', en: 'hip thrust', group: '둔근', desc: '등 기대고 엉덩이 들기. 둔근 최고 운동' },
-  { ko: '글루트브릿지', en: 'glute bridge', group: '둔근', desc: '누워서 엉덩이 들기. 힙쓰러스트 초급 버전' },
-  { ko: '카프레이즈', en: 'calf raise', group: '종아리', desc: '발끝으로 서기. 종아리(비복근) 고립' },
-  { ko: '케틀벨 스윙', en: 'kettlebell swing', group: '전신', desc: '케틀벨 흔들기. 둔근 + 햄스트링 + 유산소' },
-  { ko: '마운틴 클라이머', en: 'mountain climber', group: '유산소', desc: '플랭크 자세로 다리 교차. 코어 + 유산소' },
-  { ko: '점핑잭', en: 'jumping jack', group: '유산소', desc: '팔다리 벌렸다 모으기. 워밍업 + 유산소' },
-  { ko: '하이니', en: 'high knees', group: '유산소', desc: '제자리 높이 뛰기. 심박수 폭발' },
-  { ko: '슈퍼맨', en: 'superman', group: '코어', desc: '엎드려 팔다리 들기. 척추기립근 강화' },
-  { ko: '인버티드 로우', en: 'inverted row', group: '로우', desc: '바 아래서 당기기. 맨몸 등 운동' },
-  { ko: '굿모닝', en: 'good morning', group: '햄스트링', desc: '바벨 메고 인사하듯 숙이기. 햄스트링 + 척추기립근' },
-  { ko: '힙어브덕션', en: 'hip abduction', group: '둔근', desc: '다리 바깥으로 벌리기. 중둔근 고립' },
+  { ko: '풀업', en: 'pull up', group: '풀업', part: '등', desc: '오버그립으로 바 매달려 당기기. 등 운동의 왕' },
+  { ko: '친업', en: 'chin up', group: '풀업', part: '등', desc: '언더그립. 이두 + 등 동시 자극. 풀업보다 쉬움' },
+  { ko: '런지', en: 'lunge', group: '런지', part: '하체', desc: '한 발 앞으로 내딛기. 대퇴사두 + 둔근' },
+  { ko: '워킹런지', en: 'walking lunge', group: '런지', part: '하체', desc: '걸으면서 런지. 유산소 + 하체 동시' },
+  { ko: '리버스런지', en: 'reverse lunge', group: '런지', part: '하체', desc: '뒤로 내딛기. 무릎 부담 적음' },
+  { ko: '플랭크', en: 'plank', group: '코어', part: '코어', desc: '엎드려 버티기. 코어 안정화 기본' },
+  { ko: '사이드 플랭크', en: 'side plank', group: '코어', part: '코어', desc: '옆으로 버티기. 복사근 + 코어' },
+  { ko: '크런치', en: 'crunch', group: '코어', part: '코어', desc: '윗몸일으키기. 복직근 상부 집중' },
+  { ko: '바이시클 크런치', en: 'bicycle crunch', group: '코어', part: '코어', desc: '좌우 비틀기. 복사근 + 복직근 동시' },
+  { ko: '레그레이즈', en: 'leg raise', group: '코어', part: '코어', desc: '누워서 다리 들기. 복직근 하부 집중' },
+  { ko: '행잉 레그레이즈', en: 'hanging leg raise', group: '코어', part: '코어', desc: '매달려서 다리 들기. 복근 전체 + 그립' },
+  { ko: '버피', en: 'burpee', group: '유산소', part: '전신 · 유산소', desc: '전신 유산소 운동. 스쿼트+푸시업+점프 결합' },
+  { ko: '딥스', en: 'dips', group: '딥스', part: '팔', desc: '평행봉에서 밀기. 삼두 + 가슴 하부' },
+  { ko: '랫풀다운', en: 'lat pulldown', group: '풀다운', part: '등', desc: '케이블로 바 당기기. 광배근 집중' },
+  { ko: '레그프레스', en: 'leg press', group: '하체머신', part: '하체', desc: '머신으로 다리 밀기. 대퇴사두 + 둔근' },
+  { ko: '레그컬', en: 'leg curl', group: '하체머신', part: '하체', desc: '머신으로 다리 굽히기. 햄스트링 고립' },
+  { ko: '레그 익스텐션', en: 'leg extension', group: '하체머신', part: '하체', desc: '머신으로 다리 펴기. 대퇴사두근 고립' },
+  { ko: '케이블 크로스오버', en: 'cable crossover', group: '케이블', part: '가슴', desc: '케이블 교차. 가슴 안쪽 수축' },
+  { ko: '케이블 플라이', en: 'cable fly', group: '케이블', part: '가슴', desc: '케이블로 가슴 모으기. 전 구간 텐션' },
+  { ko: '덤벨플라이', en: 'dumbbell fly', group: '플라이', part: '가슴', desc: '덤벨로 가슴 벌렸다 모으기. 가슴 스트레칭' },
+  { ko: '체스트프레스', en: 'chest press', group: '머신프레스', part: '가슴', desc: '머신으로 가슴 밀기. 안전하고 초보자 친화적' },
+  { ko: '펙덱', en: 'pec deck', group: '머신플라이', part: '가슴', desc: '머신으로 가슴 모으기. 가슴 수축 집중' },
+  { ko: '트라이셉 푸시다운', en: 'tricep pushdown', group: '삼두', part: '팔', desc: '케이블 아래로 밀기. 삼두근 기본 운동' },
+  { ko: '트라이셉 익스텐션', en: 'tricep extension', group: '삼두', part: '팔', desc: '머리 뒤에서 펴기. 삼두 장두 스트레칭' },
+  { ko: '스컬크러셔', en: 'skull crusher', group: '삼두', part: '팔', desc: '누워서 이마 쪽으로 내림. 삼두 전체 자극' },
+  { ko: '레터럴 레이즈', en: 'lateral raise', group: '레이즈', part: '어깨', desc: '옆으로 들기. 측면삼각근 고립' },
+  { ko: '사이드레이즈', en: 'lateral raise', group: '레이즈', part: '어깨', desc: '레터럴 레이즈와 동일. 어깨 옆면' },
+  { ko: '프론트레이즈', en: 'front raise', group: '레이즈', part: '어깨', desc: '앞으로 들기. 전면삼각근 고립' },
+  { ko: '리어델트 플라이', en: 'rear delt fly', group: '레이즈', part: '어깨', desc: '뒤로 벌리기. 후면삼각근 고립' },
+  { ko: '리어델트', en: 'rear delt', group: '레이즈', part: '어깨', desc: '어깨 뒤쪽 운동 통칭' },
+  { ko: '페이스풀', en: 'face pull', group: '레이즈', part: '어깨', desc: '케이블을 얼굴 쪽으로 당기기. 후면삼각근 + 회전근개' },
+  { ko: '슈러그', en: 'shrug', group: '승모근', part: '등', desc: '어깨를 귀 쪽으로 으쓱. 승모근 상부' },
+  { ko: '힙쓰러스트', en: 'hip thrust', group: '둔근', part: '하체', desc: '등 기대고 엉덩이 들기. 둔근 최고 운동' },
+  { ko: '글루트브릿지', en: 'glute bridge', group: '둔근', part: '하체', desc: '누워서 엉덩이 들기. 힙쓰러스트 초급 버전' },
+  { ko: '카프레이즈', en: 'calf raise', group: '종아리', part: '하체', desc: '발끝으로 서기. 종아리(비복근) 고립' },
+  { ko: '케틀벨 스윙', en: 'kettlebell swing', group: '전신', part: '전신 · 유산소', desc: '케틀벨 흔들기. 둔근 + 햄스트링 + 유산소' },
+  { ko: '마운틴 클라이머', en: 'mountain climber', group: '유산소', part: '코어', desc: '플랭크 자세로 다리 교차. 코어 + 유산소' },
+  { ko: '점핑잭', en: 'jumping jack', group: '유산소', part: '전신 · 유산소', desc: '팔다리 벌렸다 모으기. 워밍업 + 유산소' },
+  { ko: '하이니', en: 'high knees', group: '유산소', part: '전신 · 유산소', desc: '제자리 높이 뛰기. 심박수 폭발' },
+  { ko: '슈퍼맨', en: 'superman', group: '코어', part: '등', desc: '엎드려 팔다리 들기. 척추기립근 강화' },
+  { ko: '인버티드 로우', en: 'inverted row', group: '로우', part: '등', desc: '바 아래서 당기기. 맨몸 등 운동' },
+  { ko: '굿모닝', en: 'good morning', group: '햄스트링', part: '하체', desc: '바벨 메고 인사하듯 숙이기. 햄스트링 + 척추기립근' },
+  { ko: '힙어브덕션', en: 'hip abduction', group: '둔근', part: '하체', desc: '다리 바깥으로 벌리기. 중둔근 고립' },
   // ─── 집에서 기구 없이 (홈트 프로그램이 쓰는 것들) ───
   // 홈트 여섯 판(`data/homeworkoutPrograms.js`)이 부르는 이름은 여기에도 있어야 한다.
   // 없으면 홈트에서 본 이름을 검색창에 쳤을 때 조용히 빈손이 된다 — 아무도 안 터진다.
   // `npm run check` 가 두 파일을 맞춰본다
-  { ko: '니 푸시업', en: 'knee push up', group: '푸시업', desc: '무릎을 대고 하는 푸시업. 푸시업이 아직 안 될 때의 첫 단계' },
-  { ko: '스캡 푸시업', en: 'scapular push up', group: '푸시업', desc: '팔은 편 채 견갑만 모았다 벌림. 어깨를 붙잡아주는 전거근' },
-  { ko: '푸시업 보텀 홀드', en: 'push up bottom hold', group: '푸시업', desc: '푸시업 맨 아래에서 버티기. 제일 힘든 구간을 붙잡는다' },
-  { ko: '수건 로우', en: 'towel row', group: '로우', desc: '문고리에 수건을 걸고 몸을 뒤로 기울여 당김. 기구 없이 하는 등 운동' },
-  { ko: '수건 페이스풀', en: 'towel face pull', group: '레이즈', desc: '수건을 얼굴 쪽으로 당김. 말린 어깨를 뒤로 펴는 자리' },
-  { ko: '리버스 스노우엔젤', en: 'reverse snow angel', group: '레이즈', desc: '엎드려 팔을 바닥에 쓸며 위아래로. 등 상부와 후면 어깨' },
-  { ko: '월 핸드스탠드 홀드', en: 'wall handstand hold', group: '프레스', desc: '벽에 발을 걸고 물구나무로 버티기. 어깨로 몸무게를 받는다' },
-  { ko: '굿모닝 (맨몸)', en: 'bodyweight good morning', group: '햄스트링', desc: '무게 없이 인사하듯 숙이기. 햄스트링을 데우는 자리' },
-  { ko: '의자 스쿼트', en: 'box squat', group: '스쿼트', desc: '의자에 살짝 앉았다 일어섬. 앉는 깊이를 의자가 정해준다' },
-  { ko: '코사크 스쿼트', en: 'cossack squat', group: '스쿼트', desc: '다리를 넓게 벌리고 한쪽으로 앉음. 내전근 + 고관절 가동범위' },
-  { ko: '피스톨 스쿼트', en: 'pistol squat', group: '스쿼트', desc: '한 발로 앉았다 일어섬. 맨몸 하체의 마지막 단계' },
-  { ko: '스텝업', en: 'step up', group: '둔근', desc: '의자나 계단에 한 발로 올라섬. 둔근 + 균형' },
-  { ko: '싱글 레그 글루트브릿지', en: 'single leg glute bridge', group: '둔근', desc: '한 다리로 엉덩이 들기. 좌우 차이가 바로 드러난다' },
-  { ko: '노르딕 컬', en: 'nordic curl', group: '햄스트링', desc: '발을 고정하고 천천히 앞으로 넘어감. 햄스트링 신장성 수축' },
-  { ko: '런지 홀드', en: 'lunge hold', group: '런지', desc: '런지 자세로 버티기. 앞다리 · 균형 · 코어를 같이 쓴다' },
-  { ko: '싱글 레그 카프레이즈', en: 'single leg calf raise', group: '종아리', desc: '한 발로 뒤꿈치 들기. 종아리에 제 몸무게를 다 준다' },
-  { ko: '버드독', en: 'bird dog', group: '코어', desc: '네발기기에서 팔다리 교차로 뻗기. 허리를 흔들지 않고 버티는 연습' },
-  { ko: '프론 코브라', en: 'prone cobra', group: '코어', desc: '엎드려 가슴과 팔을 들어 버티기. 등 상부 · 척추기립근' },
-  { ko: '플랭크 업다운', en: 'plank up down', group: '코어', desc: '팔꿈치와 손을 번갈아. 흔들리지 않게 버티는 것이 핵심' },
-  { ko: '리버스 크런치', en: 'reverse crunch', group: '코어', desc: '누워서 골반을 말아 올림. 복직근 하부' },
-  { ko: '러시안 트위스트', en: 'russian twist', group: '코어', desc: '앉아서 좌우로 비틀기. 복사근' },
-  { ko: '힐 터치', en: 'heel touch', group: '코어', desc: '누워서 좌우 발뒤꿈치 터치. 옆구리를 짧게 자주 쓴다' },
-  { ko: '사이드 플랭크 힙 딥', en: 'side plank hip dip', group: '코어', desc: '사이드 플랭크에서 엉덩이를 내렸다 올림. 버티기보다 세다' },
-  { ko: 'V업', en: 'v up', group: '코어', desc: '누워서 팔다리를 동시에 들어 V자. 복근 전체' },
-  { ko: '슈퍼맨 스윔', en: 'superman swim', group: '코어', desc: '엎드려 팔다리를 교차로 저음. 슈퍼맨을 움직이며 하는 판' },
-  { ko: '스탠딩 니업', en: 'standing knee up', group: '유산소', desc: '서서 무릎을 번갈아 올림. 뛰지 않는 유산소' },
-  { ko: '사이드 스텝 터치', en: 'side step touch', group: '유산소', desc: '좌우로 스텝하며 손으로 터치. 착지 소리가 안 난다' },
-  { ko: '섀도 복싱', en: 'shadow boxing', group: '유산소', desc: '제자리에서 펀치. 소리 없이 심박수를 올린다' },
-  { ko: '크로스 잭', en: 'cross jack', group: '유산소', desc: '점핑잭을 팔다리 교차로. 점프가 들어간다' },
-  { ko: '스쿼트 펀치', en: 'squat punch', group: '유산소', desc: '앉았다 일어서며 펀치. 하체 + 숨' },
-  { ko: '플랭크 잭', en: 'plank jack', group: '유산소', desc: '플랭크로 버티며 다리만 벌렸다 모음. 코어 + 유산소' },
-  { ko: '하프 버피', en: 'half burpee', group: '유산소', desc: '버피에서 푸시업과 점프를 뺀 것. 무릎 부담이 적다' },
-  { ko: '스쿼트 사이드킥', en: 'squat side kick', group: '유산소', desc: '일어서며 옆으로 차기. 둔근 바깥쪽 + 균형' },
-  { ko: '인치웜', en: 'inchworm', group: '전신', desc: '선 채로 손을 짚어 플랭크까지 걸어갔다 돌아옴. 전신을 한 번에 편다' },
-  { ko: '스프롤', en: 'sprawl', group: '유산소', desc: '버피에서 점프를 뺀 레슬링식 동작. 소리가 안 난다' },
+  { ko: '니 푸시업', en: 'knee push up', group: '푸시업', part: '가슴', desc: '무릎을 대고 하는 푸시업. 푸시업이 아직 안 될 때의 첫 단계' },
+  { ko: '스캡 푸시업', en: 'scapular push up', group: '푸시업', part: '어깨', desc: '팔은 편 채 견갑만 모았다 벌림. 어깨를 붙잡아주는 전거근' },
+  { ko: '푸시업 보텀 홀드', en: 'push up bottom hold', group: '푸시업', part: '가슴', desc: '푸시업 맨 아래에서 버티기. 제일 힘든 구간을 붙잡는다' },
+  { ko: '수건 로우', en: 'towel row', group: '로우', part: '등', desc: '문고리에 수건을 걸고 몸을 뒤로 기울여 당김. 기구 없이 하는 등 운동' },
+  { ko: '수건 페이스풀', en: 'towel face pull', group: '레이즈', part: '어깨', desc: '수건을 얼굴 쪽으로 당김. 말린 어깨를 뒤로 펴는 자리' },
+  { ko: '리버스 스노우엔젤', en: 'reverse snow angel', group: '레이즈', part: '어깨', desc: '엎드려 팔을 바닥에 쓸며 위아래로. 등 상부와 후면 어깨' },
+  { ko: '월 핸드스탠드 홀드', en: 'wall handstand hold', group: '프레스', part: '어깨', desc: '벽에 발을 걸고 물구나무로 버티기. 어깨로 몸무게를 받는다' },
+  { ko: '굿모닝 (맨몸)', en: 'bodyweight good morning', group: '햄스트링', part: '하체', desc: '무게 없이 인사하듯 숙이기. 햄스트링을 데우는 자리' },
+  { ko: '의자 스쿼트', en: 'box squat', group: '스쿼트', part: '하체', desc: '의자에 살짝 앉았다 일어섬. 앉는 깊이를 의자가 정해준다' },
+  { ko: '코사크 스쿼트', en: 'cossack squat', group: '스쿼트', part: '하체', desc: '다리를 넓게 벌리고 한쪽으로 앉음. 내전근 + 고관절 가동범위' },
+  { ko: '피스톨 스쿼트', en: 'pistol squat', group: '스쿼트', part: '하체', desc: '한 발로 앉았다 일어섬. 맨몸 하체의 마지막 단계' },
+  { ko: '스텝업', en: 'step up', group: '둔근', part: '하체', desc: '의자나 계단에 한 발로 올라섬. 둔근 + 균형' },
+  { ko: '싱글 레그 글루트브릿지', en: 'single leg glute bridge', group: '둔근', part: '하체', desc: '한 다리로 엉덩이 들기. 좌우 차이가 바로 드러난다' },
+  { ko: '노르딕 컬', en: 'nordic curl', group: '햄스트링', part: '하체', desc: '발을 고정하고 천천히 앞으로 넘어감. 햄스트링 신장성 수축' },
+  { ko: '런지 홀드', en: 'lunge hold', group: '런지', part: '하체', desc: '런지 자세로 버티기. 앞다리 · 균형 · 코어를 같이 쓴다' },
+  { ko: '싱글 레그 카프레이즈', en: 'single leg calf raise', group: '종아리', part: '하체', desc: '한 발로 뒤꿈치 들기. 종아리에 제 몸무게를 다 준다' },
+  { ko: '버드독', en: 'bird dog', group: '코어', part: '코어', desc: '네발기기에서 팔다리 교차로 뻗기. 허리를 흔들지 않고 버티는 연습' },
+  { ko: '프론 코브라', en: 'prone cobra', group: '코어', part: '등', desc: '엎드려 가슴과 팔을 들어 버티기. 등 상부 · 척추기립근' },
+  { ko: '플랭크 업다운', en: 'plank up down', group: '코어', part: '코어', desc: '팔꿈치와 손을 번갈아. 흔들리지 않게 버티는 것이 핵심' },
+  { ko: '리버스 크런치', en: 'reverse crunch', group: '코어', part: '코어', desc: '누워서 골반을 말아 올림. 복직근 하부' },
+  { ko: '러시안 트위스트', en: 'russian twist', group: '코어', part: '코어', desc: '앉아서 좌우로 비틀기. 복사근' },
+  { ko: '힐 터치', en: 'heel touch', group: '코어', part: '코어', desc: '누워서 좌우 발뒤꿈치 터치. 옆구리를 짧게 자주 쓴다' },
+  { ko: '사이드 플랭크 힙 딥', en: 'side plank hip dip', group: '코어', part: '코어', desc: '사이드 플랭크에서 엉덩이를 내렸다 올림. 버티기보다 세다' },
+  { ko: 'V업', en: 'v up', group: '코어', part: '코어', desc: '누워서 팔다리를 동시에 들어 V자. 복근 전체' },
+  { ko: '슈퍼맨 스윔', en: 'superman swim', group: '코어', part: '등', desc: '엎드려 팔다리를 교차로 저음. 슈퍼맨을 움직이며 하는 판' },
+  { ko: '스탠딩 니업', en: 'standing knee up', group: '유산소', part: '전신 · 유산소', desc: '서서 무릎을 번갈아 올림. 뛰지 않는 유산소' },
+  { ko: '사이드 스텝 터치', en: 'side step touch', group: '유산소', part: '전신 · 유산소', desc: '좌우로 스텝하며 손으로 터치. 착지 소리가 안 난다' },
+  { ko: '섀도 복싱', en: 'shadow boxing', group: '유산소', part: '전신 · 유산소', desc: '제자리에서 펀치. 소리 없이 심박수를 올린다' },
+  { ko: '크로스 잭', en: 'cross jack', group: '유산소', part: '전신 · 유산소', desc: '점핑잭을 팔다리 교차로. 점프가 들어간다' },
+  { ko: '스쿼트 펀치', en: 'squat punch', group: '유산소', part: '하체', desc: '앉았다 일어서며 펀치. 하체 + 숨' },
+  { ko: '플랭크 잭', en: 'plank jack', group: '유산소', part: '코어', desc: '플랭크로 버티며 다리만 벌렸다 모음. 코어 + 유산소' },
+  { ko: '하프 버피', en: 'half burpee', group: '유산소', part: '전신 · 유산소', desc: '버피에서 푸시업과 점프를 뺀 것. 무릎 부담이 적다' },
+  { ko: '스쿼트 사이드킥', en: 'squat side kick', group: '유산소', part: '하체', desc: '일어서며 옆으로 차기. 둔근 바깥쪽 + 균형' },
+  { ko: '인치웜', en: 'inchworm', group: '전신', part: '전신 · 유산소', desc: '선 채로 손을 짚어 플랭크까지 걸어갔다 돌아옴. 전신을 한 번에 편다' },
+  { ko: '스프롤', en: 'sprawl', group: '유산소', part: '전신 · 유산소', desc: '버피에서 점프를 뺀 레슬링식 동작. 소리가 안 난다' },
   // ─── 기능성(특수부대식) — 추천 루틴에서 온 것들 ───
   // 홈트의 여섯째 판이 부르는 이름이다. 설명은 루틴(`backend/src/routes/routines.js`)에
   // 이미 적어둔 것을 한 줄로 줄였다 — 두 곳이 같은 동작을 다르게 설명하면 안 된다
-  { ko: '배낭 파머스 워크', en: 'backpack farmer walk', group: '전신', desc: '책 넣은 배낭이나 장바구니를 양손에 들고 걷기. 그립 + 코어 + 자세' },
-  { ko: '오버헤드 배낭 워크', en: 'overhead backpack walk', group: '전신', desc: '가벼운 배낭을 머리 위로 든 채 걷기. 허리가 젖혀지지 않게 배에 힘' },
-  { ko: '배낭 안고 런지 워크', en: 'backpack lunge walk', group: '런지', desc: '배낭을 가슴 앞에 안고 걸으며 런지. 좁으면 제자리에서 좌우 번갈아' },
-  { ko: '배낭 스러스터', en: 'backpack thruster', group: '전신', desc: '배낭을 안고 앉았다 일어서며 머리 위로 밀어 올림. 제일 빨리 숨이 찬다' },
-  { ko: '데드행', en: 'dead hang', group: '풀업', desc: '문틀바에 팔을 편 채 매달려 버티기. 그립 + 어깨' },
-  { ko: '월싯', en: 'wall sit', group: '스쿼트', desc: '벽에 등을 붙이고 무릎 90도로 버티기. 소리도 자리도 안 난다' },
-  { ko: '할로우 홀드', en: 'hollow hold', group: '코어', desc: '누워서 어깨와 다리를 함께 들어 바나나 모양. 허리가 뜨면 다리를 더 든다' },
-  { ko: '플랭크 어깨 터치', en: 'plank shoulder tap', group: '코어', desc: '높은 플랭크에서 반대쪽 어깨 짚기. 골반이 흔들리지 않게 버틴다' },
-  { ko: '하이니 스프린트', en: 'high knee sprint', group: '유산소', desc: '무릎을 배꼽 높이까지 올리며 제자리 전력 질주. 앞꿈치로 디디면 소리가 덜 난다' },
+  { ko: '배낭 파머스 워크', en: 'backpack farmer walk', group: '전신', part: '전신 · 유산소', desc: '책 넣은 배낭이나 장바구니를 양손에 들고 걷기. 그립 + 코어 + 자세' },
+  { ko: '오버헤드 배낭 워크', en: 'overhead backpack walk', group: '전신', part: '전신 · 유산소', desc: '가벼운 배낭을 머리 위로 든 채 걷기. 허리가 젖혀지지 않게 배에 힘' },
+  { ko: '배낭 안고 런지 워크', en: 'backpack lunge walk', group: '런지', part: '하체', desc: '배낭을 가슴 앞에 안고 걸으며 런지. 좁으면 제자리에서 좌우 번갈아' },
+  { ko: '배낭 스러스터', en: 'backpack thruster', group: '전신', part: '전신 · 유산소', desc: '배낭을 안고 앉았다 일어서며 머리 위로 밀어 올림. 제일 빨리 숨이 찬다' },
+  { ko: '데드행', en: 'dead hang', group: '풀업', part: '등', desc: '문틀바에 팔을 편 채 매달려 버티기. 그립 + 어깨' },
+  { ko: '월싯', en: 'wall sit', group: '스쿼트', part: '하체', desc: '벽에 등을 붙이고 무릎 90도로 버티기. 소리도 자리도 안 난다' },
+  { ko: '할로우 홀드', en: 'hollow hold', group: '코어', part: '코어', desc: '누워서 어깨와 다리를 함께 들어 바나나 모양. 허리가 뜨면 다리를 더 든다' },
+  { ko: '플랭크 어깨 터치', en: 'plank shoulder tap', group: '코어', part: '코어', desc: '높은 플랭크에서 반대쪽 어깨 짚기. 골반이 흔들리지 않게 버틴다' },
+  { ko: '하이니 스프린트', en: 'high knee sprint', group: '유산소', part: '전신 · 유산소', desc: '무릎을 배꼽 높이까지 올리며 제자리 전력 질주. 앞꿈치로 디디면 소리가 덜 난다' },
   // ─── 홈트의 「기능성(특수부대식)」이 쓰는 것들 (2026-09-03) ───
   //
   // 위의 배낭·문틀바 동작들은 **추천 루틴 쪽 것**이다. 홈트 판은 9/3 에 다시 짜면서
   // 루틴과 한 개도 안 겹치게 바꿨다 — 두 곳이 같은 목록이면 하나는 있을 이유가 없다.
   // 여기 것들은 **아무것도 없이 맨몸으로** 하는, 기어가고 버티고 뛰는 동작이다
-  { ko: '베어 크롤', en: 'bear crawl', group: '전신', desc: '무릎을 바닥에서 살짝 띄운 채 손발로 기어간다. 코어를 조인 채 반대 손발이 같이 나간다' },
-  { ko: '로우 크롤', en: 'low crawl', group: '전신', desc: '낮은 포복. 배를 바닥에 붙이고 팔꿈치와 안쪽 다리로 밀며 나아간다. 어깨와 코어를 오래 쓴다' },
-  { ko: '크랩 워크', en: 'crab walk', group: '전신', desc: '뒤로 앉아 손과 발로 몸을 든 채 게처럼 걷는다. 엉덩이가 처지지 않게 든 상태를 유지한다' },
-  { ko: '덕 워크', en: 'duck walk', group: '스쿼트', desc: '쪼그려 앉은 자세를 유지한 채 걷는다. 허벅지와 발목을 오래 쓴다 — 무릎이 아프면 반쯤만 앉는다' },
-  { ko: '스파이더맨 푸시업', en: 'spiderman push-up', group: '푸시업', desc: '푸시업으로 내려가며 같은 쪽 무릎을 팔꿈치 옆으로 당긴다. 가슴 + 옆구리' },
-  { ko: '리버스 플랭크', en: 'reverse plank', group: '코어', desc: '앉아서 손을 뒤로 짚고 엉덩이를 들어 몸을 일직선으로 버틴다. 플랭크의 뒤쪽 판이다' },
-  { ko: '스쿼트 홀드', en: 'squat hold', group: '스쿼트', desc: '스쿼트 맨 아래에서 멈춰 버틴다. 벽 없이 하는 월싯이고 발목이 더 많이 쓰인다' },
-  { ko: '스케이터 점프', en: 'skater jump', group: '유산소', desc: '옆으로 뛰어 한 발로 착지하고 반대쪽으로 다시 뛴다. 좌우 균형 + 숨' },
-  { ko: '점핑 런지', en: 'jumping lunge', group: '런지', desc: '런지 자세에서 뛰어올라 공중에서 다리를 바꾼다. 착지를 부드럽게 받는다' },
-  { ko: '턱 점프', en: 'tuck jump', group: '유산소', desc: '제자리에서 뛰며 두 무릎을 가슴 쪽으로 당긴다. 순간 힘 — 아파트라면 밤에는 뺀다' },
-  { ko: '프로그 점프', en: 'frog jump', group: '유산소', desc: '쪼그려 앉았다 앞으로 개구리처럼 뛰어 다시 앉는다. 하체 폭발력 + 숨' },
+  { ko: '베어 크롤', en: 'bear crawl', group: '전신', part: '전신 · 유산소', desc: '무릎을 바닥에서 살짝 띄운 채 손발로 기어간다. 코어를 조인 채 반대 손발이 같이 나간다' },
+  { ko: '로우 크롤', en: 'low crawl', group: '전신', part: '전신 · 유산소', desc: '낮은 포복. 배를 바닥에 붙이고 팔꿈치와 안쪽 다리로 밀며 나아간다. 어깨와 코어를 오래 쓴다' },
+  { ko: '크랩 워크', en: 'crab walk', group: '전신', part: '전신 · 유산소', desc: '뒤로 앉아 손과 발로 몸을 든 채 게처럼 걷는다. 엉덩이가 처지지 않게 든 상태를 유지한다' },
+  { ko: '덕 워크', en: 'duck walk', group: '스쿼트', part: '하체', desc: '쪼그려 앉은 자세를 유지한 채 걷는다. 허벅지와 발목을 오래 쓴다 — 무릎이 아프면 반쯤만 앉는다' },
+  { ko: '스파이더맨 푸시업', en: 'spiderman push-up', group: '푸시업', part: '가슴', desc: '푸시업으로 내려가며 같은 쪽 무릎을 팔꿈치 옆으로 당긴다. 가슴 + 옆구리' },
+  { ko: '리버스 플랭크', en: 'reverse plank', group: '코어', part: '코어', desc: '앉아서 손을 뒤로 짚고 엉덩이를 들어 몸을 일직선으로 버틴다. 플랭크의 뒤쪽 판이다' },
+  { ko: '스쿼트 홀드', en: 'squat hold', group: '스쿼트', part: '하체', desc: '스쿼트 맨 아래에서 멈춰 버틴다. 벽 없이 하는 월싯이고 발목이 더 많이 쓰인다' },
+  { ko: '스케이터 점프', en: 'skater jump', group: '유산소', part: '전신 · 유산소', desc: '옆으로 뛰어 한 발로 착지하고 반대쪽으로 다시 뛴다. 좌우 균형 + 숨' },
+  { ko: '점핑 런지', en: 'jumping lunge', group: '런지', part: '하체', desc: '런지 자세에서 뛰어올라 공중에서 다리를 바꾼다. 착지를 부드럽게 받는다' },
+  { ko: '턱 점프', en: 'tuck jump', group: '유산소', part: '전신 · 유산소', desc: '제자리에서 뛰며 두 무릎을 가슴 쪽으로 당긴다. 순간 힘 — 아파트라면 밤에는 뺀다' },
+  { ko: '프로그 점프', en: 'frog jump', group: '유산소', part: '전신 · 유산소', desc: '쪼그려 앉았다 앞으로 개구리처럼 뛰어 다시 앉는다. 하체 폭발력 + 숨' },
 ];
 
 export const CATEGORY_DICT = {
@@ -261,28 +285,13 @@ export function searchExercises(query, limit = 30) {
 // 믿을 만하고, 사전의 운동이 하나도 빠짐없이 어느 한 부위에 들어간다.
 export const PARTS = ['가슴', '등', '어깨', '하체', '팔', '코어', '전신 · 유산소'];
 
-const PART_OF_GROUP = {
-  // 가슴 — 미는 것들
-  '벤치프레스': '가슴', '푸시업': '가슴', '플라이': '가슴', '케이블': '가슴',
-  '머신프레스': '가슴', '머신플라이': '가슴',
-  // 등 — 당기는 것들. 데드리프트도 여기다 (다리로 들지만 등이 버틴다)
-  '로우': '등', '풀업': '등', '풀다운': '등', '데드리프트': '등', '승모근': '등',
-  // 어깨 — 머리 위로 밀거나 옆으로 드는 것들
-  '프레스': '어깨', '레이즈': '어깨',
-  // 팔
-  '컬': '팔', '삼두': '팔', '딥스': '팔',
-  // 하체
-  '스쿼트': '하체', '런지': '하체', '하체머신': '하체', '둔근': '하체',
-  '종아리': '하체', '햄스트링': '하체',
-  // 코어
-  '코어': '코어',
-  // 숨차게 하는 것 · 온몸으로 하는 것
-  '유산소': '전신 · 유산소', '전신': '전신 · 유산소',
-};
+// **갈래에서 뽑던 것을 걷었다** (2026-09-29). 부위는 이제 칸마다 적혀 있다(`part`) —
+// 갈래를 따라가면 141개는 맞았지만 열 개가 틀렸고(위 머리글), 틀린 열 개를 고칠
+// 자리가 없었다. 갈래는 **같은 계열 묶기**에만 쓴다.
 
-/** 그 운동이 어느 부위인가. 갈래를 못 찾으면 `null` (검사가 잡는다) */
+/** 그 운동이 어느 부위인가. 안 적혀 있으면 `null` (검사가 잡는다) */
 export function partOf(exercise) {
-  return PART_OF_GROUP[exercise?.group] || null;
+  return PARTS.includes(exercise?.part) ? exercise.part : null;
 }
 
 /** 그 부위의 운동들. 부위 이름이 아니면 빈 배열 */

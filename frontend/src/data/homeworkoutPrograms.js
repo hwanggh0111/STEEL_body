@@ -44,8 +44,8 @@ export const PROGRAMS = {
     { name: '푸시업 보텀 홀드', duration: 20, rest: 20, main: ['가슴'], sub: ['팔', '어깨'] },
     { name: '수건 로우', duration: 30, rest: 15, main: ['등'], sub: ['팔'] },
     { name: '월 핸드스탠드 홀드', duration: 25, rest: 20, main: ['어깨'], sub: ['코어', '팔'] },
-    { name: '수건 페이스풀', duration: 30, rest: 15, main: ['등'], sub: ['어깨'] },
-    { name: '리버스 스노우엔젤', duration: 30, rest: 0, main: ['등'], sub: ['어깨'] },
+    { name: '수건 페이스풀', duration: 30, rest: 15, main: ['어깨'], sub: ['등'] },
+    { name: '리버스 스노우엔젤', duration: 30, rest: 0, main: ['어깨'], sub: ['등'] },
   ],
   // 집에는 무게가 없다. 그래서 **두 다리로 하던 것을 한 다리로 옮긴다** — 무게를 못
   // 늘리는 대신 다리 하나가 제 몸을 다 받는다. 마지막 둘은 균형까지 잡아야 한다
@@ -110,7 +110,7 @@ export const PROGRAMS = {
     { name: '로우 크롤', duration: 45, rest: 20, main: ['코어'], sub: ['어깨', '하체'] },
     { name: '크랩 워크', duration: 40, rest: 20, main: ['어깨', '팔'], sub: ['코어'] },
     { name: '스파이더맨 푸시업', duration: 40, rest: 20, main: ['가슴'], sub: ['코어', '팔'] },
-    { name: '리버스 플랭크', duration: 35, rest: 15, main: ['등'], sub: ['어깨', '코어'] },
+    { name: '리버스 플랭크', duration: 35, rest: 15, main: ['코어'], sub: ['어깨', '등'] },
     { name: '스쿼트 홀드', duration: 35, rest: 15, main: ['하체'], sub: ['코어'] },
     { name: '스케이터 점프', duration: 30, rest: 15, main: ['하체'], sub: ['코어'] },
     { name: '점핑 런지', duration: 30, rest: 15, main: ['하체'], sub: ['코어'] },
