@@ -70,6 +70,18 @@ function startServer() {
     env: {
       ...process.env, PORT: String(PORT), DB_FILE: TMP, NODE_ENV: 'test',
       VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '',
+      // ── 이걸 안 주면 시험이 방어막에 닿지 못한다 (2026-09-29 에 찾았다) ──
+      //
+      // 9/19 에 `TRUST_PROXY` 기본값을 **「안 믿음」**으로 굳혔다(그전에는 헤더를
+      // 그대로 믿어서 누구나 `X-Forwarded-For` 로 IP 방어를 우회할 수 있었다).
+      // 그 뒤로 이 시험은 `X-Forwarded-For` 를 보내도 서버가 **소켓 주소(127.0.0.1)**
+      // 로 읽었고, 그 주소는 맨 앞에서 화이트리스트로 흘러간다 — **검사 다섯이
+      // 열흘 동안 「방어막이 안 막는다」고 말하고 있었는데 실은 닿지도 못했다.**
+      // (이 파일 머리글이 9/2 에 적어둔 바로 그 함정이 다시 났다.)
+      //
+      // Render 는 1 홉이라 `render.yaml` 에 TRUST_PROXY=1 이 들어 있다 —
+      // 여기서도 같은 값을 준다. **시험은 진짜와 같은 자리에서 돌아야 한다.**
+      TRUST_PROXY: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -132,9 +144,23 @@ async function pickPort() {
 
   console.log('── 시험이 방어막에 닿는가 ──');
   // **이걸 먼저 본다.** 안 닿으면 아래 시험은 전부 「안 막혔다」가 아니라
-  // 「닿지도 못했다」가 된다 — 실제로 처음에 그렇게 헛돌았다
+  // 「닿지도 못했다」가 된다 — 실제로 처음에 그렇게 헛돌았다.
   const reach = await call('GET', '/health', { ip: IP.clean });
   ok('바깥 주소인 척할 수 있다 (trust proxy)', reach.status, 200);
+
+  // ── 200 하나로는 닿았는지 알 수 없다 (2026-09-29) ──
+  //
+  // 위 줄은 **막히지 않았다는 것만** 말한다. 그래서 9/19 에 `TRUST_PROXY` 기본값이
+  // 「안 믿음」으로 바뀐 뒤에도 이 줄은 계속 OK 였고, 방어막에 닿지 못한 채로
+  // 아래 다섯이 열흘 동안 「안 막는다」고 말했다.
+  //
+  // 그래서 **보내는 척이 실제로 통했는지를 방어막의 답으로 본다.** 뻔한 공격을
+  // 한 번 보내면, 바깥 주소로 읽혔을 때만 403 이 온다 — 소켓 주소(127.0.0.1)로
+  // 읽혔으면 맨 앞 화이트리스트로 흘러 403 이 안 온다.
+  // **버리는 주소로 쏜다** — 이 요청은 그 주소를 막아버리기 때문이다
+  const canaryIp = '203.0.113.99';
+  const canary = await call('GET', '/workouts?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E', { ip: canaryIp });
+  ok('  방어막이 그 주소를 실제로 본다 (아니면 TRUST_PROXY)', canary.status, 403);
 
   console.log('');
   console.log('── 로그인 없이 열리면 안 되는 자리 ──');

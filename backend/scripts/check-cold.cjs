@@ -30,13 +30,19 @@ function loadFront() {
   try {
     // eslint-disable-next-line global-require, import/no-dynamic-require
     const esbuild = require(path.join(FRONT, 'node_modules/esbuild'));
-    const OUT = path.join(__dirname, '..', '.cold.cjs');
-    esbuild.buildSync({
-      entryPoints: [path.join(FRONT, 'src/data/bodyPart.js')],
-      bundle: true, format: 'cjs', outfile: OUT, platform: 'node',
-    });
-    const mod = require(OUT);
-    fs.unlinkSync(OUT);
+    const pull = (rel, out) => {
+      const OUT = path.join(__dirname, '..', out);
+      esbuild.buildSync({
+        entryPoints: [path.join(FRONT, rel)],
+        bundle: true, format: 'cjs', outfile: OUT, platform: 'node',
+      });
+      const m = require(OUT);
+      fs.unlinkSync(OUT);
+      return m;
+    };
+    // 사전도 같이 불러온다 (2026-09-29) — 손으로 고른 이름 마흔 개가 아니라
+    // **사전 151개 전부**를 맞춰봐야 한다. 그 부위가 이제 양쪽의 답이 되기 때문이다
+    const mod = { ...pull('src/data/bodyPart.js', '.cold.cjs'), dict: pull('src/data/exerciseDict.js', '.cold2.cjs') };
     return mod;
   } catch (err) {
     console.log('(화면 쪽을 못 불러와 맞춰보기는 건너뜁니다 — ' + err.message.split('\n')[0] + ')');
@@ -66,6 +72,32 @@ if (front) {
   const mismatch = NAMES.filter((n) => back.bodyPartOf(n) !== front.bodyPartOf(n))
     .map((n) => `${n}: 서버=${back.bodyPartOf(n)} 화면=${front.bodyPartOf(n)}`);
   ok(`운동 이름 ${NAMES.length}개가 양쪽에서 같다`, mismatch, []);
+
+  // ── 사전 151개 전부 (2026-09-29) ──
+  //
+  // 9/29 부터 부위의 원본은 사전이고, 서버는 **뽑아둔 표**를 읽는다
+  // (`exercisePart.cjs`, `frontend/npm run parts` 가 두 판을 같이 쓴다).
+  // 그 표가 낡으면 **알림만 틀린 부위를 말한다** — 화면은 맞는데 「등이 9일째
+  // 식었습니다」가 엉뚱하게 나가는 것이라, 눈으로는 영영 안 드러난다.
+  const dict = front.dict.EXERCISE_DICT;
+  const offDict = dict
+    .map((e) => ({ ko: e.ko, 서버: back.bodyPartOf(e.ko), 화면: front.bodyPartOf(e.ko) }))
+    .filter((r) => r.서버 !== r.화면);
+  ok(`사전 ${dict.length}개가 양쪽에서 같다 (아니면 frontend: npm run parts)`, offDict, []);
+  // 영어 이름으로도 (가져오기로 들어온 기록이 그렇다)
+  const offEn = dict
+    .filter((e) => e.en)
+    .map((e) => ({ en: e.en, 서버: back.bodyPartOf(e.en), 화면: front.bodyPartOf(e.en) }))
+    .filter((r) => r.서버 !== r.화면);
+  ok('  영어 이름도 같다', offEn, []);
+  // 말을 붙인 변형은 **낱말 규칙**이 답한다 — 그쪽은 여전히 두 벌이라 여기서 대조한다
+  const VARIANTS = [];
+  for (const pre of ['덤벨 ', '바벨 ', '머신 ', '케이블 ', '라잉 ', '시티드 ']) {
+    for (const e of dict) VARIANTS.push(pre + e.ko);
+  }
+  const offVar = VARIANTS.filter((n) => back.bodyPartOf(n) !== front.bodyPartOf(n))
+    .map((n) => `${n}: 서버=${back.bodyPartOf(n)} 화면=${front.bodyPartOf(n)}`);
+  ok(`  말을 붙인 ${VARIANTS.length}개도 같다`, offVar, []);
 }
 // 겹치는 말이 있어서 순서가 중요하다 — 몇 개는 답까지 박아둔다
 ok('  클로즈그립 벤치프레스는 팔이다', back.bodyPartOf('클로즈그립 벤치프레스'), '팔');

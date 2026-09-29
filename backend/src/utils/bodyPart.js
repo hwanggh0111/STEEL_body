@@ -21,26 +21,41 @@
 // 순서가 곧 우선순위다. 위에서부터 맞는 것을 쓴다 (화면 쪽과 같은 차례여야 한다)
 const RULES = [
   ['팔',   ['바이셉', '트라이셉', '이두', '삼두', '컬', 'curl', '푸시다운', 'pushdown', '킥백',
-            '프리쳐', '해머', 'hammer', '딥스', 'dip', '클로즈그립', '좁은 푸시업', '리스트', '전완']],
+            '프리쳐', '해머', 'hammer', '딥스', 'dip', '클로즈그립', '좁은 푸시업', '리스트', '전완',
+            '다이아몬드']],
   ['어깨', ['숄더', 'shoulder', '레이즈', 'raise', '오버헤드', 'overhead', 'ohp', '델트', 'delt',
-            '밀리터리', 'military', '업라이트', '슈러그', 'shrug', '파이크', '핸드스탠드', '암서클', '월 워크']],
+            '밀리터리', 'military', '업라이트', '파이크', '핸드스탠드', '암서클', '월 워크',
+            '페이스풀', 'facepull', '스캡', '스노우엔젤']],
   ['등',   ['랫', 'lat', '풀업', 'pull up', 'pullup', '친업', 'chin', '로우', 'row', '데드리프트',
-            'deadlift', '데드', '풀다운', '광배', '견갑', '티바', '슈퍼맨', '스노우엔젤']],
+            'deadlift', '데드', '풀다운', '광배', '견갑', '티바',
+            '슈퍼맨', 'superman', '프론 코브라', 'pronecobra',
+            // 승모근은 등 근육이다. 9/29 에 어깨에서 옮겼다 (양쪽 다)
+            '슈러그', 'shrug']],
   ['가슴', ['벤치', 'bench', '체스트', 'chest', '푸시업', 'push up', 'pushup', '팔굽혀', '플라이', 'fly',
             '펙덱', '크로스오버', '덤벨프레스', 'dumbbell press', '인클라인', 'incline',
-            '디클라인', 'decline']],
+            '디클라인', 'decline', '플로어프레스']],
   ['하체', ['스쿼트', 'squat', '레그', 'leg', '런지', 'lunge', '힙', 'hip',
             '카프', 'calf', '종아리', '허벅지', '둔근', '글루트', 'glute', '브릿지', 'bridge',
-            '스플릿']],
+            '스플릿',
+            '굿모닝', 'goodmorning', '스텝업', 'stepup', '월싯', 'wallsit', '덕 워크']],
   ['코어', ['플랭크', 'plank', '크런치', 'crunch', '복근', 'ab', '싯업', 'sit up', 'situp', '윗몸',
-            '레그레이즈', '레그 레이즈', '러시안 트위스트', '데드버그', '마운틴 클라이머', '버피',
-            '점핑잭', '터키시', '전신']],
+            '레그레이즈', '레그 레이즈', '러시안 트위스트', '데드버그', '마운틴 클라이머',
+            '할로우', 'hollow', '버드독', 'birddog', '힐 터치', 'heeltouch', 'v업', 'vup']],
 ];
 
 // 규칙 순서로 풀 수 없는 겹침 (화면 쪽과 같다)
 const OVERRIDES = [
   ['레그레이즈', '코어'], ['legraise', '코어'],
   ['데드버그', '코어'], ['deadbug', '코어'],
+  ['플랭크', '코어'], ['plank', '코어'],
+  ['카프레이즈', '하체'], ['calfraise', '하체'],
+  ['레그컬', '하체'], ['legcurl', '하체'],
+  ['노르딕 컬', '하체'], ['nordiccurl', '하체'],
+  ['오버헤드 스쿼트', '하체'], ['overheadsquat', '하체'],
+  ['로우 크롤', '기타'], ['lowcrawl', '기타'],
+  ['할로우', '코어'], ['hollow', '코어'],
+  ['배낭 안고', '하체'], ['backpacklunge', '하체'],
+  ['배낭', '기타'], ['backpack', '기타'],
 ];
 
 /** 지도에 자리가 있는 부위. '기타'는 뺀다 — 어디를 칠할지 모르니 '기타'인 것이다 */
@@ -49,6 +64,10 @@ const MAP_PARTS = ['가슴', '등', '어깨', '하체', '팔', '코어'];
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
 
 // 낱말은 **한 번만** 다듬는다 (화면 쪽에서 재보니 이게 제일 뜨거운 자리였다)
+// 사전에서 뽑아둔 표. **손으로 고치지 않는다** — 뽑는 스크립트가 화면 것과 같이 쓴다
+// (`frontend/scripts/gen-parts.mjs`). 열쇠는 이미 다듬어진 것이다
+const { EXERCISE_PART } = require("./exercisePart.cjs");
+
 const N_OVERRIDES = OVERRIDES.map(([w, p]) => [norm(w), p]);
 const N_RULES = RULES.map(([p, ws]) => [p, ws.map(norm)]);
 
@@ -56,6 +75,9 @@ const N_RULES = RULES.map(([p, ws]) => [p, ws.map(norm)]);
 function bodyPartOf(exercise) {
   const n = norm(exercise);
   if (!n) return '기타';
+  // **사전에 있으면 사전이 이긴다** (화면과 같은 차례다 — 적어둔 것 → 사전 → 낱말)
+  const known = EXERCISE_PART[n];
+  if (known !== undefined) return known;
   for (const [word, part] of N_OVERRIDES) if (n.includes(word)) return part;
   for (const [part, words] of N_RULES) if (words.some((w) => n.includes(w))) return part;
   return '기타';

@@ -333,6 +333,20 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
   ok('규칙마다 제목과 설명이 있다',
     (ai.policy || []).filter((r) => !r.title || !r.detail), []);
 
+  // ── 우리 자신은 안 막는다 (2026-09-29) ──
+  //
+  // 프록시를 안 믿는 자리에서는 모든 요청이 `127.0.0.1` 로 들어온다. 그때 로그인을
+  // 몇 번 틀리면 **localhost 를 막은 기록**이 파일에 적혔다 — 막히지도 않으면서
+  // (맨 앞 화이트리스트로 흘러간다) 보안 화면의 차단 목록에 우리 자신이 앉았다.
+  for (let i = 0; i < 9; i += 1) guard.recordLoginFailure('127.0.0.1');
+  ok('localhost 는 막은 기록을 안 남긴다', db.findBlock('127.0.0.1'), null);
+  // 바깥 주소는 그대로 막는다 — 위의 것이 방어막을 무르게 한 것이 아니다
+  for (let i = 0; i < 9; i += 1) guard.recordLoginFailure('203.0.113.77');
+  ok('  바깥 주소는 그대로 막는다', !!db.findBlock('203.0.113.77'), true);
+  // **치우고 간다.** 아래에서 「화면이 센 건수 = 파일의 건수」를 보는데, 화면 값은
+  // 이 위에서 이미 받아둔 것이라 여기서 하나를 더 남기면 그 줄이 어긋난다
+  db.unblockIp('203.0.113.77');
+
   // **숫자가 코드의 상수와 같아야 한다.** 여기서 어긋나면 화면이 또 거짓말을 한다
   const T = guard.THRESHOLDS;
   const joined = (ai.policy || []).map((r) => r.detail).join(' ');

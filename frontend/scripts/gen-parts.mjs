@@ -14,6 +14,16 @@
 // 받는 사람이 스크립트를 안 돌려도 앱이 돌아야 한다.
 //
 // **손으로 고치지 않는다.** 어긋나면 `npm run parts` 가 잡는다(`check-parts.cjs`).
+//
+// ── 서버 것도 같이 쓴다 (2026-09-29) ──
+//
+// 서버에도 부위 맞히기가 있다(`backend/src/utils/bodyPart.js`) — **알림은 앱이 닫혀
+// 있을 때 나가서** 화면의 계산이 못 돌기 때문이다. 그쪽은 CommonJS 라 화면 파일을
+// 들여올 수 없어서, 낱말 규칙을 **손으로 맞춰 두고 검사가 대조**하고 있었다
+// (`backend/npm run cold`).
+//
+// 사전 151개까지 손으로 두 벌 적는 것은 반드시 어긋난다. 그래서 **여기서 두 판을
+// 같이 쓴다** — 화면용(ESM)과 서버용(CommonJS). 한 곳에서 나오므로 어긋날 자리가 없다.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { EXERCISE_DICT } from '../src/data/exerciseDict.js';
 
@@ -60,13 +70,32 @@ ${rows}
 `;
 }
 
-const OUT = new URL('../src/data/exercisePart.js', import.meta.url);
-const next = render(buildTable());
-let now = '';
-try { now = readFileSync(OUT, 'utf8'); } catch { /* 처음이면 없다 */ }
-if (now === next) {
-  console.log(`[parts] 그대로 — ${Object.keys(buildTable()).length}개`);
-} else {
-  writeFileSync(OUT, next);
-  console.log(`[parts] ${Object.keys(buildTable()).length}개 → src/data/exercisePart.js`);
+/** 서버용 판. 내용은 같고 내보내는 방식만 CommonJS 다. */
+export function renderCjs(table) {
+  const body = render(table)
+    .replace('export const EXERCISE_PART = {', 'const EXERCISE_PART = {')
+    .replace(
+      '//   npm run parts        사전에서 다시 뽑는다 (scripts/gen-parts.mjs)',
+      '//   cd frontend && npm run parts     사전에서 다시 뽑는다 (화면 것과 같이 나온다)',
+    );
+  return `${body}module.exports = { EXERCISE_PART };
+`;
 }
+
+const table = buildTable();
+const FILES = [
+  [new URL('../src/data/exercisePart.js', import.meta.url), render(table), 'frontend/src/data/exercisePart.js'],
+  [new URL('../../backend/src/utils/exercisePart.cjs', import.meta.url), renderCjs(table), 'backend/src/utils/exercisePart.cjs'],
+];
+
+const n = Object.keys(table).length;
+let wrote = 0;
+for (const [url, text, label] of FILES) {
+  let now = '';
+  try { now = readFileSync(url, 'utf8'); } catch { /* 처음이면 없다 */ }
+  if (now === text) continue;
+  writeFileSync(url, text);
+  wrote += 1;
+  console.log(`[parts] ${n}개 → ${label}`);
+}
+if (wrote === 0) console.log(`[parts] 그대로 — ${n}개 · 두 판`);
