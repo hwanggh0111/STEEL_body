@@ -43,6 +43,12 @@ export const NOTE_QUEUE_KEY = 'ironlog_day_note_queue';
 // **그 사람의 몸**이다 — 안 지우면 다음에 로그인한 사람이 앞 사람 실루엣을
 // 점선으로 겹쳐 보게 된다. 위에 적힌 「몸 사진 두 개」와 똑같은 자리다.
 export const SHAPE_RATIOS_KEY = 'shape:lastRatios';
+// 체형에서 **잰 비율의 이력** (2026-09-29, 04 단계). 위의 한 칸(`SHAPE_RATIOS_KEY`)이
+// 하던 일을 넘겨받았다 — 「지난 번」 말고 **처음과도** 견주려면 한 칸으로는 안 된다.
+// 옛 한 칸은 **지우는 목록에 그대로 둔다**: 쓰던 사람의 브라우저에 아직 남아 있고,
+// 그것도 그 사람의 몸이라 로그아웃하면 같이 지워져야 한다.
+// 여기에도 **사진은 안 들어간다** — 비율 숫자와 날짜뿐이다.
+export const SHAPE_LOG_KEY = 'shape:log';
 // 지금 있는 헬스장 (`store/gymStore.js`). 세팅 자체는 서버에 있고, **어디 있는지만**
 // 기기에 남긴다 — 폰에서 고른 곳이 집 PC 까지 바뀌면 안 되기 때문이다.
 // 그래도 **사람이 바뀌면 지운다**: 다음에 로그인한 사람이 앞 사람이 다니는 헬스장
@@ -67,6 +73,7 @@ export const PER_USER_KEYS = [
   NOTE_CACHE_KEY,
   NOTE_QUEUE_KEY,
   SHAPE_RATIOS_KEY,
+  SHAPE_LOG_KEY,
   GYM_KEY,
   HOME_LAST_KEY,
 ];

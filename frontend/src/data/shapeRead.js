@@ -1,5 +1,6 @@
 import { bodyPartOf } from './bodyPart';
 import { MAP_PARTS } from './bodyHeat';
+import { angleMoved, sameSetup, daysApart as daysBetween } from './shapeHistory';
 
 // 체형 읽기 — **01 단계: 사진 없이 「덜 한 곳」을 말한다** (2026-09-22).
 //
@@ -226,18 +227,34 @@ export function buildShapeRead(workouts, inbody, today) {
 /** 비율이 이만큼 달라져야 「달라졌다」고 한다. 옷과 서 있는 자세가 그만큼 흔든다. */
 const RATIO_SURE = 0.06;
 
+// ── 04 단계: 지난 번과 견준다 (2026-09-29) ──
+//
+// 03 까지도 「지난 번」과 견주기는 했다. 04 가 더한 것은 셋이다.
+//
+//   1. **며칠 만인지 적는다.** 어깨:골반이 0.1 움직인 것은 3일 만이면 사진 탓이고
+//      두 달 만이면 이야기가 된다. 기간 없이 적으면 둘을 구별할 수 없다
+//   2. **뼈로 각도를 검사한다.** 상체:다리는 운동으로 안 변한다 — 그게 달라졌으면
+//      몸이 아니라 사진이 달라진 것이고, 그때는 **어깨 변화도 단정에 안 쓴다**
+//      (`shapeHistory.js` 의 `angleMoved`)
+//   3. **견줄 상대를 고를 수 있다.** 지난 번 · 처음 — 화면이 `prev` 로 넘긴다
+//
+// 3번이 「변화가 본체다」의 값이다. 사진을 두 번 찍은 사람에게는 같은 말이지만,
+// 열 번 찍은 사람에게 「지난 번」만 보여주면 반년의 변화가 아무 데도 안 남는다.
+
 /**
  * 셋을 합쳐 마지막 한 줄까지.
  *
  * read  `buildShapeRead` 가 준 것 (기록 · 인바디)
  * photo `buildRatios` 가 준 것 (오늘 사진) — 없으면 01 단계 그대로다
- * prev  지난 번 사진의 비율 — 없으면 사진은 숫자만 적고 판단에 안 낀다
+ * prev  견줄 상대 한 칸 (`pickPrev` · `pickFirst` 가 고른 것) — 없으면 사진은
+ *       숫자만 적고 판단에 안 낀다
  *
- * 돌려주는 것은 `{ lines, verdict, shoulderMove }` — 화면은 이것만 그린다.
+ * 돌려주는 것은 `{ lines, verdict, shoulderMove, angle }` — 화면은 이것만 그린다.
  */
 export function mergeShape(read, photo, prev) {
   const lines = [...(read?.lines || [])];
-  if (!photo || !photo.ok) return { lines, verdict: read?.verdict || null, shoulderMove: null };
+  const none = { lines, verdict: read?.verdict || null, shoulderMove: null, angle: null };
+  if (!photo || !photo.ok) return none;
 
   // 사진이 오늘 처음이면 **견줄 것이 없다고 적는다.** 조용히 넘어가면 사진을
   // 올렸는데 아무 일도 안 일어난 것으로 보인다
@@ -248,7 +265,26 @@ export function mergeShape(read, photo, prev) {
       basis: '사진',
       text: '사진은 오늘이 처음이라 아직 견줄 것이 없어요. 다음에 같은 자리·같은 옷으로 찍으면 달라진 것을 말해줄 수 있어요.',
     });
-    return { lines, verdict: read?.verdict || null, shoulderMove: null };
+    return none;
+  }
+
+  // ── 얼마 만인가 ──
+  //
+  // 며칠 만인지 모르면 변화의 크기를 읽을 수가 없다. 날짜가 없는 옛 기록도 있어서
+  // (03 때 쌓인 것) **없으면 그 말을 안 붙인다** — 지어내지 않는다.
+  const gap = daysBetween(prev.date, read?.today);
+  const when = gap && gap > 0 ? `${gap}일 만이에요` : null;
+
+  // ── 사진이 달라진 것인지 먼저 본다 ──
+  //
+  // 뼈(상체:다리)가 움직였으면 몸이 아니라 카메라가 움직인 것이다. 이 줄을 **어깨
+  // 이야기보다 먼저** 적는다 — 순서가 바뀌면 사람은 앞 줄을 이미 믿어버린다.
+  const angle = angleMoved(photo, prev);
+  if (angle?.doubt) {
+    lines.push({
+      basis: '사진',
+      text: `지난 번과 상체:다리가 ${prev.torsoLeg} → ${photo.torsoLeg}배로 달라졌어요. 이건 뼈 길이라 운동으로는 안 변해요 — 카메라 거리나 각도가 달라진 거예요.`,
+    });
   }
 
   // ── 지난 번의 나와 견준다 ──
@@ -256,25 +292,35 @@ export function mergeShape(read, photo, prev) {
   if (photo.shoulderHip !== null && prev.shoulderHip !== null) {
     const d = Math.round((photo.shoulderHip - prev.shoulderHip) * 100) / 100;
     shoulderMove = Math.abs(d) < RATIO_SURE ? 'flat' : d > 0 ? 'up' : 'down';
+    const tail = when ? ` (${when})` : '';
     lines.push({
       basis: '사진',
-      sure: photo.facing === 'front',
+      // 각도가 달라진 사진이면 **이 숫자부터 못 믿는다** — 정면이어도 그렇다
+      sure: photo.facing === 'front' && !angle?.doubt,
       text: shoulderMove === 'flat'
-        ? `어깨:골반은 지난 번과 거의 같아요 (${prev.shoulderHip} → ${photo.shoulderHip}배).`
-        : `어깨:골반이 ${prev.shoulderHip} → ${photo.shoulderHip}배로 ${d > 0 ? '넓어' : '좁아'}졌어요.`,
+        ? `어깨:골반은 지난 번과 거의 같아요 (${prev.shoulderHip} → ${photo.shoulderHip}배)${tail}.`
+        : `어깨:골반이 ${prev.shoulderHip} → ${photo.shoulderHip}배로 ${d > 0 ? '넓어' : '좁아'}졌어요${tail}.`,
     });
   }
 
   // ── 셋이 같은 곳을 가리킬 때만 단정한다 ──
   //
   // 기록에서 어깨가 덜 했고, 사진에서도 어깨:골반이 줄었다면 그때는 단정한다.
-  // 사진만 줄었고 기록은 아니면 **「각도일 수 있어요」**로 끝낸다
+  // 사진만 줄었고 기록은 아니면 **「각도일 수 있어요」**로 끝낸다.
+  // **각도가 의심되면 어느 쪽도 안 올린다** — 사진이 한 말 자체가 사진 탓이다.
   let verdict = read?.verdict || null;
   const leastIsShoulder = read?.least?.part === '어깨';
 
-  if (shoulderMove === 'down' && leastIsShoulder && read?.verdict === 'less') {
+  if (angle?.doubt) {
+    // 아무 말도 더 안 한다. 위에 까닭을 이미 적었다
+  } else if (shoulderMove === 'down' && leastIsShoulder && read?.verdict === 'less') {
     verdict = 'sure';
     lines.push({ basis: '사진·기록', sure: true, text: '기록과 사진이 같은 곳을 가리켜요 — 어깨예요.' });
+    // 겹쳐 찍은 것끼리면 그렇다고 밝히고, 아니면 **권한다.** 9/19 에 「같은 자리·같은
+    // 옷으로 찍은 것끼리 견준다」고 적은 것을 여기서 잇는다
+    lines.push(sameSetup(photo, prev)
+      ? { basis: '사진', sure: true, text: '둘 다 겹쳐 찍은 것이라 같은 자리에서 찍혔어요.' }
+      : { basis: '사진', text: '다음엔 겹쳐 찍기로 찍어보세요 — 같은 자리에서 찍힌 것끼리면 더 믿을 만해요.' });
   } else if (shoulderMove === 'down' && !leastIsShoulder) {
     lines.push({
       basis: '사진',
@@ -283,5 +329,5 @@ export function mergeShape(read, photo, prev) {
     });
   }
 
-  return { lines, verdict, shoulderMove };
+  return { lines, verdict, shoulderMove, angle };
 }

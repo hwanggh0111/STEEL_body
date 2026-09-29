@@ -19,6 +19,7 @@ const bundle = (entry, out) => {
 
 const shape = bundle('src/data/shapeRead.js', '.s1.cjs');
 const ratio = bundle('src/data/shapeRatio.js', '.s2.cjs');
+const hist = bundle('src/data/shapeHistory.js', '.s3.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -240,7 +241,9 @@ ok('첫 장으로는 단정을 안 바꾼다', m1.verdict, base.verdict);
 const m2 = shape.mergeShape(base, narrow, wide);
 ok('지난 번보다 좁아진 것을 안다', m2.shoulderMove, 'down');
 ok('기록과 사진이 같은 곳이면 단정한다', m2.verdict, 'sure');
-ok('그 줄의 근거는 사진·기록', m2.lines[m2.lines.length - 1].basis, '사진·기록');
+// 04 부터는 단정 줄 **뒤에** 한 줄이 더 붙는다(겹쳐 찍기를 밝히거나 권한다).
+// 그래서 마지막 줄이 아니라 **그런 줄이 있는지**로 본다
+ok('그 줄의 근거는 사진·기록', m2.lines.some((l) => l.basis === '사진·기록' && l.sure === true), true);
 
 // 0.06 안쪽은 안 움직인 것으로 본다 — 옷과 서 있는 자세가 그만큼 흔든다
 const m3 = shape.mergeShape(base, { ...wide, shoulderHip: 1.47 }, wide);
@@ -270,6 +273,74 @@ ok('그래서 각도 꼬리가 안 붙는다', firstLine.sure === false, false);
 console.log('── 가장 챙긴 곳도 말한다 ──');
 ok('가장 많이 한 곳을 안다', base.most.sets >= base.least.sets, true);
 ok('덜 한 곳과 다르다', base.most.part !== base.least.part, true);
+
+// ── 04 단계: 지난 번과 견주기 (2026-09-29) ──
+//
+// 여기가 특히 값으로 볼 자리다. 눈으로 보려면 **다른 날 찍은 사진 셋**이 있어야 하고,
+// 각도가 달라진 사진을 일부러 만들어야 한다.
+console.log('── 04 이력에 쌓는다 ──');
+
+const mk = (date, sh, tl, shot) => ({ date, ok: true, facing: 'front', shot, shoulderHip: sh, torsoLeg: tl });
+
+let LOG = [];
+LOG = hist.pushShape(LOG, mk('2026-08-01', 1.40, 0.75, 'pick'));
+LOG = hist.pushShape(LOG, mk('2026-09-01', 1.45, 0.75, 'overlay'));
+LOG = hist.pushShape(LOG, mk('2026-09-29', 1.38, 0.75, 'overlay'));
+ok('셋이 쌓였다', LOG.length, 3);
+ok('오래된 것이 앞', LOG[0].date, '2026-08-01');
+ok('사진 크기에 딸린 raw 는 안 남긴다', LOG[0].raw, undefined);
+
+const SAME = hist.pushShape(LOG, mk('2026-09-29', 1.30, 0.75, 'pick'));
+ok('같은 날 다시 찍으면 덮는다', SAME.length, 3);
+ok('덮은 값으로 바뀐다', SAME[SAME.length - 1].shoulderHip, 1.30);
+
+let FULL = [];
+for (let i = 1; i <= hist.SHAPE_MAX + 4; i++) {
+  FULL = hist.pushShape(FULL, mk('2026-01-' + String(i).padStart(2, '0'), 1.4, 0.75, 'pick'));
+}
+ok('열둘까지만 들고 있는다', FULL.length, hist.SHAPE_MAX);
+ok('넘치면 오래된 것을 버린다', FULL[0].date, '2026-01-05');
+
+console.log('── 04 견줄 상대 ──');
+ok('지난 번은 오늘 것이 아니다', hist.pickPrev(LOG, '2026-09-29').date, '2026-09-01');
+ok('처음은 가장 오래된 것', hist.pickFirst(LOG, '2026-09-29').date, '2026-08-01');
+// 하나뿐이면 「처음」과 「지난 번」이 같은 것이다 — **고를 것을 내놓지 않는다**
+const TWO = hist.pushShape([], mk('2026-09-01', 1.45, 0.75, 'pick'));
+ok('하나뿐이면 처음을 안 준다', hist.pickFirst(TWO, '2026-09-29'), null);
+ok('그래도 지난 번은 있다', hist.pickPrev(TWO, '2026-09-29').date, '2026-09-01');
+ok('몇 번 쟀는지 안다', hist.shapeSpan(LOG, '2026-09-29').count, 3);
+
+console.log('── 04 뼈로 각도를 검사한다 ──');
+// 상체:다리는 운동으로 안 변한다. 달라졌으면 **카메라가 움직인 것**이다
+ok('같은 뼈면 안 의심한다', hist.angleMoved({ torsoLeg: 0.75 }, { torsoLeg: 0.78 }).doubt, false);
+ok('0.08 넘게 달라지면 의심한다', hist.angleMoved({ torsoLeg: 0.66 }, { torsoLeg: 0.75 }).doubt, true);
+ok('못 쟀으면 아무 말도 안 한다', hist.angleMoved({ torsoLeg: null }, { torsoLeg: 0.75 }), null);
+ok('겹쳐 찍은 것끼리를 안다', hist.sameSetup({ shot: 'overlay' }, { shot: 'overlay' }), true);
+ok('한쪽만 겹쳐 찍은 것은 아니다', hist.sameSetup({ shot: 'overlay' }, { shot: 'pick' }), false);
+
+console.log('── 04 각도가 의심되면 단정하지 않는다 ──');
+// 어깨는 기록에서도 꼴찌 + 줄고 있고, 사진에서도 좁아졌다 — 그래도 **뼈가 움직였으면** 안 올린다
+const prevShot = { ...wide, date: '2026-08-01', shot: 'overlay' };
+const bent = { ...narrow, torsoLeg: 0.51, shot: 'overlay' };
+const m5 = shape.mergeShape(base, bent, prevShot);
+ok('각도가 달라진 것을 안다', m5.angle.doubt, true);
+ok('그때는 단정을 안 올린다', m5.verdict, base.verdict);
+ok('까닭을 적는다', m5.lines.some((l) => l.text.includes('카메라 거리나 각도')), true);
+ok('어깨 줄에도 각도 꼬리가 붙는다', m5.lines.some((l) => l.basis === '사진' && l.sure === false && l.text.includes('어깨:골반')), true);
+
+console.log('── 04 며칠 만인지 적는다 ──');
+const m6 = shape.mergeShape(base, { ...narrow, shot: 'overlay' }, prevShot);
+ok('기간을 적는다 (8/1 → 9/22)', m6.lines.some((l) => l.text.includes('52일 만이에요')), true);
+ok('각도가 멀쩡하면 단정한다', m6.verdict, 'sure');
+ok('둘 다 겹쳐 찍었으면 그렇다고 밝힌다', m6.lines.some((l) => l.text.includes('둘 다 겹쳐 찍은')), true);
+
+const m7 = shape.mergeShape(base, { ...narrow, shot: 'pick' }, { ...prevShot, shot: 'pick' });
+ok('골라 올린 것끼리면 겹쳐 찍기를 권한다', m7.lines.some((l) => l.text.includes('겹쳐 찍기로 찍어보세요')), true);
+ok('그래도 단정 자체는 막지 않는다', m7.verdict, 'sure');
+
+// 날짜가 없는 옛 기록(03 때 쌓인 것)이면 **기간을 지어내지 않는다**
+const m8 = shape.mergeShape(base, narrow, wide);
+ok('날짜가 없으면 기간을 안 적는다', m8.lines.some((l) => l.text.includes('일 만이에요')), false);
 
 console.log(bad === 0 ? '\n모두 통과' : '\n' + bad + '건 어긋남');
 process.exit(bad === 0 ? 0 : 1);

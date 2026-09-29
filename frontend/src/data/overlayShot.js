@@ -38,6 +38,23 @@ export function pickReference(photos, target) {
 }
 
 /**
+ * 체형에서 겹칠 사진 (2026-09-29, 04 단계).
+ *
+ * 체형 화면은 **사진을 안 들고 있는다** — 비율만 재고 사진은 버린다. 그래서 겹칠
+ * 기준은 이미 기기에 있는 **비교 화면의 전·후 사진**에서 빌린다.
+ *
+ * `pickReference` 와 고르는 규칙이 다르다: 거기서는 「찍는 자리의 짝」을 겹치지만,
+ * 체형에는 자리가 없다. **가장 나중 것에 맞춘다** — 지난 번의 나와 견주는 화면이라
+ * 견줄 상대가 「나중」이다. 없으면 「과거」, 그것도 없으면 그냥 카메라다.
+ */
+export function pickShapeReference(photos) {
+  const p = photos || {};
+  if (p.after) return { data: p.after, from: 'after' };
+  if (p.before) return { data: p.before, from: 'before' };
+  return null;
+}
+
+/**
  * 보이는 것과 찍히는 것을 맞춘다.
  *
  * 카메라가 주는 그림은 대개 4:3 이나 16:9 인데 사진 칸은 3:4 다. 화면에서는
