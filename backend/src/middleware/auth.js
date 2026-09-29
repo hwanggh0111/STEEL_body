@@ -4,6 +4,7 @@
 // 앱의 다른 모든 글자는 한국어다. 무엇을 해야 하는지도 안 적혀 있었다.
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { recordTokenForgery } = require('./aiGuard');
 
 module.exports = (req, res, next) => {
   if (!process.env.JWT_SECRET) {
@@ -71,6 +72,11 @@ module.exports = (req, res, next) => {
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: '로그인이 만료됐어요. 다시 로그인해주세요' });
+    }
+    // 서명이 틀리거나 깨진 토큰은 **위조 시도**다 (만료는 위에서 걸러졌다).
+    // 정상 사용에서는 안 나온다 — 세어서 되풀이하는 주소를 막는다 (2026-09-29)
+    if (err.name === 'JsonWebTokenError') {
+      try { recordTokenForgery(req.ip || req.connection?.remoteAddress || 'unknown'); } catch { /* 세다 실패해도 거절은 한다 */ }
     }
     return res.status(401).json({ error: '로그인 정보가 올바르지 않아요. 다시 로그인해주세요' });
   }

@@ -248,6 +248,35 @@ async function pickPort() {
   const innocent = await call('GET', '/routines/머신', { ip: IP.clean });
   ok('안 막힌 주소는 그대로 열린다', innocent.status, 200);
 
+  console.log('');
+  console.log('── 깊이로 감싼 XSS · 위조 토큰 (2026-09-29, 자체 침투에서 잡은 둘) ──');
+  // **독립된 주소·계정으로만 두들긴다** — 위의 시험 순서를 흔들지 않으려고 맨 끝에 둔다.
+  //
+  // 깊이 우회: 입력 스캔은 DoS 를 막으려 5단에서 멈추는데, 멈추면서 '안전'을 돌려줘서
+  // 여섯 단으로 감싼 `<script>` 가 그대로 지나쳤다(얕은 건 막고 깊은 건 놓쳤다).
+  const xssIp = '203.0.113.71';
+  const xreg = await call('POST', '/auth/register', {
+    body: { email: `deep${Date.now()}@shield.local`, password: 'shield12345', nickname: '깊이시험', username: `d${Date.now()}`.slice(0, 20) },
+    ip: xssIp,
+  });
+  const xtok = xreg.data?.token;
+  const deepBody = { date: '2026-09-02', a: { b: { c: { d: { e: { f: { g: '<script>alert(1)</script>' } } } } } } };
+  const deep = await call('POST', '/notes', { body: deepBody, token: xtok, ip: xssIp });
+  ok('깊이 6단으로 감싼 XSS 도 막는다', deep.status, 403);
+
+  // 위조 토큰: 서명이 틀린 토큰을 문턱(30회) 넘게 던지면 그 주소가 막혀야 한다.
+  // 여태 세는 데가 없어 아무리 던져도 안 막혔다(규칙이 죽어 있었다).
+  const forgeIp = '203.0.113.72';
+  let forgeBlocked = false;
+  for (let i = 0; i < 34; i += 1) {
+    const r = await call('GET', '/workouts', { token: `forged.${i}.nope`, ip: forgeIp });
+    if (r.status === 403 && /차단/.test(r.data?.error || '')) { forgeBlocked = true; break; }
+  }
+  ok('위조 토큰을 쌓으면 그 주소를 막는다', forgeBlocked, true);
+  // 막힌 주소는 **실제 API 자리**도 못 연다 (/health 는 화이트리스트라 확인에 못 쓴다)
+  const forgeAfter = await call('GET', '/routines/머신', { ip: forgeIp });
+  ok('  막힌 주소는 다른 자리도 못 연다', forgeAfter.status, 403);
+
   await stopServer();
   clean();
 

@@ -77,6 +77,7 @@ function hydrateBlocks() {
 }
 const loginFailures = new Map();    // IP → { count, lastFailure }
 const notFoundCounts = new Map();   // IP → { count, firstHit }
+const tokenForgeries = new Map();   // IP → { count, first }
 const spamCounts = new Map();       // userId → { count, firstCreate }
 
 // 1분에 이만큼 넘게 POST 하면 되돌려 보낸다.
@@ -106,6 +107,10 @@ const LOGIN_FAIL_STEPS = [
   { count: 7, hours: 1 },
 ];
 const NOT_FOUND_STEP = { count: 30, hours: 72 };
+// 위조 토큰 — 서명이 틀린(만료가 아니라) 토큰이 한 주소에서 이만큼 쌓이면 막는다.
+// 만료는 정상이라 안 센다(auth 가 갈라준다). 서명 위조는 정상 사용에서 안 난다 —
+// 열쇠가 바뀐 직후 잠깐 몰릴 수 있어 문턱은 넉넉히 두고 잠금은 1시간(되돌기 쉽게).
+const TOKEN_FORGE_STEP = { count: 30, hours: 1 };
 const BOT_LOCK_HOURS = 72;
 const INPUT_SUSPEND_DAYS = 3;
 const SUSPEND_TO_BAN = 2;
@@ -435,6 +440,29 @@ function recordLoginFailure(ip) {
   }
 }
 
+// ── 위조 토큰 (2026-09-29, 자체 침투에서 되살렸다) ──
+//
+// 여태 `token_forge` 는 **AI 사유 문구에만 있고 세는 데가 없었다** — 위조 토큰을
+// 아무리 던져도 그 주소는 안 막혔다(규칙이 죽어 있었다). 서명이 틀린 토큰은
+// 정상 사용에서 나오지 않는다 — 남의 계정으로 들어가려고 토큰을 지어내는 것이다.
+//
+// **만료는 안 센다.** 그건 오래 켜둔 화면에서 늘 나는 일이라 `auth` 가 갈라
+// 이쪽으로 안 보낸다(`TokenExpiredError` 는 제외). 세는 것은 서명 위조·깨진 토큰뿐이다.
+function recordTokenForgery(ip) {
+  if (!ip || ip === 'unknown' || SELF_IPS.includes(ip)) return;
+  const now = Date.now();
+  const rec = tokenForgeries.get(ip);
+  if (!rec || now - rec.first > 60 * 60 * 1000) {
+    limitedSet(tokenForgeries, ip, { count: 1, first: now });
+    return;
+  }
+  rec.count += 1;
+  if (rec.count >= TOKEN_FORGE_STEP.count) {
+    executeLevel2(ip, 'token_forge', `${rec.count}회`, TOKEN_FORGE_STEP.hours);
+    tokenForgeries.delete(ip);
+  }
+}
+
 // ── 요청 속도 체크 ──
 function checkRequestRate(ip) {
   const now = Date.now();
@@ -496,6 +524,9 @@ const cleanup = setInterval(() => {
   }
   for (const [ip, r] of notFoundCounts.entries()) {
     if (now - r.firstHit > 120000) notFoundCounts.delete(ip);
+  }
+  for (const [ip, r] of tokenForgeries.entries()) {
+    if (now - r.first > 3600000) tokenForgeries.delete(ip);
   }
   for (const [uid, r] of spamCounts.entries()) {
     if (now - r.firstCreate > 120000) spamCounts.delete(uid);
@@ -578,7 +609,25 @@ function aiGuardMiddleware(req, res, next) {
     const decoded = decodeURIComponent(req.originalUrl);
     if (decoded !== req.originalUrl) allInput._decodedUrl = decoded;
   } catch {}
-  const threat = scanInput(allInput, 0);
+  let threat = scanInput(allInput, 0);
+  // ── 깊이 우회를 막는다 (2026-09-29, 자체 침투에서 잡았다) ──
+  //
+  // `scanInput` 은 DoS 를 막으려 **5단에서 멈춘다** — 그런데 멈추면 `null`(안전)을
+  // 돌려줘서, `{a:{b:{c:{d:{e:{f:'<script>'}}}}}}` 처럼 여섯 단으로 감싸면 XSS 가
+  // 그대로 지나쳤다(정책에 「XSS 를 막는다」고 적어놓고 얕은 것만 막고 있었다).
+  //
+  // 몸통을 **문자열로 펴서 한 번 더 훑는다.** req.body 는 BODY_LIMIT 로 크기가 묶여
+  // 있어 이 스캔은 폭탄이 안 된다(깊이가 아무리 깊어도 글자 수만큼만 본다).
+  // 프로토타입 오염 키는 `express.json` 의 reviver 가 파싱 때 이미 모든 깊이에서
+  // 걷어내므로 여기서 다시 안 본다 — XSS 문자열만 훑으면 된다.
+  if (!threat && req.body && typeof req.body === 'object') {
+    try {
+      const flat = JSON.stringify(req.body);
+      for (const pat of XSS_PATTERNS) {
+        if (pat.test(flat)) { threat = { type: 'xss', pattern: pat.toString() }; break; }
+      }
+    } catch { /* 직렬화가 안 되면 구조 스캔 결과를 믿는다 */ }
+  }
   if (threat) {
     // 로그인한 사람이면 사다리를 탄다.
     //
@@ -725,6 +774,11 @@ function policy() {
       detail: `1분에 ${NOT_FOUND_STEP.count}회를 넘으면 ${hoursText(NOT_FOUND_STEP.hours)} 잠근다 (훑고 다니는 것)`,
     },
     {
+      title: '위조 토큰',
+      detail: `서명이 틀린 로그인 토큰을 1시간에 ${TOKEN_FORGE_STEP.count}회 넘게 던지면 `
+        + `${hoursText(TOKEN_FORGE_STEP.hours)} 잠근다 (만료된 토큰은 정상이라 안 센다)`,
+    },
+    {
       title: '봇 · 크롤러',
       detail: `사람 브라우저가 아닌 것으로 보이면 ${hoursText(BOT_LOCK_HOURS)} 잠근다`,
     },
@@ -758,6 +812,7 @@ module.exports = aiGuardMiddleware;
 module.exports.spamCheck = spamCheck;
 module.exports.suspensionCheck = suspensionCheck;
 module.exports.recordLoginFailure = recordLoginFailure;
+module.exports.recordTokenForgery = recordTokenForgery;
 module.exports.executeLevel4 = executeLevel4;
 module.exports.executeLevel3 = executeLevel3;
 
@@ -792,7 +847,7 @@ module.exports.unblockIP = (ip) => {
 };
 module.exports.hydrateBlocks = hydrateBlocks;
 module.exports.policy = policy;
-module.exports.THRESHOLDS = { RATE_STEPS, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
+module.exports.THRESHOLDS = { RATE_STEPS, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
 
 // 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
 // **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다

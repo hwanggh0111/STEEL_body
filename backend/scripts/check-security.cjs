@@ -343,6 +343,21 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
   // 바깥 주소는 그대로 막는다 — 위의 것이 방어막을 무르게 한 것이 아니다
   for (let i = 0; i < 9; i += 1) guard.recordLoginFailure('203.0.113.77');
   ok('  바깥 주소는 그대로 막는다', !!db.findBlock('203.0.113.77'), true);
+  db.unblockIp('203.0.113.77');
+
+  // ── 위조 토큰은 쌓이면 막는다 (2026-09-29, 자체 침투에서 되살렸다) ──
+  //
+  // `token_forge` 는 AI 사유 문구에만 있고 세는 데가 없었다 — 위조 토큰을 아무리
+  // 던져도 그 주소는 안 막혔다. 이제 `auth` 가 서명 위조를 이 함수로 세어 올린다.
+  const T2 = guard.THRESHOLDS.TOKEN_FORGE_STEP;
+  for (let i = 0; i < T2.count - 1; i += 1) guard.recordTokenForgery('198.51.100.9');
+  ok('문턱 전에는 안 막는다', db.findBlock('198.51.100.9'), null);
+  guard.recordTokenForgery('198.51.100.9');
+  ok('문턱을 넘으면 막는다', !!db.findBlock('198.51.100.9'), true);
+  db.unblockIp('198.51.100.9');
+  // localhost 는 세지 않는다 (프록시를 안 믿는 자리에서 우리 자신을 막지 않으려고)
+  for (let i = 0; i < T2.count + 2; i += 1) guard.recordTokenForgery('127.0.0.1');
+  ok('localhost 위조는 안 막는다', db.findBlock('127.0.0.1'), null);
   // **치우고 간다.** 아래에서 「화면이 센 건수 = 파일의 건수」를 보는데, 화면 값은
   // 이 위에서 이미 받아둔 것이라 여기서 하나를 더 남기면 그 줄이 어긋난다
   db.unblockIp('203.0.113.77');
@@ -354,6 +369,8 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
     T.RATE_STEPS.every((st) => joined.includes(String(st.count))), true);
   ok('로그인 실패 문턱이 코드와 같다',
     T.LOGIN_FAIL_STEPS.every((st) => joined.includes(String(st.count))), true);
+  // 위조 토큰 규칙이 화면 정책에 실려 있어야 한다 (있는 방어만 적는다)
+  ok('위조 토큰 규칙을 적는다', joined.includes('위조 토큰') || /서명이 틀린/.test(joined), true);
   ok('스팸 문턱이 코드와 같다', joined.includes(String(T.SPAM_PER_MINUTE)), true);
   // 없앤 것을 아직 한다고 적으면 안 된다
   ok('없는 규칙(SQL · 몽고)을 한다고 적지 않는다', /SQL 인젝션을 막는다|몽고 인젝션을 막는다/.test(joined), false);
