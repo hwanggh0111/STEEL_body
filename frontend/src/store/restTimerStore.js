@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { readLS, saveLS } from '../data/safeStorage';
-import { TONES, VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME } from '../data/alertSound';
+import { VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME, knownTone, looksLikeToneId } from '../data/alertSound';
 
 // 휴식 타이머.
 //
@@ -37,6 +37,21 @@ const readFlag = (key) => readLS(key) !== '0';
 const readPickOf = (val, list, fallback) => (list.some((x) => x.id === val) ? val : fallback);
 const readPick = (key, list, fallback) => readPickOf(readLS(key), list, fallback);
 
+// ── 만든 소리는 목록으로 거르면 안 된다 (2026-09-29 에 찾은 것) ──
+//
+// 9/22 에 「소리를 직접 만드는」 기능을 붙였는데 **고를 수가 없었다.** 여기서 고른
+// 이름을 기본 넷(`TONES`)으로만 걸렀기 때문이다 — `my-1758…` 는 그 넷에 없으니
+// 「종」으로 되돌려졌다. 설정 화면에서 누르면 미리듣기는 그 소리가 나고(그쪽은
+// `allTones()` 를 본다), 저장되는 것은 종이었다. **기능이 있는 척만 했다.**
+//
+//   고를 때 — 그 순간에는 만든 소리가 이미 얹혀 있다(`knownTone` 으로 본다)
+//   읽을 때 — 아직 안 얹혀 있다(스토어가 `Layout` 보다 먼저 만들어진다).
+//             그래서 모양만 보고 들인다(`looksLikeToneId`)
+const readTone = (key) => {
+  const v = readLS(key);
+  return looksLikeToneId(v) ? v : DEFAULT_TONE;
+};
+
 let ticker = null;
 
 function stopTicker() {
@@ -65,7 +80,7 @@ export const useRestTimerStore = create((set, get) => ({
   sound: readFlag(LS_SOUND),
   vibrate: readFlag(LS_VIBRATE),
   // 어떤 소리로 알릴지 · 얼마나 크게 (2026-09-02). 제보로 들어온 것이다
-  tone: readPick(LS_TONE, TONES, DEFAULT_TONE),
+  tone: readTone(LS_TONE),
   volume: readPick(LS_VOLUME, VOLUMES, DEFAULT_VOLUME),
 
   setDuration: (sec) => {
@@ -77,7 +92,7 @@ export const useRestTimerStore = create((set, get) => ({
   setAutoStart: (on) => { saveLS(LS_AUTO, on ? '1' : '0'); set({ autoStart: !!on }); },
   setSound: (on) => { saveLS(LS_SOUND, on ? '1' : '0'); set({ sound: !!on }); },
   setVibrate: (on) => { saveLS(LS_VIBRATE, on ? '1' : '0'); set({ vibrate: !!on }); },
-  setTone: (id) => { const v = readPickOf(id, TONES, DEFAULT_TONE); saveLS(LS_TONE, v); set({ tone: v }); },
+  setTone: (id) => { const v = knownTone(id) ? id : DEFAULT_TONE; saveLS(LS_TONE, v); set({ tone: v }); },
   setVolume: (id) => { const v = readPickOf(id, VOLUMES, DEFAULT_VOLUME); saveLS(LS_VOLUME, v); set({ volume: v }); },
 
   start: (sec, label = '') => {

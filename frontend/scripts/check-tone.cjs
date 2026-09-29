@@ -145,6 +145,60 @@ ok('  값 하나씩 고른다', (noComment.match(/useRestTimerStore\(\(st\)/g) |
 //    쓸 수 있나」라, 그걸로 적으면 안 걸었는데 「켜짐」이라고 나온다
 ok('앱 잠금은 걸렸는지로 적는다', /isLockSet/.test(setpage), true);
 
+// ── 만든 소리를 고를 수 있나 (2026-09-29 에 찾은 버그) ──
+//
+// 9/22 에 소리 만들기를 붙였는데 **고를 수가 없었다.** 휴식 타이머 스토어가 고른
+// 이름을 **기본 넷으로만** 걸렀다 — `my-1758…` 은 그 넷에 없으니 「종」으로 되돌았다.
+// 미리듣기는 만든 소리가 나고 저장되는 것은 종이라, 아무도 어디가 틀렸는지 모른다.
+console.log('');
+console.log('── 만든 소리를 고를 수 있나 ──');
+
+const A = bundle('src/data/alertSound.js', '.t2.cjs');
+const my = C.buildTone({ id: 'my-1', name: '내 소리', pitch: 'high', count: 2, speed: 'fast', shape: 'sharp' });
+
+ok('얹기 전에는 모르는 소리다', A.knownTone('my-1'), false);
+A.setExtraTones([my]);
+ok('얹으면 아는 소리가 된다', A.knownTone('my-1'), true);
+ok('기본 넷도 그대로 안다', A.knownTone('ding'), true);
+ok('없는 이름은 모른다', A.knownTone('없는것'), false);
+
+// 읽을 때는 **아직 아무도 얹지 않았다**(스토어가 `Layout` 보다 먼저 만들어진다).
+// 그래서 모양만 보고 들인다 — 버리면 다시 열 때마다 기본 소리로 돌아간다
+ok('만든 소리 이름처럼 생겼다', A.looksLikeToneId('my-1758999'), true);
+ok('빈 것은 아니다', A.looksLikeToneId(''), false);
+ok('한글·따옴표가 섞이면 아니다', A.looksLikeToneId("ding'); drop"), false);
+
+const rest = fsrc('src/store/restTimerStore.js');
+const restCode = rest.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+ok('고른 소리를 기본 넷으로 거르지 않는다', /readPickOf\(id, TONES/.test(restCode), false);
+ok('아는 소리인지로 본다', /knownTone\(id\)/.test(restCode), true);
+ok('읽을 때는 모양만 본다', /looksLikeToneId/.test(restCode), true);
+
+// ── 설정함이 있는 자리로 보내나 (2026-09-29 에 찾은 버그) ──
+//
+// 「내려받기 · 가져오기」가 고객센터로 보내면서 있지도 않은 갈래를 넘겼다.
+// 내려받기는 기록 화면(`/history`)과 몸의 측정 갈래에 있다
+console.log('');
+console.log('── 설정함이 있는 자리로 보내나 ──');
+ok('고객센터로 안 보낸다', /support['"], \{ state: \{ tab: 'data'/.test(setpage), false);
+ok('기록 화면으로 보낸다', /navigate\('\/history'\)/.test(setpage), true);
+ok('측정은 몸의 측정 갈래로', /navigate\('\/body', \{ state: \{ tab: 'measure' \} \}\)/.test(setpage), true);
+ok('체형에서 잰 것을 지울 수 있다', /removeLS\(SHAPE_LOG_KEY\)/.test(setpage), true);
+ok('  옛 한 칸도 같이 지운다', /removeLS\(SHAPE_RATIOS_KEY\)/.test(setpage), true);
+ok('헬스장으로 가는 길이 있다', /navigate\('\/gym'\)/.test(setpage), true);
+
+// ── 없는 것을 있다고 적지 않는다 ──
+//
+// 숨은 **홈트 화면에만** 있다. 「운동할 때도」라고 적어두면 헬스장에서도 된다고 읽는다
+console.log('');
+console.log('── 숨은 어디서 되나 ──');
+const st = fsrc('src/store/settingsStore.js');
+const stCode = st.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+ok('「운동할 때도」라고 안 적는다', /운동할 때도/.test(stCode), false);
+ok('홈트 안에서 갈린다고 적는다', /홈트 전체에서/.test(stCode), true);
+const train = fsrc('src/pages/TrainPage.jsx');
+ok('(운동 화면에는 아직 숨이 없다)', /useBreath|BreathRow/.test(train), false);
+
 console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
 process.exitCode = bad ? 1 : 0;

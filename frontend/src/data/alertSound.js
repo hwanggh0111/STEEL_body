@@ -140,6 +140,24 @@ export function allTones() {
 
 const toneOf = (id) => allTones().find((t) => t.id === id) || TONES[0];
 
+/** 지금 아는 소리인가 (기본 넷 + 얹어둔 것). 고른 것을 받아들일지 묻는 쪽이 쓴다. */
+export function knownTone(id) {
+  return allTones().some((t) => t.id === id);
+}
+
+/**
+ * 소리 이름처럼 생겼나.
+ *
+ * **아는 소리인지와 다른 물음이다.** 만든 소리는 앱이 켜진 뒤 `Layout` 이 얹으므로
+ * (`setExtraTones`), 저장소를 읽는 순간에는 아직 아무도 그 이름을 모른다. 그때
+ * 「모르는 이름」이라고 버리면 **만든 소리를 골라둔 사람이 앱을 다시 열 때마다
+ * 기본 소리로 돌아간다.** 그래서 읽을 때는 모양만 보고, 끝내 못 찾으면 `toneOf` 가
+ * 기본 소리로 낸다 — 버리는 것보다 늦게 찾는 쪽이 맞다.
+ */
+export function looksLikeToneId(v) {
+  return typeof v === 'string' && /^[a-z0-9_-]{1,40}$/i.test(v);
+}
+
 /** 소리 하나를 지금 낸다. 준비가 안 됐으면 조용히 넘어간다. */
 export function playTone(toneId = DEFAULT_TONE, volumeId = DEFAULT_VOLUME) {
   if (!ctx || ctx.state !== 'running') return false;

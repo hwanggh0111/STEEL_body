@@ -9,6 +9,11 @@ import ToneMaker from '../components/ToneMaker';
 import { micSupported } from '../data/useBreath';
 import { speechSupported } from '../data/voiceLog';
 import { canLock, isLockSet } from '../data/appLock';
+import { useGymStore } from '../store/gymStore';
+import { confirmDialog } from '../components/ConfirmModal';
+import { removeLS, readLS } from '../data/safeStorage';
+import { SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
 // 비밀번호를 바꾸거나 계정을 지우는 일은 몇 달에 한 번이다
 const LockSetup = lazy(() => import('../components/LockSetup'));
@@ -213,6 +218,20 @@ export default function SettingsPage() {
   // 그리고 **잠금 창을 닫을 때 다시 본다.** 거기서 걸거나 풀었는데 이 줄이 그대로면,
   // 사람은 걸린 줄 알고(또는 안 걸린 줄 알고) 나간다
   const [locked, setLocked] = useState(isLockSet);
+
+  // 다니는 곳. **기기에 남는 값**이라 스토어가 이미 들고 있다 — 여기서 새로 읽지 않는다
+  const gym = useGymStore((st) => st.gym);
+
+  // 체형에서 잰 것이 몇 개인가. **세는 것뿐**이라 스토어를 만들지 않는다 —
+  // 이력을 쓰는 화면은 체형 하나고, 거기가 늘 이 열쇠를 다시 읽는다
+  const [shapeCount, setShapeCount] = useState(() => {
+    try {
+      const list = JSON.parse(readLS(SHAPE_LOG_KEY) || 'null');
+      if (Array.isArray(list)) return list.length;
+    } catch { /* 깨진 것은 없는 것으로 본다 */ }
+    // 9/22 에 쓰던 한 칸이 아직 남아 있을 수 있다 — 그것도 지울 것이 있다는 뜻이다
+    return readLS(SHAPE_RATIOS_KEY) ? 1 : 0;
+  });
   const tones = allTones();
   const tone = tones.find((t) => t.id === toneId) || tones[0];
   return (
@@ -309,8 +328,11 @@ export default function SettingsPage() {
                   <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어디서 쓸까요</div>
                     <Pick items={BREATH_WHERE} value={s.breathWhere} onPick={s.setBreathWhere} />
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7 }}>
-                      헬스장은 시끄러워서 숨이 묻혀요
+                    {/* **홈트 안에서만 갈린다.** 예전에는 「홈트에서만 / 운동할 때도」라고
+                        적어놨는데 헬스장 운동 화면에는 숨이 아예 없었다 — 고른 사람은
+                        아무 일도 안 일어나는 것을 골랐다 (9/29 에 고쳤다) */}
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+                      둘 다 <b>홈트</b>에서예요. 헬스장 운동 화면에는 아직 없어요 — 거기는 시끄러워서 숨이 묻혀요.
                     </div>
                   </div>
 
@@ -385,6 +407,47 @@ export default function SettingsPage() {
             }}
           />
         </div>
+
+        {/* ── 체형에서 잰 것 (2026-09-29) ──
+            9/29 에 체형이 **잰 비율을 이력으로 쌓기** 시작했다(`shapeHistory`).
+            그런데 **지울 길이 없었다** — 로그아웃 말고는. 몸에 대한 값이라
+            「쌓아두기만 하고 못 지우는 자리」로 둘 수 없다.
+            사진은 여기 없다(체형은 사진을 안 들고 있는다) — 비율 숫자와 날짜뿐이다 */}
+        {shapeCount > 0 && (
+          <div style={{ padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11 }}>
+            <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>체형에서 잰 비율</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
+              {shapeCount}번 잰 것이 이 기기에 있어요 (사진은 없어요 — 비율 숫자와 날짜뿐이에요).
+              지우면 <b>견줄 상대가 없어져요.</b>
+            </div>
+            <button
+              onClick={async () => {
+                if (!await confirmDialog(`체형에서 잰 ${shapeCount}번을 지울까요? 다음 사진은 견줄 것이 없는 첫 장이 돼요.`, { danger: true })) return;
+                // 옛 한 칸(9/22 것)도 같이 지운다 — 하나만 지우면 그것이 되살아난다
+                removeLS(SHAPE_LOG_KEY);
+                removeLS(SHAPE_RATIOS_KEY);
+                setShapeCount(0);
+                toast('지웠어요');
+              }}
+              className="btn-secondary"
+              style={{ width: 'auto', marginTop: 9, padding: '6px 13px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
+            >잰 것 지우기</button>
+          </div>
+        )}
+      </Group>
+
+      {/* ── 헬스장 (2026-09-29) ──
+          기구마다 꽂아둔 핀 · 앉는 높이를 적어두는 자리가 따로 있는데
+          (`/gym`), 설정함에서 갈 길이 없었다. **「그건 저기 있어요」로 미루면 사람은
+          그 기능이 없다고 생각한다** — 이 화면을 만든 까닭이 그것이다.
+          어디 다니는지는 **기기에 남는다**(`GYM_KEY`) — 폰에서 고른 곳이 집 PC 까지
+          바뀌면 안 되기 때문이다. 그래서 여기가 맞는 자리다 */}
+      <Group title="헬스장">
+        <GoRow
+          title="다니는 곳 · 기구 세팅"
+          sub={gym || '아직 안 골랐어요'}
+          onClick={() => navigate('/gym')}
+        />
       </Group>
 
       {/* ── 계정 (2026-09-22) ──
@@ -467,18 +530,32 @@ export default function SettingsPage() {
         />
       </Group>
 
-      {/* ── 기록 챙기기 ── */}
+      {/* ── 기록 챙기기 ──
+          **길이 틀려 있었다** (9/29 에 찾았다). 「내려받기 · 가져오기」가 고객센터로
+          (`/support`) 보내면서 있지도 않은 갈래(`tab: 'data'`)를 넘겼다 — 고객센터는
+          그 값을 안 읽고, 내려받기는 애초에 거기 없다. 누른 사람은 **FAQ 맨 위**에
+          떨어져서, 내려받기가 없는 줄 알게 된다.
+          실제 자리는 둘이다 — 운동 · 인바디는 기록 화면, 측정은 몸의 측정 갈래.
+          **두 자리를 하나로 적지 않는다**: 없는 한 곳으로 보내는 것보다 두 줄이 낫다 */}
       <Group title="기록 챙기기">
         <GoRow
-          title="내려받기 · 가져오기"
-          sub="운동 · 인바디 · 측정"
-          onClick={() => navigate('/support', { state: { tab: 'data' } })}
+          title="운동 · 인바디 내려받기"
+          sub="가져오기도 같은 자리"
+          onClick={() => navigate('/history')}
+        />
+        <GoRow
+          title="측정 내려받기"
+          sub="줄자로 잰 것"
+          onClick={() => navigate('/body', { state: { tab: 'measure' } })}
         />
       </Group>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4, marginBottom: 18 }}>
         여기 있는 것은 <b>이 기기에서 어떻게 쓸지</b>예요 — 로그아웃해도 남습니다.
-        이름 · 성별만 서버에 있어서 기기를 바꿔도 따라갑니다.
+        이름 · 성별만 서버에 있어서 기기를 바꿔도 따라갑니다.<br />
+        {/* 판 번호는 **제보할 때 필요한 것**이다. 고객센터가 자동으로 붙여 보내지만,
+            「지금 무슨 판을 쓰고 있나」를 눈으로 볼 자리가 아무 데도 없었다 */}
+        BLACK IRON v{pkg.version}
       </div>
 
       {/* ── 나가기 ──
