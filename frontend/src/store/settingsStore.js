@@ -91,10 +91,19 @@ export const useSettingsStore = create((set) => ({
   breathMax: readPick(SETTINGS_KEYS.breathMax, BREATH_MAX, 15),
   breathSense: readPick(SETTINGS_KEYS.breathSense, BREATH_SENSE, 'mid'),
 
+  // ── 몸 ──
+  inbodyScore: readFlag(SETTINGS_KEYS.inbodyScore, false),
+
   setKeepAwake: (on) => { saveLS(SETTINGS_KEYS.keepAwake, on ? '1' : '0'); set({ keepAwake: !!on }); },
   setVoiceLog: (on) => { saveLS(SETTINGS_KEYS.voiceLog, on ? '1' : '0'); set({ voiceLog: !!on }); },
   setPrBanner: (on) => { saveLS(SETTINGS_KEYS.prBanner, on ? '1' : '0'); set({ prBanner: !!on }); },
   setFinishCard: (on) => { saveLS(SETTINGS_KEYS.finishCard, on ? '1' : '0'); set({ finishCard: !!on }); },
+
+  // ── 몸 ──
+  // **기본은 꺼짐.** 8/25 에 「몸에 등급을 안 매긴다」고 정했고 9/2 에 비교 화면의
+  // 「종합 평가」를 그래서 걷어냈다. 점수를 보고 싶은 사람도 있어서 자리를 두지만,
+  // **켜는 사람에게만** 보인다 — 아무도 부탁하지 않은 점수를 앱이 먼저 들이대지 않는다
+  setInbodyScore: (on) => { saveLS(SETTINGS_KEYS.inbodyScore, on ? '1' : '0'); set({ inbodyScore: !!on }); },
 
   setBreath: (on) => { saveLS(SETTINGS_KEYS.breath, on ? '1' : '0'); set({ breath: !!on }); },
   setBreathWhere: (id) => {

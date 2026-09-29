@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { readingsOf, SEXES } from '../data/bodyRanges';
+import { scoreChange } from '../data/inbodyScore';
 import { toast } from './Toast';
 
 // 인바디 값이 **일반적으로 알려진 범위의 어디쯤인지**.
@@ -68,6 +70,87 @@ const NUMBERS = [
   { key: 'bmi', label: 'BMI', unit: '', digits: 1 },
 ];
 
+// ── 인바디 점수 (2026-09-29) ──
+//
+// **꺼져 있는 것이 기본이다.** 설정함에서 켠 사람에게만 나온다 — 8/25 에 「몸에
+// 등급을 안 매긴다」고 정했고, 그 규칙을 되돌린 것이 아니라 보고 싶은 사람에게
+// 자리를 준 것이다. 계산은 `data/inbodyScore.js` 에 있고 여기는 그리는 일만 한다.
+//
+// 지키는 것 셋 —
+//   · **등급을 안 붙인다.** 「72점 · 보통」 · A~D · 「위험」을 안 쓴다
+//   · **무엇으로 냈는지 항목마다 보여준다.** 한 숫자만 내놓으면 어디서 깎였는지
+//     모르고, 그러면 사람은 그 숫자를 고치려 들지 못한다
+//   · **못 낼 때는 까닭을 적는다.** 「점수 없음」만 있으면 고장인 줄 안다
+function ScoreCard({ record, prev, sex }) {
+  const got = useMemo(() => scoreChange(record, prev, sex), [record, prev, sex]);
+
+  if (got.score === null) {
+    return (
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>인바디 점수</div>
+        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{got.why}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{
+      borderColor: 'var(--accent)', background: 'var(--accent-dim)',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9 }}>
+        <div style={{ flexGrow: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11.5, letterSpacing: 1, color: 'var(--accent)' }}>인바디 점수</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
+            참고 범위 {got.parts.length}가지를 접은 숫자예요 (100 이 범위 안)
+          </div>
+        </div>
+        <span style={{
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 44, letterSpacing: 1,
+          color: 'var(--text-primary)', lineHeight: 0.9,
+        }}>{got.score}</span>
+        {/* 지난 번과의 차이. **좋고 나쁨을 색으로 매기지 않는다** — 방향만 나눈다
+            (`BodyChange` · `ComparePage` 와 같은 규칙) */}
+        {got.dir && got.dir !== 'flat' && (
+          <span style={{ fontSize: 13, color: got.delta > 0 ? 'var(--accent)' : 'var(--info)', paddingBottom: 3 }}>
+            {got.delta > 0 ? '+' : '−'}{Math.abs(got.delta)}
+          </span>
+        )}
+      </div>
+
+      {/* 어디서 깎였나. 항목마다 적는다 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {got.parts.map((p) => (
+          <div key={p.metric} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12.5 }}>
+            <span style={{ color: 'var(--text-secondary)', flexGrow: 1 }}>{p.label}</span>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {p.inNormal
+                ? '범위 안'
+                : p.where === 'above'
+                  ? `범위보다 ${p.off} 위`
+                  : `범위보다 ${p.off} 아래`}
+            </span>
+            <span style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 0.5,
+              color: 'var(--text-primary)', width: 32, textAlign: 'right',
+            }}>{p.score}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        {got.prev !== null
+          ? `지난 기록은 ${got.prev}점이었어요. 견주는 상대는 지난 번의 나예요.`
+          : '지난 기록이 없어서 아직 견줄 것이 없어요.'}
+        <br />
+        점수는 <b>등급이 아니에요</b> — 이미 아래에 그려둔 참고 범위를 한 숫자로 접은 것이고,
+        나이 · 운동 이력 · 재는 기계에 따라 달라져요. 근육이 많아서 범위를 넘은 것은 안 깎아요.
+        {got.parts.length < 3 && <> 적은 칸이 있어서 {got.parts.length}가지로만 냈어요.</>}
+      </div>
+    </div>
+  );
+}
+
 const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 
 function Delta({ value, digits }) {
@@ -118,6 +201,8 @@ function Numbers({ record, prev }) {
 
 export default function BodyReading({ record, prev }) {
   const sex = useAuthStore(s => s.sex);
+  // 점수는 **켠 사람에게만.** 기본은 꺼짐이다 (`settingsStore`)
+  const showScore = useSettingsStore(st => st.inbodyScore);
   const setSex = useAuthStore(s => s.setSex);
   const [saving, setSaving] = useState(false);
 
@@ -137,6 +222,10 @@ export default function BodyReading({ record, prev }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+      {/* 점수를 켰으면 맨 위에 둔다 — 켠 사람은 그것을 보러 온다.
+          **끈 사람에게는 이 자리가 아예 없다** (기본이 꺼짐이다) */}
+      {showScore && <ScoreCard record={record} prev={prev} sex={sex} />}
 
       {/* 숫자 먼저 (시안 A). 판정 없이 이것만 보고 싶은 사람도 있다 */}
       <Numbers record={record} prev={prev} />
@@ -194,6 +283,10 @@ export default function BodyReading({ record, prev }) {
             나이 · 운동 이력 · 재는 기계에 따라 달라집니다. 좋고 나쁨을 매기지 않고,
             일반적으로 알려진 범위 안에서 어디쯤인지만 보여드립니다.
             <br />몸에 등급을 매기지 않습니다.
+            {/* 점수를 켠 사람에게는 **점수와 등급이 어떻게 다른지** 적는다 —
+                안 적으면 위의 숫자와 이 줄이 서로 다른 말을 하는 것으로 읽힌다 */}
+            {showScore && <> 위의 점수도 등급이 아니라 <b>이 범위를 접은 숫자</b>예요 —
+              잘함 · 못함을 적지 않고, 몇 점이 되어야 한다고도 말하지 않습니다.</>}
           </div>
         </div>
       ) : (

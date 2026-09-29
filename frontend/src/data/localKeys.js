@@ -112,6 +112,10 @@ export const SETTINGS_KEYS = {
   breathWhere: 'steelbody_set_breath_where',
   breathMax:   'steelbody_set_breath_max',
   breathSense: 'steelbody_set_breath_sense',
+  // 인바디 점수 (2026-09-29). **기본은 꺼짐** — 이 앱은 몸에 점수를 안 매기기로
+  // 했으므로(8/25), 보고 싶은 사람이 켜는 것이다. 그 기기에서 어떻게 볼지에 대한
+  // 취향이라 로그아웃해도 남긴다.
+  inbodyScore: 'steelbody_set_inbodyscore',
 };
 
 // 내가 만든 알림 소리 (`data/customTones.js`, 2026-09-22).
