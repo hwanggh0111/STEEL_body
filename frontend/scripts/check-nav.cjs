@@ -205,6 +205,40 @@ ok('  서랍에도 같은 줄을 안 둔다', /회복/.test(read('src/data/navIt
 ok('홈트 결산에서 그 자리로 간다',
   /navigate\('\/body', \{ state: \{ tab: 'recover' \} \}\)/.test(recHome), true);
 
+// ── 홈페이지가 앱과 어긋나지 않는가 ── (2026-09-30)
+//
+// 「안 하는 것」에 **「회복 시간도 추정하지 않는다」**고 적혀 있었는데, 9/30 에 회복
+// 시간을 붙였다. 짐작이 아니라 숨을 들어 **재는 것**이라 규칙을 깬 것은 아니지만,
+// 읽는 사람에게는 거짓말로 보인다. 그리고 「하는 것」은 체형 읽기 · 회복 · 횟수 세기를
+// **아예 모르고 있었다** — 읽은 사람은 없는 앱을 그려보고 들어온다.
+//
+// **앱에 그 파일이 있으면 홈페이지도 알아야 한다.** 그것을 여기서 값으로 본다.
+console.log('');
+console.log('── 홈페이지가 앱과 같은 말을 하는가 ──');
+const fsx = require('fs');
+const siteSrc = read('src/pages/SiteHome.jsx');
+const intro = read('src/pages/support/introData.js');
+const has = (f) => fsx.existsSync(f);
+
+// 회복 시간이 앱에 있으면, 「회복 시간을 추정하지 않는다」고 적어둘 수 없다
+if (has('src/data/breathRecover.js')) {
+  ok('회복 시간이 있는데 「안 한다」고 안 적는다', /회복 시간도 칼로리도 추정하지 않는다/.test(siteSrc), false);
+  ok('  하는 것에 실려 있다', /'회복 시간'/.test(siteSrc), true);
+  ok('  앱 소개에도 실려 있다', /회복 시간/.test(intro), true);
+}
+if (has('src/data/repCount.js')) {
+  ok('횟수 세기가 하는 것에 실려 있다', /'횟수 세기'/.test(siteSrc), true);
+}
+if (has('src/data/shapeRead.js')) {
+  ok('체형 읽기가 하는 것에 실려 있다', /'체형 읽기'/.test(siteSrc), true);
+  ok('  앱 소개에도 실려 있다', /'체형 읽기'/.test(intro), true);
+}
+// **안 밝히면 다음 거짓말이 된다** — 사진은 실제로 계정에 저장된다(견주기용)
+ok('폰 안에서 끝난다고 적으면서 사진 저장을 같이 밝힌다',
+  /읽는 일은 폰 안에서 끝난다/.test(siteSrc) && /계정에 저장되고/.test(siteSrc), true);
+// 추정하지 않는다는 말 자체는 그대로 지킨다 (칼로리 · 체지방률)
+ok('칼로리는 여전히 추정하지 않는다고 적는다', /칼로리도 체지방률도 추정하지 않는다/.test(siteSrc), true);
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('전부 통과');

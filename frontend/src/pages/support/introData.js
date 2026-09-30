@@ -11,7 +11,7 @@ import { dateKey } from '../../data/dateKey';
 // 소개를 읽고 눌러본 사람이 없어진 자리로 간다.
 //   기록 · 검색 · 기능성운동 → 「운동」  ·  인바디 · 측정 → 「몸」  ·  달력 → 「기록」
 export const FEATURES = [
-  { name: '운동 기록',   path: '/train',   icon: 'dumbbell',  short: '무게 · 횟수 · 세트',     long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다' },
+  { name: '운동 기록',   path: '/train',   icon: 'dumbbell',  short: '무게 · 횟수 · 세트',     long: '무게 · 횟수 · 세트를 남긴다. 지난 기록이 옆에 떠서 오늘 얼마나 올릴지 바로 안다. 폰을 옆에 세워두면 횟수를 대신 세어준다' },
   { name: '루틴 따라가기', path: '/train', icon: 'clipboard', short: '고르고 · 이어서',        long: '짜둔 루틴을 그 자리에서 시작한다. 지금 할 운동이 진행표에 뜨고, 한 번 적으면 다음으로 넘어간다' },
   { name: '운동 검색',   path: '/train',   icon: 'search',    short: '이름 · 초성 · 부위로',   long: '앱 안의 운동 사전에서 바로 찾는다. 초성으로도, 부위 이름으로도 찾는다. 적던 것은 안 끊긴다' },
   { name: '기능성운동',  path: '/homeworkout', icon: 'homegym', short: '집에 있는 것으로',     long: '운동기구 없이 의자 · 수건 · 배낭으로 한다. 무엇이 필요한지를 고르기 전에 적어둔다' },
@@ -20,6 +20,11 @@ export const FEATURES = [
   { name: '몸 지도',     path: '/map',     icon: 'body',      short: '어디가 식었나',          long: '최근에 자극한 부위가 금빛으로 달아 있고 며칠 지나면 식는다. 오늘 어디를 할지 몸을 보고 정한다' },
   { name: '인바디',      path: '/body',    icon: 'chart',     short: '체중 · 체지방 · 골격근', long: '체중 하나만 적어도 그래프가 이어진다. 지난번과 견줘 무엇이 어느 쪽으로 갔는지 말해준다' },
   { name: '재는 도구',   path: '/body',    icon: 'ruler',     short: '사이즈 · 1RM · 체력',    long: '전신 사이즈 · 1RM · 체력 테스트 · 유연성까지 한곳에', state: { tab: 'measure' } },
+  // ── 아래 둘은 2026-09-30 에 더했다 ──
+  // 9/22~9/30 에 앱에 붙었는데 **이 목록이 그것을 모르고 있었다.** 소개를 읽은 사람은
+  // 있는 기능을 없는 줄 알고 지나간다 — 없는 자리로 보내는 것과 같은 종류의 잘못이다
+  { name: '체형 읽기',   path: '/body',    icon: 'body',      short: '사진으로 비율을',        long: '사진을 올리면 그 사진에서 잰 비율로 실루엣을 다시 그린다. 분석은 폰 안에서 끝나고, 견주는 상대는 지난 번의 나다', state: { tab: 'shape' } },
+  { name: '회복 시간',   path: '/body',    icon: 'chart',     short: '숨이 가라앉는 초',       long: '동작이 끝나고 숨이 가라앉는 데 걸린 초를 잰다. 같은 동작 뒤에 그 초가 줄면 전보다 덜 힘들어진 것이다 (홈트에서 숨을 켜두면 쌓인다)', state: { tab: 'recover' } },
   { name: '기록 달력',   path: '/history', icon: 'calendar',  short: '되짚고, 미리 정하기',    long: '달력으로 되짚는다. 빠진 날이 눈에 보여야 안 빠진다. 그 날을 눌러 그 자리에서 적을 수도 있다' },
   { name: '운동 알림',   path: '/reminders', icon: 'bell',    short: '정한 요일과 시각에',     long: '정한 요일과 시각에 알린다. 그날 이미 적었으면 보내지 않는다' },
 ];
