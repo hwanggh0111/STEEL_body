@@ -218,6 +218,38 @@ const tl = ratio.ratioLines(ti).map((l) => l.key);
 ok('7도는 말한다', tl.includes('shoulderTilt'), true);
 ok('1도 안쪽은 아무 말도 안 한다', tl.includes('hipTilt'), false);
 
+// ── 좌우가 뒤집힌 사진 (실제로는 이쪽이 보통이다) ──
+//
+// 모델의 `shoulderL` 은 **그 사람의** 왼쪽 어깨라, 정면으로 찍으면 화면에서는
+// 오른쪽에 온다(sL.x > sR.x). 9/30 까지 그 사진의 기울기가 **180도**로 나와서
+// 똑바로 선 사람에게 「어깨선이 180도 기울어 있어요」라고 말했다. 기울기는 선의
+// 것이지 점 순서의 것이 아니다 — 어느 쪽을 먼저 넣어도 같은 값이어야 한다.
+const MIRROR = stand({
+  shoulderL: [0.65, 0.30], shoulderR: [0.35, 0.30],
+  hipL: [0.60, 0.55], hipR: [0.40, 0.55],
+  kneeL: [0.60, 0.75], kneeR: [0.40, 0.75],
+  ankleL: [0.60, 0.95], ankleR: [0.40, 0.95],
+  elbowL: [0.67, 0.45], elbowR: [0.33, 0.45],
+  wristL: [0.67, 0.58], wristR: [0.33, 0.58],
+});
+const mi = ratio.buildRatios(MIRROR, SIZE);
+ok('뒤집힌 사진도 똑바로 서면 기울기 0', mi.shoulderTilt, 0);
+ok('  골반도 0', mi.hipTilt, 0);
+const ml = ratio.ratioLines(mi).map((l) => l.key);
+ok('  그러니 기울기 말을 안 한다', ml.includes('shoulderTilt') || ml.includes('hipTilt'), false);
+ok('  폭과 길이는 뒤집혀도 같다', [mi.shoulderHip, mi.torsoLeg], [1.5, 0.63]);
+ok('  좌우 차이도 0', mi.sideGap, 0);
+
+// 기울어 있을 때도 뒤집힌 쪽과 같은 값이어야 한다 (7~8도가 173도로 안 나온다)
+const MTILT = stand({
+  shoulderL: [0.65, 0.34], shoulderR: [0.35, 0.30],
+  hipL: [0.60, 0.55], hipR: [0.40, 0.55],
+  kneeL: [0.60, 0.75], kneeR: [0.40, 0.75],
+  ankleL: [0.60, 0.95], ankleR: [0.40, 0.95],
+});
+ok('뒤집혀도 기울기는 같은 수', ratio.buildRatios(MTILT, SIZE).shoulderTilt, ti.shoulderTilt);
+ok('  90도를 안 넘는다', ratio.buildRatios(MTILT, SIZE).shoulderTilt <= 90, true);
+
 console.log('── 사진 말투 ──');
 const pText = ratio.ratioLines(a2).map((l) => l.text).join(' ');
 // 자세 인식은 관절만 잡는다. 허리 둘레를 아는 점이 없으므로 **허리라고 하면 안 된다**

@@ -63,11 +63,16 @@ function mid(a, b) {
  * **어느 쪽이 높은지는 안 준다.** 사진은 좌우가 뒤집혀 찍히기도 하고(앞카메라),
  * 모델이 말하는 left/right 는 **사진 속 방향이 아니라 그 사람의 몸 기준**이다.
  * 「왼쪽이 높아요」라고 적었다가 거울상이면 반대를 말하게 된다 — 몇 도인지까지만 말한다.
+ *
+ * **어느 쪽을 먼저 넣어도 같은 값이어야 한다** (2026-09-30 에 물렸다). `shoulderL` 은
+ * 그 사람의 왼쪽 어깨라 정면 사진에서는 **화면 오른쪽**에 온다 — 그러면 `atan2` 가
+ * 180도 쪽을 주고, 똑바로 선 사람이 「어깨선이 180도 기울어 있어요」가 됐다.
+ * 기울기는 선의 것이지 점 순서의 것이 아니므로 **0~90도로 접는다.**
  */
 function tiltDeg(a, b) {
   if (!a || !b) return null;
-  const deg = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-  return Math.round(Math.abs(deg) * 10) / 10;
+  const deg = Math.abs((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI);
+  return Math.round((deg > 90 ? 180 - deg : deg) * 10) / 10;
 }
 
 const round2 = (n) => (n === null ? null : Math.round(n * 100) / 100);
