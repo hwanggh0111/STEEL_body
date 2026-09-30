@@ -67,6 +67,63 @@ export async function loadPose(onStage) {
   return inflight;
 }
 
+// ── 영상 모드 (2026-09-30, 횟수 세기) ──
+//
+// 횟수를 세려면 **흐르는 화면**을 봐야 한다. 그런데 모델 하나에 두 모드를 겹쳐 쓸 수
+// 없다 — `IMAGE` 로 만든 것에 영상을 넣으면 거절하고, 모드를 바꿔 끼우면 **체형이
+// 쓰던 것과 서로 모드를 빼앗는다**(같은 화면에서 둘이 열릴 일은 없지만, 그런 자리는
+// 언젠가 생긴다).
+//
+// 그래서 **따로 하나 더 만든다.** wasm 과 모델 파일은 브라우저가 이미 받아 캐시에
+// 들고 있으므로, 두 번째 것을 만드는 값은 내려받기가 아니라 **만드는 값**뿐이다.
+let readyVideo = null;
+let inflightVideo = null;
+
+/** 영상용 모델. 쓸 때 만들고 들고 있는다 (`loadPose` 와 같은 결). */
+export async function loadPoseVideo(onStage) {
+  if (readyVideo) return readyVideo;
+  if (inflightVideo) return inflightVideo;
+
+  inflightVideo = (async () => {
+    onStage?.('download');
+    const vision = await import('@mediapipe/tasks-vision');
+    const files = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
+    onStage?.('prepare');
+    const landmarker = await vision.PoseLandmarker.createFromOptions(files, {
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      // 흐르는 화면이다. 앞 장면을 기억하는 것이 여기서는 **도움이 된다** —
+      // 한 프레임 놓쳐도 관절 자리가 튀지 않는다
+      runningMode: 'VIDEO',
+      numPoses: 1,
+    });
+    readyVideo = landmarker;
+    inflightVideo = null;
+    onStage?.('done');
+    return landmarker;
+  })().catch((e) => { inflightVideo = null; throw e; });
+
+  return inflightVideo;
+}
+
+/**
+ * 흐르는 화면의 한 프레임 → 관절 33점.
+ *
+ * `at` 은 그 프레임의 시각(ms). **뒤로 가는 값을 주면 모델이 거절한다** — 부르는 쪽이
+ * 늘 늘어나는 값을 준다(`performance.now()`).
+ */
+export async function readPoseFrame(video, at, onStage) {
+  const landmarker = await loadPoseVideo(onStage);
+  const out = landmarker.detectForVideo(video, at);
+  return out?.landmarks?.[0] || null;
+}
+
+/** 영상용도 같이 버린다 (`resetPose` 와 짝). */
+export function resetPoseVideo() {
+  readyVideo?.close?.();
+  readyVideo = null;
+  inflightVideo = null;
+}
+
 /**
  * 사진 한 장 → 관절 33점(정규화 좌표).
  *

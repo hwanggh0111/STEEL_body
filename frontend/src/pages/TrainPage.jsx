@@ -8,6 +8,7 @@ import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
 import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
 import VoiceSet from '../components/VoiceSet';
+import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import { toast } from '../components/Toast';
 import { showFinish } from '../components/SessionFinish';
@@ -17,6 +18,7 @@ import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
+import { cannotCount } from '../data/repCount';
 import { useWakeLock } from '../data/useWakeLock';
 import GymSetting from '../components/GymSetting';
 import { useGymStore } from '../store/gymStore';
@@ -100,6 +102,9 @@ export default function TrainPage() {
   const [weight, setWeight] = useState(brought?.weight != null ? String(brought.weight) : '');
   const [sets, setSets] = useState(brought?.sets != null ? String(brought.sets) : '');
   const [reps, setReps] = useState(brought?.reps != null ? String(brought.reps) : '');
+  // 횟수를 세어주는 카메라 (2026-09-30). **고른 운동이 있을 때만 열린다** —
+  // 어느 관절을 볼지는 이름으로 정한다(`data/repCount.js`)
+  const [countOpen, setCountOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [record, setRecord] = useState(null);
@@ -702,6 +707,20 @@ export default function TrainPage() {
                 if (v.sets !== null) setSets(String(v.sets));
                 setError('');
               }} />}
+
+              {/* ── 횟수를 세어준다 (2026-09-30) ──
+                  목소리로 적기와 **같은 성격**이라 같은 자리에 둔다 — 둘 다 칸을
+                  채워주는 도구고, 저장은 사람이 누른다. 폰을 옆에 세워두면 관절이
+                  접혔다 펴지는 것을 세서 횟수 칸에 넣는다 (계산은 `data/repCount.js`).
+                  **셀 수 없는 운동에는 단추를 안 낸다** — 플랭크 옆에 「세어줄까요」가
+                  있으면 눌러보고 0 을 보게 된다 (`cannotCount` 가 가른다) */}
+              {picked && !cannotCount(picked) && (
+                <button
+                  className="btn-secondary"
+                  onClick={() => setCountOpen(true)}
+                  style={{ width: '100%', minHeight: 40, marginTop: 8, fontFamily: 'inherit', fontSize: 12.5, cursor: 'pointer' }}
+                >횟수를 세어줄까요? (폰을 옆에 두세요)</button>
+              )}
             </div>
 
             {/* ── 어느 날 것인가 ── (2026-09-18)
@@ -884,6 +903,21 @@ export default function TrainPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── 횟수 세기 (2026-09-30) ──
+          위를 덮는다. **세고 나서 숫자만 가져온다** — 영상은 아무 데도 안 남는다.
+          저장은 여기서 하지 않는다: 목소리로 적기와 같은 규칙이다(칸만 채우고
+          저장은 사람이 누른다). 알아듣기가 틀릴 수 있는 것과 같은 까닭이다 */}
+      {countOpen && picked && (
+        <RepCounter
+          exercise={picked}
+          onDone={(n) => {
+            setCountOpen(false);
+            if (n > 0) { setReps(String(n)); setError(''); }
+          }}
+          onClose={() => setCountOpen(false)}
+        />
       )}
     </div>
   );
