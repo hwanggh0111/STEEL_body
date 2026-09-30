@@ -61,7 +61,7 @@ export function buildSummary(workouts, today, routineName) {
   Object.entries(workouts || {}).forEach(([date, day]) => {
     if (date !== today) before[date] = day;
   });
-  const best = bestRecords(before);
+  const best = bestRecords(before, today);   // 앞날은 안 센다 (2026-09-30)
   let record = null;
   list.forEach((r) => {
     const hit = checkRecord(best, { ...r, date: today });

@@ -88,6 +88,30 @@ ok('성별 안 고르면 눈금이 없다', ranges.scaleFor('fat_pct', null), nu
 console.log('\n── 최고 기록 ──');
 ok('1RM 환산 (70kg 12회 > 80kg 5회)', pr.estimate1RM(70, 12) > pr.estimate1RM(80, 5), true);
 ok('맨몸은 무게로 안 센다', pr.strengthOf({ exercise: '푸시업', weight: '맨몸', sets: 3, reps: 30 }).kind, 'bodyweight');
+// ── 앞날은 최고 기록이 아니다 ── (2026-09-30)
+//
+// 서버는 기록 날짜를 **하루 넉넉하게** 받는다(`utils/dayRange.js` — 시차와 자정 무렵을
+// 위해 일부러). 그래서 내일 날짜 줄이 실제로 들어올 수 있다. 몸 지도 · 체형 · 서버의
+// 부위 계산은 전부 앞날을 건너뛰는데 **최고 기록만 빠져 있었다** — 아직 하지도 않은
+// 운동이 최고 기록이 되고 축하 띠까지 떴다.
+{
+  const w = {
+    '2026-09-20': [{ exercise: '벤치프레스', weight: '80', sets: 5, reps: 5 }],
+    '2026-10-01': [{ exercise: '벤치프레스', weight: '200', sets: 1, reps: 1 }],  // 내일 (안 한 것)
+  };
+  ok('앞날은 최고 기록에 안 든다',
+    pr.bestRecords(w, '2026-09-30').get('벤치프레스::weighted').weight, '80');
+  ok('  오늘까지는 센다',
+    pr.bestRecords(w, '2026-10-01').get('벤치프레스::weighted').weight, '200');
+  ok('  날짜를 안 넘기면 여태처럼 다 센다',
+    pr.bestRecords(w).get('벤치프레스::weighted').weight, '200');
+  ok('  목록에도 안 낀다', pr.bestList(w, '2026-09-30').length, 1);
+  // 넘어야 할 기록이 앞날 것이면 **오늘 세운 진짜 기록이 경신이 아니게 된다**
+  ok('앞날 것이 기준이 되지 않는다',
+    pr.checkRecord(pr.bestRecords(w, '2026-09-30'),
+      { exercise: '벤치프레스', weight: '100', sets: 3, reps: 3, date: '2026-09-30' }) !== null, true);
+}
+
 // **표는 기록이 바뀔 때만 만든다** (2026-09-18).
 //
 // 「운동」 화면이 `[workouts, exercise]` 로 걸어 둬서 **운동을 고를 때마다 기록
@@ -99,8 +123,12 @@ ok('맨몸은 무게로 안 센다', pr.strengthOf({ exercise: '푸시업', weig
 {
   const train = fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8')
     .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+  // **고른 운동이 딸려 들어오지 않는가**가 요점이다. 날짜(`today`)는 하루에 한 번만
+  // 바뀌므로 끼어도 된다 — 2026-09-30 에 앞날 방벽을 붙이면서 같이 들어왔다
   ok('운동을 고를 때마다 표를 다시 안 만든다',
-    /useMemo\(\(\) => bestRecords\(workouts\), \[workouts\]\)/.test(train), true);
+    /useMemo\(\(\) => bestRecords\(workouts(, today)?\), \[workouts(, today)?\]\)/.test(train), true);
+  ok('  고른 운동은 표를 다시 안 만든다',
+    /useMemo\(\(\) => bestRecords\([^)]*\), \[[^\]]*picked[^\]]*\]\)/.test(train), false);
   ok('  저장할 때도 그 표를 쓴다', /const before = bestMap;/.test(train), true);
   ok('  표를 고치지 않는다 (같은 표를 계속 쓴다)',
     /before\.(set|delete|clear)\(/.test(train), false);

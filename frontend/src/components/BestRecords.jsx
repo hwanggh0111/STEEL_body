@@ -32,7 +32,8 @@ export default function BestRecords({ workouts }) {
   // 그런데 세는 것도 목록을 만드는 것도 **같은 훑기**(`bestRecords`)다. 예전에는
   // 펼치는 순간 그 훑기를 한 번 더 했다 — 5년치(29만 줄)에서 22ms 짜리 훑기라
   // 펼칠 때 화면이 한 번 걸렸다. 한 번 훑어 놓고 세는 것과 줄 세우는 것에 같이 쓴다.
-  const best = useMemo(() => bestRecords(workouts), [workouts]);
+  // **앞날은 안 센다** — 서버가 하루 넉넉하게 받으므로 내일 줄이 들어올 수 있다 (2026-09-30)
+  const best = useMemo(() => bestRecords(workouts, today), [workouts, today]);
   const count = best.size;
   // 줄을 세우는 것(정렬)은 펼칠 때만 한다. 접힌 채로는 차례가 필요 없다
   const list = useMemo(() => (open

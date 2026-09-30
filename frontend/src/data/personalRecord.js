@@ -64,10 +64,21 @@ function toEntry(record, date, s) {
  * workouts 는 { 'YYYY-MM-DD': [기록, ...] } 모양이다 (workoutStore 와 같다).
  * 같은 점수가 두 번 나오면 **먼저 세운 날**을 최고로 둔다 — 같은 무게를 또 든 것은
  * 경신이 아니라서, 나중 것을 최고로 잡으면 날짜만 계속 오늘로 밀린다.
+ *
+ * ── 앞날은 안 센다 ── (2026-09-30)
+ *
+ * 서버는 기록 날짜를 **하루 넉넉하게** 받는다(`utils/dayRange.js` — 시차와 자정
+ * 무렵을 위해 일부러 그렇게 뒀다). 그래서 **내일 날짜 줄이 실제로 들어올 수 있다.**
+ * 몸 지도(`bodyHeat`) · 체형(`shapeRead`) · 서버의 부위 계산은 전부 `date > today` 를
+ * 건너뛰는데 여기만 빠져 있었다 — 그러면 **아직 하지도 않은 운동이 최고 기록이 되고**,
+ * 축하 띠까지 뜬다.
+ *
+ * `today` 를 안 넘기면 여태처럼 다 센다 — 넘기는 쪽이 맞다.
  */
-export function bestRecords(workouts) {
+export function bestRecords(workouts, today = null) {
   const best = new Map();
   Object.entries(workouts || {}).forEach(([date, list]) => {
+    if (today && date > today) return;          // 앞날은 아직 한 것이 아니다
     (list || []).forEach(record => {
       const name = (record?.exercise || '').trim();
       if (!name) return;
@@ -115,8 +126,8 @@ export function sortBest(best) {
 }
 
 /** 종목별 최고 기록을 세운 날 최신순으로. 한 번에 다 필요할 때. */
-export function bestList(workouts) {
-  return sortBest(bestRecords(workouts));
+export function bestList(workouts, today = null) {
+  return sortBest(bestRecords(workouts, today));
 }
 
 /** 'YYYY-MM-DD' 두 개 사이의 날 수. 어느 쪽이 앞이든 0 이상을 돌려준다. */

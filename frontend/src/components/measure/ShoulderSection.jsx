@@ -54,7 +54,20 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
 
       <form onSubmit={handleSave} style={{ marginBottom: 24 }}>
         <label className="label">날짜</label>
-        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 10 }} />
+        {/* **테두리를 건다** (2026-09-30). 이 칸만 위아래가 열려 있었다 — 사이즈 ·
+            체력 · 유연성 칸은 다 `max` 가 걸려 있는데 여기만 빠져 있었다.
+            앞날을 고르거나 연도를 잘못 치면(2026 대신 1026) 서버가 막지만, 사람에게는
+            **까닭 없는 실패**로 보인다. 아래 테두리도 같이 건다 —
+            `max` 만 걸면 연도는 직접 칠 수 있다(`TrainPage` 에서 겪은 것) */}
+        <input
+          className="input"
+          type="date"
+          value={date}
+          max={dateKey()}
+          min="2000-01-01"
+          onChange={(e) => setDate(e.target.value)}
+          style={{ marginBottom: 10 }}
+        />
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <label className="label">어깨 너비 (cm)</label>

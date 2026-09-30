@@ -197,7 +197,8 @@ export default function TrainPage() {
   // 재보면 5년치(29,200줄)에서 한 번에 **17.4ms** 다. PC 에서 그렇고 폰은 더 걸린다.
   // 루틴을 돌면 운동을 고르는 일이 판마다 일어나고, 그때마다 한 프레임이 버려졌다.
   // 저장할 때도 같은 표를 한 번 더 만들고 있었다(아래 `save`) — 그것도 이걸 쓴다.
-  const bestMap = useMemo(() => bestRecords(workouts), [workouts]);
+  // **앞날은 안 센다** (2026-09-30) — 안 한 운동이 넘어야 할 기록이 되면 안 된다
+  const bestMap = useMemo(() => bestRecords(workouts, today), [workouts, today]);
   const best = useMemo(() => {
     if (!exercise) return null;
     return bestMap.get(`${exercise.trim()}::weighted`) || null;
