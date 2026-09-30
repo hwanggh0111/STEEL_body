@@ -4,11 +4,16 @@ import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
-import { HOME_LAST_KEY } from '../data/localKeys';
+import { HOME_LAST_KEY, BREATH_LOG_KEY } from '../data/localKeys';
 import { buildPump, programPump, partsOf, toRecords } from '../data/homeworkoutParts';
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
+import {
+  startRecover, recoverTick, endRecover, recoverLine, tryLine,
+  pickRecoverPrev, pushRecover, recoverSummary, summaryLine, RECOVER_MAX,
+} from '../data/breathRecover';
 import PumpBody from '../components/PumpBody';
+import RecoverTry from '../components/RecoverTry';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { useSettingsStore, senseOf } from '../store/settingsStore';
@@ -25,6 +30,23 @@ const PROGRAM_NAMES = Object.keys(PROGRAMS);
 // 이름은 `data/localKeys.js` 에 둔다 — **그 사람이 한 것**이라 로그아웃하면 지운다
 // (열쇠의 `steelbody_` 는 옛 앱 이름이다. 앱 이름이 바뀌어도 안 바꾼다)
 const LS_LAST = HOME_LAST_KEY;
+
+/**
+ * 회복 시간 이력 (2026-09-30). **초와 날짜뿐이다** — 소리는 아무 데도 안 남는다.
+ *
+ * 깨진 것은 없는 것으로 본다. 여기서 터지면 홈트 화면이 통째로 안 열린다 —
+ * 있으면 좋은 값 하나 때문에 판을 못 돌리게 둘 수는 없다.
+ */
+function loadRecoverLog() {
+  try {
+    const raw = readLS(BREATH_LOG_KEY);
+    const list = raw ? JSON.parse(raw) : null;
+    return Array.isArray(list) ? list.slice(-RECOVER_MAX) : [];
+  } catch { return []; }
+}
+function saveRecoverLog(list) {
+  saveLS(BREATH_LOG_KEY, JSON.stringify(list));   // 저장 못 해도 판은 그대로 돈다
+}
 
 function readLastDone() {
   try {
@@ -246,6 +268,42 @@ export default function HomeworkoutPage() {
   // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
   const peaksRef = useRef([]);
   const stepStartRef = useRef(0);
+
+  // ── 회복 시간 (2026-09-30, 계획은 `docs/BREATH-RECOVER-2026-09-30.md`) ──
+  //
+  // 숨 듣기는 여태 **듣고 버렸다.** 쉬는 동안 숨이 가라앉는 데 걸린 초를 남긴다 —
+  // 이 앱이 아직 아무 데서도 못 하던 말(「전보다 덜 힘든가」)이 거기서 나온다.
+  // 계산은 `data/breathRecover.js` 가 한다. 여기는 **먹이고 그리는 일**만 한다.
+  const recRef = useRef(null);            // 지금 재고 있는 칸 (쉬는 동안만)
+  const recRowsRef = useRef([]);          // 이 판에서 잰 칸들 — 끝 화면의 결산이 쓴다
+  const [recLog, setRecLog] = useState(loadRecoverLog);
+  const [recLine, setRecLine] = useState(null);
+  // 250ms 마다 도는 자리가 **옛 렌더의 값을 붙잡지 않게** ref 로도 든다
+  // (`useBreath` 가 기준선과 예민도를 ref 로 드는 것과 같은 자리다)
+  const recLogRef = useRef(recLog);
+  recLogRef.current = recLog;
+  const breathStateRef = useRef(null);
+  breathStateRef.current = breath.state;
+
+  /**
+   * 한 칸을 닫는다 — 인정됐든(초) 못 쟀든(까닭) 여기로 온다.
+   *
+   * **못 쟀으면 그 까닭도 화면에 적는다.** 조용히 버리면 마이크를 켜둔 사람이
+   * 「왜 아무 말도 없나」 한다.
+   */
+  const finishRecover = (st) => {
+    if (!st) return;
+    recRef.current = null;
+    const prev = pickRecoverPrev(recLogRef.current, st.key, today);
+    setRecLine(recoverLine(st, prev));
+    if (st.seconds === null) return;
+    const entry = { ...st, date: today };
+    recRowsRef.current = [...recRowsRef.current, entry];
+    const next = pushRecover(recLogRef.current, entry);
+    recLogRef.current = next;
+    setRecLog(next);
+    saveRecoverLog(next);
+  };
   // 소리와 진동은 휴식 타이머에서 이미 정한 값을 그대로 쓴다. 같은 「시간이 다 됐다」인데
   // 화면마다 따로 켜고 끄게 하면 한쪽만 꺼둔 것을 잊는다.
   //
@@ -322,6 +380,23 @@ export default function HomeworkoutPage() {
     // 남아서, 다음 휴식에는 숨이 차 있어도 안 늘려준다
     setExtraGiven(0);
     stepStartRef.current = Date.now();
+
+    // ── 회복 시간을 재기 시작한다 ──
+    //
+    // 쉬는 시간이 열리는 이 순간이 **동작이 끝난 순간**이다. 여기서부터 숨이
+    // 가라앉기까지를 센다. 운동 단계로 넘어가면 재던 것은 버린다 —
+    // 쉬는 동안의 일이고, 못 잰 칸은 `advance` 가 까닭을 달아 이미 닫았다.
+    if (rest && breath.on && breath.phase === 'ready') {
+      recRef.current = startRecover(Date.now(), {
+        program: selected,
+        exercise: step.name,
+        duration: step.duration,
+      });
+      setRecLine(null);
+    } else {
+      recRef.current = null;
+      if (!rest) setRecLine(null);
+    }
   };
 
   /**
@@ -348,6 +423,12 @@ export default function HomeworkoutPage() {
       const add = extraFor(breath.state, extraGiven, breathMax);
       if (add > 0) { addRest(add); return; }
     }
+
+    // ── 회복 시간을 닫는다 ──
+    //
+    // 여기까지 왔으면 쉬는 시간이 **정말로** 끝난 것이다(위에서 늘렸으면 돌아갔다).
+    // 아직 가라앉기 전이면 `endRecover` 가 까닭을 달아준다 — **0초로 적지 않는다.**
+    if (rest && recRef.current) finishRecover(endRecover(recRef.current));
 
     // 동작이 끝났으면 그 동안 가장 컸던 숨을 적어둔다 (끝 화면의 순위에 쓴다)
     if (!rest && breath.on && breath.phase === 'ready') {
@@ -397,6 +478,22 @@ export default function HomeworkoutPage() {
       const remain = deadlineRef.current - Date.now();
       // 올림으로 센다. 반올림하면 마지막 0.5초가 잘려 단계마다 조금씩 짧아진다
       setTimeLeft(Math.max(0, Math.ceil(remain / 1000)));
+
+      // ── 숨을 회복 시간에 먹인다 ──
+      //
+      // **숨 상태가 안 바뀌어도 먹여야 한다.** 「가라앉은 채로 2초 버텼나」는 시간이
+      // 흘러야 답이 나오는 물음이라, 상태 변화만 보고 있으면 영원히 안 닫힌다.
+      // 그래서 이 자리(시계가 이미 도는 곳)에서 같이 본다.
+      const rec = recRef.current;
+      if (rec) {
+        const next = recoverTick(rec, breathStateRef.current, Date.now());
+        if (next !== rec) {
+          recRef.current = next;
+          // 인정된 그 순간에 보여준다 — 쉬는 시간이 끝날 때까지 기다리면
+          // 사람은 이미 다음 동작을 하고 있다
+          if (next.seconds !== null || next.why) finishRecover(next);
+        }
+      }
       if (remain <= 0) advanceRef.current();
     }, 250);
     return () => clearInterval(id);
@@ -426,6 +523,10 @@ export default function HomeworkoutPage() {
     // (기준선을 3초 재는 동안 첫 동작이 지나가지만, 첫 휴식 전에는 끝난다)
     if (breathable && !breath.on) breath.start();
     pausedLeftRef.current = 0;
+    // 이 판에서 잰 회복 시간은 **판마다 새로 센다** (이력은 그대로 쌓여 있다)
+    recRowsRef.current = [];
+    recRef.current = null;
+    setRecLine(null);
     setFinished(false);
     setRunning(true);
     beginPhase(0, false);
@@ -468,6 +569,8 @@ export default function HomeworkoutPage() {
   // 그만두기 — 처음으로 되돌린다
   const quitProgram = () => {
     pausedLeftRef.current = 0;
+    // 재던 칸은 버린다. 그만둔 판의 회복 시간은 **쉬는 시간이 끝난 것이 아니다**
+    recRef.current = null;
     phaseRef.current = { idx: 0, rest: false, done: true };
     setRunning(false);
     setCurrentIdx(0);
@@ -716,7 +819,10 @@ export default function HomeworkoutPage() {
                         파형이 움직입니다.
                       </div>
                       {name === '기능성(특수부대식)' && micSupported() && (
-                        <BreathRow breath={breath} extraGiven={0} onSkip={() => {}} />
+                        <>
+                          <BreathRow breath={breath} extraGiven={0} onSkip={() => {}} />
+                          <RecoverTry breath={breath} enabled={breathOn} />
+                        </>
                       )}
                       <PumpRow
                         pump={buildPump(exs, Math.ceil(exs.length / 2))}
@@ -745,6 +851,8 @@ export default function HomeworkoutPage() {
   const donePump = buildPump(exercises, exercises.length);
   // 숨을 켜고 했으면 순위가 나온다. 안 켰으면 빈 것이라 그 칸이 통째로 안 그려진다
   const hardest = hardestOf(peaksRef.current, breath.base);
+  // 이 판의 회복 시간 결산. **잰 칸이 없으면 `null`** 이라 아래가 통째로 안 그려진다
+  const recSum = recoverSummary(recRowsRef.current, recLog, today);
 
   // 완료 화면.
   //
@@ -799,6 +907,38 @@ export default function HomeworkoutPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* ── 회복 시간 결산 (2026-09-30) ──
+              **평균을 안 낸다.** 판마다 동작 수가 다르고 못 잰 칸이 섞여서, 평균은
+              그것을 감춰 없는 정확함을 만든다. 「몇 칸을 쟀고 그중 몇이 빨라졌나」까지가
+              정직한 선이다 (`recoverSummary` 에 적어둔 것) */}
+          {recSum && (
+            <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)', textAlign: 'left' }}>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+                숨이 가라앉는 데 걸린 시간
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+                {summaryLine(recSum)}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.65 }}>
+                가장 오래 걸린 것은 <b style={{ color: 'var(--text-secondary)' }}>{recSum.slowest.exercise}</b> 뒤였어요
+                ({recSum.slowest.seconds}초).
+              </div>
+              {/* 느려진 것을 나무라지 않는다 — 잠 · 술 · 감기가 이 값을 흔든다.
+                  적어두고 말하지 않는 것이 9/30 에 정한 선이다 */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.7 }}>
+                점수가 아니라 <b>초</b>예요. 견주는 상대는 <b>같은 동작을 한 지난 번의 나</b>고,
+                잠 · 물 · 방 온도에도 흔들려요 — 소리는 아무 데도 안 남습니다.
+              </div>
+              {/* **쌓인 것을 볼 자리로 데려간다.** 여기서 한 줄만 보여주고 끝내면
+                  모아둔 값이 어디 있는지 아무도 모른다 (몸 → 회복, 2026-09-30) */}
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/body', { state: { tab: 'recover' } })}
+                style={{ width: '100%', minHeight: 38, marginTop: 10, fontFamily: 'inherit', fontSize: 12, cursor: 'pointer' }}
+              >여태 쟀던 회복 시간 보기 (몸 → 회복)</button>
             </div>
           )}
 
@@ -873,6 +1013,27 @@ export default function HomeworkoutPage() {
                 그때 파형을 흔들어봐야 볼 사람이 없다 */}
             {isRest && breathable && (
               <BreathRow breath={breath} extraGiven={extraGiven} onSkip={() => { setExtraGiven(99); advanceRef.current(); }} />
+            )}
+            {/* ── 회복 시간 (2026-09-30) ──
+                숨이 가라앉은 **그 순간에** 뜬다. 쉬는 시간이 끝날 때까지 기다리면
+                사람은 이미 다음 동작을 하고 있다. 견줄 것이 없는 첫 번은
+                단정하지 않으므로(`sure` 가 false) 색을 죽여 그린다 */}
+            {isRest && breathable && recLine && (
+              <div style={{
+                display: 'flex', gap: 8, alignItems: 'flex-start',
+                marginTop: 8, padding: '9px 11px', borderRadius: 6,
+                border: `1px solid ${recLine.sure ? 'var(--info)' : 'var(--border-hover)'}`,
+                background: 'var(--bg-secondary)',
+                fontSize: 12, lineHeight: 1.6, textAlign: 'left',
+              }}>
+                <span style={{
+                  flexShrink: 0, fontSize: 10, letterSpacing: 0.5, padding: '2px 6px',
+                  borderRadius: 4, border: '1px solid var(--info)', color: 'var(--info)',
+                }}>{recLine.basis}</span>
+                <span style={{ color: recLine.sure ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                  {recLine.text}
+                </span>
+              </div>
             )}
             {isRest && pump.done > 0 && (
               <PumpRow pump={pump} next={exercises[currentIdx + 1]} />

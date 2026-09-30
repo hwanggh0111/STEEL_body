@@ -186,6 +186,25 @@ ok('읽어주는 이름도 갈린다', /aria-label=\{onSettings \? '설정 닫�
 ok('설정함에 「나가기」 단추를 새로 달지 않았다', />나가기</.test(settings), false);
 ok('  로그아웃 단추는 그대로 있다', />로그아웃</.test(settings), true);
 
+// ── 회복 시간을 볼 자리 (2026-09-30) ──
+//
+// 붙인 날 이 값은 **홈트 안에서만** 보였다 — 쉬는 시간 줄과 끝 결산. 길찾기에 자리가
+// 없고 쌓인 것을 볼 데가 없었다. **모으는 값을 볼 곳이 없으면 그 값은 없는 것과 같다.**
+// 체형과 같은 까닭으로 「몸」 탭의 갈래로 붙였다 — **새 탭은 만들지 않는다.**
+console.log('');
+console.log('── 회복 시간을 볼 자리가 있는가 ──');
+const recBody = codeOf(read('src/pages/BodyPage.jsx'));
+const recHome = codeOf(read('src/pages/HomeworkoutPage.jsx'));
+ok('「몸」 탭에 회복 갈래가 있다', /key: 'recover', label: '회복'/.test(recBody), true);
+ok('  그 갈래가 화면을 그린다', /tab === 'recover' && <RecoverPage/.test(recBody), true);
+ok('  따로 받는다 (열지 않는 사람에게 안 보낸다)', /lazy\(\(\) => import\('\.\/RecoverPage'\)\)/.test(recBody), true);
+// 탭바는 늘릴 수 있는 자리가 아니다 (9/19 에 「기구」 탭을 걷은 것과 같은 선)
+ok('새 탭을 만들지 않았다', /'\/recover'/.test(read('src/components/TabBar.jsx')), false);
+ok('  서랍에도 같은 줄을 안 둔다', /회복/.test(read('src/data/navItems.js')), false);
+// 홈트 결산에서 그 자리로 가는 길. 한 줄만 보여주고 끝내면 모아둔 값이 어디 있는지 모른다
+ok('홈트 결산에서 그 자리로 간다',
+  /navigate\('\/body', \{ state: \{ tab: 'recover' \} \}\)/.test(recHome), true);
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('전부 통과');

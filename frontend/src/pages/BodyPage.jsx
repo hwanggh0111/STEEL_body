@@ -24,6 +24,8 @@ const InbodyPage = lazy(() => import('./InbodyPage'));
 const MeasurePage = lazy(() => import('./MeasurePage'));
 const ComparePage = lazy(() => import('./ComparePage'));
 const ShapePage = lazy(() => import('./ShapePage'));
+// 회복은 **따로 받는다.** 이 갈래를 열지 않는 사람에게 마이크 코드까지 내려보낼 이유가 없다
+const RecoverPage = lazy(() => import('./RecoverPage'));
 
 // **「몸」은 재고 견주는 자리다** (2026-09-16 에 다시 정했다).
 //
@@ -37,11 +39,17 @@ const ShapePage = lazy(() => import('./ShapePage'));
 // 새 탭을 만들지 않고 여기 붙인 것은 9/19 에 「기구」 탭을 걷은 것과 같은 이유다 —
 // 탭바는 늘릴 수 있는 자리가 아니고, 체형은 **몸을 읽는 일**이라 이 방이 맞다.
 // 갈래가 넷이 되어도 안 잘린다(`SegRow` 는 글자만큼만 차지한다 — 9/16 에 고쳤다).
+//
+// **다섯째로 「회복」이 붙었다** (2026-09-30, `docs/BREATH-RECOVER-2026-09-30.md`).
+// 숨이 가라앉는 데 걸린 초는 붙인 날 **홈트 안에서만** 보였다 — 쉬는 시간 줄과 끝 결산.
+// 길찾기에 자리가 없고 쌓인 것을 볼 데가 없었다. **모으는 값을 볼 곳이 없으면 그 값은
+// 없는 것과 같다.** 체형과 같은 까닭으로 여기 붙인다 — 이것도 몸을 읽는 일이다.
 const TABS = [
   { key: 'inbody', label: '인바디' },
   { key: 'measure', label: '재는 도구' },
   { key: 'compare', label: '견주기' },
   { key: 'shape', label: '체형' },
+  { key: 'recover', label: '회복' },
 ];
 
 function Panel({ height = 200 }) {
@@ -149,6 +157,7 @@ export default function BodyPage() {
         {tab === 'measure' && <MeasurePage embedded subTab={sub} />}
         {tab === 'compare' && <ComparePage embedded />}
         {tab === 'shape' && <ShapePage embedded />}
+        {tab === 'recover' && <RecoverPage embedded />}
       </Suspense>
     </div>
   );

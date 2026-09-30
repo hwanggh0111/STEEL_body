@@ -58,6 +58,11 @@ export const GYM_KEY = 'steelbody_gym';
 // 쌓여서 기기에만 남는데, **그 사람이 한 것**이다 — 안 지우면 다음 사람 화면에
 // 「지난번에 ○○ 하셨네요」가 앞 사람 것으로 뜬다 (2026-09-22 에 찾았다).
 export const HOME_LAST_KEY = 'steelbody_home_last';
+// 홈트에서 **숨이 가라앉는 데 걸린 초** (2026-09-30, `data/breathRecover.js`).
+// 소리는 안 들어간다 — 초 · 날짜 · 어느 동작이었나뿐이다. 그래도 **그 사람의 몸**이라
+// 로그아웃하면 지운다(체형의 비율 이력과 똑같은 자리다). 회복이 빨라진 자취를 다음에
+// 로그인한 사람이 자기 것으로 보게 둘 이유가 없다.
+export const BREATH_LOG_KEY = 'breath:recover';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
@@ -76,6 +81,7 @@ export const PER_USER_KEYS = [
   SHAPE_LOG_KEY,
   GYM_KEY,
   HOME_LAST_KEY,
+  BREATH_LOG_KEY,
 ];
 
 // ── 기기의 것. 로그아웃해도 남긴다 ──

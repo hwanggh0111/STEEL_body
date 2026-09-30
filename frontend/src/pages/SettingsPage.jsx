@@ -318,7 +318,7 @@ export default function SettingsPage() {
             <>
               <Toggle
                 title="숨 보고 쉬기"
-                desc="숨이 아직 올라있으면 쉬는 시간을 몇 초 더 드려요. 소리 크기만 재고 녹음하지 않아요 — 어디로도 안 보냅니다."
+                desc="숨이 아직 올라있으면 쉬는 시간을 몇 초 더 드리고, 숨이 가라앉는 데 걸린 초를 적어 지난 번과 견줘 드려요. 소리 크기만 재고 녹음하지 않아요 — 어디로도 안 보냅니다."
                 on={s.breath}
                 onChange={s.setBreath}
               />
