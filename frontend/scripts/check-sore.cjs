@@ -135,6 +135,35 @@ ok('아픈 부위인 것을 안다', sorePv.sore, true);
 ok('  알려주지만 막지 않는다', /하셔도 되지만/.test(P.soreWarn(sorePv)), true);
 ok('  안 아프면 아무 말도 안 한다', P.soreWarn(pv), null);
 
+// ── 몸 그림이 보이는가 ── (2026-09-30)
+//
+// 이 그림의 바탕은 `#1c1813` 이고 카드는 `#1e1a14` 다 — **거의 같은 색**이다.
+// 홈트에서는 판이 돌면서 칸이 하나씩 금색으로 채워지니 괜찮지만, 여기는 **한 곳만**
+// 칠한다. 나머지를 `untouched` 로 안 넘기면 **금색 덩이만 떠 있고 몸이 안 보인다.**
+// (그 점선 규칙은 그림의 첫 줄에 이미 적혀 있다 — 「안 건드린 곳은 점선으로만 두른다」)
+//
+// 그리고 색은 **값을 직접 적어야 한다.** `var(--warning)` 을 SVG 속성에 넣으면
+// 아무 색도 안 칠해진다(그림 머리글에 적힌 것이고, 9/30 에 한 번 물렸다).
+const codeOf = (x) => x
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')
+  .replace(/^\s*\/\/.*$/gm, '');
+const partsPage = codeOf(fs.readFileSync('src/pages/PartsPage.jsx', 'utf-8'));
+const bodySvg = codeOf(fs.readFileSync('src/components/PumpBody.jsx', 'utf-8'));
+
+console.log('── 몸 그림이 보이는가 ──');
+// 두 갈래 다 몸을 그린다 (아픔 · 미리보기 · 미리보기의 빈 상태 = 셋)
+ok('몸 그림을 세 자리에서 그린다', (partsPage.match(/<PumpBody/g) || []).length, 3);
+ok('  셋 다 나머지를 점선으로 두른다',
+  (partsPage.match(/untouched: MAP_PARTS/g) || []).length >= 3, true);
+// 아픔은 금색이 아니다 — 달아오름과 뜻이 섞인다
+ok('아픔은 딴 색으로 칠한다', /mark=\{\{ parts: rows/.test(partsPage), true);
+ok('  그 색을 값으로 넘긴다 (CSS 변수는 SVG 에서 안 먹는다)',
+  /color: MARK_WARNING/.test(partsPage), true);
+ok('  SVG 에 CSS 변수를 안 넘긴다', /mark=\{\{[^}]*var\(--/.test(partsPage), false);
+ok('그림 쪽도 값을 직접 들고 있다', /MARK_WARNING = '#[0-9a-f]{6}'/.test(bodySvg), true);
+// 읽어주는 말은 자리마다 달라야 한다 — 「이번 판에서 등를 채웠어요」는 여기서 틀린 말이다
+ok('읽어주는 말을 자리마다 바꿔 넘긴다', (partsPage.match(/label=/g) || []).length, 3);
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('모두 통과');

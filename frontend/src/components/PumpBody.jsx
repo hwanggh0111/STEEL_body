@@ -25,6 +25,9 @@ const GOLD_LOW = '#d29a5f';
 const SKIN = '#1c1813';
 const SKIN_EDGE = '#2b251c';
 const DASH = '#7a7160';
+// 아픔처럼 **금색이 아닌 뜻**으로 칠할 때 쓰는 값 (2026-09-30). 여기도 값을 직접 적는다 —
+// 위에 적어둔 대로 `var(--warning)` 을 SVG 속성에 넣으면 **아무 색도 안 칠해진다**
+export const MARK_WARNING = '#d9a441';
 
 // 몸 조각 — `BodyMap` 의 앞면 좌표 그대로 (viewBox 0 0 120 240)
 const SHAPES = {
@@ -61,12 +64,16 @@ function paintOf(score, max) {
  * @param pump   `buildPump` 가 준 것
  * @param width  몸 그림 너비 (높이는 2.38배)
  * @param now    지금 하는 동작이 쓰는 곳 { main, sub } — 있으면 그 자리에 테두리를 두른다
+ * @param mark   금색이 아닌 뜻으로 칠할 곳 `{ parts, color }` (2026-09-30).
+ *               서랍의 「부위」에서 **아픈 곳**을 표시하는 데 쓴다 — 아픔은 달아오름과
+ *               다른 일이라 금색으로 칠하면 뜻이 섞인다(위 「금색 하나로 진하기만
+ *               바꾼다」는 **채운 곳**에 대한 규칙이다). 안 넘기면 여태와 같다.
  * @param label  읽어주는 말을 바꿔 끼운다 (2026-09-30).
  *               이 그림을 **홈트 말고 다른 자리**에서도 쓰기 시작했다(서랍의 「부위」 —
  *               이 운동이 어디를 달굴지 미리 보는 자리). 거기서 「이번 판에서 등를
  *               채웠어요」라고 읽어주면 틀린 말이다. 안 넘기면 여태와 같다
  */
-export default function PumpBody({ pump, width = 68, now = null, label = null }) {
+export default function PumpBody({ pump, width = 68, now = null, label = null, mark = null }) {
   const max = pump?.max || 0;
   const nowMain = new Set(now?.main || []);
 
@@ -112,6 +119,13 @@ export default function PumpBody({ pump, width = 68, now = null, label = null })
 
       {/* 안 건드린 곳 — **칠하지 않고 점선으로만.** 이 판이 비워둔 자리가
           그대로 「다음에 할 곳」이 된다 */}
+      {/* 딴 뜻으로 칠하는 곳 (아픔 등). **점선 몸 위에 얹는다** */}
+      {(mark?.parts || []).map((part) => (
+        <g key={`mark-${part}`} fill={mark.color} fillOpacity={BEHIND.has(part) ? 0.36 : 0.6}>
+          {SHAPES[part]}
+        </g>
+      ))}
+
       {(pump?.untouched || []).map((part) => (
         <g key={part} fill="none" stroke={DASH} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.7">
           {SHAPES[part]}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import SegRow from '../components/SegRow';
-import PumpBody from '../components/PumpBody';
+import PumpBody, { MARK_WARNING } from '../components/PumpBody';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { readLS, saveLS } from '../data/safeStorage';
@@ -88,6 +88,28 @@ export default function PartsPage() {
           <div className="card" style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
               아픈 곳을 눌러주세요
+            </div>
+            {/* ── 몸 그림 ── (2026-09-30)
+                **아픈 곳을 색으로 본다.** 이름만 있으면 「어깨·등」이 어디인지 머리로
+                그려야 한다. 그림은 홈트·몸 지도가 쓰는 것을 그대로 쓰되(`PumpBody`),
+                아픔은 달아오름과 다른 일이라 **금색이 아니라 경고색**으로 칠한다.
+                몸 전체를 `untouched` 로 넘겨 **점선으로 두른다** — 그 그림의 바탕색은
+                카드와 거의 같아서(#1c1813 / #1e1a14) 점선이 없으면 몸이 안 보인다 */}
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
+              <PumpBody
+                width={58}
+                pump={{ byPart: {}, max: 0, touched: [], untouched: MAP_PARTS }}
+                /* 값을 직접 적는다 — SVG 속성에 `var(--warning)` 을 넣으면 아무 색도 안 칠해진다 */
+                mark={{ parts: rows.map((r) => r.part), color: MARK_WARNING }}
+                label={rows.length
+                  ? `${rows.map((r) => r.part).join(' · ')}가 아프다고 적혀 있어요`
+                  : '아직 아픈 곳을 안 적었어요'}
+              />
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
+                {rows.length
+                  ? <>칠한 곳이 <b style={{ color: 'var(--warning)' }}>아프다고 적어둔 곳</b>이에요.</>
+                  : <>여기를 누르면 몸 그림에 표시돼요. <b>등은 앞에서 안 보여서</b> 가슴 자리에 옅게 겹쳐 그려요.</>}
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {MAP_PARTS.map((part) => {
@@ -213,9 +235,14 @@ export default function PartsPage() {
                     같은 말을 해야 한다 (새로 그리면 어느 날 둘이 어긋난다) */}
                 <PumpBody
                   width={62}
+                  /* **나머지 몸을 점선으로 두른다.** 한 곳만 칠하면 그림의 바탕색이
+                     카드와 거의 같아서(#1c1813 / #1e1a14) 금색 덩이만 떠 보인다 */
                   pump={view.known
-                    ? { byPart: { [view.part]: { score: 1 } }, max: 1, touched: [view.part], untouched: [] }
-                    : { byPart: {}, max: 0, touched: [], untouched: [] }}
+                    ? {
+                      byPart: { [view.part]: { score: 1 } }, max: 1, touched: [view.part],
+                      untouched: MAP_PARTS.filter((p) => p !== view.part),
+                    }
+                    : { byPart: {}, max: 0, touched: [], untouched: MAP_PARTS }}
                   now={view.known ? { main: [view.part] } : null}
                   label={view.known
                     ? `${view.name}은 ${view.part}를 달궈요`
@@ -247,6 +274,19 @@ export default function PartsPage() {
             <div className="card" style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
                 지금 식어 있는 곳 — 몸 지도가 센 것
+              </div>
+              {/* **고르기 전에도 몸을 보여준다.** 빈 칸에 글자만 있으면 이 화면이 몸
+                  이야기를 하는 자리인지 안 보인다. 아무 곳도 칠하지 않는다 —
+                  식은 것은 「안 한 것」이라 칠할 것이 없다(그 규칙이 이 그림의 첫 줄이다) */}
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
+                <PumpBody
+                  width={58}
+                  pump={{ byPart: {}, max: 0, touched: [], untouched: MAP_PARTS }}
+                  label="운동을 고르면 그 운동이 달굴 곳을 여기에 칠해드려요"
+                />
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
+                  운동을 고르면 <b style={{ color: 'var(--accent)' }}>달아오를 곳</b>을 여기에 칠해드려요.
+                </div>
               </div>
               {heat.list.slice(0, 3).map((s) => (
                 <div
