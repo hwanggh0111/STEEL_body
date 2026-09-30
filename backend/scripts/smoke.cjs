@@ -131,6 +131,57 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 //
 // 이제 되살아나면 **다시 지운다.** 서버는 마지막 요청 뒤로는 더 쓸 것이 없어서
 // 두 번째나 세 번째에는 붙는다. 세 번 해도 안 되면 그때 사람에게 말한다
+// ── 그런데 파일에서 사라진 것이 「지워진 것」이 아니었다 (2026-09-30) ──
+//
+// 서버는 DB 를 **램에 들고 있다**(`src/db.js` 의 `_cache`). 파일에서 지워도 램은
+// 그대로라, **다음에 아무 저장이나 한 번 일어나면 통째로 되살아난다.** 그 「다음」은
+// 이 검사가 끝난 뒤 아무 때나 온다 — 앱을 한 번 열기만 해도 온다.
+//
+// 그래서 여태 「지웠습니다」는 **거짓말이었다.** 파일만 보고 말했기 때문이다.
+// 실제로 9/17~9/22 나흘에 걸쳐 검사 계정 29개와 **가짜 「손볼 제보」 28건**이 쌓여
+// 관리자 화면의 할 일로 보이고 있었다 — 바로 위에 「그러면 안 된다」고 적어둔 일이다.
+//
+// 이제 **서버에 물어본다.** 지운 계정으로 로그인이 되면 서버가 아직 들고 있는 것이고,
+// 그러면 지워진 것이 아니다 — 그렇게 말한다.
+const KILL_HINT = '서버를 내리고 `npm run smoke:clean` 을 돌리면 한 번에 지워집니다.';
+
+/**
+ * 서버가 아직 이 계정을 알고 있나. 안다면 **램에 남아 있는 것**이다.
+ *
+ * 묻는 자리는 「이 이메일 쓸 수 있나」(`/auth/check-email`)다. 로그인으로 물어도
+ * 알 수 있지만 그쪽은 **15분에 20번**짜리 제한을 쓴다 — 한 바퀴가 이미 가입 · 로그인으로
+ * 두 번을 쓰므로, 물어보느라 한 번 더 쓰면 **연달아 돌릴 수 있는 횟수가 줄어든다**
+ * (다섯 번째 바퀴에서 실제로 9건이 429 로 자빠졌다). 여기는 1분에 10번짜리 딴 통이고,
+ * **읽기라서 아무것도 안 쓴다** — 틀린 로그인 기록도 안 남는다.
+ */
+async function serverStillKnows() {
+  try {
+    const res = await rawCall('POST', '/auth/check-email', { email: EMAIL });
+    // 제한에 걸렸으면 알 수 없다 — **모르는 것을 지웠다고 하지 않는다**
+    if (res.status !== 200) return null;
+    if (typeof res.data?.available !== 'boolean') return null;
+    return res.data.available === false;     // 못 쓴다 = 아직 그 계정이 있다
+  } catch {
+    return null;                    // 서버가 이미 내려갔으면 확인할 길이 없다
+  }
+}
+
+/**
+ * 앞서 쌓인 검사 계정이 있나. **시작할 때 먼저 말한다.**
+ *
+ * 이 수가 그대로 관리자 화면의 「손볼 제보」로 보인다. 끝에 말하면 스크롤 위로
+ * 올라가 안 읽힌다 — 맨 앞에 둔다.
+ */
+function warnLeftovers() {
+  try {
+    const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const old = db.users.filter(u => String(u.email || '').endsWith('@smoke.local'));
+    if (old.length === 0) return;
+    console.log(`쌓인 검사 계정이 ${old.length}개 있습니다 — 이 계정들의 제보가 관리자 화면의 할 일로 보입니다.`);
+    console.log(KILL_HINT + '\n');
+  } catch { /* 못 읽으면 말할 것도 없다 */ }
+}
+
 async function cleanup() {
   if (KEEP) {
     console.log(`\n남겨둠 — 만든 계정: ${EMAIL} (관리자 화면에서 지우세요)`);
@@ -140,18 +191,29 @@ async function cleanup() {
     if (!wipeFromFile()) return;
     for (let i = 0; i < 3; i++) {
       await wait(900);
-      if (!stillThere()) {
-        console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
-        return;
-      }
+      if (!stillThere()) break;
       wipeFromFile();
     }
     await wait(900);
     if (stillThere()) {
       console.log(`\n검사 계정 ${EMAIL} 이 서버 쪽에서 자꾸 되살아납니다.`);
-      console.log('서버를 내리고 `npm run smoke:clean` 을 돌리면 한 번에 지워집니다.');
+      console.log(KILL_HINT);
+      return;
+    }
+    // 파일에서는 사라졌다. **서버도 잊었는지는 서버에 물어야 안다**
+    const known = await serverStillKnows();
+    // 셈에 넣는다 — 되살아나는 것이 돌아오면 이 한 바퀴가 **실패**여야 한다.
+    // (모르겠을 때는 안 센다. 모르는 것을 실패로도 통과로도 적지 않는다)
+    if (known !== null) step('서버도 검사 계정을 잊었다', known, false);
+    if (known === true) {
+      console.log(`\n파일에서는 지웠지만 ${EMAIL} 을 서버가 아직 들고 있습니다 (램).`);
+      console.log('이대로 두면 다음에 무엇이든 저장될 때 계정과 그 제보가 되살아납니다.');
+      console.log(KILL_HINT);
+    } else if (known === null) {
+      console.log(`\n파일에서는 ${EMAIL} 을 지웠습니다. 서버가 아직 들고 있는지는 확인하지 못했습니다.`);
+      console.log(`되살아나 있으면 ${KILL_HINT}`);
     } else {
-      console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다.`);
+      console.log(`\n검사 계정 ${EMAIL} 과 그 기록을 지웠습니다 (서버도 잊었습니다).`);
     }
   } catch (err) {
     console.log(`\n검사 계정을 못 지웠습니다 (${err.message}). ${EMAIL} 을 직접 지워주세요.`);
@@ -183,6 +245,7 @@ function cleanAll() {
 (async () => {
   if (process.argv.includes('--clean-all')) { cleanAll(); return; }
   console.log(`두들길 곳: ${BASE}\n`);
+  warnLeftovers();
 
   console.log('── 가입하고 들어온다 ──');
   const reg = await call('POST', '/auth/register',
@@ -532,8 +595,10 @@ function cleanAll() {
   TOKEN = back.data?.token || TOKEN;
   step('  되살아난 계정으로 다시 쓸 수 있다', (await call('GET', '/auth/me')).status, 200);
 
-  console.log('\n' + (bad ? bad + '건 실패' : '한 바퀴 전부 통과'));
   await new Promise(r => setTimeout(r, 700));
+  // **치우는 것까지가 한 바퀴다.** 요약을 먼저 찍으면 「전부 통과」라고 적은 뒤에
+  // 치우다 난 FAIL 이 붙는다 — 셈은 맞아도 글이 틀린다 (2026-09-30)
   await cleanup();
+  console.log('\n' + (bad ? bad + '건 실패' : '한 바퀴 전부 통과'));
   process.exit(bad ? 1 : 0);
 })();

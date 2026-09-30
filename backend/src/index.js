@@ -312,6 +312,20 @@ app.use('/api/import', rateLimit({
   message: { error: '가져오기를 너무 여러 번 했어요. 잠시 뒤에 다시 해주세요' },
 }));
 
+// ── 바깥에서 DB 파일을 고쳤으면 그쪽을 읽어 맞춘다 (2026-09-30) ──
+//
+// DB 는 램에 있고(`db.js` 의 `_cache`) 파일은 그 자취다. 여태 서버가 떠 있는 동안
+// 파일을 직접 고치면 **다음 저장 한 번에 조용히 되돌아갔다** — `npm run smoke` 가
+// 「검사 계정을 지웠습니다」라고 말하고도 되살아나, 나흘에 걸쳐 가짜 「손볼 제보」
+// 28건이 관리자 화면에 쌓였다.
+//
+// 안 쓴 것이 없을 때만 읽어 맞추므로 잃는 것이 없고, 1초에 한 번으로 묶여 있다.
+// 사는 곳이 한 대뿐이라(Render 도 그렇다) 이 길은 **사람이 손으로 고쳤을 때만** 열린다.
+app.use('/api', (req, res, next) => {
+  db.syncIfChangedOutside();
+  next();
+});
+
 // API 보안 헤더 (JSON 응답에 추가 보호)
 app.use('/api', (req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');

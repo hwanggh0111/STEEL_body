@@ -186,13 +186,96 @@ let _saveTimer = null;
 let _writeLock = false;
 let _writeQueue = [];
 
+// ── 바깥에서 파일을 고치면 조용히 되돌아간다 (2026-09-30) ──
+//
+// DB 는 **램에 있고**(`_cache`) 파일은 그것을 흘려둔 자취다. 서버가 떠 있는 동안
+// 누가 `blackiron.json` 을 직접 고쳐도 램은 안 바뀌므로, **다음 저장 한 번에 그
+// 고친 것이 통째로 되돌아간다.** 아무 소리도 안 나서 고친 사람은 됐다고 믿는다.
+//
+// 실제로 물렸다 — `npm run smoke` 가 끝나며 파일에서 검사 계정을 지우고 「지웠습니다」
+// 라고 말했는데, 관계없는 요청 한 번에 되살아났다. 그렇게 나흘에 걸쳐 검사 계정 29개와
+// **가짜 「손볼 제보」 28건**이 운영 화면에 쌓였다.
+//
+// 램을 파일로 맞추지는 않는다 — 그 사이 들어온 저장을 버리게 된다(그쪽이 더 크다).
+// 대신 **덮어쓰기 전에 말한다.** 조용한 footgun 을 소리나는 것으로 바꾼다.
+let _lastWriteMs = 0;
+
+/** 우리가 쓴 뒤의 파일 시각을 기억한다. 못 재면 0 — 그때는 검사를 건너뛴다. */
+function _markWritten() {
+  try { _lastWriteMs = fs.statSync(DB_PATH).mtimeMs; } catch { _lastWriteMs = 0; }
+}
+
+/** 우리가 쓴 뒤로 누가 파일을 고쳤나. 못 재면 `null`. */
+function _changedOutsideMs() {
+  if (!_lastWriteMs) return null;
+  try {
+    const m = fs.statSync(DB_PATH).mtimeMs;
+    return m === _lastWriteMs ? null : m;
+  } catch { return null; }
+}
+
+/** 쓰려는 참에 보는 것. 안 쓴 것이 있으면 합칠 수가 없으므로 **말하고 덮는다.** */
+function _warnIfChangedOutside() {
+  const m = _changedOutsideMs();
+  if (m === null) return;
+  console.warn('[DB] blackiron.json 이 바깥에서 바뀌었습니다 — 아직 안 쓴 것이 있어 램에 있는 내용으로 덮어씁니다.');
+  console.warn('[DB] 파일을 직접 고칠 때는 서버를 내리고 하세요 (seed:clear · smoke:clean 이 그렇습니다).');
+  _lastWriteMs = m;         // 같은 말을 되풀이하지 않는다. 곧 덮어쓰고 다시 찍는다
+}
+
+// ── 안 쓴 것이 없으면 **파일 쪽을 읽어 맞춘다** ──
+//
+// `_dirty` 가 아니라면 램은 「우리가 마지막으로 쓴 것」과 같다 — 그 상태에서 파일이
+// 달라졌다면 **잃을 것이 없다.** 그래서 이때만 다시 읽는다. 이것이 없으면 서버는
+// 바깥의 고침을 **영원히 안 받아들인다**(램이 늘 이기므로).
+//
+// 값이 나가는 자리: `npm run smoke` · `seed:clear` · `smoke:clean` 이 서버를 안
+// 내리고도 제대로 듣는다. 여태는 파일에서만 지워지고 다음 저장에 되살아났다.
+//
+// 사는 곳이 하나면(Render 도 한 대다) 파일이 바뀌는 것은 우리가 썼을 때뿐이고 그 시각은
+// 기억해두므로, **이 길은 사람이 손으로 고쳤을 때만 열린다.**
+let _lastStatMs = 0;
+const STAT_EVERY_MS = 1000;      // 요청마다 stat 하지 않는다 — 1초에 한 번으로 묶는다
+
+/** 판을 갈아끼웠으면 그 판에서 뽑아둔 것은 전부 버린다 (아래에 선언된 것들이다). */
+function _dropDerived() {
+  _queryCache.clear();
+  _index.userById = null;                       // `rebuildIndex` 가 셋을 같이 다시 짠다
+  Object.keys(_rowIndex).forEach((k) => { _rowIndex[k] = null; });
+}
+
+function _syncFromDiskIfChanged() {
+  if (_dirty || _writeLock) return;          // 우리 것이 더 새것이다
+  const now = Date.now();
+  if (now - _lastStatMs < STAT_EVERY_MS) return;
+  _lastStatMs = now;
+  const m = _changedOutsideMs();
+  if (m === null) return;
+  try {
+    const next = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    if (!next.refreshTokens) next.refreshTokens = [];
+    _cache = next;
+    _lastWriteMs = m;
+    // **파생 색인도 같이 버린다.** 이것을 안 버리면 판만 갈리고 찾는 자리는 옛것을
+    // 가리켜서, 지운 계정으로 로그인이 **되는** 일이 난다 (9/30 에 실제로 그랬다)
+    _dropDerived();
+    console.warn('[DB] blackiron.json 이 바깥에서 바뀌었습니다 — 파일 쪽을 읽어 맞췄습니다.');
+  } catch (err) {
+    // 깨진 파일을 읽어 램을 망치지 않는다. 여기서는 램을 그대로 쓴다
+    _lastWriteMs = m;
+    console.error('[DB] 바깥에서 바뀐 파일을 못 읽어 램에 있는 것을 씁니다:', err.message);
+  }
+}
+
 function load() {
-  if (_cache) return _cache;
+  // 바깥에서 파일이 바뀌었고 안 쓴 것이 없으면 그쪽을 읽어 맞춘다 (2026-09-30)
+  if (_cache) { _syncFromDiskIfChanged(); return _cache; }
   try {
     if (fs.existsSync(DB_PATH)) {
       _cache = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
       // refresh token 저장소 초기화
       if (!_cache.refreshTokens) _cache.refreshTokens = [];
+      _markWritten();          // 읽은 판이 곧 「우리가 아는 파일」이다
       return _cache;
     }
   } catch (err) {
@@ -238,12 +321,14 @@ function _writeAtomicSync(file, text) {
   const tmp = file + TMP_SUFFIX;
   fs.writeFileSync(tmp, text, 'utf-8');
   fs.renameSync(tmp, file);
+  if (file === DB_PATH) _markWritten();
 }
 
 async function _writeAtomic(file, text) {
   const tmp = file + TMP_SUFFIX;
   await fsp.writeFile(tmp, text, 'utf-8');
   await fsp.rename(tmp, file);
+  if (file === DB_PATH) _markWritten();
 }
 
 /**
@@ -265,6 +350,8 @@ function _flush() {
     return;
   }
   _writeLock = true;
+  // 바깥에서 고친 것을 덮어쓰려는 참이면 **말하고** 덮는다 (2026-09-30)
+  _warnIfChangedOutside();
   // **기다리기 전에** 찍어둔다. 기다리는 동안 `_cache` 가 바뀌어도 이 판은 온전하다
   let text;
   try {
@@ -466,6 +553,16 @@ function rebuildIndex() {
 function invalidateUserIndex() { _index.userById = null; }
 
 const db = {
+  /**
+   * 바깥에서 파일이 바뀌었으면 그쪽을 읽어 맞춘다 — **요청 문턱에서 부른다.**
+   *
+   * `load()` 안에도 같은 검사가 있지만 그것만으로는 모자랐다 (2026-09-30):
+   * 색인이 이미 짜여 있으면 `findUserByEmail` 같은 읽기는 **`load()` 를 아예 안 부른다.**
+   * 그래서 지운 계정을 「아직 있다」고 답하는 자리가 남았다. 요청마다 한 번 여기서 보면
+   * 어느 길로 들어와도 같다 (`STAT_EVERY_MS` 로 1초에 한 번으로 묶여 있다).
+   */
+  syncIfChangedOutside() { _syncFromDiskIfChanged(); },
+
   // users (인덱스 기반 O(1) 조회)
   findUserByEmail(email) {
     if (!_index.userById) rebuildIndex();
