@@ -1775,5 +1775,48 @@ ok('아무것도 안 오면 그렇다고 말한다',
   rl.reminderSummary({ ...on, days: [], streakGuard: false }).text, '고른 요일이 없어 아무 알림도 안 옵니다');
 ok('  그때는 붉게 적는다', rl.reminderSummary({ ...on, days: [], streakGuard: false }).warn, true);
 ok('설정이 아직 없어도 안 터진다', rl.reminderSummary(null).text, null);
+
+// ── 설정함의 「운동 알림」 줄 ── (2026-09-30)
+//
+// 그 줄은 `sub` 가 **「시간 정하기」로 박혀 있었다** — 켜졌는지 · 막혔는지 · 서버가
+// 보낼 수 있는지를 하나도 안 알려줬다. 바로 옆 「앱 잠금」은 켜짐/꺼짐을 말하고,
+// 그 칸 머리에는 「알림은 왜 안 되는지 적는다」고 적혀 있었다.
+const row = (over) => rl.reminderRow({
+  canNotify: true, permission: 'granted', serverReady: true, loaded: true, settings: on, ...over,
+});
+// **못 오게 막는 것을 먼저** 말한다 — 시각을 보여주면 그 시각에 온다고 읽는다
+ok('이 브라우저가 못 받으면 그것부터', row({ canNotify: false }).text, '이 브라우저는 못 받아요');
+ok('  서버가 준비 안 됐으면 그것부터', row({ serverReady: false }).text, '서버가 아직 못 보내요');
+ok('  막혀 있으면 그것부터', row({ permission: 'denied' }).text, '알림이 막혀 있어요');
+ok('  셋 다 붉게 적는다', [
+  row({ canNotify: false }).warn, row({ serverReady: false }).warn, row({ permission: 'denied' }).warn,
+], [true, true, true]);
+// 막는 것이 서버와 권한 둘이면 **서버를 먼저** 말한다 (권한을 풀어도 안 오니까)
+ok('서버가 권한보다 먼저다',
+  row({ serverReady: false, permission: 'denied' }).text, '서버가 아직 못 보내요');
+// 아직 안 불러온 것은 **모르는 것**이다. 「꺼짐」이라고 적으면 켜둔 사람에게 거짓말이다
+ok('아직 안 불러왔으면 단정하지 않는다', row({ loaded: false }).text, '시간 정하기');
+ok('  그때는 붉게 적지 않는다', row({ loaded: false }).warn, false);
+ok('꺼져 있으면 꺼짐이라고 적는다', row({ settings: { ...on, enabled: false } }).text, '꺼짐');
+ok('  설정이 없어도 꺼짐이다', row({ settings: null }).text, '꺼짐');
+// 폰에서 켜둔 사람이 PC 에서 이 줄을 보면 **여기서도 온다고 믿는다**
+ok('켜뒀지만 이 기기에서 안 켰으면 그렇게',
+  row({ permission: 'default' }).text, '이 기기는 아직 안 켰어요');
+ok('  그것도 붉게 적는다', row({ permission: 'default' }).warn, true);
+ok('다 되면 언제 오는지 적는다', row({}).text, '월·수·금 · 오후 7:00');
+ok('  요일이 없으면 그 말이 그대로 온다',
+  row({ settings: { ...on, days: [], streakGuard: false } }).text, '고른 요일이 없어 아무 알림도 안 옵니다');
+
+// 화면이 그것을 쓰는가 — 안 쓰면 계산만 고친 셈이다
+const set = fs.readFileSync('src/pages/SettingsPage.jsx', 'utf-8')
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+ok('설정함이 그 줄을 쓴다', /reminderRow\(/.test(set), true);
+ok('  「시간 정하기」를 박아두지 않았다', /sub="시간 정하기"/.test(set), false);
+ok('  붉게 적을 줄도 넘긴다', /warn=\{remRow\.warn\}/.test(set), true);
+// **판단이 두 벌이 되면** 같은 브라우저를 한 화면은 「된다」 다른 화면은 「안 된다」고 한다
+const remPage = fs.readFileSync('src/pages/RemindersPage.jsx', 'utf-8');
+ok('알림을 받을 수 있나는 한 벌이다', /pushSupport/.test(remPage) && /pushSupport/.test(set), true);
+ok('  화면에서 다시 적지 않는다',
+  [remPage, set].filter((f) => /'PushManager' in window/.test(f)).length, 0);
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

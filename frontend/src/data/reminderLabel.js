@@ -56,3 +56,36 @@ export function reminderSummary(settings) {
   if (settings.streakGuard) return { text: '고른 요일 없음 · 오래 쉴 때만 옵니다', warn: false };
   return { text: '고른 요일이 없어 아무 알림도 안 옵니다', warn: true };
 }
+
+/**
+ * 설정함의 「운동 알림」 줄에 적을 것 (2026-09-30).
+ *
+ * 그 줄은 `sub` 가 **「시간 정하기」로 박혀 있었다.** 켜져 있는지 · 막혀 있는지 ·
+ * 서버가 보낼 수 있는지를 하나도 안 알려줬다 — 그 칸 머리에는 「**알림은 왜 안 되는지
+ * 적는다**」고 적어놓고 안 적고 있었다. 앱 잠금은 바로 옆에서 켜짐/꺼짐을 말한다.
+ *
+ * ── 차례 ──
+ *
+ * **못 오게 막는 것을 먼저** 말한다. 정해둔 시각을 보여주면 사람은 그 시각에 온다고
+ * 읽는데, 셋 중 하나라도 걸려 있으면 **안 온다.**
+ *
+ *   1. 이 브라우저가 아예 못 받는다 (기기의 한계)
+ *   2. 서버가 보낼 준비가 안 됐다 (열쇠가 없다 — 사람이 할 수 있는 일이 없다)
+ *   3. 이 브라우저에서 막았다 (자물쇠에서 풀 수 있다)
+ *
+ * 그다음이 설정이다. **켜뒀는데 이 기기에서 허락을 안 했으면** 그것도 말한다 —
+ * 시각만 보여주면 폰에서 켜둔 사람이 PC 에서도 온다고 믿는다.
+ *
+ * `{ text, warn }` 을 돌려준다. `warn` 이면 화면이 붉게 적는다(`GoRow` 가 이미 받는다).
+ */
+export function reminderRow({ canNotify, permission, serverReady, settings, loaded }) {
+  if (canNotify === false) return { text: '이 브라우저는 못 받아요', warn: true };
+  if (serverReady === false) return { text: '서버가 아직 못 보내요', warn: true };
+  if (permission === 'denied') return { text: '알림이 막혀 있어요', warn: true };
+  // 아직 안 불러왔으면 **모르는 것이다.** 「꺼짐」이라고 적으면 켜둔 사람에게 거짓말이 된다
+  if (!loaded) return { text: '시간 정하기', warn: false };
+  if (!settings || !settings.enabled) return { text: '꺼짐', warn: false };
+  if (permission !== 'granted') return { text: '이 기기는 아직 안 켰어요', warn: true };
+  const sum = reminderSummary(settings);
+  return sum.text ? sum : { text: '켜짐', warn: false };
+}

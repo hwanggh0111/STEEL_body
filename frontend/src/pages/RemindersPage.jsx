@@ -4,6 +4,7 @@ import client from '../api/client';
 import { toast } from '../components/Toast';
 import { AM, PM, HOURS12, parse24, to24, label24, minuteOptions } from '../data/timeOfDay';
 import { reminderSummary } from '../data/reminderLabel';
+import { canNotify as can, notifyPermission } from '../data/pushSupport';
 
 // 운동 알림.
 //
@@ -33,9 +34,9 @@ function urlBase64ToUint8Array(base64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-const canNotify = typeof Notification !== 'undefined'
-  && 'serviceWorker' in navigator
-  && 'PushManager' in window;
+// **판단은 `data/pushSupport.js` 에 한 벌로 있다** (2026-09-30 에 옮겼다) —
+// 설정함의 「운동 알림」 줄도 같은 것을 알아야 해서, 여기 두면 두 벌이 된다
+const canNotify = can();
 
 // ── 서비스 워커를 기다린다. 단, 영영은 아니다 ──
 //
@@ -129,7 +130,7 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [permission, setPermission] = useState(canNotify ? Notification.permission : 'unsupported');
+  const [permission, setPermission] = useState(notifyPermission);
 
   // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
   const refreshTick = useRefreshTick();

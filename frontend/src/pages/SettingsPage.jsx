@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRestTimerStore, PRESETS } from '../store/restTimerStore';
 import { useSettingsStore, BREATH_WHERE, BREATH_MAX, BREATH_SENSE } from '../store/settingsStore';
@@ -9,6 +9,8 @@ import ToneMaker from '../components/ToneMaker';
 import { micSupported } from '../data/useBreath';
 import { speechSupported } from '../data/voiceLog';
 import { canLock, isLockSet } from '../data/appLock';
+import { reminderRow } from '../data/reminderLabel';
+import { canNotify, notifyPermission } from '../data/pushSupport';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS } from '../data/safeStorage';
@@ -152,6 +154,15 @@ function GoRow({ title, sub, warn, onClick }) {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  // ── 운동 알림 줄에 사실을 적는다 (2026-09-30) ──
+  //
+  // 그 줄은 「시간 정하기」로 박혀 있었다 — 켜졌는지 · 막혔는지 · 서버가 보낼 수 있는지를
+  // 하나도 안 알려줬다. 바로 옆 「앱 잠금」은 켜짐/꺼짐을 말하고, 그 칸 머리에는
+  // 「알림은 왜 안 되는지 적는다」고 적혀 있었다 — **적고 있지 않았다.**
+  //
+  // 판단은 `data/reminderLabel.js` 의 `reminderRow` 가 한다(검사가 값으로 본다).
+  // 여기는 **사실 셋을 모아 넘기는 일**만 한다.
+  const [rem, setRem] = useState({ loaded: false, settings: null, serverReady: null });
   const [lockOpen, setLockOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
@@ -191,6 +202,19 @@ export default function SettingsPage() {
   const s = useSettingsStore();
   const sex = useAuthStore((st) => st.sex);
   const setSex = useAuthStore((st) => st.setSex);
+  // 알림 설정을 한 번 불러온다. **조용히 실패한다** — 못 불러오면 단정하지 않고
+  // 여태 문구(「시간 정하기」)를 그대로 둔다(`reminderRow` 의 `loaded`)
+  useEffect(() => {
+    let alive = true;
+    client.get('/reminders')
+      .then(({ data }) => {
+        if (!alive) return;
+        setRem({ loaded: true, settings: data?.settings || null, serverReady: !!data?.vapidPublicKey });
+      })
+      .catch(() => { /* 설정함은 이것 없이도 다 돌아간다 */ });
+    return () => { alive = false; };
+  }, []);
+
   const nickname = useAuthStore((st) => st.nickname);
 
   // 이름 바꾸기. 계정 시트가 하던 것과 **같은 길**을 쓴다 (`PUT /auth/nickname`) —
@@ -232,6 +256,15 @@ export default function SettingsPage() {
     // 9/22 에 쓰던 한 칸이 아직 남아 있을 수 있다 — 그것도 지울 것이 있다는 뜻이다
     return readLS(SHAPE_RATIOS_KEY) ? 1 : 0;
   });
+  // 알림 줄에 적을 것. **브라우저가 아는 사실과 서버가 아는 사실을 함께** 넘긴다
+  const remRow = reminderRow({
+    canNotify: canNotify(),
+    permission: notifyPermission(),
+    serverReady: rem.serverReady,
+    settings: rem.settings,
+    loaded: rem.loaded,
+  });
+
   const tones = allTones();
   const tone = tones.find((t) => t.id === toneId) || tones[0];
   return (
@@ -535,9 +568,12 @@ export default function SettingsPage() {
             onClick={() => setLockOpen(true)}
           />
         )}
+        {/* **사실을 적는다.** 못 오게 막는 것이 있으면 그것을 먼저 말하고, 다 되면
+            언제 오는지 적는다 (`reminderRow` — 검사가 값으로 본다) */}
         <GoRow
           title="운동 알림"
-          sub="시간 정하기"
+          sub={remRow.text}
+          warn={remRow.warn}
           onClick={() => navigate('/reminders')}
         />
       </Group>
