@@ -68,4 +68,35 @@ for (const f of ['src/store/workoutStore.js', 'src/store/inbodyStore.js',
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
+// ── 튕길 때 까닭을 알리는가 ── (2026-09-30)
+//
+// 세션이 끊기면 `window.location.href = '/login'` 로 보낸다. **통째로 새로 뜨는 길**이라
+// 라우터로 말을 실어 보낼 수 없어서, 쪽지를 기기에 적어두고 로그인 화면이 읽는다.
+//
+// 그런데 보내는 자리가 셋인데 **쪽지는 한 자리에만 있었다** — 갱신이 연달아 실패해서
+// 튕긴 사람은 로그인 화면에서 아무 말도 못 들었다. 운동하다 갑자기 로그인 화면이
+// 뜨는데 까닭이 없다.
+//
+// 그리고 쪽지 이름이 **세 곳에 글자로** 흩어져 있었다. 한 곳만 틀리면 안내가 조용히
+// 사라진다 — `data/localKeys.js` 를 둔 까닭이 그것이다.
+console.log('\n── 튕길 때 까닭을 알리는가 ──');
+{
+  const cli = codeOf(fs.readFileSync('src/api/client.js', 'utf-8'));
+  const login = codeOf(fs.readFileSync('src/pages/LoginPage.jsx', 'utf-8'));
+  // 보내는 길이 한 곳으로 모여 있는가 (셋이 각자 적으면 또 한 곳이 빠진다)
+  ok('로그인 화면으로 보내는 길이 한 곳이다', /function toLogin\(/.test(cli), true);
+  ok('  주소를 바꾸는 자리도 그 한 곳이다',
+    (cli.match(/window\.location\.href = '\/login'/g) || []).length, 1);
+  ok('  세 자리가 다 그 길을 쓴다', (cli.match(/toLogin\(/g) || []).length >= 4, true);
+  // **사람이 누른 로그아웃에는 알리지 않는다** — 자기가 누른 것에 「만료되었어요」는 이상하다
+  ok('사람이 누른 로그아웃은 안 알린다', /auth\/logout'\)\)/.test(cli), true);
+  // 이름은 한 곳에서 가져온다
+  ok('쪽지 이름을 글자로 적지 않는다',
+    /'session_expired'/.test(cli) || /'session_expired'/.test(login), false);
+  ok('  둘 다 localKeys 에서 가져온다',
+    /SESSION_EXPIRED_KEY/.test(cli) && /SESSION_EXPIRED_KEY/.test(login), true);
+  // 읽은 쪽지는 **그 자리에서 지운다** — 안 지우면 다음에 열 때 또 뜬다
+  ok('읽으면 지운다', /removeLS\(SESSION_EXPIRED_KEY\)/.test(login), true);
+}
+
 console.log('전부 통과');

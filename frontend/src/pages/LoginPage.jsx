@@ -8,6 +8,8 @@ import PasswordResetModal from '../components/PasswordResetModal';
 import client from '../api/client';
 import Logo from '../components/Logo';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
+// 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
+import { SESSION_EXPIRED_KEY } from '../data/localKeys';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 // 백엔드 URL (OAuth 리다이렉트용)
@@ -58,8 +60,8 @@ export default function LoginPage() {
 
   // 세션 만료 알림
   useEffect(() => {
-    if (readLS('session_expired')) {
-      removeLS('session_expired');
+    if (readLS(SESSION_EXPIRED_KEY)) {
+      removeLS(SESSION_EXPIRED_KEY);
       toast('세션이 만료되었어요. 다시 로그인해주세요.', 'warning');
     }
   }, []);

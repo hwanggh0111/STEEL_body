@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { readLS, removeLS, saveLS, readCookies } from '../data/safeStorage';
+import { SESSION_EXPIRED_KEY } from '../data/localKeys';
 
 // 쿠키에서 값 읽기 헬퍼.
 // document.cookie 도 샌드박스 iframe 에서는 던진다 — 요청 인터셉터에서 터지면
@@ -32,6 +33,26 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * 로그인 화면으로 보낸다 (2026-09-30 에 한 곳으로 모았다).
+ *
+ * 여태 세 자리가 각자 `removeLS` 둘 + 주소 바꾸기를 적고 있었고, **쪽지는 한 자리에만
+ * 있었다.** 그래서 「갱신이 연달아 실패해서」 튕긴 사람은 로그인 화면에서 **아무 말도
+ * 못 들었다** — 운동하다 갑자기 로그인 화면이 뜨는데 까닭이 없다.
+ *
+ * `told` 가 false 인 곳은 **사람이 직접 로그아웃한 길**이다. 자기가 누른 것에
+ * 「세션이 만료되었어요」를 띄우면 그게 더 이상하다.
+ *
+ * 쪽지 이름은 `localKeys.js` 에서 가져온다. 여태 세 곳에 글자로 흩어져 있었는데,
+ * 한 곳만 틀리면 **안내가 조용히 사라진다** — 그 파일을 둔 까닭이 그것이다.
+ */
+function toLogin(told = true) {
+  removeLS('token');
+  removeLS('nickname');
+  if (told) saveLS(SESSION_EXPIRED_KEY, 'true');
+  window.location.href = '/login';
+}
+
 // 응답 인터셉터: 401 시 refresh 시도, 실패하면 로그아웃
 client.interceptors.response.use(
   (res) => res,
@@ -43,16 +64,13 @@ client.interceptors.response.use(
       // refresh 연속 실패 시 바로 로그아웃 (무한 루프 방지)
       if (refreshFailCount >= MAX_REFRESH_FAILS) {
         refreshFailCount = 0;
-        removeLS('token');
-        removeLS('nickname');
-        window.location.href = '/login';
+        toLogin();                      // **까닭을 알린다** (여태 이 길에는 쪽지가 없었다)
         return Promise.reject(err);
       }
       // refresh/logout 요청 자체가 실패한 경우는 바로 로그아웃
       if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/logout')) {
-        removeLS('token');
-        removeLS('nickname');
-        window.location.href = '/login';
+        // **로그아웃은 사람이 누른 것**이라 알리지 않는다. 갱신이 막힌 것은 알린다
+        toLogin(!originalRequest.url.includes('/auth/logout'));
         return Promise.reject(err);
       }
 
@@ -108,10 +126,7 @@ client.interceptors.response.use(
         const queue = [...refreshQueue];
         refreshQueue = [];
         queue.forEach(({ reject }) => reject(refreshErr));
-        removeLS('token');
-        removeLS('nickname');
-        saveLS('session_expired', 'true');
-        window.location.href = '/login';
+        toLogin();
         return Promise.reject(refreshErr);
       }
     }
