@@ -443,6 +443,9 @@ function afterRowChange(table, userId, change) {
   // 틀린 색인을 들고 있는 것보다 다시 만드는 것이 낫다
   if (change?.added) rowAdded(table, change.added);
   else if (change?.removedId != null) rowRemoved(table, userId, change.removedId);
+  // **날짜가 바뀌었으면 자리를 옮긴다** (2026-09-30 — 색인이 차례를 들기 시작했다).
+  // 값만 바뀐 것은 손댈 것이 없다 — 색인이 들고 있는 것이 그 줄 자체(같은 객체)다
+  else if (change?.moved) rowMoved(table, userId, change.moved);
   else if (change?.updated) { /* 같은 객체라 손댈 것이 없다 */ }
   else invalidateRows(table);
 }
@@ -471,6 +474,37 @@ const _rowIndex = { workouts: null, inbody: null };
 const descStr = (a, b) => (a < b ? 1 : a > b ? -1 : 0);   // 최신이 앞
 const ascStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0);    // 적은 차례대로
 
+// ── 색인을 **정렬된 채로** 들고 있는다 ── (2026-09-30, `npm run bench` 로 잡았다)
+//
+// 여태 색인은 「누구 것인가」만 들고, 차례는 **읽을 때마다** 매겼다. 그래서 저장한 뒤
+// 첫 조회가 29,200줄을 다시 정렬했다 — 재보면 **6.5ms** 다(표에 있을 때는 0.14ms).
+// 이 자리는 화면이 뜰 때 · 세트를 적은 뒤마다 지난다.
+//
+// 차례를 **색인이 들고 있으면** 읽는 쪽은 베끼기만 한다. 대신 줄이 생기거나 날짜가
+// 바뀔 때 **제자리를 지켜야** 한다 — 아래 `rowAdded` · `rowMoved` 가 그 일을 한다.
+// (틀린 차례를 들고 있으면 기록이 뒤섞여 보이므로, `npm run save` 가 값으로 지킨다)
+const ROW_CMP = {
+  // 운동은 같은 날이 여럿이라 적은 때까지 본다 (`getWorkouts` 가 쓰던 자와 같은 것)
+  workouts: (a, b) => descStr(a.date, b.date) || descStr(a.created_at || '', b.created_at || ''),
+  inbody: (a, b) => descStr(a.date, b.date),
+};
+
+/**
+ * 정렬된 줄 목록에 하나를 **제자리에 꽂는다.**
+ *
+ * 같은 값(견줘서 0)들 **뒤에** 넣는다 — `Array.sort` 는 같은 것의 차례를 안 바꾸므로
+ * (V8 은 안정 정렬) 여태와 같은 차례가 되게 하려면 뒤로 가야 한다.
+ */
+function _insertSorted(list, row, cmp) {
+  let lo = 0;
+  let hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cmp(row, list[mid]) < 0) hi = mid; else lo = mid + 1;
+  }
+  list.splice(lo, 0, row);
+}
+
 function _buildRowIndex(table) {
   const data = load();
   const map = new Map();
@@ -479,6 +513,9 @@ function _buildRowIndex(table) {
     const list = map.get(row.user_id);
     if (list) list.push(row); else map.set(row.user_id, [row]);
   }
+  // **한 번만 정렬한다.** 읽을 때마다 하던 일을 여기로 옮긴 것이다
+  const cmp = ROW_CMP[table];
+  if (cmp) map.forEach((list) => list.sort(cmp));
   _rowIndex[table] = map;
   return map;
 }
@@ -504,7 +541,29 @@ function rowAdded(table, row) {
   const map = _rowIndex[table];
   if (!map || !row || row.user_id == null) return;
   const list = map.get(row.user_id);
-  if (list) list.push(row); else map.set(row.user_id, [row]);
+  if (!list) { map.set(row.user_id, [row]); return; }
+  const cmp = ROW_CMP[table];
+  // **차례를 지켜 꽂는다** (2026-09-30). 그냥 뒤에 붙이면 어제 것을 오늘 적은 사람의
+  // 목록이 뒤섞인다 — 읽는 쪽이 더는 정렬하지 않기 때문이다
+  if (cmp) _insertSorted(list, row, cmp); else list.push(row);
+}
+
+/**
+ * 줄의 **차례가 달라졌다** — 빼서 다시 꽂는다 (2026-09-30).
+ *
+ * 날짜를 고치면 그 줄은 다른 자리로 가야 한다. 여태는 고치기(update)에 아무것도
+ * 안 했는데, 그때는 읽는 쪽이 매번 정렬했으니 괜찮았다. 이제는 색인이 차례를 들고
+ * 있으므로 **여기서 옮기지 않으면 목록이 뒤섞인 채로 보인다.**
+ */
+function rowMoved(table, userId, row) {
+  const map = _rowIndex[table];
+  if (!map || !row) return;
+  const list = map.get(userId);
+  if (!list) return;
+  const i = list.indexOf(row);
+  if (i >= 0) list.splice(i, 1);
+  const cmp = ROW_CMP[table];
+  if (cmp) _insertSorted(list, row, cmp); else list.push(row);
 }
 
 function rowRemoved(table, userId, id) {
@@ -607,8 +666,9 @@ const db = {
     // 정렬은 여기서 한다: 색인은 「누구 것인가」만 들고, 차례는 화면이 정하는 것이다.
     // **사본에 정렬한다** — 색인이 들고 있는 배열을 제자리에서 뒤집으면 그 배열을
     // 쓰는 다음 사람이 뒤집힌 것을 본다
-    const result = [...rowsOf('workouts', userId)]
-      .sort((a, b) => descStr(a.date, b.date) || descStr(a.created_at || '', b.created_at || ''));
+    // **정렬은 색인이 이미 해뒀다** (2026-09-30). 여기서 29,200줄을 다시 매기던 것을
+    // 넣는 자리로 옮겼다 — 저장한 뒤 첫 조회가 6.5ms → 베끼는 값만 남는다
+    const result = rowsOf('workouts', userId).slice();
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
     return result.slice();   // 표에 담아둔 것과 **다른 배열**을 준다 (위 참고)
   },
@@ -626,7 +686,12 @@ const db = {
   createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null) {
     const data = load();
     if (clientKey) {
-      const existing = data.workouts.find(w => w.user_id === userId && w.client_key === clientKey);
+      // **내 줄만 본다** (2026-09-30). 여태 모든 사람의 모든 줄을 훑었다 — 지하에서
+      // 적어 세워둔 것이 신호가 돌아와 쉰 줄씩 올라오면 그 훑기가 줄마다 한 번씩
+      // 일어난다(5년치면 29,200줄 × 줄 수). 색인은 같은 답을 O(내 줄)로 준다.
+      // 걸러내는 조건이 같으므로(`user_id` · `client_key`) 답은 한 줄도 다르지 않다
+      const mine = rowsOf('workouts', userId);
+      const existing = mine.find(w => w.client_key === clientKey);
       if (existing) return { lastInsertRowid: existing.id, deduped: true };
     }
     const id = nextId('workouts');
@@ -650,13 +715,16 @@ const db = {
     const data = load();
     const workout = data.workouts.find(w => w.id === id && w.user_id === userId);
     if (!workout) return { changes: 0 };
+    // **날짜가 달라지면 색인에서 자리를 옮겨야 한다** (2026-09-30 — 색인이 차례를 든다).
+    // 고치기 전에 견준다. 뒤에 견주면 이미 같은 값이라 달라진 것을 알 수 없다
+    const moved = fields.date !== undefined && fields.date !== workout.date;
     if (fields.date !== undefined) workout.date = fields.date;
     if (fields.exercise !== undefined) workout.exercise = fields.exercise;
     if (fields.weight !== undefined) workout.weight = fields.weight;
     if (fields.sets !== undefined) workout.sets = fields.sets;
     if (fields.reps !== undefined) workout.reps = fields.reps;
     workout.updated_at = new Date().toISOString();
-    afterRowChange('workouts', userId, { updated: true });
+    afterRowChange('workouts', userId, moved ? { moved: workout } : { updated: true });
     save(data);
     return { changes: 1, workout };
   },
@@ -666,7 +734,7 @@ const db = {
     const cacheKey = 'i_' + userId;
     // 운동 쪽과 같은 이유로 **사본을 준다** (위 `getWorkouts` 참고)
     if (_queryCache.has(cacheKey) && Date.now() - _queryCache.get(cacheKey).t < 5000) return _queryCache.get(cacheKey).d.slice();
-    const result = [...rowsOf('inbody', userId)].sort((a, b) => descStr(a.date, b.date));
+    const result = rowsOf('inbody', userId).slice();   // 차례는 색인이 들고 있다 (위 참고)
     _queryCache.set(cacheKey, { d: result, t: Date.now() });
     return result.slice();
   },
@@ -692,6 +760,8 @@ const db = {
     const data = load();
     const record = data.inbody.find(r => r.id === id && r.user_id === userId);
     if (!record) return { changes: 0 };
+    // 운동 쪽과 같다 — 날짜가 달라지면 색인에서 자리를 옮긴다 (2026-09-30)
+    const moved = fields.date !== undefined && fields.date !== record.date;
     if (fields.date !== undefined) record.date = fields.date;
     if (fields.height !== undefined) record.height = fields.height;
     if (fields.weight !== undefined) record.weight = fields.weight;
@@ -700,7 +770,7 @@ const db = {
     if (fields.water_l !== undefined) record.water_l = fields.water_l;
     if (fields.bmi !== undefined) record.bmi = fields.bmi;
     record.updated_at = new Date().toISOString();
-    afterRowChange('inbody', userId, { updated: true });
+    afterRowChange('inbody', userId, moved ? { moved: record } : { updated: true });
     save(data);
     return { changes: 1, record };
   },

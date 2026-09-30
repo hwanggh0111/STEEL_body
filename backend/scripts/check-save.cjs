@@ -115,6 +115,7 @@ ok('  시각까지 붙은 것도 같은 차례다',
   [...iso].sort(desc),
   [...iso].sort((a, b) => b.localeCompare(a)));
 
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
   const until = Date.now() + limit;
   const tick = () => {
@@ -154,6 +155,57 @@ const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
   ok('깨진 파일은 빈 DB 로 시작한다', inFreshProcess(broken, 'd.getWorkouts(1).length'), '0');
   ok('  깨진 파일은 옆에 치워둔다 (되살릴 수 있게)',
     fs.readdirSync(ROOT).filter((f) => f.startsWith('.save-check-broken.json.broken-')).length, 1);
+
+  // ── 차례를 색인이 들고 있다 (2026-09-30, `npm run bench` 로 잡았다) ──
+  //
+  // 읽을 때마다 29,200줄을 정렬하던 것을 **넣는 자리**로 옮겼다(저장 뒤 첫 조회 6.5ms).
+  // 그래서 이제 **색인의 차례가 곧 화면의 차례**다 — 한 자리라도 어긋나면 기록이
+  // 뒤섞여 보인다. 화면으로는 「좀 이상하다」로만 보이는 자리라 값으로 지킨다.
+  console.log('\n── 차례가 지켜지는가 (색인이 차례를 든다) ──');
+  const S = db.createUser('sort@t.local', 'x', '차례', 'sort1').lastInsertRowid;
+  const dates = ['2026-09-10', '2026-09-30', '2026-09-20'];
+  const ids = dates.map((d) => db.createWorkout(S, d, '벤치프레스', '80', 5, 8).lastInsertRowid);
+  // 최신이 앞이다. **어제 것을 오늘 적어도** 제자리에 꽂혀야 한다
+  ok('넣는 차례와 상관없이 최신이 앞', db.getWorkouts(S).map((w) => w.date),
+    ['2026-09-30', '2026-09-20', '2026-09-10']);
+
+  // 같은 날이 여럿이면 **적은 때**로 가른다 (늦게 적은 것이 앞).
+  // **시각을 벌려 넣는다** — `created_at` 이 밀리초라 한 번에 넣으면 둘이 같은 값이 되고,
+  // 그러면 차례를 가릴 것이 없어 「넣은 차례」가 그대로 남는다(옛 정렬도 그랬다).
+  // 여기서 보려는 것은 **시각이 다를 때** 늦게 적은 것이 앞에 오는가다
+  await wait(8);
+  db.createWorkout(S, '2026-09-20', '스쿼트', '100', 5, 5);
+  const sameDay = db.getWorkouts(S).filter((w) => w.date === '2026-09-20').map((w) => w.exercise);
+  ok('  같은 날은 늦게 적은 것이 앞', sameDay, ['스쿼트', '벤치프레스']);
+
+  // **날짜를 고치면 자리가 옮겨져야 한다.** 여태는 읽는 쪽이 매번 정렬해서 괜찮았다
+  db.updateWorkout(ids[1], S, { date: '2026-09-01' });
+  ok('날짜를 고치면 자리가 옮겨진다', db.getWorkouts(S).map((w) => w.date),
+    ['2026-09-20', '2026-09-20', '2026-09-10', '2026-09-01']);
+  ok('  값만 고치면 차례는 그대로', (() => {
+    db.updateWorkout(ids[0], S, { weight: '85' });
+    return db.getWorkouts(S).map((w) => w.date);
+  })(), ['2026-09-20', '2026-09-20', '2026-09-10', '2026-09-01']);
+  ok('  고친 값은 들어갔다', db.getWorkouts(S).find((w) => w.id === ids[0]).weight, '85');
+
+  // 지우면 그 자리만 빠진다 (`ids[2]` 는 9/20 벤치프레스다 — 9/20 스쿼트는 남는다)
+  db.deleteWorkout(ids[2], S);
+  ok('지운 것만 빠진다', db.getWorkouts(S).map((w) => w.date),
+    ['2026-09-20', '2026-09-10', '2026-09-01']);
+
+  // 인바디도 같은 규칙이다
+  const i1 = db.createInbody(S, '2026-09-05', 175, 70, 15, 33, 40, 22).lastInsertRowid;
+  db.createInbody(S, '2026-09-25', 175, 71, 15, 33, 40, 22);
+  ok('인바디도 최신이 앞', db.getInbody(S).map((r) => r.date), ['2026-09-25', '2026-09-05']);
+  db.updateInbody(i1, S, { date: '2026-09-28' });
+  ok('  날짜를 고치면 옮겨진다', db.getInbody(S).map((r) => r.date), ['2026-09-28', '2026-09-25']);
+
+  // 색인을 통째로 버렸다 다시 지어도 같은 차례여야 한다 (`_dropDerived` 가 지나는 길)
+  ok('다시 지어도 같은 차례', (() => {
+    const before = db.getWorkouts(S).map((w) => w.id);
+    db.invalidateQueryCache?.();
+    return before.join() === db.getWorkouts(S).map((w) => w.id).join();
+  })(), true);
 
   db.flushNow();
   clean();
