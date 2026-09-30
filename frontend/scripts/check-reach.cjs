@@ -128,7 +128,10 @@ ok('탭도 서랍도 머리도 안 켜지는 화면', homeless, []);
 // 머리에서 열리는 화면은 **그 단추에 불이 들어와야** 한다. 안 들어오면 아래 탭바도
 // 안 켜진 채로 서 있게 되어, 내가 어디인지 알 길이 없다
 const layout = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
-ok('설정함으로 가는 기어가 머리에 있다', /navigate\('\/settings'\)/.test(layout), true);
+// 2026-09-30: 기어는 **한 번 더 누르면 나간다.** 그래서 `navigate('/settings')` 는
+// 조건 안으로 들어갔다 — 글자만 보면 되지만, 여는 길이 살아 있는지는 여기서 본다
+// (나가는 길이 제대로인지는 `npm run nav` 가 본다)
+ok('설정함으로 가는 기어가 머리에 있다', /navigate\('\/settings'/.test(layout), true);
 ok('  거기 서면 기어에 불이 들어온다',
   /onSettings/.test(layout) && /location\.pathname === '\/settings'/.test(layout), true);
 // 켜라고 적어둔 부모가 **실제로 탭에 있는 칸**이어야 한다

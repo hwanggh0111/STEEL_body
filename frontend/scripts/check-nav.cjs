@@ -160,6 +160,32 @@ ok('  넓은 화면에서만 나온다', /@media \(min-width: 1040px\)[\s\S]{0,8
 // 줄바꿈으로 두 줄이 되면 머리가 계속 자란다 — 폰에서는 좌우로 흐르게 둔다
 ok('칸 이름 줄은 폰에서 흐른다', /\.site-nav \{[\s\S]{0,200}overflow-x: auto;/.test(css), true);
 
+// ── 설정함에서 나가는 길 (2026-09-30) ──
+//
+// 설정은 **탭이 아니라 잠깐 들른 자리**다. 여태 나가는 길은 아래 탭바로 딴 데 가는 것
+// 하나였고, 「보던 화면으로 돌아가기」가 없었다. 들어온 문(기어)이 나가는 문도 된다.
+//
+// 「나가기」 단추를 새로 달지 않는다 — 설정함 맨 아래의 「나가기」 칸이 **로그아웃**이라
+// 같은 말이 두 가지 일을 하게 된다. 그 두 가지가 다시 겹치지 않는지도 여기서 본다.
+console.log('');
+console.log('── 설정함은 들어온 문으로 나간다 ──');
+const layout = codeOf(read('src/components/Layout.jsx'));
+const settings = codeOf(read('src/pages/SettingsPage.jsx'));
+// 기어가 **조건 없이** 설정함으로 밀어 넣으면 한 번 더 눌러도 안 나간다
+ok('기어가 그때그때 갈린다', /onClick=\{toggleSettings\}/.test(layout), true);
+ok('  설정함에 서 있으면 나간다', /if \(!onSettings\)[\s\S]{0,120}navigate\('\/settings'/.test(layout), true);
+// 새 칸을 밀어 넣으면 기기의 뒤로가 다시 설정함으로 데려온다
+ok('  히스토리를 한 칸 되돌린다', /location\.state\?\.from\) navigate\(-1\)/.test(layout), true);
+// 주소를 직접 열어 온 사람에게는 되돌릴 칸이 없다
+ok('  적어둔 자리가 없으면 홈으로', /else navigate\('\/home'\)/.test(layout), true);
+// 들어갈 때 어디서 왔는지 적어두지 않으면 위의 되돌리기가 늘 홈으로 간다
+ok('들어갈 때 어디서 왔는지 적는다', /state: \{ from: location\.pathname/.test(layout), true);
+// 읽어주는 이름도 갈려야 한다 — 눈으로는 불이 들어온 것이 보이지만 소리로는 안 보인다
+ok('읽어주는 이름도 갈린다', /aria-label=\{onSettings \? '설정 닫기'/.test(layout), true);
+// **같은 말을 두 가지 일에 쓰지 않는다.** 설정함의 「나가기」는 로그아웃이다
+ok('설정함에 「나가기」 단추를 새로 달지 않았다', />나가기</.test(settings), false);
+ok('  로그아웃 단추는 그대로 있다', />로그아웃</.test(settings), true);
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('전부 통과');

@@ -62,6 +62,29 @@ export default function Layout() {
   // 설정함에 서 있으면 기어에 불이 들어온다 — 아래 탭바가 안 켜지는 자리라
   // (탭의 자식이 아니다) 여기라도 켜주지 않으면 내가 어디인지 모른다
   const onSettings = location.pathname === '/settings';
+
+  /**
+   * 기어를 한 번 더 누르면 **나간다** (2026-09-30).
+   *
+   * 여태 설정함에서 나가는 길은 아래 탭바로 딴 데 가는 것뿐이었다. 그런데 설정은
+   * **탭이 아니라 잠깐 들른 자리**여서, 사람은 「보던 화면으로 돌아가기」를 찾는다.
+   * 들어온 문이 나가는 문도 되는 것이 그 자리에서 가장 짧은 길이다.
+   *
+   * 「나가기」라는 이름의 단추를 새로 달지 않은 까닭 — 설정함 맨 아래의 「나가기」 칸은
+   * **로그아웃**이다. 같은 말을 두 가지 일에 쓰면 그 자리에서 로그아웃을 누르게 된다.
+   *
+   * 돌아가는 곳은 **들어올 때 적어둔 자리**(`state.from`)가 있으면 히스토리를 한 칸
+   * 되돌린다 — 새 칸을 밀어 넣으면 기기의 뒤로가 다시 설정함으로 데려온다.
+   * 주소를 직접 열어 온 것이라면 적어둔 것이 없으므로 홈으로 보낸다.
+   */
+  const toggleSettings = () => {
+    if (!onSettings) {
+      navigate('/settings', { state: { from: location.pathname + location.search } });
+      return;
+    }
+    if (location.state?.from) navigate(-1);
+    else navigate('/home');
+  };
   const navType = useNavigationType();
   const isPC = useIsPC();
   // 휴식 띠가 떠 있으면 그만큼 아래를 비워둔다 — 안 그러면 마지막 줄이 띠에 가린다
@@ -329,9 +352,9 @@ export default function Layout() {
               **끌 길이 아예 없었다.** 새로고침 옆에 둔다 — 둘 다 「화면이 아니라 앱에
               대한 것」이라 같은 자리가 맞다 */}
           <button
-            onClick={() => navigate('/settings')}
-            aria-label="설정"
-            title="설정"
+            onClick={toggleSettings}
+            aria-label={onSettings ? '설정 닫기' : '설정'}
+            title={onSettings ? '설정 닫기' : '설정'}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               width: 34, height: 34, marginRight: 6,
