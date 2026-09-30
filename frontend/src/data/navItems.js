@@ -28,6 +28,9 @@
 export const DRAWER_ITEMS = [
   { path: '/homeworkout', label: '기능성운동', icon: 'homegym' },
   { path: '/reminders',  label: '운동 알림',  icon: 'bell' },
+  // 아픈 곳 · 이 운동이 어디를 달굴지 (2026-09-30). **탭은 안 늘린다** —
+  // 늘 쓰는 것은 탭바 넷에 있고, 이건 가끔 쓰는 것이라 서랍이 맞는 자리다
+  { path: '/parts',      label: '부위',      icon: 'body' },
   // 소식 · 소개는 **여기 없다.** 소개는 홈페이지(`/site`)에, 소식(공지함)은
   // 고객센터 안에 있다. 서랍에 또 줄을 두면 같은 자리로 가는 길이 둘이 된다
   { path: '/support',    label: '고객센터',   icon: 'inbox' },

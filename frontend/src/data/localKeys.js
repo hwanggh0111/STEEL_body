@@ -63,6 +63,10 @@ export const HOME_LAST_KEY = 'steelbody_home_last';
 // 로그아웃하면 지운다(체형의 비율 이력과 똑같은 자리다). 회복이 빨라진 자취를 다음에
 // 로그인한 사람이 자기 것으로 보게 둘 이유가 없다.
 export const BREATH_LOG_KEY = 'breath:recover';
+// 서랍의 「부위」 화면에 적어둔 **아픈 곳** (2026-09-30, `data/sorePart.js`).
+// 부위 이름과 적은 날뿐이지만 **그 사람의 몸**이라 로그아웃하면 지운다 — 다음에
+// 로그인한 사람에게 「어깨 4일째」가 남아 있으면 안 된다.
+export const SORE_KEY = 'parts:sore';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
@@ -82,6 +86,7 @@ export const PER_USER_KEYS = [
   GYM_KEY,
   HOME_LAST_KEY,
   BREATH_LOG_KEY,
+  SORE_KEY,
 ];
 
 // ── 기기의 것. 로그아웃해도 남긴다 ──

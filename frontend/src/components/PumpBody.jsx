@@ -61,8 +61,12 @@ function paintOf(score, max) {
  * @param pump   `buildPump` 가 준 것
  * @param width  몸 그림 너비 (높이는 2.38배)
  * @param now    지금 하는 동작이 쓰는 곳 { main, sub } — 있으면 그 자리에 테두리를 두른다
+ * @param label  읽어주는 말을 바꿔 끼운다 (2026-09-30).
+ *               이 그림을 **홈트 말고 다른 자리**에서도 쓰기 시작했다(서랍의 「부위」 —
+ *               이 운동이 어디를 달굴지 미리 보는 자리). 거기서 「이번 판에서 등를
+ *               채웠어요」라고 읽어주면 틀린 말이다. 안 넘기면 여태와 같다
  */
-export default function PumpBody({ pump, width = 68, now = null }) {
+export default function PumpBody({ pump, width = 68, now = null, label = null }) {
   const max = pump?.max || 0;
   const nowMain = new Set(now?.main || []);
 
@@ -73,11 +77,11 @@ export default function PumpBody({ pump, width = 68, now = null }) {
       viewBox="0 0 120 240"
       fill="none"
       role="img"
-      aria-label={
+      aria-label={label || (
         pump?.touched?.length
           ? `이번 판에서 ${pump.touched.join(' · ')}를 채웠어요` +
             (pump.untouched?.length ? `. ${pump.untouched.join(' · ')}는 아직이에요` : '')
-          : '아직 아무 데도 안 채웠어요'
+          : '아직 아무 데도 안 채웠어요')
       }
     >
       <defs>

@@ -17,6 +17,8 @@ const RoutinePage = lazy(() => import('./pages/RoutinePage'));
 const TrainPage = lazy(() => import('./pages/TrainPage'));
 // 5차 리모델링 — 인바디 · 측정 · 견주기를 한 자리로 (2026-09-04)
 const BodyPage = lazy(() => import('./pages/BodyPage'));
+// 서랍의 「부위」 — 아픈 곳 · 달아오를 곳 미리보기 (2026-09-30)
+const PartsPage = lazy(() => import('./pages/PartsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 // 몸 지도는 「몸」이 아니라 「오늘」에서 들어온다 (2026-09-16)
 const BodyMapPage = lazy(() => import('./pages/BodyMapPage'));
@@ -117,6 +119,7 @@ export default function App() {
                 <Route path="train" element={<TrainPage />} />
                 <Route path="body" element={<BodyPage />} />
                 <Route path="map" element={<BodyMapPage />} />
+                <Route path="parts" element={<PartsPage />} />
                 {/* 목표 — 홈의 목표 카드에서만 들어온다 (2026-09-17) */}
                 <Route path="goal" element={<GoalPage />} />
                 <Route path="gym" element={<GymPage />} />
