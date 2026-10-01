@@ -2,10 +2,10 @@ import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../sto
 import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useWorkoutStore } from '../store/workoutStore';
-import { restView } from '../data/nextSet';
+import { restView, exerciseOfLabel } from '../data/nextSet';
 import RestBreath from './RestBreath';
 import { useToday } from '../data/useToday';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 // 휴식 타이머 — 기록 화면에 붙는 자리.
 //
@@ -182,11 +182,16 @@ export default function RestTimer() {
   // `autoStartAfterSet` 이 「벤치프레스 3세트」 꼴로 적어 둔다 (restTimerStore 의 label).
   // 루틴의 「다음」과는 다른 값이다: 지금 쉬고 있는 것은 **방금 한 운동**이다
   const workouts = useWorkoutStore(s => s.workouts);
-  const restedName = String(label || '').replace(/s*d+세트s*$/, '').trim();
+  const restedName = exerciseOfLabel(label);
   // 날짜는 앱이 쓰는 것과 **같은 자리**에서 읽는다. 여기서 따로 만들면
   // 자정을 넘기는 순간의 판단이 화면마다 달라진다
   const today = useToday();
-  const view = restedName ? restView(workouts, restedName, today) : null;
+  // **1초마다 다시 그리는 자리다.** 그때마다 5년치 날짜를 훑으면 안 된다 —
+  // 바뀌는 것은 leftMs 뿐이고 기록은 그대로다. 기록이 바뀔 때만 다시 센다
+  const view = useMemo(
+    () => (restedName ? restView(workouts, restedName, today) : null),
+    [workouts, restedName, today],
+  );
 
   const [custom, setCustom] = useState('');
   const [showCustom, setShowCustom] = useState(false);

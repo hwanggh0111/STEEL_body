@@ -18,7 +18,7 @@ const bundle = (entry, out) => {
   return m;
 };
 
-const { restView } = bundle('src/data/nextSet.js', '.n1.cjs');
+const { restView, exerciseOfLabel } = bundle('src/data/nextSet.js', '.n1.cjs');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -30,6 +30,19 @@ const ok = (name, got, want) => {
 const w = (exercise, sets, reps, weight) => ({ exercise, sets, reps, weight });
 const TODAY = '2026-10-01';
 
+// 10/1 에 이 규칙을 **두 군데에 따로 적었다가** 한쪽의 역슬래시가 날아갔다.
+// `/s*d+세트s*$/` 는 터지지도 않고 아무것도 안 떼서, 그 화면에서만 카드가
+// 조용히 안 나왔다 — 검사도 빌드도 통과했다. 그래서 여기서 본다.
+console.log('── 휴식 이름에서 운동 이름을 꺼낸다 ──');
+ok('뒤의 세트 번호를 뗀다', exerciseOfLabel('벤치프레스 3세트'), '벤치프레스');
+ok('  두 자리도 뗀다', exerciseOfLabel('랫풀다운 12세트'), '랫풀다운');
+ok('  이름에 띄어쓰기가 있어도 이름은 남는다', exerciseOfLabel('인클라인 벤치 프레스 1세트'), '인클라인 벤치 프레스');
+ok('  세트가 안 붙어 있으면 그대로', exerciseOfLabel('벤치프레스'), '벤치프레스');
+ok('  이름 안의 숫자는 안 건드린다', exerciseOfLabel('21s 컬 2세트'), '21s 컬');
+ok('  빈 값도 안 터진다', [exerciseOfLabel(''), exerciseOfLabel(null), exerciseOfLabel(undefined)], ['', '', '']);
+ok('  떼고 나면 기록에서 찾힌다', restView({ '2026-10-01': [w('벤치프레스', 1, 5, 80)] }, exerciseOfLabel('벤치프레스 1세트'), '2026-10-01').doneSets, 1);
+
+console.log('');
 console.log('── 오늘 적은 것이 없으면 아무 말도 안 한다 ──');
 ok('적은 적이 없다', restView({}, '벤치프레스', TODAY), null);
 ok('  다른 운동만 적었다', restView({ [TODAY]: [w('스쿼트', 1, 10, 60)] }, '벤치프레스', TODAY), null);

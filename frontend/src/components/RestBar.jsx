@@ -1,6 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
+import { useWorkoutStore } from '../store/workoutStore';
+import { restView, exerciseOfLabel } from '../data/nextSet';
+import { useToday } from '../data/useToday';
 import { beepDone } from '../data/alertSound';
 import { useWakeLock } from '../data/useWakeLock';
 
@@ -17,6 +20,25 @@ export default function RestBar({ bottom = 58 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const alerted = useRef(false);
+
+  // 띠에도 **다음에 들 것**을 적는다 (2026-10-01).
+  //
+  // 쉬는 화면(`RestTimer`)에는 카드로 크게 적었는데, 이 띠는 **어느 화면에서나**
+  // 떠 있는 자리다 — 쉬는 동안 기록을 보러 가면 보이는 것이 이쪽뿐이다.
+  // 그때 「휴식 중」이라고만 적혀 있으면, 다음 세트를 보려고 운동 화면으로
+  // 돌아가야 한다.
+  //
+  // **한 줄에 들어갈 만큼만** 적는다 — 세트 번호와 무게·횟수. 지난 번 이야기는
+  // 쉬는 화면의 몫이다. 값이 없으면 지금까지처럼 `label` 이 그대로 나온다.
+  const workouts = useWorkoutStore(s => s.workouts);
+  const today = useToday();
+  const restedName = exerciseOfLabel(label);
+  // **1초마다 다시 그리는 자리다.** 그때마다 5년치 날짜를 훑으면 안 된다 —
+  // 바뀌는 것은 `leftMs` 뿐이고 기록은 그대로다. 기록이 바뀔 때만 다시 센다
+  const view = useMemo(
+    () => (restedName ? restView(workouts, restedName, today) : null),
+    [workouts, restedName, today],
+  );
 
   // 끝나면 소리와 진동. **한 번만** 울린다
   useEffect(() => {
@@ -89,7 +111,11 @@ export default function RestBar({ bottom = 58 }) {
           <span style={{
             fontSize: 12, color: 'var(--text-secondary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{paused ? '멈춤' : label || (finished ? '다음 세트 하세요' : '휴식 중')}</span>
+          }}>{paused ? '멈춤'
+            : finished ? '다음 세트 하세요'
+            // 맨몸운동은 무게가 0 이다 — 「0kg」이라고 적지 않는다
+            : view ? `다음 · ${view.nextSet}세트 · ${view.weight > 0 ? view.weight + 'kg ' : ''}${view.reps}회`
+            : label || '휴식 중'}</span>
         </div>
         {!finished && (
           <div className="progress-bg" style={{ height: 4, marginTop: 5 }}>
