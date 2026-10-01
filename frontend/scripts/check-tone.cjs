@@ -187,17 +187,31 @@ ok('체형에서 잰 것을 지울 수 있다', /removeLS\(SHAPE_LOG_KEY\)/.test
 ok('  옛 한 칸도 같이 지운다', /removeLS\(SHAPE_RATIOS_KEY\)/.test(setpage), true);
 ok('헬스장으로 가는 길이 있다', /navigate\('\/gym'\)/.test(setpage), true);
 
-// ── 없는 것을 있다고 적지 않는다 ──
+// ── 적힌 곳과 되는 곳이 같은가 ──
 //
-// 숨은 **홈트 화면에만** 있다. 「운동할 때도」라고 적어두면 헬스장에서도 된다고 읽는다
+// 9/29 까지 설정함에는 「홈트에서만 / 운동할 때도」라고 적혀 있었는데 헬스장에는
+// 숨이 **아예 없었다** — 고른 사람이 아무 일도 안 일어나는 것을 골랐다.
+// 10/1 에 헬스장 **세트 사이 휴식**에 진짜로 붙이고 갈래를 하나 늘렸다.
+//
+// 그래서 이 검사도 뜻이 바뀐다 — 「없는 것을 있다고 적지 마라」에서
+// **「적힌 곳과 되는 곳이 같아야 한다」**로. 둘 중 한쪽만 고치면 여기서 걸린다.
 console.log('');
 console.log('── 숨은 어디서 되나 ──');
 const st = fsrc('src/store/settingsStore.js');
 const stCode = st.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
 ok('「운동할 때도」라고 안 적는다', /운동할 때도/.test(stCode), false);
 ok('홈트 안에서 갈린다고 적는다', /홈트 전체에서/.test(stCode), true);
-const train = fsrc('src/pages/TrainPage.jsx');
-ok('(운동 화면에는 아직 숨이 없다)', /useBreath|BreathRow/.test(train), false);
+ok('헬스장 휴식 갈래가 있다', /헬스장 휴식까지/.test(stCode), true);
+ok("  그 갈래의 id 는 'gym'", /id: 'gym'/.test(stCode), true);
+
+// 적어뒀으면 **그 자리에 진짜로 있어야 한다** — 쉬는 화면이 숨 줄을 그린다
+const restSrc = fsrc('src/components/RestTimer.jsx');
+ok('쉬는 화면에 숨 줄이 있다', /<RestBreath/.test(restSrc), true);
+// 그리고 그 줄은 **고른 사람에게만** 보인다 (안 고른 사람에게 마이크를 들이밀지 않는다)
+const rb = fsrc('src/components/RestBreath.jsx');
+ok("  고른 사람에게만 보인다", /where !== 'gym'/.test(rb), true);
+ok('  마이크는 눌러야 돈다 (스스로 안 켠다)', /breath\.start\(\)/.test(rb), true);
+ok('  휴식이 끝나면 끈다', /deadline == null && breath\.on/.test(rb), true);
 
 console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');

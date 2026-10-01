@@ -361,11 +361,13 @@ export default function SettingsPage() {
                   <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어디서 쓸까요</div>
                     <Pick items={BREATH_WHERE} value={s.breathWhere} onPick={s.setBreathWhere} />
-                    {/* **홈트 안에서만 갈린다.** 예전에는 「홈트에서만 / 운동할 때도」라고
-                        적어놨는데 헬스장 운동 화면에는 숨이 아예 없었다 — 고른 사람은
-                        아무 일도 안 일어나는 것을 골랐다 (9/29 에 고쳤다) */}
+                    {/* 9/29 에는 「홈트에서만 / 운동할 때도」라고 적어놓고 헬스장에는
+                        숨이 아예 없었다 — 고른 사람이 아무 일도 안 일어나는 것을 골랐다.
+                        10/1 에 **헬스장 세트 사이 휴식에 진짜로 붙이고** 갈래를 하나 늘렸다 */}
                     <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
-                      둘 다 <b>홈트</b>에서예요. 헬스장 운동 화면에는 아직 없어요 — 거기는 시끄러워서 숨이 묻혀요.
+                      <b>헬스장 휴식까지</b>를 고르면 세트 사이 쉬는 자리에도 한 줄이 생겨요 —
+                      거기서 <b>「숨 듣기」를 눌러야</b> 마이크가 돌고, 휴식이 끝나면 꺼집니다.
+                      헬스장은 시끄러워서 못 들을 때가 많아요. 그때는 <b>그 줄만 조용히 사라집니다.</b>
                     </div>
                   </div>
 

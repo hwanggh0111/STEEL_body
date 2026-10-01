@@ -3,6 +3,7 @@ import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useWorkoutStore } from '../store/workoutStore';
 import { restView } from '../data/nextSet';
+import RestBreath from './RestBreath';
 import { useToday } from '../data/useToday';
 import { useState } from 'react';
 
@@ -228,6 +229,10 @@ export default function RestTimer() {
             {/* 다음에 들 것 — 시안 A (2026-10-01). 값이 없으면 안 그리고,
                 그때는 아래의 옛 한 줄이 그대로 나온다 */}
             <NextSet view={view} />
+
+            {/* 숨 — 시안 D. 거드는 한 줄이고, 못 들으면 이 줄만 사라진다.
+                설정함에서 「헬스장 휴식까지」를 골랐을 때만 그린다 */}
+            <RestBreath />
 
             {/* 방금 저장한 세트와 다음 운동 — C 안의 것이다. 링 아래에 놓으면
                 큰 링과 부딪히지 않는다. 위 카드가 나오면 **같은 말을 두 번 하지 않는다** */}
