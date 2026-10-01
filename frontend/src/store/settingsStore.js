@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { readLS, saveLS } from '../data/safeStorage';
+import { readLS, saveLS, removeLS } from '../data/safeStorage';
 import { SETTINGS_KEYS } from '../data/localKeys';
 
 // 설정함이 들고 있는 것들 (2026-09-22).
@@ -77,7 +77,12 @@ const readPick = (key, list, fallback) => {
   return hit ? hit.id : fallback;
 };
 
-export const useSettingsStore = create((set) => ({
+// 처음 값.
+//
+// **한 곳에서 만든다.** 스토어가 처음 설 때와 「기본값으로 되돌리기」가 **같은 것**을
+// 써야 한다 — 두 군데에 적으면 설정을 하나 늘릴 때 한쪽을 빠뜨리고, 그러면
+// 되돌려도 그 하나만 안 돌아간다. 오늘만 그 모양의 버그를 세 번 봤다.
+const initial = () => ({
   // ── 운동할 때 ──
   // 여태 코드에만 있었다. 40초 플랭크 중에 화면이 꺼지면 남은 시간을 못 보는데,
   // 배터리가 걱정되는 사람에게는 끌 길이 없었다
@@ -97,6 +102,10 @@ export const useSettingsStore = create((set) => ({
 
   // ── 몸 ──
   inbodyScore: readFlag(SETTINGS_KEYS.inbodyScore, false),
+});
+
+export const useSettingsStore = create((set) => ({
+  ...initial(),
 
   setKeepAwake: (on) => { saveLS(SETTINGS_KEYS.keepAwake, on ? '1' : '0'); set({ keepAwake: !!on }); },
   setVoiceLog: (on) => { saveLS(SETTINGS_KEYS.voiceLog, on ? '1' : '0'); set({ voiceLog: !!on }); },
@@ -121,6 +130,21 @@ export const useSettingsStore = create((set) => ({
   setBreathSense: (id) => {
     const v = pickOf(id, BREATH_SENSE, 'mid');
     saveLS(SETTINGS_KEYS.breathSense, v); set({ breathSense: v });
+  },
+
+  /**
+   * 설정을 처음 상태로 (2026-10-01).
+   *
+   * **담아둔 것을 지우고 처음 값을 다시 읽는다.** 값을 손으로 적어 넣지 않는다 —
+   * 적어 넣으면 설정이 하나 늘 때마다 여기도 고쳐야 하고, 그 한 번을 잊으면
+   * 「되돌렸는데 그것만 안 돌아간다」가 된다.
+   *
+   * `SETTINGS_KEYS` 를 **통째로 돌면서** 지우므로, 새 설정을 거기 적기만 하면
+   * 되돌리기가 저절로 따라온다.
+   */
+  resetAll: () => {
+    Object.values(SETTINGS_KEYS).forEach((k) => removeLS(k));
+    set(initial());
   },
 }));
 

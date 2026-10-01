@@ -187,6 +187,8 @@ export default function SettingsPage() {
   const sound = useRestTimerStore((st) => st.sound);
   const vibrate = useRestTimerStore((st) => st.vibrate);
   const autoStart = useRestTimerStore((st) => st.autoStart);
+  // 되돌리기가 부른다. 스토어를 통째로 구독하면 휴식이 돌 때마다 이 화면이 다시 그려진다
+  const resetRestPrefs = useRestTimerStore((st) => st.resetPrefs);
   const duration = useRestTimerStore((st) => st.duration);
   const toneId = useRestTimerStore((st) => st.tone);
   const volume = useRestTimerStore((st) => st.volume);
@@ -607,6 +609,32 @@ export default function SettingsPage() {
             「지금 무슨 판을 쓰고 있나」를 눈으로 볼 자리가 아무 데도 없었다 */}
         BLACK IRON v{pkg.version}
       </div>
+
+      {/* ── 기본값으로 되돌리기 ── (2026-10-01)
+          **무엇이 돌아가고 무엇이 안 돌아가는지 눌러보기 전에 말한다.**
+          설정이 열몇 개가 되니 「뭘 건드렸는지 모르겠다」가 생긴다. 그런데
+          되돌리기가 **기록이나 잠금까지 지우는 줄 알면 아무도 못 누른다** —
+          그래서 안 건드리는 것을 먼저 적는다 */}
+      <button
+        onClick={async () => {
+          const ok = await confirmDialog(
+            '이 기기의 설정을 처음 상태로 돌립니다.\n\n' +
+            '· 운동할 때 · 마이크 · 숨 · 알림 소리 · 휴식 길이가 처음 값으로 돌아가요\n\n' +
+            '안 건드리는 것:\n' +
+            '· 기록 · 사진 · 인바디 — 서버에 있는 것은 그대로예요\n' +
+            '· 로그인 — 안 풀립니다\n' +
+            '· 앱 잠금 네 자리 — 그대로 걸려 있어요\n' +
+            '· 내가 만든 알림 소리 — 만든 것은 설정이 아니라 지우지 않아요',
+            { title: '기본값으로 되돌릴까요', confirmText: '되돌리기' },
+          );
+          if (!ok) return;
+          s.resetAll();
+          resetRestPrefs();
+          toast('설정을 처음 상태로 돌렸어요');
+        }}
+        className="btn-secondary"
+        style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 10 }}
+      >기본값으로 되돌리기</button>
 
       {/* ── 나가기 ──
           **맨 아래에 둔다.** 설정을 보다가 잘못 누를 자리가 아니다.

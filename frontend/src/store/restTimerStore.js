@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { readLS, saveLS } from '../data/safeStorage';
+import { readLS, saveLS, removeLS } from '../data/safeStorage';
 import { VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME, knownTone, looksLikeToneId } from '../data/alertSound';
 
 // 휴식 타이머.
@@ -59,9 +59,25 @@ function stopTicker() {
   ticker = null;
 }
 
-export const useRestTimerStore = create((set, get) => ({
+// 이 기기에 담아두는 **취향** 한 벌. 돌고 있는 휴식과는 다른 것이다.
+//
+// **한 곳에서 만든다** — 스토어가 처음 설 때와 「기본값으로 되돌리기」가 같은 것을
+// 써야 한다. 두 군데에 적으면 하나 늘릴 때 한쪽을 빠뜨린다.
+const PREF_KEYS = [LS_DURATION, LS_AUTO, LS_SOUND, LS_VIBRATE, LS_TONE, LS_VOLUME];
+
+const initialPrefs = () => ({
   // 다음 휴식에 쓸 기본값. 사람이 프리셋으로 고르는 것이 이것이다
   duration: readInt(LS_DURATION, 90),
+  autoStart: readFlag(LS_AUTO),
+  sound: readFlag(LS_SOUND),
+  vibrate: readFlag(LS_VIBRATE),
+  // 어떤 소리로 알릴지 · 얼마나 크게 (2026-09-02). 제보로 들어온 것이다
+  tone: readTone(LS_TONE),
+  volume: readPick(LS_VOLUME, VOLUMES, DEFAULT_VOLUME),
+});
+
+export const useRestTimerStore = create((set, get) => ({
+  ...initialPrefs(),
   // **지금 도는 휴식이 몇 초짜리인가.** 위의 duration 과 다르다 —
   // 쉬는 중에 프리셋을 바꾸면 다음 것부터 그 값을 쓰고, 도는 것은 그대로 둔다.
   // 그리고 +30초를 누르면 여기가 늘어난다. 예전에는 링과 「90초 중」이 둘 다
@@ -76,12 +92,17 @@ export const useRestTimerStore = create((set, get) => ({
   finished: false,
   // 무엇 때문에 시작했나 ('벤치프레스 4세트'). 띠에 적는다
   label: '',
-  autoStart: readFlag(LS_AUTO),
-  sound: readFlag(LS_SOUND),
-  vibrate: readFlag(LS_VIBRATE),
-  // 어떤 소리로 알릴지 · 얼마나 크게 (2026-09-02). 제보로 들어온 것이다
-  tone: readTone(LS_TONE),
-  volume: readPick(LS_VOLUME, VOLUMES, DEFAULT_VOLUME),
+
+  /**
+   * 취향만 처음으로 (2026-10-01).
+   *
+   * **돌고 있는 휴식은 안 건드린다.** 쉬는 중에 되돌리기를 눌렀다고 타이머가
+   * 사라지면, 사람은 몇 초를 쉬었는지 잃는다. 다음 휴식부터 처음 값으로 돈다.
+   */
+  resetPrefs: () => {
+    PREF_KEYS.forEach((k) => removeLS(k));
+    set(initialPrefs());
+  },
 
   setDuration: (sec) => {
     const n = Math.min(MAX_SEC, Math.max(MIN_SEC, Math.round(Number(sec) || 0)));
