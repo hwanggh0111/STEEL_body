@@ -88,6 +88,25 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// ── 메일을 보낼 수 있는 상태인가 ──
+//
+// 「비밀번호 찾기」는 **메일이 되어야** 되는 기능인데, 지금까지는 눌러서 보내봐야
+// 알았다(서버가 「일시적으로 비활성화됐어요」라고 답했다). 막힌 단추를 누르기 전에
+// 알려주는 쪽이 맞다 — 설정함의 운동 알림 줄을 9/30 에 고친 것과 같은 종류다.
+//
+// 소셜 단추를 그릴지 묻는 `/api/oauth/providers` 와 같은 모양으로 둔다.
+// **열쇠 값은 절대 내보내지 않는다.** 되는지 안 되는지만 말한다.
+router.get('/mail-status', (req, res) => {
+  const dev = process.env.NODE_ENV !== 'production';
+  res.json({
+    // 메일이 실제로 나가는가
+    mail: SMTP_CONFIGURED,
+    // 번호를 받아볼 수 있는가 — 내 컴퓨터에서는 열쇠가 없어도 응답에 번호가 실린다
+    canSend: SMTP_CONFIGURED || dev,
+    dev,
+  });
+});
+
 // 인증번호 발송
 router.post('/send-code', async (req, res) => {
   const { email } = req.body;

@@ -11,6 +11,19 @@ export default function PasswordResetModal({ onClose }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  // 메일이 나갈 수 있는 상태인가. null 은 아직 안 물어봤다는 뜻 —
+  // 모르는 동안 단추를 막으면 되는 서버에서도 못 누르게 된다
+  const [mailReady, setMailReady] = useState(null);
+
+  // 막힌 단추는 누르기 전에 막힌 줄 알려준다. SMTP 열쇠가 없으면 이 기능만 안 된다
+  useEffect(() => {
+    let alive = true;
+    client.get('/auth/mail-status')
+      .then(({ data }) => { if (alive) setMailReady(!!data?.canSend); })
+      // 물어보다 실패한 것은 「안 된다」가 아니다 — 그냥 모르는 채로 둔다
+      .catch(() => { if (alive) setMailReady(null); });
+    return () => { alive = false; };
+  }, []);
 
   // ESC로 닫기
   useEffect(() => {
@@ -23,6 +36,7 @@ export default function PasswordResetModal({ onClose }) {
     e?.preventDefault();
     setError(''); setInfo('');
     if (!email.trim()) { setError('이메일을 입력해주세요'); return; }
+    if (mailReady === false) { setError('지금은 메일을 보낼 수 없어요. 관리자에게 문의해주세요'); return; }
     setLoading(true);
     try {
       const { data } = await client.post('/auth/send-code', { email: email.trim() });
@@ -104,9 +118,19 @@ export default function PasswordResetModal({ onClose }) {
               onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
               style={{ marginBottom: 12 }}
             />
+            {mailReady === false && (
+              <div role="alert" style={{
+                background: 'var(--bg-tertiary, rgba(255,255,255,0.04))', border: '1px solid var(--danger)',
+                padding: '10px 12px', borderRadius: 'var(--radius)', fontSize: 12.5,
+                color: 'var(--danger)', marginBottom: 10, lineHeight: 1.6,
+              }}>
+                지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않았습니다 —
+                비밀번호 재설정은 연결된 뒤에 됩니다. 관리자에게 문의해주세요.
+              </div>
+            )}
             {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
-            <button className="btn-primary" type="submit" disabled={loading}>
-              {loading ? '발송 중...' : '인증번호 받기'}
+            <button className="btn-primary" type="submit" disabled={loading || mailReady === false}>
+              {loading ? '발송 중...' : mailReady === false ? '지금은 보낼 수 없어요' : '인증번호 받기'}
             </button>
           </form>
         )}
