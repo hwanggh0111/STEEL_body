@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
@@ -73,6 +73,19 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
+  // ── 뜰 때 한 번 「나 누구냐」고 다시 묻는다 ── (2026-10-01)
+  //
+  // 로그인 상태는 **쿠키가 있나**로 판단하고(authStore 맨 위), 역할·성별 같은 것은
+  // **로그인하던 때 담아둔 값**을 그대로 쓴다. 그래서 그 뒤에 서버에서 바뀐 것은
+  // 영영 안 따라온다 — 관리자에서 내려와도 브라우저에는 관리자 메뉴가 남는다.
+  // checkAuth 는 **적어만 두고 아무도 안 부르고 있었다**(「앱 시작 시 호출」이라고
+  // 적혀 있었다). 9/30 에 쓸어낸 「죽은 규칙」이 여기에도 하나 있었던 셈이다.
+  //
+  // 못 물어보면 아무것도 안 바꾼다 — 비행기 모드에서 튕겨나가지 않게.
+  useEffect(() => {
+    if (useAuthStore.getState().isLoggedIn) useAuthStore.getState().checkAuth();
+  }, []);
+
   return (
     <MaintenanceScreen>
       <Toast />

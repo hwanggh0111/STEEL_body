@@ -91,6 +91,17 @@ export const useAuthStore = create((set) => ({
     if (email) saveLS('ironlog_email', email);
     set({ nickname: nickname || null, isLoggedIn: true });
     useLockStore.getState().release();
+    // **역할은 서버에 물어서 담는다** (2026-10-01).
+    //
+    // 이메일 로그인과 가입은 ironlog_role 을 담는데 **소셜만 안 담고 있었다.**
+    // 관리자 화면은 그 값 하나를 보고 열리므로(data/admin.js), 구글로만 들어온
+    // 관리자에게는 관리자 메뉴가 **아예 안 보인다.** 9/18 에 「로그인하면 잠금을
+    // 놓는다」가 소셜 길만 비껴갔던 것과 **똑같은 모양**이다 — 길이 셋인데 둘에만
+    // 적어둔 것이다.
+    //
+    // 주소줄로 role 을 받지 않는다. 그건 사람이 고쳐서 보낼 수 있는 값이다 —
+    // **서버에 다시 묻는다.**
+    useAuthStore.getState().checkAuth();
   },
 
   // 가입 직후 자동 로그인 (백엔드가 토큰/쿠키 발급)
@@ -152,17 +163,36 @@ export const useAuthStore = create((set) => ({
     useGymStore.getState().reset();
   },
 
-  // 쿠키 기반 인증 상태 확인 (앱 시작 시 호출)
+  /**
+   * 서버에 「나 누구냐」고 다시 묻는다. 앱이 뜰 때와 소셜로 들어온 직후에 부른다.
+   *
+   * **담아둔 값은 늙는다.** 역할은 로그인할 때 한 번 담기고 그만이라, 관리자에서
+   * 내려온 사람의 브라우저에는 「관리자」가 **그대로 남아 있었다** — 서버가 막아주니
+   * 뚫리지는 않지만, 눌러봐야 안 되는 메뉴가 계속 보인다.
+   *
+   * **못 물어본 것과 아니라고 들은 것은 다르다.** 비행기 모드나 서버가 잠깐 죽은 것은
+   * 「로그인 안 된 상태」가 아니다 — 그때 상태를 꺼버리면 **적어둔 기록을 들고 있는
+   * 사람이 로그인 화면으로 튕긴다.** 서버가 401/403 으로 **아니라고 말했을 때만** 끈다.
+   */
   checkAuth: async () => {
     try {
       const { data } = await client.get('/auth/me');
       saveLS('nickname', data.nickname);
-      if (data.role) saveLS('ironlog_role', data.role);
-        set({ nickname: data.nickname, isLoggedIn: true });
+      // 관리자에서 내려왔으면 **담아둔 것도 지운다.** 안 지우면 옛 값이 그대로 산다
+      if (data.role === 'admin') saveLS('ironlog_role', data.role);
+      else removeLS('ironlog_role');
+      // 인바디 참고 범위가 이걸 본다. 「checkAuth 때 받아온다」고 적어만 두고
+      // 실제로는 안 받아오고 있었다 (2026-10-01)
+      set({ nickname: data.nickname, sex: data.sex ?? null, isLoggedIn: true });
       return true;
-    } catch {
-      set({ isLoggedIn: false });
-      return false;
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        set({ isLoggedIn: false });
+        return false;
+      }
+      // 못 물어봤을 뿐이다 — 들고 있던 상태를 그대로 둔다
+      return null;
     }
   },
 }));
