@@ -43,6 +43,18 @@ services:
         sync: false
       - key: INSTAGRAM_APP_SECRET
         sync: false
+      # 메일 보내기. **비밀번호 찾기만** 이걸 쓴다 — 없으면 가입·로그인은 그대로 되고
+      # 「비밀번호 찾기」 화면이 **누르기 전에** 지금은 안 된다고 말한다 (2026-10-01)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
       # 운동 알림(웹 푸시). `node backend/scripts/gen-vapid.js` 로 만들어 대시보드에서 넣는다.
       # 없어도 서버는 그대로 뜬다 — 알림만 안 나간다.
       # **한 번 정하면 바꾸지 않는다.** 바꾸면 지금 있는 알림 구독이 전부 끊긴다
