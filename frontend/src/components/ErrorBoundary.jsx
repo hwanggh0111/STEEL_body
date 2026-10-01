@@ -72,6 +72,14 @@ export default class ErrorBoundary extends Component {
     // 흰 화면이 났다는 것조차 모른다 — 오늘 그것 때문에 두 번 헤맸다.
     // **사람이 적은 글이나 기록은 안 붙인다.** 무엇이 터졌는지와 어느 화면인지만 보낸다.
     // 실패해도 조용히 넘어간다 (이미 터진 화면에서 또 터지면 안 된다)
+    //
+    // **내 컴퓨터에서 만들다 난 것은 안 보낸다** (2026-10-01).
+    //
+    // 9월 한 달 동안 26건이 쌓였는데 **전부 내가 고치면서 낸 것**이었다 —
+    // 「useMemo is not defined」처럼 import 를 빠뜨린 것들이고, 그날 바로 고쳤다.
+    // 그런 줄이 섞여 있으면 **진짜로 사람이 만난 오류를 못 알아본다.**
+    // 만들다 난 것은 터미널에 이미 빨갛게 찍힌다 — 서버까지 보낼 이유가 없다.
+    if (import.meta.env.DEV) return;
     try {
       const baseURL = import.meta.env.VITE_API_URL || '/api';
       fetch(`${baseURL}/client-error`, {

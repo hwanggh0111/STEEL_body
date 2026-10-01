@@ -10,6 +10,7 @@ import ReportAdmin from '../components/admin/ReportAdmin';
 import SitePhotoAdmin from '../components/admin/SitePhotoAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 import FaqGapAdmin from '../components/admin/FaqGapAdmin';
+import ErrorAdmin from '../components/admin/ErrorAdmin';
 import { usePendingReports } from '../components/usePendingReports';
 
 import { isAdmin as checkAdmin } from '../data/admin';
@@ -57,6 +58,10 @@ const GROUPS = [
       { key: 'hacking', label: '해킹 보안', icon: 'lock', desc: '로그인 실패 · 차단된 요청 · 보안 로그' },
       { key: 'ai', label: 'AI 관리자', icon: 'robot', desc: '자동으로 막힌 IP 를 보고 풀거나 더 막는다' },
       { key: 'scan', label: '보안 검사', icon: 'search', desc: '지금 한 번 훑어서 약한 곳을 찾는다' },
+      // 흰 화면이 된 자리 (2026-10-01). 보내는 쪽도 받는 쪽도 9월부터 있었는데
+      // **여는 화면만 없었다** — 26건이 한 달 동안 아무도 모르게 쌓여 있었다.
+      // 「지켜보는 것」이 맞는 자리다: 사람이 기다리는 일이 아니고, 아무 일 없으면 안 열어도 된다
+      { key: 'errors', label: '화면 오류', icon: 'bug', desc: '흰 화면이 된 자리. 같은 말은 묶어서 몇 번 났는지로 본다' },
     ],
   },
 ];
@@ -72,6 +77,7 @@ const PANELS = {
   hacking: HackingSecurityPanel,
   ai: AiAdminPanel,
   scan: SecurityScan,
+  errors: ErrorAdmin,
 };
 
 function Todo({ pending, onGo }) {
