@@ -242,6 +242,9 @@ setInterval(() => {
   // 안 걷으면 시도한 주소 수만큼 파일이 커진다
   try { db.cleanExpiredBlocks(); } catch (e) { console.error('[CLEANUP:block]', e.message); }
   try { db.cleanLoginFails(24 * 60 * 60 * 1000); } catch (e) { console.error('[CLEANUP:login]', e.message); }
+  // 다 식은 인증번호도 (2026-10-01). 5분이면 못 쓰는 값인데, 걷는 자리가
+  // **새 번호를 만들 때뿐**이라 조용한 서버에서는 파일에 남아 있었다
+  try { db.cleanVerifyCodes(); } catch (e) { console.error('[CLEANUP:code]', e.message); }
   try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
 }, 30 * 60 * 1000);
 // 켜질 때도 한 번 본다 — 서버가 꺼져 있는 동안 지날 때가 지난 것이 있다

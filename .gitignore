@@ -27,6 +27,8 @@ Thumbs.db
 
 # Logs
 *.log
+# 밀어둔 보안 로그 한 벌 (*.log 는 이것을 안 막는다)
+*.log.1
 
 # 검사가 쓰는 임시 DB (DB_FILE)
 backend/.check-*.json

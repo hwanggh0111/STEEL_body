@@ -11,6 +11,36 @@ const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY } = requ
 const LOG_PATH = path.join(__dirname, '../../security.log');
 const securityLogs = [];
 
+// ── 파일이 끝없이 커지던 것 ── (2026-10-01)
+//
+// 램에 든 목록은 1000건에서 자르는데 **파일은 안 잘랐다.** 붙이기만 하고 걷는 데가
+// 없었다 — 만들면서 쓴 것만으로 이미 127KB 로, DB 본체(62KB)의 두 배였다.
+// 로그인 실패 · 차단 · 인증번호는 30분마다 걷으면서 로그 파일만 빠져 있었다.
+//
+// **지우지는 않는다.** 보안 기록은 「언제부터 이랬나」를 보는 값이라, 넘치면
+// **한 벌만 옆으로 밀어두고**(`.1`) 새로 쓴다. 두 벌이면 넉넉하다 — 그보다 옛것은
+// 들여다볼 일이 없고, 무료 판은 디스크가 작다.
+const LOG_MAX = 2 * 1024 * 1024;      // 2MB 쯤에서 민다
+let _logBytes = null;                 // 지금 몇 바이트인가. 한 번만 재고 더해 간다
+
+function _rollIfBig(adding) {
+  if (_logBytes === null) {
+    try { _logBytes = fs.statSync(LOG_PATH).size; } catch { _logBytes = 0; }
+  }
+  _logBytes += adding;
+  if (_logBytes < LOG_MAX) return;
+  try {
+    // 옛 한 벌은 버린다. 안 버리면 윈도에서 rename 이 막힌다
+    try { fs.unlinkSync(LOG_PATH + '.1'); } catch { /* 없으면 그만 */ }
+    fs.renameSync(LOG_PATH, LOG_PATH + '.1');
+    _logBytes = adding;
+  } catch (err) {
+    // 못 밀어도 **로그는 계속 쌓는다.** 밀기에 실패했다고 기록을 멈추면 안 된다
+    console.error('[security] 로그를 밀지 못했습니다:', err.message);
+    _logBytes = 0;                    // 다시 재게 둔다
+  }
+}
+
 function addLog(type, detail) {
   const entry = {
     type,
@@ -21,6 +51,7 @@ function addLog(type, detail) {
   if (securityLogs.length > 1000) securityLogs.shift();
   // 파일에도 기록 (비동기)
   const line = `[${entry.timestamp}] [${type}] ${detail}\n`;
+  _rollIfBig(Buffer.byteLength(line));
   fs.appendFile(LOG_PATH, line, () => {});
 }
 
