@@ -1,13 +1,12 @@
-const fs = require('fs');
-const fsp = require('fs').promises;
-const path = require('path');
 const crypto = require('crypto');
+// 두 장을 **어디에 둘까**는 여기 한 곳에서 정한다 (2026-10-01).
+// 내 컴퓨터에서는 파일, 배포하면 Postgres — 그 갈림이 이 파일 밖으로 안 샌다.
+// Render 무료 판은 디스크를 못 붙여서, 파일로 두면 재시작마다 기록이 사라진다
+const storage = require('./storage');
 
 // 검사에서는 진짜 DB 를 건드리면 안 된다. 그때만 다른 파일을 가리킬 수 있게 열어둔다
 // (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
-const DB_PATH = process.env.DB_FILE
-  ? path.resolve(process.env.DB_FILE)
-  : path.join(__dirname, '../blackiron.json');
+const DB_PATH = storage.pathOf(storage.MAIN);
 
 // ── 사진은 따로 담는다 ──
 //
@@ -20,9 +19,7 @@ const DB_PATH = process.env.DB_FILE
 // `--max-old-space-size=256` 으로 돈다. 서른 명이면 문자열로 만드는 도중에 죽는다.
 //
 // 사진은 **드물게 바뀌고 크다.** 나머지는 자주 바뀌고 작다. 갈라 두면 서로를 안 건드린다.
-const PHOTOS_PATH = process.env.DB_FILE
-  ? path.resolve(process.env.DB_FILE).replace(/\.json$/, '') + '.photos.json'
-  : path.join(__dirname, '../photos.json');
+const PHOTOS_PATH = storage.pathOf(storage.PHOTOS);
 
 // 기본 데이터 구조
 const DEFAULT_DATA = {
@@ -127,8 +124,8 @@ let _photoTimer = null;
 function loadPhotos() {
   if (_photoCache) return _photoCache;
   try {
-    if (fs.existsSync(PHOTOS_PATH)) {
-      _photoCache = JSON.parse(fs.readFileSync(PHOTOS_PATH, 'utf-8'));
+    if (storage.existsSync(storage.PHOTOS)) {
+      _photoCache = JSON.parse(storage.readSync(storage.PHOTOS));
       if (!Array.isArray(_photoCache.photos)) _photoCache.photos = [];
       return _photoCache;
     }
@@ -151,7 +148,7 @@ function _flushPhotos() {
     return;
   }
   _photoDirty = false;
-  _writeAtomic(PHOTOS_PATH, text).catch((err) => {
+  storage.write(storage.PHOTOS, text).catch((err) => {
     console.error('[DB] 사진 저장 실패:', err.message);
     _photoDirty = true;
   });
@@ -161,7 +158,7 @@ function _flushPhotos() {
 function _flushPhotosSync() {
   if (!_photoDirty || !_photoCache) return;
   try {
-    _writeAtomicSync(PHOTOS_PATH, JSON.stringify(_photoCache));
+    storage.writeSync(storage.PHOTOS, JSON.stringify(_photoCache));
     _photoDirty = false;
   } catch (err) {
     console.error('[DB] 사진 저장 실패:', err.message);
@@ -206,16 +203,17 @@ let _lastWriteMs = 0;
 
 /** 우리가 쓴 뒤의 파일 시각을 기억한다. 못 재면 0 — 그때는 검사를 건너뛴다. */
 function _markWritten() {
-  try { _lastWriteMs = fs.statSync(DB_PATH).mtimeMs; } catch { _lastWriteMs = 0; }
+  _lastWriteMs = storage.statMs(storage.MAIN) || 0;
 }
 
 /** 우리가 쓴 뒤로 누가 파일을 고쳤나. 못 재면 `null`. */
 function _changedOutsideMs() {
   if (!_lastWriteMs) return null;
-  try {
-    const m = fs.statSync(DB_PATH).mtimeMs;
-    return m === _lastWriteMs ? null : m;
-  } catch { return null; }
+  // Postgres 에서는 **그런 일이 없다** — 사는 곳이 한 대이고 손으로 고칠 파일이 없다.
+  // 그때 `statMs` 가 null 을 주고, 이 검사는 통째로 꺼진다
+  const m = storage.statMs(storage.MAIN);
+  if (m === null) return null;
+  return m === _lastWriteMs ? null : m;
 }
 
 /** 쓰려는 참에 보는 것. 안 쓴 것이 있으면 합칠 수가 없으므로 **말하고 덮는다.** */
@@ -256,7 +254,7 @@ function _syncFromDiskIfChanged() {
   const m = _changedOutsideMs();
   if (m === null) return;
   try {
-    const next = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const next = JSON.parse(storage.readSync(storage.MAIN));
     if (!next.refreshTokens) next.refreshTokens = [];
     _cache = next;
     _lastWriteMs = m;
@@ -275,8 +273,8 @@ function load() {
   // 바깥에서 파일이 바뀌었고 안 쓴 것이 없으면 그쪽을 읽어 맞춘다 (2026-09-30)
   if (_cache) { _syncFromDiskIfChanged(); return _cache; }
   try {
-    if (fs.existsSync(DB_PATH)) {
-      _cache = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    if (storage.existsSync(storage.MAIN)) {
+      _cache = JSON.parse(storage.readSync(storage.MAIN));
       // refresh token 저장소 초기화
       if (!_cache.refreshTokens) _cache.refreshTokens = [];
       _markWritten();          // 읽은 판이 곧 「우리가 아는 파일」이다
@@ -289,9 +287,8 @@ function load() {
     // 기록 전부가 걸린 날이다. 사람이 손으로 꺼낼 수 있게 남긴다
     console.error('[DB] blackiron.json 파싱 실패, 초기화합니다:', err.message);
     try {
-      const kept = DB_PATH + '.broken-' + new Date().toISOString().replace(/[:.]/g, '-');
-      fs.renameSync(DB_PATH, kept);
-      console.error('[DB] 깨진 파일을 옆에 치워뒀습니다:', path.basename(kept));
+      const kept = storage.keepBroken(storage.MAIN);
+      if (kept) console.error('[DB] 깨진 파일을 옆에 치워뒀습니다:', kept);
     } catch (e2) {
       console.error('[DB] 깨진 파일을 치우지도 못했습니다:', e2.message);
     }
@@ -309,8 +306,6 @@ function save(data) {
 }
 
 const INDENT = () => (process.env.NODE_ENV === 'production' ? undefined : 2);
-// 쓰다 죽어도 앞의 것이 남게 — **딴 이름으로 다 쓴 뒤 이름을 바꿔 끼운다**
-const TMP_SUFFIX = '.writing';
 
 /**
  * 파일 한 장을 **원자적으로** 쓴다 (2026-09-18).
@@ -321,18 +316,18 @@ const TMP_SUFFIX = '.writing';
  * **기록 전부가 사라진다는 뜻이다.** 딴 이름으로 다 쓴 뒤 `rename` 으로 갈아끼우면
  * 그 순간이 없다 (같은 볼륨에서 rename 은 원자적이다. 재보면 6ms).
  */
+// 원자적으로 쓰는 일은 `storage` 가 한다 — 파일이면 딴 이름으로 쓴 뒤 갈아끼우고,
+// Postgres 면 한 줄을 바꿔 넣는다. 여기서는 **쓴 뒤에 시각을 다시 재는 것**만 맡는다
 function _writeAtomicSync(file, text) {
-  const tmp = file + TMP_SUFFIX;
-  fs.writeFileSync(tmp, text, 'utf-8');
-  fs.renameSync(tmp, file);
-  if (file === DB_PATH) _markWritten();
+  const name = file === PHOTOS_PATH ? storage.PHOTOS : storage.MAIN;
+  storage.writeSync(name, text);
+  if (name === storage.MAIN) _markWritten();
 }
 
 async function _writeAtomic(file, text) {
-  const tmp = file + TMP_SUFFIX;
-  await fsp.writeFile(tmp, text, 'utf-8');
-  await fsp.rename(tmp, file);
-  if (file === DB_PATH) _markWritten();
+  const name = file === PHOTOS_PATH ? storage.PHOTOS : storage.MAIN;
+  await storage.write(name, text);
+  if (name === storage.MAIN) _markWritten();
 }
 
 /**
@@ -1405,6 +1400,19 @@ const db = {
     const data = load();
     const { photos, ...rest } = data;    // 사진은 여기 거의 안 들어 있지만 혹시 몰라 뺀다
     return rest;
+  },
+
+  /**
+   * 못 쓴 것을 **다 쓸 때까지 기다린다** (2026-10-01).
+   *
+   * 파일일 때는 동기로 쓰므로 기다릴 것이 없다. Postgres 는 기다려야 한다 —
+   * 끝내면서 안 기다리면 **마지막 저장이 통째로 사라진다.**
+   * `index.js` 의 끝내기가 부른다.
+   */
+  async drain() {
+    _flushImmediate();
+    _flushPhotosSync();
+    await storage.drain();
   },
 
   flushNow() { _flushImmediate(); },

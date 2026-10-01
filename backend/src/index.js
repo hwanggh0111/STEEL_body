@@ -435,7 +435,28 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-const server = app.listen(PORT, '0.0.0.0', () => {
+
+// ── 듣기 **전에** 저장소를 연다 ── (2026-10-01)
+//
+// 파일로 둘 때는 할 일이 없다. Postgres 로 둘 때는 **두 장을 미리 읽어와야** 한다 —
+// `db.js` 의 읽기는 기다리지 않기(동기) 때문이다. 이 순서가 깨지면 요청을 받기
+// 시작한 뒤에야 기록이 들어와서, 그 사이 들어온 사람에게는 **빈 DB 로 보인다.**
+//
+// 못 열면 **서버를 안 띄운다.** 기록 없이 뜨는 쪽이 더 나쁘다 — 사람들이 빈 앱을
+// 보고 다시 적기 시작하면, 뒤늦게 DB 가 붙어도 그 둘을 합칠 길이 없다.
+const storage = require('./storage');
+let server;
+
+storage.init()
+  .then(start)
+  .catch((err) => {
+    console.error('[DB] 저장소를 열지 못해 서버를 띄우지 않습니다:', err.message);
+    console.error('[DB] DATABASE_URL 을 확인하세요. 비워두면 파일로 돕니다.');
+    process.exit(1);
+  });
+
+function start() {
+  server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 
   // **무엇이 꺼져 있는지 뜰 때 말한다.**
@@ -459,19 +480,28 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
   // 운동 알림 — VAPID 키가 없으면 스스로 안 뜬다 (설정이 없다고 서버가 못 뜨면 안 된다)
   require('./utils/reminderRunner').start();
-});
+  });
+
+  server.keepAliveTimeout = 65000; // ALB/프록시 뒤에서 소켓 유지
+  server.headersTimeout = 66000;
+  server.timeout = 25000; // 요청 처리 최대 25초 (Render 30초 제한 여유)
+}
 
 // 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)
-server.keepAliveTimeout = 65000; // ALB/프록시 뒤에서 소켓 유지
-server.headersTimeout = 66000;
-server.timeout = 25000; // 요청 처리 최대 25초 (Render 30초 제한 여유)
-
 // graceful shutdown (DB flush 보장)
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Server closed, flushing DB...');
-    process.exit(0); // exit 이벤트에서 _flush 호출됨
+  if (!server) process.exit(0);
+  server.close(async () => {
+    // **못 쓴 것을 다 쓸 때까지 기다린다** (2026-10-01).
+    //
+    // 파일일 때는 `process.on('exit')` 이 동기로 써줬다. Postgres 는 기다려야
+    // 하는데 `exit` 에서는 기다릴 수 없다 — **마지막 저장이 통째로 사라진다.**
+    // Render 는 배포할 때마다 SIGTERM 을 보내므로 그 자리가 매번 지나간다.
+    try { await db.drain(); } catch (e) { console.error('[DB] 끝내며 쓰지 못했습니다:', e.message); }
+    try { await storage.close(); } catch { /* 닫다 터져도 끝내는 길은 막지 않는다 */ }
+    console.log('Server closed, DB flushed');
+    process.exit(0);
   });
   // 10초 안에 종료 안 되면 강제 종료
   setTimeout(() => { console.error('Forced shutdown'); process.exit(1); }, 10000);

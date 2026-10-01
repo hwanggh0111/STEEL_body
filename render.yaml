@@ -24,6 +24,17 @@ services:
         value: https://blackiron.onrender.com
       - key: ADMIN_EMAIL
         sync: false
+      # ── 기록이 살아남게 ── (2026-10-01)
+      #
+      # **이 값이 없으면 기록이 재시작마다 사라진다.** 무료 판은 디스크를 못 붙여서
+      # 파일로 두면 배포할 때마다 · 잠들었다 깰 때마다 blackiron.json 이 없어진다.
+      #
+      # 무료 Postgres(Neon 등)를 만들어 그 연결 주소를 여기 넣는다. 처음 한 번은
+      # 서버가 **쓰던 파일을 그대로 옮겨** 올린다(이미 들어 있으면 안 덮는다).
+      #
+      # 비워두면 파일로 돈다 — 내 컴퓨터에서 그렇게 쓴다
+      - key: DATABASE_URL
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
