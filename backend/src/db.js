@@ -110,6 +110,10 @@ const DEFAULT_DATA = {
   // 계정별을 같이 세는 이유는 IP 를 바꿔가며 한 계정을 두들기는 것을 IP 별로는
   // 절대 못 잡기 때문이다 (한 IP 당 한두 번씩만 시도하면 된다)
   loginFails: [],    // { key, count, last, until } — key: 'ip:1.2.3.4' | 'user:12'
+  // 비밀번호 재설정 인증번호. 램에 두면 서버가 다시 뜰 때마다 사라진다 —
+  // Render 무료 판은 잠들었다 깨므로 재설정 도중에 번호가 없어졌다.
+  // 번호 자체는 적지 않는다(디스크에 남는 값이다) — sha256 만 적는다
+  verifyCodes: [],   // { email, hash, expires, attempts }
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
   _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1, plans: 1, gymSettings: 1 },
@@ -1638,6 +1642,68 @@ const db = {
     return (data.loginFails || []).filter(r => r.until > now);
   },
   /** 다 식은 줄은 걷는다. 안 걷으면 시도한 IP 수만큼 파일이 커진다 */
+  // ── 비밀번호 재설정 인증번호 ──
+  //
+  // 램이 아니라 파일에 둔다. 서버가 다시 뜨는 것(배포 · 무료 판의 잠들었다 깨기)이
+  // 쓰는 사람 눈에는 「인증번호를 먼저 발송해주세요」로 보였다.
+  //
+  // **번호를 그대로 적지 않는다.** 디스크에 남는 값이고 그 값 하나로 비밀번호를
+  // 바꿀 수 있다 — 리프레시 토큰과 같은 이유로 sha256 만 적는다.
+  putVerifyCode(email, hash, ttlMs) {
+    const data = load();
+    if (!data.verifyCodes) data.verifyCodes = [];
+    const now = Date.now();
+    // 새로 보내면 앞의 것은 죽는다. 같이 식은 줄도 이때 걷는다
+    data.verifyCodes = data.verifyCodes.filter(r => r && r.expires > now && r.email !== email);
+    const row = { email, hash, expires: now + ttlMs, attempts: 0 };
+    data.verifyCodes.push(row);
+    save(data);
+    // **여기서는 기다리지 않고 바로 쓴다.** 보통 저장은 0.5초 모아 쓰는데,
+    // 이 값은 그 사이에 서버가 죽으면 **사람이 메일로 받은 번호가 못 쓰는 번호가 된다**
+    // (배포 · 잠들었다 깨기가 바로 그 순간이다). 번호를 받는 일은 드물어서 값이 싸다
+    _flushImmediate();
+    return row;
+  },
+  /** 살아 있는 줄만 돌려준다. 만료된 줄은 그 자리에서 걷는다 */
+  getVerifyCode(email) {
+    const data = load();
+    const row = (data.verifyCodes || []).find(r => r.email === email);
+    if (!row) return null;
+    if (Date.now() > row.expires) {
+      data.verifyCodes = data.verifyCodes.filter(r => r.email !== email);
+      save(data);
+      return null;
+    }
+    return row;
+  },
+  /** 틀린 횟수를 하나 올리고 누적을 돌려준다 */
+  bumpVerifyAttempt(email) {
+    const data = load();
+    const row = (data.verifyCodes || []).find(r => r.email === email);
+    if (!row) return 0;
+    row.attempts = (row.attempts || 0) + 1;
+    save(data);
+    return row.attempts;
+  },
+  clearVerifyCode(email) {
+    const data = load();
+    if (!data.verifyCodes || !data.verifyCodes.length) return;
+    const before = data.verifyCodes.length;
+    data.verifyCodes = data.verifyCodes.filter(r => r.email !== email);
+    if (data.verifyCodes.length !== before) save(data);
+  },
+  /** 식은 줄 걷기. 안 걷으면 번호를 받아간 메일 수만큼 파일이 커진다 */
+  cleanVerifyCodes() {
+    const data = load();
+    if (!data.verifyCodes || !data.verifyCodes.length) return 0;
+    const now = Date.now();
+    const before = data.verifyCodes.length;
+    data.verifyCodes = data.verifyCodes.filter(r => r && r.expires > now);
+    const dropped = before - data.verifyCodes.length;
+    if (dropped > 0) save(data);
+    return dropped;
+  },
+
   cleanLoginFails(windowMs) {
     const data = load();
     if (!data.loginFails || !data.loginFails.length) return 0;

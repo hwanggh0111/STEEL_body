@@ -6,9 +6,18 @@ const { BCRYPT_ROUNDS } = require('../config/security');
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
-// 인증번호 저장소 (메모리) + 실패 횟수 추적
-const verifyStore = {};
-const verifyAttempts = {};
+// ── 인증번호는 파일에 둔다 ──
+//
+// 9/30 까지는 이 파일의 객체 하나였다(램). 그러면 **서버가 다시 뜰 때 사라진다** —
+// 배포할 때마다, 그리고 Render 무료 판은 조용하면 잠들었다 깨므로, 비밀번호를
+// 재설정하는 **도중에** 번호가 없어져 「인증번호를 먼저 발송해주세요」로 떨어졌다.
+// 로그인 실패 카운터를 파일로 옮긴 것과 같은 까닭이다.
+//
+// 파일에 두니 **번호를 그대로 적을 수 없다.** 그 여섯 자리 하나로 비밀번호를
+// 바꿀 수 있는 값이다 — 리프레시 토큰처럼 sha256 만 적고, 맞춰볼 때도 해시끼리 본다.
+// 메일 주소를 같이 넣어 섞는다(한 해시를 다른 주소에 못 쓰게).
+const CODE_TTL = 5 * 60 * 1000;
+const CODE_MAX_ATTEMPTS = 5;
 
 // 인증번호는 **비밀번호를 바꾸는 열쇠**다. Math.random() 은 예측 가능한 난수라
 // 여기에 쓰면 안 된다 (seed 를 알면 다음 값이 나온다). crypto 로 만든다
@@ -16,17 +25,30 @@ function makeCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
-// 안 쓴 번호를 걷어낸다.
-//
-// 5분이 지나면 못 쓰는 값인데도 메모리에 그대로 남아 있었다. 한 번에 죽을 만큼은
-// 아니지만 오래 켜두면 계속 쌓인다 — 새 번호를 만들 때마다 지난 것을 훑는다.
-function sweepExpired(now = Date.now()) {
-  for (const [email, v] of Object.entries(verifyStore)) {
-    if (!v || now > v.expires) {
-      delete verifyStore[email];
-      delete verifyAttempts[email];
-    }
+function hashCode(email, code) {
+  return crypto.createHash('sha256').update(String(email) + ':' + String(code)).digest('hex');
+}
+
+// 번호 맞춰보기. verify-code 와 reset-password 가 **같은 판단**을 해야 해서 한 곳에 둔다
+// (따로 적혀 있던 동안 둘이 조금씩 달라질 수 있는 자리였다).
+// 돌려주는 것: 통과면 null, 아니면 그대로 보낼 { status, error }
+function checkCode(email, code) {
+  const row = db.getVerifyCode(email);
+  if (!row) return { status: 400, error: '인증번호를 먼저 발송해주세요' };
+
+  // 틀린 횟수 제한 — 여섯 자리는 백만 가지뿐이라 횟수를 안 막으면 다 넣어볼 수 있다
+  if (db.bumpVerifyAttempt(email) > CODE_MAX_ATTEMPTS) {
+    db.clearVerifyCode(email);
+    return { status: 429, error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' };
   }
+
+  // 타이밍 공격 방지 — 길이가 같은 해시끼리 상수 시간 비교
+  const typed = hashCode(email, String(code).slice(0, 6).padEnd(6, '0'));
+  const same = crypto.timingSafeEqual(Buffer.from(row.hash, 'hex'), Buffer.from(typed, 'hex'));
+  if (!same || String(code).length !== 6) {
+    return { status: 400, error: '인증번호가 틀렸어요' };
+  }
+  return null;
 }
 
 // ── 로그인 실패 추적 ──
@@ -73,14 +95,13 @@ router.post('/send-code', async (req, res) => {
     return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
   }
 
-  sweepExpired();
+  db.cleanVerifyCodes();
   const code = makeCode();
-  verifyStore[email] = { code, expires: Date.now() + 5 * 60 * 1000 };
-  verifyAttempts[email] = 0;
+  db.putVerifyCode(email, hashCode(email, code), CODE_TTL);
 
   // SMTP 미설정 + production: 인증 메일 발송 인프라 없음 → 명확한 안내
   if (process.env.NODE_ENV === 'production' && !SMTP_CONFIGURED) {
-    delete verifyStore[email];
+    db.clearVerifyCode(email);
     console.error('[AUTH] SMTP 미설정 — 인증번호 발송 불가. 환경변수 SMTP_HOST/USER/PASS 설정 필요');
     return res.status(503).json({
       error: '이메일 인증이 일시적으로 비활성화됐어요. 관리자에게 문의해주세요',
@@ -92,7 +113,7 @@ router.post('/send-code', async (req, res) => {
 
   if (!sent && process.env.NODE_ENV === 'production' && SMTP_CONFIGURED) {
     // SMTP 설정되어 있는데 발송 실패한 경우
-    delete verifyStore[email];
+    db.clearVerifyCode(email);
     return res.status(500).json({ error: '메일 발송에 실패했어요. 잠시 후 다시 시도해주세요' });
   }
 
@@ -108,33 +129,10 @@ router.post('/verify-code', (req, res) => {
   const { email, code } = req.body;
   if (!email || !code || typeof email !== 'string' || typeof code !== 'string') return res.status(400).json({ error: '이메일과 인증번호를 입력해주세요' });
 
-  const stored = verifyStore[email];
-  if (!stored) return res.status(400).json({ error: '인증번호를 먼저 발송해주세요' });
+  const bad = checkCode(email, code);
+  if (bad) return res.status(bad.status).json({ error: bad.error });
 
-  // 시도 횟수 제한 (5회)
-  verifyAttempts[email] = (verifyAttempts[email] || 0) + 1;
-  if (verifyAttempts[email] > 5) {
-    delete verifyStore[email];
-    delete verifyAttempts[email];
-    return res.status(429).json({ error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' });
-  }
-
-  if (Date.now() > stored.expires) {
-    delete verifyStore[email];
-    delete verifyAttempts[email];
-    return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
-  }
-
-  // 타이밍 공격 방지 (고정 길이 패딩 후 상수 시간 비교)
-  const codeStr = String(code).slice(0, 6).padEnd(6, '0');
-  const storedStr = String(stored.code).slice(0, 6).padEnd(6, '0');
-  const codeMatch = crypto.timingSafeEqual(Buffer.from(storedStr), Buffer.from(codeStr));
-  if (!codeMatch || String(code).length !== 6) {
-    return res.status(400).json({ error: '인증번호가 틀렸어요' });
-  }
-
-  delete verifyStore[email];
-  delete verifyAttempts[email];
+  db.clearVerifyCode(email);
   res.json({ message: '인증 완료!', verified: true });
 });
 
@@ -463,35 +461,14 @@ router.post('/reset-password', async (req, res) => {
     return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
   }
 
-  // 인증번호 검증 (verify-code와 동일 로직)
-  const stored = verifyStore[email];
-  if (!stored) return res.status(400).json({ error: '인증번호를 먼저 발송해주세요' });
-
-  verifyAttempts[email] = (verifyAttempts[email] || 0) + 1;
-  if (verifyAttempts[email] > 5) {
-    delete verifyStore[email];
-    delete verifyAttempts[email];
-    return res.status(429).json({ error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' });
-  }
-  if (Date.now() > stored.expires) {
-    delete verifyStore[email];
-    delete verifyAttempts[email];
-    return res.status(400).json({ error: '인증번호가 만료됐어요. 다시 발송해주세요' });
-  }
-
-  const codeStr = String(code).slice(0, 6).padEnd(6, '0');
-  const storedStr = String(stored.code).slice(0, 6).padEnd(6, '0');
-  const codeMatch = crypto.timingSafeEqual(Buffer.from(storedStr), Buffer.from(codeStr));
-  if (!codeMatch || String(code).length !== 6) {
-    return res.status(400).json({ error: '인증번호가 틀렸어요' });
-  }
+  const bad = checkCode(email, code);
+  if (bad) return res.status(bad.status).json({ error: bad.error });
 
   // account enumeration 방지: 가입 여부와 무관하게 동일한 성공 응답.
   // 인증번호는 이미 통과했으므로(=메일 받은 사람), 가입된 경우에만 실제 변경.
   const user = db.findUserByEmail(email);
 
-  delete verifyStore[email];
-  delete verifyAttempts[email];
+  db.clearVerifyCode(email);
 
   if (user) {
     const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
