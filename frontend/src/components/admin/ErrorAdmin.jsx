@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import client from '../../api/client';
 import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
+import { markSeen } from '../useNewClientErrors';
 
 // 화면 오류.
 //
@@ -51,7 +52,14 @@ export default function ErrorAdmin() {
     setLoading(true);
     setError('');
     client.get('/client-error')
-      .then(({ data }) => setRows(Array.isArray(data) ? data : []))
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : [];
+        setRows(list);
+        // **본 것은 「새」에서 뺀다.** 관리자 머리의 숫자가 이걸 보고 줄어든다 —
+        // 안 빼면 그 숫자가 영영 안 줄어들고, 안 줄어드는 숫자는 아무 말도 안 한다.
+        // 최신이 위라 첫 줄이 가장 나중 것이다
+        if (list.length) markSeen(list[0].at);
+      })
       .catch(() => setError('목록을 불러오지 못했어요'))
       .finally(() => setLoading(false));
   }, []);
@@ -67,6 +75,8 @@ export default function ErrorAdmin() {
     try {
       await client.delete('/client-error');
       setRows([]);
+      // 비웠으면 「새」도 없다. 다음에 쌓이는 것부터 다시 센다
+      markSeen(new Date().toISOString());
       setOpen(null);
       toast('지웠어요');
     } catch {

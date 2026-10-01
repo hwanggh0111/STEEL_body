@@ -12,6 +12,7 @@ import SecurityScan from '../components/admin/SecurityScan';
 import FaqGapAdmin from '../components/admin/FaqGapAdmin';
 import ErrorAdmin from '../components/admin/ErrorAdmin';
 import { usePendingReports } from '../components/usePendingReports';
+import { useNewClientErrors } from '../components/useNewClientErrors';
 
 import { isAdmin as checkAdmin } from '../data/admin';
 
@@ -123,10 +124,50 @@ function Todo({ pending, onGo }) {
   );
 }
 
+// 새로 쌓인 화면 오류 (2026-10-01).
+//
+// **위의 할 일 카드와 한 칸에 안 넣는다.** 제보는 사람이 답을 기다리는 일이고
+// 이것은 아니다 — 한 카드에 숫자 둘을 나란히 놓으면 급한 정도가 같아 보인다.
+// 줄을 나누고 색을 달리한다(노랑: 봐야 하지만 사람을 기다리게 하진 않는다).
+//
+// 센 것은 **「새」뿐이다.** 한 번 열어보면 빠진다 — 안 그러면 숫자가 안 줄어들고,
+// 안 줄어드는 숫자는 곧 아무 말도 안 하는 숫자가 된다.
+function NewErrors({ count, loaded, onGo }) {
+  if (!loaded || count === 0) return null;
+  return (
+    <div
+      className="card clickable"
+      onClick={onGo}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
+      style={{
+        marginBottom: 20, borderLeft: '2px solid var(--warning)',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}
+    >
+      <div style={{
+        fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 1.5,
+        color: 'var(--warning)', lineHeight: 1,
+      }}>{count}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>새 화면 오류</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+          흰 화면이 된 자리예요. 사람을 기다리게 하진 않아요
+        </div>
+      </div>
+      <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+        화면 오류로 ›
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { nickname } = useAuthStore();
   const navigate = useNavigate();
   const pending = usePendingReports();
+  const newErrors = useNewClientErrors();
   const [tab, setTab] = useState('report');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -159,7 +200,12 @@ export default function AdminPage() {
   const current = ALL.find(t => t.key === tab);
   const Panel = PANELS[tab];
   // 뱃지는 **그 탭에서 할 일만** 센다. 딴 탭 일을 얹으면 눌러 들어가도 없다
-  const badgeOf = (key) => (key === 'report' ? pending.open + pending.abuse : 0);
+  const badgeOf = (key) => {
+    if (key === 'report') return pending.open + pending.abuse;
+    // 화면 오류도 **그 탭에서 볼 것**이므로 같은 규칙이 그대로 선다
+    if (key === 'errors') return newErrors.loaded ? newErrors.count : 0;
+    return 0;
+  };
 
   const open = (key) => {
     setTab(key);
@@ -189,6 +235,7 @@ export default function AdminPage() {
       </div>
 
       <Todo pending={pending} onGo={() => open('report')} />
+      <NewErrors count={newErrors.count} loaded={newErrors.loaded} onGo={() => open('errors')} />
 
       {/* 지금 보고 있는 것 + 항목 고르기 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>

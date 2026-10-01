@@ -46,6 +46,21 @@ router.get('/', adminAuth, (req, res) => {
   res.json(db.getClientErrors());
 });
 
+// 새로 쌓인 것이 몇 건인가 (2026-10-01).
+//
+// 관리자 화면 머리에 숫자 하나를 세우려고 부른다. **표시 하나 때문에 목록을
+// 통째로 받아올 수는 없다** — 스택까지 붙은 백 줄이다. 제보의 `/reports/pending`
+// 과 같은 까닭으로 가벼운 길을 따로 둔다.
+//
+// `since` 는 **본 사람이 어디까지 봤는지**다. 안 주면 전부 센다.
+router.get('/new', adminAuth, (req, res) => {
+  const since = typeof req.query.since === 'string' ? req.query.since : '';
+  const list = db.getClientErrors();          // 최신이 위
+  const newest = list.length ? list[0].at : null;
+  const count = since ? list.filter(r => r && r.at > since).length : list.length;
+  res.json({ count, newest, total: list.length });
+});
+
 router.delete('/', adminAuth, (req, res) => {
   db.clearClientErrors();
   res.json({ message: '지웠어요' });
