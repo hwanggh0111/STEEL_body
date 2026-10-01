@@ -1,6 +1,9 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
 import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
+import { useWorkoutStore } from '../store/workoutStore';
+import { restView } from '../data/nextSet';
+import { useToday } from '../data/useToday';
 import { useState } from 'react';
 
 // 휴식 타이머 — 기록 화면에 붙는 자리.
@@ -82,6 +85,84 @@ function Toggle({ on, onClick, label, desc }) {
   );
 }
 
+// 쉬는 동안 보여줄 것 — 시안 A (2026-10-01).
+//
+// 세트 사이 60~180초는 사람이 폰을 들고 있는 거의 유일한 시간인데, 그 자리에
+// **남은 시간밖에 없었다.** 다음에 들 것을 손 안 대고 읽게 한다.
+//
+// **지어내지 않는다.** 무게·횟수는 방금 적은 그 값이고(「방금과 같이」), 지난 번
+// 이야기는 기록에 적힌 것뿐이다. 값은 `data/nextSet.js` 가 만든다 — 이 자리는 그린다.
+function NextSet({ view }) {
+  if (!view) return null;
+  const { nextSet, weight, reps, last, drop, planSets, doneSets, done, exercise } = view;
+
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="card" style={{
+        background: 'var(--accent-dim)', borderColor: 'var(--accent)', padding: '11px 13px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <span className="label" style={{ marginBottom: 0 }}>
+            {done ? '지난 번만큼 다 했어요' : `다음 · ${nextSet}세트`}
+          </span>
+          <span style={{
+            fontSize: 11.5, color: 'var(--text-secondary)', minWidth: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{exercise}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+          {/* 맨몸운동은 무게가 0 이다 — 「0kg」이라고 적지 않는다 */}
+          {weight > 0 && (
+            <>
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, letterSpacing: 1, color: 'var(--accent)', lineHeight: 1 }}>{weight}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>kg</span>
+            </>
+          )}
+          <span style={{
+            fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, lineHeight: 1,
+            fontSize: weight > 0 ? 26 : 38, color: weight > 0 ? 'var(--text-primary)' : 'var(--accent)',
+            marginLeft: weight > 0 ? 6 : 0,
+          }}>{reps}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>회</span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 'auto' }}>방금과 같이</span>
+        </div>
+      </div>
+
+      {/* 세트 칸 — 지난 번만큼 그리고, 오늘 한 것을 채운다.
+          지난 번이 없으면 오늘 한 만큼만 그린다 (앞으로 몇 세트일지 지어내지 않는다) */}
+      {planSets > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginRight: 2 }}>세트</span>
+          {Array.from({ length: planSets }, (_, i) => i + 1).map(n => (
+            <span key={n} style={{
+              fontSize: 11, lineHeight: 1, padding: '4px 7px', borderRadius: 'var(--radius)',
+              border: '1px solid ' + (n <= doneSets ? 'var(--accent)' : 'var(--border)'),
+              color: n <= doneSets ? 'var(--accent)' : 'var(--text-muted)',
+            }}>{n}</span>
+          ))}
+        </div>
+      )}
+
+      {last && (
+        <div className="card" style={{ padding: '10px 13px' }}>
+          <div className="label" style={{ marginBottom: 4 }}>지난 번 이 운동</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            {String(last.date).slice(5).replace('-', '월 ')}일
+            {last.weight > 0 ? ` · ${last.weight}kg` : ''} {last.topReps}회
+            {' '}<span style={{ color: 'var(--text-primary)' }}>{last.sets}세트</span>
+          </div>
+          {/* 안 줄었으면 이 줄을 아예 안 그린다 — 「안 줄었어요」는 적을 값이 아니다 */}
+          {drop && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+              그날은 {drop.set}세트째에서 {drop.reps}회로 줄였어요
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RestTimer() {
   const {
     duration, runSec, leftMs, deadline, pausedLeft, label,
@@ -95,6 +176,16 @@ export default function RestTimer() {
   const nextName = session && session.current >= 0
     ? session.items[session.current]?.name
     : null;
+
+  // 쉬는 동안 보여줄 것. 운동 이름은 **휴식을 건 그 이름**에서 읽는다 —
+  // `autoStartAfterSet` 이 「벤치프레스 3세트」 꼴로 적어 둔다 (restTimerStore 의 label).
+  // 루틴의 「다음」과는 다른 값이다: 지금 쉬고 있는 것은 **방금 한 운동**이다
+  const workouts = useWorkoutStore(s => s.workouts);
+  const restedName = String(label || '').replace(/s*d+세트s*$/, '').trim();
+  // 날짜는 앱이 쓰는 것과 **같은 자리**에서 읽는다. 여기서 따로 만들면
+  // 자정을 넘기는 순간의 판단이 화면마다 달라진다
+  const today = useToday();
+  const view = restedName ? restView(workouts, restedName, today) : null;
 
   const [custom, setCustom] = useState('');
   const [showCustom, setShowCustom] = useState(false);
@@ -134,11 +225,15 @@ export default function RestTimer() {
               </span>
             </Ring>
 
+            {/* 다음에 들 것 — 시안 A (2026-10-01). 값이 없으면 안 그리고,
+                그때는 아래의 옛 한 줄이 그대로 나온다 */}
+            <NextSet view={view} />
+
             {/* 방금 저장한 세트와 다음 운동 — C 안의 것이다. 링 아래에 놓으면
-                큰 링과 부딪히지 않는다 */}
-            {(label || nextName) && (
+                큰 링과 부딪히지 않는다. 위 카드가 나오면 **같은 말을 두 번 하지 않는다** */}
+            {((label && !view) || nextName) && (
               <div style={{ width: '100%', minWidth: 0, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {label && (
+                {label && !view && (
                   <div style={{ fontSize: 13.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {label}
                   </div>
