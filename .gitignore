@@ -42,3 +42,7 @@ hgh.code-workspace
 backend/scripts/.bench*.json
 backend/scripts/.probe*.json
 backend/scripts/.bench-*.cjs
+
+# 통째로 떠둔 백업 (npm run backup). **사람들의 기록 전부가 들어 있다** —
+# 본체가 gitignore 인 것과 같은 까닭으로 여기도 절대 올리지 않는다
+backend/backups/

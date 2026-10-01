@@ -6,6 +6,7 @@
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
     "check": "node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs && node scripts/check-sync.cjs",
+    "backup": "node scripts/backup.cjs",
     "smoke": "node scripts/smoke.cjs",
     "sync": "node scripts/check-sync.cjs",
     "seed": "node scripts/seed.cjs",

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
+const adminAuth = require('../middleware/adminAuth');
 const { csvCell } = require('../utils/csv');
 // 이름표는 **가져오기와 같은 표를 쓴다** (2026-09-18 에 `utils/measureLabels.js` 로 옮겼다) —
 // 두 벌로 두면 항목 하나를 더할 때 한쪽만 고쳐지고, 그러면 내보낸 파일을 앱이 다시 못 읽는다
@@ -79,6 +80,31 @@ router.get('/measures', auth, (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="steelbody_measures.csv"');
   res.send(csv);
+});
+
+
+// ── 통째로 떠받기 (관리자) ── (2026-10-01)
+//
+// 위의 셋은 **자기 기록**을 CSV 로 받는 길이다. 이건 다르다 — **전부**를 한 장으로
+// 받는다. 되돌릴 수 있어야 하기 때문에 CSV 가 아니라 **DB 그대로의 모양**이다.
+//
+// 왜 있어야 하나: 이 앱의 기록 전부가 파일 두 장에 있다. 파일 하나가 잘못되면
+// 아홉 사람의 기록이 한 번에 사라지는데, 떠둘 길이 **아무 데도 없었다.**
+// 서버가 Render 에 있으면 `npm run backup` 은 못 돌린다 — 그래서 여기도 있다.
+//
+// **사진은 안 담는다.** 사람마다 세 장씩이면 수십 MB 라 브라우저가 받다 죽고,
+// 서버는 `--max-old-space-size=256` 으로 돈다. 사진은 손으로 뜨는 쪽(`npm run backup`)이
+// 가져간다 — **무엇이 빠졌는지 파일 안에 적어둔다.**
+router.get('/backup', adminAuth, (req, res) => {
+  const data = db.rawSnapshot();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="blackiron-${stamp}.json"`);
+  res.send(JSON.stringify({
+    뜬때: new Date().toISOString(),
+    설명: '관리자가 받은 통째 백업입니다. 사진(photos.json)은 들어 있지 않습니다 — 그것은 npm run backup 으로 뜹니다.',
+    data,
+  }, null, 2));
 });
 
 module.exports = router;

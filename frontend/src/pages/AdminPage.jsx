@@ -11,6 +11,7 @@ import SitePhotoAdmin from '../components/admin/SitePhotoAdmin';
 import SecurityScan from '../components/admin/SecurityScan';
 import FaqGapAdmin from '../components/admin/FaqGapAdmin';
 import ErrorAdmin from '../components/admin/ErrorAdmin';
+import BackupAdmin from '../components/admin/BackupAdmin';
 import { usePendingReports } from '../components/usePendingReports';
 import { useNewClientErrors } from '../components/useNewClientErrors';
 
@@ -63,6 +64,9 @@ const GROUPS = [
       // **여는 화면만 없었다** — 26건이 한 달 동안 아무도 모르게 쌓여 있었다.
       // 「지켜보는 것」이 맞는 자리다: 사람이 기다리는 일이 아니고, 아무 일 없으면 안 열어도 된다
       { key: 'errors', label: '화면 오류', icon: 'bug', desc: '흰 화면이 된 자리. 같은 말은 묶어서 몇 번 났는지로 본다' },
+      // 통째로 떠받기 (2026-10-01). 기록 전부가 파일 두 장에 있는데 떠둘 길이
+      // 아무 데도 없었다 — 파일 하나가 잘못되면 아홉 사람의 기록이 한 번에 사라진다
+      { key: 'backup', label: '통째로 떠받기', icon: 'stack', desc: '기록 전부를 한 장으로 받는다. 배포 전과 큰 것을 고치기 전에' },
     ],
   },
 ];
@@ -79,6 +83,7 @@ const PANELS = {
   ai: AiAdminPanel,
   scan: SecurityScan,
   errors: ErrorAdmin,
+  backup: BackupAdmin,
 };
 
 function Todo({ pending, onGo }) {

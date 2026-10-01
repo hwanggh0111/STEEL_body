@@ -143,17 +143,17 @@ router.post('/send-code', async (req, res) => {
   });
 });
 
-// 인증번호 확인 (Brute Force 방지)
-router.post('/verify-code', (req, res) => {
-  const { email, code } = req.body;
-  if (!email || !code || typeof email !== 'string' || typeof code !== 'string') return res.status(400).json({ error: '이메일과 인증번호를 입력해주세요' });
-
-  const bad = checkCode(email, code);
-  if (bad) return res.status(bad.status).json({ error: bad.error });
-
-  db.clearVerifyCode(email);
-  res.json({ message: '인증 완료!', verified: true });
-});
+// 「인증번호만 따로 확인하는 길」은 **없다** (2026-10-01 에 걷어냄).
+//
+// `POST /verify-code` 가 있었는데 **앱에서 부르는 데가 한 곳도 없었다.** 비밀번호
+// 재설정은 `/reset-password` 가 번호를 직접 확인한다(`checkCode`) — 번호를 미리
+// 한 번 맞춰볼 이유가 없었다.
+//
+// 안 쓰는 길은 **고칠 때 잊히는 길**이다. 로그인 없이 부를 수 있는 자리면 더 그렇다.
+//
+// 가입에 인증번호를 붙일 때도 **이 모양으로 되살리지 않는다.** 번호를 따로 확인하고
+// 그 다음에 가입을 받으면, 그 둘 사이가 비어 있다 — **가입을 받는 그 자리에서**
+// 번호를 같이 본다(`checkCode` 를 부르면 된다).
 
 // 이메일 중복 확인
 router.post('/check-email', (req, res) => {
