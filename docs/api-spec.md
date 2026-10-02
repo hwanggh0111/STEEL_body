@@ -40,6 +40,7 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 | POST | `/auth/logout` | 쿠키 정리 |
 | GET | `/auth/me` 🔒 | 내 정보 |
 | PUT | `/auth/nickname` 🔒 | `{ nickname }` |
+| PUT | `/auth/username` 🔒 | `{ username }` — 아이디 바꾸기 (2026-10-02). 가입과 같은 규칙, **30일에 한 번**. 중복은 409, 아직 못 바꾸면 429 `{ daysLeft }`. 옛 아이디로는 로그인되지 않는다 |
 | PUT | `/auth/password` 🔒 | `{ currentPassword, newPassword }` |
 | POST | `/auth/reset-password` | 인증코드로 재설정 |
 | POST | `/auth/send-code` | 이메일 인증코드 발송 (1분 3회). 가입·비밀번호 재설정이 같이 쓴다 |
@@ -51,7 +52,6 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 |---|---|
 | GET | `/oauth/google` · `/oauth/naver` · `/oauth/facebook` · `/oauth/instagram` — 각 제공자로 보낸다 |
 | GET | `/oauth/{제공자}/callback` — 돌아오는 자리. state 는 1회용이고 10분이면 만료된다 |
-| POST | `/oauth/google/code` | `{ code }` — 앱에서 받은 authorization code 를 교환한다 |
 
 돌려보낼 곳은 허용 목록(`FRONTEND_URL`, `RENDER_EXTERNAL_URL`)에 있는 주소만 쓴다.
 
