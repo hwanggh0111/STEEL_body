@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRestTimerStore, PRESETS } from '../store/restTimerStore';
 import { useSettingsStore, BREATH_WHERE, BREATH_MAX, BREATH_SENSE } from '../store/settingsStore';
@@ -169,6 +169,19 @@ export default function SettingsPage() {
   const [nickEdit, setNickEdit] = useState(false);
   const [nickDraft, setNickDraft] = useState('');
   const [savingNick, setSavingNick] = useState(false);
+  // ── 아이디 (2026-10-02) ──
+  //
+  // 아이디는 **서버에만 있다** — 이름처럼 스토어에 들고 다니지 않는다. 그래서
+  // 이 화면이 열릴 때 한 번 물어본다(`/auth/me`). 못 받아오면 줄을 안 그린다 —
+  // 모르는 값을 빈칸으로 그려놓으면 「아이디가 없는 계정」처럼 보인다.
+  const [acct, setAcct] = useState({ loaded: false, username: '', changedAt: null });
+  const [idEdit, setIdEdit] = useState(false);
+  const [idDraft, setIdDraft] = useState('');
+  const [idMsg, setIdMsg] = useState(null);     // { ok, text }
+  const [idChecking, setIdChecking] = useState(false);
+  const [savingId, setSavingId] = useState(false);
+  const idTimer = useRef(null);
+  useEffect(() => () => { if (idTimer.current) clearTimeout(idTimer.current); }, []);
   // 만든 소리는 브라우저에서 읽는다. **읽자마자 재생 쪽에 얹는다** —
   // 안 얹으면 고른 소리가 목록에는 있는데 안 울린다
   const [myTones, setMyTones] = useState(() => {
@@ -219,6 +232,18 @@ export default function SettingsPage() {
 
   const nickname = useAuthStore((st) => st.nickname);
 
+  // 아이디를 한 번 받아온다. 알림 설정과 같은 길 — **조용히 실패한다**
+  useEffect(() => {
+    let alive = true;
+    client.get('/auth/me')
+      .then(({ data }) => {
+        if (!alive) return;
+        setAcct({ loaded: true, username: data?.username || '', changedAt: data?.usernameChangedAt || null });
+      })
+      .catch(() => { /* 아이디 줄만 안 보인다. 설정함은 그대로 돌아간다 */ });
+    return () => { alive = false; };
+  }, []);
+
   // 이름 바꾸기. 계정 시트가 하던 것과 **같은 길**을 쓴다 (`PUT /auth/nickname`) —
   // 화면이 둘이어도 서버로 가는 길은 하나다
   const saveNick = () => {
@@ -234,6 +259,56 @@ export default function SettingsPage() {
       })
       .catch((err) => toast(err.response?.data?.error || '이름을 바꾸지 못했어요', 'error'))
       .finally(() => setSavingNick(false));
+  };
+
+  // 아이디를 치는 대로 확인한다. **가입 화면과 같은 길**(`/auth/check-username`) 이고,
+  // 거기서 쓰는 규칙도 그대로다 — 한쪽만 느슨하면 통과했다가 저장에서 막힌다.
+  //
+  // **지금 쓰는 아이디는 「이미 사용 중」이 아니다.** 내 것을 내가 치는 것이라,
+  // 그대로 물어보면 중복이라고 답한다 — 먼저 걸러낸다.
+  const typeId = (raw) => {
+    const next = String(raw || '').toLowerCase();
+    setIdDraft(next);
+    setIdMsg(null);
+    setIdChecking(false);
+    if (idTimer.current) clearTimeout(idTimer.current);
+
+    if (!next) return;
+    if (next.length < 4) { setIdMsg({ ok: false, text: '4자 이상 입력해주세요' }); return; }
+    if (next.length > 20) { setIdMsg({ ok: false, text: '20자 이하로 입력해주세요' }); return; }
+    if (!/^[a-zA-Z0-9!@#$%^&*._-]+$/.test(next)) {
+      setIdMsg({ ok: false, text: '영문, 숫자, 특수문자(!@#$%^&*._-)만 가능' });
+      return;
+    }
+    if (next === String(acct.username || '').toLowerCase()) {
+      setIdMsg({ ok: false, text: '지금 쓰는 아이디예요' });
+      return;
+    }
+
+    idTimer.current = setTimeout(() => {
+      setIdChecking(true);
+      client.post('/auth/check-username', { username: next })
+        .then(({ data }) => setIdMsg({ ok: !!data?.available, text: data?.message || '' }))
+        .catch((err) => setIdMsg({ ok: false, text: err.response?.data?.error || '확인 실패' }))
+        .finally(() => setIdChecking(false));
+    }, 600);
+  };
+
+  const saveId = () => {
+    if (savingId || !idMsg?.ok) return;
+    setSavingId(true);
+    client.put('/auth/username', { username: idDraft })
+      .then(({ data }) => {
+        setAcct((a) => ({ ...a, username: data.username, changedAt: new Date().toISOString() }));
+        setIdEdit(false);
+        setIdDraft('');
+        setIdMsg(null);
+        toast('아이디가 바뀌었어요');
+      })
+      // 30일이 안 지났거나 그 사이에 남이 집어간 경우가 여기로 온다 —
+      // 서버가 **까닭을 적어 보내므로** 그대로 띄운다
+      .catch((err) => toast(err.response?.data?.error || '아이디를 바꾸지 못했어요', 'error'))
+      .finally(() => setSavingId(false));
   };
 
   // ── 앱 잠금이 걸려 있나 (2026-09-22 에 고쳤다) ──
@@ -542,6 +617,88 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        {/* ── 아이디 ── (2026-10-02)
+            이름 바로 아래에 둔다. 둘 다 「나를 부르는 말」인데 쓰임이 다르다 —
+            이름은 화면에 나오는 것이고 **아이디는 로그인에 치는 것**이라, 그 차이를
+            줄 밑에 한 줄로 적는다.
+
+            소셜로 들어온 사람에게는 `google_ff791abd` 처럼 **자기가 고른 적 없는
+            이름**이 붙어 있다. 그 사람이 이 줄을 찾을 수 있어야 한다. */}
+        {acct.loaded && acct.username && (
+          <div style={{ padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11 }}>
+            <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>아이디</div>
+            {idEdit ? (
+              <>
+                <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
+                  <input
+                    value={idDraft}
+                    onChange={(e) => typeId(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveId(); }}
+                    maxLength={20}
+                    autoFocus
+                    autoComplete="username"
+                    placeholder="영문+숫자 4~20자"
+                    style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 6, color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                      borderColor: idDraft
+                        ? (idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)') : 'var(--border-hover)')
+                        : 'var(--border-hover)',
+                    }}
+                  />
+                  <button
+                    onClick={saveId}
+                    disabled={savingId || !idMsg?.ok}
+                    className="btn-primary"
+                    style={{ width: 'auto', padding: '0 14px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                  >저장</button>
+                  <button
+                    onClick={() => { setIdEdit(false); setIdDraft(''); setIdMsg(null); }}
+                    className="btn-secondary"
+                    style={{ width: 'auto', padding: '0 12px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                  >취소</button>
+                </div>
+                {/* 왜 저장이 안 눌리는지 적는다. 회색으로 죽어 있기만 하면 아무도 모른다 */}
+                <div style={{
+                  fontSize: 11.5, marginTop: 6, lineHeight: 1.6,
+                  color: idChecking ? 'var(--text-muted)'
+                    : idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)')
+                      : 'var(--text-muted)',
+                }}>
+                  {idChecking ? '중복 확인 중...'
+                    : idMsg ? idMsg.text
+                      : '바꿀 아이디를 입력하면 쓸 수 있는지 바로 확인해요'}
+                </div>
+                {/* 누르기 전에 말한다 — 한 번 바꾸면 30일간 못 바꾸고, 옛 아이디로는
+                    로그인이 안 된다. 바꾼 뒤에 알면 늦는 종류의 사실이다 */}
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                  바꾸면 <b style={{ color: 'var(--text-secondary)' }}>옛 아이디로는 로그인되지 않아요.</b>
+                  다음 변경은 30일 뒤에 할 수 있어요. 이메일로도 로그인할 수 있습니다.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                  <span style={{
+                    fontSize: 13.5, color: 'var(--text-secondary)', minWidth: 0,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{acct.username}</span>
+                  <button
+                    onClick={() => { setIdDraft(''); setIdMsg(null); setIdEdit(true); }}
+                    className="btn-secondary"
+                    style={{ width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
+                  >바꾸기</button>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                  {/* 자기가 고른 적 없는 이름이면 그렇다고 말해준다 — 「이게 왜 내 아이디지」로
+                      두면 바꿀 수 있다는 것도 모른다 */}
+                  {/^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(acct.username)
+                    ? '소셜 로그인으로 가입해서 저절로 지어진 아이디예요. 원하는 것으로 바꿀 수 있어요'
+                    : '로그인할 때 치는 이름이에요 (이메일로도 됩니다)'}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <GoRow title="비밀번호 바꾸기" onClick={() => setPwOpen(true)} />
         {/* **계정 삭제도 여기 둔다.** 계정에 대한 일이라 계정 무리가 맞다 —

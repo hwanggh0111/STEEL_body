@@ -496,6 +496,85 @@ router.put('/nickname', require('../middleware/auth'), (req, res) => {
   res.json({ nickname: safeNickname, message: '닉네임이 변경됐어요' });
 });
 
+// ── 아이디 바꾸기 ── (2026-10-02)
+//
+// 계정 무리에 **이름 · 비밀번호 · 계정 삭제**는 있었는데 **아이디를 바꿀 길이 없었다.**
+// `check-username`(중복 확인)은 가입 때만 쓰이고 있었다 — 절반만 있던 셈이다.
+//
+// 이것이 필요한 사람은 **소셜로 들어온 사람**이다. 구글로 들어오면 아이디가
+// `google_ff791abd` 로 붙는다(`oauth.js` 가 지어준다). 자기가 고른 적이 없는 이름인데
+// 로그인 화면에서 쓰는 이름이다.
+//
+// ── 30일에 한 번 ──
+//
+// 제한을 둬야 하는 까닭은 **아이디가 남을 가리키는 이름**이기 때문이다. 아무 때나
+// 바꿀 수 있으면 쓰던 아이디를 놓고 다른 사람이 그것을 집어, 「그 아이디의 그 사람」이
+// 누구인지가 흐려진다. 반대로 아예 못 바꾸게 하면 오타를 영영 못 고친다.
+// 그 사이에 둔다 — **오타는 고칠 수 있고, 돌려 쓰기는 느리게.**
+//
+// **옛 아이디는 안 남긴다.** 남겨두고 로그인까지 받으면 아이디가 둘인 계정이 된다.
+const USERNAME_COOLDOWN_DAYS = 30;
+
+/**
+ * 며칠을 더 기다려야 하나. **0 이면 지금 바꿀 수 있다.**
+ *
+ * 판단만 하는 함수로 떼어 둔다 — `npm run id` 가 값으로 본다. 라우터 안에 박아두면
+ * 「31일이 지나면 되는가」를 보려고 검사가 날짜를 되돌려야 하고, 그러려면 검사
+ * 하나 때문에 DB 에 함수를 늘려야 한다.
+ *
+ * 두 가지는 **막지 않는다**:
+ *   - 한 번도 안 바꾼 사람(`null`). 가입할 때 정한 것은 「바꾼 것」이 아니다
+ *   - 날짜가 깨져 있는 경우(`NaN`). 못 읽는 값 때문에 사람을 가두지 않는다
+ */
+function usernameCooldown(changedAt, now = Date.now()) {
+  if (!changedAt) return 0;
+  const then = new Date(changedAt).getTime();
+  if (!Number.isFinite(then)) return 0;
+  const left = USERNAME_COOLDOWN_DAYS - Math.floor((now - then) / 86400000);
+  return left > 0 ? left : 0;
+}
+
+router.put('/username', require('../middleware/auth'), (req, res) => {
+  const { username } = req.body;
+  const typed = typeof username === 'string' ? username.trim() : '';
+  // 가입과 **같은 규칙**을 쓴다. 여기만 느슨하면 가입에서 막히는 아이디가 바꾸기로는 들어온다
+  if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(typed)) {
+    return res.status(400).json({ error: '아이디는 영문+숫자+특수문자(!@#$%^&*._-) 4~20자만 가능해요' });
+  }
+
+  const user = db.findUserById(req.userId);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+
+  // 대소문자만 다른 것은 같은 아이디다 — 그걸로 30일을 태우게 하지 않는다
+  if (db.usernameKey(user.username) === db.usernameKey(typed)) {
+    return res.status(400).json({ error: '지금 쓰는 아이디와 같아요' });
+  }
+
+  const left = usernameCooldown(user.usernameChangedAt);
+  if (left > 0) {
+    return res.status(429).json({
+      error: `아이디는 ${USERNAME_COOLDOWN_DAYS}일에 한 번 바꿀 수 있어요. ${left}일 뒤에 다시 해주세요`,
+      daysLeft: left,
+    });
+  }
+
+  try {
+    const result = db.updateUserUsername(req.userId, typed);
+    if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  } catch (err) {
+    if (err.message === 'DUPLICATE_USERNAME') {
+      return res.status(409).json({ error: '이미 사용 중인 아이디에요' });
+    }
+    console.error('[AUTH] 아이디 변경 실패:', err.message);
+    return res.status(500).json({ error: '아이디를 바꾸지 못했어요. 잠시 뒤에 다시 해주세요' });
+  }
+
+  // 아이디로도 로그인한다 — **바뀐 것을 기록에 남긴다.** 로그인 기록을 뒤질 때
+  // 「이 아이디가 언제부터 이 사람인가」를 알아야 한다
+  addLog('username_change', `Username: ${user.username} -> ${typed} (id=${user.id})`);
+  res.json({ username: typed, message: '아이디가 바뀌었어요' });
+});
+
 // 비밀번호 재설정 (분실 시 — 인증번호 검증 후 새 비밀번호 설정)
 router.post('/reset-password', async (req, res) => {
   const { email, code, newPassword } = req.body;
@@ -563,5 +642,10 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
   addLog('password_change', `Password changed: userId=${req.userId}`);
   res.json({ message: '비밀번호가 변경됐어요. 다시 로그인해주세요' });
 });
+
+// 판단하는 함수는 라우터에 얹어 내보낸다 — `npm run id` 가 값으로 본다
+// (`oauth.js` 가 `successUrl` · `findOrCreateUser` 를 내보내는 것과 같은 모양)
+router.usernameCooldown = usernameCooldown;
+router.USERNAME_COOLDOWN_DAYS = USERNAME_COOLDOWN_DAYS;
 
 module.exports = router;

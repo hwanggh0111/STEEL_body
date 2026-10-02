@@ -800,6 +800,27 @@ const db = {
     return { changes: 1 };
   },
 
+  // 아이디를 바꾼다 (2026-10-02).
+  //
+  // **대소문자만 다른 것도 중복이다** — `usernameKey` 로 견준다. 가입(`createUser`)이
+  // 쓰는 것과 같은 열쇠다. 따로 적으면 가입에서는 막히고 여기서는 통하는 자리가 생긴다.
+  //
+  // 바꾼 날을 같이 적는다. **옛 아이디는 안 남긴다** — 남겨두고 로그인까지 받으면
+  // 아이디가 둘인 계정이 되고, 그러면 「누구의 아이디인가」가 흐려진다.
+  updateUserUsername(id, username) {
+    const data = load();
+    const user = data.users.find(u => u.id === id);
+    if (!user) return { changes: 0 };
+    if (data.users.some(u => u.id !== id && usernameKey(u.username) === usernameKey(username))) {
+      throw new Error('DUPLICATE_USERNAME');
+    }
+    user.username = username;
+    user.usernameChangedAt = new Date().toISOString();
+    invalidateUserIndex();
+    save(data);
+    return { changes: 1 };
+  },
+
   updateUserPassword(id, hashedPassword) {
     const data = load();
     const user = data.users.find(u => u.id === id);
@@ -2079,5 +2100,8 @@ const db = {
 };
 
 db.emailKey = emailKey;
+// 아이디를 하나의 말로 맞추는 열쇠. 라우터도 **같은 것으로** 견줘야 한다 —
+// 「대소문자만 다른 것은 같은 아이디」라는 판단이 여기와 저기서 달라지면 안 된다
+db.usernameKey = usernameKey;
 
 module.exports = db;
