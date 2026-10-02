@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NavIcon from './NavIcon';
 import LockSetup from './LockSetup';
 import { useLockStore } from '../store/lockStore';
+import client from '../api/client';
 
 // 내 계정.
 //
@@ -41,6 +42,23 @@ export default function AccountSheet({
   // 크기가 아니고(칸 둘과 단추 하나), 기기·계정에 관한 일은 여기 모여 있다
   const [lockOpen, setLockOpen] = useState(false);
   const lockOn = useLockStore((s) => s.enabled);
+
+  // ── 아이디 ── (2026-10-02)
+  //
+  // 이 시트는 **「내가 누구로 들어와 있나」**를 말하는 자리다(이름 · 메일). 그런데
+  // 로그인에 치는 이름인 아이디만 빠져 있었다 — 설정함에만 있었다.
+  //
+  // **서버에만 있는 값이라 물어봐야 안다.** 이 파일은 시트를 열 때만 불려 오므로
+  // (`Layout` 이 lazy 로 들고 있다) 여기서 물어보는 것이 가장 싸다 — 앱이 뜰 때마다
+  // 묻지 않는다. 못 받아오면 줄을 안 그린다.
+  const [username, setUsername] = useState('');
+  useEffect(() => {
+    let alive = true;
+    client.get('/auth/me')
+      .then(({ data }) => { if (alive) setUsername(data?.username || ''); })
+      .catch(() => { /* 아이디 줄만 안 보인다. 시트는 그대로 돌아간다 */ });
+    return () => { alive = false; };
+  }, []);
 
   const startEdit = () => { setDraft(nickname || ''); setEditing(true); };
   const save = () => {
@@ -121,6 +139,14 @@ export default function AccountSheet({
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{email}</div>
               )}
+              {/* 아이디는 메일 아래에 둔다. **둘 다 로그인에 치는 것**이라
+                  한자리에 모여 있어야 「무엇으로 들어가지」가 한눈에 보인다 */}
+              {username && (
+                <div style={{
+                  fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>아이디 {username}</div>
+              )}
             </>
           )}
         </div>
@@ -147,6 +173,13 @@ export default function AccountSheet({
       {/* ── 할 수 있는 것 ── */}
       <Group>
         <Row icon="pencil" label="이름 바꾸기" onClick={startEdit} />
+        {/* **여기서 바꾸지 않고 설정함으로 보낸다.** 아이디는 중복 확인과 30일 제한이
+            붙어 있어서 칸 하나로 끝나는 일이 아니다 — 고치는 자리를 두 벌로 만들면
+            규칙도 두 벌이 된다(사진을 계정 시트 한 곳에만 둔 것과 같은 까닭).
+            대신 **여기에 길이 있다는 것**은 알려준다 */}
+        {username && (
+          <Row icon="gear" label="아이디 바꾸기" onClick={() => onGo?.({ path: '/settings' })} />
+        )}
         <Row icon="camera" label={photo ? '사진 바꾸기' : '사진 넣기'} onClick={onPickPhoto} />
         {photo && <Row icon="ban" label="사진 지우기" onClick={onDeletePhoto} muted />}
         <Row icon="lock" label="비밀번호 변경" onClick={onChangePw} />
