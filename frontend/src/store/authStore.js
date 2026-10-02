@@ -105,8 +105,9 @@ export const useAuthStore = create((set) => ({
   },
 
   // 가입 직후 자동 로그인 (백엔드가 토큰/쿠키 발급)
-  register: async (email, password, nickname, username) => {
-    const { data } = await client.post('/auth/register', { email, password, nickname, username });
+  // `code` 는 메일로 받은 여섯 자리다 — 서버가 가입을 받는 자리에서 같이 본다
+  register: async (email, password, nickname, username, code) => {
+    const { data } = await client.post('/auth/register', { email, password, nickname, username, code });
     if (data?.token) saveLS('token', data.token);
     if (data?.nickname) saveLS('nickname', data.nickname);
     if (data?.email) saveLS('ironlog_email', data.email);

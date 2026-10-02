@@ -138,8 +138,17 @@ router.post('/send-code', async (req, res) => {
 
   res.json({
     message: '인증번호가 발송됐어요',
-    // dev 모드 + SMTP 미설정일 때만 응답에 코드 포함 (편의)
-    ...(process.env.NODE_ENV !== 'production' && !sent ? { code } : {}),
+    // **번호를 응답에 싣는 두 경우.** 둘 다 내 컴퓨터(`NODE_ENV !== 'production'`) 에서만이다 —
+    // 번호 하나로 남의 가입을 가로채고 비밀번호를 바꿀 수 있으니, 배포에서는 절대 안 싣는다.
+    //
+    //   1. **메일이 안 나갔다**(`!sent`) — SMTP 열쇠가 없는 컴퓨터. 안 실으면 가입을
+    //      아예 못 해본다
+    //   2. **`DEV_ECHO_CODE=1`** — 열쇠가 있어서 메일은 나갔지만, `npm run smoke` ·
+    //      `seed` · `probe` 가 번호를 받아야 한 바퀴를 돌 수 있다. 10/2 에 가입에
+    //      인증번호를 붙이자 이 스크립트들이 전부 400 에서 멈췄다.
+    //      **`render.yaml` 에는 이 값을 두지 않는다**(둬도 production 이라 안 먹는다)
+    ...(process.env.NODE_ENV !== 'production' && (!sent || process.env.DEV_ECHO_CODE === '1')
+      ? { code } : {}),
   });
 });
 
@@ -151,9 +160,9 @@ router.post('/send-code', async (req, res) => {
 //
 // 안 쓰는 길은 **고칠 때 잊히는 길**이다. 로그인 없이 부를 수 있는 자리면 더 그렇다.
 //
-// 가입에 인증번호를 붙일 때도 **이 모양으로 되살리지 않는다.** 번호를 따로 확인하고
+// 가입에 인증번호를 붙일 때도 **이 모양으로 되살리지 않았다.** 번호를 따로 확인하고
 // 그 다음에 가입을 받으면, 그 둘 사이가 비어 있다 — **가입을 받는 그 자리에서**
-// 번호를 같이 본다(`checkCode` 를 부르면 된다).
+// 번호를 같이 본다. 10/2 에 `/register` 가 `checkCode` 를 부르게 했다(아래).
 
 // 이메일 중복 확인
 router.post('/check-email', (req, res) => {
@@ -178,13 +187,30 @@ router.post('/check-username', (req, res) => {
 });
 
 // 회원가입
+// 회원가입 — **메일 주인임을 보고 받는다** (2026-10-02)
+//
+// 그동안 가입은 「그 주소를 적을 수 있는 사람」이면 통과였다. 주소를 적는 것은
+// 주인이라는 뜻이 아니고, 그래서 길 둘이 열려 있었다:
+//
+//   1. **남의 주소로 미리 가입해두기.** 이 앱은 **이메일 하나로 계정을 잇는다**
+//      (`oauth.js` 의 `findUserByEmail`). 내 주소로 누가 먼저 이메일 가입을 해두면,
+//      내가 구글로 들어올 때 **그 사람이 만든 계정에 붙는다** — 비밀번호는 그 사람이
+//      안다. 내 기록을 그 사람이 비밀번호로 들어와 본다
+//   2. **관리자 가로채기.** 아래에서 `ADMIN_EMAIL` 과 같은 주소면 `admin` 을 달아준다.
+//      배포 직후 빈 DB 에 **그 주소로 먼저 가입하는 사람이 관리자**가 된다
+//
+// 번호를 확인하면 둘이 한 번에 닫힌다 — 둘 다 「주소가 제 것이 아닌」 경우라서다.
+// 소셜은 제공자가 이미 주인을 봤으므로 번호를 묻지 않는다(`oauth.js`).
 router.post('/register', async (req, res) => {
-  const { email, password, nickname, username } = req.body;
+  const { email, password, nickname, username, code } = req.body;
 
   if (!email || !password || !nickname || !username ||
       typeof email !== 'string' || typeof password !== 'string' ||
       typeof nickname !== 'string' || typeof username !== 'string') {
     return res.status(400).json({ error: '모든 항목을 입력해주세요' });
+  }
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: '이메일로 받은 인증번호를 입력해주세요' });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
@@ -205,6 +231,10 @@ router.post('/register', async (req, res) => {
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
+  // 번호는 **bcrypt 앞에서** 본다. 뒤에 두면 틀린 번호 하나마다 해시 비용을 치른다
+  const bad = checkCode(email, code);
+  if (bad) return res.status(bad.status).json({ error: bad.error });
+
   const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
   if (!hashed || !hashed.startsWith('$2')) {
     return res.status(500).json({ error: '서버 오류가 발생했어요. 다시 시도해주세요' });
@@ -212,6 +242,9 @@ router.post('/register', async (req, res) => {
 
   try {
     db.createUser(email, hashed, safeNickname, username);
+    // 번호는 **계정이 만들어진 뒤에** 지운다. 여기서 터지는 흔한 까닭은 아이디 중복인데,
+    // 먼저 지워버리면 아이디만 바꿔 다시 누를 때 번호를 또 받아야 한다
+    db.clearVerifyCode(email);
     addLog('register', `New user: ${email} (${username})`);
 
     // 가입 직후 자동 로그인 — 토큰/쿠키 발급

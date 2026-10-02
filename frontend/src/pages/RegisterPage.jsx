@@ -33,6 +33,17 @@ export default function RegisterPage() {
   const [emailOk, setEmailOk] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [emailChecking, setEmailChecking] = useState(false);
+  // ── 메일 인증 ──
+  // 주소를 적을 수 있는 것과 그 주소의 주인인 것은 다르다. 적은 주소로 번호를 보내고,
+  // 그 번호를 **가입 단추를 누를 때 같이 보낸다**(서버가 가입 받는 자리에서 확인한다)
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [codeSending, setCodeSending] = useState(false);
+  const [codeInfo, setCodeInfo] = useState('');
+  const [codeError, setCodeError] = useState('');
+  // 메일이 나갈 수 있는 상태인가. null 은 아직 모른다는 뜻 — 모르는 동안 막으면
+  // 되는 서버에서도 가입을 못 한다 (비밀번호 찾기와 같은 판단)
+  const [mailReady, setMailReady] = useState(null);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -41,12 +52,24 @@ export default function RegisterPage() {
 
   const { register } = useAuthStore();
 
+  // 막힌 단추는 누르기 전에 막힌 줄 알려준다 (`PasswordResetModal` 과 같은 길)
+  useEffect(() => {
+    let alive = true;
+    client.get('/auth/mail-status')
+      .then(({ data }) => { if (alive) setMailReady(!!data?.canSend); })
+      .catch(() => { if (alive) setMailReady(null); });
+    return () => { alive = false; };
+  }, []);
+
   // ── 이메일: 형식 검증 + 중복 확인 (debounced) ──
   const validateEmail = (val) => {
     setEmail(val);
     setEmailOk(false);
     setEmailError('');
     if (error) setError('');
+    // 주소를 고쳤으면 **앞 주소로 받은 번호는 버린다.** 안 버리면 A 로 번호를 받고
+    // B 로 가입하는 모양이 되는데, 서버는 B 의 번호를 보므로 그냥 틀렸다고만 나온다
+    if (codeSent || code) { setCodeSent(false); setCode(''); setCodeInfo(''); setCodeError(''); }
     if (emailCheckTimerRef.current) clearTimeout(emailCheckTimerRef.current);
     if (!val) return;
     const formatOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -121,10 +144,28 @@ export default function RegisterPage() {
     }, 600);
   };
 
+  const sendCode = async () => {
+    setCodeError(''); setCodeInfo(''); setError('');
+    if (!emailOk) { setCodeError('먼저 쓸 수 있는 이메일을 입력해주세요'); return; }
+    if (mailReady === false) { setCodeError('지금은 메일을 보낼 수 없어요. 관리자에게 문의해주세요'); return; }
+    setCodeSending(true);
+    try {
+      const { data } = await client.post('/auth/send-code', { email: email.trim() });
+      setCodeSent(true);
+      // 내 컴퓨터(SMTP 없음)에서는 번호가 응답에 실려 온다 — 그때만 화면에 띄운다
+      setCodeInfo(data?.code ? `[개발 모드] 인증번호: ${data.code}` : '인증번호를 메일로 보냈어요 (5분 안에 입력)');
+    } catch (err) {
+      setCodeError(err.response?.data?.error || '인증번호 발송에 실패했어요');
+    } finally {
+      setCodeSending(false);
+    }
+  };
+
   const pwMatch = password && passwordConfirm && password === passwordConfirm;
   const pwMismatch = passwordConfirm && password !== passwordConfirm;
   const pwValid = isValidPw(password);
-  const canSubmit = usernameOk && nickname.trim() && emailOk && pwValid && pwMatch && !loading;
+  const codeOk = codeSent && code.length === 6;
+  const canSubmit = usernameOk && nickname.trim() && emailOk && codeOk && pwValid && pwMatch && !loading;
 
   // 버튼이 왜 안 눌리는지 화면에 알려준다.
   // 조건이 다섯이나 되는데 그동안은 회색으로 죽어 있기만 해서, 특히 "아이디 중복확인"을
@@ -136,6 +177,8 @@ export default function RegisterPage() {
     : !nickname.trim() ? '닉네임을 입력하세요'
     : !email.trim() ? '이메일을 입력하세요'
     : !emailOk ? '이메일을 확인하는 중이거나 쓸 수 없는 주소예요'
+    : !codeSent ? '이메일로 인증번호를 받아주세요'
+    : code.length !== 6 ? '메일로 받은 6자리 인증번호를 입력하세요'
     : !pwValid ? '비밀번호는 영문+숫자 8자 이상이어야 해요'
     : !pwMatch ? '비밀번호 확인이 일치하지 않아요'
     : null;
@@ -147,7 +190,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(email, password, nickname, username);
+      await register(email, password, nickname, username, code.trim());
       saveLS('saved_nickname', nickname);
       saveLS('saved_id', email);
       toast('회원가입 완료! 자동 로그인됐어요');
@@ -257,6 +300,75 @@ export default function RegisterPage() {
           )}
           {!emailChecking && !emailError && emailOk && (
             <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--success)' }}>사용 가능한 이메일이에요</div>
+          )}
+
+          {/* ── 이메일 인증번호 ──
+              주소 칸이 초록이 된 다음에만 보인다. 형식도 안 맞는 주소에 「인증번호 받기」가
+              먼저 떠 있으면, 눌러보고 나서야 안 된다는 말을 듣는다 */}
+          {emailOk && (
+            <div style={{
+              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+              padding: '12px 12px 10px', marginBottom: 12,
+            }}>
+              <label className="label" htmlFor="reg-code" style={{ marginBottom: 6 }}>이메일 인증</label>
+
+              {mailReady === false ? (
+                <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                  지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않아
+                  직접 만드는 가입은 잠시 막혀 있습니다 — 위의 <strong>Google 로 가입하기</strong>를
+                  쓰시거나 관리자에게 문의해주세요.
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--accent)' }}>{email}</strong> 가 본인 메일인지 확인해요.
+                    받은 6자리를 넣어주세요.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                    <input
+                      id="reg-code"
+                      name="one-time-code"
+                      autoComplete="one-time-code"
+                      className="input"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value.replace(/\D/g, ''));
+                        if (codeError) setCodeError('');
+                        if (error) setError('');
+                      }}
+                      disabled={!codeSent}
+                      style={{
+                        flex: 1, marginBottom: 0, letterSpacing: 4, textAlign: 'center', fontSize: 17,
+                        borderColor: code.length === 6 ? 'var(--success)' : 'var(--border)',
+                        opacity: codeSent ? 1 : 0.5,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={sendCode}
+                      disabled={codeSending}
+                      style={{
+                        background: 'none', border: '1px solid var(--accent)', color: 'var(--accent)',
+                        padding: '0 14px', cursor: codeSending ? 'default' : 'pointer', fontSize: 13,
+                        borderRadius: 'var(--radius)', whiteSpace: 'nowrap',
+                        fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.2,
+                        opacity: codeSending ? 0.6 : 1,
+                      }}
+                    >{codeSending ? '발송 중...' : codeSent ? '다시 받기' : '인증번호 받기'}</button>
+                  </div>
+                  {codeInfo && (
+                    <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 8, lineHeight: 1.5 }}>{codeInfo}</div>
+                  )}
+                  {codeError && (
+                    <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{codeError}</div>
+                  )}
+                </>
+              )}
+            </div>
           )}
 
           {/* 비밀번호 */}
