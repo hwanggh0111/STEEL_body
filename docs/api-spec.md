@@ -38,9 +38,9 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 | POST | `/auth/login` | `{ email, password }` — `email` 자리에 아이디도 받는다. **이메일은 대소문자를 가리지 않는다** |
 | POST | `/auth/refresh` | 쿠키의 리프레시 토큰으로 재발급 (회전식 — 쓰면 옛 것은 지운다) |
 | POST | `/auth/logout` | 쿠키 정리 |
-| GET | `/auth/me` 🔒 | 내 정보 |
+| GET | `/auth/me` 🔒 | 내 정보. `is_social`(비밀번호를 아는가) · `username_days_left`(아이디를 지금 바꿀 수 있나, 0 이면 된다) · `username_cooldown_days` 를 같이 준다 — **화면이 날짜를 보고 직접 세지 않게** |
 | PUT | `/auth/nickname` 🔒 | `{ nickname }` |
-| PUT | `/auth/username` 🔒 | `{ username }` — 아이디 바꾸기 (2026-10-02). 가입과 같은 규칙, **30일에 한 번**. 중복은 409, 아직 못 바꾸면 429 `{ daysLeft }`. 옛 아이디로는 로그인되지 않는다 |
+| PUT | `/auth/username` 🔒 | `{ username }` — 아이디 바꾸기 (2026-10-02). 가입과 같은 규칙, **30일에 한 번**. 중복은 409, 아직 못 바꾸면 429 `{ daysLeft }`. 바뀌면 `{ username, daysLeft }`. 옛 아이디로는 로그인되지 않는다 |
 | PUT | `/auth/password` 🔒 | `{ currentPassword, newPassword }` |
 | POST | `/auth/reset-password` | 인증코드로 재설정 |
 | POST | `/auth/send-code` | 이메일 인증코드 발송 (1분 3회). 가입·비밀번호 재설정이 같이 쓴다 |
