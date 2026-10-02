@@ -23,6 +23,8 @@ import { PROFILE_PHOTO_KEY } from '../data/localKeys';
 // 모달 둘과 계정 시트는 **열 때 받는다.** 비밀번호를 바꾸거나 계정을 지우는 일은
 // 몇 달에 한 번이고, 시트도 눌러야 열린다 — 셋이 첫 화면에 얹힐 이유가 없다
 const PasswordChangeModal = lazy(() => import('./PasswordChangeModal'));
+// 비밀번호가 **없는** 사람(구글로만 가입)이 정하는 자리 — 메일로 번호를 받는 길을 쓴다
+const PasswordResetModal = lazy(() => import('./PasswordResetModal'));
 import { useIsPC } from './useIsPC';
 const AccountDeleteModal = lazy(() => import('./AccountDeleteModal'));
 import OfflineBar from './OfflineBar';
@@ -56,6 +58,7 @@ export default function Layout() {
       .map((i) => (i.path === '/admin' ? { ...i, badge: pending.total } : i)),
     [pending.total],
   );
+  // `false` 면 닫힘, `'change'` 면 바꾸기, `'make'` 면 **만들기**(비밀번호가 없는 사람)
   const [changingPw, setChangingPw] = useState(false);
   const [showMiniSplash, setShowMiniSplash] = useState(false);
   const location = useLocation();
@@ -447,19 +450,34 @@ export default function Layout() {
         /></Suspense>
       )}
 
+      {/* **여기서도 줄을 먼저 올린다** (2026-09-22 에 찾았다).
+          비밀번호를 바꾸면 다시 로그인해야 하는데, 그냥 `logout()` 을 부르고 있어서
+          **신호 없을 때 적어둔 기록이 그대로 사라졌다.** 계정 삭제와는 다르다 —
+          그쪽은 기록도 같이 지우는 것이지만, 이쪽은 계속 쓸 계정이다.
+          비밀번호를 **새로 정하는** 쪽도 같다 (`reset-password` 가 리프레시 토큰을 버린다) */}
       {changingPw && (
-        <Suspense fallback={null}><PasswordChangeModal
-          onClose={() => setChangingPw(false)}
-          onChanged={async () => {
-            setChangingPw(false);
-            // **여기서도 줄을 먼저 올린다** (2026-09-22 에 찾았다).
-            // 비밀번호를 바꾸면 다시 로그인해야 하는데, 그냥 `logout()` 을 부르고 있어서
-            // **신호 없을 때 적어둔 기록이 그대로 사라졌다.** 계정 삭제와는 다르다 —
-            // 그쪽은 기록도 같이 지우는 것이지만, 이쪽은 계속 쓸 계정이다
-            await leaveApp();
-            navigate('/login');
-          }}
-        /></Suspense>
+        <Suspense fallback={null}>
+          {changingPw === 'make' ? (
+            <PasswordResetModal
+              fixedEmail={readLS('ironlog_email') || ''}
+              onClose={() => setChangingPw(false)}
+              onDone={async () => {
+                setChangingPw(false);
+                await leaveApp();
+                navigate('/login');
+              }}
+            />
+          ) : (
+            <PasswordChangeModal
+              onClose={() => setChangingPw(false)}
+              onChanged={async () => {
+                setChangingPw(false);
+                await leaveApp();
+                navigate('/login');
+              }}
+            />
+          )}
+        </Suspense>
       )}
 
       {/* 이미지 확대 모달 */}
@@ -530,7 +548,7 @@ export default function Layout() {
             savingNick={savingNick}
             drawer={drawerItems}
             onGo={(item) => { setSideMenu(false); navigate(item.path + (item.param ? `?p=${encodeURIComponent(item.param)}` : '')); }}
-            onChangePw={() => { setSideMenu(false); setChangingPw(true); }}
+            onChangePw={(isSocial) => { setSideMenu(false); setChangingPw(isSocial ? 'make' : 'change'); }}
             onLogout={async () => { setSideMenu(false); await leave(); }}
             onDeleteAccount={() => { setSideMenu(false); setDeleting(true); }}
           /></Suspense>

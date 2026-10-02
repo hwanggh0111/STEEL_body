@@ -162,6 +162,20 @@ async function run() {
     ok('  날짜가 깨져 있으면 막지 않는다', usernameCooldown('어제쯤'), 0);
 
     console.log('');
+    console.log('── 소셜 계정이 아이디를 바꿔도 소셜인가 ── (2026-10-02)');
+    //
+    // `isSocialAccount` 는 **아이디 모양**(`google_xxxxxxxx`)으로도 알아본다. 아이디를
+    // 바꿀 수 있게 되자 그 증거가 사라질 수 있게 됐다 — 그러면 **비밀번호가 없는
+    // 사람에게 비밀번호를 묻는 창**이 열리고(설정함 · 계정 시트), 계정도 못 지운다.
+    // 바꿀 때 `is_social` 로 적어 두는지 본다
+    const soc = await makeUser('soc@test.local', 'google_aabbccdd');
+    ok('아이디 모양으로 소셜을 알아본다', db.isSocialAccount(db.findUserByUsername('google_aabbccdd')), true);
+    ok('  바꿀 수 있다', (await changeId(soc.token, 'kevin12')).status, 200);
+    const after = db.findUserByUsername('kevin12');
+    ok('  모양은 더 이상 소셜이 아닌데', /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(after.username), false);
+    ok('  **적어둔 표시로 여전히 소셜이다**', db.isSocialAccount(after), true);
+
+    console.log('');
     console.log('── 로그인 없이 ──');
     const anon = await changeId(null, 'anonname1');
     ok('열쇠 없이 부르면 막는다', anon.status, 401);

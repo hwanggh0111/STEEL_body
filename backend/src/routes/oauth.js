@@ -97,6 +97,10 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
     const username = provider + '_' + crypto.randomBytes(4).toString('hex');
     db.createUser(email, randomPw, safeNickname, username);
     user = db.findUserByEmail(email);
+    // **소셜이라고 적어 둔다** (2026-10-02). 이 사람은 자기 비밀번호를 모른다
+    // (위의 난수다). 여태는 아이디 모양으로 알아봤는데, 아이디를 바꿀 수 있게
+    // 되면서 그 증거가 사라질 수 있게 됐다 — `isSocialAccount` 가 보는 값이다
+    if (user) db.markSocialAccount(user.id);
   }
   // ADMIN_EMAIL이면 자동 관리자 승격
   if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL) && user.role !== 'admin') {

@@ -52,10 +52,18 @@ export default function AccountSheet({
   // (`Layout` 이 lazy 로 들고 있다) 여기서 물어보는 것이 가장 싸다 — 앱이 뜰 때마다
   // 묻지 않는다. 못 받아오면 줄을 안 그린다.
   const [username, setUsername] = useState('');
+  // 구글로만 가입한 사람은 **비밀번호가 없다.** 「비밀번호 변경」은 현재 비밀번호를
+  // 묻는 창을 여는데 그 사람은 모르는 값이라, 눌러도 끝까지 갈 수 없었다.
+  // 같은 요청에서 같이 받아 **말과 가는 곳을 바꾼다**
+  const [isSocial, setIsSocial] = useState(false);
   useEffect(() => {
     let alive = true;
     client.get('/auth/me')
-      .then(({ data }) => { if (alive) setUsername(data?.username || ''); })
+      .then(({ data }) => {
+        if (!alive) return;
+        setUsername(data?.username || '');
+        setIsSocial(!!data?.is_social);
+      })
       .catch(() => { /* 아이디 줄만 안 보인다. 시트는 그대로 돌아간다 */ });
     return () => { alive = false; };
   }, []);
@@ -182,7 +190,13 @@ export default function AccountSheet({
         )}
         <Row icon="camera" label={photo ? '사진 바꾸기' : '사진 넣기'} onClick={onPickPhoto} />
         {photo && <Row icon="ban" label="사진 지우기" onClick={onDeletePhoto} muted />}
-        <Row icon="lock" label="비밀번호 변경" onClick={onChangePw} />
+        {/* 없는 것을 「바꾼다」고 적지 않는다 — 이 앱이 거절해온 바로 그것이다
+            (죽은 규칙을 두면 사람은 그 기능이 있다고 믿는다) */}
+        <Row
+          icon="lock"
+          label={isSocial ? '비밀번호 만들기' : '비밀번호 변경'}
+          onClick={() => onChangePw?.(isSocial)}
+        />
         {/* ── 앱 잠금 ── (2026-09-18)
             **몸 사진이 들어 있는 앱**인데 폰을 잠깐 빌려주면 다 보인다. 앱은 늘
             로그인된 채로 열려 있어서 여는 데 아무것도 필요 없었다.

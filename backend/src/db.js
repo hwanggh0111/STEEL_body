@@ -814,6 +814,10 @@ const db = {
     if (data.users.some(u => u.id !== id && usernameKey(u.username) === usernameKey(username))) {
       throw new Error('DUPLICATE_USERNAME');
     }
+    // **소셜이라는 표시를 아이디에서 떼어 적어 둔다.** `isSocialAccount` 는 아이디
+    // 모양(`google_xxxxxxxx`)으로도 알아보는데, 이름을 바꾸면 그 증거가 사라진다 —
+    // 그러면 비밀번호가 없는 사람에게 비밀번호를 묻고, 계정도 못 지우게 된다
+    if (db.isSocialAccount(user)) user.is_social = true;
     user.username = username;
     user.usernameChangedAt = new Date().toISOString();
     invalidateUserIndex();
@@ -1484,11 +1488,28 @@ const db = {
   },
 
   // 소셜로만 들어온 계정은 **본인도 비밀번호를 모른다** (가입할 때 난수를 넣는다).
-  // 그런 계정에 비밀번호를 물으면 영영 못 지운다
+  // 그런 계정에 비밀번호를 물으면 영영 못 지운다.
+  //
+  // **아이디 모양은 두 번째 증거다** (2026-10-02). 원래는 이 모양 하나로 알아봤는데,
+  // 아이디를 바꿀 수 있게 되자 `google_ff791abd` → `kevin12` 가 되는 순간 **소셜이라는
+  // 표시가 사라진다.** 그러면 비밀번호가 없는 사람에게 비밀번호를 묻는 창이 다시 열리고,
+  // 계정도 못 지우게 된다. 그래서 `is_social` 을 **적어 둔다**(소셜로 만들 때 ·
+  // 아이디를 바꿀 때). 모양 검사는 그 전에 만들어진 계정을 위해 남긴다
   isSocialAccount(user) {
     if (!user) return false;
     if (user.is_social) return true;
     return /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(user.username || '');
+  },
+
+  /** 소셜로 만든 계정이라고 적어 둔다 (아이디를 바꿔도 남는다). */
+  markSocialAccount(id) {
+    const data = load();
+    const user = data.users.find(u => u.id === id);
+    if (!user || user.is_social) return { changes: 0 };
+    user.is_social = true;
+    invalidateUserIndex();
+    save(data);
+    return { changes: 1 };
   },
 
   deleteUserCompletely(userId) {

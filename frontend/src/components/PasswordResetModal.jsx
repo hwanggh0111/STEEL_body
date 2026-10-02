@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
 
-export default function PasswordResetModal({ onClose }) {
+// ── 두 가지로 쓴다 ── (`fixedEmail`, 2026-10-02)
+//
+// 1. **비밀번호를 잊은 사람** (로그인 화면) — 메일 주소를 직접 적는다
+// 2. **비밀번호가 없는 사람** (설정함 · 계정 시트) — 구글로만 가입하면 비밀번호가
+//    없다. 그런데 「비밀번호 바꾸기」는 **현재 비밀번호를 묻는다** — 그 사람은 모른다.
+//    로그인돼 있으니 메일 주소도 안다. `fixedEmail` 을 받으면 그 주소로 못 박고
+//    말을 「만들기」로 바꾼다
+//
+// **길을 두 벌로 만들지 않는다.** 서버 쪽은 똑같이 `send-code` → `reset-password` 다 —
+// 비밀번호를 새로 두는 자리를 따로 내면 「로그인만 되면 비밀번호를 정할 수 있는 길」이
+// 하나 더 생긴다. 메일로 번호를 받는 그 길을 그대로 쓴다.
+export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
+  // 주소가 정해져 있으면 적을 것이 없다 — 번호를 받는 데서 시작한다
+  const making = !!fixedEmail;
   const [step, setStep] = useState(1); // 1: 이메일, 2: 인증번호+새 비번, 3: 완료
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(fixedEmail || '');
   const [code, setCode] = useState('');
   const [newPw, setNewPw] = useState('');
   const [newPw2, setNewPw2] = useState('');
@@ -80,7 +93,7 @@ export default function PasswordResetModal({ onClose }) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="비밀번호 재설정"
+        aria-label={making ? '비밀번호 만들기' : '비밀번호 재설정'}
         style={{
           background: 'var(--bg-secondary)', border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)', padding: 24, maxWidth: 380, width: '100%',
@@ -88,7 +101,7 @@ export default function PasswordResetModal({ onClose }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
-            비밀번호 재설정
+            {making ? '비밀번호 만들기' : '비밀번호 재설정'}
           </h2>
           <button
             onClick={onClose}
@@ -99,6 +112,15 @@ export default function PasswordResetModal({ onClose }) {
 
         {step === 1 && (
           <form onSubmit={sendCode}>
+            {making ? (
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
+                구글로 가입해서 <b style={{ color: 'var(--text-primary)' }}>비밀번호가 아직 없어요.</b>
+                아래 주소로 인증번호를 보내드릴게요 — 번호를 넣고 쓸 비밀번호를 정하면 됩니다.
+                <br /><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                  정해두면 구글 말고 <b style={{ color: 'var(--text-secondary)' }}>아이디로도</b> 들어올 수 있어요.
+                </span>
+              </p>
+            ) : (
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
               가입 시 사용한 이메일을 입력해주세요. 인증번호를 보내드려요.
               {/* **로그인 칸은 아이디도 받는데 여기는 이메일만이다.** 그걸 안 적으면
@@ -107,16 +129,21 @@ export default function PasswordResetModal({ onClose }) {
                 아이디로는 찾을 수 없어요 — 메일 주소로만 보낼 수 있습니다.
               </span>
             </p>
+            )}
             <label className="label" htmlFor="reset-email">이메일</label>
             <input
               id="reset-email"
               name="email"
               autoComplete="email"
               inputMode="email"
-              className="input" type="email" autoFocus
+              className="input" type="email" autoFocus={!making}
+              // 로그인된 사람의 주소다 — **고칠 수 있게 두면** 남의 주소를 적어
+              // 그쪽 비밀번호를 정하려 드는 자리가 된다(그쪽 메일을 못 받으니 안
+              // 되지만, 애초에 그런 칸을 보여줄 이유가 없다)
+              readOnly={making}
               placeholder="user@email.com" value={email}
               onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
-              style={{ marginBottom: 12 }}
+              style={{ marginBottom: 12, opacity: making ? 0.75 : 1 }}
             />
             {mailReady === false && (
               <div role="alert" style={{
@@ -210,12 +237,17 @@ export default function PasswordResetModal({ onClose }) {
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
             <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--success)', marginBottom: 8 }}>
-              재설정 완료!
+              {making ? '비밀번호가 생겼어요' : '재설정 완료!'}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
-              새 비밀번호로 로그인해주세요.
+              {making
+                ? '이제 아이디와 비밀번호로도 들어올 수 있어요. 한 번 다시 로그인해주세요.'
+                : '새 비밀번호로 로그인해주세요.'}
             </p>
-            <button className="btn-primary" onClick={onClose}>로그인 화면으로</button>
+            {/* 번호를 쓰면 서버가 **리프레시 토큰을 다 버린다**(`reset-password`).
+                그래서 여기서 그냥 닫으면 조금 뒤에 저절로 튕긴다 — 왜 튕겼는지 모르는
+                채로. 부르는 쪽이 정리하고 로그인 화면으로 보낸다 */}
+            <button className="btn-primary" onClick={() => (onDone ? onDone() : onClose())}>로그인 화면으로</button>
           </div>
         )}
       </div>

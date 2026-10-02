@@ -21,6 +21,8 @@ import pkg from '../../package.json';
 // 비밀번호를 바꾸거나 계정을 지우는 일은 몇 달에 한 번이다
 const LockSetup = lazy(() => import('../components/LockSetup'));
 const PasswordChangeModal = lazy(() => import('../components/PasswordChangeModal'));
+// 비밀번호가 **없는** 사람이 정하는 자리. 메일로 번호를 받는 길을 그대로 쓴다
+const PasswordResetModal = lazy(() => import('../components/PasswordResetModal'));
 const AccountDeleteModal = lazy(() => import('../components/AccountDeleteModal'));
 import { leaveApp } from '../data/leaveApp';
 import client from '../api/client';
@@ -175,7 +177,7 @@ export default function SettingsPage() {
   // 아이디는 **서버에만 있다** — 이름처럼 스토어에 들고 다니지 않는다. 그래서
   // 이 화면이 열릴 때 한 번 물어본다(`/auth/me`). 못 받아오면 줄을 안 그린다 —
   // 모르는 값을 빈칸으로 그려놓으면 「아이디가 없는 계정」처럼 보인다.
-  const [acct, setAcct] = useState({ loaded: false, username: '', changedAt: null });
+  const [acct, setAcct] = useState({ loaded: false, username: '', changedAt: null, isSocial: false, email: '' });
   const [idEdit, setIdEdit] = useState(false);
   const [idDraft, setIdDraft] = useState('');
   const [idMsg, setIdMsg] = useState(null);     // { ok, text }
@@ -239,7 +241,15 @@ export default function SettingsPage() {
     client.get('/auth/me')
       .then(({ data }) => {
         if (!alive) return;
-        setAcct({ loaded: true, username: data?.username || '', changedAt: data?.usernameChangedAt || null });
+        setAcct({
+          loaded: true,
+          username: data?.username || '',
+          changedAt: data?.usernameChangedAt || null,
+          // 구글로만 가입한 사람은 **비밀번호가 없다.** 서버가 이미 알려준다
+          // (계정 삭제 화면이 「비밀번호를 물어도 되나」를 이 값으로 가린다)
+          isSocial: !!data?.is_social,
+          email: data?.email || '',
+        });
       })
       .catch(() => { /* 아이디 줄만 안 보인다. 설정함은 그대로 돌아간다 */ });
     return () => { alive = false; };
@@ -712,7 +722,16 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <GoRow title="비밀번호 바꾸기" onClick={() => setPwOpen(true)} />
+        {/* ── 비밀번호가 없는 사람 ── (2026-10-02)
+            구글로만 가입하면 비밀번호가 없다(`oauth.js` 가 아무 값이나 넣어둔다).
+            그런데 이 줄은 **현재 비밀번호를 묻는 창**을 열고 있었다 — 그 사람은
+            모르는 값이라, 눌러도 끝까지 갈 수 없는 자리였다.
+            말도 「바꾸기」가 아니라 **「만들기」**다. 없는 것을 바꿀 수는 없다 */}
+        <GoRow
+          title={acct.isSocial ? '비밀번호 만들기' : '비밀번호 바꾸기'}
+          sub={acct.isSocial ? '메일로 번호를 받아 정해요' : null}
+          onClick={() => setPwOpen(true)}
+        />
         {/* **계정 삭제도 여기 둔다.** 계정에 대한 일이라 계정 무리가 맞다 —
             다만 30일 유예가 있다는 것을 옆에 적어, 누르기 전에 알게 한다
             (되돌릴 수 있다는 것을 모르면 아무도 안 누르고, 그게 더 나쁘다) */}
@@ -818,7 +837,17 @@ export default function SettingsPage() {
           그게 더 거슬린다 */}
       <Suspense fallback={null}>
         {lockOpen && <LockSetup onClose={() => { setLockOpen(false); setLocked(isLockSet()); }} />}
-        {pwOpen && <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />}
+        {pwOpen && (acct.isSocial
+          ? (
+            <PasswordResetModal
+              fixedEmail={acct.email || readLS('ironlog_email') || ''}
+              onClose={() => setPwOpen(false)}
+              // 번호를 쓰면 서버가 리프레시 토큰을 다 버린다 — 조금 뒤에 저절로
+              // 튕기게 두지 않고 여기서 정리하고 보낸다 (비밀번호 바꾸기와 같다)
+              onDone={async () => { setPwOpen(false); await leaveApp(); navigate('/login'); }}
+            />
+          )
+          : <PasswordChangeModal onClose={() => setPwOpen(false)} onChanged={() => setPwOpen(false)} />)}
         {delOpen && (
           <AccountDeleteModal
             onClose={() => setDelOpen(false)}
