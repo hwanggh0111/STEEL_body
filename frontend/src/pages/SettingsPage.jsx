@@ -13,8 +13,9 @@ import { reminderRow } from '../data/reminderLabel';
 import { canNotify, notifyPermission } from '../data/pushSupport';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
-import { removeLS, readLS } from '../data/safeStorage';
+import { removeLS, readLS, saveLS } from '../data/safeStorage';
 import { SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
 // 비밀번호를 바꾸거나 계정을 지우는 일은 몇 달에 한 번이다
@@ -299,6 +300,17 @@ export default function SettingsPage() {
     setSavingId(true);
     client.put('/auth/username', { username: idDraft })
       .then(({ data }) => {
+        // ── 로그인 화면에 적어둔 아이디도 같이 고친다 ──
+        //
+        // 로그인 화면은 **마지막에 친 것**을 다음에 채워준다(`saved_id`). 아이디로
+        // 들어오던 사람이 아이디를 바꾸면 그 값이 옛 아이디로 남는다 — 로그아웃한
+        // 뒤 **자동으로 채워진 그 아이디로는 로그인이 안 된다.** 바꾼 사람이 제일
+        // 먼저 하는 일이 로그아웃이라, 이 자리를 빠뜨리면 바로 걸린다.
+        //
+        // 무엇을 둘지는 `data/savedId.js` 가 정한다(`npm run savedid` 가 값으로 본다) —
+        // **메일을 적어둔 사람은 건드리지 않는다.**
+        const nextSaved = nextSavedId(readLS('saved_id'), acct.username, data.username);
+        if (nextSaved) saveLS('saved_id', nextSaved);
         setAcct((a) => ({ ...a, username: data.username, changedAt: new Date().toISOString() }));
         setIdEdit(false);
         setIdDraft('');
