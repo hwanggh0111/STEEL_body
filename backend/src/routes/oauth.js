@@ -82,8 +82,9 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   //
   // 계정을 찾는 열쇠는 이메일 하나다(`emailKey`). 빈 값이 들어오면 그 열쇠가 `''` 가
   // 되는데, 그러면 이메일 없이 들어온 **서로 다른 사람이 같은 계정 하나로 묶인다.**
-  // 남의 운동 기록이 내 화면에 뜬다는 뜻이다. 여기서 막는다 —
-  // 구글 콜백은 이 검사를 갖고 있었지만 `/google/code` 쪽에는 없었다
+  // 남의 운동 기록이 내 화면에 뜬다는 뜻이다. **계정을 만드는 이 한 곳에서** 막는다 —
+  // 예전에는 콜백마다 따로 보고 있어서, 안 쓰던 `/google/code` 에만 이 검사가
+  // 빠져 있었다(그 길은 10/2 에 걷어냈다). 검사는 길마다가 아니라 자리 하나에 둔다
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     throw new Error('OAUTH_NO_EMAIL');
   }
@@ -289,39 +290,18 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
-// Google 클라이언트 사이드 방식 (모바일 지원 — authorization code 교환)
-router.post('/google/code', async (req, res) => {
-  const { code } = req.body;
-  if (!code) return res.status(400).json({ error: '인증 코드가 없어요' });
-  try {
-    const { data: tokens } = await axios.post('https://oauth2.googleapis.com/token', {
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: 'postmessage',
-      grant_type: 'authorization_code',
-    });
-    const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-    });
-    const { user, nickname, email, created, restored } = await findOrCreateUser(
-      profile.email, profile.name, 'google', { emailVerified: profile.verified_email });
-    setAuthCookies(res, user);
-    res.json({ nickname, email, created, restored });
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'production') console.error('Google code error:', err.message);
-    // 구글이 이메일을 안 줬을 때와 열쇠·코드가 틀렸을 때는 사람이 할 일이 다르다.
-    // 앞의 것은 다시 눌러도 똑같으니 그렇게 말한다
-    if (err.message === 'OAUTH_NO_EMAIL') {
-      return res.status(400).json({ error: '구글 계정에서 이메일을 받지 못했어요. 이메일 제공에 동의하고 다시 시도해주세요' });
-    }
-    // 다시 눌러도 똑같다 — 구글에서 메일 주소를 확인해야 하는 일이다
-    if (err.message === 'OAUTH_EMAIL_UNVERIFIED') {
-      return res.status(400).json({ error: '구글에서 아직 확인되지 않은 메일 주소예요. 구글 계정에서 메일 확인을 끝내고 다시 해주세요' });
-    }
-    res.status(401).json({ error: '구글 로그인에 실패했어요. 잠시 뒤에 다시 해주세요' });
-  }
-});
+// 「앱에서 코드를 받아 교환하는 길」은 **없다** (2026-10-02 에 걷어냄).
+//
+// `POST /google/code` 가 있었다. 「모바일 지원」이라고 적혀 있었는데, **앱에서
+// 부르는 데가 한 곳도 없었다** — `frontend/src` 어디에서도 안 부르고, 네이티브
+// 구글 로그인 플러그인도 깔려 있지 않다. 폰에서도 웹과 같은 길(`GET /google`)로 돈다.
+//
+// 안 쓰는 길은 **고칠 때 잊히는 길**이다. 이 자리가 바로 그 증거였다 — 콜백에는
+// 「확인 안 된 메일」 검사가 있는데 **이 길에만 없었던** 적이 있다(README 의 9/18 일지).
+// 로그인 없이 부를 수 있고 계정을 만드는 길이면 더 그렇다.
+//
+// 10/1 에 걷어낸 `POST /auth/verify-code` 와 같은 까닭이다.
+// 네이티브 로그인을 붙일 날이 오면 **그때 다시 만든다** — 그때는 부르는 데가 있다.
 
 // ─── Naver ────────────────────────────
 router.get('/naver', (req, res) => {

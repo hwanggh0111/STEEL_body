@@ -185,7 +185,7 @@ async function shake(method, p, opts = {}) {
     ['GET', '/maintenance'], ['PUT', '/maintenance'],
     ['GET', '/site-photos'], ['POST', '/site-photos'], ['PATCH', '/site-photos/1'], ['DELETE', '/site-photos/1'],
     ['GET', '/routines'], ['GET', '/routines/없는갈래'],
-    ['GET', '/oauth/providers'], ['POST', '/oauth/google/code'],
+    ['GET', '/oauth/providers'],
   ];
 
   for (const [method, p] of PATHS) await shake(method, p, asUser);
