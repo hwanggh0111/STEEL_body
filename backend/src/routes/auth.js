@@ -422,7 +422,18 @@ router.get('/me', require('../middleware/auth'), (req, res) => {
   const { password, ...safeUser } = user;
   // 계정 삭제 화면이 **무엇을 물어야 하는지**를 여기서 안다. 소셜로만 들어온 사람은
   // 자기 비밀번호를 모르니 비밀번호를 물으면 안 된다
-  res.json({ ...safeUser, is_social: db.isSocialAccount(user), grace_days: db.GRACE_DAYS });
+  res.json({
+    ...safeUser,
+    is_social: db.isSocialAccount(user),
+    grace_days: db.GRACE_DAYS,
+    // 아이디를 **지금 바꿀 수 있는가**. 0 이면 된다.
+    //
+    // 화면이 `usernameChangedAt` 에서 직접 세게 두면 **같은 규칙이 두 벌**이 된다 —
+    // 30일을 한쪽만 고치는 날 「바꿀 수 있다」고 적어놓고 저장에서 429 를 주게 된다.
+    // 규칙은 서버에 하나만 두고 **답만 내려보낸다**
+    username_days_left: usernameCooldown(user.usernameChangedAt),
+    username_cooldown_days: USERNAME_COOLDOWN_DAYS,
+  });
 });
 
 // ── 계정 삭제 ──
@@ -572,7 +583,8 @@ router.put('/username', require('../middleware/auth'), (req, res) => {
   // 아이디로도 로그인한다 — **바뀐 것을 기록에 남긴다.** 로그인 기록을 뒤질 때
   // 「이 아이디가 언제부터 이 사람인가」를 알아야 한다
   addLog('username_change', `Username: ${user.username} -> ${typed} (id=${user.id})`);
-  res.json({ username: typed, message: '아이디가 바뀌었어요' });
+  // 바꾼 그 자리에서 **다음은 언제인지**를 같이 준다 — 화면이 30을 적어두지 않아도 된다
+  res.json({ username: typed, daysLeft: USERNAME_COOLDOWN_DAYS, message: '아이디가 바뀌었어요' });
 });
 
 // 비밀번호 재설정 (분실 시 — 인증번호 검증 후 새 비밀번호 설정)

@@ -177,7 +177,7 @@ export default function SettingsPage() {
   // 아이디는 **서버에만 있다** — 이름처럼 스토어에 들고 다니지 않는다. 그래서
   // 이 화면이 열릴 때 한 번 물어본다(`/auth/me`). 못 받아오면 줄을 안 그린다 —
   // 모르는 값을 빈칸으로 그려놓으면 「아이디가 없는 계정」처럼 보인다.
-  const [acct, setAcct] = useState({ loaded: false, username: '', changedAt: null, isSocial: false, email: '' });
+  const [acct, setAcct] = useState({ loaded: false, username: '', daysLeft: 0, cooldownDays: 30, isSocial: false, email: '' });
   const [idEdit, setIdEdit] = useState(false);
   const [idDraft, setIdDraft] = useState('');
   const [idMsg, setIdMsg] = useState(null);     // { ok, text }
@@ -244,7 +244,11 @@ export default function SettingsPage() {
         setAcct({
           loaded: true,
           username: data?.username || '',
-          changedAt: data?.usernameChangedAt || null,
+          // **며칠 남았나는 서버가 센다.** 여기서 날짜를 보고 직접 세면 30일 규칙이
+          // 두 벌이 되고, 한쪽만 고치는 날 「바꿀 수 있다」고 적어놓고 저장에서 막는다
+          daysLeft: Number(data?.username_days_left) || 0,
+          // 「며칠에 한 번」도 서버가 말해준다 — 숫자가 두 자리에 있으면 한쪽만 고쳐진다
+          cooldownDays: Number(data?.username_cooldown_days) || 30,
           // 구글로만 가입한 사람은 **비밀번호가 없다.** 서버가 이미 알려준다
           // (계정 삭제 화면이 「비밀번호를 물어도 되나」를 이 값으로 가린다)
           isSocial: !!data?.is_social,
@@ -321,7 +325,7 @@ export default function SettingsPage() {
         // **메일을 적어둔 사람은 건드리지 않는다.**
         const nextSaved = nextSavedId(readLS('saved_id'), acct.username, data.username);
         if (nextSaved) saveLS('saved_id', nextSaved);
-        setAcct((a) => ({ ...a, username: data.username, changedAt: new Date().toISOString() }));
+        setAcct((a) => ({ ...a, username: data.username, daysLeft: Number(data.daysLeft) || 0 }));
         setIdEdit(false);
         setIdDraft('');
         setIdMsg(null);
@@ -694,7 +698,7 @@ export default function SettingsPage() {
                     로그인이 안 된다. 바꾼 뒤에 알면 늦는 종류의 사실이다 */}
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
                   바꾸면 <b style={{ color: 'var(--text-secondary)' }}>옛 아이디로는 로그인되지 않아요.</b>
-                  다음 변경은 30일 뒤에 할 수 있어요. 이메일로도 로그인할 수 있습니다.
+                  다음 변경은 {acct.cooldownDays}일 뒤에 할 수 있어요. 이메일로도 로그인할 수 있습니다.
                 </div>
               </>
             ) : (
@@ -704,18 +708,29 @@ export default function SettingsPage() {
                     fontSize: 13.5, color: 'var(--text-secondary)', minWidth: 0,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{acct.username}</span>
+                  {/* **누르기 전에 막힌 줄 알려준다.** 여태는 눌러서 새 아이디를 치고
+                      저장까지 눌러야 「30일에 한 번」을 들었다 — 이 앱이 알림 줄 ·
+                      비밀번호 찾기에서 지켜온 선과 어긋나는 자리였다 */}
                   <button
                     onClick={() => { setIdDraft(''); setIdMsg(null); setIdEdit(true); }}
+                    disabled={acct.daysLeft > 0}
                     className="btn-secondary"
-                    style={{ width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
+                    style={{
+                      width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5,
+                      fontFamily: 'inherit', cursor: acct.daysLeft > 0 ? 'default' : 'pointer',
+                      flexShrink: 0, opacity: acct.daysLeft > 0 ? 0.45 : 1,
+                    }}
                   >바꾸기</button>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
-                  {/* 자기가 고른 적 없는 이름이면 그렇다고 말해준다 — 「이게 왜 내 아이디지」로
-                      두면 바꿀 수 있다는 것도 모른다 */}
-                  {/^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(acct.username)
-                    ? '소셜 로그인으로 가입해서 저절로 지어진 아이디예요. 원하는 것으로 바꿀 수 있어요'
-                    : '로그인할 때 치는 이름이에요 (이메일로도 됩니다)'}
+                  {/* 아직 못 바꾸는 사람에게는 **그 말이 제일 먼저** 필요하다.
+                      자기가 고른 적 없는 이름이면 그렇다고 말해준다 — 「이게 왜 내
+                      아이디지」로 두면 바꿀 수 있다는 것도 모른다 */}
+                  {acct.daysLeft > 0
+                    ? `아이디는 ${acct.cooldownDays}일에 한 번 바꿀 수 있어요 — ${acct.daysLeft}일 뒤에 다시 바꿀 수 있습니다`
+                    : /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(acct.username)
+                      ? '소셜 로그인으로 가입해서 저절로 지어진 아이디예요. 원하는 것으로 바꿀 수 있어요'
+                      : '로그인할 때 치는 이름이에요 (이메일로도 됩니다)'}
                 </div>
               </>
             )}

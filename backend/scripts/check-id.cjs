@@ -176,6 +176,22 @@ async function run() {
     ok('  **적어둔 표시로 여전히 소셜이다**', db.isSocialAccount(after), true);
 
     console.log('');
+    console.log('── 화면이 미리 알 수 있는가 (`/auth/me`) ──');
+    //
+    // 「막힌 단추는 누르기 전에 막힌 줄 알려준다」가 이 앱의 방침이다. 그런데 화면이
+    // `usernameChangedAt` 에서 **직접 세면 규칙이 두 벌**이 된다 — 30일을 한쪽만 고치는
+    // 날 「바꿀 수 있다」고 적어놓고 저장에서 429 를 준다. 서버가 **답을 내려준다**
+    // **한 번도 안 바꾼 사람**을 따로 만든다. 위의 사람들은 다 한 번씩 바꿨으므로
+    // 그들로 보면 「0 이 나오는 경우」를 영영 못 본다
+    const never = await makeUser('never@test.local', 'neverone1');
+    const meNever = await send('GET', '/api/auth/me', null, never.token);
+    const meUsed = await send('GET', '/api/auth/me', null, me.token);
+    ok('한 번도 안 바꾼 사람은 0 (지금 된다)', meNever.body.username_days_left, 0);
+    ok('  방금 바꾼 사람은 30', meUsed.body.username_days_left, 30);
+    ok('  제한이 몇 일인지도 같이 준다', meUsed.body.username_cooldown_days, 30);
+    ok('  바꾼 자리에서도 돌려준다', again.body.daysLeft, 30);
+
+    console.log('');
     console.log('── 비밀번호를 만들면 그 뒤로는 묻는다 ── (2026-10-02)');
     //
     // 함수(`isSocialAccount`)가 맞게 답해도 **길이 적어주지 않으면** 그대로 깨진다.
