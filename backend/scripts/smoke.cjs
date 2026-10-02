@@ -248,8 +248,17 @@ function cleanAll() {
   warnLeftovers();
 
   console.log('── 가입하고 들어온다 ──');
+  // 가입은 **메일로 받은 번호**를 같이 보내야 통과한다 (2026-10-02). 내 컴퓨터에서는
+  // SMTP 열쇠가 없어 번호가 응답에 실려 오므로, 그걸 그대로 받아 쓴다
+  const sent = await call('POST', '/auth/send-code', { email: EMAIL });
+  step('인증번호 발송', sent.status, 200);
+  const code = sent.data?.code;
+  if (!code) {
+    console.log('번호를 못 받아 여기서 멈춥니다 (SMTP 가 켜져 있으면 메일로만 갑니다):', JSON.stringify(sent.data));
+    process.exit(1);
+  }
   const reg = await call('POST', '/auth/register',
-    { email: EMAIL, password: 'smoke1234', nickname: '한바퀴', username: TAG });
+    { email: EMAIL, password: 'smoke1234', nickname: '한바퀴', username: TAG, code });
   TOKEN = reg.data?.token || '';
   step('가입', reg.status, 201);
   if (!TOKEN) {

@@ -143,8 +143,12 @@ async function shake(method, p, opts = {}) {
 
   // 들어가 있는 사람으로도 두드린다 — 로그인 뒤에만 열리는 길이 대부분이다
   const email = `probe${Date.now()}@probe.local`;
+  // 가입에 인증번호가 붙었다 (2026-10-02) — 내 컴퓨터에서는 응답에 번호가 실려 온다
+  const sent = await req('POST', '/auth/send-code', { body: { email } });
+  let code = '';
+  try { code = JSON.parse(sent.body).code || ''; } catch { /* 없으면 가입이 400 으로 떨어진다 */ }
   const reg = await req('POST', '/auth/register', {
-    body: { email, password: 'probe1234', nickname: '탐침', username: 'probe' + Date.now().toString(36) },
+    body: { email, password: 'probe1234', nickname: '탐침', username: 'probe' + Date.now().toString(36), code },
   });
   let token = null;
   let cookie = '';

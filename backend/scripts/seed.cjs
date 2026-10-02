@@ -160,8 +160,10 @@ async function seed() {
   console.log(`만드는 곳: ${BASE}`);
   console.log('석 달치를 넣습니다. 서버의 도배 방지(분당 60건)에 걸리면 기다렸다 이어 넣어서 몇 분 걸립니다.\n');
 
+  // 가입에 인증번호가 붙었다 (2026-10-02). 내 컴퓨터에서는 응답에 번호가 실려 온다
+  const sent = await call('POST', '/auth/send-code', { email: EMAIL });
   let reg = await call('POST', '/auth/register',
-    { email: EMAIL, password: PASSWORD, nickname: '시연', username: USERNAME });
+    { email: EMAIL, password: PASSWORD, nickname: '시연', username: USERNAME, code: sent.data?.code || '' });
   if (reg.status === 409) {
     console.log('이미 있는 계정입니다. 로그인해서 이어 넣습니다.');
     reg = await call('POST', '/auth/login', { email: EMAIL, password: PASSWORD });
