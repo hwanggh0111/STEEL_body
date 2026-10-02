@@ -113,6 +113,18 @@ ok('이메일로 가입한 사람에게는 비밀번호를 묻는다', db.isSoci
 ok('이름만 비슷한 아이디는 소셜이 아니다', db.isSocialAccount({ username: 'naver_hello' }), false);
 ok('아이디가 없어도 안 터진다', db.isSocialAccount({}), false);
 
+// ── 비밀번호를 **만든 뒤** ── (2026-10-02)
+//
+// 10/2 에 구글로만 가입한 사람이 비밀번호를 만들 수 있게 됐다. 그러면 「소셜이니
+// 비밀번호를 모른다」가 거짓이 된다 — 그대로 두면 계정을 지울 때 **비밀번호를 안
+// 묻는다.** 덜 안전한 쪽으로 틀리는 자리라 여기서 지킨다.
+ok('비밀번호를 만들었으면 비밀번호를 묻는다',
+  db.isSocialAccount({ username: 'google_00ff11aa', has_password: true }), false);
+ok('  적어둔 소셜 표시보다 이것이 이긴다',
+  db.isSocialAccount({ username: 'kevin12', is_social: true, has_password: true }), false);
+ok('  아직 안 만들었으면 그대로 안 묻는다',
+  db.isSocialAccount({ username: 'kevin12', is_social: true }), true);
+
 for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
   if (fs.existsSync(f)) fs.unlinkSync(f);
 }

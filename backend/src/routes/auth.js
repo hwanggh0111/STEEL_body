@@ -607,6 +607,11 @@ router.post('/reset-password', async (req, res) => {
       return res.status(500).json({ error: '서버 오류. 다시 시도해주세요' });
     }
     db.updateUserPassword(user.id, hashed);
+    // **이제 자기 비밀번호를 안다.** 구글로만 가입한 사람이 여기로 들어와 비밀번호를
+    // 「만드는」 길이 열려 있다(설정함 · 계정 시트). 적어두지 않으면 그 뒤에도
+    // `isSocialAccount` 가 「비밀번호를 모른다」고 답해서, 계정을 지울 때
+    // **비밀번호를 안 묻는다** — 덜 안전한 쪽으로 틀린다
+    db.markHasPassword(user.id);
     db.deleteUserRefreshTokens(user.id);
     addLog('password_reset', `Password reset: ${email} (id=${user.id})`);
   } else {
@@ -638,6 +643,8 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
   }
   // 비밀번호 변경 + 모든 refresh token 무효화
   db.updateUserPassword(req.userId, hashed);
+  // 여기까지 온 사람은 **현재 비밀번호를 맞혔다** — 아는 것이 확실하다
+  db.markHasPassword(req.userId);
   db.deleteUserRefreshTokens(req.userId);
   addLog('password_change', `Password changed: userId=${req.userId}`);
   res.json({ message: '비밀번호가 변경됐어요. 다시 로그인해주세요' });

@@ -176,6 +176,22 @@ async function run() {
     ok('  **적어둔 표시로 여전히 소셜이다**', db.isSocialAccount(after), true);
 
     console.log('');
+    console.log('── 비밀번호를 만들면 그 뒤로는 묻는다 ── (2026-10-02)');
+    //
+    // 함수(`isSocialAccount`)가 맞게 답해도 **길이 적어주지 않으면** 그대로 깨진다.
+    // `reset-password` 가 `markHasPassword` 를 부르는지 라우터로 본다
+    const sent2 = await post('/api/auth/send-code', { email: 'soc@test.local' });
+    const made = await post('/api/auth/reset-password', {
+      email: 'soc@test.local', code: sent2.body && sent2.body.code, newPassword: 'newpw1234',
+    });
+    ok('비밀번호를 만든다', made.status, 200);
+    const socAfter = db.findUserByUsername('kevin12');
+    ok('  이제 안다고 적혀 있다', !!socAfter.has_password, true);
+    ok('  **그래서 계정을 지울 때 비밀번호를 묻는다**', db.isSocialAccount(socAfter), false);
+    ok('  만든 비밀번호로 들어올 수 있다',
+      (await post('/api/auth/login', { email: 'kevin12', password: 'newpw1234' })).status, 200);
+
+    console.log('');
     console.log('── 로그인 없이 ──');
     const anon = await changeId(null, 'anonname1');
     ok('열쇠 없이 부르면 막는다', anon.status, 401);
