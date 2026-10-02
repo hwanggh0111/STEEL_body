@@ -64,8 +64,8 @@ const CUT = /^-{3,}$/;
 
 function cleanBody(body) {
   const all = String(body || '').split('\n');
-  const at = all.findIndex(l => CUT.test(l.trim()));
-  const lines = (at === -1 ? all : all.slice(0, at))
+  const cutAt = all.findIndex(l => CUT.test(l.trim()));
+  const lines = (cutAt === -1 ? all : all.slice(0, cutAt))
     .filter(l => !TRAILER.test(l.trim()));
   // 꼬리표를 걷어내면 끝에 빈 줄이 남는다
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
