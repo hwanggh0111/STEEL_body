@@ -51,8 +51,21 @@ const TRAILER = /^(Co-authored-by|Signed-off-by|Reviewed-by|Acked-by|Tested-by|R
 // 40건 × 긴 본문이면 화면 하나 값의 덩어리가 된다
 const DETAIL_MAX = 420;
 
+// **여기까지만 공개한다** — 본문에 `---` 만 있는 줄이 나오면 그 뒤는 공지에서 뺀다.
+//
+// 커밋 본문은 「왜 그렇게 했는지」를 남기는 자리라, 보안 구멍을 고친 커밋이면
+// **그 구멍을 어떻게 지나는지**가 적힌다. 그게 그대로 앱 공지함에 실렸다
+// (10/2 가입 인증 커밋에서 알아챘다 — 「먼저 가입하면 관리자가 된다」가 나갔다).
+//
+// 커밋에서 그 설명을 빼는 것은 답이 아니다. 다음에 이 자리를 보는 사람에게 가장
+// 필요한 글이다. 읽는 사람이 다르니 **자리를 나눈다** — 구분선 위는 쓰는 사람에게,
+// 아래는 고치는 사람에게. 구분선이 없으면 예전처럼 본문 전부가 공지로 간다.
+const CUT = /^-{3,}$/;
+
 function cleanBody(body) {
-  const lines = String(body || '').split('\n')
+  const all = String(body || '').split('\n');
+  const at = all.findIndex(l => CUT.test(l.trim()));
+  const lines = (at === -1 ? all : all.slice(0, at))
     .filter(l => !TRAILER.test(l.trim()));
   // 꼬리표를 걷어내면 끝에 빈 줄이 남는다
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
