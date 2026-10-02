@@ -34,7 +34,7 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 
 | | 경로 | 본문 · 비고 |
 |---|---|---|
-| POST | `/auth/register` | `{ email, password, nickname, username }` — 가입 즉시 로그인된다 |
+| POST | `/auth/register` | `{ email, password, nickname, username, code }` — **`code` 는 `/auth/send-code` 로 받은 여섯 자리.** 메일 주인인지 여기서 같이 본다 (2026-10-02). 통과하면 가입 즉시 로그인된다 |
 | POST | `/auth/login` | `{ email, password }` — `email` 자리에 아이디도 받는다. **이메일은 대소문자를 가리지 않는다** |
 | POST | `/auth/refresh` | 쿠키의 리프레시 토큰으로 재발급 (회전식 — 쓰면 옛 것은 지운다) |
 | POST | `/auth/logout` | 쿠키 정리 |
@@ -42,8 +42,7 @@ httpOnly 쿠키가 기본이다. `Authorization: Bearer {token}` 도 받는다 (
 | PUT | `/auth/nickname` 🔒 | `{ nickname }` |
 | PUT | `/auth/password` 🔒 | `{ currentPassword, newPassword }` |
 | POST | `/auth/reset-password` | 인증코드로 재설정 |
-| POST | `/auth/send-code` | 이메일 인증코드 발송 (1분 3회) |
-| POST | `/auth/verify-code` | 코드 확인 |
+| POST | `/auth/send-code` | 이메일 인증코드 발송 (1분 3회). 가입·비밀번호 재설정이 같이 쓴다 |
 | POST | `/auth/check-email` · `/auth/check-username` | 중복 확인 |
 
 ## 소셜 로그인 `/oauth`
