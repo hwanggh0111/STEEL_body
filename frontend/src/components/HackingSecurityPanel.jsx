@@ -43,8 +43,21 @@ const TYPES = {
   password_change:        { label: '비밀번호 변경', tone: 'info' },
   password_reset:         { label: '비밀번호 재설정', tone: 'warn' },
   password_reset_unknown: { label: '없는 계정에 재설정 시도', tone: 'warn' },
-  token_expired:          { label: '토큰 만료', tone: 'muted' },
+  username_change:        { label: '아이디 변경', tone: 'info' },
   system:                 { label: '시스템', tone: 'muted' },
+  // ── 계정을 지우는 일 ── (30일 유예)
+  // 「지워달라」와 「되살렸다」는 서로를 봐야 읽힌다 — 한쪽만 보면 지운 줄 안다
+  account_delete_request: { label: '계정 삭제 예약', tone: 'warn' },
+  account_delete_cancel:  { label: '계정 삭제 취소 (되살아남)', tone: 'info' },
+  account_delete_fail:    { label: '계정 삭제 실패', tone: 'danger' },
+  // 잠긴 로그인을 관리자가 풀어준 것
+  'login-unlock':         { label: '로그인 잠금 해제', tone: 'info' },
+  // ── 리프레시 토큰 ──
+  // 회전식이라 한 번 쓴 것은 버린다. **다시 온 것은 둘 중 하나다** — 신호가 끊겨
+  // 같은 것을 두 번 보낸 것(race), 또는 남이 집어 쓴 것(reuse).
+  // 뒤엣것은 토큰이 샜다는 뜻이라 색을 달리한다
+  refresh_race:           { label: '토큰 재발급 겹침', tone: 'muted' },
+  refresh_reuse:          { label: '쓴 토큰 재사용 (샜을 수 있음)', tone: 'danger' },
   // 아래는 관리자가 직접 한 일과 AI Guard 가 한 일이다.
   // 예전 화면은 다섯 종류만 한국어로 알고 나머지는 영문 키를 그대로 뿌렸다 —
   // 서버가 실제로 남기는 종류를 세어보니 열아홉이었다
@@ -75,6 +88,8 @@ const WATCH = [
   { key: 'login_blocked', label: '로그인 차단', types: ['login_blocked'], tone: 'danger' },
   { key: 'reset', label: '비밀번호 재설정', types: ['password_reset', 'password_reset_unknown'], tone: 'warn' },
   { key: 'register', label: '가입', types: ['register'], tone: 'info' },
+  // 이것이 0 이 아니면 **토큰이 샜을 수 있다는 뜻**이다. 세는 자리에 둔다
+  { key: 'reuse', label: '쓴 토큰 재사용', types: ['refresh_reuse'], tone: 'danger' },
 ];
 
 // 기록은 UTC 로 저장된다(`2026-08-28T15:20:00.000Z`). 앞 열 글자를 그냥 자르면
