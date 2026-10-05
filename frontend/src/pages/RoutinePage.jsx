@@ -46,13 +46,18 @@ const TYPE_NOTE = {
 // 내 루틴을 시작하려는 사람이 만들기 폼과 추천 스물몇 칸을 지나쳐야 했다.
 const TABS = [
   { key: 'mine', label: '내 루틴' },
-  { key: 'pick', label: '추천 루틴' },
+  { key: 'pick', label: '추천' },
+  // 추천은 **하루치 한 칸**이고 이쪽은 **일주일 한 벌**이다 (2026-10-05).
+  // 처음 온 사람이 막히던 자리 — 빈 루틴에서 시작하게 두면 뭘 넣을지 아는
+  // 사람만 쓸 수 있었다
+  { key: 'program', label: '프로그램' },
   // 루틴이 되기 전 단계. 떠오르는 대로 적어두고, 다 짜였을 때 루틴으로 만든다 —
   // 그 자리가 앱에 없어서 사람들은 폰 메모장에 적고 여기로 옮겨 적었다
   { key: 'note', label: '메모' },
 ];
 
 import RoutineNotes from './routine/RoutineNotes';
+import ProgramList from './routine/ProgramList';
 
 export default function RoutinePage() {
   // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
@@ -75,6 +80,8 @@ export default function RoutinePage() {
   const [editingId, setEditingId] = useState(null);
   // 저장 중 두 번째 누름을 버린다. 안 막으면 같은 루틴이 두 개 생긴다
   const [savingRoutine, setSavingRoutine] = useState(false);
+  // 프로그램을 내 루틴으로 옮기는 중. 두 번 눌러 두 벌이 생기는 것을 막는다
+  const [adopting, setAdopting] = useState(null);
   const [newRoutine, setNewRoutine] = useState({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
   const navigate = useNavigate();
   const session = useRoutineSessionStore(s => s.session);
@@ -178,6 +185,50 @@ export default function RoutinePage() {
       return false;
     } finally {
       setSavingRoutine(false);
+    }
+  };
+
+  // ── 프로그램을 내 루틴으로 옮긴다 ── (2026-10-05)
+  //
+  // 하루씩 **따로** 올린다. 서버에 「여러 개 한 번에」가 없고, 만들 이유도 없다 —
+  // 많아야 넷이다.
+  //
+  // **중간에 실패해도 앞엣것은 남긴다.** 넷 중 셋이 들어갔는데 통째로 되돌리면
+  // 사람은 아무것도 안 생긴 줄 안다. 몇 개가 들어갔는지 말해주고, 못 들어간 것만
+  // 다시 누르게 둔다.
+  //
+  // **이름이 겹치면 숫자를 붙인다.** 같은 프로그램을 두 번 누르면 「전신 A」가
+  // 둘이 되는데, 목록에서 어느 것이 어느 것인지 알 수 없다.
+  const adoptProgram = async (program) => {
+    if (adopting) return;
+    setAdopting(program.key);
+    const taken = new Set(myRoutines.map(r => r.name));
+    const made = [];
+    try {
+      for (const day of program.days) {
+        let name = day.name;
+        for (let n = 2; taken.has(name); n += 1) name = `${day.name} (${n})`;
+        taken.add(name);
+        const body = {
+          name,
+          exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
+        };
+        const { data: saved } = await client.post('/my-routines', body);
+        made.push({ ...body, id: saved.id });
+      }
+      setMyRoutines(prev => [...prev, ...made]);
+      toast(`「${program.name}」 ${made.length}개를 내 루틴에 넣었어요`);
+      setTab('mine');
+    } catch (err) {
+      if (made.length) setMyRoutines(prev => [...prev, ...made]);
+      toast(
+        made.length
+          ? `${made.length}개까지 넣고 멈췄어요 — 다시 눌러 주세요`
+          : (err.response?.data?.error || '루틴을 넣지 못했어요'),
+        'error',
+      );
+    } finally {
+      setAdopting(null);
     }
   };
 
@@ -475,6 +526,10 @@ export default function RoutinePage() {
       )}
 
       </>
+      )}
+
+      {tab === 'program' && (
+        <ProgramList onAdopt={adoptProgram} adopting={adopting} />
       )}
 
       {tab === 'note' && (

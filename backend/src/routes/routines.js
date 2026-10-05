@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { PROGRAMS } = require('../data/programs');
 
 const ROUTINES = {
   머신: {
@@ -272,6 +273,18 @@ function withParts(cols) {
   }
   return out;
 }
+
+// ── 기성 프로그램 (2026-10-05) ──
+//
+// **`/:type` 보다 위에 둔다.** 아래에 두면 `:type` 이 'programs' 를 먼저 받아
+// 「머신 · 맨몸 · 홈트 · 기능성 중에서 고를 수 있어요」를 돌려준다. Express 는
+// 적힌 차례로 맞춰본다.
+//
+// 추천 루틴은 **하루치 한 칸**이고 이쪽은 **여러 날이 묶인 한 벌**이다 —
+// 고르면 그 날들이 그대로 「내 루틴」이 된다 (`src/data/programs.js` 머리글).
+router.get('/programs', (req, res) => {
+  res.json(PROGRAMS);
+});
 
 // 타입별 (머신 or 맨몸)
 router.get('/:type', (req, res) => {
