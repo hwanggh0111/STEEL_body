@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-join.cjs && node scripts/check-id.cjs && node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs && node scripts/check-sync.cjs && node scripts/check-storage.cjs",
+    "check": "node scripts/check-join.cjs && node scripts/check-id.cjs && node scripts/check-logfile.cjs && node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs && node scripts/check-sync.cjs && node scripts/check-storage.cjs",
     "storage": "node scripts/check-storage.cjs",
     "backup": "node scripts/backup.cjs",
     "smoke": "node scripts/smoke.cjs",
@@ -25,6 +25,7 @@
     "oauth": "node scripts/check-oauth.cjs",
     "join": "node scripts/check-join.cjs",
     "id": "node scripts/check-id.cjs",
+    "logfile": "node scripts/check-logfile.cjs",
     "odd": "node scripts/check-odd-api.cjs"
   },
   "engines": {

@@ -8,7 +8,12 @@ const aiGuard = require('../middleware/aiGuard');
 const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY } = require('../config/security');
 
 // 보안 로그 (메모리 + 파일 영속화)
-const LOG_PATH = path.join(__dirname, '../../security.log');
+// 어디에 둘까. 기본은 저장소 옆 `security.log` 다.
+//
+// **자리를 바꿀 수 있게 둔다**(`SECURITY_LOG_PATH`). 두 가지 때문이다 —
+// 검사가 진짜 기록을 건드리지 않고 돌 수 있어야 하고(`npm run logfile`), 배포한 곳의
+// 디스크가 날아가는 자리면 다른 데를 가리켜야 한다. `DB_FILE` 과 같은 모양이다.
+const LOG_PATH = process.env.SECURITY_LOG_PATH || path.join(__dirname, '../../security.log');
 const securityLogs = [];
 
 // ── 파일이 끝없이 커지던 것 ── (2026-10-01)
@@ -39,6 +44,63 @@ function _rollIfBig(adding) {
     console.error('[security] 로그를 밀지 못했습니다:', err.message);
     _logBytes = 0;                    // 다시 재게 둔다
   }
+}
+
+// ── 램에 든 것만 보여주고 있었다 ── (2026-10-02)
+//
+// `/logs` 는 `securityLogs`(램)만 돌려줬다. 그런데 그 목록은 **서버가 다시 뜨면
+// 사라진다.** 화면에 그렇게 적어두긴 했지만, 배포하면 Render 무료 판은 **조용하면
+// 잠들었다 깨므로** 실질적으로 거의 아무것도 안 남는다 — 관리자가 들어가면 언제나
+// 「기록이 없습니다」를 보게 된다. 10/14 에 배포하면 그 길로 간다.
+//
+// **파일에는 처음부터 다 남고 있었다**(`security.log`, 10/1 에 2MB 에서 미는 것까지
+// 붙였다). 읽는 데만 없었다 — 보내는 쪽 · 받는 쪽 · 비우는 쪽은 있는데 **보는 쪽이
+// 없던** 화면 오류와 같은 모양이다.
+//
+// ── 파일이 램의 윗집합이다 ──
+//
+// 모든 `addLog` 는 파일에도 쓴다. 그래서 파일을 읽으면 램에 든 것까지 다 들어 있다 —
+// 다만 파일 쓰기는 **비동기**라 방금 쓴 한두 줄이 아직 디스크에 없을 수 있다.
+// 그래서 **둘을 합치고 같은 줄을 접는다.**
+//
+// 통째로 읽지 않는다. 2MB 를 매번 다 읽어 쪼개면 그 자체가 느린 길이 된다 —
+// **꼬리만** 읽는다(최근 100건을 고르는 데 넉넉하다).
+const LOG_TAIL_BYTES = 256 * 1024;
+const LOG_LINE = /^\[([^\]]+)\] \[([^\]]+)\] ([\s\S]*)$/;
+
+/** 파일 끝에서 `bytes` 만큼. 앞이 잘린 반 토막 줄은 버린다. */
+function readTail(file, bytes) {
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r');
+    const size = fs.fstatSync(fd).size;
+    if (!size) return '';
+    const start = Math.max(0, size - bytes);
+    const buf = Buffer.alloc(size - start);
+    fs.readSync(fd, buf, 0, buf.length, start);
+    const text = buf.toString('utf8');
+    // 가운데서 자르면 **글자 하나가 반 토막** 날 수 있다. 첫 줄을 버리면 같이 사라진다
+    if (start === 0) return text;
+    const nl = text.indexOf('\n');
+    return nl === -1 ? '' : text.slice(nl + 1);
+  } catch {
+    return '';      // 파일이 없거나 못 읽는다 — 램에 든 것만으로 간다
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* 이미 닫혔다 */ } }
+  }
+}
+
+/** 파일에 적힌 줄을 `addLog` 가 만드는 모양으로 되돌린다. 못 읽는 줄은 버린다. */
+function readLogFile() {
+  // 민 뒤라 지금 파일이 짧을 수 있다 — 옛 한 벌(`.1`)을 **앞에** 붙인다
+  const text = readTail(LOG_PATH + '.1', LOG_TAIL_BYTES) + readTail(LOG_PATH, LOG_TAIL_BYTES);
+  const out = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(LOG_LINE);
+    if (!m) continue;               // 여러 줄로 적힌 detail 의 뒷줄 등
+    out.push({ type: m[2], detail: m[3], timestamp: m[1] });
+  }
+  return out;
 }
 
 function addLog(type, detail) {
@@ -93,9 +155,28 @@ router.get('/users', adminAuth, (req, res) => {
 });
 
 // GET /api/security/logs - 보안 로그 (최근 100건)
+// 최근 100건. **램과 파일을 합쳐서** 본다 (위의 「램에 든 것만」 참고).
+//
+// 돌려주는 모양은 **배열 그대로** 둔다. 화면은 이것을 배열로 받아 쓴다 —
+// 예전에 객체로 바꿔 읽다가 **로그 100건이 와도 언제나 「없습니다」**였던 자리다.
+const LOG_WANT = 100;
+
 router.get('/logs', adminAuth, (req, res) => {
-  const recent = securityLogs.slice(-100).reverse();
-  res.json(recent);
+  const merged = [...readLogFile(), ...securityLogs];
+  // 같은 줄은 접는다 — 파일에도 있고 램에도 있는 것이 대부분이다
+  const seen = new Set();
+  const out = [];
+  // 뒤에서부터 본다(최신이 뒤에 쌓인다). 100건을 채우면 멈춘다
+  for (let i = merged.length - 1; i >= 0 && out.length < LOG_WANT; i--) {
+    const e = merged[i];
+    const key = `${e.timestamp}|${e.type}|${e.detail}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(e);
+  }
+  // 파일과 램을 이어 붙였으니 **차례가 섞여 있을 수 있다.** 적힌 때로 다시 세운다
+  out.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  res.json(out);
 });
 
 // POST /api/security/block-user/:id - 유저 차단

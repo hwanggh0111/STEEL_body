@@ -56,6 +56,10 @@ export default function AccountSheet({
   // 묻는 창을 여는데 그 사람은 모르는 값이라, 눌러도 끝까지 갈 수 없었다.
   // 같은 요청에서 같이 받아 **말과 가는 곳을 바꾼다**
   const [isSocial, setIsSocial] = useState(false);
+  // 아이디를 **지금 바꿀 수 있나.** 0 이면 된다. 이 줄은 설정함으로 보내기만 하는데,
+  // 막혀 있는 줄 모르고 건너가면 **가서야** 안다 — 설정함에서 누르기 전에 알려주기로
+  // 한 것과 같은 선이다(6차). 며칠인지는 서버가 센다
+  const [idDaysLeft, setIdDaysLeft] = useState(0);
   useEffect(() => {
     let alive = true;
     client.get('/auth/me')
@@ -63,6 +67,7 @@ export default function AccountSheet({
         if (!alive) return;
         setUsername(data?.username || '');
         setIsSocial(!!data?.is_social);
+        setIdDaysLeft(Number(data?.username_days_left) || 0);
       })
       .catch(() => { /* 아이디 줄만 안 보인다. 시트는 그대로 돌아간다 */ });
     return () => { alive = false; };
@@ -186,7 +191,15 @@ export default function AccountSheet({
             규칙도 두 벌이 된다(사진을 계정 시트 한 곳에만 둔 것과 같은 까닭).
             대신 **여기에 길이 있다는 것**은 알려준다 */}
         {username && (
-          <Row icon="gear" label="아이디 바꾸기" onClick={() => onGo?.({ path: '/settings' })} />
+          <Row
+            icon="gear"
+            label="아이디 바꾸기"
+            // 막혀 있으면 **가기 전에** 적는다. 길은 막지 않는다 — 거기서 지금 아이디와
+            // 까닭을 같이 보는 것이 낫다
+            badgeText={idDaysLeft > 0 ? `${idDaysLeft}일 뒤` : null}
+            muted={idDaysLeft > 0}
+            onClick={() => onGo?.({ path: '/settings' })}
+          />
         )}
         <Row icon="camera" label={photo ? '사진 바꾸기' : '사진 넣기'} onClick={onPickPhoto} />
         {photo && <Row icon="ban" label="사진 지우기" onClick={onDeletePhoto} muted />}
