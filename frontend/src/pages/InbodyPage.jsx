@@ -1,3 +1,4 @@
+import { ffmiOf, ffmiBand } from '../data/bodyIndex';
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useInbodyStore } from '../store/inbodyStore';
@@ -142,6 +143,21 @@ export default function InbodyPage({ embedded = false }) {
     const scale = scaleFor('bmi');
     return scale ? positionOn(scale, Number(bmi)) : null;
   }, [bmi]);
+
+  // ── FFMI — BMI 가 말 못 하는 것 ── (2026-10-05)
+  //
+  // BMI 는 근육과 지방을 구별하지 못해서, **운동하는 사람일수록 나쁜 쪽으로 간다.**
+  // 이 앱을 쓰는 사람에게 거의 쓸모가 없는 숫자다. FFMI 는 지방을 뺀 몸만 키로 나누니
+  // 「얼마나 키웠나」가 보인다 (`data/bodyIndex.js` 머리글).
+  //
+  // 체지방률이 없으면 **안 낸다.** 체중만으로 지어내면 BMI 를 FFMI 라고 부르는 셈이다
+  const ffmi = useMemo(
+    () => ffmiOf({ height: effectiveHeight, weight, fatPct }),
+    [effectiveHeight, weight, fatPct],
+  );
+  const ffmiTone = ffmiBand(ffmi?.adjusted);
+  const ffmiColor = ffmiTone?.tone === 'low' ? 'var(--info)'
+    : ffmiTone?.tone === 'high' ? 'var(--accent)' : 'var(--success)';
 
   const bmiColor = bmiBand?.band?.tone === 'low' ? 'var(--info)'
     : bmiBand?.band?.tone === 'high' ? 'var(--warning)'
@@ -417,6 +433,20 @@ export default function InbodyPage({ embedded = false }) {
                 {bmiBand?.band?.label && (
                   <span style={{ fontSize: 12, color: bmiColor, marginLeft: 6 }}>({bmiBand.band.label})</span>
                 )}
+              </div>
+            )}
+
+            {/* FFMI — 체지방률까지 적었을 때만 나온다 */}
+            {ffmi && (
+              <div style={{ marginBottom: 10, fontSize: 14 }}>
+                FFMI: <strong style={{ color: ffmiColor }}>{ffmi.adjusted}</strong>
+                {ffmiTone && (
+                  <span style={{ fontSize: 12, color: ffmiColor, marginLeft: 6 }}>({ffmiTone.label})</span>
+                )}
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
+                  지방을 뺀 몸 {ffmi.lean}kg 을 키로 나눈 값이에요 (키 1.8m 기준으로 맞춘 숫자).
+                  체지방이 빠져도 근육이 그대로면 이 값은 안 내려갑니다 — BMI 와 다른 점이에요.
+                </div>
               </div>
             )}
 
