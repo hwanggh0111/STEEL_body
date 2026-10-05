@@ -344,6 +344,21 @@ body::before {
   color: var(--text-muted);
 }
 
+/* ── 시계와 제스처 바를 비켜준다 ── (2026-10-05)
+   `env(safe-area-inset-*)` 는 **화면 끝의 비켜줄 자리**다 — 아이폰의 노치·홈바,
+   안드로이드의 상태바·제스처 바. 앱이 여태 한 군데도 안 쓰고 있었다.
+
+   지금은 대부분 0 이다. 아이폰 PWA 는 `apple-mobile-web-app-status-bar-style` 을
+   `black` 으로 돌려 자리를 비웠고(index.html), 안드로이드 앱은 Capacitor 가
+   네이티브 쪽에서 웹뷰에 여백을 준다(`SystemBars.java`).
+
+   **그래도 지금 넣어둔다.** 끝까지 쓰는 화면(`viewport-fit=cover`)으로 가는 날
+   고칠 자리가 여기 한 곳뿐이게 하려는 것이고, 0 일 때는 아무 일도 안 한다.
+   `max()` 로 감싸 **원래 여백보다 작아지지 않게** 한다 — 안 감싸면 값이 0 인 기기에서
+   여백이 통째로 사라진다. */
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
 /* ─── 공통 레이아웃 ────────────────── */
 /* 껍데기는 배경을 덮지 않는다 — body 의 금빛이 그대로 비쳐 보이게 */
 /* 높이는 **두 줄로 적는다** (2026-10-05).

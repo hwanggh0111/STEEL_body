@@ -303,6 +303,9 @@ export default function TabBar() {
         borderTop: '1px solid var(--border)',
         zIndex: 9999,
         display: 'flex', justifyContent: 'center',
+        // 아이폰 홈바 · 안드로이드 제스처 바가 탭을 덮지 않게 (2026-10-05).
+        // 지금은 대개 0 이라 아무 일도 안 한다
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         <div style={{
           display: 'flex', width: '100%', maxWidth: 'var(--max-width)',

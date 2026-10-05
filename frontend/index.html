@@ -67,7 +67,22 @@
 
     <!-- Apple Mobile Web App -->
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- **`black-translucent` 에서 `black` 으로 바꿨다** (2026-10-05).
+         `black-translucent` 는 아이폰에서 **내용을 상태바 아래로 밀어 넣는다** —
+         홈 화면에 얹어 쓰는 사람은 머리말이 시계·배터리와 겹쳐 보였다.
+         게다가 앱이 `env(safe-area-inset-*)` 를 **한 군데도 안 쓰고 있어서**
+         비켜줄 자리도 없었다 (아래 globals.css 를 같이 고쳤지만, `viewport-fit=cover`
+         가 없으면 iOS 에서 그 값은 0 이다).
+
+         `black` 은 상태바 자리를 **비워 두고** 그 아래부터 그린다. 겹침이 사라진다.
+         배경이 순검정(#000)이라 앱 바탕(#12100c)과 아주 조금 다르지만,
+         겹쳐서 글자를 못 읽는 것보다 낫다.
+
+         **끝까지 쓰는 화면(edge-to-edge)으로 가려면** `viewport-fit=cover` 를 더하고
+         이 값을 되돌리면 된다. 다만 그러면 안드로이드에서도 Capacitor 가 네이티브
+         여백 주기를 멈추고 CSS 에 맡기므로(`SystemBars.java`), **폰에서 보고 나서**
+         할 일이다. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="BLACK IRON" />
     <link rel="apple-touch-icon" href="/icons/icon.svg" />
 
