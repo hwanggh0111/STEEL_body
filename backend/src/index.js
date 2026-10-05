@@ -387,10 +387,42 @@ const spaCSP = (req, res, next) => {
   ].join('; '));
   next();
 };
+// ── 얼마나 담아둘지는 **파일마다 다르다** ── (2026-10-05)
+//
+// 여태 전부 `7d` 였다. 해시가 박힌 덩어리에는 짧고, **`index.html` 에는 너무 길다.**
+//
+// `index.html` 은 「지금 쓸 덩어리가 무엇인가」를 적은 종이다. 그것이 7일 동안
+// 묵으면 **고쳐서 배포해도 일주일 동안 옛 화면이 뜬다.** 그 안에 적힌 옛 덩어리
+// 이름을 계속 부르기 때문이다. 서비스워커가 화면을 네트워크 먼저 받게 해뒀지만,
+// 그 요청도 **브라우저 HTTP 캐시를 지난다** — 거기서 7일 묵은 것이 나온다.
+//
+// 반대로 `/assets/…-DkeTsJR5.js` 는 **내용으로 이름을 짓는다.** 내용이 바뀌면 이름이
+// 바뀌므로 그 이름의 파일은 영영 안 변한다. 7일마다 다시 물어볼 이유가 없다.
+//
+//   index.html · sw.js · manifest.json  →  매번 물어본다 (no-cache)
+//   /assets/<해시>.…                     →  1년, 다시 안 물어본다 (immutable)
+//   나머지 (아이콘 · 그림)                 →  7일
+//
+// `no-cache` 는 「담지 마라」가 아니라 **「쓰기 전에 물어봐라」**다. 안 바뀌었으면
+// 304 한 줄로 끝나니 느려지지 않는다.
+const ALWAYS_FRESH = new Set(['/index.html', '/sw.js', '/manifest.json']);
+const HASHED = /\/assets\/.+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/;
+
+const staticHeaders = (res, filePath) => {
+  const rel = '/' + path.relative(frontendDist, filePath).split(path.sep).join('/');
+  if (ALWAYS_FRESH.has(rel)) {
+    res.set('Cache-Control', 'no-cache');
+  } else if (HASHED.test(rel)) {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  // 나머지는 아래 maxAge 가 맡는다
+};
+
 app.use(spaCSP, express.static(frontendDist, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
   etag: true,
   lastModified: true,
+  setHeaders: staticHeaders,
 }));
 
 // 헬스체크 (프로덕션에서는 최소 정보만)
@@ -410,6 +442,10 @@ app.get('/api/health', (req, res) => {
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   spaCSP(req, res, () => {
+    // 폴백으로 나가는 index.html 도 **매번 물어보게 한다** — 위의 정적 서빙과
+    // 같은 규칙이다. 여기만 빼먹으면 `/home` 처럼 **주소로 바로 들어온 사람**만
+    // 옛 화면을 보게 된다 (앱·PWA 로 쓰는 사람이 대부분 그 길이다)
+    res.set('Cache-Control', 'no-cache');
     res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
       if (err) res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
     });

@@ -94,6 +94,33 @@ ok('  없는 사람의 목록은 비어 있다', db.getWorkouts(B).length, 0);
 // 남의 계정을 지웠다고 내 기록이 사라지면 안 된다
 ok('  내 기록은 그대로다', db.getWorkouts(A).length, 2);
 
+console.log('');
+console.log('── 브라우저에 얼마나 담아두라고 말하는가 ── (2026-10-05)');
+//
+// 여기는 서버가 아니라 **브라우저의 표**다. 여태 화면 파일을 전부 `7d` 로 내줬다.
+// 해시가 박힌 덩어리에는 짧고, **`index.html` 에는 너무 길다.**
+//
+// `index.html` 은 「지금 쓸 덩어리가 무엇인가」를 적은 종이다. 7일 묵으면
+// **고쳐서 배포해도 일주일 동안 옛 화면이 뜬다.** 서비스워커가 화면을 네트워크
+// 먼저 받게 해뒀지만 그 요청도 브라우저 HTTP 캐시를 지난다.
+//
+// 조용히 되돌아갈 자리라 못을 박는다 — 잘못돼도 **그날은 멀쩡해 보이고**,
+// 일주일 뒤에 「왜 안 고쳐졌지」로 나타난다.
+{
+  const idx = fs.readFileSync('src/index.js', 'utf-8');
+  ok('index.html 은 매번 물어본다', /ALWAYS_FRESH[\s\S]{0,120}index\.html/.test(idx), true);
+  // 서비스워커가 묵으면 새 전략이 영영 안 깔린다
+  ok('  sw.js 도', /ALWAYS_FRESH[\s\S]{0,120}sw\.js/.test(idx), true);
+  ok('  manifest.json 도', /ALWAYS_FRESH[\s\S]{0,160}manifest\.json/.test(idx), true);
+  ok('  그 셋에 no-cache 를 준다', /ALWAYS_FRESH\.has\(rel\)[\s\S]{0,80}'no-cache'/.test(idx), true);
+  // 이름에 해시가 박힌 것은 영영 안 바뀐다 — 7일마다 다시 물어볼 이유가 없다
+  ok('해시 박힌 덩어리는 1년 · 안 물어본다',
+    /max-age=31536000, immutable/.test(idx), true);
+  // **폴백을 빼먹으면 주소로 바로 들어온 사람만 옛 화면을 본다** (앱 · PWA 가 그 길이다)
+  const fallback = idx.slice(idx.indexOf("app.get('*'"));
+  ok('SPA 폴백도 매번 물어본다', /Cache-Control', 'no-cache'/.test(fallback), true);
+}
+
 db.flushNow();
 if (fs.existsSync(TMP)) fs.unlinkSync(TMP);
 const photos = TMP.replace(/\.json$/, '') + '.photos.json';
