@@ -682,7 +682,10 @@ const db = {
   // 다음에 또 올린다. 그러면 같은 세트가 서버에 둘로 남는다 (적어도-한-번 전송의 고질).
   // 그 줄의 id 를 같이 보내면, 두 번째부터는 이미 있는 것을 돌려주고 새로 만들지 않는다.
   // **온라인에서 바로 저장하는 것에는 이 키가 없다** — 그건 매번 새로 만드는 게 맞다.
-  createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null) {
+  // `link` 는 **이 줄이 바로 앞 줄과 묶인다**는 표시다 (2026-10-05) —
+  // 'super'(슈퍼세트: 쉬지 않고 다른 운동) · 'drop'(드롭세트: 무게만 내려 이어서).
+  // 묶음 번호를 따로 두지 않는다. 「앞 줄과 묶인다」만 있으면 줄 셋도 이어진다
+  createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null, link = null) {
     const data = load();
     if (clientKey) {
       // **내 줄만 본다** (2026-09-30). 여태 모든 사람의 모든 줄을 훑었다 — 지하에서
@@ -696,6 +699,8 @@ const db = {
     const id = nextId('workouts');
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
     if (clientKey) workout.client_key = clientKey;
+    // 없으면 칸을 안 만든다 — 옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다
+    if (link) workout.link = link;
     data.workouts.push(workout);
     afterRowChange('workouts', userId, { added: workout });
     save(data);

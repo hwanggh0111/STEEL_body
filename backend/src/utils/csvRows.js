@@ -90,6 +90,8 @@ function readWorkouts(text) {
   const iWeight = at(header, '무게', 'weight');
   const iSets = at(header, '세트', 'sets');
   const iReps = at(header, '횟수', 'reps');
+  // 2026-10-05 — 슈퍼세트 · 드롭세트 표시. 옛 파일에는 이 칸이 없다(그러면 -1)
+  const iLink = at(header, '묶음', 'link');
   if (iDate < 0 || iName < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜」와 「운동명」 칸이 있어야 해요' }] };
   }
@@ -115,7 +117,14 @@ function readWorkouts(text) {
     }
     if (sets > 100 || reps > 1000) { bad.push({ line, why: '세트나 횟수가 너무 커요' }); continue; }
 
-    out.push({ date, exercise, weight, sets, reps });
+    // **아는 말만 받는다.** 모르는 글자가 들어오면 화면이 못 그리는 딱지가 생긴다.
+    // **없으면 칸을 안 만든다** — 옛 파일에서 읽은 줄과 모양이 같아야 한다
+    // (db 가 `link` 를 그렇게 저장하는 것과 같은 결이다)
+    const linkRaw = (iLink >= 0 ? (cells[iLink] || '') : '').trim();
+    const link = linkRaw === '드롭' || linkRaw === 'drop' ? 'drop'
+      : linkRaw === '슈퍼' || linkRaw === 'super' ? 'super' : null;
+
+    out.push(link ? { date, exercise, weight, sets, reps, link } : { date, exercise, weight, sets, reps });
   }
   return { rows: out, bad };
 }

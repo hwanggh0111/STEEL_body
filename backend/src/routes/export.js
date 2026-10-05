@@ -13,9 +13,16 @@ router.get('/workouts', auth, (req, res) => {
 
   // 숫자 칸(세트·횟수)은 감싸지 않는다 — 감싸면 엑셀이 글자로 읽어 합계가 안 된다.
   // 자유 입력 칸은 `csvCell` 이 맡는다 (따옴표 · 쉼표 · 수식으로 읽히는 앞글자)
-  const header = '날짜,운동명,무게,세트,횟수';
+  // **「묶음」 칸을 같이 내보낸다** (2026-10-05).
+  // 슈퍼세트 · 드롭세트는 「앞 줄과 이어진 것」이라는 표시로만 남는다(`link`).
+  // 그 칸을 안 내보내면 내려받아 다시 올린 사람의 기록에서 **표시가 통째로 사라지고**,
+  // 남은 가벼운 줄들이 까닭 없는 무게 하락으로 읽힌다 — 기기를 바꾸는 길이 그 길이다.
+  //
+  // 사람이 읽는 말로 적는다. 엑셀에서 열어보는 파일이라 'drop' 보다 「드롭」이 맞다
+  const LINK_KO = { drop: '드롭', super: '슈퍼' };
+  const header = '날짜,운동명,무게,세트,횟수,묶음';
   const rows = workouts.map(w =>
-    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''}`
+    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM for Korean Excel support
 

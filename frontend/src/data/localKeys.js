@@ -68,6 +68,10 @@ export const BREATH_LOG_KEY = 'breath:recover';
 // 로그인한 사람에게 「어깨 4일째」가 남아 있으면 안 된다.
 export const SORE_KEY = 'parts:sore';
 
+// 바 무게 (원판 계산에 쓴다). **기기의 것이다** — 로그아웃해도 남긴다.
+// 그 사람이 누구냐가 아니라 **그 헬스장에 어떤 바가 있느냐**이기 때문이다
+export const BAR_KEY = 'gym:bar';
+
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
   'token', 'nickname', 'ironlog_role', 'ironlog_email',

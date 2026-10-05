@@ -42,7 +42,9 @@ const KINDS = {
     read: readWorkouts,
     key: workoutKey,
     existing: (userId) => db.getWorkouts(userId),
-    put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps),
+    // 7번째가 clientKey(오프라인 줄 표시), 8번째가 link(슈퍼 · 드롭)다.
+    // **빠뜨리면 내려받아 다시 올린 기록에서 묶음이 사라진다** (2026-10-05)
+    put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps, null, r.link),
   },
   inbody: {
     label: '인바디',

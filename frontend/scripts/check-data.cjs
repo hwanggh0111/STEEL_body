@@ -667,6 +667,46 @@ const benchHit = dictP.searchExercises('벤치프레스', 30).map((e) => e.ko);
 ok('갈래 이름으로 찾으면 그 갈래가 다 나온다',
   benchAll.filter((n) => !benchHit.includes(n)), []);
 
+console.log('\n── 슈퍼세트 · 드롭세트를 묶어 그리는 규칙 (2026-10-05) ──');
+//
+// 「앞 줄과 이어진 것」이라는 표시(`link`)뿐이고 **묶음 번호가 없다.** 자리로만
+// 판단하면 세 군데서 틀린다 — 오프라인 줄은 날짜 뒤에 붙고, CSV 를 다시 올리면
+// 차례가 뒤집히고, 본세트를 지우면 남은 드롭세트가 **엉뚱한 운동**에 붙는다.
+//
+// 규칙을 여기 한 벌 더 두고 **화면과 대조한다.** 화면 안에 있는 식이라 그대로는
+// 못 부르니, 같은 식을 두고 답을 못 박은 뒤 화면이 그 식을 쓰는지 본다.
+{
+  const nm = (r) => (r?.exercise || '').trim();
+  const fits = (a, b) => !!a?.link && !!b
+    && (a.link === 'drop' ? nm(a) === nm(b) : !b.link);
+  const boundary = (L) => L.map((_, i) => {
+    const c = L[i]; const n = L[i + 1];
+    return n ? (fits(c, n) || fits(n, c)) : false;
+  });
+  const D = (e, link) => (link ? { exercise: e, link } : { exercise: e });
+
+  ok('서버 차례 (최신이 위)',
+    boundary([D('벤치', 'drop'), D('벤치'), D('스쿼트')]), [true, false, false]);
+  // 지하에서 적은 줄은 날짜 **뒤**에 붙는다 — 드롭세트가 아래로 간다
+  ok('오프라인 (뒤에 붙음)', boundary([D('벤치'), D('벤치', 'drop')]), [true, false]);
+  // **틀린 묶음을 그리느니 안 묶는다**
+  ok('본세트를 지우면 안 묶는다', boundary([D('벤치', 'drop'), D('스쿼트')]), [false, false]);
+  ok('  사이에 남의 운동이 끼면 안 묶는다',
+    boundary([D('벤치', 'drop'), D('스쿼트'), D('벤치')]), [false, false, false]);
+  // 드롭세트는 줄줄이 이어진다 (80 → 65 → 52)
+  ok('드롭세트 연쇄', boundary([D('벤치', 'drop'), D('벤치', 'drop'), D('벤치')]), [true, true, false]);
+  // 슈퍼세트는 일부러 다른 운동이라 이름으로 못 가린다 — 자리만 본다
+  ok('슈퍼세트', boundary([D('레터럴', 'super'), D('숄더프레스')]), [true, false]);
+
+  // 화면이 같은 식을 쓰는지 — 규칙이 두 벌이 되면 한쪽만 고치는 날이 온다
+  const train = fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8');
+  ok('화면이 줄 사이마다 정한다 (자리로만 안 본다)', /linkBoundary/.test(train), true);
+  ok('  드롭세트는 같은 운동일 때만 묶는다',
+    /a\.link === 'drop' \? nm\(a\) === nm\(b\) : !b\.link/.test(train), true);
+  // 슈퍼세트는 제 무게로 한 멀쩡한 세트다 — 「지난번」에서 빼면 그 운동만 영영 안 뜬다
+  ok('  「지난번」은 드롭세트만 건너뛴다', /w\.link !== 'drop'/.test(train), true);
+}
+
 console.log('\n── 자세 설명 (2026-09-02) ──');
 // 사전의 한 줄(`desc`)은 「그게 무슨 운동인가」이지 「어떻게 하는가」가 아니다.
 // 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다.

@@ -37,7 +37,7 @@ router.get('/', auth, (req, res) => {
 
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
-  const { date, exercise, weight, sets, reps, clientKey } = req.body;
+  const { date, exercise, weight, sets, reps, clientKey, link } = req.body;
   // 오프라인 줄에서 올라온 것만 이 키를 달고 온다 (`local-...`). 재전송돼도 서버가
   // 한 번만 만들게 하는 데만 쓴다. 모양이 아니면 그냥 무시(없는 것으로).
   const key = typeof clientKey === 'string' && clientKey.startsWith('local-') && clientKey.length <= 64
@@ -87,7 +87,16 @@ router.post('/', auth, spamCheck, (req, res) => {
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
 
-  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key);
+  // ── 앞 줄과 묶이는가 ── (2026-10-05)
+  //
+  // 슈퍼세트(쉬지 않고 다른 운동)와 드롭세트(무게만 내려 이어서)는 **줄을 따로 적는다** —
+  // 한 줄 안에 세트별 무게를 담는 모양으로 바꾸면 5년치 기록을 전부 옮겨야 한다.
+  // 대신 「이 줄은 앞 줄과 이어진 것」이라는 표시 하나만 둔다. 목록이 그걸 보고 묶어 그린다.
+  //
+  // **아는 말만 받는다.** 아무 문자열이나 받으면 화면이 모르는 표시를 만나 빈 칸을 그린다
+  const safeLink = link === 'super' || link === 'drop' ? link : null;
+
+  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink);
   res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
 });
 

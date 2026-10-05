@@ -207,6 +207,21 @@ const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
     return before.join() === db.getWorkouts(S).map((w) => w.id).join();
   })(), true);
 
+  // ── 슈퍼세트 · 드롭세트 표시 ── (2026-10-05)
+  //
+  // 「이 줄은 앞 줄과 이어진 것」이라는 표시 하나로 둘을 적는다. 한 줄 안에 세트별
+  // 무게를 담는 모양으로 바꾸면 5년치 기록을 전부 옮겨야 하기 때문이다.
+  const w1 = db.createWorkout(S, '2026-10-05', '벤치프레스', 80, 1, 8).lastInsertRowid;
+  const w2 = db.createWorkout(S, '2026-10-05', '벤치프레스', 65, 1, 6, null, 'drop').lastInsertRowid;
+  const rows = db.getWorkouts(S).filter((w) => w.date === '2026-10-05');
+  const byId = (id) => rows.find((w) => w.id === id);
+  ok('이어진 줄에 표시가 남는다', byId(w2).link, 'drop');
+  // **없으면 칸을 안 만든다.** 옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다
+  ok('  안 이어진 줄에는 칸이 없다', 'link' in byId(w1), false);
+  // 고치다 표시가 날아가면 드롭세트가 혼자 떨어져 「무게를 왜 내렸지」가 된다
+  db.updateWorkout(w2, S, { reps: 5 });
+  ok('  고쳐도 표시가 안 날아간다', db.getWorkouts(S).find((w) => w.id === w2).link, 'drop');
+
   db.flushNow();
   clean();
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
