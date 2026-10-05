@@ -105,8 +105,12 @@ function build() {
     const kind = SHOWN[type];
     if (!kind) continue;
 
-    // 개발 전용 변경은 사용자에게 알릴 것이 없다
-    if (scope === 'dev' || /^\(?dev\)?/.test(scope || '')) continue;
+    // 개발 전용 변경은 사용자에게 알릴 것이 없다.
+    //
+    // **한글 꼬리표도 센다** (2026-10-05). `feat(개발): …/dev 미리보기` 가 사용자
+    // 공지함에 「새 기능」으로 올라갔다 — 사용자는 열 수도 없는 자리다. 규칙이
+    // 영어 `dev` 만 보고 있었는데, 이 저장소의 커밋 꼬리표는 한글이 기본이다
+    if (scope === 'dev' || scope === '개발' || /^\(?dev\)?/.test(scope || '')) continue;
 
     entries.push({
       hash, date, type, label: labelFor(type, text),
