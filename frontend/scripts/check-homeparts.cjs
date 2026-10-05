@@ -30,12 +30,14 @@ const ok = (name, got, want) => {
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
 
-console.log('── 52개에 부위가 다 적혀 있는가 ──');
+console.log('── 모든 동작에 부위가 적혀 있는가 ──');
 
 const all = Object.entries(P.PROGRAMS).flatMap(([prog, list]) =>
   list.map((e) => ({ prog, ...e })));
 
-ok('동작이 52개다', all.length, 52);
+// 2026-10-05 에 판 셋(밤에 조용히 · 덤벨 하나로 · 밴드 하나로)을 더해 76개가 됐다.
+// **숫자를 박아두는 까닭**: 동작이 조용히 빠져도 앱은 안 터진다 — 그 판만 짧아진다
+ok('동작이 76개다', all.length, 76);
 // 주로 쓰는 곳이 없는 동작은 **몸을 하나도 안 칠하고 지나간다**
 ok('주로 쓰는 곳이 없는 동작', all.filter((e) => !e.main || e.main.length === 0).map((e) => e.name), []);
 // 몸 지도에 자리가 없는 이름을 적으면 그 줄은 조용히 사라진다 ('기타' 포함)
