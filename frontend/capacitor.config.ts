@@ -15,8 +15,14 @@ const config: CapacitorConfig = {
   // 플레이스토어에 한 번 올리면 **영영 못 바꾼다**
   appId: 'com.blackiron.app',
   appName: 'BLACK IRON',
-  // 주소를 열더라도 cap 은 이 폴더를 요구한다. 서버가 안 닿을 때의 빈 껍데기다
-  webDir: 'dist',
+  // 주소를 열더라도 cap 은 이 폴더를 요구한다. 서버가 안 닿을 때의 빈 껍데기다.
+  //
+  // **`dist` 가 아니라 `shell` 이다** (2026-10-05). 서버 주소를 여니 APK 안의 웹
+  // 자산 중 쓰는 것은 `app-offline.html` 한 장뿐인데, `dist` 를 가리키던 동안에는
+  // **빌드 결과 전체(파일 55개 · 0.87MB)가 APK 에 들어갔다** — 한 번도 안 읽히는
+  // 데다 그때 빌드본이 그대로 굳어 있었다. `npm run shell` 이 두 장만 만든다
+  // (`scripts/gen-shell.mjs` 머리글).
+  webDir: 'shell',
   backgroundColor: '#12100c',
   server: {
     url,

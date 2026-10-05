@@ -1585,12 +1585,28 @@ ok('그 이름은 지우는 목록에 있다', /HOME_LAST_KEY,/.test(keys) && /e
 ok('열쇠를 앱 이름 따라 안 바꿨다', /blackiron_home/.test(page), false);
 
 // 운동마다 **어떻게 하는지**가 있어야 한다. 이름만 있으면 「스캡 푸시업」에서 멈춘다
-ok('마흔여덟 개 운동에 전부 설명이 있다',
+ok('홈트 운동에 전부 설명이 있다',
   homeNames.flatMap((n) => home.PROGRAMS[n].map((e) => e.name)).filter((n) => !home.descOf(n)), []);
 ok('괄호가 붙은 이름도 설명을 찾는다 (좌 · 의자 · 식탁 아래)',
   home.descOf('사이드 플랭크 힙 딥 (좌)') === home.descOf('사이드 플랭크 힙 딥'), true);
 ok('사전에 없는 이름은 빈 줄을 준다 (안 터진다)', home.descOf('없는운동'), '');
 ok('화면이 그 설명을 그린다', page.includes('descOf('), true);
+
+// ── 자세 설명을 **눌렀을 때** 받는가 ── (2026-10-05)
+//
+// `exerciseForm.js` 는 67KB 고, 「자세 보기」를 눌러야 보는 것이다. 그런데 찾기
+// 화면이 통째로 들여오고 있어서 **「운동」 탭을 열기만 해도** 다 받았다
+// (찾기 덩어리 72.9KB → 6.2KB 로 줄었다).
+//
+// **되돌아가기 쉬운 자리다.** 누군가 `formOf` 를 쓰려고 위에 import 한 줄을 적으면
+// 그 순간 조용히 원래대로 돌아간다 — 아무도 안 터지고 화면도 똑같다. 그래서 못을 박는다
+const finderSrc2 = fs.readFileSync('src/components/ExerciseFinder.jsx', 'utf-8');
+ok('찾기 화면이 자세 설명을 미리 안 받는다',
+  /^import .*exerciseForm/m.test(finderSrc2), false);
+ok('  눌렀을 때 받는다 (동적 import)', /import\(['"]\.\.\/data\/exerciseForm['"]\)/.test(finderSrc2), true);
+// 단추를 그릴지는 **받기 전에** 알아야 한다. 사전으로 안다 —
+// 위의 「사전에 있는 운동 전부에 자세 설명이 있다」가 그것을 떠받친다
+ok('  단추 여부는 사전으로 가린다', /hasExercise\(/.test(finderSrc2), true);
 // 쉬는 20초 동안 다음이 뭔지 모르면 그 시간이 준비하는 시간이 못 된다
 ok('쉬는 화면이 다음 운동을 알려준다', /다음/.test(page) && page.includes('descOf(nextEx.name)'), true);
 // 플랭크를 하는 사람은 바닥을 보고 있다 — 화면을 봐야만 알 수 있으면 안 된다

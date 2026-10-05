@@ -434,6 +434,27 @@ export function byCategory(part) {
   return EXERCISE_DICT.filter(e => partOf(e) === want);
 }
 
+// ── 자세 설명이 있는 이름인가 ── (2026-10-05)
+//
+// **왜 사전에 묻나.** 자세 설명(`exerciseForm.js`)은 78KB 다 — 운동 219개의 순서와
+// 조심할 것이 들어 있다. 그런데 그것은 **「자세 보기」를 눌러야 보는 것**인데,
+// 찾기 화면이 그 파일을 통째로 들여오고 있어서 **「운동」 탭을 열기만 해도** 다
+// 받고 있었다. 눌렀을 때 받게 바꾸려면, 받기 **전에** 「단추를 그릴지」를 알아야 한다.
+//
+// 그 답이 여기 있다. 검사(`check-data`)가 **「사전에 있는 운동 전부에 자세 설명이
+// 있다」와 「사전에 없는 이름을 적어두지 않았다」를 둘 다 지킨다** — 즉 자세 설명의
+// 열쇠와 사전의 이름은 **같은 집합**이다. 그러니 사전에 있으면 자세 설명도 있다.
+//
+// 사전은 찾기 화면이 어차피 들고 있다. 새로 받는 것이 없다.
+const KO_SET = new Set(EXERCISE_DICT.map(e => e.ko));
+
+/** 그 이름이 사전에 있는가 = 자세 설명이 있는가. 괄호 안((좌) · (의자))은 떼고 본다 */
+export function hasExercise(name) {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  return KO_SET.has(n) || KO_SET.has(n.replace(/\s*\([^)]*\)/g, '').trim());
+}
+
 /** 친 말이 부위 이름인가 (「등」 한 글자도 부위다) */
 export function isPart(query) {
   return PARTS.includes(String(query || '').trim());

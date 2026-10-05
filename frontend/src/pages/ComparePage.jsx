@@ -4,7 +4,7 @@ import { useInbodyStore } from '../store/inbodyStore';
 import RadarChart from '../components/charts/Radar';
 import { toast } from '../components/Toast';
 import client from '../api/client';
-import { readLS, saveLS } from '../data/safeStorage';
+import { readLS, saveLS, removeLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
@@ -47,8 +47,25 @@ const PHOTO_KEY = COMPARE_PHOTOS_KEY;
 function loadPhotos() {
   try { return JSON.parse(readLS(PHOTO_KEY)) || {}; } catch { return {}; }
 }
+// ── 기기에 담아두는 사본이 **조용히 못 담길 수 있다** ── (2026-10-05)
+//
+// 사진은 base64 로 들고 있고 서버가 **장당 2MB** 까지 받는다. 칸은 셋
+// (profile · before · after)이니 다 채우면 6MB 다. 그런데 **안드로이드 웹뷰와
+// 사파리의 localStorage 한도는 보통 5MB** 다 — 크게 찍는 사람은 넘는다.
+//
+// `saveLS` 는 터지지 않고 `false` 를 준다(8월에 그렇게 고쳤다). 그런데 여기서
+// 그 값을 **안 보고 있었다.** 그래서 못 담겨도 아무 말이 없었고, 원본은 서버에
+// 있으니 기록이 날아가지는 않았지만 **매번 서버에서 다시 받게** 됐다 — 느려지기만
+// 하고 까닭은 안 보인다.
+//
+// 더 나쁜 자리가 하나 더 있었다. 못 담으면 **옛 사본이 그대로 남는다** —
+// 다음에 들어오면 서버 답이 오기 전까지 **바꾸기 전 사진**이 떠 있다.
+// 그래서 못 담으면 **그 자리를 비운다.** 비어 있으면 화면은 서버를 기다린다.
 function savePhotos(photos) {
-  saveLS(PHOTO_KEY, JSON.stringify(photos));
+  if (saveLS(PHOTO_KEY, JSON.stringify(photos))) return true;
+  // 자리가 모자란다. 옛 사본을 남기면 바꾸기 전 사진을 보여주게 된다
+  removeLS(PHOTO_KEY);
+  return false;
 }
 
 /** '2026-06-14T…' → '6월 14일'. 못 읽으면 빈 문자열 (화면은 그 줄을 안 그린다) */
@@ -104,13 +121,19 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
       return;
     }
     const updated = { ...photos, [photoKey]: data };
-    savePhotos(updated);
+    // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
+    // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
+    const cached = savePhotos(updated);
     setPhotos(updated);
     // 서버 저장 실패를 삼키고 '사진 저장!' 을 띄우고 있었다.
     // 이 기기 localStorage 에만 남으므로 기기를 바꾸면 사진이 사라지는데,
     // 사용자는 저장된 줄 안다. 어디에 저장됐는지를 그대로 말한다
     client.post('/photos', { type: photoKey, data })
-      .then(() => toast(shrunk ? '사진 저장! (올리기 좋게 줄였어요)' : '사진 저장!'))
+      .then(() => toast(
+        cached
+          ? (shrunk ? '사진 저장! (올리기 좋게 줄였어요)' : '사진 저장!')
+          : '사진 저장! (기기에는 다 못 담았어요 — 신호가 없을 땐 안 보입니다)',
+      ))
       .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다', 'error'));
   };
 

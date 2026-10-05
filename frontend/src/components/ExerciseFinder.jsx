@@ -1,9 +1,30 @@
 import { useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import {
-  searchExercises, koreanNameOf, translateQuery, isPart, PARTS,
+  searchExercises, koreanNameOf, translateQuery, isPart, PARTS, hasExercise,
 } from '../data/exerciseDict';
-import { formOf } from '../data/exerciseForm';
+
+// ── 자세 설명은 **눌렀을 때** 받는다 ── (2026-10-05)
+//
+// `exerciseForm.js` 는 78KB 다 (운동 219개의 순서 · 조심할 것). 그런데 그것은
+// 「자세 보기」를 눌러야 보는 것인데, 여기서 통째로 들여오고 있어서 **「운동」 탭을
+// 열기만 해도** 다 받았다. 찾기만 하고 자세는 한 번도 안 보는 사람이 대부분이다.
+//
+// **단추를 그릴지는 사전으로 안다**(`hasExercise`) — 검사가 「사전의 이름 = 자세
+// 설명의 열쇠」를 지키고 있어서 사전만 보면 된다. 사전은 어차피 들고 있다.
+//
+// 한 번 받으면 그대로 둔다. 두 번째 카드부터는 기다림이 없다.
+let _form = null;
+let _loading = null;
+function loadForm() {
+  if (_form) return Promise.resolve(_form);
+  if (!_loading) {
+    _loading = import('../data/exerciseForm')
+      .then((m) => { _form = m; return m; })
+      .catch(() => { _loading = null; return null; });   // 다음에 다시 해본다
+  }
+  return _loading;
+}
 
 // 운동 찾기 — **화면이 아니라 부품이다.**
 //
@@ -59,9 +80,22 @@ function MoreLink({ onClick, children }) {
 // 눌러서 볼 수 있게 뒀다 — 늘 펼쳐두면 목록에서 운동을 못 고른다.
 function Card({ ko, en, desc, tag, pickLabel, onPick }) {
   const [openForm, setOpenForm] = useState(false);
+  // 받아온 자세 설명. 누르기 전에는 null 이다
+  const [form, setForm] = useState(null);
   // 사전에 없는 이름(외부 DB 결과)에는 자세 설명이 없다. 그때는 단추를 아예 안 그린다 —
-  // 눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다
-  const form = formOf(ko);
+  // 눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다.
+  // **받기 전에 알아야 하는 값이라 사전에 묻는다** (위의 loadForm 머리글)
+  const canOpen = hasExercise(ko);
+
+  const toggleForm = async () => {
+    if (openForm) { setOpenForm(false); return; }
+    setOpenForm(true);
+    if (form) return;
+    const m = await loadForm();
+    // 못 받으면(신호가 끊겼다) 접어두고 말한다 — 빈 칸을 펴두면 고장으로 읽힌다
+    if (!m) { setOpenForm(false); return; }
+    setForm(m.formOf(ko));
+  };
   return (
     <div className="card list-item" style={{ marginBottom: 6 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -85,12 +119,18 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
           onClick={onPick}
         >{pickLabel}</button>
       </div>
-      {form && (
+      {canOpen && (
         <div style={{ marginTop: 6 }}>
-          <MoreLink onClick={() => setOpenForm((v) => !v)}>
+          <MoreLink onClick={toggleForm}>
             {openForm ? '자세 접기' : '자세 보기'}
           </MoreLink>
         </div>
+      )}
+
+      {/* 받는 사이 — 보통 눈에 안 띄게 짧지만, 느린 신호에서는 눌렀는데 아무 일도
+          안 일어나는 것처럼 보인다 */}
+      {openForm && !form && (
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>불러오는 중…</div>
       )}
 
       {openForm && form && (
