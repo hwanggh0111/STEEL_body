@@ -17,6 +17,23 @@ const swVersionPlugin = () => ({
   },
 });
 
+// `/dev` 로 개발 미리보기(`dev/preview.html`)를 연다 — 모바일 브라우저 틀과 앱 웹뷰 틀을
+// 한 화면에 나란히 띄우는 자리다. **개발 서버에서만 산다**: `apply: 'serve'` 라 build 에는
+// 안 끼고, 파일도 `public/` 이 아닌 `dev/` 에 있어서 dist 로 복사되지 않는다
+const devPreviewPlugin = () => ({
+  name: 'dev-preview',
+  apply: 'serve',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const path = req.url.split('?')[0];
+      if (path === '/dev' || path === '/dev/') {
+        req.url = '/dev/preview.html' + req.url.slice(path.length);
+      }
+      next();
+    });
+  },
+});
+
 // 폰 앱 시험용 터널을 열 때만 그 주소를 허락한다 (`cloudflared tunnel --url http://localhost:5173`).
 // **리포에는 주소를 안 박는다.** 개발 서버를 밖에 내놓는 설정이라, `.trycloudflare.com` 을
 // 통째로 박아두면 아무 데서나 켜둔 개발 서버에 그 도메인 호스트 헤더로 들어올 수 있다.
@@ -27,7 +44,7 @@ const tunnelHosts = (process.env.TUNNEL_HOSTS || '')
   .filter(Boolean);
 
 export default defineConfig({
-  plugins: [react(), swVersionPlugin()],
+  plugins: [react(), swVersionPlugin(), devPreviewPlugin()],
   server: {
     host: true,
     // 아무것도 안 주면 localhost/LAN 만. 터널을 열 때만 TUNNEL_HOSTS 로 그 주소를 더한다

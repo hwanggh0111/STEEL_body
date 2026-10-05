@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>개발 미리보기 — BLACK IRON</title>
+<!--
+  개발 전용 미리보기 (2026-10-05).
+
+  창을 **반으로 갈라** 왼쪽은 모바일 브라우저, 오른쪽은 앱 웹뷰로 같은 개발 서버를 본다.
+  둘 다 **창을 꽉 채워** 띄운다 — 줄이거나 폰 그림 안에 넣지 않는다.
+  다른 것은 껍데기뿐이다: 폰 브라우저는 주소창(48px)이 위를 먹고, 앱 웹뷰는 주소창 없이
+  상태바(28px)만 있다. 그 차이에서만 나는 버그(아래 탭바가 가려짐 · 100vh 어긋남)를 여기서 본다.
+
+  **dist 에 안 실린다.** vite 는 build 때 index.html 과 public/ 만 가져간다.
+  이 파일은 frontend/dev/ 에 있어서 개발 서버에서만 열린다 (vite.config.js 의 devPreviewPlugin).
+-->
+<style>
+  :root {
+    --bg: #0d0b08;
+    --panel: #16130e;
+    --line: #2e2719;
+    --ink: #e8e2d4;
+    --dim: #8c8372;
+    --gold: #c9a227;
+    --chrome: #1f1b14;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 'Pretendard', -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── 위의 조작줄 ── */
+  header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--gold);
+    font-size: 13px;
+    white-space: nowrap;
+    line-height: 1.15;
+  }
+  .brand small { display: block; color: var(--dim); font-weight: 400; letter-spacing: 0; font-size: 11px; }
+
+  label.f { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; white-space: nowrap; }
+
+  select, input[type=text], button {
+    background: var(--chrome);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font: inherit;
+    font-size: 13px;
+  }
+  input[type=text] { min-width: 190px; }
+  button { cursor: pointer; }
+  button:hover, button:focus-visible { border-color: var(--gold); color: var(--gold); }
+  button:active { transform: translateY(1px); }
+  button.on { border-color: var(--gold); color: var(--gold); background: #231d12; }
+  .sp { flex: 1 1 auto; }
+
+  /* ── 창을 가른 두 쪽 ── */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
+  .pane {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    background: #12100c;
+  }
+  .pane + .pane { border-left: 1px solid var(--line); }
+  .pane.hide { display: none; }
+
+  /* 쪽 이름표 */
+  .tag {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--dim);
+  }
+  .tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex: none; }
+  .tag .size { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  /* 껍데기 안 — 여기부터가 폰이 보는 자리다 */
+  .screen {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #12100c;
+  }
+  .screen iframe { flex: 1 1 auto; width: 100%; border: 0; display: block; background: #12100c; }
+
+  /* 폰 브라우저의 주소창 — 자리만 차지하는 가짜다 (48px 가 실제와 비슷하다) */
+  .urlbar {
+    flex: none;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: #211d16;
+    border-bottom: 1px solid #000;
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .urlbar .pill {
+    flex: 1 1 auto;
+    background: #0d0b08;
+    border-radius: 999px;
+    padding: 5px 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 앱 웹뷰의 상태바 — 시계·배터리가 있는 그 줄 */
+  .statusbar {
+    flex: none;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    background: #12100c;
+    color: var(--dim);
+    font-size: 11px;
+  }
+  .chrome-off .urlbar, .chrome-off .statusbar { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">BLACK IRON<small>개발 미리보기</small></div>
+
+  <label class="f">주소
+    <select id="route"></select>
+  </label>
+  <input type="text" id="path" value="/home" spellcheck="false" aria-label="직접 입력할 주소" />
+  <button id="go">열기</button>
+  <button id="reload" title="두 쪽 다 새로고침">새로고침</button>
+
+  <span class="sp"></span>
+
+  <button id="onlyMobile" title="모바일 쪽만 창 전체로">모바일만</button>
+  <button id="onlyApp" title="앱 쪽만 창 전체로">앱만</button>
+  <button id="both" class="on" title="둘을 나란히">둘 다</button>
+  <button id="chrome" class="on" title="주소창 · 상태바 자리를 보일지">껍데기</button>
+</header>
+
+<main id="stage">
+  <section class="pane" id="paneMobile">
+    <div class="tag"><span class="dot"></span>모바일 브라우저<span class="size" id="mobileTag"></span></div>
+    <div class="screen">
+      <div class="urlbar"><span>🔒</span><span class="pill" id="mobileUrl">localhost:5173</span><span>⋮</span></div>
+      <iframe id="mobileFrame" title="모바일 브라우저 미리보기"></iframe>
+    </div>
+  </section>
+
+  <section class="pane" id="paneApp">
+    <div class="tag"><span class="dot"></span>앱 웹뷰<span class="size" id="appTag"></span></div>
+    <div class="screen">
+      <div class="statusbar"><span id="clock">9:41</span><span>▮▮▮ ▲ 🔋</span></div>
+      <iframe id="appFrame" title="앱 웹뷰 미리보기"></iframe>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  // ── 앱이 가진 길 (src/App.jsx 의 Route 와 맞춘다) ──
+  const ROUTES = [
+    ['/home', '홈'],
+    ['/routine', '루틴'],
+    ['/train', '운동'],
+    ['/body', '몸'],
+    ['/map', '몸 지도'],
+    ['/parts', '부위'],
+    ['/goal', '목표'],
+    ['/gym', '헬스장'],
+    ['/search', '찾기'],
+    ['/homeworkout', '홈트'],
+    ['/history', '기록'],
+    ['/reminders', '알림'],
+    ['/support', '고객센터'],
+    ['/support/notices', '공지 보관함'],
+    ['/settings', '설정'],
+    ['/admin', '관리자'],
+    ['/site', '소개(껍데기 밖)'],
+    ['/login', '로그인'],
+    ['/register', '가입'],
+  ];
+
+  const $ = (id) => document.getElementById(id);
+
+  const routeSel = $('route');
+  for (const [p, name] of ROUTES) {
+    const o = document.createElement('option');
+    o.value = p;
+    o.textContent = name + '  ' + p;
+    routeSel.appendChild(o);
+  }
+
+  function load(path) {
+    if (!path.startsWith('/')) path = '/' + path;
+    $('path').value = path;
+    $('mobileUrl').textContent = 'localhost:5173' + path;
+    const url = location.origin + path;
+    $('mobileFrame').src = url;
+    $('appFrame').src = url;
+  }
+
+  // ── 쪽 보이기 ──
+  function show(mode) {
+    $('paneMobile').classList.toggle('hide', mode === 'app');
+    $('paneApp').classList.toggle('hide', mode === 'mobile');
+    $('onlyMobile').classList.toggle('on', mode === 'mobile');
+    $('onlyApp').classList.toggle('on', mode === 'app');
+    $('both').classList.toggle('on', mode === 'both');
+    measure();
+  }
+
+  // 지금 각 쪽이 몇 ×몇 인지 — 폰 크기와 견줄 수 있게 이름표에 적는다
+  function measure() {
+    const pairs = [['mobile', $('mobileFrame')], ['app', $('appFrame')]];
+    for (const [kind, frame] of pairs) {
+      const r = frame.getBoundingClientRect();
+      $(kind + 'Tag').textContent = r.width ? Math.round(r.width) + '×' + Math.round(r.height) : '';
+    }
+  }
+
+  routeSel.addEventListener('change', () => load(routeSel.value));
+  $('go').addEventListener('click', () => load($('path').value.trim() || '/home'));
+  $('path').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click(); });
+  $('reload').addEventListener('click', () => load($('path').value.trim() || '/home'));
+  $('onlyMobile').addEventListener('click', () => show('mobile'));
+  $('onlyApp').addEventListener('click', () => show('app'));
+  $('both').addEventListener('click', () => show('both'));
+  $('chrome').addEventListener('click', (e) => {
+    const off = document.body.classList.toggle('chrome-off');
+    e.currentTarget.classList.toggle('on', !off);
+    measure();
+  });
+
+  let rt;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(measure, 120); });
+
+  const tick = () => {
+    const d = new Date();
+    $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+  tick();
+  setInterval(tick, 20000);
+
+  // ?path=/train 으로 열면 그 자리부터
+  const want = new URLSearchParams(location.search).get('path');
+  load(want || '/home');
+  if (want) routeSel.value = want;
+  show('both');
+  setTimeout(measure, 300);
+})();
+</script>
+</body>
+</html>
