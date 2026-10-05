@@ -195,7 +195,10 @@ export default function Layout() {
     // **서버가 답했으면 서버가 진실이다** — 「없다」는 답도 답이다.
     // 예전에는 사진이 있을 때만 맞췄다. 다른 기기에서 지우면 이쪽은 브라우저에
     // 남은 옛 사진을 계속 띄웠다. 못 불러왔을 때(catch)만 있던 것을 지킨다
-    client.get('/photos').then(({ data }) => {
+    // **프로필 한 장만 받는다** (2026-10-05).
+    // 예전에는 `/photos` 를 그냥 불러 **세 장을 base64 로 통째로**(최대 6MB) 받았다 —
+    // 여기서 쓰는 것은 머리에 그릴 32px 아바타 하나다. 폰에서 열 때마다 그랬다
+    client.get('/photos', { params: { type: 'profile' } }).then(({ data }) => {
       const list = Array.isArray(data) ? data : [];
       const profile = list.find(p => p.type === 'profile');
       setProfilePhoto(profile ? profile.data : '');
@@ -309,6 +312,9 @@ export default function Layout() {
         WebkitBackdropFilter: 'var(--surface-blur)',
         borderBottom: '1px solid var(--border)',
         padding: '12px 20px',
+        // 아이폰 노치 · 안드로이드 상태바를 비켜준다. 지금은 대개 0 이고,
+        // 끝까지 쓰는 화면으로 가는 날 여기 한 곳만 살아난다 (globals.css 머리글)
+        paddingTop: 'max(12px, env(safe-area-inset-top, 0px))',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           {/* PC 에서는 왼쪽 사이드바가 이미 BLACK IRON 를 크게 달고 있다.
@@ -402,7 +408,12 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="content-area" style={{ paddingTop: 22, paddingBottom: (isPC ? 30 : 80) + (restShowing ? 58 : 0) }}>
+      {/* 아래 탭바가 홈바만큼 두꺼워지면 **본문도 그만큼 더 비켜야** 한다 (2026-10-05).
+          안 하면 목록 마지막 줄이 탭바 뒤로 들어간다 — 끝까지 스크롤해도 안 보인다 */}
+      <main className="content-area" style={{
+        paddingTop: 22,
+        paddingBottom: `calc(${(isPC ? 30 : 80) + (restShowing ? 58 : 0)}px + ${isPC ? '0px' : 'env(safe-area-inset-bottom, 0px)'})`,
+      }}>
         {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
             여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}
         {/* 신호가 없거나 아직 못 올린 것이 있을 때만 나온다. 아무 일도 없으면 안 나온다 */}

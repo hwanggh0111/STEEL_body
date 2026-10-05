@@ -2,9 +2,27 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
 
-// Get all photos for user
+// ── 필요한 것만 준다 ── (2026-10-05)
+//
+// 여기는 사진을 **base64 로 통째로** 돌려준다. 칸이 셋(profile · before · after)이고
+// 장당 2MB 까지 받으니 **한 번에 6MB** 다.
+//
+// 그런데 껍데기(`components/Layout.jsx`)가 앱을 열 때마다 이것을 부른다 —
+// 머리에 그릴 **32px 아바타 하나** 때문이다. 폰에서 LTE 로 열면 그 한 번에
+// 수 MB 를 받고, 쓰는 것은 그중 한 장이다. 나머지 둘은 비교 화면에서나 쓴다.
+//
+// `?type=profile` 로 **그 한 장만** 달라고 할 수 있게 한다. 아무것도 안 주면
+// 예전처럼 전부 준다 — 비교 화면은 셋이 다 필요하고, 옛 화면이 깨지면 안 된다.
+const PHOTO_TYPES = ['profile', 'before', 'after'];
+
 router.get('/', auth, (req, res) => {
   const photos = db.getPhotos(req.userId);
+  const want = req.query.type;
+  // **아는 칸 이름일 때만 거른다.** 오타(`?type=profil`)에 빈 배열을 주면
+  // 화면은 「사진이 없다」로 읽고 있던 사진을 지운다 — 조용히 틀리는 자리다
+  if (typeof want === 'string' && PHOTO_TYPES.includes(want)) {
+    return res.json(photos.filter((p) => p.type === want));
+  }
   res.json(photos);
 });
 

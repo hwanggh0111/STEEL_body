@@ -66,6 +66,23 @@ db.deleteUserPhotos(1);
 ok('계정을 지우면 사람 사진은 지워지고', db.getPhotos(1).length, 0);
 ok('  홈페이지 사진은 남는다', names(), ['첫째', '셋째']);
 
+// ── 필요한 것만 받는가 ── (2026-10-05)
+//
+// 껍데기가 앱을 열 때마다 `/photos` 를 부른다. 그냥 부르면 **세 장을 base64 로
+// 통째로**(최대 6MB) 받는데, 거기서 쓰는 것은 32px 아바타 하나다.
+// `?type=profile` 로 한 장만 받게 고쳤고, **되돌아가기 쉬운 자리**라 못을 박는다 —
+// 누가 params 를 지워도 화면은 똑같이 보이고 느려지기만 한다.
+const layoutSrc = fs.readFileSync('../frontend/src/components/Layout.jsx', 'utf-8');
+ok('껍데기는 프로필 한 장만 받는다',
+  /client\.get\('\/photos',\s*\{\s*params:\s*\{\s*type:\s*'profile'\s*\}/.test(layoutSrc), true);
+const routeSrc = fs.readFileSync('src/routes/photos.js', 'utf-8');
+ok('  서버가 type 을 거른다', /req\.query\.type/.test(routeSrc), true);
+// 오타(`?type=profil`)에 빈 배열을 주면 화면이 「사진 없음」으로 읽고 있던 것을 지운다
+ok('  아는 칸 이름일 때만 거른다', /PHOTO_TYPES\.includes\(want\)/.test(routeSrc), true);
+// 비교 화면은 셋이 다 필요하다 — 아무것도 안 주면 전부 와야 한다
+const compareSrc = fs.readFileSync('../frontend/src/pages/ComparePage.jsx', 'utf-8');
+ok('  비교 화면은 그대로 전부 받는다', /client\.get\('\/photos'\)/.test(compareSrc), true);
+
 // 검사가 만든 파일은 스스로 치운다. **먼저 파일에 쓴 다음 지운다** —
 // 안 그러면 지운 뒤에 미뤄둔 쓰기가 다시 써놓는다
 if (typeof db.flushNow === 'function') db.flushNow();
