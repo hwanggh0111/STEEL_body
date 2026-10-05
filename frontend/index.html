@@ -22,10 +22,37 @@
          1년 기록 벽)의 첫 줄만 명조로 앉힌다(`.serif-display`). 한글 글꼴은 무거운데,
          구글이 한글을 조각 백여 개로 잘라 내주기 때문에 **화면에 쓴 글자가 든 조각만**
          내려온다. 굵기는 400 하나만 부른다. -->
+    <!-- **첫 페인트를 막지 않게 받는다** (2026-10-05).
+
+         이 한 줄이 `<head>` 의 보통 stylesheet 이면 **렌더링을 막는다** — 브라우저는
+         이 CSS 가 올 때까지 글자를 한 자도 안 그린다. 폰에서는 그 한 번이 구글 두 곳
+         (`fonts.googleapis.com` → `fonts.gstatic.com`)에 붙는 왕복이라, 신호가 나쁘면
+         **아무것도 없는 검은 화면**이 그만큼 길어진다.
+
+         `media="print"` 로 받으면 브라우저가 「지금 화면에 안 쓰는 것」으로 보고
+         렌더링을 안 막는다. 다 받으면 `onload` 가 `all` 로 바꿔 그때 적용된다.
+         이미 `display=swap` 이라 그때까지는 대체 글꼴로 글이 **보인다** — 안 보이던
+         것이 보이게 되는 것이지, 늦어지는 것이 아니다.
+
+         `preload` 를 같이 두는 까닭: `media="print"` 는 **낮은 순위로** 받는다.
+         preload 가 「곧 쓸 것」이라고 알려줘서 순위를 되돌린다. -->
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Nanum+Myeongjo&family=Playfair+Display:ital@0;1&display=swap"
     />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Nanum+Myeongjo&family=Playfair+Display:ital@0;1&display=swap"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Nanum+Myeongjo&family=Playfair+Display:ital@0;1&display=swap"
+      />
+    </noscript>
 
     <!-- DNS 프리페치 (외부 API) -->
     <link rel="dns-prefetch" href="https://wger.de" />

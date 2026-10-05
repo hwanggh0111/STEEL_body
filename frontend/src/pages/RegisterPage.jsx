@@ -204,7 +204,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 'var(--padding-x)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
           {/* 처음 보는 자리라 부제까지 편다 */}

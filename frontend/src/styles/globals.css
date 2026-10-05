@@ -346,7 +346,15 @@ body::before {
 
 /* ─── 공통 레이아웃 ────────────────── */
 /* 껍데기는 배경을 덮지 않는다 — body 의 금빛이 그대로 비쳐 보이게 */
-.page-wrapper { min-height: 100vh; background: transparent; color: var(--text-primary); }
+/* 높이는 **두 줄로 적는다** (2026-10-05).
+   폰 브라우저에서 `100vh` 는 **주소창이 펼쳐진 상태의 높이**다 — 주소창이 접히면
+   화면보다 그만큼 길어져 아래가 잘린다. `100dvh` 는 지금 실제로 보이는 높이라
+   접히고 펴지는 것을 따라간다. 옛 브라우저는 `dvh` 를 모르고 그 줄을 통째로
+   버리므로, 앞 줄의 `100vh` 가 그대로 남는다 — 안전하다. */
+.page-wrapper { min-height: 100vh; min-height: 100dvh; background: transparent; color: var(--text-primary); }
+
+/* 껍데기 밖(소개 화면 등)에서 쓰는 같은 높이 */
+.full-height { min-height: 100vh; min-height: 100dvh; }
 .content-area {
   padding: var(--padding-x); max-width: var(--max-width); margin: 0 auto;
 }

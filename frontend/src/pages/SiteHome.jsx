@@ -258,7 +258,7 @@ export default function SiteHome() {
   }, [q]);
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 50 }}>
+    <div className="full-height" style={{ paddingBottom: 50 }}>
 
       {/* 머리 — 두 줄이다 (2026-09-18).
           위: 로고 + 할 수 있는 것(B) · 아래: 이 화면이 가진 칸의 이름(A) */}
