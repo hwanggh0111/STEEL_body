@@ -16,7 +16,18 @@
 # `-Check` 를 붙이면 **아무것도 안 띄우고 준비물만 확인한다** (2026-09-16 에 더했다).
 #   powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1 -Check
 # 아침에 이것부터 돌려보면, 서버를 띄운 뒤에야 「자바가 없다」를 아는 일이 없다.
-param([switch]$Check)
+#
+# `-Release` 를 붙이면 **배포본(릴리스) APK** 를 만든다 (2026-10-06 에 더했다).
+#   powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1 -Release
+# **이것으로만 R8(minify) 깨짐이 보인다.** 디버그 APK 는 minify 를 안 하므로
+# 오프라인 「다시 시도」나 Capacitor 플러그인이 지워졌는지 알 길이 없다.
+# 서명은 `android/keystore.properties` 가 있으면 그것으로, 없으면 **디버그 열쇠**로 한다
+# (디버그 열쇠로 서명한 APK 는 플레이스토어에 못 올리지만 R8 깨짐 확인에는 똑같다).
+param([switch]$Check, [switch]$Release)
+
+# 빌드 종류에 따라 갈리는 것 — 아래에서 계속 쓴다
+$variant = if ($Release) { 'Release' } else { 'Debug' }
+$apkRel  = if ($Release) { 'app\build\outputs\apk\release\app-release.apk' } else { 'app\build\outputs\apk\debug\app-debug.apk' }
 
 $ErrorActionPreference = 'Stop'
 $root     = Split-Path $PSScriptRoot -Parent
@@ -36,16 +47,26 @@ if (-not $cf) {
 }
 if ($Check) {
   # **아무것도 안 띄운다.** 준비물이 다 있는지만 보고 끝낸다
-  $apk  = Join-Path $androidD 'app\build\outputs\apk\debug\app-debug.apk'
+  $apk  = Join-Path $androidD $apkRel
   $mark = { param($ok) if ($ok) { 'OK  ' } else { '없음' } }
 
-  Write-Host '── 폰 테스트 준비물 ──' -ForegroundColor Cyan
+  Write-Host "── 폰 테스트 준비물 ($variant) ──" -ForegroundColor Cyan
   Write-Host "$(& $mark (Test-Path $env:JAVA_HOME))  자바 (Android Studio jbr)"
   Write-Host "$(& $mark (Test-Path $env:ANDROID_HOME))  안드로이드 SDK"
   Write-Host "$(& $mark ([bool]$cf))  cloudflared   $(if ($cf) { $cf } else { 'winget install Cloudflare.cloudflared' })"
   Write-Host "$(& $mark (Test-Path (Join-Path $backend 'node_modules')))  백엔드 node_modules"
   Write-Host "$(& $mark (Test-Path (Join-Path $frontend 'node_modules')))  프론트 node_modules"
   Write-Host "$(& $mark (Test-Path $apk))  지난 APK       $(if (Test-Path $apk) { '(어차피 새로 만듭니다)' })"
+  if ($Release) {
+    # 릴리스는 서명이 있어야 폰에 깔린다
+    $ks = Join-Path $frontend 'android\keystore.properties'
+    if (Test-Path $ks) {
+      Write-Host 'OK    서명 열쇠     keystore.properties (플레이스토어용 진짜 열쇠)'
+    } else {
+      $dbg = Join-Path $env:USERPROFILE '.android\debug.keystore'
+      Write-Host "$(& $mark (Test-Path $dbg))  서명 열쇠     디버그 열쇠 — 설치·R8 확인은 되지만 플레이스토어엔 못 올립니다"
+    }
+  }
 
   # 지금 떠 있는 것 — 이미 떠 있으면 스크립트가 그대로 쓴다
   $b = [bool](Get-NetTCPConnection -State Listen -LocalPort 4000 -ErrorAction SilentlyContinue)
@@ -59,6 +80,11 @@ if ($Check) {
   Write-Host '  · 9/16 에 AndroidManifest 에 CAMERA 권한을 넣었다 → APK 를 반드시 새로 만들어야 겹쳐 찍기가 된다'
   Write-Host '  · 카메라·마이크는 https 에서만 열린다 → 터널 주소(https)로 들어가야 한다. LAN 주소(http)로는 안 된다'
   Write-Host '  · 확인 목록: docs/PHONE-TEST-2026-09-17.md'
+  if ($Release) {
+    Write-Host '  · 릴리스는 R8 이 돈다 → 오프라인 「다시 시도」와 카메라·사진 플러그인을 꼭 눌러보세요' -ForegroundColor Yellow
+  } else {
+    Write-Host '  · 지금은 디버그다 — R8 깨짐을 보려면 -Release 를 붙이세요' -ForegroundColor Yellow
+  }
   Write-Host ''
   Write-Host '준비되면 -Check 없이 다시 실행하세요.' -ForegroundColor Cyan
   exit 0
@@ -74,7 +100,7 @@ function Start-Server($title, $dir, $cmd) {
   Start-Process -WindowStyle Minimized -WorkingDirectory $dir cmd.exe -ArgumentList '/c', "title $title && $cmd"
 }
 
-Write-Host '── 폰 테스트 준비 ──' -ForegroundColor Cyan
+Write-Host "── 폰 테스트 준비 ($variant) ──" -ForegroundColor Cyan
 
 # 1) 서버
 if (Test-Port 4000) {
@@ -123,7 +149,7 @@ Write-Host "터널 주소: $url" -ForegroundColor Green
 # **빌드 도구는 경고를 stderr 로 낸다** (esbuild 등). PowerShell 5.1 은 native 명령의
 # stderr 를 에러로 삼켜 멀쩡한 빌드를 실패로 만든다. 그래서 cmd 안에서 출력을 삼키고
 # (`> nul 2>&1`), 진짜 성공·실패는 **종료 코드**로만 본다.
-Write-Host 'APK 빌드 중... (1~2분)'
+Write-Host "APK 빌드 중... ($variant · 1~3분)"
 $env:CAP_SERVER_URL = $url
 $gradleLog = Join-Path $env:TEMP 'blackiron-gradle.log'
 
@@ -135,13 +161,13 @@ Pop-Location
 
 if ($buildOk) {
   Push-Location $androidD
-  cmd /c ".\gradlew.bat assembleDebug --console=plain > `"$gradleLog`" 2>&1"
+  cmd /c ".\gradlew.bat assemble$variant --console=plain > `"$gradleLog`" 2>&1"
   $buildOk = ($LASTEXITCODE -eq 0)
   Pop-Location
   (Get-Content $gradleLog -ErrorAction SilentlyContinue | Select-String 'BUILD SUCCESSFUL|BUILD FAILED|error:') | ForEach-Object { $_.Line }
 }
 
-$apk = Join-Path $androidD 'app\build\outputs\apk\debug\app-debug.apk'
+$apk = Join-Path $androidD $apkRel
 if (-not $buildOk -or -not (Test-Path $apk)) {
   Write-Error "APK 빌드 실패. 자세한 것은 $gradleLog (또는 위 프론트 빌드) 를 보세요."; exit 1
 }
@@ -154,6 +180,14 @@ $mb = [math]::Round((Get-Item $apk).Length / 1MB, 1)
 Write-Host "APK 크기  : $mb MB"
 Write-Host ''
 Write-Host '이 APK 를 폰으로 옮겨 설치하세요 (메일 첨부가 막히면 구글 드라이브).'
+if ($Release) {
+  Write-Host ''
+  Write-Host '배포본(R8)입니다 — 이것부터 눌러보세요' -ForegroundColor Yellow
+  Write-Host '  1. 와이파이·데이터를 끄고 앱을 열어 오프라인 화면 → 「다시 시도」 (R8 이 지웠으면 아무 일도 안 납니다)'
+  Write-Host '  2. 겹쳐 찍기 · 사진 고르기 (Capacitor 플러그인은 런타임에 이름으로 찾습니다)'
+  Write-Host '  3. 앱이 그냥 죽으면 ClassNotFound/NoSuchMethod 입니다 → proguard-rules.pro 에 keep 을 더합니다'
+  Write-Host '  · 디버그 열쇠로 서명했다면, 전에 깔아둔 디버그 APK 위에 그대로 덮어씌워집니다'
+}
 Write-Host 'PC 를 켜두고, 이 스크립트가 띄운 창 세 개(backend·frontend·cloudflared)를 열어두세요.'
 Write-Host '끝내려면 그 창들을 닫으면 다 내려갑니다.'
 explorer.exe "/select,$apk"
