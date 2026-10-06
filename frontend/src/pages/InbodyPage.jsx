@@ -83,7 +83,7 @@ export default function InbodyPage({ embedded = false }) {
   // 사람이 접은 뒤에는 다시 안 연다
   const autoOpenedRef = useRef(false);
 
-  const { records, loading, fetchAll, addRecord, updateRecord, deleteRecord } = useInbodyStore();
+  const { records, loading, failed, fetchAll, addRecord, updateRecord, deleteRecord } = useInbodyStore();
   // 「얼마나 달라졌나」가 같은 기간에 운동을 얼마나 했는지도 같이 말한다 (시안 C).
   // 이미 불러오는 중이면 얹힌다 — 홈이나 히스토리를 거쳐 왔으면 벌써 있다
   const workouts = useWorkoutStore(s => s.workouts);
@@ -94,11 +94,16 @@ export default function InbodyPage({ embedded = false }) {
     if (!useWorkoutStore.getState().loading) fetchWorkouts();
   }, [fetchWorkouts]);
 
+  // 비어 있으면 적는 폼을 저절로 연다.
+  //
+  // **못 받아왔을 때는 열지 않는다** (2026-10-06). 빈 목록이 「기록이 없다」가 아니라
+  // 「못 받아왔다」일 수 있는데, 그때 폼을 열면 **있는데 또 적게** 된다 —
+  // 그 사람에게는 같은 날 인바디가 두 줄이 된다.
   useEffect(() => {
-    if (loading || autoOpenedRef.current) return;
+    if (loading || failed || autoOpenedRef.current) return;
     autoOpenedRef.current = true;
     if (records.length === 0) setFormOpen(true);
-  }, [loading, records.length]);
+  }, [loading, failed, records.length]);
 
   useEffect(() => {
     if (location.state?.write) setFormOpen(true);
@@ -544,6 +549,25 @@ export default function InbodyPage({ embedded = false }) {
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
           <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           로딩 중...
+        </div>
+      ) : failed && records.length === 0 ? (
+        /* **못 불러온 것과 없는 것은 다르다** (2026-10-06).
+           여태 둘을 같이 「기록 없음 · 체중부터 한 줄 적어두면」으로 그렸다 —
+           몇 달 적어온 사람이 신호 한 번 끊겼다고 그 화면을 본다. 그리고 그 말을
+           믿고 적으면 **있는데 또 적는** 셈이 된다.
+           「기구」 탭이 9/17 에 429 로 같은 자리를 겪고 적어둔 교훈이다 */
+        <div className="card" style={{ borderLeft: '3px solid var(--warning)' }}>
+          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>
+            인바디 기록을 못 불러왔어요
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+            신호가 끊겼거나 서버가 잠깐 바쁜 것일 수 있어요.
+            <strong style={{ color: 'var(--text-primary)' }}> 적어두신 기록은 그대로 있습니다</strong> —
+            여기 안 보이는 것뿐이에요. 지금 적으시면 같은 날이 두 줄이 될 수 있어요.
+          </div>
+          <button className="btn-primary" style={{ fontSize: 14 }} onClick={() => fetchAll(true)}>
+            다시 받기
+          </button>
         </div>
       ) : records.length === 0 ? (
         <div className="empty-state">

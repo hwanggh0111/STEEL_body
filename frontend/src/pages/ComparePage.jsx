@@ -9,6 +9,8 @@ import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import OverlayCamera from '../components/OverlayCamera';
+// 사진 지우기는 **되돌릴 수 없다.** 한 번 묻는다 (2026-10-06 — 아래 `handleDelete`)
+import { confirmDialog } from '../components/ConfirmModal';
 import { pickReference } from '../data/overlayShot';
 import { CHART } from '../data/chartColors';
 import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/compare';
@@ -152,7 +154,26 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
     }
   };
 
-  const handleDelete = () => {
+  // ── 한 번 묻는다 ── (2026-10-06)
+  //
+  // 여태 **✕ 한 번에 바로 지웠다.** 그런데 이 앱은 **인바디 한 줄**을 지울 때도
+  // 묻는다(`InbodyCard`) — 덜 아까운 것은 묻고 **더 아까운 것은 안 묻고** 있었다.
+  //
+  // 전·후 사진은 **반년을 모은 것**이고 되돌릴 길이 없다. 이 파일에도 그 값이
+  // 적혀 있다 — 「계정을 지우면 30일 뒤에 사라지는 것들이다」, 「사진만 길이
+  // 없었다」(그래서 내려받기를 붙였다). 그만큼 아끼는 것이 확인 한 번 없이 사라졌다.
+  //
+  // **언제 올린 사진인지 물음에 넣는다.** 전·후 두 칸이 나란히 있어서 ✕ 를 잘못
+  // 누르기 쉽다 — 「전 사진을 지울까요」보다 **「6월 2일에 올린 전 사진」**이
+  // 자기가 무엇을 지우는지 알려준다.
+  const handleDelete = async () => {
+    const when = takenAt ? `${shortDay(takenAt)}에 올린 ` : '';
+    const yes = await confirmDialog(
+      `${when}${label} 사진을 지웁니다.\n\n되돌릴 수 없어요 — 같은 사진이 기기에 남아 있지 않으면 다시 올릴 수 없습니다.`,
+      { title: `${label} 사진을 지울까요`, confirmText: '지웁니다', danger: true },
+    );
+    if (!yes) return;
+
     const updated = { ...photos };
     delete updated[photoKey];
     savePhotos(updated);

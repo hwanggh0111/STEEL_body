@@ -21,6 +21,19 @@ export function resetCache() {
 export const useInbodyStore = create((set, get) => ({
   records: [],
   loading: false,
+  // ── 못 받아온 것과 없는 것은 다르다 ── (2026-10-06)
+  //
+  // 여태 실패를 **조용히 삼켰다**(`catch { set({ loading: false }) }`). 그러면
+  // `records` 가 빈 채로 남고, 화면은 그것을 **「기록 없음」**으로 읽는다 —
+  // 신호가 끊겼거나 서버가 잠깐 바쁜 사람에게 **「체중부터 한 줄 적어두면」**이
+  // 뜬다. 몇 달 적어온 사람이 그 화면을 본다.
+  //
+  // 게다가 인바디 화면은 **비어 있으면 적는 폼을 저절로 연다** — 그래서 거기서
+  // 적으면 **있는데 또 적는** 셈이 된다.
+  //
+  // 「기구」 탭이 9/17 에 레이트 리밋(429)으로 같은 화면을 겪고 적어뒀다 —
+  // 「못 불러온 것과 없는 것은 다르다」. 그 교훈이 여기엔 안 와 있었다.
+  failed: false,
 
   fetchAll: (force = false) => {
     // ── 날아가 있는 요청과 `force` ── (2026-09-18)
@@ -44,10 +57,13 @@ export const useInbodyStore = create((set, get) => ({
         const { data } = await client.get('/inbody');
         // 서버는 배열을 준다. 다른 모양이 오면 빈 것으로 친다 —
         // records 는 세 화면이 그대로 map 으로 돌린다
-        set({ records: Array.isArray(data) ? data : [], loading: false });
+        set({ records: Array.isArray(data) ? data : [], loading: false, failed: false });
         fetchedAt = Date.now();
       } catch {
-        set({ loading: false });
+        // **빈 목록으로 덮지 않는다.** 전에 받아둔 것이 있으면 그것을 그대로 보여주고,
+        // 못 받아왔다는 것만 따로 말한다 — 있던 줄이 사라지는 것보다 조금 묵은
+        // 줄이 낫다
+        set({ loading: false, failed: true });
       } finally {
         inflight = null;
       }
