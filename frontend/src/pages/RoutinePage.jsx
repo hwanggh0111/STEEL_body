@@ -56,6 +56,12 @@ const TABS = [
   { key: 'note', label: '메모' },
 ];
 
+// 갈래를 주소에 남긴다 (2026-10-06)
+import { useTabParam } from '../data/useTabParam';
+
+// 주소에 적힐 수 있는 갈래 이름. 여기 없는 값은 안 받는다
+const TAB_KEYS = TABS.map((t) => t.key);
+
 import RoutineNotes from './routine/RoutineNotes';
 import ProgramList from './routine/ProgramList';
 // 운동 이름 칸 — **치는 동안 사전이 거든다** (2026-10-06).
@@ -72,7 +78,13 @@ import ExerciseNameInput from '../components/ExerciseNameInput';
 export default function RoutinePage() {
   // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
   // 처음 온 사람에게만 추천을 편다
-  const [tab, setTab] = useState('mine');
+  // 갈래는 **주소가 들고 있다** (2026-10-06). 여태 `useState` 라 당겨서
+  // 새로고침하면 「내 루틴」으로 돌아갔고, 「루틴 → 프로그램」 링크를 만들 수가
+  // 없었다. 까닭은 `data/useTabParam.js` 에 적어뒀다.
+  //
+  // **처음 온 사람을 추천으로 옮기는 길은 그대로 둔다**(아래 `movedRef`) —
+  // 그것도 이 `setTab` 을 부르므로 주소에 같이 적힌다
+  const [tab, setTab] = useTabParam(TAB_KEYS, 'mine');
   const [type, setType] = useState('머신');
   const [part, setPart] = useState('가슴');
   const [routines, setRoutines] = useState({});

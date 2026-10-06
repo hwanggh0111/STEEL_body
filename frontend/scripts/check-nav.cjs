@@ -240,5 +240,43 @@ ok('폰 안에서 끝난다고 적으면서 사진 저장을 같이 밝힌다',
 ok('칼로리는 여전히 추정하지 않는다고 적는다', /칼로리도 체지방률도 추정하지 않는다/.test(siteSrc), true);
 
 console.log('');
+console.log('── 갈래가 주소에 남는가 ── (2026-10-06)');
+//
+// 갈래(탭 안의 탭)를 쓰는 화면이 셋이다 — 몸 · 기록 · 루틴. 셋 다 `useState` 로
+// 들고 있어서 **갈래가 주소에 안 남았다**:
+//
+//   · 당겨서 새로고침하면 첫 갈래로 돌아간다 (폰에서 흔히 하는 동작이다)
+//   · 「몸 → 회복」 같은 링크·바로가기를 만들 수 없다
+//   · `location.state` 로 들려 보낸 갈래는 **한 번만 산다** — 새로고침에 사라진다
+//
+// 이 앱은 주소가 길을 들고 있어야 한다는 것을 이미 알고 있었다 — 「운동」은
+// `/train?q=` 로 받고(「로그인 화면을 거쳐도 남는 길이다」) 기구 목록이 그 주소로
+// 운동을 들려 보낸다. **그 교훈이 갈래에는 안 와 있었다.**
+const hook = codeOf(read('src/data/useTabParam.js'));
+ok('갈래를 주소에서 읽는 고리가 있다', /useSearchParams/.test(hook), true);
+// **히스토리를 쌓지 않는다.** 갈래마다 쌓으면 「몸」에서 나가려고 다섯 번 눌러야
+// 한다 — 폰에서 뒤로는 「이 화면을 나간다」는 뜻이다
+ok('  갈래 전환이 히스토리를 안 쌓는다', /replace: true/.test(hook), true);
+// 첫 갈래를 주소에 적으면 `/body` 와 `/body?t=inbody` 가 **같은 화면의 두 주소**가
+// 된다 — 공유된 링크마다 다르게 생긴다
+ok('  첫 갈래는 주소에 안 적는다', /p\.delete\('t'\)/.test(hook), true);
+// 주소는 **누가 손으로 고칠 수 있는 자리**다. 없는 갈래를 받으면 빈 화면이 뜬다
+ok('  목록에 없는 갈래는 안 받는다', /keys\.includes\(v\)/.test(hook), true);
+// 같은 주소로 다시 올 때는 들고 온 갈래가 이겨야 한다 — 바로 위의
+// 「같은 자리에서 다시 찾아도 따라간다」가 그것이고, 처음 판이 그것을 깼다
+ok('  같은 주소로 다시 오면 들고 온 것이 덮는다', /seen\.current !== visit/.test(hook), true);
+
+for (const pair of [
+  ['src/pages/BodyPage.jsx', '몸'],
+  ['src/pages/HistoryPage.jsx', '기록'],
+  ['src/pages/RoutinePage.jsx', '루틴'],
+]) {
+  const src = codeOf(read(pair[0]));
+  ok(`${pair[1]} 화면이 그 고리를 쓴다`, /useTabParam\(/.test(src), true);
+  // `useState` 로 되돌아가면 갈래가 또 주소에서 사라진다
+  ok('  useState 로 되돌아가지 않았다', /useState\('(inbody|calendar|mine)'\)/.test(src), false);
+}
+
+console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('전부 통과');

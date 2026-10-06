@@ -5,6 +5,8 @@ import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildChange } from '../data/bodyChange';
 import SegRow from '../components/SegRow';
+// 갈래를 주소에 남긴다 — 새로고침·링크·바로가기가 산다 (2026-10-06)
+import { useTabParam } from '../data/useTabParam';
 
 // 몸 — 5차 리모델링(2026-09-04).
 //
@@ -52,6 +54,10 @@ const TABS = [
   { key: 'recover', label: '회복' },
 ];
 
+// 주소에 적힐 수 있는 갈래 이름. **여기 없는 값은 안 받는다** — 주소는 누가
+// 손으로 고칠 수 있는 자리고, 없는 갈래를 받으면 빈 화면이 뜬다
+const TAB_KEYS = TABS.map((t) => t.key);
+
 function Panel({ height = 200 }) {
   return (
     <div style={{
@@ -69,20 +75,17 @@ export default function BodyPage() {
   const records = useInbodyStore((s) => s.records);
   const fetchAll = useInbodyStore((s) => s.fetchAll);
 
-  // 「재는 도구」로 바로 들어올 수 있다 (홈 · 검색에서). 안 정해주면 인바디부터
-  const [tab, setTab] = useState(
-    TABS.some((t) => t.key === location.state?.tab) ? location.state.tab : 'inbody',
-  );
-
-  // **들고 온 갈래가 바뀌면 따라간다** (2026-09-18).
+  // ── 갈래는 **주소가 들고 있다** ── (2026-10-06)
   //
-  // 이 화면에 서서 홈 검색으로 「1RM」을 다시 찾으면 같은 주소로 다시 오는데,
-  // `useState` 의 첫 값은 **처음 한 번만** 읽힌다 — 그래서 주소는 바뀌었는데 화면은
-  // 그대로였다. 무엇을 눌러도 아무 일도 안 일어나는 것으로 보인다
-  useEffect(() => {
-    const want = location.state?.tab;
-    if (want && TABS.some((t) => t.key === want)) setTab(want);
-  }, [location.state?.tab, location.key]);
+  // 여태 `useState` 였다. 그래서 **당겨서 새로고침하면 인바디로 돌아갔고**
+  // (폰에서 흔히 하는 동작이다) 「몸 → 체형」 같은 링크를 만들 수가 없었다.
+  // 다른 화면이 들려 보내는 길(`location.state.tab`)은 그대로 받는다 — 홈 검색이
+  // 「1RM」을 그 길로 보낸다. 까닭은 `data/useTabParam.js` 에 적어뒀다.
+  //
+  // 「들고 온 갈래가 바뀌면 따라간다」(2026-09-18 에 고친 것)도 그 고리가 맡는다 —
+  // `useState` 의 첫 값은 처음 한 번만 읽히는데, 이제 주소에서 읽으므로 같은
+  // 주소로 다시 와도 따라간다.
+  const [tab, setTab] = useTabParam(TAB_KEYS, 'inbody', location.state?.tab, location.key);
 
   // 「재는 도구」 안의 어느 칸까지 들고 왔을 수 있다 (「1RM」 · 「어깨 측정」…).
   // **그 값을 그대로 넘긴다** — 갈래를 고르고 또 한 번 고르게 하지 않는다

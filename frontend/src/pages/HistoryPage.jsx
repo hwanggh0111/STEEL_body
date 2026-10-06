@@ -22,6 +22,11 @@ import { confirmDialog } from '../components/ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 import { useToday } from '../data/useToday';
+// 갈래를 주소에 남긴다 (2026-10-06)
+import { useTabParam } from '../data/useTabParam';
+
+// 주소에 적힐 수 있는 갈래 이름. 여기 없는 값은 안 받는다
+const SEG_KEYS = ['calendar', 'wall', 'stats'];
 
 // 히스토리.
 //
@@ -244,7 +249,10 @@ export default function HistoryPage() {
   // 이 화면은 한 두루마리였다 — 달력 · 목록 · 통계 · 1년 벽 · 체중 그래프가 한 줄로
   // 이어져서, **벽을 보려면 그 달 목록을 다 지나가야** 했다. 갈래로 나누면 보고 싶은
   // 것 하나만 본다. 「몸」 탭과 **같은 줄**(`SegRow`)을 쓴다 — 같은 자리는 같게 생겨야 한다.
-  const [seg, setSeg] = useState('calendar');
+  // 갈래는 **주소가 들고 있다** (2026-10-06). 여태 `useState` 라 당겨서
+  // 새로고침하면 달력으로 돌아갔고, 「기록 → 통계」 링크를 만들 수가 없었다.
+  // 까닭은 `data/useTabParam.js` 에 적어뒀다
+  const [seg, setSeg] = useTabParam(SEG_KEYS, 'calendar', location.state?.seg);
 
   // **`ym` 보다 아래에 둔다.** 이 효과는 보고 있는 달을 읽는데, `const` 는 선언 줄에
   // 닿기 전에는 못 읽는다(TDZ) — 위에 두면 화면을 여는 순간 터진다.
