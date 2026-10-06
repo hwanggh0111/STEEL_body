@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { buildHeat, MAP_PARTS } from '../data/bodyHeat';
+import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE } from './bodyShapes';
 
 // 몸 지도.
 //
@@ -30,12 +31,9 @@ import { buildHeat, MAP_PARTS } from '../data/bodyHeat';
 // **절대값으로 좋다 나쁘다를 매기지 않는다** — 하체 5세트와 팔 5세트는 같은 양이 아니고,
 // 우리는 그 사람의 프로그램을 모른다. 서로 견주는 것까지가 우리가 말할 수 있는 선이다.
 //
-// 색은 SVG 속성으로 나가므로 `var(--accent)` 를 못 쓴다 — 속성 안에서는 치환되지
-// 않는다(2026-08-28 에 그래프에서 겪은 것과 같은 자리). 토큰 값을 직접 적는다.
-const GOLD = '#eeb77d';
-const GOLD_LOW = '#d29a5f';
-const SKIN = '#1c1813';
-const SKIN_EDGE = '#2b251c';
+// 그림 조각과 색은 `bodyShapes.jsx` 에 있다 — **운동 카드의 작은 몸과 같은 것을
+// 쓴다**(2026-10-06). 복사해 두면 지도에서 가슴을 넓혔을 때 카드의 가슴은 그대로라,
+// 같은 사람이 화면마다 다른 몸이 된다.
 
 /** 달아오른 정도 → 칠. 0(식음)은 안 칠한다. */
 function fillOf(level) {
@@ -84,42 +82,10 @@ function Muscle({ shape, part, slot, dashed, selected, onPick }) {
   );
 }
 
-// ── 그리는 조각 ──
-//
-// 사람 몸을 정확히 그리는 것이 목적이 아니다. **어디를 말하는지 한눈에 알면 된다.**
-// 그래서 타원과 둥근 네모로만 짠다 — 어느 폰에서 줄어들어도 뭉개지지 않는다.
-const FRONT = {
-  어깨: <><ellipse cx="38" cy="45" rx="11.5" ry="9" /><ellipse cx="82" cy="45" rx="11.5" ry="9" /></>,
-  가슴: <rect x="44" y="49" width="32" height="24" rx="6" />,
-  코어: <rect x="49" y="73" width="22" height="36" rx="5" />,
-  팔: <>
-    <ellipse cx="30" cy="70" rx="7.5" ry="15" /><ellipse cx="90" cy="70" rx="7.5" ry="15" />
-    <ellipse cx="26" cy="101" rx="6" ry="14" /><ellipse cx="94" cy="101" rx="6" ry="14" />
-  </>,
-  하체: <>
-    <ellipse cx="48" cy="142" rx="12.5" ry="31" /><ellipse cx="72" cy="142" rx="12.5" ry="31" />
-    <ellipse cx="46" cy="195" rx="8.5" ry="21" /><ellipse cx="74" cy="195" rx="8.5" ry="21" />
-  </>,
-};
-
-const BACK = {
-  어깨: <><ellipse cx="38" cy="47" rx="11" ry="9" /><ellipse cx="82" cy="47" rx="11" ry="9" /></>,
-  등: <path d="M45 50h30l-5 40H50z" />,
-  코어: <rect x="49" y="90" width="22" height="20" rx="4" />,
-  팔: <>
-    <ellipse cx="30" cy="72" rx="7.5" ry="15" /><ellipse cx="90" cy="72" rx="7.5" ry="15" />
-    <ellipse cx="26" cy="102" rx="6" ry="14" /><ellipse cx="94" cy="102" rx="6" ry="14" />
-  </>,
-  하체: <>
-    <rect x="42" y="110" width="36" height="22" rx="9" />
-    <ellipse cx="48" cy="152" rx="12" ry="26" /><ellipse cx="72" cy="152" rx="12" ry="26" />
-    <ellipse cx="46" cy="195" rx="9" ry="21" /><ellipse cx="74" cy="195" rx="9" ry="21" />
-  </>,
-};
 
 function Silhouette({ shapes, byPart, coldPart, selected, onPick, label, width }) {
   return (
-    <svg width={width} height={width * 2.38} viewBox="0 0 120 240" fill="none" role="group" aria-label={label}>
+    <svg width={width} height={width * 2.38} viewBox={VIEWBOX} fill="none" role="group" aria-label={label}>
       <defs>
         <filter id="heatSoft" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur stdDeviation="3.2" result="b" />
@@ -128,10 +94,7 @@ function Silhouette({ shapes, byPart, coldPart, selected, onPick, label, width }
       </defs>
 
       {/* 머리 · 목 — 부위가 아니라 사람 모양을 알아보게 하는 것뿐이다. 안 눌린다 */}
-      <g fill={SKIN} stroke={SKIN_EDGE} strokeWidth="0.7">
-        <circle cx="60" cy="17" r="11" />
-        <rect x="54" y="27" width="12" height="8" rx="3" />
-      </g>
+      <g fill={SKIN} stroke={SKIN_EDGE} strokeWidth="0.7">{HEAD}</g>
 
       {Object.entries(shapes).map(([part, shape]) => (
         <Muscle

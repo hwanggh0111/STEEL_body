@@ -1,10 +1,21 @@
 import { memo } from 'react';
 import { confirmDialog } from './ConfirmModal';
+import MiniBody from './MiniBody';
 
+// 카드 왼쪽에 **그 운동이 쓰는 곳**을 그린다 (2026-10-06).
+//
+// 여태 운동명 · 무게 · 세트 · 회만 말했다. 그래서 「이번 주에 등을 했나」를
+// **이름을 하나씩 읽어서** 세야 했다 — 랫풀다운이 등인 것을 아는 사람만 셀 수 있다.
+// 부위는 이미 알고 있었다(사전 437개 + 자유 입력도 맞히는 `bodyPartOf`).
+// **서버에 더 묻지 않는다.**
+//
+// 그림은 「몸」 탭의 지도와 같은 조각이다. 바탕 몸을 가라앉혀서, 36px 로 키워도
+// **운동명이 먼저 읽히고** 금색 한 조각만 눈에 들어온다 (`MiniBody.jsx`).
 function WorkoutCard({ workout, onDelete, onEdit }) {
   return (
-    <div className="card list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-      <div>
+    <div className="card list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 11, marginBottom: 8 }}>
+      <MiniBody exercise={workout.exercise} />
+      <div style={{ minWidth: 0, flexGrow: 1 }}>
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
           {workout.exercise}
         </div>
