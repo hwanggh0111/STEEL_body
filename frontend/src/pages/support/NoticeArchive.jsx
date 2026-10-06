@@ -99,7 +99,7 @@ export default function NoticeArchive({ embedded = false }) {
 
       <div style={{ marginBottom: 20 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 3,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 3,
           color: 'var(--accent)', margin: '0 0 8px',
         }}>공지함</h2>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>

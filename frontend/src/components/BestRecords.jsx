@@ -56,7 +56,7 @@ export default function BestRecords({ workouts }) {
       >
         <div className="accent-bar" />
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
           color: 'var(--text-primary)',
         }}>종목별 최고 기록</span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>

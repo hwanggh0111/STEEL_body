@@ -189,7 +189,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true"><NavIcon name="inbox" size={26} /></span>
               <h2 style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 3,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 3,
                 color: 'var(--accent)', margin: 0,
               }}>제보함</h2>
             </div>
@@ -227,7 +227,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                   <NavIcon name={x.icon} size={19} />
                 </div>
                 <div style={{
-                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
                   color: on ? 'var(--accent)' : 'var(--text-primary)',
                 }}>{x.label}</div>
                 {!kind && (
@@ -339,7 +339,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
               onChange={e => setBody(e.target.value.slice(0, 600))}
               placeholder={k.bodyHint}
               rows={kind === 'ask' ? 3 : 5}
-              style={{ marginBottom: 14, resize: 'vertical', lineHeight: 1.6, fontFamily: "'Barlow', sans-serif" }}
+              style={{ marginBottom: 14, resize: 'vertical', lineHeight: 1.6, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}
             />
 
             <div
@@ -375,7 +375,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                   onClick={clearForm}
                   style={{
                     background: 'none', border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', fontFamily: "'Bebas Neue', sans-serif",
+                    color: 'var(--text-muted)', fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
                     fontSize: 15, letterSpacing: 1.5, padding: '13px 18px',
                     borderRadius: 'var(--radius)', cursor: 'pointer', flexShrink: 0,
                     transition: 'all 0.15s',

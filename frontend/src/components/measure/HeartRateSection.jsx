@@ -101,7 +101,7 @@ export default function HeartRateSection() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: z.color }}>{z.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{z.desc}</div>
                 </div>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, color: z.color, letterSpacing: 1, flexShrink: 0 }}>
+                <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, color: z.color, letterSpacing: 1, flexShrink: 0 }}>
                   {r.min}~{r.max}
                 </div>
               </div>

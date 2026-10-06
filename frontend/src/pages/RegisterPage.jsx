@@ -355,7 +355,7 @@ export default function RegisterPage() {
                         background: 'none', border: '1px solid var(--accent)', color: 'var(--accent)',
                         padding: '0 14px', cursor: codeSending ? 'default' : 'pointer', fontSize: 13,
                         borderRadius: 'var(--radius)', whiteSpace: 'nowrap',
-                        fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.2,
+                        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.2,
                         opacity: codeSending ? 0.6 : 1,
                       }}
                     >{codeSending ? '발송 중...' : codeSent ? '다시 받기' : '인증번호 받기'}</button>

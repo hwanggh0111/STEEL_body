@@ -78,6 +78,7 @@ export default function SplashScreen({ onDone }) {
           {/* 표어. **전부 대문자에 자간 3** 이었다 — 로고를 소문자 세리프로 바꾼 뒤에는
               여기만 표지판처럼 남는다. 로고와 같은 결(세리프 이탤릭 · 소문자)로 맞춘다 */}
           <div style={{
+            // 라틴 전용 — 표어가 영문으로 박혀 있다 (Forge your body · Break your limits)
             fontFamily: "'Playfair Display', serif",
             fontStyle: 'italic',
             fontSize: phase >= 2 ? 11 : 15,

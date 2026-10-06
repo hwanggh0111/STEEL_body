@@ -572,7 +572,7 @@ export default function TrainPage() {
             <circle cx="12" cy="13" r="8" /><path d="M12 9.5V13l2.3 1.6M9 2h6" />
           </svg>
           <span style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
             color: restRunning ? 'var(--accent)' : 'var(--text-muted)',
           }}>{restRunning ? formatLeft(restLeft) : '휴식'}</span>
         </button>
@@ -1099,7 +1099,7 @@ export default function TrainPage() {
         <div className="accent-bar" />
         {isToday ? '오늘 적은 것' : `${dayLabel(date)} 에 적은 것`}
         {dayList.length > 0 && (
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: "'Barlow', sans-serif", letterSpacing: 0 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", letterSpacing: 0 }}>
             {dayList.length}개
           </span>
         )}

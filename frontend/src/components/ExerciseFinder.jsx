@@ -101,7 +101,7 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flexGrow: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
               {ko}
             </span>
             {tag && <span className="badge badge-accent">{tag}</span>}

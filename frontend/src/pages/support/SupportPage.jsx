@@ -57,7 +57,7 @@ function Sec({ children }) {
 
 const Num = ({ children }) => (
   <span style={{
-    fontFamily: "'Bebas Neue', sans-serif", fontSize: '1.35em',
+    fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: '1.35em',
     letterSpacing: 1, color: 'var(--accent)',
   }}>{children}</span>
 );
@@ -155,7 +155,7 @@ export default function SupportPage() {
       {/* 이 페이지가 하는 일을 한 문장으로. 감성 문구는 아래 「이 앱은」으로 내렸다 */}
       <div style={{ marginBottom: 28 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 3,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 3,
           color: 'var(--accent)', margin: '0 0 8px',
         }}>고객센터</h2>
         <p style={{ fontSize: 15, lineHeight: 1.85, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>

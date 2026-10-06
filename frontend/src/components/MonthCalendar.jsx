@@ -137,7 +137,7 @@ export default function MonthCalendar({
                                 ? '1px solid var(--text-muted)'
                                 : `1px solid ${done ? 'var(--accent)' : 'var(--border)'}`,
                         color: done || todo ? 'var(--accent)' : 'var(--text-muted)',
-                        fontFamily: "'Barlow', sans-serif",
+                        fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
                         padding: '6px 2px 5px',
                         overflow: 'hidden',
                       }}

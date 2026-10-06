@@ -219,7 +219,7 @@ export default function HackingSecurityPanel() {
   const shieldBlock = (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-        <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
+        <h2 style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
           지금 막혀 있는 것
         </h2>
         {shield && (
@@ -251,7 +251,7 @@ export default function HackingSecurityPanel() {
               {shield.blocks.map((b) => (
                 <div key={b.ip} className="card" style={{ padding: '10px 12px', borderLeft: '3px solid ' + (b.remaining === null ? TONE.danger : TONE.warn) }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, wordBreak: 'break-all' }}>{b.ip}</span>
+                    <span style={{ fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontSize: 13, wordBreak: 'break-all' }}>{b.ip}</span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LEVEL_TEXT[b.level] || '자동'}</span>
                     <span style={{ fontSize: 11.5, color: b.remaining === null ? TONE.danger : 'var(--text-muted)', marginLeft: 'auto' }}>
                       {leftText(b.remaining)}
@@ -333,7 +333,7 @@ export default function HackingSecurityPanel() {
       {shieldBlock}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
           color: 'var(--accent)', margin: 0,
         }}>보안 로그</h2>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>최근 {logs.length}건</span>
@@ -363,7 +363,7 @@ export default function HackingSecurityPanel() {
             <div key={w.key} className="card" style={{ padding: '12px 14px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{
-                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5,
                   color, lineHeight: 1,
                 }}>{c.today}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>오늘</span>

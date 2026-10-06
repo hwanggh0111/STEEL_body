@@ -207,7 +207,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
               flexGrow: 1, minHeight: 56, cursor: ready ? 'pointer' : 'not-allowed',
               background: ready ? 'var(--accent)' : 'var(--bg-tertiary)',
               border: 'none', color: ready ? 'var(--on-accent)' : 'var(--text-muted)',
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2.5,
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 2.5,
               borderRadius: 'var(--radius)',
             }}
           >찍기</button>

@@ -385,7 +385,7 @@ export default function RoutinePage() {
       {myRoutines.length > 0 && myRoutines.map((r, i) => (
         <div key={r._id || r.id || i} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
+            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
             <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button
               onClick={() => editRoutine(r)}
@@ -432,7 +432,7 @@ export default function RoutinePage() {
         >+ 새 루틴 만들기</button>
       ) : (
         <div className="card" style={{ marginTop: 8, borderColor: 'var(--accent)' }}>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 12 }}>
+          <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 12 }}>
             {editingId ? '루틴 고치기' : '새 루틴 만들기'}
           </div>
 
@@ -635,7 +635,7 @@ export default function RoutinePage() {
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5 }}>{name}</span>
+                    <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5 }}>{name}</span>
                     <span style={{ fontSize: 11, color: isOpen ? 'var(--accent)' : 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
                   </div>
                   {sets && reps && (
@@ -662,7 +662,7 @@ export default function RoutinePage() {
                   paddingTop: 12,
                   borderTop: '1px solid var(--border)',
                 }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>
+                  <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 8 }}>
                     운동 방법
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>

@@ -106,7 +106,7 @@ function ScoreCard({ record, prev, sex }) {
           </div>
         </div>
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 44, letterSpacing: 1,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 44, letterSpacing: 1,
           color: 'var(--text-primary)', lineHeight: 0.9,
         }}>{got.score}</span>
         {/* 지난 번과의 차이. **좋고 나쁨을 색으로 매기지 않는다** — 방향만 나눈다
@@ -131,7 +131,7 @@ function ScoreCard({ record, prev, sex }) {
                   : `범위보다 ${p.off} 아래`}
             </span>
             <span style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 0.5,
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 0.5,
               color: 'var(--text-primary)', width: 32, textAlign: 'right',
             }}>{p.score}</span>
           </div>
@@ -188,7 +188,7 @@ function Numbers({ record, prev }) {
         }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexGrow: 1 }}>{r.label}</span>
           <span style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 1,
             color: 'var(--text-primary)', lineHeight: 1,
           }}>{r.now}</span>
           {r.unit && <span style={{ fontSize: 11.5, color: 'var(--text-muted)', width: 18 }}>{r.unit}</span>}
@@ -257,7 +257,7 @@ export default function BodyReading({ record, prev }) {
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r.scale?.label ?? METRIC_LABELS[r.metric]}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
               <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, letterSpacing: 1,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 30, letterSpacing: 1,
                 color: 'var(--text-primary)', lineHeight: 1,
               }}>{r.value}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.scale?.unit ?? METRIC_UNITS[r.metric]}</span>

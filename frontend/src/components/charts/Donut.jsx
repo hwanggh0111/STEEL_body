@@ -41,7 +41,7 @@ export default function Donut({ data, total, height = 280, width = 320 }) {
           <path d={arc(cx, cy, rOut, rIn, -Math.PI / 2, Math.PI / 2)} fill={one.color} />
           <path d={arc(cx, cy, rOut, rIn, Math.PI / 2, Math.PI * 1.5)} fill={one.color} />
           <text x={cx} y={cy - 4} textAnchor="middle" fontSize="24" fill={CHART.text}
-            fontFamily="'Bebas Neue', sans-serif" letterSpacing="1">{fmt(total || sum)}</text>
+            fontFamily="'Bebas Neue', 'IBM Plex Sans KR', sans-serif" letterSpacing="1">{fmt(total || sum)}</text>
           <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10.5" fill={CHART.muted}>kg</text>
         </svg>
       </div>
@@ -62,7 +62,7 @@ export default function Donut({ data, total, height = 280, width = 320 }) {
         aria-label={'체성분 ' + parts.map(p => p.name + ' ' + fmt(p.value) + 'kg').join(', ')}>
         {slices.map((s, i) => <path key={i} d={s.d} fill={s.color} />)}
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="24" fill={CHART.text}
-          fontFamily="'Bebas Neue', sans-serif" letterSpacing="1">{fmt(total || sum)}</text>
+          fontFamily="'Bebas Neue', 'IBM Plex Sans KR', sans-serif" letterSpacing="1">{fmt(total || sum)}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10.5" fill={CHART.muted}>kg</text>
       </svg>
     </div>

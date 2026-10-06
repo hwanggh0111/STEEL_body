@@ -91,7 +91,7 @@ export default function ProgramList({ onAdopt, adopting }) {
                   <div key={d.name} style={{ marginBottom: 12 }}>
                     <div style={{
                       fontSize: 12, letterSpacing: 1, color: 'var(--accent)',
-                      fontFamily: 'Bebas Neue, sans-serif', marginBottom: 6,
+                      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", marginBottom: 6,
                     }}>{d.name}</div>
                     {d.exercises.map((e) => (
                       <div key={e.name} style={{

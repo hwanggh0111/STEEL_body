@@ -6,7 +6,7 @@ export default function WeightChart({ records }) {
   const data = [...records].reverse().map(r => ({ date: r.date.slice(5), weight: r.weight }));
 
   if (data.length < 2) return (
-    <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13, fontFamily: 'Barlow' }}>
+    <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
       인바디 기록이 2개 이상 있어야 차트가 표시돼요
     </div>
   );

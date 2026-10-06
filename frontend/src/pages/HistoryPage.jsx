@@ -346,7 +346,7 @@ export default function HistoryPage() {
         <button className="btn-secondary" onClick={() => goMonth(-1)} aria-label="지난 달">‹</button>
         <div style={{
           flexGrow: 1, textAlign: 'center',
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
           color: 'var(--text-primary)',
         }}>{ym.year}년 {ym.month}월</div>
         <button className="btn-secondary" onClick={() => goMonth(1)} aria-label="다음 달">›</button>
@@ -557,7 +557,7 @@ export default function HistoryPage() {
         shownDates.map(([date, filtered]) => {
           return (
             <div key={date} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, marginBottom: 6, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.5 }}>
+              <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, marginBottom: 6, fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.5 }}>
                 {date}
               </div>
               {filtered.map((w) => (

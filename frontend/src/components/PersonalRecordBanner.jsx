@@ -47,14 +47,14 @@ export default function PersonalRecordBanner({ record, onClose }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1.5,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5,
           color: 'var(--text-muted)', textDecoration: 'line-through', lineHeight: 1,
         }}>{fmt(prev)}</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 34, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 34, letterSpacing: 2,
           color: 'var(--accent)', lineHeight: 1,
         }}>{fmt(entry)}</span>
       </div>

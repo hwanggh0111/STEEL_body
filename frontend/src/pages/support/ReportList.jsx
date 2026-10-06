@@ -42,7 +42,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
         <div className="accent-bar" />
         내 제보
         <span style={{
-          fontFamily: "'Barlow', sans-serif", fontSize: 12, letterSpacing: 0,
+          fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontSize: 12, letterSpacing: 0,
           color: 'var(--text-muted)', marginLeft: 'auto',
         }}>{items.length}건</span>
       </div>
@@ -238,7 +238,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                           <span style={{
-                            fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
+                            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13,
                             letterSpacing: 1.5, color: 'var(--accent)',
                           }}>답변</span>
                           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dayOf(item.reply_at)}</span>

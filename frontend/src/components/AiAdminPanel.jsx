@@ -170,7 +170,7 @@ export default function AiAdminPanel() {
   const Num = ({ label, value, color }) => (
     <div className="card" style={{ padding: '12px 14px' }}>
       <div style={{
-        fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 1.5, lineHeight: 1,
+        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 1.5, lineHeight: 1,
         color: value > 0 ? (color || 'var(--accent)') : 'var(--text-muted)',
       }}>{Number(value || 0).toLocaleString()}</div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 5 }}>{label}</div>
@@ -181,7 +181,7 @@ export default function AiAdminPanel() {
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
           color: 'var(--accent)', margin: 0,
         }}>AI 관리자</h2>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -236,7 +236,7 @@ export default function AiAdminPanel() {
         ].map((t) => (
           <div key={t.label} className="card" style={{ padding: 10, textAlign: 'center' }}>
             <div style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 20,
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20,
               color: t.value > 0 ? t.color : 'var(--text-muted)',
             }}>{t.value || 0}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.label}</div>

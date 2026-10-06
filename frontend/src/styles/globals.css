@@ -94,7 +94,7 @@ button:active:not(:disabled),
 
 /* ─── 타이포그래피 ─────────────────── */
 body {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Barlow', 'IBM Plex Sans KR', sans-serif;
   font-size: 15px;
   font-weight: 400;
   color: var(--text-primary);
@@ -116,15 +116,15 @@ body::before {
 }
 
 /* 제목 — Bebas Neue */
-.display-xl  { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px; }
-.display-lg  { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 4px; }
-.display-md  { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 3px; }
-.display-sm  { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; }
-.display-xs  { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 1.5px; }
+.display-xl  { font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif; font-size: 48px; letter-spacing: 4px; }
+.display-lg  { font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif; font-size: 36px; letter-spacing: 4px; }
+.display-md  { font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif; font-size: 24px; letter-spacing: 3px; }
+.display-sm  { font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif; font-size: 18px; letter-spacing: 2px; }
+.display-xs  { font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif; font-size: 14px; letter-spacing: 1.5px; }
 
 /* 라벨 */
 .label {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Barlow', 'IBM Plex Sans KR', sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -139,7 +139,7 @@ body::before {
   background: var(--bg-tertiary);
   border: 1px solid var(--accent);
   color: var(--accent);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 17px;
   letter-spacing: 2px;
   padding: 13px 24px;
@@ -155,7 +155,7 @@ body::before {
   background: none;
   border: 1px solid var(--border-hover);
   color: var(--text-secondary);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 14px;
   letter-spacing: 1.5px;
   padding: 8px 20px;
@@ -172,7 +172,7 @@ body::before {
   border: 1px solid var(--border);
   color: var(--text-primary);
   padding: 11px 14px;
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Barlow', 'IBM Plex Sans KR', sans-serif;
   font-size: 14px;
   border-radius: var(--radius);
   width: 100%;
@@ -207,7 +207,7 @@ body::before {
 
 /* ─── 뱃지 ─────────────────────────── */
 .badge {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 11px;
   letter-spacing: 1px;
   padding: 2px 8px;
@@ -227,7 +227,7 @@ body::before {
   overflow-x: auto;
 }
 .tab-item {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 16px;
   letter-spacing: 2px;
   padding: 12px 16px;
@@ -257,7 +257,7 @@ body::before {
   align-items: center;
   gap: 8px;
   margin-bottom: 14px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   color: var(--text-primary);
@@ -286,14 +286,14 @@ body::before {
   text-align: center;
 }
 .stat-number {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 36px;
   color: var(--accent);
   letter-spacing: 2px;
   line-height: 1;
 }
 .stat-label {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Barlow', 'IBM Plex Sans KR', sans-serif;
   font-size: 11px;
   color: var(--text-muted);
   font-weight: 600;
@@ -308,7 +308,7 @@ body::before {
   transform: translateX(-50%);
   background: var(--accent);
   color: #12100c;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 15px;
   letter-spacing: 1.5px;
   padding: 11px 22px;
@@ -332,14 +332,14 @@ body::before {
   color: var(--text-muted);
 }
 .empty-state-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'IBM Plex Sans KR', sans-serif;
   font-size: 44px;
   letter-spacing: 4px;
   margin-bottom: 8px;
   color: var(--text-secondary);
 }
 .empty-state-desc {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Barlow', 'IBM Plex Sans KR', sans-serif;
   font-size: 13px;
   color: var(--text-muted);
 }

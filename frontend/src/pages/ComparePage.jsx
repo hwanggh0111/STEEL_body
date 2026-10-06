@@ -96,7 +96,7 @@ function ChangeRow({ c }) {
         <span style={{ fontSize: 15, color: 'var(--text-muted)' }}>&#8594;</span>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{c.after}{c.unit}</span>
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1,
           color: dirColor(c.dir), minWidth: 58, textAlign: 'right', flexShrink: 0,
         }}>{diffLabel(c)}</span>
       </div>
@@ -168,7 +168,7 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{
-        fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.5,
+        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.5,
         color: accentBorder ? 'var(--accent)' : 'var(--text-muted)',
         marginBottom: 4, textAlign: 'center',
       }}>{label}</div>

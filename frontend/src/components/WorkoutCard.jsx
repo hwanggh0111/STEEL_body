@@ -16,7 +16,7 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
     <div className="card list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 11, marginBottom: 8 }}>
       <MiniBody exercise={workout.exercise} />
       <div style={{ minWidth: 0, flexGrow: 1 }}>
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
+        <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
           {workout.exercise}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>

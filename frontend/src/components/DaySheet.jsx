@@ -91,7 +91,7 @@ export default function DaySheet({
         padding: '13px 15px 11px', flexWrap: 'wrap',
       }}>
         <span style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 1.5,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 1.5,
           color: 'var(--text-primary)',
         }}>{dayLabel(date)}</span>
         {until && <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{until}</span>}

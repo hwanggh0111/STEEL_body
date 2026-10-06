@@ -163,11 +163,11 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
                 style={{
                   textAlign: 'left', minHeight: 76, cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4,
-                  fontFamily: "'Barlow', sans-serif",
+                  fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
                 }}
               >
                 <span style={{
-                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
                   color: 'var(--text-primary)',
                 }}>{t.label}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t.desc}</span>
@@ -211,7 +211,7 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <button className="btn-secondary" onClick={() => setTab(null)}>‹ 도구 고르기</button>
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 1.5,
             color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{TABS.find(t => t.key === tab)?.label}</div>
         </div>

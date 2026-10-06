@@ -94,7 +94,7 @@ export default function YearWall({ onPickMonth }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4, marginBottom: 8 }}>
               <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1.6,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
                 color: m.count > 0 ? 'var(--text-secondary)' : 'var(--border-hover)',
               }}>{m.name}</span>
               <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>

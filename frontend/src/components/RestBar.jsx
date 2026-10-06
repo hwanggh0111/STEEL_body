@@ -105,7 +105,7 @@ export default function RestBar({ bottom = 58 }) {
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5,
             color, lineHeight: 1,
           }}>{finished ? '휴식 끝' : formatLeft(leftMs)}</span>
           <span style={{

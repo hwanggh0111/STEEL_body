@@ -43,7 +43,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{session.name}</div>
           <span className="badge badge-accent" style={{ flexShrink: 0 }}>진행 중</span>
@@ -75,7 +75,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
     return (
       <div className="card" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
             오늘 {todayWorkouts.length}개
           </span>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
@@ -119,7 +119,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)' }}>
             오늘 할 것
           </span>
           <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>달력에 담아두셨어요</span>
@@ -145,7 +145,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                   padding: '12px 14px', background: 'var(--bg-primary)', textAlign: 'left',
-                  fontFamily: "'Barlow', sans-serif", cursor: starting ? 'wait' : 'pointer',
+                  fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", cursor: starting ? 'wait' : 'pointer',
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -189,7 +189,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                   padding: '12px 14px', background: 'var(--bg-primary)', textAlign: 'left',
-                  fontFamily: "'Barlow', sans-serif", cursor: starting ? 'wait' : 'pointer',
+                  fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", cursor: starting ? 'wait' : 'pointer',
                 }}
               >
                 <span style={{

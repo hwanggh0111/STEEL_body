@@ -68,7 +68,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
+          <h2 style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
             비밀번호 변경
           </h2>
           <button

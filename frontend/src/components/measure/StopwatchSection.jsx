@@ -113,7 +113,7 @@ export default function StopwatchSection({ onSave }) {
 
       <div style={{ textAlign: 'center', padding: 20 }}>
         <div style={{
-          fontFamily: "'Bebas Neue', sans-serif",
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
           fontSize: 56,
           color: running ? 'var(--accent)' : 'var(--text-primary)',
           letterSpacing: 4,
@@ -146,7 +146,7 @@ export default function StopwatchSection({ onSave }) {
           {laps.map((l, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < laps.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>랩 {laps.length - i}</span>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, color: 'var(--accent)', letterSpacing: 1 }}>{formatTime(l)}</span>
+              <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, color: 'var(--accent)', letterSpacing: 1 }}>{formatTime(l)}</span>
             </div>
           ))}
         </div>

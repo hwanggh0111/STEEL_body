@@ -316,7 +316,7 @@ export default function InbodyPage({ embedded = false }) {
       {latestRecord && !formOpen && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 34, letterSpacing: 2, color: 'var(--accent)', lineHeight: 1 }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 34, letterSpacing: 2, color: 'var(--accent)', lineHeight: 1 }}>
               {latestRecord.weight}
             </span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>kg</span>

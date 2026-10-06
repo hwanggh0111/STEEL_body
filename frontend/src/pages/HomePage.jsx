@@ -91,7 +91,7 @@ function BodyLine({ records, onGo }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
         <span className="label" style={{ marginBottom: 0 }}>최근 체중</span>
-        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 1.5, color: 'var(--accent)' }}>
+        <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5, color: 'var(--accent)' }}>
           {latest.weight}kg
         </span>
         {delta !== null && delta !== 0 && (
@@ -378,7 +378,7 @@ export default function HomePage() {
                     주 <span style={{ color: 'var(--accent)' }}>{weekGoal.target}</span>회 목표
                   </span>
                   <span>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1, color: weekGoal.met ? 'var(--success)' : 'var(--accent)' }}>
+                    <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 1, color: weekGoal.met ? 'var(--success)' : 'var(--accent)' }}>
                       {weekGoal.done}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}> / {weekGoal.target}</span>

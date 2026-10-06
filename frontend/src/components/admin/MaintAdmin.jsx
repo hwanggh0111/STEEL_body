@@ -67,7 +67,7 @@ function MaintForm({ kind, onSchedule }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ color: kind.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kind.icon} size={20} /></span>
         <div>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, color: kind.color }}>{kind.label}</div>
+          <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: kind.color }}>{kind.label}</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{kind.desc}</div>
         </div>
       </div>
@@ -292,7 +292,7 @@ export default function MaintAdmin() {
       {editing !== null && (
         <div className="card" style={{ marginBottom: 16, padding: 16 }}>
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
             color: 'var(--accent)', marginBottom: 12,
           }}>
             {editing === 'new' ? '새 점검 스케줄' : '스케줄 수정'}
@@ -394,7 +394,7 @@ export default function MaintAdmin() {
                   <span style={{ color: kind.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kind.icon} size={20} /></span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{
-                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 1.5,
+                      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 1.5,
                       color: 'var(--text-primary)',
                       display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                     }}>
@@ -404,7 +404,7 @@ export default function MaintAdmin() {
                           목록만 보고는 알 수 없었다 */}
                       {live && (
                         <span style={{
-                          fontFamily: "'Barlow', sans-serif", fontSize: 11, fontWeight: 700,
+                          fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontSize: 11, fontWeight: 700,
                           letterSpacing: 0, padding: '2px 8px', borderRadius: 'var(--radius)',
                           background: kind.color, color: kind.btnText,
                         }}>지금 도는 중</span>

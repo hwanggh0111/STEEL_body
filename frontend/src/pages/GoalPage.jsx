@@ -68,7 +68,7 @@ function GoalForm({ goal, latestWeight, onSave, onCancel, saving }) {
               // 누른 것을 다시 누르면 꺼진다 — 주 횟수 목표를 안 쓰는 길이다
               onClick={() => setWeekly(on ? null : n)}
               style={{
-                flex: '1 0 38px', padding: '9px 0', fontFamily: "'Bebas Neue', sans-serif",
+                flex: '1 0 38px', padding: '9px 0', fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
                 fontSize: 17, letterSpacing: 1,
                 background: on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
@@ -217,7 +217,7 @@ export default function GoalPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
+        <h1 style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
           내 목표
         </h1>
         {hasGoal(goal) && !editing && (
@@ -276,7 +276,7 @@ export default function GoalPage() {
               <div className="card" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
                   <span>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 1.5, color: 'var(--accent)' }}>
+                    <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5, color: 'var(--accent)' }}>
                       {streak?.current ?? 0}
                     </span>
                     <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> 주 연속</span>
@@ -329,7 +329,7 @@ export default function GoalPage() {
                         <div style={{
                           fontSize: 10.5, marginTop: 3,
                           color: w.met ? 'var(--accent)' : 'var(--text-muted)',
-                          fontFamily: w.before ? 'inherit' : "'Bebas Neue', sans-serif",
+                          fontFamily: w.before ? 'inherit' : "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
                           letterSpacing: w.before ? 0 : 0.5,
                         }}>{w.before ? '·' : w.done}</div>
                       </div>

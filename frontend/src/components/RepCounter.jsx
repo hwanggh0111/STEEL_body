@@ -170,7 +170,7 @@ export default function RepCounter({ exercise, onDone, onClose }) {
             {live && (
               <div style={{
                 position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center',
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 88, lineHeight: 1,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 88, lineHeight: 1,
                 color: 'var(--accent)', textShadow: '0 2px 12px rgba(0,0,0,0.6)',
               }}>{count}</div>
             )}

@@ -20,7 +20,7 @@ import pkg from '../../package.json';
 function Num({ children }) {
   return (
     <span style={{
-      fontFamily: "'Bebas Neue', sans-serif", fontSize: 26,
+      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26,
       color: 'var(--accent)', letterSpacing: 1, verticalAlign: -1,
     }}>{children}</span>
   );
@@ -102,7 +102,7 @@ export default function IntroPage({ embedded = false }) {
             }}
           >
             <span style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13,
               color: 'var(--text-muted)', width: 20, flexShrink: 0,
             }}>{String(i + 1).padStart(2, '0')}</span>
             <span style={{ color: 'var(--text-muted)', display: 'flex', flexShrink: 0, alignSelf: 'center' }} aria-hidden="true">
@@ -118,7 +118,7 @@ export default function IntroPage({ embedded = false }) {
         onClick={() => navigate('/train')}
         style={{
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
           color: 'var(--accent)', borderBottom: '2px solid var(--accent)',
           paddingBottom: 4, marginTop: 26,
         }}

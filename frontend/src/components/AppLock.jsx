@@ -218,7 +218,7 @@ export default function AppLock() {
             disabled={left > 0}
             aria-label={k === '←' ? '지우기' : k}
             style={{
-              height: 62, fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2,
+              height: 62, fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 2,
               background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius)', color: 'var(--text-primary)',
               cursor: left > 0 ? 'default' : 'pointer',

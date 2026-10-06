@@ -100,7 +100,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
+          <h2 style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)' }}>
             {making ? '비밀번호 만들기' : '비밀번호 재설정'}
           </h2>
           <button
@@ -223,7 +223,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
                 style={{
                   background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)',
                   padding: '11px 16px', cursor: 'pointer', fontSize: 14, borderRadius: 'var(--radius)',
-                  fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.5,
                 }}
               >이전</button>
               <button className="btn-primary" type="submit" disabled={loading} style={{ flex: 1 }}>
@@ -236,7 +236,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
         {step === 3 && (
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
-            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--success)', marginBottom: 8 }}>
+            <h3 style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--success)', marginBottom: 8 }}>
               {making ? '비밀번호가 생겼어요' : '재설정 완료!'}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>

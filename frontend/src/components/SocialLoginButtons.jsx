@@ -48,7 +48,7 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
             width: '100%', padding: '12px 16px',
             border: '1px solid #dadce0', borderRadius: 'var(--radius)',
             background: '#ffffff', color: '#3c4043',
-            fontSize: 14, fontWeight: 600, fontFamily: "'Barlow', sans-serif",
+            fontSize: 14, fontWeight: 600, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
             cursor: disabled ? 'not-allowed' : 'pointer',
           }}
         >
@@ -73,7 +73,7 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
               style={{
                 flexGrow: 1, padding: '11px 0', border: 'none', borderRadius: 'var(--radius)',
                 background: o.background, color: o.color,
-                fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', sans-serif",
+                fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
                 cursor: disabled ? 'not-allowed' : 'pointer',
               }}
             >{o.label}</button>

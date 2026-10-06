@@ -37,7 +37,7 @@ function Chips({ options, value, onPick, allowFree }) {
             onClick={() => pick(on ? '' : o)}
             style={{
               minWidth: 44, minHeight: 40, padding: '0 12px',
-              fontFamily: o.length > 2 ? 'inherit' : "'Bebas Neue', sans-serif",
+              fontFamily: o.length > 2 ? 'inherit' : "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
               fontSize: o.length > 2 ? 13 : 17, letterSpacing: o.length > 2 ? 0 : 1,
               background: on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
               border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
@@ -306,7 +306,7 @@ export default function GymSetting({ exercise }) {
                   「넓게」를 그 글꼴로 쓰면 대체 글꼴로 떨어지면서 자간이 어긋난다
                   (캡처에서 글자가 겹쳐 보였다). 우리말은 본문 글꼴로 둔다 */}
               <div style={{
-                fontFamily: /^[\d.]+$/.test(f.value) ? "'Bebas Neue', sans-serif" : 'inherit',
+                fontFamily: /^[\d.]+$/.test(f.value) ? "'Bebas Neue', 'IBM Plex Sans KR', sans-serif" : 'inherit',
                 letterSpacing: /^[\d.]+$/.test(f.value) ? 1 : 0,
                 fontWeight: /^[\d.]+$/.test(f.value) ? 400 : 600,
                 color: 'var(--accent)',

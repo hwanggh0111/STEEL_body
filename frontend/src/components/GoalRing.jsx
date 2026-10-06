@@ -32,7 +32,7 @@ function GoalRing({ size = 74, stroke = 7, ratio = 0, main, sub, done = false })
         alignItems: 'center', justifyContent: 'center', gap: 1,
       }}>
         <div style={{
-          fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1,
           fontSize: Math.round(size * 0.31), lineHeight: 1,
           color: done ? 'var(--success)' : 'var(--accent)',
         }}>

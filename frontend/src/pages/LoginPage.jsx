@@ -293,7 +293,7 @@ function oauthErrorText(code) {
         {savedNickname && (
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>돌아오셨군요!</div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)', marginTop: 4 }}>
+            <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)', marginTop: 4 }}>
               {savedNickname}
             </div>
           </div>

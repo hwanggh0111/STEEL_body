@@ -115,12 +115,12 @@ function NextSet({ view }) {
           {/* 맨몸운동은 무게가 0 이다 — 「0kg」이라고 적지 않는다 */}
           {weight > 0 && (
             <>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, letterSpacing: 1, color: 'var(--accent)', lineHeight: 1 }}>{weight}</span>
+              <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 38, letterSpacing: 1, color: 'var(--accent)', lineHeight: 1 }}>{weight}</span>
               <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>kg</span>
             </>
           )}
           <span style={{
-            fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, lineHeight: 1,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1, lineHeight: 1,
             fontSize: weight > 0 ? 26 : 38, color: weight > 0 ? 'var(--text-primary)' : 'var(--accent)',
             marginLeft: weight > 0 ? 6 : 0,
           }}>{reps}</span>
@@ -223,7 +223,7 @@ export default function RestTimer() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             <Ring ratio={ratio}>
               <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 56, letterSpacing: 3,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 56, letterSpacing: 3,
                 color: paused ? 'var(--text-muted)' : 'var(--text-primary)', lineHeight: 1,
               }}>{formatLeft(leftMs)}</span>
               <span style={{ fontSize: 12, color: paused ? 'var(--warning)' : 'var(--text-muted)' }}>

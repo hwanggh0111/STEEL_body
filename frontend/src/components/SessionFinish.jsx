@@ -134,7 +134,7 @@ export default function SessionFinish() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
             <span style={{
-              fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(58px, 20vw, 82px)',
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 'clamp(58px, 20vw, 82px)',
               lineHeight: 0.84, letterSpacing: 2, color: 'var(--accent)',
             }}>{weighted ? shown.toLocaleString() : sets}</span>
             <span className="label" style={{ marginBottom: 0, fontSize: 13, letterSpacing: 3, color: 'var(--text-secondary)' }}>

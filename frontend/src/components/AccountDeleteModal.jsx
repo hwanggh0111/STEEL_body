@@ -77,7 +77,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2,
             color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <NavIcon name="ban" size={19} />계정 삭제

@@ -106,7 +106,7 @@ function Todo({ pending, onGo }) {
         <>
           {pending.open > 0 && (
             <div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--accent)', lineHeight: 1 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--accent)', lineHeight: 1 }}>
                 {pending.open}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>답을 기다리는 제보</div>
@@ -114,7 +114,7 @@ function Todo({ pending, onGo }) {
           )}
           {pending.abuse > 0 && (
             <div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--danger)', lineHeight: 1 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--danger)', lineHeight: 1 }}>
                 {pending.abuse}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 욕설 신고</div>
@@ -152,7 +152,7 @@ function NewErrors({ count, loaded, onGo }) {
       }}
     >
       <div style={{
-        fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 1.5,
+        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 1.5,
         color: 'var(--warning)', lineHeight: 1,
       }}>{count}</div>
       <div style={{ minWidth: 0 }}>
@@ -186,7 +186,7 @@ export default function AdminPage() {
           <NavIcon name="lock" size={48} />
         </div>
         <div style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 22,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22,
           letterSpacing: 2, color: 'var(--danger)', marginBottom: 8,
         }}>ACCESS DENIED</div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
@@ -223,7 +223,7 @@ export default function AdminPage() {
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
         <div>
           <h2 style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 22,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22,
             letterSpacing: 2, color: 'var(--accent)', margin: '0 0 4px',
           }}>ADMIN</h2>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
@@ -256,7 +256,7 @@ export default function AdminPage() {
           </span>
         </button>
         <div style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 1.5,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 1.5,
           color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{current?.label}</div>
       </div>
@@ -278,7 +278,7 @@ export default function AdminPage() {
                       style={{
                         textAlign: 'left', minHeight: 84, cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4,
-                        fontFamily: "'Barlow', sans-serif",
+                        fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
                         borderColor: active ? 'var(--accent)' : 'var(--border)',
                       }}
                     >
@@ -287,7 +287,7 @@ export default function AdminPage() {
                           <NavIcon name={t.icon} size={18} />
                         </span>
                         <span style={{
-                          fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
                           color: active ? 'var(--accent)' : 'var(--text-primary)',
                         }}>{t.label}</span>
                         {badge > 0 && <span className="badge badge-accent">{badge}</span>}

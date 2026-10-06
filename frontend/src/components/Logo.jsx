@@ -54,6 +54,7 @@ export function LogoMark({ size = 24, style }) {
 export function LogoWord({ cap = 19, style }) {
   return (
     <span style={{
+      // 라틴 전용 — 적히는 글이 `blackiron` 하나다. 한글이 올 자리가 없다
       fontFamily: "'Playfair Display', 'Times New Roman', serif",
       fontWeight: 400,
       // **흘림(이탤릭).** 곧게 선 글자는 인쇄물이고, 기울면 손으로 쓴 것이 된다 —
@@ -124,7 +125,8 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record you
         {subtitle ? (
           <span style={{
             // 부제도 같은 흘림으로 — 대문자로 적으면 다시 표지판이 된다
-            fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 400,
+            // 부제는 **넘겨받는 글**이라 한글이 올 수 있다 — Playfair 에는 한글이 없다
+            fontFamily: "'Playfair Display', 'IBM Plex Sans KR', serif", fontStyle: 'italic', fontWeight: 400,
             fontSize: cap * 0.46, letterSpacing: cap * 0.01,
             color: 'var(--accent-low)', whiteSpace: 'nowrap',
           }}>{subtitle}</span>

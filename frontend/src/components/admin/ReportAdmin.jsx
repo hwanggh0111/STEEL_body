@@ -218,10 +218,10 @@ function Ratings() {
   return (
     <div className="card" style={{ marginBottom: 16, padding: 14 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+        <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
           만족도
         </span>
-        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'var(--text-primary)' }}>
+        <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, color: 'var(--text-primary)' }}>
           {stats.avg}
         </span>
         <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{stats.count}명</span>

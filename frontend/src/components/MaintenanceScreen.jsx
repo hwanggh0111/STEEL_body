@@ -248,7 +248,7 @@ export default function MaintenanceScreen({ children }) {
         </div>
 
         <div style={{
-          fontFamily: "'Bebas Neue', sans-serif",
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
           fontSize: 24, letterSpacing: 3, color: kind.color, marginBottom: 26,
         }}>
           {kind.title}
@@ -265,7 +265,7 @@ export default function MaintenanceScreen({ children }) {
         }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>남은 시간</div>
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif",
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
             fontSize: 34, letterSpacing: 2, color: kind.color, lineHeight: 1,
           }}>
             {formatTime(Math.max(0, info.remainSec))}

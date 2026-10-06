@@ -65,11 +65,11 @@ export default function OneRMSection({ records, onSave, onDelete }) {
           {records.slice(0, 5).map(r => (
             <div key={r.id} className="card" style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1 }}>{r.data?.exercise}</span>
+                <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1 }}>{r.data?.exercise}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>{r.data?.weight}kg × {r.data?.reps}회</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: 'var(--accent)' }}>{r.data?.orm}kg</span>
+                <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, color: 'var(--accent)' }}>{r.data?.orm}kg</span>
                 {onDelete && <button className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>}
               </div>
             </div>

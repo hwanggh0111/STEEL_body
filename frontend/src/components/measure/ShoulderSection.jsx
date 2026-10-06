@@ -43,7 +43,7 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
     <div style={{ marginBottom: 24 }}>
       <div className="section-title"><div className="accent-bar" />어깨 측정</div>
       <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent)' }}>
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 6 }}>측정 방법</div>
+        <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 6 }}>측정 방법</div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
           1. 줄자를 준비하세요<br />
           2. 왼쪽 어깨 끝(견봉) → 오른쪽 어깨 끝(견봉)까지 측정<br />
@@ -85,7 +85,7 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
           <div className="card" style={{ marginBottom: 12, background: 'var(--bg-tertiary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13 }}>어깨 : 허리</span>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 1.5, color: 'var(--accent)' }}>
+              <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 1.5, color: 'var(--accent)' }}>
                 {ratio}
               </span>
             </div>

@@ -306,7 +306,7 @@ export default function RemindersPage() {
         </div>
         <div style={{ flexGrow: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>BLACK IRON</span>
+            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>BLACK IRON</span>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label24(settings.time)}</span>
           </div>
           {/* **미리보기는 설정을 따라가야 한다** (2026-09-17 에 캡처로 잡았다).

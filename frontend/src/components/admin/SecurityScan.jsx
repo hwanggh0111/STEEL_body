@@ -71,7 +71,7 @@ export default function SecurityScan() {
         <div style={{ marginBottom: 24 }}>
           <div className="card" style={{ padding: 20, marginBottom: 16, borderColor: gradeColor(result.grade), textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>보안 등급</div>
-            <div style={{ fontSize: 64, fontFamily: "'Bebas Neue', sans-serif", color: gradeColor(result.grade), lineHeight: 1 }}>{result.grade}</div>
+            <div style={{ fontSize: 64, fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", color: gradeColor(result.grade), lineHeight: 1 }}>{result.grade}</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8 }}>
               {result.summary.safe}/{result.summary.total} SAFE | CRITICAL {result.summary.critical} | HIGH {result.summary.high}
             </div>

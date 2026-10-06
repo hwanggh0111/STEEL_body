@@ -19,7 +19,7 @@ import { confirmDialog } from './ConfirmModal';
 //   그때 남는 길은 로그아웃뿐이다
 
 const box = {
-  letterSpacing: 8, textAlign: 'center', fontFamily: "'Bebas Neue', sans-serif",
+  letterSpacing: 8, textAlign: 'center', fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
   fontSize: 20, padding: '10px 12px',
 };
 

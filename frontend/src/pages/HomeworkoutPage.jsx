@@ -103,7 +103,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)' }}>
           {/* 듣고 있다는 표시는 **늘 켜둔다** — 마이크가 켜진 것을 모르는 채로 두지 않는다 */}
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', boxShadow: '0 0 0 3px rgba(127,168,217,0.16)' }} />
           숨
@@ -155,7 +155,7 @@ function PumpRow({ pump, next }) {
     <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
       <PumpBody pump={pump} width={62} now={nextParts} />
       <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+        <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
           여기까지 채운 곳
         </div>
         {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
@@ -198,7 +198,7 @@ function ProgramPump({ list }) {
     }}>
       <PumpBody pump={pump} width={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+        <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
           이 판이 채우는 곳
         </div>
         {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
@@ -723,7 +723,7 @@ export default function HomeworkoutPage() {
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer', gap: 10 }}
               >
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2 }}>{name}</div>
+                  <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 2 }}>{name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                     {exs.length}개 운동 · 약 {Math.ceil(total / 60)}분 · {open ? '접기' : '눌러서 미리 보기'}
                   </div>
@@ -867,7 +867,7 @@ export default function HomeworkoutPage() {
             <NavIcon name="flame" size={40} />
           </div>
           <div style={{
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, letterSpacing: 3,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 30, letterSpacing: 3,
             color: 'var(--accent)', marginBottom: 8,
           }}>다 했어요</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
@@ -889,7 +889,7 @@ export default function HomeworkoutPage() {
               숨이 찬 것과 근육이 타는 것은 다른 일이고 마이크는 앞의 것만 듣는다 */}
           {hardest.length > 0 && (
             <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
                 숨이 제일 찼던 동작
               </div>
               {hardest.map((m, i) => {
@@ -916,7 +916,7 @@ export default function HomeworkoutPage() {
               정직한 선이다 (`recoverSummary` 에 적어둔 것) */}
           {recSum && (
             <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)', textAlign: 'left' }}>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
                 숨이 가라앉는 데 걸린 시간
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>
@@ -997,13 +997,13 @@ export default function HomeworkoutPage() {
             }} />
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 12, color: isRest ? 'var(--info)' : 'var(--accent)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
+            <div style={{ fontSize: 12, color: isRest ? 'var(--info)' : 'var(--accent)', fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 2, marginBottom: 4 }}>
               {isRest ? '휴식' : `${currentIdx + 1} / ${exercises.length}`}
             </div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 3, marginBottom: 8, color: isRest ? 'var(--info)' : 'var(--text-primary)' }}>
+            <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 3, marginBottom: 8, color: isRest ? 'var(--info)' : 'var(--text-primary)' }}>
               {isRest ? 'REST' : current.name}
             </div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 64, color: isRest ? 'var(--info)' : 'var(--accent)', lineHeight: 1 }}>
+            <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 64, color: isRest ? 'var(--info)' : 'var(--accent)', lineHeight: 1 }}>
               {timeLeft}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>초</div>
@@ -1044,7 +1044,7 @@ export default function HomeworkoutPage() {
               nextEx && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>다음</div>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, marginTop: 2 }}>
+                  <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 2, marginTop: 2 }}>
                     {nextEx.name} <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{nextEx.duration}초</span>
                   </div>
                   {descOf(nextEx.name) && (
@@ -1116,9 +1116,9 @@ export default function HomeworkoutPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
-                <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: 'var(--text-muted)', width: 20, flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, color: 'var(--text-muted)', width: 20, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1 }}>{ex.name}</span>
+                  <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1 }}>{ex.name}</span>
                   {/* 어떻게 하는지를 여기에도 둔다 — 시작하기 전에 훑어보는 자리다 */}
                   {descOf(ex.name) && (
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>{descOf(ex.name)}</div>

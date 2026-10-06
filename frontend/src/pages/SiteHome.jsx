@@ -43,7 +43,7 @@ function Box({ id, title, more, onMore, children, style }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
         <span style={{ width: 3, height: 15, background: 'var(--accent)', flexShrink: 0 }} />
         <h2 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 2,
           color: 'var(--text-primary)', margin: 0, fontWeight: 400,
         }}>{title}</h2>
         {more && (
@@ -407,7 +407,7 @@ export default function SiteHome() {
           )}
           <button type="submit" style={{
             flexShrink: 0, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
-            fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
             padding: '7px 14px', borderRadius: 'var(--radius)', cursor: 'pointer',
           }}>찾기</button>
         </form>

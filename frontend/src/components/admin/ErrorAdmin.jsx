@@ -127,7 +127,7 @@ export default function ErrorAdmin() {
           }}>
             <div>
               <span style={{
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 1,
+                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
                 color: 'var(--accent)', lineHeight: 1,
               }}>{rows.length}</span>
               <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginLeft: 6 }}>
@@ -154,7 +154,7 @@ export default function ErrorAdmin() {
                     style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
                   >
                     <div style={{
-                      fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 1,
+                      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
                       // 여러 번 난 것은 **여러 사람이 걸린 길**이다. 한 번과 다르게 보여야 한다
                       color: g.count >= 3 ? 'var(--danger)' : 'var(--text-secondary)',
                       lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0,
