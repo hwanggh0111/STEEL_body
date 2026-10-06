@@ -117,10 +117,40 @@ export default function Layout() {
     window.scrollTo(0, 0);
   }, [location.pathname, navType]);
 
+  // ── 「맨 위로」를 스크롤로 재지 않는다 ── (2026-10-06)
+  //
+  // 앞서는 이랬다 —
+  //
+  //     const handleScroll = () => setShowTopBtn(window.scrollY > 300);
+  //     window.addEventListener('scroll', handleScroll);
+  //
+  // 두 가지가 나쁘다.
+  //
+  // **1. 패시브가 아니다.** 그러면 브라우저는 이 손이 스크롤을 **막을 수도 있다**고
+  // 보고 **기다린다** — 폰에서 스크롤이 끈적해지는 전형적인 자리다. 이 앱은 폰이
+  // 주 무대고 기록 목록은 몇 백 줄이다. 홈페이지(`/site`)는 `{ passive: true }` 를
+  // 쓰는데(10/5), **앱의 틀에는 그 교훈이 안 와 있었다.**
+  //
+  // **2. 앱 전체를 감싸는 자리에서 매 이벤트마다 `setState` 를 부른다.** 같은 값이면
+  // React 가 건너뛰지만, 300px 경계를 넘나드는 순간에는 **앱이 통째로 다시 그려진다** —
+  // 목록 한가운데에서 손가락을 떨면 그 리렌더가 연달아 난다.
+  //
+  // 그래서 **스크롤을 아예 안 듣는다.** 머리 아래 300px 자리에 보이지 않는 표를
+  // 하나 두고, 그것이 화면에서 벗어났나만 본다 — 관찰자는 **들어오고 나갈 때
+  // 두 번만** 깨운다. 오늘 설정함의 칩 줄에서 쓴 것과 같은 방식이다.
+  const topMarkRef = useRef(null);
   useEffect(() => {
-    const handleScroll = () => setShowTopBtn(window.scrollY > 300);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const el = topMarkRef.current;
+    if (!el) return;
+    // 관찰자를 못 쓰는 브라우저에서는 단추를 안 그린다 — 없어도 맨 위로 올릴
+    // 길은 있다(스크롤). 쓰려고 패시브 아닌 손을 되돌릴 자리가 아니다
+    if (typeof IntersectionObserver !== 'function') return;
+    const io = new IntersectionObserver(
+      ([entry]) => setShowTopBtn(!entry.isIntersecting),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const goHome = useCallback(() => {
@@ -569,9 +599,23 @@ export default function Layout() {
         <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
       </div>
 
+      {/* 보이지 않는 표. **300px 자리**에 두고 이것이 화면에서 벗어나면 단추를
+          그린다 — 스크롤을 안 듣고 같은 일을 한다 (위 `topMarkRef` 참고).
+          `position: absolute` 라 어느 화면의 자리도 안 밀어낸다 */}
+      <span
+        ref={topMarkRef}
+        aria-hidden="true"
+        style={{ position: 'absolute', top: 300, left: 0, width: 1, height: 1, pointerEvents: 'none' }}
+      />
+
       {showTopBtn && (
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => {
+            // 글자 움직임을 줄여둔 사람에게는 **스르륵 없이** 바로 올린다 —
+            // 멀미가 나는 움직임이다 (오늘 설정함 칩 줄과 같은 판단)
+            const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+          }}
           style={{
             position: 'fixed', bottom: isPC ? 30 : 90, left: 20,
             width: 40, height: 40, borderRadius: '50%',
@@ -580,6 +624,9 @@ export default function Layout() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 50, transition: 'opacity 0.2s',
           }}
+          // `title` 만으로는 읽어주는 도구가 늘 읽지 않는다. 「↑」 하나는
+          // 무슨 단추인지 알 수 없는 글자다
+          aria-label="맨 위로"
           title="맨 위로"
         >↑</button>
       )}
