@@ -58,6 +58,16 @@ const TABS = [
 
 import RoutineNotes from './routine/RoutineNotes';
 import ProgramList from './routine/ProgramList';
+// 운동 이름 칸 — **치는 동안 사전이 거든다** (2026-10-06).
+//
+// 여태 이 폼만 운동 이름을 **맨 글자로** 받았다. 앱에 사전이 437개 있고 「운동」 탭과
+// 「운동 검색」은 그것을 쓰는데 여기만 안 썼다.
+//
+// 그게 그냥 불편한 정도가 아니다. **루틴은 그 사람이 매번 하는 운동**이다 —
+// 이름이 사전에 없으면 `bodyPartOf` 가 '기타'로 떨어지고 그 운동은 **몸 지도에
+// 영영 안 들어간다.** 한 번이 아니라 매번. 「랫풀다운」을 「렛풀다운」으로 적어두면
+// 등은 영영 식은 채로 보인다.
+import ExerciseNameInput from '../components/ExerciseNameInput';
 
 export default function RoutinePage() {
   // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
@@ -82,7 +92,11 @@ export default function RoutinePage() {
   const [savingRoutine, setSavingRoutine] = useState(false);
   // 프로그램을 내 루틴으로 옮기는 중. 두 번 눌러 두 벌이 생기는 것을 막는다
   const [adopting, setAdopting] = useState(null);
-  const [newRoutine, setNewRoutine] = useState({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
+  // 줄에 붙이는 번호. **지워도 다시 안 쓴다** — 열쇠로 쓰기 때문에
+  // 되쓰면 지운 줄의 자리가 새 줄에 겹친다
+  const uidRef = useRef(1);
+  const blankRow = () => ({ uid: uidRef.current++, name: '', sets: '', reps: '' });
+  const [newRoutine, setNewRoutine] = useState(() => ({ name: '', exercises: [blankRow()] }));
   const navigate = useNavigate();
   const session = useRoutineSessionStore(s => s.session);
   const startSession = useRoutineSessionStore(s => s.start);
@@ -122,8 +136,8 @@ export default function RoutinePage() {
       name: r.name,
       exercises: (Array.isArray(r.exercises) ? r.exercises : []).map(ex => (
         typeof ex === 'string'
-          ? { name: ex, sets: '', reps: '' }
-          : { name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
+          ? { uid: uidRef.current++, name: ex, sets: '', reps: '' }
+          : { uid: uidRef.current++, name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
       )),
     });
     setShowCreate(true);
@@ -426,7 +440,7 @@ export default function RoutinePage() {
 
       {!showCreate ? (
         <button
-          onClick={() => { setEditingId(null); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); setShowCreate(true); }}
+          onClick={() => { setEditingId(null); setNewRoutine({ name: '', exercises: [blankRow()] }); setShowCreate(true); }}
           className="btn-primary"
           style={{ width: '100%', marginTop: 8 }}
         >+ 새 루틴 만들기</button>
@@ -446,48 +460,56 @@ export default function RoutinePage() {
           />
 
           <label className="label">운동 목록</label>
-          {newRoutine.exercises.map((ex, i) => (
-            <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
-              <input
-                className="input" placeholder="운동명"
-                value={ex.name}
-                onChange={(e) => {
-                  const updated = [...newRoutine.exercises];
-                  updated[i] = { ...updated[i], name: e.target.value };
-                  setNewRoutine({ ...newRoutine, exercises: updated });
-                }}
-                style={{ flex: 2 }}
-              />
-              <input
-                className="input" placeholder="세트" type="number"
-                value={ex.sets}
-                onChange={(e) => {
-                  const updated = [...newRoutine.exercises];
-                  updated[i] = { ...updated[i], sets: e.target.value };
-                  setNewRoutine({ ...newRoutine, exercises: updated });
-                }}
-                style={{ flex: 1 }}
-              />
-              <input
-                className="input" placeholder="회" type="number"
-                value={ex.reps}
-                onChange={(e) => {
-                  const updated = [...newRoutine.exercises];
-                  updated[i] = { ...updated[i], reps: e.target.value };
-                  setNewRoutine({ ...newRoutine, exercises: updated });
-                }}
-                style={{ flex: 1 }}
-              />
-              {newRoutine.exercises.length > 1 && (
-                <button
-                  onClick={() => setNewRoutine({ ...newRoutine, exercises: newRoutine.exercises.filter((_, j) => j !== i) })}
-                  style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16, cursor: 'pointer', padding: 0 }}
-                >✕</button>
-              )}
-            </div>
-          ))}
+          {newRoutine.exercises.map((ex, i) => {
+            const setEx = (patch) => {
+              const updated = [...newRoutine.exercises];
+              updated[i] = { ...updated[i], ...patch };
+              setNewRoutine({ ...newRoutine, exercises: updated });
+            };
+            return (
+              // **열쇠를 자리 번호로 두지 않는다** (2026-10-06).
+              // 가운데 줄을 지우면 그 아래 줄들이 한 칸씩 당겨지는데, 열쇠가 자리
+              // 번호면 React 는 **같은 줄이 고쳐진 것**으로 보고 DOM 을 그대로 쓴다 —
+              // 글자는 state 가 끌고 오니 맞게 보이지만 **커서와 열려 있던 목록이
+              // 엉뚱한 줄에 남는다.** 줄이 생길 때 붙인 번호를 쓴다
+              <div key={ex.uid} style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'flex-start' }}>
+                <ExerciseNameInput
+                  value={ex.name}
+                  onChange={(name) => setEx({ name })}
+                  style={{ flex: 2, minWidth: 0 }}
+                />
+                <input
+                  className="input" placeholder="세트" type="number" inputMode="numeric"
+                  aria-label={`${i + 1}번째 운동 세트 수`}
+                  value={ex.sets}
+                  onChange={(e) => setEx({ sets: e.target.value })}
+                  style={{ flex: 1, minWidth: 0, marginBottom: 0 }}
+                />
+                <input
+                  className="input" placeholder="회" type="number" inputMode="numeric"
+                  aria-label={`${i + 1}번째 운동 횟수`}
+                  value={ex.reps}
+                  onChange={(e) => setEx({ reps: e.target.value })}
+                  style={{ flex: 1, minWidth: 0, marginBottom: 0 }}
+                />
+                {newRoutine.exercises.length > 1 && (
+                  <button
+                    type="button"
+                    // **무엇을 지우는지 말한다** — 읽어주는 도구에게 「✕」 하나는
+                    // 무슨 단추인지 알 수 없는 글자다
+                    aria-label={ex.name.trim() ? `${ex.name.trim()} 줄 지우기` : `${i + 1}번째 줄 지우기`}
+                    onClick={() => setNewRoutine({ ...newRoutine, exercises: newRoutine.exercises.filter((_, j) => j !== i) })}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--danger)', fontSize: 16,
+                      cursor: 'pointer', padding: '9px 2px', flexShrink: 0, fontFamily: 'inherit',
+                    }}
+                  >✕</button>
+                )}
+              </div>
+            );
+          })}
           <button
-            onClick={() => setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, { name: '', sets: '', reps: '' }] })}
+            onClick={() => setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, blankRow()] })}
             style={{
               background: 'none', border: '1px dashed var(--border)', color: 'var(--text-muted)',
               padding: '8px', width: '100%', cursor: 'pointer', fontSize: 12, borderRadius: 'var(--radius)',
@@ -500,13 +522,21 @@ export default function RoutinePage() {
               onClick={async () => {
                 if (!newRoutine.name.trim()) { toast('루틴 이름을 입력하세요'); return; }
                 if (!newRoutine.exercises.some(e => e.name.trim())) { toast('운동을 하나 이상 입력하세요'); return; }
-                const filtered = { ...newRoutine, exercises: newRoutine.exercises.filter(e => e.name.trim()) };
+                // **`uid` 는 서버로 안 보낸다** (2026-10-06). 화면이 줄을 짚는 데만
+                // 쓰는 번호다 — 보내면 서버가 그대로 담고, 다음에 받아온 루틴에
+                // 옛 번호가 섞여 들어와 새 줄의 번호와 겹칠 수 있다
+                const filtered = {
+                  ...newRoutine,
+                  exercises: newRoutine.exercises
+                    .filter(e => e.name.trim())
+                    .map(({ uid, ...rest }) => rest),
+                };
                 // 성공했을 때만 폼을 닫는다. 실패했는데 닫히면 쓰던 것이 통째로 사라진다
                 const ok = editingId
                   ? await updateMyRoutine(editingId, filtered)
                   : await saveMyRoutine(filtered);
                 if (!ok) return;
-                setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] });
+                setNewRoutine({ name: '', exercises: [blankRow()] });
                 setEditingId(null);
                 setShowCreate(false);
               }}
@@ -515,7 +545,7 @@ export default function RoutinePage() {
               style={{ flex: 1 }}
             >{savingRoutine ? '저장 중…' : (editingId ? '고치기' : '저장')}</button>
             <button
-              onClick={() => { setShowCreate(false); setEditingId(null); setNewRoutine({ name: '', exercises: [{ name: '', sets: '', reps: '' }] }); }}
+              onClick={() => { setShowCreate(false); setEditingId(null); setNewRoutine({ name: '', exercises: [blankRow()] }); }}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
                 padding: '10px 16px', cursor: 'pointer', fontSize: 13, borderRadius: 'var(--radius)',
@@ -538,9 +568,13 @@ export default function RoutinePage() {
             // **곧바로 루틴을 만들지 않는다.** 우리가 잘못 읽었을 수 있고,
             // 그건 사람이 폼에서 보고 고치면 된다. 채워서 보여주고 저장은 사람이 누른다
             setEditingId(null);
+            // **여기도 번호를 붙인다.** 안 붙이면 이 길로 온 줄만 열쇠가 자리
+            // 번호로 떨어져서, 가운데를 지울 때 커서가 엉뚱한 줄에 남는다
             setNewRoutine({
               name: routine.name,
-              exercises: routine.exercises.length ? routine.exercises : [{ name: '', sets: '', reps: '' }],
+              exercises: routine.exercises.length
+                ? routine.exercises.map((ex) => ({ ...ex, uid: uidRef.current++ }))
+                : [blankRow()],
             });
             setTab('mine');
             setShowCreate(true);
