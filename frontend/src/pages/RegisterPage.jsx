@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import Logo from '../components/Logo';
@@ -93,8 +93,35 @@ export default function RegisterPage() {
     if (usernameCheckTimerRef.current) clearTimeout(usernameCheckTimerRef.current);
   }, []);
 
-  // 걸음. 'mail' → 'account'
-  const [step, setStep] = useState('mail');
+  // ── 걸음은 **주소가 들고 있다** ── (2026-10-06, 같은 날 고쳤다)
+  //
+  // 오늘 이 화면을 두 걸음으로 나눌 때 `useState('mail')` 로 짰다. **그게 구멍이었다.**
+  //
+  // 폰에서 2걸음에 서서 「어, 메일을 잘못 적었나」 하고 **뒤로를 누르면 1걸음이
+  // 아니라 가입 화면을 통째로 나간다** — 적은 것이 다 사라진다. 「고치기」 단추를
+  // 뒀지만 사람은 뒤로를 누른다. 그게 폰에서 뒤로의 뜻이기 때문이다.
+  //
+  // 그래서 걸음을 주소에 남긴다(`?step=account`). **갈래와 반대로 히스토리를 쌓는다** —
+  // 오늘 몸·기록·루틴의 갈래는 `replace` 로 뒀는데(갈래마다 쌓으면 화면을 나가려고
+  // 다섯 번 눌러야 한다), **걸음은 되돌아가는 것이 자연스럽다.** 1걸음은 2걸음의
+  // 앞이지 옆이 아니다.
+  //
+  // ── 새로고침은 1걸음으로 되돌린다 ──
+  //
+  // 주소에 `step=account` 가 남아 있어도 **메일 확인은 화면의 상태**다(`code` ·
+  // `emailOk`). 새로고침하면 그것이 사라지므로, 주소만 믿고 2걸음을 그리면
+  // **아무것도 확인되지 않은 2걸음**이 뜬다 — 거기서 저장을 누르면 서버가
+  // 「인증번호를 먼저 발송해주세요」로 거절한다. 그래서 상태가 없으면 되돌린다.
+  const [params, setParams] = useSearchParams();
+  const step = params.get('step') === 'account' ? 'account' : 'mail';
+  const setStep = (next) => {
+    const p = new URLSearchParams(params);
+    // 1걸음은 주소에 안 적는다 — `/register` 와 `/register?step=mail` 이 같은 화면이다
+    if (next === 'mail') p.delete('step');
+    else p.set('step', next);
+    // **쌓는다**(replace 아님) — 뒤로가 걸음을 되돌려야 한다
+    setParams(p);
+  };
 
   const [username, setUsername] = useState('');
   const [usernameOk, setUsernameOk] = useState(false);
@@ -125,6 +152,22 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const { register } = useAuthStore();
+
+  // 주소에 `step=account` 가 남아 있는데 **메일 확인이 안 돼 있으면** 1걸음으로
+  // 되돌린다 (위 주석 참고). 새로고침이나 북마크로 바로 들어온 길이다.
+  //
+  // `replace` 로 되돌린다 — 쌓으면 뒤로가 **못 쓰는 2걸음으로** 데려온다.
+  // 아무 말 없이 되돌리지 않는다: 왜 1걸음인지 한 줄 적는다
+  const [bounced, setBounced] = useState(false);
+  useEffect(() => {
+    if (step !== 'account') return;
+    if (emailOk && code.length === 6) return;
+    const p = new URLSearchParams(params);
+    p.delete('step');
+    setParams(p, { replace: true });
+    setBounced(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, emailOk, code]);
 
   // 막힌 단추는 누르기 전에 막힌 줄 알려준다 (`PasswordResetModal` 과 같은 길)
   useEffect(() => {
@@ -349,6 +392,19 @@ export default function RegisterPage() {
               <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
               <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
             </div>
+
+            {/* 새로고침으로 되돌아온 사람에게 **왜 처음인지** 말한다.
+                아무 말 없이 1걸음을 보여주면 적은 것이 그냥 사라진 것으로 보인다 */}
+            {bounced && (
+              <div role="status" style={{
+                border: '1px solid var(--border-hover)', borderRadius: 'var(--radius)',
+                background: 'var(--bg-secondary)', padding: '10px 12px', marginBottom: 14,
+                fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7,
+              }}>
+                메일 확인부터 다시 해주세요 — 화면을 새로 열면 받은 번호는 남지 않아요.
+                <strong style={{ color: 'var(--text-primary)' }}> 가입은 아직 안 됐습니다.</strong>
+              </div>
+            )}
 
             <label className="label" htmlFor="reg-email">이메일</label>
             <input
