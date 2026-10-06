@@ -124,6 +124,32 @@ console.log('\n── 남의 기기 알림을 끌 수 있었다 (2026-09-04) ─
   ok('화면이 부르는 길은 주인을 본다', /deletePushSubOfUser\(req\.userId/.test(route), true);
   ok('  주인 안 보는 갈래를 안 쓴다', /deletePushSubByEndpoint/.test(route), false);
 
+  // ── 화면이 서버의 규칙을 그대로 알고 있나 ── (2026-10-06)
+  //
+  // 서버는 두 가지를 혼자 정한다. 화면이 그것을 모르면 **눌러보고 나서야 아는
+  // 자리**가 되는데, 알림 화면의 원칙이 「못 하는 것을 누를 수 있게 두지 않는다」다.
+  //
+  //   1. `enabled` 가 거짓이면 그 자리에서 돌아선다 — 요일 · 시간 · 오래 쉬면 ·
+  //      식은 부위가 **전부 아무 일도 안 한다**
+  //   2. 「켜져 있고 · 요일 0개 · 오래 쉬면 꺼짐」은 400 이다
+  //
+  // 서버 쪽을 고치고 화면을 안 고치면 **조용히 어긋난다** — 화면은 멀쩡해 보이고
+  // 알림만 안 온다. 그래서 둘을 여기서 맞춰본다.
+  const sched = fs.readFileSync(path.join(__dirname, '..', 'src/utils/reminderSchedule.js'), 'utf-8');
+  const page = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'frontend', 'src', 'pages', 'RemindersPage.jsx'), 'utf-8');
+
+  ok('서버는 꺼져 있으면 그 자리에서 돌아선다', /!reminder\?\.enabled\)\s*return no\('off'\)/.test(sched), true);
+  ok('  화면도 그것을 안다 (const off)', /const off = !settings\.enabled/.test(page), true);
+  // 딸린 것 넷이 다 `off` 에 걸려야 한다. 하나만 빠져도 그 칸만 live 로 보인다
+  ok('  딸린 칸이 다 걸린다', (page.match(/busy \|\| off/g) || []).length >= 5, true);
+
+  ok('서버는 요일 0개 + 오래 쉬면 꺼짐을 막는다',
+    /merged\.enabled && merged\.days\.length === 0 && !merged\.streakGuard/.test(route), true);
+  ok('  화면이 같은 조건으로 마지막 요일을 잠근다',
+    /settings\.enabled && !settings\.streakGuard && settings\.days\.length === 1/.test(page), true);
+  ok('  왜 안 눌리는지 적어준다', /마지막 요일은 끌 수 없어요/.test(page), true);
+
   for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }

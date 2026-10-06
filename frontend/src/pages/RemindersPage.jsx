@@ -12,6 +12,25 @@ import { canNotify as can, notifyPermission } from '../data/pushSupport';
 //
 // **못 하는 것을 누를 수 있게 두지 않는다.** 서버에 키가 없으면 켜기 단추를 아예 안 그리고,
 // 브라우저가 알림을 아예 못 하면 그렇다고 적는다 — 눌러보고 안 되는 것보다 낫다.
+//
+// ── 그 원칙을 자기한테는 안 쓰고 있었다 ── (2026-10-06 에 다시 짰다)
+//
+// 화면이 자기 원칙을 두 자리에서 어기고 있었다.
+//
+// **1. 알림을 꺼도 아래가 전부 live 로 보였다.** 서버는 `enabled` 가 거짓이면
+// 그 자리에서 돌아선다(`reminderSchedule.js`: `if (!reminder?.enabled) return no('off')`).
+// 즉 꺼두면 **요일 · 시간 · 「오래 쉬면」 · 「무엇이 식었는지」가 전부 아무 일도
+// 안 한다.** 그런데 화면에서는 켜져 있을 때와 똑같이 보여서, 요일을 고르고
+// 시간을 맞춘 사람은 **알림이 올 줄 안다.** 아무것도 안 온다.
+//
+// 그래서 **주 스위치를 혼자 위로 올리고**, 딸린 것은 한 묶음으로 내려 꺼져 있으면
+// 흐리게 하고 못 누르게 한다. 숨기지는 않는다 — 켜면 무엇을 정할 수 있는지는
+// 보여야 한다.
+//
+// **2. 마지막 요일을 끌 수 있게 보였다.** 서버는 「켜져 있고 · 요일 0개 ·
+// 오래 쉬면 꺼짐」을 400 으로 막는다(`routes/reminders.js`) — 그러면 정한 요일
+// 알림이 영영 안 오기 때문이다. 그런데 화면은 그 마지막 단추를 **눌러보게 두고**
+// 서버 오류 토스트로 알려줬다. 막힌 줄 **누르기 전에** 말해야 한다.
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -279,6 +298,21 @@ export default function RemindersPage() {
   // 한다 — 그때는 저녁 7시를 보여주고, 사람이 만지면 그때 제대로 저장된다
   const clock = parse24(settings.time) || { ampm: PM, hour12: 7, minute: 0 };
 
+  // 알림이 꺼져 있나. **딸린 것이 전부 아무 일도 안 하는 상태**다 —
+  // 서버가 `enabled` 를 보고 그 자리에서 돌아선다(`reminderSchedule.js`)
+  const off = !settings.enabled;
+
+  // ── 마지막 요일은 못 끈다 ── (2026-10-06)
+  //
+  // 서버는 「켜져 있고 · 요일 0개 · 오래 쉬면 꺼짐」을 400 으로 막는다 —
+  // 그러면 정한 요일 알림이 영영 안 오기 때문이다. 그런데 화면은 그 마지막 단추를
+  // **눌러보게 두고** 서버 오류 토스트로 알려줬다.
+  //
+  // **막힌 줄 누르기 전에 말한다.** 끌 수 없는 까닭은 그 요일이 특별해서가 아니라
+  // **그것이 마지막이어서**다 — 그래서 그때만 못 누른다. 「오래 쉬면」을 켜면
+  // 풀린다(그쪽만으로도 알림이 쓸모가 있다).
+  const lastDayLocked = settings.enabled && !settings.streakGuard && settings.days.length === 1;
+
   const setTime = (ampm, hour12, minute) => {
     const next = to24(ampm, hour12, minute);
     // 만들 수 없는 시각이면 보내지 않는다. 서버가 거절해봐야 사람은 이유를 모른다
@@ -293,8 +327,22 @@ export default function RemindersPage() {
         운동 알림
       </div>
 
-      {/* 이렇게 옵니다 — 켜기 전에 무엇이 오는지 먼저 보여준다 */}
-      <div className="card" style={{ marginBottom: 18, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      {/* 이렇게 옵니다 — 켜기 전에 무엇이 오는지 먼저 보여준다.
+          **꺼져 있으면 그렇다고 적는다** (2026-10-06). 이 화면의 원칙이
+          「미리보기는 설정을 따라가야 한다」인데, 꺼둔 사람에게도 알림 한 장을
+          그대로 보여주고 있었다 — 오지도 않는 것을 오는 것처럼 둔 셈이다.
+          **그림은 지운다.** 「켜면 이렇게 옵니다」는 켜기 전에 봐야 하는 것이다 */}
+      {off && (
+        <div style={{
+          fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1.2,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+          marginBottom: 7, padding: '0 2px',
+        }}>켜면 이렇게 옵니다</div>
+      )}
+      <div className="card" style={{
+        marginBottom: 18, display: 'flex', gap: 12, alignItems: 'flex-start',
+        opacity: off ? 0.55 : 1, transition: 'opacity .15s',
+      }}>
         <div style={{
           width: 34, height: 34, flexShrink: 0, borderRadius: 'var(--radius)',
           background: 'var(--accent-dim)', border: '1px solid var(--accent)',
@@ -401,10 +449,13 @@ export default function RemindersPage() {
         </div>
       )}
 
-      {/* 켜고 끄는 것 둘. **한 카드에 담는다** — 한 이야기다.
-          설명 자리에는 「꺼져 있습니다」 같은 말 대신 **언제 오는지**를 적는다
+      {/* ── 주 스위치는 **혼자 둔다** ── (2026-10-06)
+          앞서는 이것과 딸린 스위치 둘이 한 카드에 같은 무게로 놓여 있었다.
+          그런데 이 하나가 꺼지면 **나머지 전부가 아무 일도 안 한다** —
+          같은 무게로 두면 그것이 안 보인다.
+          설명 자리에는 「꺼져 있습니다」 대신 **언제 오는지**를 적는다
           (`data/reminderLabel.js`) */}
-      <div className="card" style={{ padding: '3px 16px', marginBottom: 18 }}>
+      <div className="card" style={{ padding: '3px 16px', marginBottom: off ? 10 : 18 }}>
         <Toggle
           on={settings.enabled}
           disabled={busy}
@@ -413,62 +464,93 @@ export default function RemindersPage() {
           desc={summary.text}
           warn={summary.warn}
         />
-        <Toggle
-          divider
-          on={settings.streakGuard}
-          disabled={busy}
-          onClick={() => patch({ streakGuard: !settings.streakGuard })}
-          label="오래 쉬면 한 번 알리기"
-          desc="사흘 넘게 쉬면 요일과 상관없이 한 번"
-        />
-        {/* ── 식은 부위를 알림에 싣는다 ── (2026-09-17)
-            여태 이 앱이 보내던 말은 **기록을 안 봐도 보낼 수 있는 말**이었다 —
-            「오늘 운동하는 날이에요」는 어느 앱이나 보낸다. 무엇을 해야 하는지는
-            부위별 마지막 자극일을 알아야 말할 수 있고, 그건 이 앱에 이미 있다.
-            **못 찾으면 원래 하던 말을 한다** — 켜둬서 손해 보는 사람이 없다 */}
-        <Toggle
-          divider
-          on={settings.coldPart !== false}
-          disabled={busy}
-          onClick={() => patch({ coldPart: settings.coldPart === false })}
-          label="무엇이 식었는지 같이 알리기"
-          desc="「등이 9일째 식었어요」 · 고루 하고 있으면 안 붙습니다"
-        />
       </div>
 
-      <div className="label">요일</div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-        {DAY_LABELS.map((label, d) => {
-          const on = settings.days.includes(d);
-          return (
-            <button
-              key={d}
-              className={`btn-secondary${on ? ' active' : ''}`}
-              style={{ flexGrow: 1, padding: '10px 0' }}
-              disabled={busy}
-              onClick={() => toggleDay(d)}
-            >{label}</button>
-          );
-        })}
-      </div>
-      {/* 흔한 조합은 한 번에. 일곱 개를 하나씩 누르게 두지 않는다 */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
-        {DAY_PRESETS.map(p => {
-          const on = sameDays(settings.days, p.days);
-          return (
-            <button
-              key={p.label}
-              className="btn-secondary"
-              disabled={busy}
-              onClick={() => patch({ days: p.days })}
-              style={{
-                width: 'auto', padding: '5px 12px', fontSize: 11.5,
-                ...(on ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : null),
-              }}
-            >{p.label}</button>
-          );
-        })}
-      </div>
+      {/* ── 딸린 것들 ──
+          꺼져 있으면 **흐리게 하고 못 누르게** 한다. 숨기지는 않는다 —
+          켜면 무엇을 정할 수 있는지는 보여야 하고, 전에 정해둔 값도 그대로 있다.
+          `aria-disabled` 와 `inert` 로 **읽어주는 도구와 자판에도** 같은 말을 한다 */}
+      {off && (
+        <div style={{
+          fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75,
+          marginBottom: 10, padding: '0 2px',
+        }}>
+          아래는 <strong style={{ color: 'var(--text-secondary)' }}>알림을 켜야 쓰입니다.</strong>
+          지금은 정해두셔도 아무것도 오지 않아요 — 켜면 그대로 적용됩니다.
+        </div>
+      )}
+      <div
+        aria-disabled={off || undefined}
+        style={{ opacity: off ? 0.45 : 1, transition: 'opacity .15s' }}
+      >
+        <div className="card" style={{ padding: '3px 16px', marginBottom: 18 }}>
+          <Toggle
+            on={settings.streakGuard}
+            disabled={busy || off}
+            onClick={() => patch({ streakGuard: !settings.streakGuard })}
+            label="오래 쉬면 한 번 알리기"
+            desc="사흘 넘게 쉬면 요일과 상관없이 한 번"
+          />
+          {/* ── 식은 부위를 알림에 싣는다 ── (2026-09-17)
+              여태 이 앱이 보내던 말은 **기록을 안 봐도 보낼 수 있는 말**이었다 —
+              「오늘 운동하는 날이에요」는 어느 앱이나 보낸다. 무엇을 해야 하는지는
+              부위별 마지막 자극일을 알아야 말할 수 있고, 그건 이 앱에 이미 있다.
+              **못 찾으면 원래 하던 말을 한다** — 켜둬서 손해 보는 사람이 없다 */}
+          <Toggle
+            divider
+            on={settings.coldPart !== false}
+            disabled={busy || off}
+            onClick={() => patch({ coldPart: settings.coldPart === false })}
+            label="무엇이 식었는지 같이 알리기"
+            desc="「등이 9일째 식었어요」 · 고루 하고 있으면 안 붙습니다"
+          />
+        </div>
+
+        <div className="label">요일</div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          {DAY_LABELS.map((label, d) => {
+            const on = settings.days.includes(d);
+            // 켜져 있는 마지막 하나는 못 끈다 (위 `lastDayLocked` 참고)
+            const locked = on && lastDayLocked;
+            return (
+              <button
+                key={d}
+                className={`btn-secondary${on ? ' active' : ''}`}
+                style={{ flexGrow: 1, padding: '10px 0', cursor: locked ? 'not-allowed' : undefined }}
+                disabled={busy || off || locked}
+                onClick={() => toggleDay(d)}
+              >{label}</button>
+            );
+          })}
+        </div>
+        {/* **왜 안 눌리는지 그 자리에서 적는다.** 죽어 있는 단추만 보고
+            까닭을 짐작하게 두지 않는다 — 이 화면이 지키는 것이 그것이다 */}
+        {lastDayLocked && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+            마지막 요일은 끌 수 없어요 — 요일이 없으면 알림이 영영 안 옵니다.
+            「오래 쉬면 한 번 알리기」를 켜면 요일 없이도 쓸 수 있습니다.
+          </div>
+        )}
+        {/* 흔한 조합은 한 번에. 일곱 개를 하나씩 누르게 두지 않는다.
+            **묶음은 마지막 요일 잠금에 안 걸린다** — 어느 묶음이든 요일이
+            하나 이상이라 서버가 막는 조합이 안 된다 */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+          {DAY_PRESETS.map(p => {
+            const on = sameDays(settings.days, p.days);
+            return (
+              <button
+                key={p.label}
+                className="btn-secondary"
+                disabled={busy || off}
+                onClick={() => patch({ days: p.days })}
+                style={{
+                  width: 'auto', padding: '5px 12px', fontSize: 11.5,
+                  ...(on ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : null),
+                }}
+              >{p.label}</button>
+            );
+          })}
+        </div>
 
       {/* ── 시각 ──
           `<input type="time">` 를 걷었다. 브라우저마다 생김새가 다르고, 폰에서는
@@ -484,14 +566,14 @@ export default function RemindersPage() {
           어느 쪽이 진짜인지 보는 사람이 한 번 더 생각해야 한다.
 
           담기는 값(24시간)은 그대로다 */}
-      <div className="label">시간</div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 18,
-      }}>
+        <div className="label">시간</div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 18,
+        }}>
         <select
           className="input"
           value={clock.ampm}
-          disabled={busy}
+          disabled={busy || off}
           onChange={(e) => setTime(e.target.value, clock.hour12, clock.minute)}
           aria-label="오전 오후"
         >
@@ -501,7 +583,7 @@ export default function RemindersPage() {
         <select
           className="input"
           value={clock.hour12}
-          disabled={busy}
+          disabled={busy || off}
           onChange={(e) => setTime(clock.ampm, Number(e.target.value), clock.minute)}
           aria-label="시"
         >
@@ -510,7 +592,7 @@ export default function RemindersPage() {
         <select
           className="input"
           value={clock.minute}
-          disabled={busy}
+          disabled={busy || off}
           onChange={(e) => setTime(clock.ampm, clock.hour12, Number(e.target.value))}
           aria-label="분"
         >
@@ -520,11 +602,18 @@ export default function RemindersPage() {
         </select>
       </div>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-        정한 시각에 서버가 보냅니다. 그 시각에 서버가 쉬고 있었다면 그날은 건너뜁니다 —
-        밤늦게 「오늘 운동하는 날이에요」가 오는 것보다 안 오는 게 낫다고 봤습니다.
-        <br />
-        그날 이미 운동을 적으셨으면 보내지 않습니다.
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          정한 시각에 서버가 보냅니다. 그 시각에 서버가 쉬고 있었다면 그날은 건너뜁니다 —
+          밤늦게 「오늘 운동하는 날이에요」가 오는 것보다 안 오는 게 낫다고 봤습니다.
+          <br />
+          그날 이미 운동을 적으셨으면 보내지 않습니다.
+          {/* 「오래 쉬면」은 요일을 안 보지만 **시각은 본다** — 같은 한 줄로
+              1분마다 재는 자리를 지나기 때문이다(`reminderSchedule.js`).
+              적어두지 않으면 「요일과 상관없이」를 「시각과도 상관없이」로 읽는다 */}
+          <br />
+          「오래 쉬면 한 번」도 <strong style={{ color: 'var(--text-secondary)' }}>같은 시각</strong>에 옵니다 —
+          요일만 안 봅니다.
+        </div>
       </div>
     </div>
   );
