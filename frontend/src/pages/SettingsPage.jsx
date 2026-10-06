@@ -121,15 +121,111 @@ function Pick({ items, value, onPick, idOf = (x) => x.id, nameOf = (x) => x.name
 }
 
 /** 무리 하나. */
-function Group({ title, children }) {
+// 설정 묶음 하나.
+//
+// **아무것도 안 접고 안 숨긴다** (2026-10-06). 9/22 에 일곱 군데에 흩어져 있던
+// 설정을 기어 하나로 모았는데, 모으기는 제대로 하고 **찾는 방법을 안 만들었다** —
+// 구역 열하나에 스위치와 줄이 스물다섯이 **한 스크롤**에 쌓였다. 비밀번호를
+// 바꾸려면 소리 · 마이크 · 운동 · 몸 · 헬스장을 다 지나야 했다.
+//
+// 길을 만드는 방법으로 **접기**와 **묶음별 화면**을 다 안 썼다. 둘 다 무언가를
+// 숨기는데, 이 화면의 원칙이 그 반대다 — **「그건 저기 있어요로 미루면 사람은
+// 그 기능이 없다고 생각한다」.** 그래서 **건너뛰는 길만** 더한다(`JumpBar`).
+// 내려가며 읽는 사람의 길은 그대로 남는다.
+//
+// `id` 는 칩 줄이 건너뛸 자리표다. `scrollMarginTop` 은 건너뛴 뒤 **머리에 딱
+// 붙지 않게** 띄우는 값이다 — 0 이면 묶음 이름이 화면 맨 위 끝에 닿아 잘린 것처럼 보인다.
+function Group({ title, id, children }) {
   return (
-    <div className="card" style={{ marginBottom: 14 }}>
+    <div className="card" id={id} style={{ marginBottom: 14, scrollMarginTop: 14 }}>
       <div style={{
         fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 11.5, letterSpacing: 1.8,
         color: 'var(--accent)', marginBottom: 10,
       }}>{title}</div>
       {children}
     </div>
+  );
+}
+
+// 건너뛰는 칩 줄 (2026-10-06).
+//
+// ── 지금 어디쯤인지도 말한다 ──
+//
+// 칩이 길 안내만 하면 **눌러놓고 어디로 갔는지**를 다시 스크롤로 알아내야 한다.
+// 그래서 화면에 보이는 묶음의 칩에 금색이 들어온다 — 칩 줄이 **길 안내와 현재
+// 위치를 같이** 맡는다. 손으로 스크롤해도 따라 움직인다.
+//
+// `IntersectionObserver` 를 쓰는 까닭은 `scroll` 마다 위치를 재면 **스크롤하는
+// 동안 계속 계산**하기 때문이다. 관찰자는 들어오고 나갈 때만 깨운다.
+//
+// ── 안 그리는 때 ──
+//
+// 묶음이 셋 이하면 안 그린다. 칩 줄은 **내려갈 거리가 멀 때** 값을 하는 것이고,
+// 세 묶음이면 스크롤이 칩보다 빠르다. 마이크 묶음처럼 **되는 기기에서만 그리는
+// 것**이 있어서 묶음 수는 사람마다 다르다.
+function JumpBar({ items }) {
+  const [here, setHere] = useState(null);
+
+  // **목록은 매 렌더 새 배열로 온다**(호출하는 쪽에서 그 자리에 적는다). 그것을
+  // 그대로 의존성에 두면 **렌더마다 관찰자를 끊고 다시 붙인다** — 스크롤하는 중에
+  // 그러면 지금 자리가 깜빡인다. 자리표를 이어 붙인 글자로 견준다
+  const key = items.map((i) => i.id).join(',');
+
+  useEffect(() => {
+    if (items.length <= 3) return;
+    // **위쪽 절반에 걸린 것**을 지금 자리로 본다. 화면에 보이는 것을 다 켜면
+    // 긴 화면에서 칩 여러 개가 같이 금색이 되어 어디인지 못 말한다
+    const io = new IntersectionObserver(
+      (entries) => {
+        const seen = entries.filter((e) => e.isIntersecting).map((e) => e.target.id);
+        if (seen.length) setHere(seen[0]);
+      },
+      { rootMargin: '0px 0px -55% 0px', threshold: 0 },
+    );
+    items.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    });
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  if (items.length <= 3) return null;
+
+  const jump = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // **글자를 줄여둔 사람에게는 건너뛰기를 안 쓴다** — 멀미가 나는 움직임이다
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+    setHere(id);
+  };
+
+  return (
+    <nav
+      aria-label="설정 묶음으로 건너뛰기"
+      style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 16 }}
+    >
+      {items.map(({ id, title }) => {
+        const on = here === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => jump(id)}
+            aria-current={on ? 'true' : undefined}
+            style={{
+              fontFamily: 'inherit', fontSize: 11.5, letterSpacing: 0.6, cursor: 'pointer',
+              color: on ? 'var(--accent)' : 'var(--text-secondary)',
+              border: `1px solid ${on ? 'var(--accent-low)' : 'var(--border)'}`,
+              background: on ? 'var(--accent-dim)' : 'var(--bg-secondary)',
+              padding: '4px 9px', borderRadius: 'var(--radius)',
+              transition: 'color .15s, border-color .15s, background .15s',
+            }}
+          >{title}</button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -377,8 +473,26 @@ export default function SettingsPage() {
         설정
       </div>
 
+      {/* 건너뛰는 칩 줄.
+          **묶음 목록을 여기서 한 벌로 적는다** — 칩과 묶음을 두 자리에 적으면
+          묶음을 더했을 때 칩만 빠지고, 그 묶음은 내려가야만 보이는 자리가 된다.
+          마이크는 **되는 기기에서만** 그려지므로 칩도 같은 조건을 쓴다 */}
+      <JumpBar
+        items={[
+          { id: 'set-sound', title: '소리' },
+          { id: 'set-rest', title: '쉴 때' },
+          ...(micSupported() || speechSupported() ? [{ id: 'set-mic', title: '마이크' }] : []),
+          { id: 'set-train', title: '운동할 때' },
+          { id: 'set-body', title: '몸' },
+          { id: 'set-gym', title: '헬스장' },
+          { id: 'set-account', title: '계정' },
+          { id: 'set-lock', title: '잠금과 알림' },
+          { id: 'set-keep', title: '기록 챙기기' },
+        ]}
+      />
+
       {/* ── 소리 ── */}
-      <Group title="소리">
+      <Group title="소리" id="set-sound">
         <Toggle
           title="끝나면 소리로 알리기"
           desc="폰이 무음이면 소리가 안 나요 — 진동도 같이 켜두세요"
@@ -429,7 +543,7 @@ export default function SettingsPage() {
       </Group>
 
       {/* ── 쉴 때 ── */}
-      <Group title="쉴 때">
+      <Group title="쉴 때" id="set-rest">
         <Toggle
           title="세트를 적으면 타이머가 저절로"
           on={autoStart}
@@ -449,7 +563,7 @@ export default function SettingsPage() {
           **되는 곳에서만 그린다.** 마이크가 없는 브라우저에 스위치만 띄워두면
           눌러보고 아무 일도 안 일어난다 */}
       {(micSupported() || speechSupported()) && (
-        <Group title="마이크">
+        <Group title="마이크" id="set-mic">
           {micSupported() && (
             <>
               <Toggle
@@ -507,7 +621,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── 운동할 때 ── */}
-      <Group title="운동할 때">
+      <Group title="운동할 때" id="set-train">
         <Toggle
           title="화면 켜두기"
           desc="40초 플랭크 중에 화면이 꺼지면 남은 시간을 못 봐요. 배터리를 더 씁니다."
@@ -529,7 +643,7 @@ export default function SettingsPage() {
       </Group>
 
       {/* ── 몸 ── */}
-      <Group title="몸">
+      <Group title="몸" id="set-body">
         <div style={{ padding: '11px 0 0' }}>
           <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>성별</div>
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
@@ -592,7 +706,7 @@ export default function SettingsPage() {
           그 기능이 없다고 생각한다** — 이 화면을 만든 까닭이 그것이다.
           어디 다니는지는 **기기에 남는다**(`GYM_KEY`) — 폰에서 고른 곳이 집 PC 까지
           바뀌면 안 되기 때문이다. 그래서 여기가 맞는 자리다 */}
-      <Group title="헬스장">
+      <Group title="헬스장" id="set-gym">
         <GoRow
           title="다니는 곳 · 기구 세팅"
           sub={gym || '아직 안 골랐어요'}
@@ -603,7 +717,7 @@ export default function SettingsPage() {
       {/* ── 계정 (2026-09-22) ──
           계정 시트에만 있던 것들을 여기서도 한다. **길은 하나다** — 이름은 같은
           서버 길로 가고, 비밀번호와 삭제는 계정 시트가 쓰는 그 모달을 그대로 연다 */}
-      <Group title="계정">
+      <Group title="계정" id="set-account">
         <div style={{ padding: '11px 0 0' }}>
           <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이름</div>
           {nickEdit ? (
@@ -765,7 +879,7 @@ export default function SettingsPage() {
 
       {/* ── 잠금과 알림 ──
           **길만 내지 않는다.** 앱 잠금은 여기서 바로 열고, 알림은 왜 안 되는지 적는다 */}
-      <Group title="잠금과 알림">
+      <Group title="잠금과 알림" id="set-lock">
         {/* 잠금을 못 쓰는 브라우저에서는 **아예 안 그린다** — 눌러도 아무 일이
             안 일어나는 줄을 두지 않는다 (`canLock` 은 쓸 수 있나를 본다) */}
         {canLock() && (
@@ -792,7 +906,7 @@ export default function SettingsPage() {
           떨어져서, 내려받기가 없는 줄 알게 된다.
           실제 자리는 둘이다 — 운동 · 인바디는 기록 화면, 측정은 몸의 측정 갈래.
           **두 자리를 하나로 적지 않는다**: 없는 한 곳으로 보내는 것보다 두 줄이 낫다 */}
-      <Group title="기록 챙기기">
+      <Group title="기록 챙기기" id="set-keep">
         <GoRow
           title="운동 · 인바디 내려받기"
           sub="가져오기도 같은 자리"
