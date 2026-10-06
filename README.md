@@ -53,6 +53,51 @@ cd backend  && npm run smoke:clean  # 쌓인 검사 계정 한 번에 지우기 
 
 최신이 위. 날짜 하나에 그날 한 일을 묶는다.
 
+## 2026-10-06 — 배포본을 폰에 깔 길이 없었다
+
+10/5 에 `minifyEnabled true` 를 켜서 APK 가 3.53MB → 1.21MB 가 됐다. 그런데
+**R8 은 배포본에서만 깨진다** — 디버그 빌드는 minify 를 안 하니 개발 중에는 절대
+안 보인다. 그래서 「폰에서 릴리스를 돌려본다」가 10/6 의 할 일이었는데,
+**돌려볼 방법이 없었다.**
+
+`assembleRelease` 에 **서명 설정이 없었다.** 서명 없는 APK 는 안드로이드가 설치를
+거부한다. 즉 R8 이 무엇을 지웠는지 확인할 길이 처음부터 막혀 있었고, 그 사실이
+「릴리스 서명 keystore 는 근호님 몫」 뒤에 가려져 있었다.
+
+### 두 갈래로 나눴다
+
+| | 쓰는 열쇠 | 플레이스토어 | R8 확인 |
+|---|---|---|---|
+| `android/keystore.properties` 가 있을 때 | 그 열쇠 (진짜) | **올라간다** | 된다 |
+| 없을 때 | **디버그 열쇠** | 안 된다 | **똑같이 된다** |
+
+플레이스토어에 올리는 것과 **R8 이 지운 자리를 찾는 것은 다른 일**이다. 뒤쪽은
+서명이 누구 것이든 상관없다 — R8 은 서명 전에 돌기 때문이다. 그래서 진짜 열쇠를
+기다리지 않고 **오늘 바로** 배포본을 폰에 깔 수 있게 됐다.
+`keystore.properties` 와 `*.jks` 는 `.gitignore` 에 박았다.
+
+### `scripts\phone-test.ps1 -Release`
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1 -Release
+```
+
+`-Check` 와 같이 쓰면 서명 열쇠가 어느 쪽인지도 말해준다. 다 끝나면
+**무엇부터 눌러봐야 하는지**를 화면에 띄운다 — 오프라인 「다시 시도」, 겹쳐 찍기,
+사진 고르기. R8 이 지웠을 자리가 그 셋이다.
+
+### 만들어서 확인했다
+
+```
+BUILD SUCCESSFUL in 57s
+app-release.apk   1,319,803 바이트 (1.26MB)
+V2 Signer: certificate DN: C=US, O=Android, CN=Android Debug
+```
+
+릴리스 dex 안에 이름이 살아 있는 것까지 봤다 — `retry` · `BlackIronApp` ·
+`AppBridge` · `JavascriptInterface`. **아직 실제로 눌러본 것은 아니다**(폰이 있어야
+한다). 하지만 「깔 수가 없다」는 벽은 없어졌다.
+
 ## 2026-10-05 (5차) — 고쳐도 일주일 동안 안 보일 뻔했다
 
 화면 파일을 **전부 `7d`** 로 내주고 있었다(`express.static` 의 `maxAge`).
