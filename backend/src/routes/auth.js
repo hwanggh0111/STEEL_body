@@ -32,12 +32,28 @@ function hashCode(email, code) {
 // 번호 맞춰보기. verify-code 와 reset-password 가 **같은 판단**을 해야 해서 한 곳에 둔다
 // (따로 적혀 있던 동안 둘이 조금씩 달라질 수 있는 자리였다).
 // 돌려주는 것: 통과면 null, 아니면 그대로 보낼 { status, error }
+// 번호가 맞나 본다. 맞으면 `null`, 틀리면 `{ status, error }`.
+//
+// ── 맞은 번호는 횟수를 안 깎는다 ── (2026-10-06)
+//
+// `bumpVerifyAttempt` 는 주석까지 **「틀린 횟수를 하나 올리고」**라고 적혀 있는데,
+// 여기서는 **비교하기 전에** 불러서 맞은 번호도 똑같이 깎고 있었다. 한 번에 맞히는
+// 사람도 다섯 번 중 하나를 쓰고 있었던 셈이다.
+//
+// 그게 그냥 아까운 정도가 아니다. 가입 화면을 **메일 확인 · 계정 만들기 두 걸음**으로
+// 나누면서 번호를 **두 번** 본다 — 1걸음에서 「맞다」를 말해주려고 한 번(`/verify-code`),
+// 가입할 때 서버가 또 한 번. 맞은 번호가 횟수를 깎으면 **한 번에 다 맞힌 사람이
+// 다섯 번 중 둘을 쓴다.**
+//
+// 틀린 횟수를 막는 까닭은 **찍어보는 것**을 막으려는 것이다(여섯 자리는 백만 가지뿐이다).
+// 맞힌 사람은 찍은 것이 아니다. 그래서 **틀렸을 때만** 깎는다 — 막는 힘은 그대로다.
 function checkCode(email, code) {
   const row = db.getVerifyCode(email);
   if (!row) return { status: 400, error: '인증번호를 먼저 발송해주세요' };
 
-  // 틀린 횟수 제한 — 여섯 자리는 백만 가지뿐이라 횟수를 안 막으면 다 넣어볼 수 있다
-  if (db.bumpVerifyAttempt(email) > CODE_MAX_ATTEMPTS) {
+  // 이미 넘긴 사람은 **비교도 하지 않는다.** 깎는 자리가 아래로 내려갔으니
+  // 넘겼는지는 여기서 쌓인 수로 본다
+  if ((row.attempts || 0) >= CODE_MAX_ATTEMPTS) {
     db.clearVerifyCode(email);
     return { status: 429, error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' };
   }
@@ -46,6 +62,11 @@ function checkCode(email, code) {
   const typed = hashCode(email, String(code).slice(0, 6).padEnd(6, '0'));
   const same = crypto.timingSafeEqual(Buffer.from(row.hash, 'hex'), Buffer.from(typed, 'hex'));
   if (!same || String(code).length !== 6) {
+    // **틀린 것만 깎는다**
+    if (db.bumpVerifyAttempt(email) >= CODE_MAX_ATTEMPTS) {
+      db.clearVerifyCode(email);
+      return { status: 429, error: '시도 횟수 초과. 인증번호를 다시 발송해주세요' };
+    }
     return { status: 400, error: '인증번호가 틀렸어요' };
   }
   return null;
@@ -105,6 +126,31 @@ router.get('/mail-status', (req, res) => {
     canSend: SMTP_CONFIGURED || dev,
     dev,
   });
+});
+
+// 번호가 맞나만 본다 (2026-10-06).
+//
+// 가입 화면을 **메일 확인 · 계정 만들기 두 걸음**으로 나누면서 필요해졌다.
+// 앞서는 번호를 **가입할 때** 한 번만 봤다 — 그러면 1걸음에서 번호를 적고 넘어가도
+// 맞는지 알 길이 없고, 2걸음의 칸을 다 채운 **마지막에** 「번호가 틀렸어요」가 뜬다.
+// 걸음을 나눈 까닭이 바로 그 헛수고를 없애려는 것인데, 확인을 미루면 그대로 남는다.
+//
+// **번호를 지우지 않는다.** 가입할 때 서버가 다시 본다 — 여기서 지우면 가입이
+// 「인증번호를 먼저 발송해주세요」로 막힌다. 맞은 번호는 횟수를 안 깎으므로
+// (`checkCode` 를 보라) 두 번 봐도 값이 안 든다.
+//
+// **계정을 만들지 않는다.** 여기는 「이 주소의 주인인가」만 답하는 자리다.
+router.post('/verify-code', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
+  }
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: '이메일로 받은 인증번호를 입력해주세요' });
+  }
+  const bad = checkCode(email, code);
+  if (bad) return res.status(bad.status).json({ error: bad.error });
+  res.json({ verified: true });
 });
 
 // 인증번호 발송

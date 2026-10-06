@@ -11,6 +11,33 @@ import { readLS, removeLS, saveLS } from '../data/safeStorage';
 // 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
 import { SESSION_EXPIRED_KEY } from '../data/localKeys';
 
+// 로그인 — 다시 짰다 (2026-10-06).
+//
+// ── 왜 ──
+//
+// 앱에서 **리메이크를 한 번도 안 한 화면이 둘**이었다. 가입과 이 화면이다.
+// 그래서 **처음 온 사람과 돌아온 사람이 거의 같은 화면**을 봤다.
+//
+//   · 돌아온 사람에게도 「당신의 운동을 기록하세요」를 말했다 — 그 사람은 이 앱이
+//     무엇인지 이미 안다
+//   · 아이디 칸이 `아이디 또는 이메일` 이라 **둘 중 뭘로 가입했는지 기억해야** 했다.
+//     그런데 앱은 그 사람의 아이디를 **이미 기억하고 있다**(`saved_id`) — 기억해
+//     두고 칸은 비워서 보여줬다
+//   · 「돌아오셨군요! 근호」는 인사 한 줄이었다. 이름을 불러놓고 **다시 누구냐고
+//     물었다**
+//
+// ── 돌아온 사람에게는 비밀번호 한 칸 ──
+//
+// 아이디를 이미 아니까 다시 묻지 않는다. **누구로 들어가는지 보여주고** 비밀번호만
+// 받는다. 바꾸는 길은 「다른 계정으로」다 — 기기를 같이 쓰는 사람에게 그 줄이
+// 보여야 하므로 이름 옆에 둔다.
+//
+// **소셜 단추는 남긴다.** 돌아온 사람에게서 뺄까 했는데, 소셜로 가입한 사람이
+// 돌아왔을 때 **자기가 어느 쪽으로 가입했는지 잊는 일이 흔하다.** 비밀번호를
+// 아무리 넣어도 안 들어가는데 까닭을 알 길이 없어진다.
+//
+// 처음 온 사람에게는 표어와 소셜이 위다 — 소셜은 가입까지 한 번에 끝난다.
+
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 // 백엔드 URL (OAuth 리다이렉트용)
 const BACKEND_BASE = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL.replace(/\/api$/, '');
@@ -32,6 +59,10 @@ export default function LoginPage() {
   const [showReset, setShowReset] = useState(false);
   const [nickSaving, setNickSaving] = useState(false);
   const [nickError, setNickError] = useState('');
+  // 「다른 계정으로」를 눌렀나. 누르면 기억한 사람을 지우고 보통 폼으로 돌아간다 —
+  // **기억한 것을 지우지는 않는다**(쪽지는 그대로 두고 이 화면에서만 안 쓴다).
+  // 지워버리면 잘못 눌렀을 때 되돌릴 길이 없다
+  const [switched, setSwitched] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
   // 계정 삭제를 막 예약하고 여기로 온 경우. 언제까지 되살릴 수 있는지 적어준다 —
@@ -245,13 +276,13 @@ function oauthErrorText(code) {
 
   // 돌아온 사람인가.
   //
-  // 예전에는 누구에게나 **소셜 버튼 넷이 먼저**였고, 아이디·비밀번호는 「OR」 아래였다.
-  // 「돌아오셨군요! 근호」라는 인사도 그 아래에 파묻혀서, 늘 쓰던 사람이 매번
-  // 소셜 넷을 지나 아래로 내려가야 했다.
+  // **이름과 아이디를 둘 다 알 때만**이다. 아이디만 있으면 누구인지 말할 수 없고
+  // (칸에 채워두는 것까지가 할 수 있는 일이다), 이름만 있으면 비밀번호 한 칸으로
+  // 줄일 수가 없다 — 어느 계정으로 보낼지 모른다.
   //
-  // 전에 들어온 적이 있으면 **쓰던 길을 위로** 올린다. 처음 온 사람에게는 소셜이
-  // 위다 — 가입까지 한 번에 끝나기 때문이다. 없애는 것은 없고 순서만 바꾼다.
-  const returning = !!savedNickname || !!email;
+  // 「다른 계정으로」를 누르면 그 사람이 아니라고 말한 것이므로 보통 폼으로 돌아간다.
+  const known = !!savedNickname && !!readLS('saved_id');
+  const returning = known && !switched;
 
   const social = <SocialLoginButtons disabled={loading} />;
   const divider = (label) => (
@@ -285,17 +316,49 @@ function oauthErrorText(code) {
             그대로 되살아납니다.</b> 그 뒤에는 기록이 전부 지워지고 되돌릴 수 없어요.
           </div>
         )}
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: returning ? 24 : 32 }}>
-          당신의 운동을 기록하세요
-        </p>
+        {/* 표어는 **처음 온 사람 몫**이다. 돌아온 사람은 이 앱이 무엇인지 이미 안다 */}
+        {!returning && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
+            당신의 운동을 기록하세요
+          </p>
+        )}
 
-        {/* 인사는 폼 바로 위에. 예전에는 소셜 버튼 넷 아래에 있었다 */}
-        {savedNickname && (
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>돌아오셨군요!</div>
-            <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--accent)', marginTop: 4 }}>
-              {savedNickname}
-            </div>
+        {/* ── 누구로 들어가나 ── (2026-10-06)
+            예전에는 「돌아오셨군요! 근호」 인사 한 줄이었고, 그 아래에서 **다시
+            누구냐고 물었다.** 이름을 부를 수 있으면 아이디도 아는 것이다 —
+            말해주고 비밀번호만 받는다. 바꾸는 길을 이름 옆에 둔다 (기기를 같이
+            쓰는 사람에게 그 줄이 보여야 한다) */}
+        {returning && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20,
+            border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+            background: 'var(--bg-secondary)', padding: '10px 12px',
+          }}>
+            <span style={{
+              width: 32, height: 32, flexShrink: 0, borderRadius: '50%',
+              background: 'var(--accent-dim)', border: '1px solid var(--accent-low)',
+              display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--accent)',
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+            }}>{savedNickname.slice(0, 1)}</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{
+                display: 'block', fontSize: 14, color: 'var(--text-primary)', fontWeight: 600,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{savedNickname}</span>
+              <span style={{
+                display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{email}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSwitched(true); setEmail(''); setPassword(''); setError(''); }}
+              style={{
+                marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
+                padding: 4, font: 'inherit', fontSize: 11.5, color: 'var(--accent-low)',
+                cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap',
+              }}
+            >다른 계정으로</button>
           </div>
         )}
 
@@ -308,22 +371,43 @@ function oauthErrorText(code) {
 
         {/* 로그인 폼 */}
         <form onSubmit={handleSubmit} autoComplete="on">
-          <label className="label" htmlFor="login-id">아이디 또는 이메일</label>
-          <input
-            id="login-id"
-            name="username"
-            autoComplete="username"
-            inputMode="email"
-            className="input"
-            type="text"
-            placeholder="아이디 또는 이메일"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
-            style={{ marginBottom: 2 }}
-          />
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-            가입 시 설정한 아이디 또는 이메일 주소
-          </div>
+          {/* 돌아온 사람에게는 **안 그린다** — 위의 줄이 이미 누구인지 말했다.
+              읽어주는 도구와 비밀번호 관리자를 위해 숨은 칸으로 값만 보낸다
+              (보이는 칸이 없으면 브라우저가 어느 계정의 비밀번호인지 모른다) */}
+          {returning ? (
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={email}
+              readOnly
+              aria-hidden="true"
+              tabIndex={-1}
+              style={{
+                position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+                overflow: 'hidden', clip: 'rect(0 0 0 0)', border: 0,
+              }}
+            />
+          ) : (
+            <>
+              <label className="label" htmlFor="login-id">아이디 또는 이메일</label>
+              <input
+                id="login-id"
+                name="username"
+                autoComplete="username"
+                inputMode="email"
+                className="input"
+                type="text"
+                placeholder="아이디 또는 이메일"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+                style={{ marginBottom: 2 }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+                가입 시 설정한 아이디 또는 이메일 주소
+              </div>
+            </>
+          )}
 
           <label className="label" htmlFor="login-password">비밀번호</label>
           <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -376,7 +460,7 @@ function oauthErrorText(code) {
           )}
 
           <button className="btn-primary" type="submit" disabled={loading || !email || !password} style={{ marginTop: 8 }}>
-            {loading ? '처리 중...' : '로그인'}
+            {loading ? '처리 중...' : returning ? '들어가기' : '로그인'}
           </button>
           {/* 왜 안 눌리는지 적는다 — 죽어 있는 단추만 보고 이유를 짐작하게 두지 않는다 */}
           {blockReason && !loading && (
@@ -386,9 +470,12 @@ function oauthErrorText(code) {
           )}
         </form>
 
+        {/* **돌아온 사람에게도 남긴다.** 소셜로 가입한 사람이 돌아왔을 때 자기가
+            어느 쪽으로 가입했는지 잊는 일이 흔하다 — 비밀번호를 아무리 넣어도
+            안 들어가는데 까닭을 알 길이 없어진다. 가름선에 그 말을 적는다 */}
         {returning && (
           <>
-            {divider('다른 방법으로')}
+            {divider('소셜로 가입하셨으면')}
             {social}
           </>
         )}

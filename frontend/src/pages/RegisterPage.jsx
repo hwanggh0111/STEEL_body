@@ -7,10 +7,80 @@ import { toast } from '../components/Toast';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import { saveLS } from '../data/safeStorage';
 
+// 가입 — 다시 짰다 (2026-10-06).
+//
+// ── 왜 ──
+//
+// 앱에서 **리메이크를 한 번도 안 한 화면이 둘**이었다. 로그인과 이 화면이다.
+// 10/2 에 메일 인증, 10/5 에 소셜 가입을 **덧붙이기만** 해서, 경계는 그대로 두고
+// 안쪽만 늘었다 — 한 화면에 칸 여섯(아이디 · 닉네임 · 이메일 · 인증번호 ·
+// 비밀번호 · 비밀번호 확인)에 `useState` 가 스물하나였다.
+//
+// 처음 온 사람이 **자기가 뭘 해야 끝나는지** 모른다. 칸 여섯이 한꺼번에 보이는데
+// 그중 둘은 서버에 물어봐야 채워지고, 어디까지 왔는지도 안 보인다. 폰에서 열면
+// 자판이 올라와 화면의 절반을 덮는다.
+//
+// ── 두 걸음으로 나눈다 ──
+//
+// **왕복이 생기는 자리에서만 끊는다.**
+//
+//   1걸음 **메일 확인** — 이메일 · 인증번호
+//   2걸음 **계정 만들기** — 이름 · 아이디 · 비밀번호
+//
+// 메일이 유일하게 「기다려야 하는」 자리다. 그리고 **거기서 막히면 뒤 칸을 채운
+// 것이 다 헛수고가 된다.** 그래서 그것만 앞으로 뺀다. 나머지 셋은 혼자서 바로
+// 채우는 것이라 한 화면에 둬도 막히지 않는다 — 걸음을 더 나누면 화면 전환만 늘고
+// 뒤로 가기를 그만큼 더 만들어야 한다.
+//
+// **서버는 받는 것이 그대로다** — `email + password + nickname + username + code`.
+// 바뀐 것은 사람이 한 번에 보는 양이다. 화면을 다시 짜는 일과 데이터를 다시 짜는
+// 일은 다른 일이다.
+//
+// ── 1걸음에서 번호가 맞는지 **말해준다** ──
+//
+// 앞서는 번호를 **가입할 때** 한 번만 봤다. 걸음만 나누고 확인을 미루면, 2걸음의
+// 칸을 다 채운 **마지막에** 「번호가 틀렸어요」가 뜬다 — 걸음을 나눈 까닭이 바로
+// 그 헛수고를 없애려는 것인데 그대로 남는다. 그래서 번호만 보는 자리를 서버에
+// 더했다(`POST /auth/verify-code`). 번호를 지우지 않으므로 가입 때 또 본다.
+//
+// 그 과정에서 **맞은 번호가 시도 횟수를 깎고 있던 것**도 고쳤다 (`checkCode`).
+//
+// ── 아이디를 없애지 않는다 ──
+//
+// 서버가 필수로 받고, 이미 아이디로 로그인하는 사람이 있다. 대신 **메일 앞부분으로
+// 미리 채워주고 고칠 수 있게** 둔다 — 「아이디를 또 생각해내야 하는」 자리가 없어진다.
+//
+// ── 비밀번호 확인 칸을 뺐다 ──
+//
+// 「보기」 단추가 이미 있다. 두 번 적게 하는 것은 **같은 일을 두 벌로 시키는 것**이다 —
+// 틀렸는지 보려면 눈으로 보면 된다.
+//
+// ── 줄어든 것은 상태가 아니다 ──
+//
+// 솔직히 적어둔다. `useState` 는 **21개에서 22개로 늘었다** — `passwordConfirm` 이
+// 없어졌지만 걸음(`step`)과 확인 중(`verifying`)이 생겼다. 줄어든 것은
+// **사람이 한 번에 보는 칸**이다: 여섯에서 **둘 → 셋**으로.
+//
+// 상태 수는 이 화면의 문제가 아니었다. 문제는 처음 온 사람이 칸 여섯을 한꺼번에
+// 보면서 **자기가 뭘 해야 끝나는지 모르는 것**이었다.
+
 // 백엔드와 동일한 비밀번호 정책
 const PW_MIN = 8;
 const PW_MAX = 100;
 const isValidPw = (pw) => pw.length >= PW_MIN && pw.length <= PW_MAX && /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
+
+/**
+ * 메일 앞부분 → 쓸 만한 아이디.
+ *
+ * 서버 규칙은 `영문+숫자+!@#$%^&*._-` 4~20자다. 메일 앞부분에는 점과 밑줄이
+ * 흔히 들어가는데 그건 그대로 쓸 수 있다. 4자가 안 되면 **제안하지 않는다** —
+ * 못 쓸 것을 채워두면 사람이 그것을 고치는 일부터 해야 한다.
+ */
+function suggestUsername(email) {
+  const head = String(email || '').split('@')[0].toLowerCase();
+  const cleaned = head.replace(/[^a-z0-9._-]/g, '');
+  return cleaned.length >= 4 ? cleaned.slice(0, 20) : '';
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -22,6 +92,9 @@ export default function RegisterPage() {
     if (emailCheckTimerRef.current) clearTimeout(emailCheckTimerRef.current);
     if (usernameCheckTimerRef.current) clearTimeout(usernameCheckTimerRef.current);
   }, []);
+
+  // 걸음. 'mail' → 'account'
+  const [step, setStep] = useState('mail');
 
   const [username, setUsername] = useState('');
   const [usernameOk, setUsernameOk] = useState(false);
@@ -35,17 +108,18 @@ export default function RegisterPage() {
   const [emailChecking, setEmailChecking] = useState(false);
   // ── 메일 인증 ──
   // 주소를 적을 수 있는 것과 그 주소의 주인인 것은 다르다. 적은 주소로 번호를 보내고,
-  // 그 번호를 **가입 단추를 누를 때 같이 보낸다**(서버가 가입 받는 자리에서 확인한다)
+  // **1걸음에서 그 번호가 맞는지 확인한 뒤** 2걸음으로 넘어간다. 가입할 때도 같이
+  // 보내므로 서버가 한 번 더 본다
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [codeSending, setCodeSending] = useState(false);
   const [codeInfo, setCodeInfo] = useState('');
   const [codeError, setCodeError] = useState('');
+  const [verifying, setVerifying] = useState(false);
   // 메일이 나갈 수 있는 상태인가. null 은 아직 모른다는 뜻 — 모르는 동안 막으면
   // 되는 서버에서도 가입을 못 한다 (비밀번호 찾기와 같은 판단)
   const [mailReady, setMailReady] = useState(null);
   const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -161,26 +235,42 @@ export default function RegisterPage() {
     }
   };
 
-  const pwMatch = password && passwordConfirm && password === passwordConfirm;
-  const pwMismatch = passwordConfirm && password !== passwordConfirm;
-  const pwValid = isValidPw(password);
-  const codeOk = codeSent && code.length === 6;
-  const canSubmit = usernameOk && nickname.trim() && emailOk && codeOk && pwValid && pwMatch && !loading;
+  // ── 1걸음 끝 — 번호가 맞는지 **지금** 본다 ──
+  //
+  // 여기서 안 보고 넘기면 2걸음의 칸을 다 채운 마지막에 틀렸다는 말을 듣는다.
+  // 넘어가면서 **아이디를 메일 앞부분으로 채워준다** — 2걸음에서 할 일이 그만큼 줄고,
+  // 중복 확인도 그 자리에서 같이 돈다.
+  const verifyAndNext = async () => {
+    setCodeError(''); setError('');
+    if (code.length !== 6) { setCodeError('메일로 받은 6자리를 넣어주세요'); return; }
+    setVerifying(true);
+    try {
+      await client.post('/auth/verify-code', { email: email.trim(), code: code.trim() });
+      const guess = suggestUsername(email);
+      if (guess && !username) updateUsernameHint(guess);
+      setStep('account');
+    } catch (err) {
+      setCodeError(err.response?.data?.error || '인증번호를 확인하지 못했어요');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
-  // 버튼이 왜 안 눌리는지 화면에 알려준다.
-  // 조건이 다섯이나 되는데 그동안은 회색으로 죽어 있기만 해서, 특히 "아이디 중복확인"을
-  // 누르지 않은 경우 아무 표시 없이 영영 안 눌렸다 — 무엇이 남았는지 알 방법이 없었다.
+  // 메일을 고치러 1걸음으로 돌아간다. **번호는 그대로 둔다** — 주소를 실제로
+  // 고치면 `validateEmail` 이 버린다. 돌아왔다가 그냥 다시 넘어오는 길을 막지 않는다
+  const backToMail = () => { setError(''); setStep('mail'); };
+
+  const pwValid = isValidPw(password);
+  const canSubmit = usernameOk && nickname.trim() && emailOk && code.length === 6 && pwValid && !loading;
+
+  // 버튼이 왜 안 눌리는지 화면에 알려준다. 회색으로 죽어 있기만 하면
+  // 무엇이 남았는지 알 방법이 없다
   const blockReason = loading ? null
+    : !nickname.trim() ? '뭐라고 부를지 적어주세요'
     : !username.trim() ? '아이디를 입력하세요'
     : usernameChecking ? '아이디를 확인하는 중이에요'
     : !usernameOk ? '아이디를 확인하는 중이거나 쓸 수 없는 아이디예요'
-    : !nickname.trim() ? '닉네임을 입력하세요'
-    : !email.trim() ? '이메일을 입력하세요'
-    : !emailOk ? '이메일을 확인하는 중이거나 쓸 수 없는 주소예요'
-    : !codeSent ? '이메일로 인증번호를 받아주세요'
-    : code.length !== 6 ? '메일로 받은 6자리 인증번호를 입력하세요'
-    : !pwValid ? '비밀번호는 영문+숫자 8자 이상이어야 해요'
-    : !pwMatch ? '비밀번호 확인이 일치하지 않아요'
+    : !pwValid ? `비밀번호는 영문+숫자 ${PW_MIN}자 이상이어야 해요`
     : null;
 
   const handleSubmit = async (e) => {
@@ -197,11 +287,44 @@ export default function RegisterPage() {
       // 자동 로그인 상태 → 홈으로
       navTimerRef.current = setTimeout(() => navigate('/home'), 600);
     } catch (err) {
-      setError(err.response?.data?.error || '회원가입에 실패했어요');
+      // 번호가 틀렸거나 식었으면 **1걸음으로 돌려보낸다.** 2걸음에 머물면
+      // 고칠 칸이 화면에 없는 잘못을 보여주는 셈이 된다
+      const msg = err.response?.data?.error || '회원가입에 실패했어요';
+      if (/인증번호|시도 횟수/.test(msg)) {
+        setStep('mail');
+        setCodeError(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // ── 걸음 자 ──
+  //
+  // **얼마나 남았는지**를 말한다. 「1 / 2」라는 글자와 막대 둘뿐이다 —
+  // 걸음이 둘일 때 동그라미와 선으로 그린 길을 그리면 그림이 말보다 커진다.
+  const rail = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+      <div style={{ display: 'flex', gap: 5, flexGrow: 1 }}>
+        <span style={{
+          flex: 1, height: 2, borderRadius: 1,
+          background: step === 'mail' ? 'var(--accent)' : 'var(--accent-low)',
+        }} />
+        <span style={{
+          flex: 1, height: 2, borderRadius: 1,
+          background: step === 'account' ? 'var(--accent)' : 'var(--bg-tertiary)',
+        }} />
+      </div>
+      <span style={{
+        fontSize: 11, letterSpacing: 1.2, color: 'var(--text-muted)', flexShrink: 0,
+        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+      }}>
+        {step === 'mail' ? '1 / 2 메일 확인' : '2 / 2 계정 만들기'}
+      </span>
+    </div>
+  );
 
   return (
     <div className="page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -210,121 +333,81 @@ export default function RegisterPage() {
           {/* 처음 보는 자리라 부제까지 편다 */}
           <Logo cap={34} variant="stack" />
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>
-          회원가입
-        </p>
 
-        {/* 소셜로 들어오면 계정이 저절로 만들어진다. 예전에는 이 자리가 비어 있어서,
-            구글로 가입하려면 「로그인」 쪽으로 가야 한다는 걸 알아내야 했다 */}
-        <SocialLoginButtons disabled={loading} googleLabel="Google 로 가입하기" />
+        {rail}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-          <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 직접 만들기</span>
-          <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-        </div>
+        {/* ══════════ 1걸음 · 메일 확인 ══════════ */}
+        {step === 'mail' && (
+          <>
+            {/* 소셜로 들어오면 계정이 저절로 만들어진다 — **제일 빠른 길이라 맨 위에
+                둔다.** 예전에는 이 자리가 비어 있어서, 구글로 가입하려면 「로그인」
+                쪽으로 가야 한다는 걸 알아내야 했다 */}
+            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" />
 
-        <form onSubmit={handleSubmit} autoComplete="on">
-          {/* 아이디 */}
-          <label className="label" htmlFor="reg-username">아이디</label>
-          <input
-            id="reg-username"
-            name="username"
-            autoComplete="username"
-            className="input"
-            type="text"
-            placeholder="영문+숫자 4~20자"
-            value={username}
-            onChange={(e) => updateUsernameHint(e.target.value)}
-            style={{
-              marginBottom: 4,
-              borderColor: username
-                ? (usernameOk ? 'var(--success)' : usernameMsg ? 'var(--danger)' : 'var(--border)')
-                : 'var(--border)',
-            }}
-          />
-          {usernameChecking && (
-            <div style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-muted)' }}>중복 확인 중...</div>
-          )}
-          {!usernameChecking && usernameMsg && (
-            <div style={{ fontSize: 12, marginBottom: 8, color: usernameOk ? 'var(--success)' : 'var(--danger)' }}>
-              {usernameMsg}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
+              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
             </div>
-          )}
-          {!usernameChecking && !usernameMsg && usernameHint && (
-            <div style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-muted)' }}>
-              {usernameHint}
-            </div>
-          )}
-          {!usernameChecking && !usernameMsg && !usernameHint && <div style={{ marginBottom: 8 }} />}
 
-          {/* 닉네임 */}
-          <label className="label" htmlFor="reg-nickname">닉네임</label>
-          <input
-            id="reg-nickname"
-            name="nickname"
-            autoComplete="nickname"
-            className="input"
-            type="text"
-            placeholder="사용할 닉네임"
-            value={nickname}
-            onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
-            maxLength={30}
-            style={{ marginBottom: 12 }}
-          />
+            <label className="label" htmlFor="reg-email">이메일</label>
+            <input
+              id="reg-email"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              className="input"
+              type="email"
+              placeholder="example@email.com"
+              value={email}
+              onChange={(e) => validateEmail(e.target.value)}
+              style={{
+                marginBottom: 4,
+                borderColor: email
+                  ? (emailError ? 'var(--danger)' : emailOk ? 'var(--success)' : 'var(--border)')
+                  : 'var(--border)',
+              }}
+            />
+            {emailChecking && (
+              <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--text-muted)' }}>중복 확인 중...</div>
+            )}
+            {!emailChecking && emailError && (
+              <div role="alert" style={{ fontSize: 12, marginBottom: 12, color: 'var(--danger)' }}>{emailError}</div>
+            )}
+            {!emailChecking && !emailError && emailOk && (
+              <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--success)' }}>사용 가능한 이메일이에요</div>
+            )}
+            {!emailChecking && !emailError && !emailOk && (
+              <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--text-muted)' }}>
+                여기로 번호를 보냅니다
+              </div>
+            )}
 
-          {/* 이메일 */}
-          <label className="label" htmlFor="reg-email">이메일</label>
-          <input
-            id="reg-email"
-            name="email"
-            autoComplete="email"
-            inputMode="email"
-            className="input"
-            type="email"
-            placeholder="example@email.com"
-            value={email}
-            onChange={(e) => validateEmail(e.target.value)}
-            style={{
-              marginBottom: emailError || emailOk || emailChecking ? 4 : 12,
-              borderColor: email
-                ? (emailError ? 'var(--danger)' : emailOk ? 'var(--success)' : 'var(--border)')
-                : 'var(--border)',
-            }}
-          />
-          {emailChecking && (
-            <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--text-muted)' }}>중복 확인 중...</div>
-          )}
-          {!emailChecking && emailError && (
-            <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--danger)' }}>{emailError}</div>
-          )}
-          {!emailChecking && !emailError && emailOk && (
-            <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--success)' }}>사용 가능한 이메일이에요</div>
-          )}
+            {/* 주소 칸이 초록이 된 다음에만 보인다. 형식도 안 맞는 주소에
+                「인증번호 받기」가 먼저 떠 있으면, 눌러보고 나서야 안 된다는 말을 듣는다 */}
+            {emailOk && mailReady === false && (
+              <div role="alert" style={{
+                border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
+                padding: '12px 13px', fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.7,
+              }}>
+                지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않아
+                직접 만드는 가입은 잠시 막혀 있습니다 — 위의 <strong>Google 로 가입하기</strong>를
+                쓰시거나 관리자에게 문의해주세요.
+              </div>
+            )}
 
-          {/* ── 이메일 인증번호 ──
-              주소 칸이 초록이 된 다음에만 보인다. 형식도 안 맞는 주소에 「인증번호 받기」가
-              먼저 떠 있으면, 눌러보고 나서야 안 된다는 말을 듣는다 */}
-          {emailOk && (
-            <div style={{
-              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-              padding: '12px 12px 10px', marginBottom: 12,
-            }}>
-              <label className="label" htmlFor="reg-code" style={{ marginBottom: 6 }}>이메일 인증</label>
-
-              {mailReady === false ? (
-                <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.6 }}>
-                  지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않아
-                  직접 만드는 가입은 잠시 막혀 있습니다 — 위의 <strong>Google 로 가입하기</strong>를
-                  쓰시거나 관리자에게 문의해주세요.
-                </div>
-              ) : (
-                <>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--accent)' }}>{email}</strong> 가 본인 메일인지 확인해요.
-                    받은 6자리를 넣어주세요.
-                  </p>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+            {emailOk && mailReady !== false && (
+              <>
+                {!codeSent ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={sendCode}
+                    disabled={codeSending}
+                  >{codeSending ? '보내는 중...' : '번호 받기'}</button>
+                ) : (
+                  <>
+                    <label className="label" htmlFor="reg-code">메일로 온 번호</label>
                     <input
                       id="reg-code"
                       name="one-time-code"
@@ -340,120 +423,189 @@ export default function RegisterPage() {
                         if (codeError) setCodeError('');
                         if (error) setError('');
                       }}
-                      disabled={!codeSent}
                       style={{
-                        flex: 1, marginBottom: 0, letterSpacing: 4, textAlign: 'center', fontSize: 17,
+                        marginBottom: 8, letterSpacing: 6, textAlign: 'center', fontSize: 19,
                         borderColor: code.length === 6 ? 'var(--success)' : 'var(--border)',
-                        opacity: codeSent ? 1 : 0.5,
                       }}
                     />
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.6 }}>
+                      <strong style={{ color: 'var(--accent)' }}>{email}</strong> 로 보냈어요.
+                      안 왔으면{' '}
+                      <button
+                        type="button"
+                        onClick={sendCode}
+                        disabled={codeSending}
+                        style={{
+                          background: 'none', border: 'none', padding: 0, font: 'inherit',
+                          color: 'var(--accent)', cursor: codeSending ? 'default' : 'pointer',
+                          textDecoration: 'underline',
+                        }}
+                      >{codeSending ? '보내는 중...' : '다시 보내기'}</button>
+                    </div>
                     <button
                       type="button"
-                      onClick={sendCode}
-                      disabled={codeSending}
-                      style={{
-                        background: 'none', border: '1px solid var(--accent)', color: 'var(--accent)',
-                        padding: '0 14px', cursor: codeSending ? 'default' : 'pointer', fontSize: 13,
-                        borderRadius: 'var(--radius)', whiteSpace: 'nowrap',
-                        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.2,
-                        opacity: codeSending ? 0.6 : 1,
-                      }}
-                    >{codeSending ? '발송 중...' : codeSent ? '다시 받기' : '인증번호 받기'}</button>
-                  </div>
-                  {codeInfo && (
-                    <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 8, lineHeight: 1.5 }}>{codeInfo}</div>
-                  )}
-                  {codeError && (
-                    <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{codeError}</div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                      className="btn-primary"
+                      onClick={verifyAndNext}
+                      disabled={verifying || code.length !== 6}
+                    >{verifying ? '확인 중...' : '확인하고 다음'}</button>
+                    {!verifying && code.length !== 6 && (
+                      <div style={{ marginTop: 6, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+                        6자리를 다 넣어주세요
+                      </div>
+                    )}
+                  </>
+                )}
+                {codeInfo && (
+                  <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 10, lineHeight: 1.5 }}>{codeInfo}</div>
+                )}
+                {codeError && (
+                  <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 10 }}>{codeError}</div>
+                )}
+              </>
+            )}
+          </>
+        )}
 
-          {/* 비밀번호 */}
-          <label className="label" htmlFor="reg-password">비밀번호</label>
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <input
-              id="reg-password"
-              name="new-password"
-              autoComplete="new-password"
-              className="input"
-              type={showPw ? 'text' : 'password'}
-              placeholder="영문+숫자 8자 이상"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
-              maxLength={PW_MAX}
-              style={{ paddingRight: 40 }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw(!showPw)}
-              aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
-              style={{
-                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                background: 'none', border: 'none', color: 'var(--text-muted)',
-                cursor: 'pointer', fontSize: 12, padding: 4,
-              }}
-            >{showPw ? '숨기기' : '보기'}</button>
-          </div>
-          {pwStrength && (
-            <div style={{ fontSize: 12, marginBottom: 4, marginTop: -8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--border)' }}>
-                <div style={{
-                  height: '100%', borderRadius: 2, background: pwStrength.color,
-                  width: `${pwStrength.pct}%`,
-                  transition: 'width 0.2s, background 0.2s',
-                }} />
-              </div>
-              <span style={{ color: pwStrength.color, whiteSpace: 'nowrap' }}>{pwStrength.label}</span>
-            </div>
-          )}
-          {password && !pwValid && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
-              영문+숫자 조합 {PW_MIN}자 이상 필수
-            </div>
-          )}
-
-          {/* 비밀번호 확인 */}
-          <label className="label" htmlFor="reg-password-confirm">비밀번호 확인</label>
-          <input
-            id="reg-password-confirm"
-            name="new-password-confirm"
-            autoComplete="new-password"
-            className="input"
-            type={showPw ? 'text' : 'password'}
-            placeholder="비밀번호 다시 입력"
-            value={passwordConfirm}
-            onChange={(e) => { setPasswordConfirm(e.target.value); if (error) setError(''); }}
-            maxLength={PW_MAX}
-            style={{
-              marginBottom: 4,
-              borderColor: passwordConfirm ? (pwMatch ? 'var(--success)' : 'var(--danger)') : 'var(--border)',
-            }}
-          />
-          {pwMatch && <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--success)' }}>비밀번호가 일치합니다</div>}
-          {pwMismatch && <div style={{ fontSize: 12, marginBottom: 12, color: 'var(--danger)' }}>비밀번호가 일치하지 않습니다</div>}
-          {!passwordConfirm && <div style={{ marginBottom: 12 }} />}
-
-          {error && (
-            <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>
-          )}
-
-          <button className="btn-primary" type="submit" disabled={!canSubmit} style={{ marginTop: 4 }}>
-            {loading ? '처리 중...' : '회원가입'}
-          </button>
-          {blockReason && (
+        {/* ══════════ 2걸음 · 계정 만들기 ══════════ */}
+        {step === 'account' && (
+          <form onSubmit={handleSubmit} autoComplete="on">
+            {/* 확인이 끝난 주소. **고치는 길을 같이 둔다** — 주소를 잘못 적은 것이
+                여기서 보이는데 돌아갈 길이 없으면 처음부터 다시 해야 한다 */}
             <div style={{
-              marginTop: 6, textAlign: 'center',
-              fontSize: 12, color: 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', gap: 9, marginBottom: 18,
+              border: '1px solid var(--success)', borderRadius: 'var(--radius)',
+              background: 'var(--bg-secondary)', padding: '9px 11px',
             }}>
-              {blockReason}
+              <span style={{ fontSize: 12, color: 'var(--success)', flexShrink: 0 }}>확인됨</span>
+              <span style={{
+                fontSize: 12.5, color: 'var(--text-primary)', minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{email}</span>
+              <button
+                type="button"
+                onClick={backToMail}
+                style={{
+                  marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
+                  padding: 0, font: 'inherit', fontSize: 11.5, color: 'var(--accent-low)',
+                  cursor: 'pointer', textDecoration: 'underline',
+                }}
+              >고치기</button>
             </div>
-          )}
-        </form>
 
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
+            {/* 닉네임이 먼저다 — **온 앱에 나오는 이름**이고, 사람이 가장 쉽게
+                답하는 질문이다. 「닉네임」이라는 말 대신 묻는 말로 적는다 */}
+            <label className="label" htmlFor="reg-nickname">뭐라고 부를까요</label>
+            <input
+              id="reg-nickname"
+              name="nickname"
+              autoComplete="nickname"
+              className="input"
+              type="text"
+              placeholder="앱에서 쓸 이름"
+              value={nickname}
+              onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
+              maxLength={30}
+              style={{ marginBottom: 14 }}
+            />
+
+            <label className="label" htmlFor="reg-username">아이디</label>
+            <input
+              id="reg-username"
+              name="username"
+              autoComplete="username"
+              className="input"
+              type="text"
+              placeholder="영문+숫자 4~20자"
+              value={username}
+              onChange={(e) => updateUsernameHint(e.target.value)}
+              style={{
+                marginBottom: 4,
+                borderColor: username
+                  ? (usernameOk ? 'var(--success)' : usernameMsg ? 'var(--danger)' : 'var(--border)')
+                  : 'var(--border)',
+              }}
+            />
+            {usernameChecking && (
+              <div style={{ fontSize: 12, marginBottom: 14, color: 'var(--text-muted)' }}>중복 확인 중...</div>
+            )}
+            {!usernameChecking && usernameMsg && (
+              <div style={{ fontSize: 12, marginBottom: 14, color: usernameOk ? 'var(--success)' : 'var(--danger)' }}>
+                {usernameMsg}
+              </div>
+            )}
+            {!usernameChecking && !usernameMsg && usernameHint && (
+              <div style={{ fontSize: 12, marginBottom: 14, color: 'var(--text-muted)' }}>{usernameHint}</div>
+            )}
+            {/* 메일 앞부분으로 채워준 것이면 그렇다고 말한다 — 안 말하면
+                「내가 안 적었는데 왜 적혀 있지」가 된다 */}
+            {!usernameChecking && !usernameMsg && !usernameHint && (
+              <div style={{ fontSize: 12, marginBottom: 14, color: 'var(--text-muted)' }}>
+                {username && username === suggestUsername(email)
+                  ? '메일 앞부분으로 채웠어요 · 고쳐도 됩니다'
+                  : '로그인할 때 쓰는 이름이에요'}
+              </div>
+            )}
+
+            <label className="label" htmlFor="reg-password">비밀번호</label>
+            <div style={{ position: 'relative', marginBottom: 8 }}>
+              <input
+                id="reg-password"
+                name="new-password"
+                autoComplete="new-password"
+                className="input"
+                type={showPw ? 'text' : 'password'}
+                placeholder={`영문+숫자 ${PW_MIN}자 이상`}
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
+                maxLength={PW_MAX}
+                style={{ paddingRight: 56, marginBottom: 0 }}
+              />
+              {/* 「확인」 칸을 뺐으니 **이 단추가 그 일을 한다.** 눈으로 보고 넘긴다 */}
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'var(--text-muted)',
+                  cursor: 'pointer', fontSize: 12, padding: 4,
+                }}
+              >{showPw ? '숨기기' : '보기'}</button>
+            </div>
+            {pwStrength && (
+              <div style={{ fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--border)' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2, background: pwStrength.color,
+                    width: `${pwStrength.pct}%`,
+                    transition: 'width 0.2s, background 0.2s',
+                  }} />
+                </div>
+                <span style={{ color: pwStrength.color, whiteSpace: 'nowrap' }}>{pwStrength.label}</span>
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+              {password && !pwValid
+                ? `영문+숫자 조합 ${PW_MIN}자 이상 필수`
+                : '한 번만 적습니다 · 「보기」로 확인하세요'}
+            </div>
+
+            {error && (
+              <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</div>
+            )}
+
+            <button className="btn-primary" type="submit" disabled={!canSubmit}>
+              {loading ? '처리 중...' : '시작하기'}
+            </button>
+            {blockReason && (
+              <div style={{ marginTop: 6, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+                {blockReason}
+              </div>
+            )}
+          </form>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 22 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>이미 계정이 있나요? </span>
           <Link to="/login" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>로그인</Link>
         </div>
