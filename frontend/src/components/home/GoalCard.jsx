@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import GoalRing from '../GoalRing';
-import { hasGoal, weekProgress, weekLine, weekStreak, weightProgress } from '../../data/goal';
+import { hasGoal, weekProgress, weekLine, weekStreak, measureProgress } from '../../data/goal';
 
 // 홈의 목표 카드.
 //
@@ -14,7 +14,28 @@ import { hasGoal, weekProgress, weekLine, weekStreak, weightProgress } from '../
 export default function GoalCard({ goal, loaded, workouts, records, today, onGo }) {
   const week = useMemo(() => weekProgress(workouts, goal, today), [workouts, goal, today]);
   const streak = useMemo(() => weekStreak(workouts, goal, today), [workouts, goal, today]);
-  const body = useMemo(() => weightProgress(records, goal), [records, goal]);
+  // ── 몸의 수 한 줄 ── (2026-10-06)
+  //
+  // 여태 **체중만** 봤다. 10/6 에 체지방률과 골격근량을 목표로 세울 수 있게
+  // 됐는데, 여기를 안 고치면 **체지방률만 쫓는 사람은 홈에서 아무것도 못 본다** —
+  // 목표를 세웠는데 홈이 주 횟수만 말한다.
+  //
+  // **한 줄만 그린다.** 홈은 「지금 어디쯤인지」만 말하는 자리고, 셋을 다 쌓으면
+  // 홈이 또 길어진다(세부는 `/goal` 이 맡는다). 셋 중 **쫓고 있는 첫째**를 쓴다 —
+  // 체중 → 체지방률 → 골격근량 순서인데, 체중을 쫓는 사람에게는 그것이
+  // 여태 보던 줄이라 바뀐 것이 없다.
+  const body = useMemo(() => {
+    const picks = [
+      { label: '체중', unit: 'kg', field: 'weight', t: goal?.weightTarget, s: goal?.weightStart },
+      { label: '체지방률', unit: '%', field: 'fat_pct', t: goal?.fatTarget, s: goal?.fatStart },
+      { label: '골격근량', unit: 'kg', field: 'muscle_kg', t: goal?.muscleTarget, s: goal?.muscleStart },
+    ];
+    for (const k of picks) {
+      const p = measureProgress(records, { field: k.field, target: k.t, start: k.s });
+      if (p) return { ...p, label: k.label, unit: k.unit };
+    }
+    return null;
+  }, [records, goal]);
 
   // 아직 받아오는 중이면 아무것도 안 그린다 — 깜빡 띄웠다 지우지 않는다
   if (!loaded) return null;
@@ -82,12 +103,12 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
             <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-              체중 <span style={{ color: 'var(--accent)' }}>{body.target}kg</span>까지
+              {body.label} <span style={{ color: 'var(--accent)' }}>{body.target}{body.unit}</span>까지
             </span>
             <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
               {/* 체중 기록이 없으면 진행률을 지어내지 않는다 */}
-              {body.now == null ? '체중 기록이 없어요'
-                : body.reached ? '닿았습니다' : `${body.left}kg 남음`}
+              {body.now == null ? `${body.label} 기록이 없어요`
+                : body.reached ? '닿았습니다' : `${body.left}${body.unit} 남음`}
             </span>
           </div>
           {body.now != null && (

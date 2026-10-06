@@ -9,7 +9,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import GoalRing from '../components/GoalRing';
 import {
   MAX_WEEKLY, hasGoal, weekProgress, weekLine, weekStreak, weekHistory,
-  weightProgress, weightEta,
+  measureProgress, weightEta,
 } from '../data/goal';
 
 // 목표 화면.
@@ -27,6 +27,37 @@ import {
 
 const DAY_OPTIONS = Array.from({ length: MAX_WEEKLY }, (_, i) => i + 1);
 
+// ── 쫓을 수 있는 몸의 수 셋 ── (2026-10-06)
+//
+// 여태 **체중 하나**였다. 그런데 이 앱 홈페이지의 첫 줄이
+// **「무게는 늘었는데 무엇이 늘었는지는 아무도 안 알려준다」**다 — 체중은 「몸이
+// 변했다」를 가장 못 말하는 수다. 근육이 늘고 지방이 줄면 **체중은 안 움직인다.**
+// 목표가 체중뿐이면 그 사람은 **제일 잘한 달에 「아무 일도 없었다」를 본다.**
+//
+// 즉 홈페이지가 꼬집은 문제를 목표 화면이 그대로 하고 있었다. 인바디에 체지방률과
+// 골격근량이 이미 담기는데(`fat_pct` · `muscle_kg`) 목표로는 세울 수가 없었다.
+//
+// **한 자리에 적는다.** 폼의 칸 · 저장할 때 박는 시작값 · 그려주는 줄이 전부
+// 이 목록을 돌린다 — 세 자리에 따로 적으면 넷째 값을 더하는 날 한 곳이 빠진다.
+const MEASURES = [
+  {
+    key: 'weight', label: '체중', unit: 'kg', step: '0.1', min: 20, max: 300,
+    field: 'weight', targetKey: 'weightTarget', startKey: 'weightStart',
+    hint: '지금 몸무게에서 어디로 갈지',
+  },
+  {
+    key: 'fat', label: '체지방률', unit: '%', step: '0.1', min: 3, max: 60,
+    field: 'fat_pct', targetKey: 'fatTarget', startKey: 'fatStart',
+    // **이 줄이 이 앱의 자리다.** 체중이 그대로여도 이 수는 움직인다
+    hint: '체중이 그대로여도 이 수는 움직입니다',
+  },
+  {
+    key: 'muscle', label: '골격근량', unit: 'kg', step: '0.1', min: 5, max: 100,
+    field: 'muscle_kg', targetKey: 'muscleTarget', startKey: 'muscleStart',
+    hint: '늘리는 쪽을 쫓는 사람이 많습니다',
+  },
+];
+
 function SectionTitle({ children }) {
   return (
     <div className="section-title">
@@ -38,21 +69,35 @@ function SectionTitle({ children }) {
 
 // 세우기 · 고치기 폼.
 //
-// **비워둘 수 있다.** 둘 중 하나만 쫓는 사람이 있다 (주 횟수만, 또는 체중만).
-// 둘 다 비우면 목표를 접는 것과 같아서, 그때는 접겠느냐고 묻는다.
-function GoalForm({ goal, latestWeight, onSave, onCancel, saving }) {
+// **비워둘 수 있다.** 넷 중 하나만 쫓는 사람이 있다 (주 횟수만, 또는 체지방률만).
+// 다 비우면 목표를 접는 것과 같아서, 그때는 접겠느냐고 묻는다.
+function GoalForm({ goal, latest, onSave, onCancel, saving }) {
   const [weekly, setWeekly] = useState(goal?.weeklyTarget ?? null);
-  const [weight, setWeight] = useState(goal?.weightTarget != null ? String(goal.weightTarget) : '');
+  // 재는 값 셋을 한 덩이로 들고 있는다. `useState` 를 셋 두면 아래 `MEASURES`
+  // 순회와 짝이 안 맞아, 넷째 값을 더하는 날 상태 하나를 빼먹는다
+  const [vals, setVals] = useState(() => {
+    const out = {};
+    for (const m of MEASURES) {
+      out[m.key] = goal?.[m.targetKey] != null ? String(goal[m.targetKey]) : '';
+    }
+    return out;
+  });
+  const setVal = (key, v) => setVals((o) => ({ ...o, [key]: v }));
 
   const submit = (e) => {
     e.preventDefault();
-    const w = weight.trim();
-    const num = w === '' ? null : Number(w);
-    if (num !== null && (!Number.isFinite(num) || num < 20 || num > 300)) {
-      toast('체중 목표는 20~300kg 사이로 적어주세요', 'error');
-      return;
+    const patch = { weeklyTarget: weekly };
+    for (const m of MEASURES) {
+      const raw = String(vals[m.key] ?? '').trim();
+      if (raw === '') { patch[m.targetKey] = null; continue; }
+      const num = Number(raw);
+      if (!Number.isFinite(num) || num < m.min || num > m.max) {
+        toast(`${m.label} 목표는 ${m.min}~${m.max}${m.unit} 사이로 적어주세요`, 'error');
+        return;
+      }
+      patch[m.targetKey] = Math.round(num * 10) / 10;
     }
-    onSave({ weeklyTarget: weekly, weightTarget: num === null ? null : Math.round(num * 10) / 10 });
+    onSave(patch);
   };
 
   return (
@@ -85,27 +130,38 @@ function GoalForm({ goal, latestWeight, onSave, onCancel, saving }) {
         {weekly ? `한 주에 ${weekly}번 나가는 것을 목표로 합니다` : '안 쓰려면 비워두세요'}
       </div>
 
-      <div className="label" style={{ marginBottom: 9 }}>체중 목표</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-        <input
-          className="input"
-          type="number"
-          inputMode="decimal"
-          step="0.1"
-          min="20"
-          max="300"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-          placeholder={latestWeight != null ? String(latestWeight) : '75'}
-          style={{ flexGrow: 1 }}
-        />
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0 }}>kg</span>
-      </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18 }}>
-        {latestWeight != null
-          ? `지금 ${latestWeight}kg 에서 시작합니다`
-          : '몸 → 인바디에 체중을 한 번 적으면 진행률이 그려집니다'}
-      </div>
+      {/* 재는 값 셋. **다 비워둬도 된다** — 주 횟수만 쫓는 사람이 있다 */}
+      {MEASURES.map((m) => {
+        const now = latest?.[m.key];
+        return (
+          <div key={m.key}>
+            <div className="label" style={{ marginBottom: 9 }}>{m.label} 목표</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+              <input
+                className="input"
+                type="number"
+                inputMode="decimal"
+                step={m.step}
+                min={m.min}
+                max={m.max}
+                value={vals[m.key]}
+                onChange={(e) => setVal(m.key, e.target.value)}
+                placeholder={now != null ? String(now) : ''}
+                aria-label={`${m.label} 목표 (${m.unit})`}
+                style={{ flexGrow: 1 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0, minWidth: 22 }}>{m.unit}</span>
+            </div>
+            {/* **지금 값이 있으면 그것을 말한다** — 없으면 어디서 적는지 말한다.
+                「진행률이 안 그려진다」로 끝내면 어디로 가야 하는지를 또 찾아야 한다 */}
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
+              {now != null
+                ? `지금 ${now}${m.unit} 에서 시작합니다 · ${m.hint}`
+                : `「몸 → 인바디」에 ${m.label}을 한 번 적으면 진행률이 그려집니다`}
+            </div>
+          </div>
+        );
+      })}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" className="btn-primary" style={{ flexGrow: 1 }} disabled={saving}>
@@ -138,25 +194,46 @@ export default function GoalPage() {
 
   const today = useToday();
 
-  // 목표를 세울 때 박아둘 시작 체중. **지금 값이다** —
-  // 진행률을 「시작에서 얼마나 왔나」로 재는데, 시작점이 매번 바뀌면 진행률이 흔들린다
-  const latestWeight = useMemo(() => {
-    const rows = (records || []).filter(r => Number(r?.weight) > 0);
-    if (rows.length === 0) return null;
-    // 인바디 목록은 최신이 앞이다 (다른 화면들과 같은 가정)
-    return Math.round(Number(rows[0].weight) * 10) / 10;
+  // 목표를 세울 때 박아둘 시작값 셋. **지금 값이다** —
+  // 진행률을 「시작에서 얼마나 왔나」로 재는데, 시작점이 매번 바뀌면 진행률이 흔들린다.
+  //
+  // **값마다 따로 찾는다.** 체중은 인바디의 필수 칸이지만 체지방률과 골격근량은
+  // 비워둘 수 있다 — 가장 최근 줄에 체지방률이 없고 그 앞 줄에는 있을 수 있다.
+  // 「가장 최근 줄」 하나에서 셋을 다 꺼내면 그런 사람은 시작값을 못 받는다.
+  const latest = useMemo(() => {
+    const out = {};
+    for (const m of MEASURES) {
+      const row = (records || []).find(r => Number(r?.[m.field]) > 0);
+      out[m.key] = row ? Math.round(Number(row[m.field]) * 10) / 10 : null;
+    }
+    return out;
   }, [records]);
 
   const week = useMemo(() => weekProgress(workouts, goal, today), [workouts, goal, today]);
   const streak = useMemo(() => weekStreak(workouts, goal, today), [workouts, goal, today]);
   const history = useMemo(() => weekHistory(workouts, goal, today, 5), [workouts, goal, today]);
-  const body = useMemo(() => weightProgress(records, goal), [records, goal]);
+  // 재는 값 셋의 진행률. **쫓지 않는 값은 `null`** 이라 그 줄을 안 그린다
+  const measures = useMemo(() => MEASURES.map((m) => ({
+    m,
+    p: measureProgress(records, {
+      field: m.field,
+      target: goal?.[m.targetKey],
+      start: goal?.[m.startKey],
+    }),
+  })).filter(({ p }) => p), [records, goal]);
+  // 「이대로면 언제」는 **체중만** 말한다. 체지방률·골격근량은 물 마신 것에도
+  // 흔들려서, 4주 흐름으로 날을 집으면 지어낸 수가 된다 —
+  // 「모르면 말하지 않는다」가 이 화면의 규칙이다
   const eta = useMemo(() => weightEta(records, goal, today), [records, goal, today]);
 
   const onSave = async (patch) => {
-    if (patch.weeklyTarget == null && patch.weightTarget == null) {
-      // 둘 다 비운 것은 접겠다는 뜻이다. 조용히 지우지 않고 한 번 묻는다
-      if (!goal) { toast('둘 중 하나는 정해주세요', 'error'); return; }
+    // **넷을 다 봐야 한다** (2026-10-06). 둘만 보면 체지방률만 정한 사람의
+    // 저장이 「접겠다」로 읽힌다
+    const nothing = patch.weeklyTarget == null
+      && MEASURES.every((m) => patch[m.targetKey] == null);
+    if (nothing) {
+      // 다 비운 것은 접겠다는 뜻이다. 조용히 지우지 않고 한 번 묻는다
+      if (!goal) { toast('하나는 정해주세요', 'error'); return; }
       const yes = await confirmDialog('목표를 접을까요?', { confirmText: '접기', danger: true });
       if (!yes) return;
       setSaving(true);
@@ -185,10 +262,14 @@ export default function GoalPage() {
       // 오늘이 다를 수 있다(시차)
       const payload = { ...patch };
       if (!goal?.startedAt) payload.startedAt = today;
-      // 체중 목표를 **처음 세울 때만** 시작 체중을 박는다. 이미 쫓고 있으면
-      // 안 건드린다 — 목표를 75에서 74로 낮췄다고 그동안 내려온 것이 없던 일이 되면 안 된다
-      if (patch.weightTarget != null && (goal?.weightStart == null || goal?.weightTarget == null)) {
-        if (latestWeight != null) payload.weightStart = latestWeight;
+      // **처음 세울 때만** 시작값을 박는다. 이미 쫓고 있으면 안 건드린다 —
+      // 목표를 75에서 74로 낮췄다고 그동안 내려온 것이 없던 일이 되면 안 된다.
+      // 셋을 같은 규칙으로 돈다 (`MEASURES`)
+      for (const m of MEASURES) {
+        const fresh = goal?.[m.startKey] == null || goal?.[m.targetKey] == null;
+        if (patch[m.targetKey] != null && fresh && latest[m.key] != null) {
+          payload[m.startKey] = latest[m.key];
+        }
       }
       await save(payload);
       setEditing(false);
@@ -245,7 +326,7 @@ export default function GoalPage() {
           )}
           <GoalForm
             goal={goal}
-            latestWeight={latestWeight}
+            latest={latest}
             onSave={onSave}
             onCancel={editing ? () => setEditing(false) : null}
             saving={saving}
@@ -346,54 +427,81 @@ export default function GoalPage() {
             </>
           )}
 
-          {body && (
+          {/* ── 몸 ── (2026-10-06 에 체중 하나에서 셋으로)
+              **카드를 셋 더하지 않는다.** 같은 이야기(몸이 어떻게 변했나)라
+              한 카드 안에 줄로 쌓는다 — 카드가 셋이면 화면이 또 길어지고,
+              셋이 서로 상관없는 것처럼 보인다 */}
+          {measures.length > 0 && (
             <>
-              <SectionTitle>체중</SectionTitle>
+              <SectionTitle>몸</SectionTitle>
               <div className="card" style={{ marginBottom: 20 }}>
-                {body.now == null ? (
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                    목표는 {body.target}kg 입니다. 「몸 → 인바디」에 체중을 한 번 적으면
-                    여기에 진행률이 그려집니다.
+                {measures.map(({ m, p }, i) => (
+                  <div key={m.key} style={{
+                    paddingTop: i === 0 ? 0 : 13,
+                    marginTop: i === 0 ? 0 : 13,
+                    borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+                  }}>
+                    <div className="label" style={{ marginBottom: 7 }}>{m.label}</div>
+                    {p.now == null ? (
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                        목표는 {p.target}{m.unit} 입니다. 「몸 → 인바디」에 {m.label}을 한 번 적으면
+                        여기에 진행률이 그려집니다.
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
+                          <span style={{ fontSize: 14 }}>
+                            {p.now} <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>→</span>{' '}
+                            <span style={{ color: 'var(--accent)' }}>{p.target}{m.unit}</span>
+                          </span>
+                          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                            {p.reached ? '닿았습니다' : `${p.left}${m.unit} 남음`}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                          <div className="progress-bg" style={{ flexGrow: 1 }}>
+                            <div className="progress-fill" style={{
+                              width: `${Math.round(p.ratio * 100)}%`,
+                              background: p.reached ? 'var(--success)' : 'var(--accent)',
+                            }} />
+                          </div>
+                          <span style={{ width: 32, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                            {Math.round(p.ratio * 100)}%
+                          </span>
+                        </div>
+                        {/* **모르면 말하지 않는다.** 흐름이 목표와 반대거나 너무 멀면
+                            `weightEta` 가 null 을 준다 — 지어낸 수를 한 번 보여주면
+                            그 뒤의 모든 수를 못 믿게 된다.
+                            **체중만 말한다** — 체지방률·골격근량은 물 마신 것에도
+                            흔들려서 4주 흐름으로 날을 집으면 그게 지어낸 수다 */}
+                        {m.key === 'weight' && eta && (
+                          <div style={{ fontSize: 11.5, color: 'var(--success)', marginTop: 9 }}>
+                            이대로면 {eta.label}에 닿습니다 (요즘 주 {Math.abs(eta.perWeek)}kg)
+                          </div>
+                        )}
+                        {!(m.key === 'weight' && eta) && p.away && (
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+                            시작했을 때보다 목표에서 멀어져 있습니다
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 9 }}>
+                          시작 {p.start}{m.unit} · 마지막 기록 {p.lastDate}
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
-                      <span style={{ fontSize: 14 }}>
-                        {body.now} <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>→</span>{' '}
-                        <span style={{ color: 'var(--accent)' }}>{body.target}kg</span>
-                      </span>
-                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                        {body.reached ? '닿았습니다' : `${body.left}kg 남음`}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <div className="progress-bg" style={{ flexGrow: 1 }}>
-                        <div className="progress-fill" style={{
-                          width: `${Math.round(body.ratio * 100)}%`,
-                          background: body.reached ? 'var(--success)' : 'var(--accent)',
-                        }} />
-                      </div>
-                      <span style={{ width: 32, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                        {Math.round(body.ratio * 100)}%
-                      </span>
-                    </div>
-                    {/* **모르면 말하지 않는다.** 흐름이 목표와 반대거나 너무 멀면
-                        `weightEta` 가 null 을 준다 — 지어낸 수를 한 번 보여주면
-                        그 뒤의 모든 수를 못 믿게 된다 */}
-                    {eta && (
-                      <div style={{ fontSize: 11.5, color: 'var(--success)', marginTop: 9 }}>
-                        이대로면 {eta.label}에 닿습니다 (요즘 주 {Math.abs(eta.perWeek)}kg)
-                      </div>
-                    )}
-                    {!eta && body.away && (
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
-                        시작했을 때보다 목표에서 멀어져 있습니다
-                      </div>
-                    )}
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 9 }}>
-                      시작 {body.start}kg · 마지막 기록 {body.lastDate}
-                    </div>
-                  </>
+                ))}
+                {/* **체중이 그대로여도 몸은 변한다** — 이 앱이 하려는 말이고,
+                    셋을 나란히 놓으면 그 말이 수로 보인다. 둘 이상 쫓는 사람에게만
+                    적는다 (하나만 쫓는 사람에게는 견줄 것이 없다) */}
+                {measures.length > 1 && (
+                  <div style={{
+                    fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75,
+                    marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--border)',
+                  }}>
+                    체중이 그대로여도 체지방률과 골격근량은 움직입니다 —
+                    그게 <span style={{ color: 'var(--accent-low)' }}>무엇이 늘었는지</span>입니다.
+                  </div>
                 )}
               </div>
             </>

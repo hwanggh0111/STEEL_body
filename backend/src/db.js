@@ -78,7 +78,8 @@ const DEFAULT_DATA = {
   // `weight_start` 는 목표를 세운 날의 체중이다. **그때 값을 박아둔다** — 진행률을
   // 「시작에서 얼마나 왔나」로 재는데, 시작점을 매번 기록에서 다시 찾으면
   // 옛 기록을 하나 고칠 때마다 진행률이 흔들린다
-  goals: [],         // { user_id, weekly_target, weight_target, weight_start, started_at, created_at, updated_at }
+  // fat_* · muscle_* 는 2026-10-06 에 더했다. 옛 줄에는 없다 — 읽는 쪽이 `?? null` 로 받는다
+  goals: [],         // { user_id, weekly_target, weight_target, weight_start, fat_target, fat_start, muscle_target, muscle_start, started_at, created_at, updated_at }
   // 기구 세팅. 「랫풀다운은 시트 4번, 발판 2번, 넓은 그립」.
   //
   // 기구 앞에서 **매번 다시 맞춘다.** 한두 번 틀리게 맞춘 뒤에야 몸이 기억해내고,

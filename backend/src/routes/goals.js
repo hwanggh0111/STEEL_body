@@ -12,9 +12,26 @@ const { seoulDay } = require('../utils/seoulDay');
 //
 // **남과 겨루지 않는다**는 앱의 약속과 부딪히지 않는다 — 겨루는 상대가 자기 자신이다.
 //
-// 한 사람당 한 줄이고, 담는 것은 둘뿐이다.
+// 한 사람당 한 줄이고, 담는 것은 넷이다.
 //   weeklyTarget  주 몇 번 (1~7)
 //   weightTarget  몇 kg 까지
+//   fatTarget     체지방률 몇 % 까지   (2026-10-06)
+//   muscleTarget  골격근량 몇 kg 까지  (2026-10-06)
+//
+// ── 뒤의 둘을 더한 까닭 ── (2026-10-06)
+//
+// 여태 목표는 **주 몇 번**과 **체중** 둘이었다. 그런데 이 앱 홈페이지의 첫 줄이
+// **「무게는 늘었는데 무엇이 늘었는지는 아무도 안 알려준다」**다 —
+// 체중은 「몸이 변했다」를 가장 못 말하는 수다. 근육이 늘고 지방이 줄면
+// **체중은 안 움직인다.** 목표가 체중뿐이면 그 사람은 제일 잘한 달에
+// 「아무 일도 없었다」를 본다.
+//
+// 즉 **홈페이지가 꼬집은 문제를 목표가 그대로 하고 있었다.** 인바디에 체지방률과
+// 골격근량이 이미 담기는데(`routes/inbody.js` 의 `fat_pct` · `muscle_kg`)
+// 목표로는 세울 수가 없었다.
+//
+// **새 칸이라 옛 목표와 안 부딪친다** — 없으면 `null` 이고, 화면은 null 인 줄을
+// 안 그린다. 체중 목표를 쫓던 사람은 바뀐 것이 없다.
 //
 // **계산은 전부 화면이 한다**(`frontend/src/data/goal.js`). 서버는 「무엇을 목표로
 // 했는가」만 들고 있는다 — 진행률·연속 주는 이미 서버에 있는 기록에서 나오는 값이라,
@@ -26,6 +43,12 @@ const MAX_WEEKLY = 7;
 // 사람 체중의 바깥 테두리. 인바디 화면이 쓰는 것과 같은 범위다
 const WEIGHT_MIN = 20;
 const WEIGHT_MAX = 300;
+// 체지방률·골격근량의 바깥 테두리. 인바디 화면이 받는 범위와 같게 둔다 —
+// 거기서 담을 수 없는 수를 목표로는 세울 수 있으면 영영 못 닿는 목표가 된다
+const FAT_MIN = 3;
+const FAT_MAX = 60;
+const MUSCLE_MIN = 5;
+const MUSCLE_MAX = 100;
 
 const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
@@ -63,6 +86,24 @@ function clean(body) {
     else bad.push('시작 체중을 확인해 주세요');
   }
 
+  // ── 체지방률 · 골격근량 ── (2026-10-06)
+  //
+  // 체중과 **똑같은 모양**으로 받는다 — 목표와 시작값 한 쌍이다. 모양을 맞추는
+  // 까닭은 화면이 셋을 한 함수로 그리기 때문이다(`data/goal.js` 의 `measureProgress`).
+  // 여기서 이름을 다르게 지으면 거기서 셋을 따로 적어야 한다.
+  const pair = (key, dbKey, min, max, unit, what) => {
+    if (body?.[key] === null) out[dbKey] = null;
+    else if (body?.[key] !== undefined) {
+      const n = Number(body[key]);
+      if (Number.isFinite(n) && n >= min && n <= max) out[dbKey] = Math.round(n * 10) / 10;
+      else bad.push(`${what}는 ${min}~${max}${unit} 사이로 적어주세요`);
+    }
+  };
+  pair('fatTarget', 'fat_target', FAT_MIN, FAT_MAX, '%', '체지방률 목표');
+  pair('fatStart', 'fat_start', FAT_MIN, FAT_MAX, '%', '시작 체지방률');
+  pair('muscleTarget', 'muscle_target', MUSCLE_MIN, MUSCLE_MAX, 'kg', '골격근량 목표');
+  pair('muscleStart', 'muscle_start', MUSCLE_MIN, MUSCLE_MAX, 'kg', '시작 골격근량');
+
   // 언제부터 쫓기 시작했나. 안 주면 서버가 오늘로 적는다 —
   // 사람의 오늘과 서버의 오늘이 다를 수 있어서 화면이 주는 쪽을 먼저 본다
   if (isDate(body?.startedAt)) out.started_at = body.startedAt;
@@ -76,6 +117,10 @@ const toClient = (row) => (row ? {
   weeklyTarget: row.weekly_target ?? null,
   weightTarget: row.weight_target ?? null,
   weightStart: row.weight_start ?? null,
+  fatTarget: row.fat_target ?? null,
+  fatStart: row.fat_start ?? null,
+  muscleTarget: row.muscle_target ?? null,
+  muscleStart: row.muscle_start ?? null,
   startedAt: row.started_at ?? null,
   updatedAt: row.updated_at ?? null,
 } : null);

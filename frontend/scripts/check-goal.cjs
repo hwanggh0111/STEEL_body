@@ -252,5 +252,73 @@ ok('이번 주는 밑줄로 말한다 (탭바와 같은 언어)', /w\.current \?
 // 폰에는 마우스를 올릴 방법이 없다. 숫자를 눈에 보이게 적는다
 ok('  몇 일 했는지 막대 아래에 적는다', /\{w\.before \? '·' : w\.done\}/.test(bars), true);
 
+console.log('');
+console.log('── 몸의 수 셋이 같은 셈을 쓰는가 ── (2026-10-06)');
+//
+// 체중 하나였던 것이 체중 · 체지방률 · 골격근량 셋이 됐다. 셋이 **같은 함수**를
+// 쓰는지, 그리고 그 함수가 칸 이름만 바꿔 같은 답을 주는지 값으로 본다 —
+// 셋을 따로 적으면 「지나쳤을 때 남은 거리를 0 으로 둔다」 같은 판단이 갈린다.
+const REC = [
+  // 인바디 목록은 **최신이 앞**이다 (앱의 다른 화면들과 같은 가정)
+  { date: '2026-10-05', weight: 72, fat_pct: 18, muscle_kg: 34 },
+  { date: '2026-09-01', weight: 78, fat_pct: 24, muscle_kg: 31 },
+];
+const GM = {
+  weightTarget: 70, weightStart: 78,
+  fatTarget: 15, fatStart: 24,
+  muscleTarget: 36, muscleStart: 31,
+};
+
+const mp = (field, target, start) => g.measureProgress(REC, { field, target, start });
+
+ok('체중 — 78 → 72, 목표 70', [mp('weight', 70, 78).left, Math.round(mp('weight', 70, 78).ratio * 100)], [2, 75]);
+ok('  체지방률 — 24 → 18, 목표 15', [mp('fat_pct', 15, 24).left, Math.round(mp('fat_pct', 15, 24).ratio * 100)], [3, 67]);
+ok('  골격근량 — 31 → 34, 목표 36 (늘리는 쪽)', [mp('muscle_kg', 36, 31).left, Math.round(mp('muscle_kg', 36, 31).ratio * 100)], [2, 60]);
+
+// 방향을 정해두지 않는다 — 체지방률을 올리는 사람도 있다
+ok('올리는 목표도 같은 셈이다', mp('fat_pct', 30, 24).dir, 'up');
+ok('  내리는 목표', mp('fat_pct', 15, 24).dir, 'down');
+
+// 지나쳤으면 남은 거리는 0 이다. **음수를 「-0.4% 남음」으로 적으면 읽을 수가 없다**
+ok('지나치면 남은 거리는 0', [mp('fat_pct', 20, 24).left, mp('fat_pct', 20, 24).reached], [0, true]);
+ok('  진행률도 1 을 안 넘는다', mp('fat_pct', 20, 24).ratio, 1);
+
+// 쫓지 않는 값은 null 이다 — 화면이 그 줄을 안 그린다
+ok('목표가 없으면 null', mp('fat_pct', null, null), null);
+// 인바디에 그 칸이 비어 있는 사람. **목표는 있는데 값이 없다**고 말해야 한다
+ok('값이 없으면 now 가 null', mp('fat_pct', 15, 24) && mp('water_l', 15, null).now, null);
+
+// 껍데기 셋이 같은 함수를 쓰는가
+ok('weightProgress 가 같은 답을 준다', g.weightProgress(REC, GM).left, mp('weight', 70, 78).left);
+ok('  fatProgress', g.fatProgress(REC, GM).left, mp('fat_pct', 15, 24).left);
+ok('  muscleProgress', g.muscleProgress(REC, GM).left, mp('muscle_kg', 36, 31).left);
+
+console.log('');
+console.log('── 목표가 넷 중 하나만 있어도 목표인가 ──');
+// 여기를 안 늘리면 체지방률만 정한 사람에게 앱이 「목표가 없다」고 한다 —
+// 저장은 됐는데 홈 카드도 안 뜨고 목표 화면이 세우기 폼으로 돌아간다
+ok('주 횟수만', g.hasGoal({ weeklyTarget: 4 }), true);
+ok('  체중만', g.hasGoal({ weightTarget: 70 }), true);
+ok('  체지방률만', g.hasGoal({ fatTarget: 15 }), true);
+ok('  골격근량만', g.hasGoal({ muscleTarget: 36 }), true);
+ok('다 비면 목표가 아니다', g.hasGoal({}), false);
+
+console.log('');
+console.log('── 화면이 셋을 한 자리에 적는가 ──');
+// 폼의 칸 · 저장할 때 박는 시작값 · 그려주는 줄이 전부 MEASURES 를 돈다.
+// 세 자리에 따로 적으면 넷째 값을 더하는 날 한 곳이 빠진다
+// 위에서 `bars` 로 이미 읽은 파일이다. 이름을 또 만들지 않는다
+ok('MEASURES 한 자리에 셋이 있다', (bars.match(/targetKey: '/g) || []).length, 3);
+ok('  폼이 그것을 돈다', /MEASURES\.map\(\(m\) =>/.test(bars), true);
+ok('  시작값도 그것을 돈다', /for \(const m of MEASURES\)/.test(bars), true);
+ok('  다 비었는지도 그것으로 본다', /MEASURES\.every\(\(m\) => patch\[m\.targetKey\] == null\)/.test(bars), true);
+// 「이대로면 언제」는 체중만 말한다 — 체지방률은 물 마신 것에도 흔들린다
+ok('언제 닿을지는 체중만 말한다', /m\.key === 'weight' && eta/.test(bars), true);
+
+// 홈 카드도 셋을 안다. 안 고치면 체지방률만 쫓는 사람은 홈에서 아무것도 못 본다
+const card = fs.readFileSync('src/components/home/GoalCard.jsx', 'utf-8');
+ok('홈 카드가 체중 말고도 그린다', /fatTarget/.test(card) && /muscleTarget/.test(card), true);
+ok('  글자가 체중으로 박혀 있지 않다', /\{body\.label\}/.test(card), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

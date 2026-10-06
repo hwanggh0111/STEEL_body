@@ -53,7 +53,15 @@ const round1 = (n) => Math.round(n * 10) / 10;
  * 아무 말도 안 하면서 자리만 먹는다 (주간 요약에서 배운 것).
  */
 export function hasGoal(goal) {
-  return !!goal && (goal.weeklyTarget != null || goal.weightTarget != null);
+  // **넷 중 하나라도 있으면 목표가 있는 것이다** (2026-10-06 에 둘에서 넷이 됐다).
+  // 여기를 안 늘리면 체지방률만 정한 사람에게 앱이 「목표가 없다」고 한다 —
+  // 저장은 됐는데 홈 카드도 안 뜨고 목표 화면이 세우기 폼으로 돌아간다
+  return !!goal && (
+    goal.weeklyTarget != null
+    || goal.weightTarget != null
+    || goal.fatTarget != null
+    || goal.muscleTarget != null
+  );
 }
 
 /**
@@ -195,24 +203,35 @@ export function weekStreak(workouts, goal, today = dateKey()) {
 }
 
 /**
- * 체중 목표까지 얼마나 왔나.
+ * 재는 값 하나가 목표까지 얼마나 왔나 — **체중 · 체지방률 · 골격근량이 같은 함수를 쓴다.**
  *
- * 시작점은 **목표를 세운 날에 박아둔 값**(`weightStart`)이다. 매번 기록에서 다시
+ * ── 왜 하나로 묶었나 ── (2026-10-06)
+ *
+ * 체중 하나만 있을 때는 이 계산이 `weightProgress` 안에 그대로 박혀 있었다.
+ * 체지방률과 골격근량을 더하면서 **같은 셈을 세 번 적을 수가 없었다** — 「지나쳤을
+ * 때 남은 거리를 0 으로 둔다」 같은 판단이 셋으로 갈리면, 한 곳만 고치는 날이 온다.
+ *
+ * 세 값의 셈이 정말 같다. 다른 것은 **읽는 칸 이름과 단위**뿐이다.
+ *
+ * 시작점은 **목표를 세운 날에 박아둔 값**(`…Start`)이다. 매번 기록에서 다시
  * 찾으면 옛 기록 하나를 고칠 때마다 진행률이 흔들린다. 없으면(옛 목표) 지금 값을
  * 시작으로 친다 — 그러면 진행률이 0에서 시작하지만, **틀린 수를 보여주지는 않는다.**
+ *
+ * @param field  인바디 줄에서 읽을 칸 ('weight' · 'fat_pct' · 'muscle_kg')
+ * @param target 목표값. null 이면 **쫓지 않는 값**이라 `null` 을 돌려준다
+ * @param start  목표를 세운 날의 값
  */
-export function weightProgress(records, goal) {
-  const target = goal?.weightTarget;
+export function measureProgress(records, { field, target, start: pinned }) {
   if (target == null) return null;
 
   const rows = (records || [])
-    .filter(r => Number(r?.weight) > 0 && r?.date)
+    .filter(r => Number(r?.[field]) > 0 && r?.date)
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
   if (rows.length === 0) return { target, now: null, start: null, ratio: 0, left: null, dir: null, reached: false };
 
-  const now = round1(Number(rows[rows.length - 1].weight));
-  const start = goal.weightStart != null ? round1(Number(goal.weightStart)) : now;
+  const now = round1(Number(rows[rows.length - 1][field]));
+  const start = pinned != null ? round1(Number(pinned)) : now;
   const dir = target < start ? 'down' : target > start ? 'up' : 'same';
 
   const span = Math.abs(target - start);
@@ -232,6 +251,38 @@ export function weightProgress(records, goal) {
     away: moved < 0,
     lastDate: rows[rows.length - 1].date,
   };
+}
+
+/**
+ * 체중만 보는 자리 — 홈의 목표 카드와 목표 화면이 쓴다.
+ *
+ * **껍데기로 남긴다.** 쓰는 곳이 여럿이라 이름을 바꾸면 그 자리들을 다 고쳐야
+ * 하는데, 바뀐 것은 셈이 아니라 **셈을 적어둔 자리**뿐이다.
+ */
+export function weightProgress(records, goal) {
+  return measureProgress(records, {
+    field: 'weight',
+    target: goal?.weightTarget,
+    start: goal?.weightStart,
+  });
+}
+
+/** 체지방률. **낮추는 쪽이 보통이지만 방향을 정하지 않는다** — 올리는 사람도 있다 */
+export function fatProgress(records, goal) {
+  return measureProgress(records, {
+    field: 'fat_pct',
+    target: goal?.fatTarget,
+    start: goal?.fatStart,
+  });
+}
+
+/** 골격근량. */
+export function muscleProgress(records, goal) {
+  return measureProgress(records, {
+    field: 'muscle_kg',
+    target: goal?.muscleTarget,
+    start: goal?.muscleStart,
+  });
 }
 
 /** 몇 월 어느 무렵인가 — 「11월 초」. 날짜를 콕 집으면 안 맞았을 때 거짓말이 된다. */
