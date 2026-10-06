@@ -256,6 +256,8 @@ export default function HomeworkoutPage() {
   const [peek, setPeek] = useState(false);
   // 판을 끝내면 여기서 바로 저장한다 — 기록 화면으로 보내 한 번 더 누르게 하지 않는다
   const addWorkout = useWorkoutStore((st) => st.addWorkout);
+  // 줄 여럿을 넣고 **마지막에 한 번** 목록을 맞춘다 (아래 `goRecord` 참고)
+  const fetchAll = useWorkoutStore((st) => st.fetchAll);
   const today = useToday();
   const keepAwake = useSettingsStore((st) => st.keepAwake);
   // 숨은 **설정함에서 켠다** (2026-09-22). 화면마다 따로 켜게 두면 한쪽만 켜둔 것을
@@ -605,15 +607,50 @@ export default function HomeworkoutPage() {
   const goRecord = async (count) => {
     const rows = toRecords(exercises, count, selected);
     if (rows.length === 0) { toast('적을 것이 없어요'); return; }
-    try {
-      for (const r of rows) await addWorkout({ ...r, date: today });
+
+    // ── 올라간 줄과 못 올라간 줄을 **갈라서 센다** ── (2026-10-06)
+    //
+    // 앞서는 `for … await` 를 `try` 로 감싸고, 하나라도 터지면
+    // **「기록을 못 올렸어요. 직접 적어주세요」**라고 했다. 그런데 터진 것이
+    // 세 번째 줄이면 **앞의 둘은 이미 올라가 있다.** 그 말을 듣고 직접 적으면
+    // 앞의 둘이 **두 번** 쌓인다 — 「못 올렸다」가 사실이 아니었던 것이다.
+    //
+    // 신호가 없는 것은 터지지 않는다(`workoutStore` 가 줄에 담아둔다). 여기서
+    // 터지는 것은 **서버가 「그렇게는 안 받는다」고 답한 것**이고, 그건 다시
+    // 보내도 마찬가지다. 그러니 **무엇이 올라갔고 무엇이 안 올라갔는지**를
+    // 말하는 것이 할 수 있는 전부다.
+    const failed = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const r = rows[i];
+      try {
+        // 목록 다시 받기는 **마지막 줄에서 한 번만.** 줄마다 받으면 왕복이 두 배다
+        // (부위 다섯이면 POST 다섯 + 전체 조회 다섯) — 판을 막 끝내고 숨이 차 있는
+        // 사람이 그걸 기다린다. 줄들은 서로 다른 운동 이름이라 최고 기록도 안 엉킨다
+        await addWorkout({ ...r, date: today }, { refetch: false });
+      } catch {
+        failed.push(r);
+      }
+    }
+    // 하나라도 올라갔으면 목록을 맞춰둔다. 다 실패했으면 받을 것이 없다
+    const saved = rows.length - failed.length;
+    if (saved > 0) await fetchAll(true).catch(() => {});
+
+    if (failed.length === 0) {
       toast(`${rows.length}줄로 기록했어요 · 몸 지도에도 쌓였어요`);
       navigate('/history', { state: { date: today } });
-    } catch {
-      // 서버가 거절한 것은 다시 보내도 마찬가지다. 기록 화면으로 보내 손으로 적게 한다
-      toast('기록을 못 올렸어요. 직접 적어주세요');
-      navigate('/train', { state: { exercise: `${selected} · ${rows[0].exercise.split(' · ').pop()}` } });
+      return;
     }
+
+    // **부위 이름을 말한다.** 「2줄이 안 올라갔어요」만으로는 무엇을 다시 적어야
+    // 하는지 알 수 없다
+    const names = failed.map((r) => r.exercise.split(' · ').pop()).join(' · ');
+    if (saved > 0) {
+      toast(`${saved}줄은 올라갔고 ${names}이(가) 안 올라갔어요. 그것만 적어주세요`, 'error');
+    } else {
+      toast('기록을 못 올렸어요. 직접 적어주세요', 'error');
+    }
+    // 못 올라간 **첫 줄**을 들려 보낸다. 올라간 것을 들려 보내면 그것을 또 적게 된다
+    navigate('/train', { state: { exercise: failed[0].exercise } });
   };
 
   const totalTime = exercises.reduce((sum, e) => sum + e.duration + e.rest, 0);
