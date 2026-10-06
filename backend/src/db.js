@@ -1966,6 +1966,26 @@ const db = {
   },
 
   /**
+   * 한 헬스장의 세팅을 **통째로** 지운다 (2026-10-06).
+   *
+   * 이게 없어서 「옮긴 헬스장」을 치우려면 **세팅을 하나씩** 지워야 했다 —
+   * 열두 개를 적어뒀으면 열두 번이다. 그리고 세팅을 하나라도 남기면 그 헬스장이
+   * 칩 줄에 계속 뜬다(`getGyms` 가 세팅에서 뽑기 때문이다).
+   *
+   * 한 번에 지우는 까닭은 **그 일이 하나**라서다 — 「거기 안 다닌다」. 줄마다 지우게
+   * 두면 사람은 중간에 그만두고, 반쯤 지워진 헬스장이 목록에 남는다.
+   */
+  deleteGymAll(userId, gym) {
+    const data = load();
+    const before = (data.gymSettings || []).length;
+    data.gymSettings = (data.gymSettings || [])
+      .filter((s) => !(s.user_id === userId && s.gym === gym));
+    const changes = before - data.gymSettings.length;
+    if (changes > 0) save(data);
+    return { changes };
+  },
+
+  /**
    * 내가 다니는 곳 — **따로 적어두지 않는다.**
    *
    * 세팅에 이미 헬스장 이름이 붙어 있으므로 거기서 뽑는다. 목록을 따로 들고 있으면

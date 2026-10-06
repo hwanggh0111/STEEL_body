@@ -106,6 +106,23 @@ export const useGymStore = create((set, get) => ({
     await get().fetch(true);
   },
 
+  /**
+   * 한 곳을 **통째로** 지운다 (2026-10-06). 지운 개수를 돌려준다.
+   *
+   * 줄마다 `remove` 를 부르지 않는다. 열두 개면 왕복 열두 번이고, 가운데에서
+   * 하나 터지면 **반쯤 지워진 헬스장**이 남는다 — 그러면 그 곳이 칩 줄에 계속
+   * 뜨는데 세팅은 몇 개 없는 상태가 된다. 서버가 한 번에 지운다.
+   *
+   * **지금 있는 곳을 지웠으면 그 자리도 비운다** — 안 비우면 없는 곳을 기준으로
+   * 「운동」 화면이 세팅을 찾는다(아무것도 안 뜬다).
+   */
+  removeGym: async (gym) => {
+    const { data } = await client.delete('/gym-settings/gym', { params: { gym } });
+    if (get().gym === gym) get().setGym('');
+    await get().fetch(true);
+    return data?.removed ?? 0;
+  },
+
   reset: () => {
     resetGymCache();
     // **헬스장 이름은 안 지운다.** 그건 이 기기가 어디에 있는지이지 그 사람의 것이 아니다 —

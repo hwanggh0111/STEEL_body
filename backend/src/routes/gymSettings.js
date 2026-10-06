@@ -138,4 +138,20 @@ router.delete('/', auth, (req, res) => {
   res.json({ message: '지웠어요' });
 });
 
+// 한 곳을 통째로 지운다 (2026-10-06).
+//
+// 이게 없어서 「이제 안 다니는 헬스장」을 치우려면 **세팅을 하나씩** 지워야 했다 —
+// 열두 개를 적어뒀으면 열두 번이다. 그리고 하나라도 남기면 그 헬스장이 칩 줄에
+// 계속 뜬다(`getGyms` 가 세팅에서 뽑는다).
+//
+// **몇 개를 지웠는지 돌려준다.** 「지웠어요」만 보내면 화면이 「12개를 지웠어요」라고
+// 말할 수가 없는데, 통째로 지우는 자리에서는 **얼마나 사라졌는지가 그 일의 크기**다.
+router.delete('/gym', auth, (req, res) => {
+  const gym = nameOf(req.query.gym, GYM_MAX);
+  if (!gym) return res.status(400).json({ error: '어느 헬스장인지 알려주세요' });
+  const { changes } = db.deleteGymAll(req.userId, gym);
+  if (!changes) return res.status(404).json({ error: '그곳에 적어둔 세팅이 없어요' });
+  res.json({ message: '지웠어요', removed: changes });
+});
+
 module.exports = router;
