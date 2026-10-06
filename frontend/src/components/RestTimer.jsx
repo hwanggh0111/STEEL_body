@@ -23,6 +23,34 @@ import { useMemo, useState } from 'react';
 //
 // 큰 링이 필요한 이유는 이것이다 — **폰을 내려놓고 쓰는 물건**이다. 벤치에 누워
 // 팔 뻗은 거리에서 22px 숫자는 안 읽힌다. 시안 A 의 60px 이 그래서 나온 크기다.
+//
+// ── 쉬는 중에는 **쉬는 것만** 남긴다 ── (2026-10-06)
+//
+// 10/2 의 「A+D 합본」 시안이 **치르는 값을 하나 적어뒀다** —
+// 「카드가 넷이라 **한 화면에 안 들어갑니다.** 숨 줄이 있는 날엔 「다음 휴식」 줄이
+// 아래로 밀립니다.」 그 값이 그대로 남아 있었고, 10/1 할 일 목록에도
+// 「시안에서 고르지 않은 쉬는 시간」으로 적혀 있었다.
+//
+// 그런데 실제로 세어보니 밀리는 것이 「다음 휴식」 줄만이 아니었다. 쉬는 중에
+// 링 아래로 이만큼이 쌓인다 —
+//
+//   다음 세트 카드 · (숨 한 줄) · 방금 저장한 세트 · 단추 셋
+//   「다음 휴식」 + 프리셋 다섯
+//   저절로 시작 · 소리 · **소리 종류 넷 · 소리 크기 셋 · 설명 줄 셋** · 진동
+//
+// **쉬는 60초 동안 「어떤 소리로 알릴까요」를 볼 이유가 없다.** 그런데 그것이
+// 큰 링 바로 아래에 있어서, 다음 휴식 길이를 바꾸려면 벤치에 누워 스크롤해야 한다.
+//
+// 그래서 **쉬는 중에는 정하는 것을 접는다.** 쉬고 나면 그대로 펴진다.
+//
+// ── 설정함과 판단이 다른 까닭 ──
+//
+// 오늘 설정함에서는 **「접지 않는다」**를 골랐다(칩 줄로 건너뛰게만 했다). 거기는
+// **설정을 보러 온 자리**라 숨기면 「그 기능이 없다」가 된다.
+//
+// 여기는 **쉬러 온 자리**다. 고객센터가 고친 것과 같은 종류다 —
+// 「볼일을 보러 온 사람 앞에 소개를 세워둔 것」. 쉬는 사람 앞에 소리 고르기를
+// 세워둘 이유가 없다. **숨기지 않고 접는다** — 한 번 누르면 그 자리에서 펴진다.
 const RING = 190;
 const R = 86;
 const CIRC = 2 * Math.PI * R;
@@ -206,6 +234,14 @@ export default function RestTimer() {
   // 소리는 **사람이 누른 그 순간**에 준비해야 브라우저가 막지 않는다
   const begin = (sec) => { primeAudio(); start(sec ?? duration, label); };
 
+  // 쉬는 중에 **정하는 것**(다음 휴식 길이 · 알림)을 펼쳐 뒀나.
+  //
+  // 쉬는 동안은 기본이 접힘이다. 안 쉴 때는 이 값과 상관없이 늘 펴져 있다 —
+  // 그때는 그것이 이 카드의 본일이다
+  const [openPrefs, setOpenPrefs] = useState(false);
+  // 쉬는 중이 아니면 언제나 펴 둔다
+  const prefsOpen = !active || openPrefs;
+
   const applyCustom = () => {
     const n = parseInt(custom, 10);
     if (!Number.isFinite(n) || n < MIN_SEC || n > MAX_SEC) return;
@@ -273,10 +309,30 @@ export default function RestTimer() {
         </>
       ) : null}
 
-      {/* 프리셋 — 시안 A 는 쉬는 중에도 이 줄을 보여준다.
-          다만 여기서 고르는 것은 **다음 휴식**의 길이다. 도는 것을 중간에 늘리거나
-          줄이는 자리가 아니다 (그건 +30초가 한다) — 그래서 쉬는 중에는 그렇게 적는다 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* 쉬는 중이면 정하는 것을 접고 **한 줄만** 둔다 (위 머리말 참고).
+          무엇이 접혀 있는지 적는다 — 「설정」이라고만 적으면 다음 휴식 길이가
+          거기 있는 줄 모른다 */}
+      {active && !openPrefs && (
+        <button
+          type="button"
+          onClick={() => setOpenPrefs(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: 40,
+            padding: '0 2px', background: 'none', border: 'none', borderTop: '1px solid var(--border)',
+            fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            다음 휴식 길이 · 알림 소리는 쉬고 나서 정하셔도 됩니다
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent-low)', flexShrink: 0 }}>펼치기 ›</span>
+        </button>
+      )}
+
+      {/* 프리셋 — 여기서 고르는 것은 **다음 휴식**의 길이다. 도는 것을 중간에
+          늘리거나 줄이는 자리가 아니다 (그건 +30초가 한다) — 그래서 쉬는 중에는
+          그렇게 적는다 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...(prefsOpen ? null : { display: 'none' }) }}>
         {active && (
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>다음 휴식</div>
         )}
@@ -318,7 +374,12 @@ export default function RestTimer() {
         <button className="btn-primary" onClick={() => begin()}>{duration}초 쉬기</button>
       )}
 
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+      {/* 알림 묶음. 쉬는 중에는 같이 접힌다 — 소리 종류 넷 · 소리 크기 셋 ·
+          설명 줄 셋이 큰 링 바로 아래에 쌓이던 자리다 */}
+      <div style={{
+        borderTop: '1px solid var(--border)', paddingTop: 8,
+        ...(prefsOpen ? null : { display: 'none' }),
+      }}>
         <Toggle
           on={autoStart}
           onClick={() => { primeAudio(); setAutoStart(!autoStart); }}
@@ -378,6 +439,20 @@ export default function RestTimer() {
           label="끝나면 진동으로 알리기"
           desc="아이폰은 진동을 지원하지 않습니다. 소리로 알립니다"
         />
+
+        {/* 펼쳐 놓고 그대로 두면 또 길어진다. **접는 길을 같이 둔다** —
+            쉬는 중에만 그린다 (안 쉴 때는 이것이 이 카드의 본일이라 접을 것이 없다) */}
+        {active && (
+          <button
+            type="button"
+            onClick={() => setOpenPrefs(false)}
+            style={{
+              width: '100%', minHeight: 40, marginTop: 4, background: 'none', border: 'none',
+              borderTop: '1px solid var(--border)', fontFamily: 'inherit', cursor: 'pointer',
+              fontSize: 12, color: 'var(--text-muted)',
+            }}
+          >접어서 타이머만 보기</button>
+        )}
       </div>
     </div>
   );

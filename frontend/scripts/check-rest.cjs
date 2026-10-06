@@ -71,5 +71,33 @@ ok('  적히는 초가 바뀔 때만 넣는다', /if \(shown !== before\) set\(\
 ok('띠의 움직임이 1초다', /transition: 'width 1s linear'/.test(bar), true);
 ok('링의 움직임이 1초다', /stroke-dashoffset 1s linear/.test(ring), true);
 
+console.log('');
+console.log('── 쉬는 중에는 쉬는 것만 남는가 ── (2026-10-06)');
+//
+// 10/2 의 「A+D 합본」 시안이 **치르는 값을 하나 적어뒀다** — 「카드가 넷이라
+// 한 화면에 안 들어갑니다」. 그 값이 그대로 남아 있었고, 10/1 할 일 목록에도
+// 「시안에서 고르지 않은 쉬는 시간」으로 적혀 있었다.
+//
+// 실제로 세어보니 밀리는 것이 「다음 휴식」 줄만이 아니었다 — 큰 링 바로 아래에
+// **소리 종류 넷 · 소리 크기 셋 · 설명 줄 셋**까지 쌓인다. 쉬는 60초 동안
+// 「어떤 소리로 알릴까요」를 볼 이유가 없는데, 그것 때문에 다음 휴식 길이를
+// 바꾸려면 **벤치에 누워 스크롤**해야 했다.
+//
+// 되돌아가기 쉬운 자리다 — 조건 한 줄만 지우면 다시 다 펴진다.
+// 주석을 걷고 본다 — 머리말에 옛 모습을 적어두는 것이 이 앱의 방식이라,
+// 안 걷으면 **주석에 적힌 옛 코드를 살아 있는 코드로** 본다
+// (오늘 `check-scroll` 에서 그렇게 한 번 멀쩡한 파일을 실패로 만들었다)
+const timer = read('src/components/RestTimer.jsx')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
+ok('쉬는 중이면 정하는 것을 접는다', /const prefsOpen = !active \|\| openPrefs/.test(timer), true);
+// **숨기지 않고 접는다.** 한 번 누르면 그 자리에서 펴진다
+ok('  펼치는 길이 있다', /setOpenPrefs\(true\)/.test(timer), true);
+ok('  다시 접는 길도 있다', /setOpenPrefs\(false\)/.test(timer), true);
+// 「설정」이라고만 적으면 **다음 휴식 길이가 거기 있는 줄 모른다**
+ok('  무엇이 접혀 있는지 적는다', /다음 휴식 길이 · 알림 소리는/.test(timer), true);
+// 안 쉴 때는 이것이 이 카드의 본일이다 — 그때 접으면 할 일이 없어진다
+ok('  안 쉴 때는 늘 펴 둔다', /!active \|\| openPrefs/.test(timer), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
