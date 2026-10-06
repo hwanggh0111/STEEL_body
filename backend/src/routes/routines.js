@@ -287,6 +287,10 @@ router.get('/programs', (req, res) => {
 });
 
 // 타입별 (머신 or 맨몸)
+//
+// **누구나 본다** — 앱이 들고 있는 추천 목록이라 로그인도 주인도 없다.
+// 홈페이지(`/site`)에서도 받는다. 여기서 주인을 안 보는 것이 맞고, 그래서
+// `npm run owner` 에 그렇다고 적어둔다(그 검사는 `:id` 길마다 주인을 보는지 센다).
 router.get('/:type', (req, res) => {
   const data = ROUTINES[req.params.type];
   if (!data) return res.status(400).json({ error: `${Object.keys(ROUTINES).join(' · ')} 중에서 고를 수 있어요` });
