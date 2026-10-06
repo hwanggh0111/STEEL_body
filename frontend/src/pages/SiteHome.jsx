@@ -4,6 +4,9 @@ import { LogoMark, LogoWord } from '../components/Logo';
 import NavIcon from '../components/NavIcon';
 import client from '../api/client';
 import { searchExercises, partOf, isPart, PARTS } from '../data/exerciseDict';
+// 몸 지도 미리보기. **「몸」 탭의 지도와 같은 조각을 쓴다** — 스크린샷을 올리면
+// 화면을 고칠 때마다 그림이 옛말이 되는데, 이것은 앱이 바뀌면 같이 바뀐다 (2026-10-06)
+import MapPreview from '../components/site/MapPreview';
 // 머리 오른쪽에 무엇을 띄울지 정하는 데만 쓴다 — 들어와 있으면 「앱 열기」,
 // 아직이면 「로그인 · 가입하기」다 (2026-09-18)
 import { useAuthStore } from '../store/authStore';
@@ -99,6 +102,10 @@ function Shortcut({ icon, label, to, onGo }) {
 
 // 칸과 그 이름. **실제로 그려지는 칸만** 내비에 오른다 (사진·소식은 없을 수 있다)
 const SITE_SECTIONS = [
+  // 미리보기가 첫 칸이다 (2026-10-06). **이 앱이 무엇인지 보여주는 자리**라
+  // 머리의 첫 이름이 그리로 가야 한다 — 앞서는 첫 이름이 「찾기」였고,
+  // 운동 사전 찾기는 이 앱에서 가장 차별점이 없는 것이다
+  { id: 'site-map',    label: '보여주는 것' },
   { id: 'site-find',   label: '찾기' },
   { id: 'site-photos', label: '사진',      when: (s) => s.photos > 0 },
   { id: 'site-news',   label: '소식',      when: (s) => s.news > 0 },
@@ -369,18 +376,43 @@ export default function SiteHome() {
 
       <div style={{ maxWidth: MAX, margin: '0 auto', padding: '20px 20px 0' }}>
 
-        {/* 한 줄 소개 + 검색 — 포털의 첫 줄 자리다.
-            머리의 「찾기」가 데려오는 자리라 자리표를 단다 (2026-09-18) */}
-        <div id="site-find" className="serif-display" style={{ fontSize: 'clamp(21px, 6vw, 26px)', lineHeight: 1.5, marginBottom: 16, ...anchorStyle }}>
+        {/* ── 한 줄 소개는 **이 페이지의 제목**이다 ── (2026-10-06)
+            `div` 로 적혀 있었다. 사람 눈에는 제목처럼 보이지만 **검색 엔진과
+            읽어주는 도구에게는 이 페이지에 제목이 없는 것**이다 — 배포를 앞둔
+            홈페이지에서 그건 그냥 빠진 것이다. 글자 모양은 그대로 두고
+            태그만 바로잡는다 (`h1` 기본 여백·굵기는 여기서 끈다) */}
+        {/* 제목에는 자리표를 안 단다 — 머리의 「찾기」가 데려오는 곳은
+            **찾기 칸**이어야 한다 (아래 `form` 이 그 자리표를 들고 있다) */}
+        <h1
+          className="serif-display"
+          style={{
+            fontSize: 'clamp(21px, 6vw, 26px)', lineHeight: 1.5, marginBottom: 16,
+            fontWeight: 400, ...anchorStyle,
+          }}
+        >
           무게는 늘었는데<br /><span style={{ color: 'var(--accent)' }}>무엇이 늘었는지</span>는 아무도 안 알려준다
-        </div>
+        </h1>
+
+        {/* ── 주장 바로 다음에 증거 ── (2026-10-06)
+            이 앱이 내세우는 한 가지는 **「몸이 변하는 걸 눈으로 보여준다」**인데,
+            이 페이지는 그것을 **글자로만** 말하고 있었다 — 앱 화면 그림이 한 장도
+            없었다. 그래서 한 줄 소개 다음이 **운동 찾기 칸**이었다. 운동 사전
+            찾기는 이 앱에서 **가장 차별점이 없는 것**이고, 「그래서 뭘 보여주는데」의
+            답은 한참 내려가야 나왔다. 눈으로 보여준다고 말했으면 **보여준다.** */}
+        {/* 로그인 없이 열리는 화면이지만 **이 단추는 앱 안으로 간다** — 못 여는
+            자리라 `PrivateRoute` 가 로그인으로 보내고, 들어오면 `backTo` 가 다시
+            여기로 데려온다(`LoginPage` 에 적힌 그 자리다). 「보기만」 하는 그림은
+            위에 이미 있으니, 이 단추는 **자기 몸**을 보러 가는 길이다 */}
+        <MapPreview id="site-map" onGo={() => go('/map')} style={{ marginBottom: 16, ...anchorStyle }} />
 
         <form
+          id="site-find"
           onSubmit={(e) => e.preventDefault()}
           style={{
           display: 'flex', alignItems: 'center', gap: 9,
           border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
           background: 'var(--bg-secondary)', padding: '10px 13px', marginBottom: 16,
+          ...anchorStyle,
         }}>
           <NavIcon name="search" size={17} />
           <input
