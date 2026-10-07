@@ -1517,7 +1517,10 @@ const db = {
     if (!user) return false;
     if (user.has_password) return false;
     if (user.is_social) return true;
-    return /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(user.username || '');
+    // `instagram` 은 **길을 내린 뒤에도 남긴다** (2026-10-07) — 그 길로 이미
+    // 만들어진 계정의 아이디가 `instagram_1a2b3c4d` 다. 여기서 빼면 그 사람에게
+    // 「저절로 지어진 아이디예요」를 안 해준다
+    return /^(google|kakao|naver|facebook|instagram)_[0-9a-f]{8}$/.test(user.username || '');
   },
 
   /**

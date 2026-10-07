@@ -39,9 +39,19 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-      # 나머지 소셜 로그인. 서버는 넷을 다 지원한다.
+      # 나머지 소셜 로그인. 서버는 넷을 다 지원한다 — 구글 · 카카오 · 네이버 · 페북.
       # **넣은 것만 로그인 화면에 버튼으로 나온다** — 안 넣으면 아예 안 보인다.
-      # 인스타그램만 이름이 APP_ID 다 (CLIENT_ID 가 아니다)
+      # 페이스북만 이름이 APP_ID 다 (CLIENT_ID 가 아니다)
+      #
+      # 인스타그램은 2026-10-07 에 내렸다 — 메일을 안 주는 제공자라 이 앱에 붙지
+      # 않는다 (까닭은 `backend/src/routes/oauth.js` 의 인스타 자리에 적어뒀다).
+      #
+      # KAKAO_CLIENT_ID 는 카카오 콘솔의 **REST API 키**다. SECRET 은 「보안」을
+      # 켰을 때만 넣는다 — 안 켰으면 **이 줄을 아예 비워둔다**(빈 값을 보내면 거절한다).
+      - key: KAKAO_CLIENT_ID
+        sync: false
+      - key: KAKAO_CLIENT_SECRET
+        sync: false
       - key: NAVER_CLIENT_ID
         sync: false
       - key: NAVER_CLIENT_SECRET
@@ -49,10 +59,6 @@ services:
       - key: FACEBOOK_APP_ID
         sync: false
       - key: FACEBOOK_APP_SECRET
-        sync: false
-      - key: INSTAGRAM_APP_ID
-        sync: false
-      - key: INSTAGRAM_APP_SECRET
         sync: false
       # 메일 보내기. **비밀번호 찾기만** 이걸 쓴다 — 없으면 가입·로그인은 그대로 되고
       # 「비밀번호 찾기」 화면이 **누르기 전에** 지금은 안 된다고 말한다 (2026-10-01)

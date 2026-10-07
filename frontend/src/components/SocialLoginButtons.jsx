@@ -13,10 +13,17 @@ const BACKEND_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
   : '';
 
+// ── 차례는 **눌리는 순서**다 ── (2026-10-07)
+//
+// 「인스타그램」을 내리고 「카카오」를 올렸다. 까닭은 `routes/oauth.js` 의 인스타
+// 자리에 적어뒀다 — 요점은 **인스타는 메일을 안 줘서 이 앱에 붙을 수 없다**는 것.
+//
+// 카카오가 네이버 위다. 국내에서 제일 많이 눌리는 길이고, 구글은 그 위에 따로 있다.
 const OTHERS = [
+  // 카카오 색은 **글자가 검정**이다 (#FEE500 위에 흰 글자는 안 읽힌다)
+  { key: 'kakao', label: '카카오', background: '#FEE500', color: '#191600' },
   { key: 'naver', label: '네이버', background: '#03C75A', color: '#ffffff' },
   { key: 'facebook', label: '페이스북', background: '#1877F2', color: '#ffffff' },
-  { key: 'instagram', label: '인스타그램', background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#ffffff' },
 ];
 
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {

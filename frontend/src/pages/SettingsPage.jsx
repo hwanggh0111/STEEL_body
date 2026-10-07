@@ -842,7 +842,7 @@ export default function SettingsPage() {
                       아이디지」로 두면 바꿀 수 있다는 것도 모른다 */}
                   {acct.daysLeft > 0
                     ? `아이디는 ${acct.cooldownDays}일에 한 번 바꿀 수 있어요 — ${acct.daysLeft}일 뒤에 다시 바꿀 수 있습니다`
-                    : /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(acct.username)
+                    : /^(google|kakao|naver|facebook|instagram)_[0-9a-f]{8}$/.test(acct.username)
                       ? '소셜 로그인으로 가입해서 저절로 지어진 아이디예요. 원하는 것으로 바꿀 수 있어요'
                       : '로그인할 때 치는 이름이에요 (이메일로도 됩니다)'}
                 </div>

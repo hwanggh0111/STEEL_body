@@ -120,19 +120,28 @@ export default function LoginPage() {
 // 예전에는 무엇이 잘못됐든 「다시 시도해주세요」였다. 그런데 열쇠가 설정 안 된
 // 제공자는 **다시 시도해도 영영 안 된다** — 될 것처럼 말하면 안 된다.
 function oauthErrorText(code) {
-  const PROVIDER = { google: '구글', naver: '네이버', facebook: '페이스북', instagram: '인스타그램' };
+  const PROVIDER = { google: '구글', kakao: '카카오', naver: '네이버', facebook: '페이스북', instagram: '인스타그램' };
+  // 어디서 동의를 켜야 하는지 — 제공자마다 그 자리의 이름이 다르다
+  const WHERE = { google: '「이메일 제공」', kakao: '「카카오계정(이메일)」', naver: '「이메일 주소」', facebook: '「이메일」' };
   const [name, kind] = String(code || '').split(/_(.+)/);
   const label = PROVIDER[name] || '소셜';
 
   if (kind === 'not_configured') {
     return `${label} 로그인은 아직 준비 중이에요. 다른 방법으로 들어와 주세요.`;
   }
-  // 다시 눌러도 영영 안 되는 일 둘 — 사람이 구글에서 해야 하는 일이다 (2026-09-18)
-  if (code === 'google_unverified') {
-    return '구글에서 아직 확인되지 않은 메일 주소예요. 구글 계정에서 메일 확인을 끝내고 다시 해주세요.';
+  // 다시 눌러도 영영 안 되는 일 둘 — 사람이 제공자 쪽에서 해야 하는 일이다 (2026-09-18)
+  //
+  // **구글 이름이 박혀 있었다** (2026-10-07). 서버는 제공자마다 `*_unverified` ·
+  // `*_no_email` 을 보내는데 여기는 **구글 쪽 값만 그대로 견주고** 있어서,
+  // 카카오 · 네이버 · 페북으로 들어온 사람은 **갈래가 맞는데도** 맨 아래의
+  // 「다시 시도해주세요」를 들었다 — 다시 눌러도 영영 안 되는 일에 하는 말이다.
+  // `kind` 로 본다 (위에서 이미 갈라둔 값이다).
+  if (kind === 'unverified') {
+    return `${label}에서 아직 확인되지 않은 메일 주소예요. ${label} 계정에서 메일 확인을 끝내고 다시 해주세요.`;
   }
-  if (code === 'google_no_email') {
-    return '구글이 메일 주소를 주지 않았어요. 「이메일 제공」에 동의하고 다시 눌러주세요.';
+  if (kind === 'no_email') {
+    const where = WHERE[name] || '「이메일 제공」';
+    return `${label}이 메일 주소를 주지 않았어요. ${where}에 동의하고 다시 눌러주세요.`;
   }
   if (code === 'invalid_state') {
     // state 는 1회용이라, 뒤로 가기나 오래된 링크로 다시 오면 여기로 떨어진다

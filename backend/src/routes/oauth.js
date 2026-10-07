@@ -199,6 +199,19 @@ function sameBrowser(req) {
   return !!cookie && !!got && cookie === got;
 }
 
+// ── 왜 안 됐는지는 **제공자마다 똑같이** 구분한다 ── (2026-10-07)
+//
+// 구글만 이 갈래를 갖고 있었고 네이버 · 페이스북 · 인스타그램은 `naver_failed` 하나로
+// 뭉갰다. 「다시 시도해주세요」는 **다시 눌러도 영영 안 되는 일**(메일 미확인 ·
+// 메일 미제공)에 하면 틀린 말이 된다 — 그 사람이 할 일은 다시 누르기가 아니라
+// 제공자 쪽에서 동의를 켜는 것이다. 갈래를 **한 곳에 두어** 제공자를 더할 때
+// 빠뜨릴 수 없게 한다.
+function failCode(provider, err) {
+  if (err?.message === 'OAUTH_EMAIL_UNVERIFIED') return provider + '_unverified';
+  if (err?.message === 'OAUTH_NO_EMAIL') return provider + '_no_email';
+  return provider + '_failed';
+}
+
 function validateState(state) {
   if (!state || !oauthStates.has(state)) return false;
   const data = oauthStates.get(state);
@@ -220,9 +233,9 @@ function validateState(state) {
 router.get('/providers', (req, res) => {
   res.json({
     google: !!process.env.GOOGLE_CLIENT_ID,
+    kakao: !!process.env.KAKAO_CLIENT_ID,
     naver: !!process.env.NAVER_CLIENT_ID,
     facebook: !!process.env.FACEBOOK_APP_ID,
-    instagram: !!process.env.INSTAGRAM_APP_ID,
   });
 });
 
@@ -285,12 +298,8 @@ router.get('/google/callback', async (req, res) => {
     res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    // **왜 안 됐는지 구분해서 보낸다.** 「다시 시도해주세요」로 뭉치면, 다시 눌러도
-    // 영영 안 되는 일(메일 미확인 · 이메일 미제공)에 그 말을 하게 된다
-    const why = err.message === 'OAUTH_EMAIL_UNVERIFIED' ? 'google_unverified'
-      : err.message === 'OAUTH_NO_EMAIL' ? 'google_no_email'
-        : 'google_failed';
-    res.redirect(`${frontendUrl}/login?error=${why}`);
+    // **왜 안 됐는지 구분해서 보낸다** — 갈래는 `failCode` 한 곳에 있다
+    res.redirect(`${frontendUrl}/login?error=${failCode('google', err)}`);
   }
 });
 
@@ -341,13 +350,80 @@ router.get('/naver/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const profile = profileRes?.response;
-    if (!profile || !profile.email) throw new Error('Naver profile missing');
+    // **메일이 없는 것을 「실패」로 뭉개지 않는다** (2026-10-07). 네이버에서 메일은
+    // 선택 동의라 안 하면 이 칸이 비어 온다. 여기서 던지면 `naver_failed` 가 되어
+    // 「다시 시도해주세요」를 듣는데, 다시 눌러도 **동의를 켜지 않으면 영영 안 된다.**
+    // 메일이 있는지는 `findOrCreateUser` 한 곳에서 보고 `naver_no_email` 로 나간다
+    if (!profile) throw new Error('Naver profile missing');
     const info = await findOrCreateUser(profile.email, profile.nickname || profile.name, 'naver');
     setAuthCookies(res, info.user);
     res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=naver_failed`);
+    res.redirect(`${frontendUrl}/login?error=${failCode('naver', err)}`);
+  }
+});
+
+// ─── Kakao ────────────────────────────
+//
+// 국내에서 제일 많이 눌리는 길인데 **코드가 아예 없었다** (2026-10-07 에 붙였다).
+// 카카오는 메일을 주고 **확인됐는지까지** 알려주므로, 9/18 의 「확인 안 된 메일로는
+// 계정을 잇지 않는다」가 구글과 똑같이 걸린다.
+router.get('/kakao', (req, res) => {
+  if (!process.env.KAKAO_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=kakao_not_configured`);
+  const { backendUrl } = getUrls(req);
+  const params = new URLSearchParams({
+    client_id: process.env.KAKAO_CLIENT_ID,
+    redirect_uri: `${backendUrl}/api/oauth/kakao/callback`,
+    response_type: 'code',
+    // **메일을 동의 화면에 올린다.** 안 받으면 계정을 만들 수 없는 값이다
+    // (카카오에서 메일은 선택 동의라, 안 적으면 묻지도 않고 안 준다)
+    scope: 'account_email profile_nickname',
+    state: startOauth(req, res),
+  });
+  res.redirect(`https://kauth.kakao.com/oauth/authorize?${params}`);
+});
+
+router.get('/kakao/callback', async (req, res) => {
+  const { backendUrl, frontendUrl } = getUrls(req);
+  const sameOne = sameBrowser(req);
+  clearStateCookie(res);
+  if (!sameOne || !validateState(req.query.state)) {
+    return res.redirect(`${frontendUrl}/login?error=invalid_state`);
+  }
+  try {
+    const { data: tokens } = await axios.post('https://kauth.kakao.com/oauth/token',
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: process.env.KAKAO_CLIENT_ID,
+        // 카카오 콘솔에서 「보안」을 켰을 때만 있다. 안 켰으면 **안 보내는 것이 맞다** —
+        // 빈 값을 실어 보내면 거절한다
+        ...(process.env.KAKAO_CLIENT_SECRET ? { client_secret: process.env.KAKAO_CLIENT_SECRET } : {}),
+        redirect_uri: `${backendUrl}/api/oauth/kakao/callback`,
+        code: req.query.code,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' } }
+    );
+    const { data: profile } = await axios.get('https://kapi.kakao.com/v2/user/me', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    if (!profile || !profile.id) throw new Error('Kakao profile missing');
+    const acc = profile.kakao_account || {};
+    // 카카오는 둘을 따로 알려준다 — 주소가 **쓸 수 있는 것인가**(`is_email_valid`) ·
+    // **그 사람 것으로 확인됐는가**(`is_email_verified`).
+    // **모른다고 할 때가 아니라 아니라고 할 때만** 막는다 — `findOrCreateUser` 의
+    // 규칙과 같다(필드를 안 주는 제공자도 있어서, 없는 것을 거절로 치면 통째로 막힌다)
+    const emailVerified = (acc.is_email_valid === false || acc.is_email_verified === false)
+      ? false
+      : acc.is_email_verified;
+    // 메일이 없으면(선택 동의를 안 켠 사람) 계정을 만들지 않고 `kakao_no_email` 로
+    // 나간다 — **무엇을 켜야 하는지**를 듣는 쪽이 「다시 시도해주세요」보다 맞다
+    const info = await findOrCreateUser(acc.email, acc.profile?.nickname, 'kakao', { emailVerified });
+    setAuthCookies(res, info.user);
+    res.redirect(successUrl(frontendUrl, info));
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
+    res.redirect(`${frontendUrl}/login?error=${failCode('kakao', err)}`);
   }
 });
 
@@ -385,61 +461,44 @@ router.get('/facebook/callback', async (req, res) => {
       params: { fields: 'id,name,email', access_token: tokens.access_token },
     });
     if (!profile || !profile.id) throw new Error('Facebook profile missing');
-    const email = profile.email || `fb_${profile.id}@facebook.com`;
-    const info = await findOrCreateUser(email, profile.name, 'facebook');
+    // ── **메일을 지어내지 않는다** ── (2026-10-07)
+    //
+    // 여기는 메일이 없으면 `fb_<번호>@facebook.com` 을 만들어 넣고 있었다. 9/18 에
+    // 「메일이 없으면 계정을 만들지 않는다」를 `findOrCreateUser` 한 곳에 넣었는데,
+    // 이 줄은 **없는 주소를 지어내 그 검사를 비껴갔다.** 남은 것은 이렇다 —
+    //
+    //   · 그 계정은 **비밀번호 찾기가 영구히 막힌다** (보낼 주소가 세상에 없다)
+    //   · 그 사람이 나중에 진짜 메일로 가입하면 **계정이 둘로 갈라진다** —
+    //     이 앱이 계정을 잇는 열쇠는 이메일 하나다(`emailKey`)
+    //
+    // 페북은 `email` 에 동의하면 진짜 메일을 준다. 그러니 걷어내도 길이 막히지
+    // 않는다 — 안 준 사람은 `facebook_no_email` 로 **무엇을 켜야 하는지** 듣는다.
+    const info = await findOrCreateUser(profile.email, profile.name, 'facebook');
     setAuthCookies(res, info.user);
     res.redirect(successUrl(frontendUrl, info));
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=facebook_failed`);
+    res.redirect(`${frontendUrl}/login?error=${failCode('facebook', err)}`);
   }
 });
 
-// ─── Instagram (Facebook 기반) ────────
-router.get('/instagram', (req, res) => {
-  if (!process.env.INSTAGRAM_APP_ID) return res.redirect(`${FRONTEND}/login?error=instagram_not_configured`);
-  const { backendUrl } = getUrls(req);
-  const params = new URLSearchParams({
-    client_id: process.env.INSTAGRAM_APP_ID,
-    redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
-    scope: 'instagram_business_basic',
-    response_type: 'code',
-    state: startOauth(req, res),
-  });
-  res.redirect(`https://www.instagram.com/oauth/authorize?${params}`);
-});
-
-router.get('/instagram/callback', async (req, res) => {
-  const { backendUrl, frontendUrl } = getUrls(req);
-  const sameOne = sameBrowser(req);
-  clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state)) {
-    return res.redirect(`${frontendUrl}/login?error=invalid_state`);
-  }
-  try {
-    const { data: tokens } = await axios.post('https://api.instagram.com/oauth/access_token',
-      new URLSearchParams({
-        client_id: process.env.INSTAGRAM_APP_ID,
-        client_secret: process.env.INSTAGRAM_APP_SECRET,
-        grant_type: 'authorization_code',
-        redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
-        code: req.query.code,
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
-    const { data: profile } = await axios.get(`https://graph.instagram.com/v21.0/me`, {
-      params: { fields: 'user_id,username', access_token: tokens.access_token },
-    });
-    if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
-    const email = `ig_${profile.user_id}@instagram.com`;
-    const info = await findOrCreateUser(email, profile.username, 'instagram');
-    setAuthCookies(res, info.user);
-    res.redirect(successUrl(frontendUrl, info));
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=instagram_failed`);
-  }
-});
+// 「인스타그램」은 **없다** (2026-10-07 에 내렸다).
+//
+// 열쇠를 꽂아도 안 되는 길이었다. 둘 때문이다 —
+//
+// 1. **메일을 아예 안 준다.** 이 앱이 계정을 잇는 열쇠는 이메일 하나인데
+//    (`emailKey`), 인스타는 그것을 주지 않는다. 그래서 전임 코드는
+//    `ig_<번호>@instagram.com` 이라는 **없는 주소를 지어냈다** — 그 계정은
+//    비밀번호 찾기가 영구히 막히고, 그 사람이 나중에 진짜 메일로 가입하면
+//    기록이 두 계정으로 갈라진다.
+// 2. **개인 계정은 들어올 수 없었다.** 스코프가 `instagram_business_basic` 이라
+//    비즈니스 · 크리에이터 계정만 통과한다. 헬스 앱을 깔 사람 대부분은 개인 계정이다.
+//
+// **내리는 대신 카카오를 붙였다** — 국내에서 제일 많이 눌리는 길인데 코드가 아예
+// 없었고, 메일을 주고 확인 여부까지 주므로 이 앱의 뼈대에 그대로 맞는다.
+//
+// 다시 올릴 날이 오면 「메일 주소를 한 번 받아 인증번호로 확인하는 걸음」을
+// 먼저 만들어야 한다. 지어낸 주소로는 안 된다.
 
 module.exports = router;
 
@@ -447,3 +506,4 @@ module.exports = router;
 // 구글 열쇠가 없는 자리에서도 볼 수 있는 것은 봐둔다
 module.exports.successUrl = successUrl;
 module.exports.findOrCreateUser = findOrCreateUser;
+module.exports.failCode = failCode;
