@@ -17,6 +17,21 @@ function getTransporter() {
   return _transporter;
 }
 
+/**
+ * 메일 꾸러미를 **미리 올려둔다.**
+ *
+ * `nodemailer` 를 불러오는 데 **46ms** 가 든다(재봤다 — 서버가 이미 올라온 자리에서).
+ * 누군가는 치르는 값이라, **치러도 덜 아픈 자리**로 옮긴다 — 가입 화면이 열릴 때다
+ * (`GET /auth/mail-status`). 그 사람이 메일 주소를 치는 동안 올라온다.
+ *
+ * 열쇠가 없으면 안 데운다 — 어차피 못 보내는 자리에서 그 값을 쓸 까닭이 없다.
+ * 두 번째부터는 공짜다(`require` 캐시). 실패해도 그만이다 — 보낼 때 또 해본다.
+ */
+function warmMailer() {
+  if (!SMTP_CONFIGURED || _transporter) return;
+  try { getTransporter(); } catch { /* 보낼 때 또 해본다 */ }
+}
+
 // 인증번호 메일 발송. 성공 시 true, 실패/미설정 시 false.
 const APP_NAME = 'BLACK IRON';
 // 메일은 CSS 변수를 못 쓴다(메일 프로그램이 안 읽는다). 그래서 값을 적는데,
@@ -111,4 +126,4 @@ function notifyAdmin(kind, subject, lines, always = false) {
   }).catch(err => console.error('[MAIL] 관리자 알림 실패:', err.message));
 }
 
-module.exports = { sendVerificationCode, notifyAdmin, SMTP_CONFIGURED };
+module.exports = { sendVerificationCode, notifyAdmin, SMTP_CONFIGURED, warmMailer };

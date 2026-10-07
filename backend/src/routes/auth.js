@@ -102,7 +102,7 @@ const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase()
 const { REFRESH_REUSE_GRACE_MS } = require('../config/security');
 const { sanitize, cleanName } = require('../utils/sanitize');
 const { issueTokens } = require('../utils/tokens');
-const { sendVerificationCode, SMTP_CONFIGURED } = require('../utils/mailer');
+const { sendVerificationCode, SMTP_CONFIGURED, warmMailer } = require('../utils/mailer');
 
 // 이메일 형식 검증
 function isValidEmail(email) {
@@ -119,6 +119,21 @@ function isValidEmail(email) {
 // **열쇠 값은 절대 내보내지 않는다.** 되는지 안 되는지만 말한다.
 router.get('/mail-status', (req, res) => {
   const dev = process.env.NODE_ENV !== 'production';
+  // ── 여기서 메일 꾸러미를 **미리 데운다** ── (2026-10-07)
+  //
+  // `nodemailer` 는 쓸 때 불러오게 돼 있다(`utils/mailer.js`). 그건 맞다 —
+  // 뜨는 자리에서 불러오면 **46ms** 가 더 붙는다(재봤다).
+  //
+  // 그런데 그 값을 **누군가는 치른다.** 여태는 「번호 받기」를 처음 누른 사람이었다.
+  // Render 무료 판은 잠들었다 깨므로 **깰 때마다 그 사람이 또 생긴다.**
+  //
+  // 이 길은 **가입 화면과 비밀번호 찾기 화면이 열릴 때** 부른다 — 「메일을 보낼 수
+  // 있는 자리인가」를 누르기 전에 묻는 자리다(2026-10-01). 그 사람이 메일 주소를
+  // 치는 동안 꾸러미가 올라온다. **뜨는 길도 안 건드리고, 누르는 순간도 안 막는다.**
+  //
+  // 뜬 뒤에 타이머로 데우는 길도 있었는데 그건 안 했다 — node 는 한 줄로 돌아서
+  // 그 46ms 동안 **그때 들어온 사람이 멈춘다.** 여기는 이미 그 사람의 차례다.
+  warmMailer();
   res.json({
     // 메일이 실제로 나가는가
     mail: SMTP_CONFIGURED,

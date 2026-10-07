@@ -22,6 +22,7 @@
     "import": "node scripts/check-import.cjs",
     "save": "node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs",
     "bench": "node scripts/bench.cjs",
+    "boot": "node scripts/boot.cjs",
     "probe": "node scripts/probe.cjs",
     "oauth": "node scripts/check-oauth.cjs",
     "join": "node scripts/check-join.cjs",

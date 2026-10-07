@@ -1,5 +1,31 @@
 const router = require('express').Router();
-const axios = require('axios');
+// ── `axios` 는 **쓸 때 불러온다** ── (2026-10-07, `npm run boot` 으로 잡았다)
+//
+// 맨 위에서 불러오고 있었다. 이 꾸러미는 **소셜 단추를 누른 사람만** 지난다 —
+// 앱을 열기만 한 사람도, 이메일로 들어온 사람도 안 지난다. 그런데 서버가 뜰 때마다
+// 그 값을 치르고 있었다.
+//
+// **재본 값** (`npm run boot`) — 서버가 뜨는 데 걸리는 시간이 이만큼 줄었다.
+//
+//     전   496ms        후   429ms          (일곱 번 띄운 가운뎃값)
+//
+// 꾸러미 하나만 따로 재면 **43ms** 다(서버가 이미 올라온 자리에서). 빈 프로세스에서
+// 재면 70ms 가까이 나오는데 **그 값을 쓰면 안 된다** — 서버는 express 같은 것을
+// 이미 올려둔 상태라, 겹치는 것을 또 치르지 않는다.
+//
+// Render 무료 판은 **15분 놀면 잠든다.** 다음 사람이 깨우면서 이 값을 같이 기다린다 —
+// 하루에 몇 번씩이다. **쓰지도 않을 것을 미리 불러두는 자리**였다.
+//
+// 두 번째부터는 공짜다 — node 가 한 번 불러온 꾸러미를 들고 있다(`require` 캐시).
+// 검사(`npm run oauth`)가 `axios.defaults.adapter` 로 바깥 요청을 가로채는 것도
+// **같은 꾸러미 하나**를 보므로 그대로 통한다.
+//
+// `web-push` 는 **일부러 그대로 뒀다.** 그쪽은 뜰 때 VAPID 열쇠의 모양을 검사한다
+// (`setVapidDetails`) — 몇십 ms 를 아끼자고 그 검사를 「처음 알림을 보내는 날」로
+// 미루면, 열쇠가 잘못 들어간 것을 **며칠 뒤에** 알게 된다. 알림은 눈으로 확인할 수
+// 없는 자리라 더 그렇다.
+let _axios = null;
+const axios = () => (_axios || (_axios = require('axios')));
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { BCRYPT_ROUNDS } = require('../config/security');
@@ -371,14 +397,14 @@ router.get('/google/callback', async (req, res) => {
     } catch {}
   }
   try {
-    const { data: tokens } = await axios.post('https://oauth2.googleapis.com/token', {
+    const { data: tokens } = await axios().post('https://oauth2.googleapis.com/token', {
       code: req.query.code,
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
       redirect_uri: `${backendUrl}/api/oauth/google/callback`,
       grant_type: 'authorization_code',
     });
-    const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+    const { data: profile } = await axios().get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     // **이메일이 있는지는 한 곳에서만 본다** (`findOrCreateUser`).
@@ -429,7 +455,7 @@ router.get('/naver/callback', async (req, res) => {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
-    const { data: tokens } = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
+    const { data: tokens } = await axios().post('https://nid.naver.com/oauth2.0/token', null, {
       params: {
         grant_type: 'authorization_code',
         client_id: process.env.NAVER_CLIENT_ID,
@@ -438,7 +464,7 @@ router.get('/naver/callback', async (req, res) => {
         state: req.query.state,
       },
     });
-    const { data: profileRes } = await axios.get('https://openapi.naver.com/v1/nid/me', {
+    const { data: profileRes } = await axios().get('https://openapi.naver.com/v1/nid/me', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const profile = profileRes?.response;
@@ -493,7 +519,7 @@ router.get('/instagram/callback', async (req, res) => {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
-    const { data: tokens } = await axios.post('https://api.instagram.com/oauth/access_token',
+    const { data: tokens } = await axios().post('https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
         client_id: process.env.INSTAGRAM_APP_ID,
         client_secret: process.env.INSTAGRAM_APP_SECRET,
@@ -503,7 +529,7 @@ router.get('/instagram/callback', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    const { data: profile } = await axios.get('https://graph.instagram.com/v21.0/me', {
+    const { data: profile } = await axios().get('https://graph.instagram.com/v21.0/me', {
       params: { fields: 'user_id,username', access_token: tokens.access_token },
     });
     if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
@@ -569,8 +595,8 @@ router.get('/twitter/callback', async (req, res) => {
       ).toString('base64');
       headers.Authorization = `Basic ${basic}`;
     }
-    const { data: tokens } = await axios.post('https://api.x.com/2/oauth2/token', body, { headers });
-    const { data: me } = await axios.get('https://api.x.com/2/users/me', {
+    const { data: tokens } = await axios().post('https://api.x.com/2/oauth2/token', body, { headers });
+    const { data: me } = await axios().get('https://api.x.com/2/users/me', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const profile = me?.data;
