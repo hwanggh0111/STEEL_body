@@ -70,6 +70,17 @@ function startServer() {
     env: {
       ...process.env, PORT: String(PORT), DB_FILE: TMP, NODE_ENV: 'test',
       VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '',
+      // ── 번호를 **응답에 실어 달라고** 한다 ── (2026-10-07)
+      //
+      // 서버는 `dotenv` 로 `.env` 를 읽는다. 그래서 이 `env:` 에 뭘 적든
+      // **SMTP 열쇠가 있는 컴퓨터에서는 메일이 진짜로 나가고**, 그러면 번호가
+      // 응답에 안 실린다(`auth.js` 의 `send-code`) — 가입을 못 하고 검사가 통째로
+      // 멈춘다. 지금 이 컴퓨터에서 통과한 것은 `@shield.local` 이 없는 주소라
+      // **보내기가 실패한 덕**이었다. 그건 운이지 규칙이 아니다.
+      //
+      // `DEV_ECHO_CODE` 는 바로 이 자리를 위해 있는 값이다(README 10/2).
+      // **`render.yaml` 에는 두지 않는다** — 둬도 production 이라 안 먹는다.
+      DEV_ECHO_CODE: '1',
       // ── 이걸 안 주면 시험이 방어막에 닿지 못한다 (2026-09-29 에 찾았다) ──
       //
       // 9/19 에 `TRUST_PROXY` 기본값을 **「안 믿음」**으로 굳혔다(그전에는 헤더를

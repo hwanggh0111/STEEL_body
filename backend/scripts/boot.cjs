@@ -19,10 +19,25 @@
 const { spawn } = require('child_process');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 
 const PORT = 4321;
 const RUNS = Math.max(1, Number(process.argv[2]) || 5);
 const ROOT = path.join(__dirname, '..');
+// **진짜 DB 를 안 건드린다** (2026-10-07, 코드 검토에서 잡혔다).
+//
+// 처음에 `DB_FILE` 을 안 줬다. 그러면 띄운 서버가 `.env` 를 읽어서 **진짜
+// `blackiron.json` 을 연다** — 다섯 번 띄우고 죽이는 동안 진짜 기록에 대고
+// 열고 닫기를 다섯 번 한 셈이다. `DATABASE_URL` 이 있는 자리면 **진짜 DB** 다.
+//
+// 이 폴더의 다른 스크립트는 전부 임시 파일을 쓴다. 여기만 빠져 있었다.
+const TMP = path.join(ROOT, '.boot.json');
+const cleanTmp = () => {
+  for (const f of [TMP, TMP.replace(/\.json$/, '.photos.json')]) {
+    try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch { /* 없으면 그만이다 */ }
+  }
+};
+cleanTmp();
 
 function once() {
   return new Promise((done) => {
@@ -31,7 +46,8 @@ function once() {
     const p = spawn(process.execPath,
       ['--max-old-space-size=256', '--optimize-for-size', 'src/index.js'], {
         cwd: ROOT,
-        env: { ...process.env, PORT: String(PORT) },
+        // `DATABASE_URL` 도 지운다 — 있으면 `DB_FILE` 이 있어도 그쪽으로 간다
+        env: { ...process.env, PORT: String(PORT), DB_FILE: TMP, DATABASE_URL: '' },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
     let said = 0;
@@ -44,14 +60,20 @@ function once() {
         r.resume();
         if (r.statusCode === 200) {
           clearInterval(poll);
+          clearTimeout(guard);
           const ready = Number(process.hrtime.bigint());
           p.kill();
           done({ said: said ? (said - t0) / 1e6 : null, ready: (ready - t0) / 1e6 });
         }
       }).on('error', () => { /* 아직 안 떴다 */ });
     }, 5);
-    // 20초가 넘으면 뭔가 잘못된 것이다 — 그 판은 안 센다
-    setTimeout(() => { clearInterval(poll); p.kill(); done({ said: null, ready: -1 }); }, 20000);
+    // 20초가 넘으면 뭔가 잘못된 것이다 — 그 판은 안 센다.
+    //
+    // **다 됐으면 이 타이머를 끈다** (2026-10-07, 코드 검토에서 잡혔다). 안 끄면
+    // 잴 것을 다 재고도 **20초를 더 떠 있고**, 그 사이 죽은 자식을 또 죽이려 든다.
+    const guard = setTimeout(() => {
+      clearInterval(poll); p.kill(); done({ said: null, ready: -1 });
+    }, 20000);
   });
 }
 
@@ -80,4 +102,5 @@ const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor
   console.log('');
   console.log('Render 무료 판은 15분 놀면 잠든다 — 이 값은 **깨울 때마다** 치른다.');
   console.log('바꾼 것이 이 줄을 움직였으면 README 개발 일지에 적는다.');
+  cleanTmp();
 })();

@@ -50,11 +50,26 @@ ok('feedList.json 이 있다', !!list, true);
 
 if (list) {
   // **지금 것을 적어두고 다시 뽑아 견준다.** 돌려보는 것이 가장 확실하다 —
-  // 뽑는 규칙을 여기 또 적으면 그 규칙이 두 벌이 된다
+  // 뽑는 규칙을 여기 또 적으면 그 규칙이 두 벌이 된다.
+  //
+  // ── 다만 **보고 있는 파일을 고쳐놓지 않는다** ── (2026-10-07, 코드 검토에서 잡혔다)
+  //
+  // 처음에는 그냥 다시 뽑아 덮어쓰고 견줬다. 그러면 **낡은 것을 한 번만 잡는다** —
+  // `notices.json` 을 고치고 `npm run feed` 를 안 돌린 채 올린 사람이 `npm run check`
+  // 를 하면 FAIL 이 뜨는데, **그때 이미 파일이 고쳐져 있다.** 다시 돌리면 통과하고,
+  // 다음 사람은 **까닭 모를 고쳐진 파일**과 초록 불을 같이 보게 된다.
+  //
+  // 검사는 **보기만 한다.** 뽑아본 것은 되돌려 놓는다.
   const p = path.join(DATA, 'feedList.json');
   const before = fs.readFileSync(p, 'utf8');
-  execFileSync(process.execPath, [path.join(__dirname, 'gen-feed.mjs')], { cwd: ROOT, stdio: 'pipe' });
-  const after = fs.readFileSync(p, 'utf8');
+  let after = before;
+  try {
+    execFileSync(process.execPath, [path.join(__dirname, 'gen-feed.mjs')], { cwd: ROOT, stdio: 'pipe' });
+    after = fs.readFileSync(p, 'utf8');
+  } finally {
+    // 뽑기가 도중에 터져도 **원래 것을 돌려놓는다**
+    if (fs.readFileSync(p, 'utf8') !== before) fs.writeFileSync(p, before);
+  }
   ok('다시 뽑아도 같다 (아니면 npm run feed)', before === after, true);
 
   // ── 담은 것이 화면이 쓰는 것뿐인가 ──

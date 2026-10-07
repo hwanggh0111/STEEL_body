@@ -333,7 +333,10 @@ async function run() {
     //
     // 세 가지가 다 맞아야 계정이 생긴다 — **쪽지 · 번호 · 15분.**
     const noNote = await post('/api/oauth/email', { email: 'x@y.com', code: '123456' });
-    ok('쪽지 없이 부르면 막는다', noNote.status, 401);
+    // **401 이 아니라 410 이다** (2026-10-07). 앱 전체가 401 을 「세션이 끊겼다」로
+    // 읽어서, 세션을 가진 적도 없는 사람을 로그인 화면으로 통째로 튕겼다
+    // (까닭은 `oauth.js` 의 그 자리에 적어뒀다)
+    ok('쪽지 없이 부르면 막는다', noNote.status, 410);
     ok('  다시 로그인하라고 알려준다', noNote.json?.restart, true);
     ok('  계정이 생기지 않았다', !!db.findUserByEmail('x@y.com'), false);
 
@@ -363,7 +366,7 @@ async function run() {
     // **쪽지는 한 번 쓰면 끝이다.** 안 버리면 같은 쪽지로 다른 메일에 또 붙일 수 있다
     const again = await post('/api/oauth/email',
       { email: 'gh@gmail.com', code: theCode }, { Cookie: igJar });
-    ok('같은 쪽지를 두 번 쓰지 못한다', again.status, 401);
+    ok('같은 쪽지를 두 번 쓰지 못한다', again.status, 410);
 
     // **이미 쓰는 메일이면 그 계정으로 들어간다** — 새로 만들면 기록이 갈라진다
     db.createUser('old@gmail.com', 'x', '전부터쓰던이름', 'oldhand01');

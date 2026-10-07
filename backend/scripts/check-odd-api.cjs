@@ -35,7 +35,10 @@ function startServer() {
   child = spawn(process.execPath, [path.join(ROOT, 'src', 'index.js')], {
     cwd: ROOT,
     env: { ...process.env, PORT: String(PORT), DB_FILE: TMP, NODE_ENV: 'test',
-      VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '' },
+      VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '',
+      // 번호를 응답에 실어 달라고 한다 — 까닭은 `check-shield.cjs` 의 같은 줄에 적어뒀다.
+      // SMTP 열쇠가 있는 컴퓨터에서는 이게 없으면 검사가 첫 줄에서 멈춘다
+      DEV_ECHO_CODE: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', () => {});
