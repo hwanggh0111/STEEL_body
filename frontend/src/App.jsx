@@ -1,7 +1,20 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
-import Layout from './components/Layout';
+// ── `Layout` 은 **로그인한 사람만** 쓴다 ── (2026-10-07)
+//
+// 맨 위에서 들여오고 있었다. 그런데 이 틀을 쓰는 자리는 `PrivateRoute` 안쪽뿐이다 —
+// **홈페이지(`/site`) · 로그인 · 가입 · 메일 묻는 걸음은 이 틀을 안 쓴다.**
+//
+// 그래서 **앱을 아직 안 쓰는 사람**이 홈페이지만 보러 와도 탭바 · 쉬는 시간 바 ·
+// 운동 끝 결산을 통째로 받고 있었다(원본으로 68KB). 그 사람에게는 **한 줄도
+// 안 쓰이는 코드**다.
+//
+// 같은 날 홈페이지의 소식을 29KB → 1.1KB 로 줄인 것과 **같은 자리**다 —
+// 로그인도 설치도 없이 처음 오는 사람이 보는 화면이라, 거기서 받는 것은 아껴야 한다.
+//
+// `Suspense` 가 `Routes` 를 통째로 감싸고 있어서(아래) 미루는 데 드는 것이 없다.
+const Layout = lazy(() => import('./components/Layout'));
 import ErrorBoundary from './components/ErrorBoundary';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import Toast from './components/Toast';
