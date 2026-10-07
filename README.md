@@ -29,6 +29,7 @@ cd backend  && npm run smoke:clean  # 쌓인 검사 계정 한 번에 지우기 
 | [docs/project-plan.md](docs/project-plan.md) | 기술 스택 · 기능 목록 |
 | [docs/api-spec.md](docs/api-spec.md) | API 명세 |
 | [docs/design-system.md](docs/design-system.md) | 디자인 토큰 · 컴포넌트 규칙 |
+| [docs/SCREENS.md](docs/SCREENS.md) | **화면 지도** — 어느 기능이 어느 주소에 있나 · 홈페이지 글과 실제 화면 짝짓기 |
 | [docs/BUGS.md](docs/BUGS.md) | 버그 목록과 처리 내역 — 파칭코 · 사다리 · 미니게임 (2026-08-17, 지금은 없는 기능) |
 | [docs/BUGS-2026-08-24.md](docs/BUGS-2026-08-24.md) | 앱 전체 훑기 · 보안 점검 (2026-08-24) |
 | [docs/google-login-setup.md](docs/google-login-setup.md) | **구글 로그인 켜기** — 열쇠 만들기 · 구글 콘솔에 넣을 주소 · 막혔을 때 |
