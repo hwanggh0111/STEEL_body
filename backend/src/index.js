@@ -506,9 +506,9 @@ function start() {
   // 코드는 `npm run oauth` 가 구글 없이 한 바퀴 돌려서 본다. 남는 것은 열쇠뿐이다.
   const social = [
     ['구글', 'GOOGLE_CLIENT_ID'],
-    ['카카오', 'KAKAO_CLIENT_ID'],
     ['네이버', 'NAVER_CLIENT_ID'],
-    ['페이스북', 'FACEBOOK_APP_ID'],
+    ['인스타그램', 'INSTAGRAM_APP_ID'],
+    ['트위터(X)', 'TWITTER_CLIENT_ID'],
   ];
   const off = social.filter(([, key]) => !process.env[key]).map(([name]) => name);
   if (off.length === social.length) {

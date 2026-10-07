@@ -65,8 +65,11 @@ if (routes.length < 10) {
   process.exit(1);
 }
 
-// 껍데기(Layout) 안에 있는 자리만 본다 — `/site` · `/login` · `/register` 는 탭바가 없다
-const OUTSIDE = ['/site', '/login', '/register'];
+// 껍데기(Layout) 안에 있는 자리만 본다 — `/site` · `/login` · `/register` 는 탭바가 없다.
+// `/oauth/email` 도 그 부류다 (2026-10-07) — **아직 계정이 없는 사람**이 보는 화면이라
+// 탭도 서랍도 켜질 수 없다. 인스타 · X 는 메일 주소를 주지 않아서, 그 둘로 들어온
+// 사람에게 메일을 한 번 묻는 자리다. 데려다주는 것은 앱이 아니라 **서버의 콜백**이다
+const OUTSIDE = ['/site', '/login', '/register', '/oauth/email'];
 const inApp = routes
   .map((r) => ({ ...r, url: r.p.startsWith('/') ? r.p : '/' + r.p }))
   .filter((r) => !OUTSIDE.includes(r.url));

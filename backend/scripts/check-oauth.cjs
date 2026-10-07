@@ -15,11 +15,13 @@
 //      이메일 하나라, 빈 값이면 **서로 다른 사람이 계정 하나에 묶인다**
 //   4. 열쇠가 없을 때 — 구글로 보내지 않고 앱으로 돌려보내는가
 //   5. 아이디는 대소문자를 가리지 않는가 (회원가입 쪽)
-//   6. **카카오도 같은 길을 도는가** (2026-10-07) — 카카오는 메일을 선택 동의로
-//      받으므로 「동의 안 함」과 「확인 안 됨」을 둘 다 눌러본다
-//   7. **메일을 지어내는 자리가 없는가** — 페북 · 인스타가 `fb_<번호>@facebook.com`
-//      같은 없는 주소를 만들어 9/18 의 「메일 없으면 계정 안 만든다」를 비껴갔다
-//   8. **실패 까닭이 제공자마다 갈라지는가** — 구글만 갈래를 갖고 있었다
+//   6. **네 길이 다 도는가** (2026-10-07) — 구글 · 네이버 · 인스타그램 · 트위터(X)
+//   7. **메일을 안 주는 제공자를 어떻게 다루는가** — 인스타 · X 는 메일을 주지
+//      않는다. 지어내지 않고 **묻는 걸음**으로 보내는지, 그 사이에 계정을 안
+//      만드는지, 쪽지 없이 그 길을 부르면 막히는지
+//   8. **메일을 지어내는 자리가 없는가** — 전임 코드가 `ig_<번호>@instagram.com`
+//      을 만들어 9/18 의 「메일 없으면 계정 안 만든다」를 비껴갔다
+//   9. **실패 까닭이 제공자마다 갈라지는가** — 구글만 갈래를 갖고 있었다
 
 // ── 환경을 먼저 세운다. db.js 는 읽히는 순간 DB 경로를 정한다 ──
 const path = require('path');
@@ -34,11 +36,11 @@ process.env.GOOGLE_CLIENT_ID = 'check-id';
 process.env.GOOGLE_CLIENT_SECRET = 'check-secret';
 // 나머지 제공자도 **열쇠가 있다고 치고** 한 바퀴 돌린다. 없으면 길 입구에서
 // `*_not_configured` 로 되돌아와서 그 뒤를 아예 못 본다
-process.env.KAKAO_CLIENT_ID = 'check-kakao';
 process.env.NAVER_CLIENT_ID = 'check-naver';
 process.env.NAVER_CLIENT_SECRET = 'check-naver-secret';
-process.env.FACEBOOK_APP_ID = 'check-fb';
-process.env.FACEBOOK_APP_SECRET = 'check-fb-secret';
+process.env.INSTAGRAM_APP_ID = 'check-ig';
+process.env.INSTAGRAM_APP_SECRET = 'check-ig-secret';
+process.env.TWITTER_CLIENT_ID = 'check-x';
 delete process.env.ADMIN_EMAIL;   // 검사 계정이 관리자로 승격되면 안 된다
 
 // ── 구글을 가짜로 세운다 ──
@@ -88,6 +90,8 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/oauth', oauth);
+// 번호를 받아야 메일 걸음을 끝까지 돌 수 있다 — 가입 쪽 길도 같이 세운다
+app.use('/api/auth', require('../src/routes/auth'));
 const server = app.listen(0, run);
 
 function get(p, headers) {
@@ -111,6 +115,32 @@ function get(p, headers) {
 // 받은 쿠키를 다음 요청에 들고 간다 — **브라우저가 하는 일**이다.
 // 2026-09-18 부터 서버가 state 를 쿠키로도 주고 콜백에서 그 둘을 맞춰본다
 const jarOf = (res) => (res.cookies || []).map((c) => c.split(';')[0]).join('; ');
+
+/** 메일을 받는 길은 POST 다 — 쪽지(쿠키)를 들고 가야 통한다 */
+function post(p, body, headers) {
+  const payload = JSON.stringify(body || {});
+  return new Promise((res, rej) => {
+    const req = http.request({
+      host: 'localhost', port: server.address().port, path: p, method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        ...(headers || {}),
+      },
+    }, (r) => {
+      let out = '';
+      r.on('data', (c) => { out += c; });
+      r.on('end', () => res({
+        status: r.statusCode,
+        body: out,
+        json: (() => { try { return JSON.parse(out); } catch { return null; } })(),
+        cookies: r.headers['set-cookie'] || [],
+      }));
+    });
+    req.on('error', rej);
+    req.end(payload);
+  });
+}
 
 // 제공자에 갔다 왔다고 치고 콜백까지 한 번 돈다.
 //
@@ -233,87 +263,118 @@ async function run() {
     console.log('');
     console.log('── 어느 길이 열려 있나 ── (2026-10-07)');
     const list = JSON.parse((await get('/api/oauth/providers')).body);
-    ok('카카오가 목록에 있다', list.kakao, true);
-    ok('  구글 · 네이버 · 페북도 그대로다', [list.google, list.naver, list.facebook], [true, true, true]);
-    // 인스타는 **키조차 없어야 한다.** `false` 로 남겨두면 화면은 「아직 준비 중」으로
-    // 읽고, 열쇠만 꽂으면 될 것처럼 보인다 — 그 길은 메일을 안 줘서 애초에 안 된다
-    ok('인스타는 목록에 없다 (false 가 아니라 아예 없다)', 'instagram' in list, false);
-    const igGone = await get('/api/oauth/instagram');
-    ok('  인스타 길 자체가 없다', igGone.status, 404);
-    const igBack = await get('/api/oauth/instagram/callback?code=abc&state=zzz');
-    ok('  돌아오는 길도 없다', igBack.status, 404);
+    ok('목록은 넷이다', Object.keys(list).sort(), ['google', 'instagram', 'naver', 'twitter']);
+    ok('  넷 다 켜져 있다 (열쇠를 넣었으니)',
+      [list.google, list.naver, list.instagram, list.twitter], [true, true, true, true]);
+    // 걷어낸 길은 **키조차 없어야 한다.** `false` 로 남겨두면 화면은 「아직 준비 중」
+    // 으로 읽고, 열쇠만 꽂으면 될 것처럼 보인다
+    for (const gone of ['kakao', 'facebook']) {
+      ok(gone + ' 는 목록에 없다', gone in list, false);
+      ok('  ' + gone + ' 길 자체가 없다', (await get('/api/oauth/' + gone)).status, 404);
+    }
 
     console.log('');
-    console.log('── 카카오 한 바퀴 (카카오만 가짜) ── (2026-10-07)');
-    const kakaoOK = { id: 9001, kakao_account: { email: 'kko@daum.net', is_email_valid: true, is_email_verified: true, profile: { nickname: '카카오근호' } } };
-    PROFILE = kakaoOK;
-    const k1 = await loginWith('kakao');
-    ok('카카오로 보낸다', new URL(k1.start.loc).host, 'kauth.kakao.com');
-    // **메일을 동의 화면에 올려야** 카카오가 준다. 안 적으면 묻지도 않고 안 주고,
-    // 메일이 없으면 이 앱은 계정을 만들 수 없다 — 그러면 길이 통째로 죽는다
-    ok('  메일을 동의 화면에 올린다',
-      new URL(k1.start.loc).searchParams.get('scope').includes('account_email'), true);
-    ok('  돌아올 주소를 같이 준다',
-      new URL(k1.start.loc).searchParams.get('redirect_uri').endsWith('/api/oauth/kakao/callback'), true);
-    ok('  state 를 쿠키로도 준다 (이걸 빠뜨리면 100% 막힌다)',
-      (k1.start.cookies || []).some((c) => c.startsWith('sb_oauth=')), true);
-    ok('처음 들어온 사람은 계정이 생긴다', q(k1.loc).oauth, 'success');
-    ok('  처음이라고 알려준다', q(k1.loc).created, '1');
+    console.log('── 메일을 안 주는 제공자: 묻는 걸음으로 보내는가 ── (2026-10-07)');
+    //
+    // 인스타 · X 는 메일 주소를 주지 않는다. 지어내면(`ig_<번호>@instagram.com`)
+    // 비밀번호 찾기가 영구히 막히고 나중에 기록이 두 계정으로 갈라진다.
+    // 그래서 **계정을 아직 만들지 않고** 사람에게 한 번 묻는다.
+    PROFILE = { user_id: 4242, username: 'keyboard_gh' };
+    const ig = await loginWith('instagram');
+    ok('인스타로 보낸다', new URL(ig.start.loc).host, 'www.instagram.com');
+    ok('메일을 묻는 화면으로 보낸다', new URL(ig.loc).pathname, '/oauth/email');
+    ok('  어디로 들어왔는지 같이 보낸다', q(ig.loc).provider, 'instagram');
+    ok('  제공자가 준 이름도 보낸다 (이름을 또 묻지 않는다)', q(ig.loc).name, 'keyboard_gh');
+    ok('  로그인 열쇠는 아직 안 준다',
+      ig.cookies.some((c) => c.startsWith('sb_access=')), false);
+    ok('  지어낸 주소로 계정이 생기지 않았다',
+      !!db.findUserByEmail('ig_4242@instagram.com'), false);
+    ok('  쪽지를 쥐여준다 (서버가 들고 있는 줄을 가리킨다)',
+      ig.cookies.some((c) => c.startsWith('sb_social=')), true);
+    ok('    그 쪽지는 스크립트가 못 읽는다 (HttpOnly)',
+      ig.cookies.some((c) => c.startsWith('sb_social=') && /HttpOnly/i.test(c)), true);
+    const igJar = jarOf(ig);
+
+    // X 는 PKCE 를 쓴다 — 시작할 때 해시를 같이 보내야 한다
+    PROFILE = { data: { id: '9191', username: 'gh_x', name: '근호' } };
+    const tw = await loginWith('twitter');
+    ok('X 로 보낸다', new URL(tw.start.loc).host, 'x.com');
+    ok('  PKCE 해시를 같이 보낸다',
+      !!new URL(tw.start.loc).searchParams.get('code_challenge'), true);
+    ok('  그 방식이 S256 이다',
+      new URL(tw.start.loc).searchParams.get('code_challenge_method'), 'S256');
+    // **검증값 원본은 나가지 않는다** — 나가면 PKCE 가 아무 일도 안 한 것이 된다
+    ok('  검증값 원본은 안 보낸다', tw.start.loc.includes('code_verifier'), false);
+    ok('X 도 메일을 묻는 화면으로 보낸다', new URL(tw.loc).pathname, '/oauth/email');
+    ok('  이름을 같이 보낸다', q(tw.loc).name, 'gh_x');
+
+    console.log('');
+    console.log('── 메일을 받는 걸음 ── (2026-10-07)');
+    //
+    // 세 가지가 다 맞아야 계정이 생긴다 — **쪽지 · 번호 · 15분.**
+    const noNote = await post('/api/oauth/email', { email: 'x@y.com', code: '123456' });
+    ok('쪽지 없이 부르면 막는다', noNote.status, 401);
+    ok('  다시 로그인하라고 알려준다', noNote.json?.restart, true);
+    ok('  계정이 생기지 않았다', !!db.findUserByEmail('x@y.com'), false);
+
+    // 번호를 받아 온다 (내 컴퓨터에서는 응답에 번호가 실린다)
+    const codeRes = await post('/api/auth/send-code', { email: 'gh@gmail.com' });
+    const theCode = codeRes.json?.code;
+    ok('번호를 받았다', typeof theCode === 'string' && theCode.length === 6, true);
+
+    const wrong = await post('/api/oauth/email',
+      { email: 'gh@gmail.com', code: '000000' }, { Cookie: igJar });
+    ok('번호가 틀리면 계정을 안 만든다', wrong.status, 400);
+    ok('  그 이메일로 계정이 생기지 않았다', !!db.findUserByEmail('gh@gmail.com'), false);
+
+    const made = await post('/api/oauth/email',
+      { email: 'gh@gmail.com', code: theCode }, { Cookie: igJar });
+    ok('번호가 맞으면 계정이 생긴다', made.status, 200);
     ok('  로그인 열쇠 셋을 쥐여준다',
-      k1.cookies.map((c) => c.split('=')[0]).filter((n) => n !== 'sb_oauth').sort(),
+      made.cookies.map((c) => c.split('=')[0]).filter((n) => n !== 'sb_social').sort(),
       ['sb_access', 'sb_csrf', 'sb_refresh']);
-    ok('  이름은 카카오가 준 것이다', db.findUserByEmail('kko@daum.net').nickname, '카카오근호');
-    ok('  아이디는 kakao_ 로 시작한다',
-      /^kakao_[0-9a-f]{8}$/.test(db.findUserByEmail('kko@daum.net').username), true);
+    ok('  쓰고 난 쪽지는 버린다',
+      made.cookies.some((c) => c.startsWith('sb_social=') && /(Max-Age=0|Expires=Thu, 01 Jan 1970)/i.test(c)), true);
+    ok('  이름은 인스타가 준 것이다', db.findUserByEmail('gh@gmail.com').nickname, 'keyboard_gh');
+    ok('  아이디는 instagram_ 로 시작한다',
+      /^instagram_[0-9a-f]{8}$/.test(db.findUserByEmail('gh@gmail.com').username), true);
     ok('  소셜 계정이라고 적어둔다 (비밀번호를 모르는 사람이다)',
-      db.isSocialAccount(db.findUserByEmail('kko@daum.net')), true);
+      db.isSocialAccount(db.findUserByEmail('gh@gmail.com')), true);
+    // **쪽지는 한 번 쓰면 끝이다.** 안 버리면 같은 쪽지로 다른 메일에 또 붙일 수 있다
+    const again = await post('/api/oauth/email',
+      { email: 'gh@gmail.com', code: theCode }, { Cookie: igJar });
+    ok('같은 쪽지를 두 번 쓰지 못한다', again.status, 401);
 
-    // 카카오에서 메일은 **선택 동의**다. 안 켜면 이 칸이 아예 없이 온다
-    PROFILE = { id: 9002, kakao_account: { profile: { nickname: '동의안함' } } };
-    const kNoMail = await loginWith('kakao');
-    ok('메일 동의를 안 했으면 까닭을 말한다', q(kNoMail.loc).error, 'kakao_no_email');
-    ok('  빈 이메일 계정이 생기지 않았다', !!db.findUserByEmail(''), false);
+    // **이미 쓰는 메일이면 그 계정으로 들어간다** — 새로 만들면 기록이 갈라진다
+    db.createUser('old@gmail.com', 'x', '전부터쓰던이름', 'oldhand01');
+    const oldId = db.findUserByEmail('old@gmail.com').id;
+    PROFILE = { user_id: 5555, username: 'same_person' };
+    const ig2 = await loginWith('instagram');
+    const code2 = (await post('/api/auth/send-code', { email: 'old@gmail.com' })).json?.code;
+    const linked = await post('/api/oauth/email',
+      { email: 'old@gmail.com', code: code2 }, { Cookie: jarOf(ig2) });
+    ok('이미 쓰는 메일이면 그 계정으로 들어간다', linked.status, 200);
+    ok('  계정이 하나 더 생기지 않았다', db.findUserByEmail('old@gmail.com').id, oldId);
+    ok('  이름을 덮어쓰지 않는다 (쓰던 이름이 그대로다)',
+      db.findUserByEmail('old@gmail.com').nickname, '전부터쓰던이름');
+    ok('  처음 만든 계정이 아니라고 알려준다', linked.json?.created, false);
 
-    // 카카오는 「확인됐나」를 알려준다 — 구글의 `verified_email` 과 같은 자리다
-    PROFILE = { id: 9003, kakao_account: { email: 'notmine@daum.net', is_email_verified: false, profile: { nickname: '확인안됨' } } };
-    const kUnver = await loginWith('kakao');
-    ok('확인 안 된 메일이면 계정을 안 만든다', q(kUnver.loc).error, 'kakao_unverified');
-    ok('  그 이메일로 계정이 생기지 않았다', !!db.findUserByEmail('notmine@daum.net'), false);
-    // 「다른 데서 쓰이는 중」도 그 주소를 못 믿는다는 뜻이다
-    PROFILE = { id: 9004, kakao_account: { email: 'taken@daum.net', is_email_valid: false, profile: { nickname: '쓰이는중' } } };
-    ok('쓸 수 없는 주소도 막는다', q((await loginWith('kakao')).loc).error, 'kakao_unverified');
-    // **모른다고 할 때는 막지 않는다** — 필드를 안 주는 제공자도 있다
-    PROFILE = { id: 9005, kakao_account: { email: 'noflag@daum.net', profile: { nickname: '모름' } } };
-    ok('확인 여부를 안 주면 막지 않는다', q((await loginWith('kakao')).loc).oauth, 'success');
-
-    const kakaoKey = process.env.KAKAO_CLIENT_ID;
-    delete process.env.KAKAO_CLIENT_ID;
-    ok('열쇠가 없으면 앱으로 돌려보낸다',
-      q((await get('/api/oauth/kakao', { Referer: 'http://localhost:5173/login' })).loc).error,
-      'kakao_not_configured');
-    process.env.KAKAO_CLIENT_ID = kakaoKey;
+    console.log('');
+    console.log('── 메일을 주면 묻지 않는가 ──');
+    //
+    // X 는 승인을 받으면 메일을 준다. 그날이 오면 **고칠 데가 없어야** 한다
+    PROFILE = { data: { id: '7777', username: 'hasmail', confirmed_email: 'xmail@gmail.com' } };
+    const twMail = await loginWith('twitter');
+    ok('메일을 주면 바로 들어온다', q(twMail.loc).oauth, 'success');
+    ok('  묻는 화면으로 안 보낸다', new URL(twMail.loc).pathname, '/login');
+    ok('  준 주소로 계정이 생긴다', !!db.findUserByEmail('xmail@gmail.com'), true);
 
     console.log('');
     console.log('── 메일을 지어내는 자리가 없는가 ── (2026-10-07)');
-    //
-    // 9/18 에 「메일이 없으면 계정을 만들지 않는다」를 `findOrCreateUser` 한 곳에
-    // 넣었다. 그런데 페북 · 인스타는 `fb_<번호>@facebook.com` 을 지어내 **그 검사를
-    // 비껴갔다.** 그 계정은 비밀번호 찾기가 영구히 막히고, 그 사람이 나중에 진짜
-    // 메일로 가입하면 **계정이 둘로 갈라진다**
-    PROFILE = { id: 777, name: '메일안줌' };
-    const fbNoMail = await loginWith('facebook');
-    ok('페북이 메일을 안 주면 계정을 안 만든다', q(fbNoMail.loc).error, 'facebook_no_email');
-    ok('  fb_777@facebook.com 같은 계정이 생기지 않았다',
-      !!db.findUserByEmail('fb_777@facebook.com'), false);
-    PROFILE = { id: 778, name: '페북근호', email: 'fb@real.com' };
-    ok('메일을 주면 그대로 들어온다', q((await loginWith('facebook')).loc).oauth, 'success');
-    ok('  준 주소로 계정이 생긴다', !!db.findUserByEmail('fb@real.com'), true);
-    // 소스에도 남아 있으면 안 된다 — 다음에 누가 같은 줄을 되살릴 수 있다
     const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'oauth.js'), 'utf8');
-    const made = src.split('\n').filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*'))
-      .join('\n');
-    ok('코드가 @facebook.com 주소를 짓지 않는다', made.includes('@facebook.com'), false);
-    ok('코드가 @instagram.com 주소를 짓지 않는다', made.includes('@instagram.com'), false);
+    const made2 = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    ok('코드가 @instagram.com 주소를 짓지 않는다', made2.includes('@instagram.com'), false);
+    ok('코드가 @facebook.com 주소를 짓지 않는다', made2.includes('@facebook.com'), false);
 
     console.log('');
     console.log('── 네이버도 까닭을 말하는가 ── (2026-10-07)');
@@ -330,7 +391,7 @@ async function run() {
     console.log('');
     console.log('── 실패 까닭이 제공자마다 갈라지는가 ── (2026-10-07)');
     const { failCode } = oauth;
-    for (const p of ['google', 'kakao', 'naver', 'facebook']) {
+    for (const p of ['google', 'naver', 'instagram', 'twitter']) {
       ok(p + ' — 메일 미확인', failCode(p, new Error('OAUTH_EMAIL_UNVERIFIED')), p + '_unverified');
       ok(p + ' — 메일 미제공', failCode(p, new Error('OAUTH_NO_EMAIL')), p + '_no_email');
       ok(p + ' — 그 밖의 일', failCode(p, new Error('그 밖')), p + '_failed');
@@ -346,11 +407,26 @@ async function run() {
     ok('구글 이름을 박아두지 않았다', loginJsx.includes("code === 'google_unverified'"), false);
     ok('  갈래로 본다 (unverified)', loginJsx.includes("kind === 'unverified'"), true);
     ok('  갈래로 본다 (no_email)', loginJsx.includes("kind === 'no_email'"), true);
-    ok('  카카오 이름표가 있다', loginJsx.includes("kakao: '카카오'"), true);
+    // **걷어낸 제공자도 이름표는 남긴다** — 오래 열어둔 탭에서 그쪽 콜백이 돌아오면
+    // 「소셜 로그인에 실패했어요」가 아니라 제 이름을 들어야 한다
+    for (const [key, name] of [['instagram', '인스타그램'], ['twitter', '트위터(X)'], ['kakao', '카카오']]) {
+      ok('  ' + key + ' 이름표가 있다', loginJsx.includes(key + ": '" + name + "'"), true);
+    }
     const btnJsx = fs.readFileSync(
       path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'SocialLoginButtons.jsx'), 'utf8');
-    ok('단추 목록에 카카오가 있다', btnJsx.includes("key: 'kakao'"), true);
-    ok('  인스타는 없다', btnJsx.includes("key: 'instagram'"), false);
+    for (const key of ['naver', 'instagram', 'twitter']) {
+      ok('단추 목록에 ' + key + ' 가 있다', btnJsx.includes("key: '" + key + "'"), true);
+    }
+    for (const key of ['kakao', 'facebook']) {
+      ok('  ' + key + ' 는 없다', btnJsx.includes("key: '" + key + "'"), false);
+    }
+    // 메일을 묻는 화면이 **길에 걸려 있어야** 한다. 서버는 거기로 보내는데 길이
+    // 없으면 인스타 · X 로 들어온 사람이 「없는 화면」에 떨어진다
+    const appJsx = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'frontend', 'src', 'App.jsx'), 'utf8');
+    ok('메일을 묻는 화면이 길에 있다', appJsx.includes('path="/oauth/email"'), true);
+    ok('  로그인 밖이다 (계정이 아직 없는 사람이 본다)',
+      appJsx.indexOf('path="/oauth/email"') < appJsx.indexOf('<PrivateRoute>'), true);
 
     // ── 아이디는 대소문자를 가리지 않는다 ──
     //

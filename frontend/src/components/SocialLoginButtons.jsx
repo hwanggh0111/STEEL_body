@@ -13,17 +13,19 @@ const BACKEND_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
   : '';
 
-// ── 차례는 **눌리는 순서**다 ── (2026-10-07)
+// ── 길은 넷이다 — 구글 · 네이버 · 인스타그램 · 트위터(X) ── (2026-10-07)
 //
-// 「인스타그램」을 내리고 「카카오」를 올렸다. 까닭은 `routes/oauth.js` 의 인스타
-// 자리에 적어뒀다 — 요점은 **인스타는 메일을 안 줘서 이 앱에 붙을 수 없다**는 것.
+// 카카오와 페이스북은 걷어냈다(까닭은 `routes/oauth.js` 의 그 자리들에 적어뒀다).
 //
-// 카카오가 네이버 위다. 국내에서 제일 많이 눌리는 길이고, 구글은 그 위에 따로 있다.
+// **인스타와 X 는 메일 주소를 주지 않는다.** 그래서 그 둘로 들어오면 앱이 메일을
+// 한 번 묻는다(`/oauth/email`) — 지어낸 주소로 계정을 만들면 비밀번호 찾기가
+// 영구히 막히고 나중에 기록이 두 계정으로 갈라진다.
 const OTHERS = [
-  // 카카오 색은 **글자가 검정**이다 (#FEE500 위에 흰 글자는 안 읽힌다)
-  { key: 'kakao', label: '카카오', background: '#FEE500', color: '#191600' },
   { key: 'naver', label: '네이버', background: '#03C75A', color: '#ffffff' },
-  { key: 'facebook', label: '페이스북', background: '#1877F2', color: '#ffffff' },
+  { key: 'instagram', label: '인스타그램', background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#ffffff' },
+  // X 는 검정 위에 흰 글자다. 앱 배경도 검정이라 **테두리가 없으면 윤곽이 사라진다**
+    // 이름을 U0001D54F 하나로 둔다 — 셋이 한 줄에 나란히 서는 자리라 「U0001D54F 트위터」는 넘친다
+  { key: 'twitter', label: 'U0001D54F', background: '#000000', color: '#ffffff', border: '1px solid #3a3a3a' },
 ];
 
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {
@@ -78,7 +80,9 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
               onClick={() => go(o.key)}
               disabled={disabled}
               style={{
-                flexGrow: 1, padding: '11px 0', border: 'none', borderRadius: 'var(--radius)',
+                // X 는 검정 위에 흰 글자다. 앱 배경도 검정이라 **테두리가 없으면
+                // 윤곽이 사라진다** — 그래서 제공자가 적어둔 테두리를 쓴다
+                flexGrow: 1, padding: '11px 0', border: o.border || 'none', borderRadius: 'var(--radius)',
                 background: o.background, color: o.color,
                 fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
                 cursor: disabled ? 'not-allowed' : 'pointer',

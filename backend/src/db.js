@@ -1517,10 +1517,10 @@ const db = {
     if (!user) return false;
     if (user.has_password) return false;
     if (user.is_social) return true;
-    // `instagram` 은 **길을 내린 뒤에도 남긴다** (2026-10-07) — 그 길로 이미
-    // 만들어진 계정의 아이디가 `instagram_1a2b3c4d` 다. 여기서 빼면 그 사람에게
-    // 「저절로 지어진 아이디예요」를 안 해준다
-    return /^(google|kakao|naver|facebook|instagram)_[0-9a-f]{8}$/.test(user.username || '');
+    // `kakao` · `facebook` 은 **길을 내린 뒤에도 남긴다** (2026-10-07) — 그 길로
+    // 이미 만들어진 계정의 아이디가 `kakao_1a2b3c4d` 꼴이다. 여기서 빼면 그
+    // 사람에게 「저절로 지어진 아이디예요」를 안 해준다
+    return /^(google|naver|instagram|twitter|kakao|facebook)_[0-9a-f]{8}$/.test(user.username || '');
   },
 
   /**
@@ -1754,6 +1754,47 @@ const db = {
   //
   // **번호를 그대로 적지 않는다.** 디스크에 남는 값이고 그 값 하나로 비밀번호를
   // 바꿀 수 있다 — 리프레시 토큰과 같은 이유로 sha256 만 적는다.
+  // ── 「들어온 것은 확인됐지만 메일이 없는 사람」을 짧게 들고 있는다 ── (2026-10-07)
+  //
+  // 인스타그램 · 트위터(X)는 **메일 주소를 주지 않는다.** 이 앱은 이메일 하나로
+  // 계정을 잇기 때문에(`emailKey`), 그 사람에게는 메일을 한 번 물어야 한다.
+  //
+  // **묻는 동안 계정을 만들지 않는다.** 그리고 「물어보는 중」을 화면에만 두면
+  // 안 된다 — 그러면 아무나 `POST /api/oauth/email` 에 주소를 적어 보내서
+  // **인스타로 들어온 척**할 수 있다. 서버가 「이 제공자로 이 사람이 방금
+  // 확인됐다」를 들고 있고, 브라우저에는 그 줄을 가리키는 쪽지(httpOnly 쿠키)만 준다.
+  //
+  // **쪽지는 해시로 적는다** — 인증번호와 같은 까닭이다. DB 파일을 보게 된 사람이
+  // 그 쪽지를 그대로 들고 가면 남의 가입을 가로챈다.
+  putSocialPending(tokenHash, row, ttlMs) {
+    const data = load();
+    if (!data.socialPending) data.socialPending = [];
+    const now = Date.now();
+    data.socialPending = data.socialPending.filter(r => r && r.expires > now && r.token !== tokenHash);
+    data.socialPending.push({ ...row, token: tokenHash, expires: now + ttlMs });
+    save(data);
+    // 인증번호와 같이 **바로 쓴다.** 이 사이에 서버가 죽으면(배포 · 잠들었다 깨기)
+    // 메일을 적고 있던 사람이 「시간이 지났어요」로 떨어진다
+    _flushImmediate();
+  },
+  /** 살아 있는 줄만 돌려준다. 식은 줄은 그 자리에서 걷는다 */
+  getSocialPending(tokenHash) {
+    const data = load();
+    const row = (data.socialPending || []).find(r => r.token === tokenHash);
+    if (!row) return null;
+    if (Date.now() > row.expires) {
+      data.socialPending = data.socialPending.filter(r => r.token !== tokenHash);
+      save(data);
+      return null;
+    }
+    return row;
+  },
+  clearSocialPending(tokenHash) {
+    const data = load();
+    if (!data.socialPending || !data.socialPending.length) return;
+    data.socialPending = data.socialPending.filter(r => r.token !== tokenHash);
+    save(data);
+  },
   putVerifyCode(email, hash, ttlMs) {
     const data = load();
     if (!data.verifyCodes) data.verifyCodes = [];

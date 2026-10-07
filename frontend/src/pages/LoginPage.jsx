@@ -120,9 +120,17 @@ export default function LoginPage() {
 // 예전에는 무엇이 잘못됐든 「다시 시도해주세요」였다. 그런데 열쇠가 설정 안 된
 // 제공자는 **다시 시도해도 영영 안 된다** — 될 것처럼 말하면 안 된다.
 function oauthErrorText(code) {
-  const PROVIDER = { google: '구글', kakao: '카카오', naver: '네이버', facebook: '페이스북', instagram: '인스타그램' };
+  // 걷어낸 제공자(카카오 · 페이스북)도 **이름표는 남긴다** — 오래 열어둔 탭에서
+  // 그쪽 콜백이 돌아오면 「소셜 로그인에 실패했어요」가 아니라 제 이름을 들어야 한다
+  const PROVIDER = {
+    google: '구글', naver: '네이버', instagram: '인스타그램', twitter: '트위터(X)',
+    kakao: '카카오', facebook: '페이스북',
+  };
   // 어디서 동의를 켜야 하는지 — 제공자마다 그 자리의 이름이 다르다
-  const WHERE = { google: '「이메일 제공」', kakao: '「카카오계정(이메일)」', naver: '「이메일 주소」', facebook: '「이메일」' };
+  const WHERE = {
+    google: '「이메일 제공」', naver: '「이메일 주소」',
+    kakao: '「카카오계정(이메일)」', facebook: '「이메일」',
+  };
   const [name, kind] = String(code || '').split(/_(.+)/);
   const label = PROVIDER[name] || '소셜';
 

@@ -735,5 +735,12 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
 // (`oauth.js` 가 `successUrl` · `findOrCreateUser` 를 내보내는 것과 같은 모양)
 router.usernameCooldown = usernameCooldown;
 router.USERNAME_COOLDOWN_DAYS = USERNAME_COOLDOWN_DAYS;
+// ── 번호 확인은 **한 자리에만 둔다** ── (2026-10-07)
+//
+// 인스타 · X 로 들어온 사람에게 메일을 물을 때도 번호를 봐야 한다(`oauth.js`).
+// 거기에 같은 것을 또 적으면 **한쪽만 고치는 날**이 온다 — 시도 횟수를 깎는 규칙 ·
+// 상수 시간 비교 · 맞은 번호는 안 깎는다가 전부 여기 들어 있다.
+router.checkCode = checkCode;
+router.isValidEmail = isValidEmail;
 
 module.exports = router;

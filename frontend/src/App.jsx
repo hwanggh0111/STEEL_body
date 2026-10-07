@@ -12,6 +12,7 @@ import './styles/globals.css';
 // lazy load 페이지들
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const OauthEmailPage = lazy(() => import('./pages/OauthEmailPage'));
 const RoutinePage = lazy(() => import('./pages/RoutinePage'));
 // 5차 리모델링 — 루틴 · 기록 · 검색 · 기능성운동을 한 흐름으로 (2026-09-04)
 const TrainPage = lazy(() => import('./pages/TrainPage'));
@@ -115,6 +116,10 @@ export default function App() {
               <Route path="/site" element={<SiteHome />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              {/* 인스타 · X 로 들어온 사람에게 메일을 묻는 자리. 그 둘은 메일 주소를
+                  주지 않는다 — 까닭은 OauthEmailPage 맨 위에 적어뒀다.
+                  **로그인 밖(공개)이다** — 아직 계정이 없는 사람이 보는 화면이다 */}
+              <Route path="/oauth/email" element={<OauthEmailPage />} />
               <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route index element={<Navigate to="/home" />} />
                 <Route path="home" element={<HomePage />} />

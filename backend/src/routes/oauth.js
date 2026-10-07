@@ -5,6 +5,8 @@ const db = require('../db');
 const { BCRYPT_ROUNDS } = require('../config/security');
 const { sanitize } = require('../utils/sanitize');
 const { issueTokens } = require('../utils/tokens');
+// 번호 확인은 가입 쪽에 한 벌만 있다 — 여기에 또 적으면 한쪽만 고치는 날이 온다
+const { checkCode, isValidEmail } = require('./auth');
 
 const crypto = require('crypto');
 const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -116,6 +118,39 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   return { user, nickname: user.nickname, email: user.email, created, restored };
 }
 
+// ── 로그인을 끝맺는 자리는 **하나다** ── (2026-10-07)
+//
+// 제공자마다 콜백 끝에 `findOrCreateUser` → `setAuthCookies` → `successUrl` 을
+// 세 줄씩 적어두고 있었다. 거기에 「메일이 없으면 묻는다」가 더해지면 **제공자마다
+// 네 줄**이 되고, 하나를 빠뜨리는 날이 온다 — 9/18 에 `startOauth` 를 셋에서
+// 빠뜨려 그쪽이 100% 막혔던 것과 같은 모양이다.
+//
+// 그래서 **끝맺는 것을 함수 하나로** 둔다. 제공자 쪽 코드가 하는 일은
+// 「메일 · 이름 · 확인됐나」를 모아 이 함수에 넘기는 것까지다.
+async function finishSocial(res, frontendUrl, provider, got) {
+  // 메일을 받았으면 **묻지 않는다** — 인스타 · X 라도 나중에 주게 되면 그대로 통한다
+  if (got.email || !ASK_EMAIL.has(provider)) {
+    const info = await findOrCreateUser(got.email, got.nickname, provider,
+      { emailVerified: got.emailVerified });
+    setAuthCookies(res, info.user);
+    return res.redirect(successUrl(frontendUrl, info));
+  }
+  // 메일이 없다 — **계정을 만들지 않고** 묻는 걸음으로 보낸다
+  const token = crypto.randomBytes(32).toString('hex');
+  db.putSocialPending(sha256(token), {
+    provider,
+    // 같은 사람이 다시 들어왔을 때 알아보려고 적어둔다 (지금은 적어두기만 한다)
+    providerUserId: got.providerUserId ? String(got.providerUserId) : '',
+    // 제공자가 준 이름. 메일만 받으면 이걸로 계정을 만든다 — **이름을 또 묻지 않는다**
+    nickname: sanitize(String(got.nickname || '')).slice(0, 30),
+  }, PENDING_TTL_MS);
+  setPendingCookie(res, token);
+  const q = new URLSearchParams({ provider });
+  // 화면이 「@누구로 들어왔어요」를 띄운다 — 왜 메일을 묻는지가 설명 없이 읽힌다
+  if (got.nickname) q.set('name', sanitize(String(got.nickname)).slice(0, 30));
+  return res.redirect(`${frontendUrl}/oauth/email?${q}`);
+}
+
 // 로그인이 끝나고 화면으로 돌려보낼 주소.
 //
 // `created` 를 같이 보낸다. 화면의 「닉네임 정하기」 단계는 **계정이 방금 만들어졌을
@@ -135,14 +170,16 @@ function successUrl(frontendUrl, { nickname, email, created, restored }) {
 // 네이버 · 페이스북 · 인스타그램은 빠져 있어서, 콜백의 validateState 가 언제나
 // 'has(state) === false' 로 떨어졌다 — 세 곳 모두 invalid_state 로 100% 실패했다.
 // 등록을 발급 안으로 넣어 빠뜨릴 수 없게 한다.
-function generateState(referer = '') {
+function generateState(referer = '', extra = {}) {
   // Map 크기 제한
   if (oauthStates.size >= MAX_OAUTH_STATES) {
     const oldest = oauthStates.keys().next().value;
     oauthStates.delete(oldest);
   }
   const s = crypto.randomBytes(16).toString('hex');
-  oauthStates.set(s, { time: Date.now(), referer });
+  // `extra` 는 지금 PKCE 검증값(`verifier`)을 담는다 — 트위터(X)가 요구한다.
+  // state 와 **같은 수명**이어야 하므로 따로 두지 않고 여기 같이 넣는다
+  oauthStates.set(s, { time: Date.now(), referer, ...extra });
   // 10분이 지나면 스스로 사라진다. 타이머가 프로세스를 붙잡지 않게 unref 한다
   setTimeout(() => oauthStates.delete(s), 10 * 60 * 1000).unref?.();
   return s;
@@ -180,11 +217,29 @@ function clearStateCookie(res) {
 }
 
 /** 로그인을 시작한다 — state 를 만들고 브라우저에도 심는다 (둘을 따로 하면 빠뜨린다) */
-function startOauth(req, res) {
-  const state = generateState(req.get('referer') || '');
+function startOauth(req, res, extra = {}) {
+  const state = generateState(req.get('referer') || '', extra);
   setStateCookie(res, state);
   return state;
 }
+
+/**
+ * **PKCE** — 트위터(X)가 요구한다.
+ *
+ * 쓰는 말로 하면 「가져간 코드를 **시작한 쪽만** 바꿀 수 있게」 하는 장치다.
+ * 시작할 때 무작위 `verifier` 를 만들어 **그 해시만** X 에 보내고, 코드를 토큰으로
+ * 바꿀 때 원본을 같이 낸다. 중간에서 코드를 가로챈 쪽은 원본을 모르니 못 바꾼다.
+ *
+ * `verifier` 는 state 와 같이 서버 메모리에 둔다 — 나가지 않는다.
+ */
+function makePkce() {
+  const verifier = crypto.randomBytes(32).toString('base64url');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  return { verifier, challenge };
+}
+
+/** state 에 같이 넣어둔 값을 꺼낸다 (validateState 가 지우기 **전에** 불러야 한다) */
+const stateExtra = (state) => oauthStates.get(state) || {};
 
 /**
  * 돌아온 것이 **그 브라우저에서 시작한 것인가.**
@@ -206,6 +261,37 @@ function sameBrowser(req) {
 // 메일 미제공)에 하면 틀린 말이 된다 — 그 사람이 할 일은 다시 누르기가 아니라
 // 제공자 쪽에서 동의를 켜는 것이다. 갈래를 **한 곳에 두어** 제공자를 더할 때
 // 빠뜨릴 수 없게 한다.
+// ── 메일을 **안 주는** 제공자 ── (2026-10-07)
+//
+// 인스타그램과 트위터(X)는 메일 주소를 주지 않는다. 이 앱이 계정을 잇는 열쇠는
+// 이메일 하나라(`emailKey`), 그 둘은 **그냥 붙일 수가 없다.**
+//
+// 전임 코드는 `ig_<번호>@instagram.com` 을 지어냈다. 그러면 계정은 만들어지지만
+// 비밀번호 찾기가 영구히 막히고, 그 사람이 나중에 진짜 메일로 가입하면 **기록이
+// 두 계정으로 갈라진다.** 그래서 지어내지 않고 **사람에게 한 번 묻는다.**
+//
+// 묻는 동안 계정을 만들지 않는다 — `db.socialPending` 이 그 사이를 들고 있고,
+// 번호가 맞으면 그때 만든다(`POST /api/oauth/email`).
+const ASK_EMAIL = new Set(['instagram', 'twitter']);
+const PENDING_COOKIE = 'sb_social';
+const PENDING_TTL_MS = 15 * 60 * 1000;   // 메일을 받아 번호를 넣는 데 드는 시간
+const sha256 = (v) => crypto.createHash('sha256').update(String(v)).digest('hex');
+
+function setPendingCookie(res, token) {
+  res.cookie(PENDING_COOKIE, token, {
+    httpOnly: true,
+    // 이 쪽지는 **우리 화면이 부르는 POST** 에 실려야 한다. Lax 는 남의 사이트가
+    // 보내는 POST 에는 안 실리므로 그대로 CSRF 방어가 된다
+    sameSite: 'lax',
+    secure: IS_PROD,
+    maxAge: PENDING_TTL_MS,
+    path: '/api/oauth',
+  });
+}
+function clearPendingCookie(res) {
+  res.clearCookie(PENDING_COOKIE, { httpOnly: true, sameSite: 'lax', secure: IS_PROD, path: '/api/oauth' });
+}
+
 function failCode(provider, err) {
   if (err?.message === 'OAUTH_EMAIL_UNVERIFIED') return provider + '_unverified';
   if (err?.message === 'OAUTH_NO_EMAIL') return provider + '_no_email';
@@ -233,9 +319,9 @@ function validateState(state) {
 router.get('/providers', (req, res) => {
   res.json({
     google: !!process.env.GOOGLE_CLIENT_ID,
-    kakao: !!process.env.KAKAO_CLIENT_ID,
     naver: !!process.env.NAVER_CLIENT_ID,
-    facebook: !!process.env.FACEBOOK_APP_ID,
+    instagram: !!process.env.INSTAGRAM_APP_ID,
+    twitter: !!process.env.TWITTER_CLIENT_ID,
   });
 });
 
@@ -292,10 +378,10 @@ router.get('/google/callback', async (req, res) => {
     // **이메일이 있는지는 한 곳에서만 본다** (`findOrCreateUser`).
     // 여기서 따로 던지면 이유가 뭉개져서(`google_failed`) 「다시 시도해주세요」가 되고,
     // 그건 다시 눌러도 영영 안 되는 일에 하는 말이다 (2026-09-18 에 검사가 잡았다)
-    const info = await findOrCreateUser(profile?.email, profile?.name, 'google',
-      { emailVerified: profile?.verified_email });
-    setAuthCookies(res, info.user);
-    res.redirect(successUrl(frontendUrl, info));
+    await finishSocial(res, frontendUrl, 'google', {
+      email: profile?.email, nickname: profile?.name,
+      emailVerified: profile?.verified_email, providerUserId: profile?.id,
+    });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     // **왜 안 됐는지 구분해서 보낸다** — 갈래는 `failCode` 한 곳에 있다
@@ -355,36 +441,45 @@ router.get('/naver/callback', async (req, res) => {
     // 「다시 시도해주세요」를 듣는데, 다시 눌러도 **동의를 켜지 않으면 영영 안 된다.**
     // 메일이 있는지는 `findOrCreateUser` 한 곳에서 보고 `naver_no_email` 로 나간다
     if (!profile) throw new Error('Naver profile missing');
-    const info = await findOrCreateUser(profile.email, profile.nickname || profile.name, 'naver');
-    setAuthCookies(res, info.user);
-    res.redirect(successUrl(frontendUrl, info));
+    await finishSocial(res, frontendUrl, 'naver', {
+      email: profile.email, nickname: profile.nickname || profile.name, providerUserId: profile.id,
+    });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=${failCode('naver', err)}`);
   }
 });
 
-// ─── Kakao ────────────────────────────
+// 「카카오」는 **없다** (2026-10-07 에 넣었다가 그날 뺐다).
 //
-// 국내에서 제일 많이 눌리는 길인데 **코드가 아예 없었다** (2026-10-07 에 붙였다).
-// 카카오는 메일을 주고 **확인됐는지까지** 알려주므로, 9/18 의 「확인 안 된 메일로는
-// 계정을 잇지 않는다」가 구글과 똑같이 걸린다.
-router.get('/kakao', (req, res) => {
-  if (!process.env.KAKAO_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=kakao_not_configured`);
+// 코드도 검사도 다 됐었다 — 뺀 까닭은 기술이 아니라 **본인이 쓰기 불안하다고 했기
+// 때문**이다. 되살리려면 이 커밋 둘을 되돌리면 된다. 카카오는 메일을 주고
+// `is_email_verified` 까지 주므로 **이 앱에 제일 잘 맞는 제공자**였다.
+
+// ─── Instagram ────────────────────────
+//
+// **메일을 주지 않는다.** 그래서 콜백 끝에서 `finishSocial` 이 「메일을 묻는
+// 걸음」으로 보낸다 (`ASK_EMAIL`). 지어낸 주소로 계정을 만들던 전임 코드는
+// 10/07 아침에 걷어냈다 — 까닭은 `ASK_EMAIL` 자리에 적어뒀다.
+//
+// **알고 둘 것:** 스코프가 `instagram_business_basic` 이다. 인스타의 옛 로그인
+// (Basic Display) 이 닫히면서 이것만 남았고, 그래서 **비즈니스 · 크리에이터
+// 계정만** 들어온다. 개인 계정으로 누르면 인스타 쪽에서 막는다 — 우리 쪽에서
+// 해줄 수 있는 것이 없다.
+router.get('/instagram', (req, res) => {
+  if (!process.env.INSTAGRAM_APP_ID) return res.redirect(`${FRONTEND}/login?error=instagram_not_configured`);
   const { backendUrl } = getUrls(req);
   const params = new URLSearchParams({
-    client_id: process.env.KAKAO_CLIENT_ID,
-    redirect_uri: `${backendUrl}/api/oauth/kakao/callback`,
+    client_id: process.env.INSTAGRAM_APP_ID,
+    redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
+    scope: 'instagram_business_basic',
     response_type: 'code',
-    // **메일을 동의 화면에 올린다.** 안 받으면 계정을 만들 수 없는 값이다
-    // (카카오에서 메일은 선택 동의라, 안 적으면 묻지도 않고 안 준다)
-    scope: 'account_email profile_nickname',
     state: startOauth(req, res),
   });
-  res.redirect(`https://kauth.kakao.com/oauth/authorize?${params}`);
+  res.redirect(`https://www.instagram.com/oauth/authorize?${params}`);
 });
 
-router.get('/kakao/callback', async (req, res) => {
+router.get('/instagram/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
   const sameOne = sameBrowser(req);
   clearStateCookie(res);
@@ -392,113 +487,160 @@ router.get('/kakao/callback', async (req, res) => {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
-    const { data: tokens } = await axios.post('https://kauth.kakao.com/oauth/token',
+    const { data: tokens } = await axios.post('https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
+        client_id: process.env.INSTAGRAM_APP_ID,
+        client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
-        client_id: process.env.KAKAO_CLIENT_ID,
-        // 카카오 콘솔에서 「보안」을 켰을 때만 있다. 안 켰으면 **안 보내는 것이 맞다** —
-        // 빈 값을 실어 보내면 거절한다
-        ...(process.env.KAKAO_CLIENT_SECRET ? { client_secret: process.env.KAKAO_CLIENT_SECRET } : {}),
-        redirect_uri: `${backendUrl}/api/oauth/kakao/callback`,
+        redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
         code: req.query.code,
       }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' } }
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    const { data: profile } = await axios.get('https://kapi.kakao.com/v2/user/me', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    const { data: profile } = await axios.get('https://graph.instagram.com/v21.0/me', {
+      params: { fields: 'user_id,username', access_token: tokens.access_token },
     });
-    if (!profile || !profile.id) throw new Error('Kakao profile missing');
-    const acc = profile.kakao_account || {};
-    // 카카오는 둘을 따로 알려준다 — 주소가 **쓸 수 있는 것인가**(`is_email_valid`) ·
-    // **그 사람 것으로 확인됐는가**(`is_email_verified`).
-    // **모른다고 할 때가 아니라 아니라고 할 때만** 막는다 — `findOrCreateUser` 의
-    // 규칙과 같다(필드를 안 주는 제공자도 있어서, 없는 것을 거절로 치면 통째로 막힌다)
-    const emailVerified = (acc.is_email_valid === false || acc.is_email_verified === false)
-      ? false
-      : acc.is_email_verified;
-    // 메일이 없으면(선택 동의를 안 켠 사람) 계정을 만들지 않고 `kakao_no_email` 로
-    // 나간다 — **무엇을 켜야 하는지**를 듣는 쪽이 「다시 시도해주세요」보다 맞다
-    const info = await findOrCreateUser(acc.email, acc.profile?.nickname, 'kakao', { emailVerified });
-    setAuthCookies(res, info.user);
-    res.redirect(successUrl(frontendUrl, info));
+    if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
+    // 메일 칸을 **비워서** 넘긴다 — 인스타는 주지 않는다. 지어내지 않는다
+    await finishSocial(res, frontendUrl, 'instagram', {
+      email: '', nickname: profile.username, providerUserId: profile.user_id,
+    });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=${failCode('kakao', err)}`);
+    res.redirect(`${frontendUrl}/login?error=${failCode('instagram', err)}`);
   }
 });
 
-// ─── Facebook ─────────────────────────
-router.get('/facebook', (req, res) => {
-  if (!process.env.FACEBOOK_APP_ID) return res.redirect(`${FRONTEND}/login?error=facebook_not_configured`);
+// ─── Twitter (X) ──────────────────────
+//
+// **메일을 주지 않는다** (기본 스코프로는). 「다름 승인」을 따로 받으면 준다는데
+// 그건 심사를 거쳐야 하므로, 받기 전까지는 인스타와 같이 **메일을 묻는 걸음**으로 간다.
+// 나중에 승인이 나서 메일이 실려 오면 `finishSocial` 이 그대로 통과시킨다 —
+// 고칠 데가 없다.
+//
+// **X 는 PKCE 를 요구한다** — `makePkce` 에 왜 필요한지 적어뒀다.
+router.get('/twitter', (req, res) => {
+  if (!process.env.TWITTER_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=twitter_not_configured`);
   const { backendUrl } = getUrls(req);
+  const { verifier, challenge } = makePkce();
   const params = new URLSearchParams({
-    client_id: process.env.FACEBOOK_APP_ID,
-    redirect_uri: `${backendUrl}/api/oauth/facebook/callback`,
-    scope: 'email,public_profile',
     response_type: 'code',
-    state: startOauth(req, res),
+    client_id: process.env.TWITTER_CLIENT_ID,
+    redirect_uri: `${backendUrl}/api/oauth/twitter/callback`,
+    // `users.read` 만으로는 X 가 거절한다 — `tweet.read` 를 같이 요구한다
+    scope: 'users.read tweet.read',
+    state: startOauth(req, res, { verifier }),
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
   });
-  res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params}`);
+  res.redirect(`https://x.com/i/oauth2/authorize?${params}`);
 });
 
-router.get('/facebook/callback', async (req, res) => {
+router.get('/twitter/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
   const sameOne = sameBrowser(req);
+  // **지우기 전에 꺼낸다** — `validateState` 는 쓰고 나면 그 줄을 버린다
+  const { verifier } = stateExtra(req.query.state);
   clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state)) {
+  if (!sameOne || !validateState(req.query.state) || !verifier) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   try {
-    const { data: tokens } = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
-      params: {
-        client_id: process.env.FACEBOOK_APP_ID,
-        client_secret: process.env.FACEBOOK_APP_SECRET,
-        redirect_uri: `${backendUrl}/api/oauth/facebook/callback`,
-        code: req.query.code,
-      },
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: req.query.code,
+      redirect_uri: `${backendUrl}/api/oauth/twitter/callback`,
+      code_verifier: verifier,
+      client_id: process.env.TWITTER_CLIENT_ID,
     });
-    const { data: profile } = await axios.get('https://graph.facebook.com/me', {
-      params: { fields: 'id,name,email', access_token: tokens.access_token },
+    // X 는 앱을 둘로 나눈다. **열쇠(SECRET)가 있는 앱**은 아이디·열쇠를 헤더로
+    // 보내야 하고, 없는 앱(`Public client`)은 본문의 `client_id` 만으로 받는다.
+    // 둘을 섞으면 `invalid_client` 로 떨어진다 — 그래서 있을 때만 헤더를 붙인다
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (process.env.TWITTER_CLIENT_SECRET) {
+      const basic = Buffer.from(
+        `${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`
+      ).toString('base64');
+      headers.Authorization = `Basic ${basic}`;
+    }
+    const { data: tokens } = await axios.post('https://api.x.com/2/oauth2/token', body, { headers });
+    const { data: me } = await axios.get('https://api.x.com/2/users/me', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    if (!profile || !profile.id) throw new Error('Facebook profile missing');
-    // ── **메일을 지어내지 않는다** ── (2026-10-07)
-    //
-    // 여기는 메일이 없으면 `fb_<번호>@facebook.com` 을 만들어 넣고 있었다. 9/18 에
-    // 「메일이 없으면 계정을 만들지 않는다」를 `findOrCreateUser` 한 곳에 넣었는데,
-    // 이 줄은 **없는 주소를 지어내 그 검사를 비껴갔다.** 남은 것은 이렇다 —
-    //
-    //   · 그 계정은 **비밀번호 찾기가 영구히 막힌다** (보낼 주소가 세상에 없다)
-    //   · 그 사람이 나중에 진짜 메일로 가입하면 **계정이 둘로 갈라진다** —
-    //     이 앱이 계정을 잇는 열쇠는 이메일 하나다(`emailKey`)
-    //
-    // 페북은 `email` 에 동의하면 진짜 메일을 준다. 그러니 걷어내도 길이 막히지
-    // 않는다 — 안 준 사람은 `facebook_no_email` 로 **무엇을 켜야 하는지** 듣는다.
-    const info = await findOrCreateUser(profile.email, profile.name, 'facebook');
-    setAuthCookies(res, info.user);
-    res.redirect(successUrl(frontendUrl, info));
+    const profile = me?.data;
+    if (!profile || !profile.id) throw new Error('Twitter profile missing');
+    // 승인을 받은 앱이면 `confirmed_email` 이 실려 온다. 없으면 빈 칸으로 넘어가고
+    // `finishSocial` 이 묻는 걸음으로 보낸다
+    await finishSocial(res, frontendUrl, 'twitter', {
+      email: profile.confirmed_email || '',
+      nickname: profile.username || profile.name,
+      providerUserId: profile.id,
+    });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
-    res.redirect(`${frontendUrl}/login?error=${failCode('facebook', err)}`);
+    res.redirect(`${frontendUrl}/login?error=${failCode('twitter', err)}`);
   }
 });
 
-// 「인스타그램」은 **없다** (2026-10-07 에 내렸다).
+// 「페이스북」은 **없다** (2026-10-07 에 걷어냈다).
 //
-// 열쇠를 꽂아도 안 되는 길이었다. 둘 때문이다 —
+// 길은 멀쩡했다 — 그날 아침에 지어낸 메일을 걷어내고 까닭 갈래까지 붙여뒀다.
+// 뺀 까닭은 **고른 셋이 네이버 · 인스타 · X** 이기 때문이고, 쓰지 않는 길을 두면
+// 고칠 때 잊히기 때문이다(10/2 에 `POST /google/code` 를 걷어낸 것과 같은 까닭).
 //
-// 1. **메일을 아예 안 준다.** 이 앱이 계정을 잇는 열쇠는 이메일 하나인데
-//    (`emailKey`), 인스타는 그것을 주지 않는다. 그래서 전임 코드는
-//    `ig_<번호>@instagram.com` 이라는 **없는 주소를 지어냈다** — 그 계정은
-//    비밀번호 찾기가 영구히 막히고, 그 사람이 나중에 진짜 메일로 가입하면
-//    기록이 두 계정으로 갈라진다.
-// 2. **개인 계정은 들어올 수 없었다.** 스코프가 `instagram_business_basic` 이라
-//    비즈니스 · 크리에이터 계정만 통과한다. 헬스 앱을 깔 사람 대부분은 개인 계정이다.
+// 되살리려면 이 커밋을 되돌린다. 페북은 `email` 에 동의하면 메일을 주므로
+// 인스타 · X 와 달리 **묻는 걸음이 필요 없다.**
+
+// ─── 메일을 받는 걸음 ─────────────────
 //
-// **내리는 대신 카카오를 붙였다** — 국내에서 제일 많이 눌리는 길인데 코드가 아예
-// 없었고, 메일을 주고 확인 여부까지 주므로 이 앱의 뼈대에 그대로 맞는다.
+// 인스타 · X 로 들어왔지만 메일이 없는 사람이 여기로 온다. 화면은 `/oauth/email`.
 //
-// 다시 올릴 날이 오면 「메일 주소를 한 번 받아 인증번호로 확인하는 걸음」을
-// 먼저 만들어야 한다. 지어낸 주소로는 안 된다.
+// **어떻게 안전한가** — 세 가지가 한꺼번에 맞아야 계정이 생긴다.
+//
+//   1. **그 브라우저가 방금 제공자를 거쳐 왔는가** — httpOnly 쪽지(`sb_social`)를
+//      서버가 발급한 것과 맞춘다. 쪽지 없이 이 길을 부르면 아무 일도 안 일어난다
+//   2. **적은 메일의 주인인가** — 인증번호. 가입과 **같은 틀**이다(`checkCode`)
+//   3. **15분 안인가** — 그 사이가 지나면 다시 로그인부터
+//
+// **이미 쓰는 메일이면 그 계정으로 들어간다** (새로 만들지 않는다). 번호가 맞았다는
+// 것은 그 주소의 주인이라는 뜻이고, 이 앱은 이메일 하나로 계정을 잇는다 —
+// 여기서 새 계정을 만들면 **같은 사람의 기록이 둘로 갈라진다.**
+router.post('/email', async (req, res) => {
+  const token = req.cookies?.[PENDING_COOKIE];
+  const row = token ? db.getSocialPending(sha256(token)) : null;
+  if (!row) {
+    clearPendingCookie(res);
+    // **왜 안 되는지 말한다.** 「다시 로그인해주세요」가 이 자리에서는 맞는 말이다 —
+    // 15분이 지났거나 쪽지가 없는 것이고, 둘 다 다시 눌러야 풀린다
+    return res.status(401).json({ error: '시간이 지났어요. 다시 로그인해주세요', restart: true });
+  }
+  const { email, code } = req.body || {};
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
+  }
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: '이메일로 받은 인증번호를 입력해주세요' });
+  }
+  const bad = checkCode(email, code);
+  if (bad) return res.status(bad.status).json({ error: bad.error });
+  try {
+    // 번호가 맞았다 = **그 주소의 주인이다.** 그래서 `emailVerified: true` 다 —
+    // 제공자가 확인해 준 것이 아니라 **우리가 직접 확인했다**
+    const info = await findOrCreateUser(email, row.nickname, row.provider, { emailVerified: true });
+    // 쓰고 난 것은 **둘 다** 버린다. 번호를 남기면 그 번호로 또 들어올 수 있다
+    db.clearSocialPending(sha256(token));
+    db.clearVerifyCode(email);
+    clearPendingCookie(res);
+    setAuthCookies(res, info.user);
+    res.json({
+      ok: true, nickname: info.nickname, email: info.email,
+      created: info.created, restored: info.restored,
+    });
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') console.error('OAuth email error:', err.message);
+    res.status(400).json({ error: '계정을 만들지 못했어요. 다시 시도해주세요' });
+  }
+});
 
 module.exports = router;
 
@@ -507,3 +649,4 @@ module.exports = router;
 module.exports.successUrl = successUrl;
 module.exports.findOrCreateUser = findOrCreateUser;
 module.exports.failCode = failCode;
+module.exports.ASK_EMAIL = ASK_EMAIL;

@@ -39,26 +39,30 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-      # 나머지 소셜 로그인. 서버는 넷을 다 지원한다 — 구글 · 카카오 · 네이버 · 페북.
-      # **넣은 것만 로그인 화면에 버튼으로 나온다** — 안 넣으면 아예 안 보인다.
-      # 페이스북만 이름이 APP_ID 다 (CLIENT_ID 가 아니다)
+      # 나머지 소셜 로그인. 서버가 아는 것은 넷이다 — 구글 · 네이버 · 인스타그램 ·
+      # 트위터(X). **넣은 것만 로그인 화면에 버튼으로 나온다** — 안 넣으면 안 보인다.
+      # 인스타그램만 이름이 APP_ID 다 (CLIENT_ID 가 아니다).
       #
-      # 인스타그램은 2026-10-07 에 내렸다 — 메일을 안 주는 제공자라 이 앱에 붙지
-      # 않는다 (까닭은 `backend/src/routes/oauth.js` 의 인스타 자리에 적어뒀다).
+      # 받는 절차는 docs/social-login-setup.md 에 한 장으로 적어뒀다.
       #
-      # KAKAO_CLIENT_ID 는 카카오 콘솔의 **REST API 키**다. SECRET 은 「보안」을
-      # 켰을 때만 넣는다 — 안 켰으면 **이 줄을 아예 비워둔다**(빈 값을 보내면 거절한다).
-      - key: KAKAO_CLIENT_ID
-        sync: false
-      - key: KAKAO_CLIENT_SECRET
-        sync: false
+      # 인스타그램과 트위터는 **메일 주소를 주지 않는다.** 그 둘로 들어온 사람에게는
+      # 앱이 메일을 한 번 묻는다(/oauth/email) — 그래서 **SMTP 가 켜져 있어야
+      # 그 둘이 끝까지 돈다.** 아래 SMTP 세 줄을 같이 채운다.
+      #
+      # 카카오 · 페이스북은 2026-10-07 에 걷어냈다 (되살리려면 그날 커밋을 되돌린다).
       - key: NAVER_CLIENT_ID
         sync: false
       - key: NAVER_CLIENT_SECRET
         sync: false
-      - key: FACEBOOK_APP_ID
+      - key: INSTAGRAM_APP_ID
         sync: false
-      - key: FACEBOOK_APP_SECRET
+      - key: INSTAGRAM_APP_SECRET
+        sync: false
+      # TWITTER_CLIENT_SECRET 은 Confidential client 일 때만 넣는다 — Public client
+      # 면 **비워둔다**(섞으면 invalid_client 로 떨어진다)
+      - key: TWITTER_CLIENT_ID
+        sync: false
+      - key: TWITTER_CLIENT_SECRET
         sync: false
       # 메일 보내기. **비밀번호 찾기만** 이걸 쓴다 — 없으면 가입·로그인은 그대로 되고
       # 「비밀번호 찾기」 화면이 **누르기 전에** 지금은 안 된다고 말한다 (2026-10-01)
