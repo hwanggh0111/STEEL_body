@@ -16,7 +16,10 @@ const RATE_LIMITS = {
   verifyCode:  { windowMs: 15 * 60 * 1000,     max: 10  },
   checkName:   { windowMs: 60 * 1000,          max: 10  },
   checkEmail:  { windowMs: 60 * 1000,          max: 10  },
-  oauth:       { windowMs: 60 * 60 * 1000,     max: 10  },
+  // 한 번 로그인에 요청이 둘(보내기 · 돌아오기)이고, 메일을 묻는 길이면 셋 이상이다.
+  // 10 이면 세 번 눌러보면 끝난다 — 2026-10-07 에 30 으로 올렸다.
+  // 「어느 길이 켜졌나」(`GET /providers`)는 이 셈에서 아예 빠진다 (index.js 를 보라)
+  oauth:       { windowMs: 60 * 60 * 1000,     max: 30  },
   // 가져오기(복원)는 파일 한 장에 수만 줄이 들어온다 — 한 번이 비싸다.
   //
   // **처음에 시간당 20 으로 뒀다가 60 으로 올렸다** (2026-09-18). 한 바퀴(smoke)가

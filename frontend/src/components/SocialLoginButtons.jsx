@@ -24,8 +24,8 @@ const OTHERS = [
   { key: 'naver', label: '네이버', background: '#03C75A', color: '#ffffff' },
   { key: 'instagram', label: '인스타그램', background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#ffffff' },
   // X 는 검정 위에 흰 글자다. 앱 배경도 검정이라 **테두리가 없으면 윤곽이 사라진다**
-    // 이름을 U0001D54F 하나로 둔다 — 셋이 한 줄에 나란히 서는 자리라 「U0001D54F 트위터」는 넘친다
-  { key: 'twitter', label: 'U0001D54F', background: '#000000', color: '#ffffff', border: '1px solid #3a3a3a' },
+    // 이름을 글자 하나로 둔다 — 셋이 한 줄에 나란히 서는 자리라 「𝕏 트위터」는 넘친다
+  { key: 'twitter', label: '𝕏', background: '#000000', color: '#ffffff', border: '1px solid #3a3a3a' },
 ];
 
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {

@@ -264,6 +264,14 @@ async function run() {
     console.log('── 어느 길이 열려 있나 ── (2026-10-07)');
     const list = JSON.parse((await get('/api/oauth/providers')).body);
     ok('목록은 넷이다', Object.keys(list).sort(), ['google', 'instagram', 'naver', 'twitter']);
+    // **이 길은 로그인 횟수에 같이 깎이면 안 된다** (2026-10-07).
+    // 로그인·가입 화면이 열릴 때마다 부르는 길인데 시간당 10 에 같이 세고 있었다 —
+    // 화면을 열두 번 열면 429 가 되고, 그때 화면은 「못 물어봤다」로 받아 **구글만
+    // 그린다.** 눌러본 적도 없는데 소셜 단추가 통째로 사라졌다.
+    // 제한은 index.js 에 있어서 이 검사판에는 안 실린다 — **소스로 본다**
+    const indexSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
+    ok('켜진 길 묻기는 로그인 횟수에서 뺀다',
+      indexSrc.includes("req.path === '/providers'"), true);
     ok('  넷 다 켜져 있다 (열쇠를 넣었으니)',
       [list.google, list.naver, list.instagram, list.twitter], [true, true, true, true]);
     // 걷어낸 길은 **키조차 없어야 한다.** `false` 로 남겨두면 화면은 「아직 준비 중」
