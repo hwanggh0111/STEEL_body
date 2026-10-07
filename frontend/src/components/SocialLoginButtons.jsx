@@ -13,19 +13,21 @@ const BACKEND_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
   : '';
 
-// ── 길은 넷이다 — 구글 · 네이버 · 인스타그램 · 트위터(X) ── (2026-10-07)
+// ── 길은 둘이다 — 구글 · 네이버 ── (2026-10-07)
 //
-// 카카오와 페이스북은 걷어냈다(까닭은 `routes/oauth.js` 의 그 자리들에 적어뒀다).
+// 하루에 넷을 붙였다 뺐다 했다. 뺀 까닭을 적어둔다.
 //
-// **인스타와 X 는 메일 주소를 주지 않는다.** 그래서 그 둘로 들어오면 앱이 메일을
-// 한 번 묻는다(`/oauth/email`) — 지어낸 주소로 계정을 만들면 비밀번호 찾기가
-// 영구히 막히고 나중에 기록이 두 계정으로 갈라진다.
+//   카카오      코드도 검사도 다 됐는데 **쓰기 불안하다**는 판단으로 뺐다
+//   페이스북    고른 셋에 안 들어서 같이 걷어냈다
+//   인스타그램  메타 콘솔에서 설정 자리를 못 찾아 **열쇠를 못 받았다.**
+//               (메타가 작년에 로그인 방식을 갈아엎어서 이용 사례 이름이 다 바뀌었다)
+//               게다가 비즈니스 · 크리에이터 계정만 들어온다
+//   트위터(X)   인스타에서 지쳐서 손도 못 댔다
+//
+// **길(`routes/oauth.js`)과 메일 묻는 걸음(`/oauth/email`)은 그대로 살아 있다.**
+// 열쇠가 들어오는 날 이 목록에 한 줄만 되살리면 그 자리에 다시 붙는다.
 const OTHERS = [
   { key: 'naver', label: '네이버', background: '#03C75A', color: '#ffffff' },
-  { key: 'instagram', label: '인스타그램', background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#ffffff' },
-  // X 는 검정 위에 흰 글자다. 앱 배경도 검정이라 **테두리가 없으면 윤곽이 사라진다**
-    // 이름을 글자 하나로 둔다 — 셋이 한 줄에 나란히 서는 자리라 「𝕏 트위터」는 넘친다
-  { key: 'twitter', label: '𝕏', background: '#000000', color: '#ffffff', border: '1px solid #3a3a3a' },
 ];
 
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {

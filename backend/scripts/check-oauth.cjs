@@ -263,7 +263,15 @@ async function run() {
     console.log('');
     console.log('── 어느 길이 열려 있나 ── (2026-10-07)');
     const list = JSON.parse((await get('/api/oauth/providers')).body);
-    ok('목록은 넷이다', Object.keys(list).sort(), ['google', 'instagram', 'naver', 'twitter']);
+    // ── 목록에 있는 것과 길이 살아 있는 것은 **다르다** ── (2026-10-07)
+    //
+    // 인스타그램 · 트위터(X)는 **길은 그대로 살아 있다.** 아래에서 그 둘을 끝까지
+    // 돌려보는 검사가 계속 도는 것이 그 증거다. 목록에서만 뺐다 — 열쇠를 못 받았고
+    // (메타 콘솔에서 설정 자리를 못 찾았다), `false` 로 남겨두면 화면이
+    // 「아직 준비 중」으로 읽는데 **준비 중이 아니라 안 하기로 한 것**이다.
+    //
+    // 열쇠가 들어오는 날 `oauth.js` 의 주석 처리한 두 줄만 되살리면 된다
+    ok('목록은 둘이다', Object.keys(list).sort(), ['google', 'naver']);
     // **이 길은 로그인 횟수에 같이 깎이면 안 된다** (2026-10-07).
     // 로그인·가입 화면이 열릴 때마다 부르는 길인데 시간당 10 에 같이 세고 있었다 —
     // 화면을 열두 번 열면 429 가 되고, 그때 화면은 「못 물어봤다」로 받아 **구글만
@@ -272,8 +280,12 @@ async function run() {
     const indexSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
     ok('켜진 길 묻기는 로그인 횟수에서 뺀다',
       indexSrc.includes("req.path === '/providers'"), true);
-    ok('  넷 다 켜져 있다 (열쇠를 넣었으니)',
-      [list.google, list.naver, list.instagram, list.twitter], [true, true, true, true]);
+    ok('  둘 다 켜져 있다 (열쇠를 넣었으니)', [list.google, list.naver], [true, true]);
+    // **길은 살아 있다** — 목록에 없다고 길까지 죽은 것이 아니다
+    for (const alive of ['instagram', 'twitter']) {
+      ok('  ' + alive + ' 길은 그대로 산다',
+        (await get('/api/oauth/' + alive)).status, 302);
+    }
     // 걷어낸 길은 **키조차 없어야 한다.** `false` 로 남겨두면 화면은 「아직 준비 중」
     // 으로 읽고, 열쇠만 꽂으면 될 것처럼 보인다
     for (const gone of ['kakao', 'facebook']) {
@@ -422,10 +434,8 @@ async function run() {
     }
     const btnJsx = fs.readFileSync(
       path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'SocialLoginButtons.jsx'), 'utf8');
-    for (const key of ['naver', 'instagram', 'twitter']) {
-      ok('단추 목록에 ' + key + ' 가 있다', btnJsx.includes("key: '" + key + "'"), true);
-    }
-    for (const key of ['kakao', 'facebook']) {
+    ok('단추 목록에 naver 가 있다', btnJsx.includes("key: 'naver'"), true);
+    for (const key of ['kakao', 'facebook', 'instagram', 'twitter']) {
       ok('  ' + key + ' 는 없다', btnJsx.includes("key: '" + key + "'"), false);
     }
     // 메일을 묻는 화면이 **길에 걸려 있어야** 한다. 서버는 거기로 보내는데 길이

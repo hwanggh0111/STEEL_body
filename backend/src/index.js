@@ -526,8 +526,6 @@ function start() {
   const social = [
     ['구글', 'GOOGLE_CLIENT_ID'],
     ['네이버', 'NAVER_CLIENT_ID'],
-    ['인스타그램', 'INSTAGRAM_APP_ID'],
-    ['트위터(X)', 'TWITTER_CLIENT_ID'],
   ];
   const off = social.filter(([, key]) => !process.env[key]).map(([name]) => name);
   if (off.length === social.length) {

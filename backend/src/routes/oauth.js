@@ -320,8 +320,14 @@ router.get('/providers', (req, res) => {
   res.json({
     google: !!process.env.GOOGLE_CLIENT_ID,
     naver: !!process.env.NAVER_CLIENT_ID,
-    instagram: !!process.env.INSTAGRAM_APP_ID,
-    twitter: !!process.env.TWITTER_CLIENT_ID,
+    // 인스타그램 · 트위터(X)는 **길은 살아 있는데 목록에서 뺐다** (2026-10-07).
+    //
+    // 열쇠를 못 받았고, 받으러 가는 길이 험해서 접었다. `false` 로 남겨두면 화면은
+    // 「아직 준비 중」으로 읽는데 **준비 중이 아니라 안 하기로 한 것**이다.
+    //
+    // 되살리려면 이 줄 둘을 다시 넣으면 된다 — 길도, 메일을 묻는 걸음도 그대로 있다.
+    //   instagram: !!process.env.INSTAGRAM_APP_ID,
+    //   twitter: !!process.env.TWITTER_CLIENT_ID,
   });
 });
 
