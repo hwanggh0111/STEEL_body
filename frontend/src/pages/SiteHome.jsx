@@ -145,26 +145,36 @@ export default function SiteHome() {
   // 쓸지 말지도 모르는 사람에게 제일 먼저 23KB 를 받게 할 이유가 없다. 다섯 줄은
   // 조금 늦게 차도 되는 것이고, 그동안 찾기도 바로가기도 이미 눌린다.
   //
-  // **파일을 새로 만들어 두지 않는다.** 다섯 줄짜리를 빌드 때 따로 뽑아둘 수도
-  // 있지만, 그러면 같은 소식이 두 곳에 있게 되고 한쪽만 낡는 날이 온다.
-  // 출처는 그대로 하나로 두고 **받는 때만** 미룬다.
+  // ── 목록만 **뽑아둔 파일**을 받는다 ── (2026-10-06)
+  //
+  // 여기 적혀 있던 말은 「파일을 새로 만들어 두지 않는다 — 그러면 같은 소식이
+  // 두 곳에 있게 되고 한쪽만 낡는 날이 온다」였다. **손으로 적는 자리가 둘이 되면**
+  // 그 말이 맞다. 그런데 **뽑은 파일은 두 곳이 아니다** — 이 앱은 이미 그 방식을
+  // 쓴다(`changelog.json` 은 커밋에서, `exercisePart.js` 는 사전에서 뽑는다).
+  // 출처는 `notices.json` 하나로 남고 어긋나면 `npm run check` 가 잡는다.
+  //
+  // 재보면 이만큼이다 —
+  //
+  //     전   notices + changelog      83,999B  gzip 29,451B    ← 다섯 줄을 쓰려고
+  //     후   feedList.json             3,027B  gzip  1,105B
+  //
+  // **공지가 쌓일수록 더 벌어진다** — 10/6 하루에 열다섯 개를 더해서 notices 가
+  // 10KB 늘었다. 무게의 거의 전부가 「자세히」의 `detail` 이고(공지 41개에
+  // 18,125자) **이 화면은 그것을 한 줄도 안 쓴다.**
+  //
+  // 공지함은 그대로 전체를 받는다 — 거기는 `detail` 을 펼치고 그 글까지 검색한다.
+  //
+  // **받는 때는 그대로 미룬다.** 여기는 로그인도 앱 설치도 없이 처음 오는 사람이
+  // 보는 자리고, 다섯 줄은 조금 늦게 차도 되는 것이다.
   const [news, setNews] = useState([]);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      import('../data/notices.json'),
-      import('../data/changelog.json'),
-    ]).then(([nMod, cMod]) => {
+    // 차례와 걸러내기는 **뽑을 때 이미 했다**(`gen-feed.mjs`) — 화면에서 또 하지 않는다
+    import('../data/feedList.json').then((mod) => {
       if (!alive) return;
-      const notices = nMod.default || nMod;
-      const changelog = cMod.default || cMod;
-      const a = (notices?.items || []).map((n) => ({ date: n.date, text: n.text, pinned: n.pinned }));
-      const b = (changelog?.items || []).map((c) => ({ date: c.date, text: `${c.scope ? `${c.scope} · ` : ''}${c.text}` }));
-      setNews([...a, ...b]
-        .filter((n) => n.date && n.text)
-        .sort((x, y) => (x.pinned === y.pinned ? String(y.date).localeCompare(String(x.date)) : x.pinned ? -1 : 1))
-        .slice(0, 5));
+      const feed = mod.default || mod;
+      setNews((feed?.items || []).slice(0, 5));
     // 못 받아와도 화면은 그대로 돈다 — 소식 칸만 안 그려진다
     }).catch(() => {});
     return () => { alive = false; };
