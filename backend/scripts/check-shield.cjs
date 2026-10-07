@@ -123,6 +123,34 @@ async function call(method, url, { body, token, ip } = {}) {
   return { status: res.status, data };
 }
 
+/**
+ * **번호를 받아** 가입한다 (2026-10-07).
+ *
+ * 가입은 2026-10-02 부터 **메일로 받은 번호**를 같이 보내야 통과한다. 그런데 이
+ * 검사는 그걸 모른 채로 `/auth/register` 를 그냥 불렀다 — **그날부터 오늘까지
+ * 시험 계정이 한 번도 안 만들어졌다.**
+ *
+ * 그 뒤가 더 나쁘다. 계정이 없으니 토큰도 없고, **토큰으로 하는 검사들이 전부
+ * 「토큰 없는 요청」을 보고 있었다.** 그중 하나는 그래도 `OK` 를 찍었다 —
+ * 막혀야 할 것이 막힌 게 아니라 **애초에 못 들어가서** 같은 번호가 나온 것이다.
+ * 검사가 **거짓으로 통과**하는 것이 아무것도 안 보는 것보다 나쁘다.
+ *
+ * 그때 smoke · seed · probe 는 고쳤는데(README 10/2) **여기만 빠졌다.**
+ * 가입하는 자리가 늘면 여기도 같이 봐야 한다 — 그래서 **한 곳으로 모은다.**
+ *
+ * 내 컴퓨터에서는 SMTP 열쇠가 없거나 `DEV_ECHO_CODE=1` 일 때 번호가 응답에 실려 온다.
+ */
+async function register({ email, password, nickname, username, ip }) {
+  const sent = await call('POST', '/auth/send-code', { body: { email }, ip });
+  const code = sent.data?.code;
+  if (!code) {
+    return { status: 0, data: { error: '번호를 못 받았다 — DEV_ECHO_CODE=1 로 서버를 띄우라' } };
+  }
+  return call('POST', '/auth/register', {
+    body: { email, password, nickname, username, code }, ip,
+  });
+}
+
 /** 아무도 안 쓰는 포트를 찾는다. 응답이 오면 남의 서버다 — 그 자리는 안 쓴다 */
 async function pickPort() {
   for (let p = 4599; p <= 4620; p += 1) {
@@ -179,13 +207,19 @@ async function pickPort() {
   // 8/27 에 죽어 있던 자리다. `req.body` 가 늘 undefined 라, 주소창으로 보낸 `<script>` 는
   // 잡히는데 제보 · 운동명 · 닉네임으로 보낸 것은 아무것도 안 잡혔다
   const email = `shield${Date.now()}@shield.local`;
-  const reg = await call('POST', '/auth/register', {
-    body: { email, password: 'shield12345', nickname: '방어막시험', username: `s${Date.now()}` },
-    ip: IP.clean,
+  const reg = await register({
+    email, password: 'shield12345', nickname: '방어막시험',
+    username: `s${Date.now()}`, ip: IP.clean,
   });
   ok('시험 계정을 만든다', reg.status === 200 || reg.status === 201, true);
   const token = reg.data?.token;
   ok('토큰을 받는다', !!token, true);
+  // **토큰이 없으면 아래를 보는 뜻이 없다.** 토큰 없는 요청은 그냥 401 인데,
+  // 그걸 「막혔다」로 읽으면 검사가 거짓으로 통과한다 (2026-10-07 에 그러고 있었다)
+  if (!token) {
+    console.log('FAIL 토큰이 없어 입력 검사를 볼 수 없다 — 위의 두 줄부터 고치라');
+    bad += 1;
+  }
 
   await call('POST', '/workouts', {
     body: { exercise: '<script>alert(1)</script>', weight: '60', sets: '3', reps: '10', date: '2026-09-02' },
@@ -255,11 +289,14 @@ async function pickPort() {
   // 깊이 우회: 입력 스캔은 DoS 를 막으려 5단에서 멈추는데, 멈추면서 '안전'을 돌려줘서
   // 여섯 단으로 감싼 `<script>` 가 그대로 지나쳤다(얕은 건 막고 깊은 건 놓쳤다).
   const xssIp = '203.0.113.71';
-  const xreg = await call('POST', '/auth/register', {
-    body: { email: `deep${Date.now()}@shield.local`, password: 'shield12345', nickname: '깊이시험', username: `d${Date.now()}`.slice(0, 20) },
-    ip: xssIp,
+  const xreg = await register({
+    email: `deep${Date.now()}@shield.local`, password: 'shield12345',
+    nickname: '깊이시험', username: `d${Date.now()}`.slice(0, 20), ip: xssIp,
   });
   const xtok = xreg.data?.token;
+  // **이 줄이 없어서 아래가 거짓으로 통과했다** (2026-10-07). 토큰이 없으면
+  // `/notes` 는 어차피 막히는데, 그 403 을 「깊은 XSS 를 막았다」로 읽고 있었다
+  ok('깊이 시험 계정에 토큰이 있다', !!xtok, true);
   const deepBody = { date: '2026-09-02', a: { b: { c: { d: { e: { f: { g: '<script>alert(1)</script>' } } } } } } };
   const deep = await call('POST', '/notes', { body: deepBody, token: xtok, ip: xssIp });
   ok('깊이 6단으로 감싼 XSS 도 막는다', deep.status, 403);

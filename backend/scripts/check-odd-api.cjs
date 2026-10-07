@@ -123,12 +123,36 @@ async function pound(name, method, url, token, fields) {
   startServer();
   if (!await waitUp()) { console.log('FAIL 서버가 안 떴습니다'); await stopServer(); process.exit(1); }
 
-  // **계정을 먼저 만든다.** 두들기고 나서 만들면 그 주소가 이미 막혀 있다
+  // **계정을 먼저 만든다.** 두들기고 나서 만들면 그 주소가 이미 막혀 있다.
+  //
+  // ── 가입은 **번호**를 같이 보내야 한다 ── (2026-10-07 에 고쳤다)
+  //
+  // 2026-10-02 에 가입에 메일 인증번호를 붙였다. 그때 smoke · seed · probe 는
+  // 같이 고쳤는데 **이 검사와 `check-shield` 는 빠졌다.** 그래서 **그날부터 오늘까지
+  // 이 검사는 첫 줄에서 멈춰 있었다** — 「이상한 값으로 두들겨도 500 이 안 난다」를
+  // 닷새 동안 아무도 안 보고 있었다는 뜻이다.
+  //
+  // 다행히 이쪽은 **큰 소리로 멈추게** 돼 있었다(아래 `if (!token)`). 조용히
+  // 통과하던 `check-shield` 보다는 나았다 — **멈추는 검사가 거짓으로 통과하는
+  // 검사보다 낫다.**
+  //
+  // 내 컴퓨터에서는 SMTP 열쇠가 없거나 `DEV_ECHO_CODE=1` 일 때 번호가 응답에 실려 온다.
   const email = `odd${Date.now()}@odd.local`;
+  const headers = { 'Content-Type': 'application/json', 'X-Forwarded-For': '198.51.100.5' };
+  const sent = await fetch(`${BASE}/auth/send-code`, {
+    method: 'POST', headers, body: JSON.stringify({ email }),
+  });
+  const code = (await sent.json())?.code;
+  if (!code) {
+    console.log('FAIL 인증번호를 못 받았습니다 — DEV_ECHO_CODE=1 로 띄우거나 SMTP 를 빼고 보십시오');
+    await stopServer();
+    clean();
+    process.exit(1);
+  }
   const reg = await fetch(`${BASE}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '198.51.100.5' },
-    body: JSON.stringify({ email, password: 'odd12345678', nickname: '이상값시험', username: `o${Date.now()}` }),
+    headers,
+    body: JSON.stringify({ email, password: 'odd12345678', nickname: '이상값시험', username: `o${Date.now()}`, code }),
   });
   const token = (await reg.json()).token;
   if (!token) {

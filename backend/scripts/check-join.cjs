@@ -183,6 +183,41 @@ async function run() {
     const afterLock = await join('brute@test.local', { code: brute });
     ok('  막힌 뒤에는 맞는 번호도 안 통한다 (다시 받아야 한다)', afterLock.status, 400);
     ok('  계정이 생기지 않았다', !!db.findUserByEmail('brute@test.local'), false);
+
+    // ── 가입하는 **검사 스크립트**가 번호를 같이 보내는가 ── (2026-10-07)
+    //
+    // 2026-10-02 에 가입에 번호를 붙였다. 그때 `smoke` · `seed` · `probe` 는 같이
+    // 고쳤는데 **`check-shield` 와 `check-odd-api` 가 빠졌다.** 그래서 그 둘은
+    // **닷새 동안 제 할 일을 못 했다.**
+    //
+    // 더 나쁜 쪽은 `check-shield` 였다. 계정을 못 만들어 토큰이 없었는데, 토큰 없는
+    // 요청은 어차피 막히므로 **「막혔다」와 구별이 안 됐다** — 검사가 `OK` 를 찍으면서
+    // 실은 아무것도 안 보고 있었다. **거짓으로 통과하는 검사가 아무것도 안 보는
+    // 것보다 나쁘다.** (`check-odd-api` 는 큰 소리로 멈춰서 그나마 나았다.)
+    //
+    // 그래서 여기서 **스크립트 자체를 본다.** 가입을 부르는 파일이면 번호를 받는
+    // 자리(`send-code`)도 있어야 한다. 가입에 또 무엇을 더하는 날, 고쳐야 할 파일
+    // 목록을 사람이 기억하지 않아도 된다.
+    console.log('');
+    console.log('── 가입하는 검사 스크립트가 번호도 받는가 ── (2026-10-07)');
+    {
+      const dir = __dirname;
+      const callers = fs.readdirSync(dir)
+        .filter((name) => /\.c?js$/.test(name))
+        .map((name) => ({ name, src: fs.readFileSync(path.join(dir, name), 'utf-8') }))
+        // **주석은 빼고 본다** — 이 파일이 제 주석에 적은 이름에 걸리면 안 된다
+        .map(({ name, src }) => ({
+          name,
+          src,
+          code: src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n'),
+        }))
+        .filter(({ code }) => /auth\/register/.test(code));
+
+      ok('가입을 부르는 검사를 찾았다', callers.length > 0, true);
+      for (const { name, code } of callers) {
+        ok('  ' + name + ' 이 번호도 받는다', /send-code/.test(code), true);
+      }
+    }
   } catch (err) {
     bad += 1;
     console.log('FAIL 검사가 도중에 터졌다 -> ' + err.message);
