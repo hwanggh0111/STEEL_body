@@ -36,8 +36,6 @@ const { checkCode, isValidEmail } = require('./auth');
 
 const crypto = require('crypto');
 const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
-const oauthStates = new Map();
-const MAX_OAUTH_STATES = 1000;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -202,31 +200,30 @@ function successUrl(frontendUrl, { nickname, email, created, restored }) {
   return `${frontendUrl}/login?${q}`;
 }
 
-// ─── Google ───────────────────────────
-// state 를 만들면서 곧바로 등록까지 한다.
+// ── state 를 **서버 메모리에 두지 않는다** ── (2026-10-13)
 //
-// 예전에는 만들기만 하고 등록은 부르는 쪽이 따로 했다. 구글만 그 줄을 갖고 있었고
-// 네이버 · 페이스북 · 인스타그램은 빠져 있어서, 콜백의 validateState 가 언제나
-// 'has(state) === false' 로 떨어졌다 — 세 곳 모두 invalid_state 로 100% 실패했다.
-// 등록을 발급 안으로 넣어 빠뜨릴 수 없게 한다.
-function generateState(referer = '', extra = {}) {
-  // Map 크기 제한
-  if (oauthStates.size >= MAX_OAUTH_STATES) {
-    const oldest = oauthStates.keys().next().value;
-    oauthStates.delete(oldest);
-  }
-  const s = crypto.randomBytes(16).toString('hex');
-  // `extra` 는 지금 PKCE 검증값(`verifier`)을 담는다 — 트위터(X)가 요구한다.
-  // state 와 **같은 수명**이어야 하므로 따로 두지 않고 여기 같이 넣는다
-  oauthStates.set(s, { time: Date.now(), referer, ...extra });
-  // 10분이 지나면 스스로 사라진다. 타이머가 프로세스를 붙잡지 않게 unref 한다
-  setTimeout(() => oauthStates.delete(s), 10 * 60 * 1000).unref?.();
-  return s;
-}
+// 여태 state 를 프로세스 메모리의 Map 에 담아두고 콜백에서 그 Map 을 찾아봤다.
+// **Render 무료 판은 15분만 놀면 잠들고, 배포하면 프로세스가 새로 뜬다.**
+// 그때 Map 이 통째로 비니, 자다 깬 서버에서 소셜 단추를 누른 사람도 ·
+// 누르는 사이에 배포가 끼어든 사람도 전부 `invalid_state` 로 떨어졌다.
+// 폰 앱도 같은 주소를 열기 때문에 앱에서도 똑같이 났다 (10/9 에 찾아 적어둔 자리다).
+//
+// 이제 담는 곳은 **서명한 쿠키 하나**다. 발급시각 · 돌아갈 곳 · PKCE `verifier` 를
+// 그 쿠키에 넣고 HMAC 으로 묶는다 — 서버가 다시 떠도, 서버를 여럿 띄워도 통한다.
+// 쿠키는 httpOnly 라 화면이 못 읽고, 손으로 고치면 서명에서 바로 드러난다.
+//
+// **주소에 실려 나가는 state 는 그대로 무작위 16바이트다.** 서명한 쪽을 쿠키로 둔
+// 까닭이 여기 있다 — `verifier` 를 주소에 적으면 제공자도 · 주소를 엿본 쪽도 알게
+// 되어 PKCE(「시작한 쪽만 안다」)가 그 자리에서 무너진다.
+//
+// 한 번만 쓰이는 것은 Map 이 지켜주던 것이 아니라 **쓰고 나면 쿠키를 버리는 것**이
+// 지킨다(`clearStateCookie`). 지난 링크를 다시 눌러도 그 쿠키가 없다.
 
 // ── state 를 **브라우저에도 묶는다** ── (2026-09-18)
 //
-// 여태 state 는 서버 메모리에만 있었다. 무작위이므로 남이 맞힐 수는 없는데,
+// (담는 곳은 위에서 쿠키로 옮겼다. **쿠키에도 묶는다**는 이 걸음은 그대로다.)
+//
+// 그때 state 는 서버 메모리에만 있었다. 무작위이므로 남이 맞힐 수는 없는데,
 // **이미 제 손에 든 state 를 남의 브라우저에 쓰게 할 수는 있었다** —
 // 공격자가 제 구글 계정으로 로그인을 시작해 콜백 주소를 만들어 두고 그 링크를 누르게
 // 하면, 그 사람 브라우저에 **공격자 계정의 로그인 쿠키**가 심긴다. 그 뒤로 그 사람이
@@ -240,8 +237,9 @@ function generateState(referer = '', extra = {}) {
 const STATE_COOKIE = 'sb_oauth';
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-function setStateCookie(res, state) {
-  res.cookie(STATE_COOKIE, state, {
+// 담기는 것은 state 하나가 아니라 **서명까지 붙인 꾸러미**다 (`startOauth` 가 만든다)
+function setStateCookie(res, value) {
+  res.cookie(STATE_COOKIE, value, {
     httpOnly: true,
     sameSite: 'lax',
     secure: IS_PROD,
@@ -255,10 +253,31 @@ function clearStateCookie(res) {
   res.clearCookie(STATE_COOKIE, { httpOnly: true, sameSite: 'lax', secure: IS_PROD, path: '/api/oauth' });
 }
 
-/** 로그인을 시작한다 — state 를 만들고 브라우저에도 심는다 (둘을 따로 하면 빠뜨린다) */
+// 서명 열쇠는 JWT 와 같은 것을 쓴다. 열쇠가 없는 개발 환경에서도 돌아야 하니
+// 그때만 프로세스마다 하나 만들어 쓴다 (서버를 다시 띄우면 그 전 링크는 죽는다)
+let _devStateKey = null;
+function stateKey() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (!_devStateKey) _devStateKey = crypto.randomBytes(32).toString('hex');
+  return _devStateKey;
+}
+const signState = (body) =>
+  crypto.createHmac('sha256', stateKey()).update(body).digest('base64url');
+
+/**
+ * 로그인을 시작한다 — state 를 만들고, 시작할 때 아는 것을 **서명해 쿠키에 담는다.**
+ *
+ * 만들기와 담기를 따로 두면 한쪽을 빠뜨린다. 예전에 구글만 등록 줄을 갖고 있어서
+ * 네이버 · 페이스북 · 인스타그램이 **100% `invalid_state`** 였던 적이 있다.
+ */
 function startOauth(req, res, extra = {}) {
-  const state = generateState(req.get('referer') || '', extra);
-  setStateCookie(res, state);
+  const state = crypto.randomBytes(16).toString('hex');
+  // `extra` 는 지금 PKCE 검증값(`verifier`)을 담는다 — 트위터(X)가 요구한다.
+  // state 와 **같은 수명**이어야 하므로 따로 두지 않고 여기 같이 넣는다
+  const body = Buffer.from(JSON.stringify({
+    s: state, t: Date.now(), r: req.get('referer') || '', ...extra,
+  })).toString('base64url');
+  setStateCookie(res, `${body}.${signState(body)}`);
   return state;
 }
 
@@ -269,7 +288,7 @@ function startOauth(req, res, extra = {}) {
  * 시작할 때 무작위 `verifier` 를 만들어 **그 해시만** X 에 보내고, 코드를 토큰으로
  * 바꿀 때 원본을 같이 낸다. 중간에서 코드를 가로챈 쪽은 원본을 모르니 못 바꾼다.
  *
- * `verifier` 는 state 와 같이 서버 메모리에 둔다 — 나가지 않는다.
+ * `verifier` 는 state 와 같이 **서명한 쿠키**에 둔다 — 주소에는 안 싣는다.
  */
 function makePkce() {
   const verifier = crypto.randomBytes(32).toString('base64url');
@@ -277,20 +296,32 @@ function makePkce() {
   return { verifier, challenge };
 }
 
-/** state 에 같이 넣어둔 값을 꺼낸다 (validateState 가 지우기 **전에** 불러야 한다) */
-const stateExtra = (state) => oauthStates.get(state) || {};
-
 /**
- * 돌아온 것이 **그 브라우저에서 시작한 것인가.**
+ * 돌아온 것이 **그 브라우저에서 시작한 것인가.** 맞으면 시작할 때 넣어둔 것을
+ * (`r` 돌아갈 곳 · `verifier`) 돌려주고, 아니면 `null` 이다.
+ *
+ * 보는 것 넷 — 쿠키의 서명이 우리 열쇠로 맞는가 · 쿠키에 적힌 state 가 **주소로 돌아온
+ * state 와 같은가** · 10분이 안 지났는가 · 쿠키가 아예 있는가.
  *
  * 쿠키를 아예 안 보내는 자리(쿠키를 막아둔 브라우저 · 일부 인앱 브라우저)에서는
  * 로그인이 통째로 막힌다. 그런데 이 앱은 **로그인 쿠키로 도는 앱**이라 그 브라우저에서는
  * 어차피 못 쓴다 — 여기서 느슨하게 받아도 다음 걸음에서 막힌다. 그래서 여기서 막는다.
  */
-function sameBrowser(req) {
-  const cookie = req.cookies?.[STATE_COOKIE];
+function readState(req) {
+  const raw = req.cookies?.[STATE_COOKIE];
   const got = req.query.state;
-  return !!cookie && !!got && cookie === got;
+  if (!raw || !got) return null;
+  const [body, mac] = String(raw).split('.');
+  if (!body || !mac) return null;
+  const want = signState(body);
+  // 길이가 다르면 timingSafeEqual 이 던진다 — 먼저 본다
+  if (mac.length !== want.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(want))) return null;
+  let data = null;
+  try { data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); } catch { return null; }
+  if (!data || data.s !== got) return null;
+  if (!data.t || Date.now() - data.t > STATE_TTL_MS) return null;
+  return data;
 }
 
 // ── 왜 안 됐는지는 **제공자마다 똑같이** 구분한다 ── (2026-10-07)
@@ -355,18 +386,6 @@ function failCode(provider, err) {
   return provider + '_failed';
 }
 
-function validateState(state) {
-  if (!state || !oauthStates.has(state)) return false;
-  const data = oauthStates.get(state);
-  // 시간 기반 만료 검증 (setTimeout 외에 이중 체크)
-  if (data?.time && Date.now() - data.time > 10 * 60 * 1000) {
-    oauthStates.delete(state);
-    return false;
-  }
-  oauthStates.delete(state);
-  return true;
-}
-
 // Google 리다이렉트 방식 (요청 호스트 기반 — 터널/localhost 모두 지원)
 // 어느 소셜 로그인이 쓸 수 있는 상태인가.
 //
@@ -417,10 +436,9 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const { backendUrl } = getUrls(req);
-  const stateData = oauthStates.get(req.query.state);
-  const sameOne = sameBrowser(req);
+  const st = readState(req);
   clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state)) {
+  if (!st) {
     // 다른 오류는 아래에서 정한 frontendUrl 로 돌아가는데 여기만 FRONTEND 였다.
     // 개발용 IP(192.168.x)나 터널로 들어온 사람은 **다른 주소로 튕겨** 로그인 화면이
     // 아니라 낯선 곳에 떨어진다
@@ -428,9 +446,9 @@ router.get('/google/callback', async (req, res) => {
   }
   // referer 기반 frontend origin — 화이트리스트 검증 (open redirect 방지)
   let frontendUrl = ALLOWED_FRONTENDS[0] || FRONTEND;
-  if (stateData?.referer) {
+  if (st.r) {
     try {
-      const candidate = new URL(stateData.referer).origin;
+      const candidate = new URL(st.r).origin;
       if (isAllowedFrontendOrigin(candidate)) frontendUrl = candidate;
     } catch {}
   }
@@ -489,9 +507,9 @@ router.get('/naver', (req, res) => {
 
 router.get('/naver/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  const sameOne = sameBrowser(req);
+  const st = readState(req);
   clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state)) {
+  if (!st) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=naver_cancelled`);
@@ -554,9 +572,9 @@ router.get('/instagram', (req, res) => {
 
 router.get('/instagram/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  const sameOne = sameBrowser(req);
+  const st = readState(req);
   clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state)) {
+  if (!st) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   // 취소하고 돌아왔다 — 토큰 교환을 때리지 않는다 (`providerDenied` 에 까닭을 적어뒀다)
@@ -641,11 +659,11 @@ router.get('/twitter', (req, res) => {
 
 router.get('/twitter/callback', async (req, res) => {
   const { backendUrl, frontendUrl } = getUrls(req);
-  const sameOne = sameBrowser(req);
-  // **지우기 전에 꺼낸다** — `validateState` 는 쓰고 나면 그 줄을 버린다
-  const { verifier } = stateExtra(req.query.state);
+  const st = readState(req);
   clearStateCookie(res);
-  if (!sameOne || !validateState(req.query.state) || !verifier) {
+  // `verifier` 는 시작할 때 쿠키에 같이 서명해 넣었다 (주소에는 안 실었다)
+  const verifier = st?.verifier;
+  if (!st || !verifier) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=twitter_cancelled`);

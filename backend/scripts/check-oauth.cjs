@@ -243,6 +243,43 @@ async function run() {
     ok('남의 state 쿠키로 와도 막는다', q(wrongJar.loc).error, 'invalid_state');
 
     console.log('');
+    console.log('── 서버가 다시 떠도 로그인이 이어지는가 ── (2026-10-13)');
+    //
+    // **이 앱이 사는 곳(Render 무료 판)은 15분만 놀면 잠든다.** 배포하면 프로세스가
+    // 아예 새로 뜬다. state 를 서버 메모리의 Map 에 담던 동안은 그때마다 그 Map 이
+    // 비어서, 자다 깬 서버에서 소셜 단추를 누른 사람은 **한 명도 못 들어왔다**
+    // (`invalid_state`). 폰 앱도 같은 주소를 여니 앱에서도 똑같았다.
+    //
+    // 프로세스가 새로 뜬 것을 흉내 낸다 — 라우터를 캐시에서 지우고 다시 읽으면
+    // 그 모듈의 모든 메모리가 새로 생긴다. DB 는 그대로 둔다(배포해도 남는 쪽이다).
+    const woke = await get('/api/oauth/google', { Referer: 'http://localhost:5173/login' });
+    const wokeState = new URL(woke.loc).searchParams.get('state');
+    delete require.cache[require.resolve('../src/routes/oauth')];
+    const app2 = express();
+    app2.use(cookieParser());
+    app2.use('/api/oauth', require('../src/routes/oauth'));
+    const server2 = app2.listen(0);
+    await new Promise((r) => server2.once('listening', r));
+    const afterBoot = await new Promise((res, rej) => {
+      const r = http.get({
+        host: 'localhost', port: server2.address().port,
+        path: '/api/oauth/google/callback?code=abc&state=' + wokeState,
+        headers: { Cookie: jarOf(woke) },
+      }, (x) => { x.resume(); res({ loc: x.headers.location || '', cookies: x.headers['set-cookie'] || [] }); });
+      r.on('error', rej);
+    });
+    server2.close();
+    ok('자다 깬 서버에서도 로그인이 끝난다', q(afterBoot.loc).oauth, 'success');
+    ok('  로그인 열쇠를 쥐여준다',
+      afterBoot.cookies.some((c) => c.startsWith('sb_access=')), true);
+    // 담는 곳이 쿠키 하나이므로 **서명이 맞아야** 통한다. 손으로 고친 쿠키는 막힌다
+    const forged = Buffer.from(JSON.stringify({ s: wokeState, t: Date.now(), r: '' })).toString('base64url');
+    const tampered = await login({ cookie: 'sb_oauth=' + forged + '.' + 'x'.repeat(43) });
+    ok('서명이 안 맞는 state 쿠키는 막는다', q(tampered.loc).error, 'invalid_state');
+    const noSig = await login({ cookie: 'sb_oauth=' + forged });
+    ok('  서명이 아예 없어도 막는다', q(noSig.loc).error, 'invalid_state');
+
+    console.log('');
     console.log('── 구글이 「확인 안 된 메일」이라고 하면 ── (2026-09-18)');
     //
     // 이 앱은 **이메일 하나로 계정을 잇는다.** 그래서 확인 안 된 주소를 그대로 받으면
