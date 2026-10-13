@@ -13,21 +13,38 @@ const BACKEND_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
   : '';
 
-// ── 길은 둘이다 — 구글 · 네이버 ── (2026-10-07)
-//
-// 하루에 넷을 붙였다 뺐다 했다. 뺀 까닭을 적어둔다.
+// ── 길은 둘이다 — 구글 · 네이버 ── (2026-10-09)
 //
 //   카카오      코드도 검사도 다 됐는데 **쓰기 불안하다**는 판단으로 뺐다
 //   페이스북    고른 셋에 안 들어서 같이 걷어냈다
-//   인스타그램  메타 콘솔에서 설정 자리를 못 찾아 **열쇠를 못 받았다.**
-//               (메타가 작년에 로그인 방식을 갈아엎어서 이용 사례 이름이 다 바뀌었다)
-//               게다가 비즈니스 · 크리에이터 계정만 들어온다
-//   트위터(X)   인스타에서 지쳐서 손도 못 댔다
+//   인스타그램  10/9 에 열쇠까지 꽂았는데 **인스타가 막았다** — 심사 전에는 역할에
+//               등록된 계정만, 끝까지 가도 **프로페셔널 계정만** 들어온다.
+//               쓰는 사람에게 그걸 시킬 수 없어서 접었다 (길은 살아 있다)
+//   트위터(X)   막힌 것은 없다. 열쇠 받는 손을 안 쓰기로 한 것이다 (길은 살아 있다)
 //
-// **길(`routes/oauth.js`)과 메일 묻는 걸음(`/oauth/email`)은 그대로 살아 있다.**
-// 열쇠가 들어오는 날 이 목록에 한 줄만 되살리면 그 자리에 다시 붙는다.
+// **되는 것만 그린다.** 서버의 `/oauth/providers` 가 열쇠가 꽂힌 것만 `true` 로
+// 주고, 아래 `filter` 가 그것만 남긴다. 열쇠가 없는 제공자는 단추 자체가 안 뜬다.
+//
+// ── 생김새는 B안: 로고만 ── (10/7 에 본인이 고름)
+//
+// 구글은 제일 많이 눌리는 길이라 **넓은 줄**로 두고, 나머지는 **크기가 똑같은
+// 네모**에 로고만 넣는다. 글자를 넣으면 「인스타그램」이 「X」보다 다섯 배 넓어서
+// 줄이 흔들리고, 제공자가 늘 때마다 폭을 다시 맞춰야 한다.
+// 로고만으로 못 알아볼까 봐 **아래에 한 줄**을 적고, 읽어주는 화면에는 단추마다
+// 이름이 통째로 들어간다(`aria-label`).
 const OTHERS = [
-  { key: 'naver', label: '네이버', background: '#03C75A', color: '#ffffff' },
+  {
+    key: 'naver',
+    label: '네이버',
+    background: '#03C75A',
+    color: '#ffffff',
+    // 네이버는 로고 가이드가 **초록 바탕 + 흰 N** 을 못 박아뒀다 (나중에 검수한다)
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+        <path fill="currentColor" d="M11.6 10.7 8.2 5.5H5v9h3.3V9.2l3.5 5.3H15v-9h-3.4v5.2z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {
@@ -46,6 +63,12 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
   };
 
   const others = OTHERS.filter(o => providers?.[o.key]);
+  // ── 하나만 남으면 **이름을 적는다** ── (2026-10-09)
+  //
+  // 로고만 두는 B안은 **단추가 나란히 설 때** 뜻이 산다 — 폭이 같아지고 줄이
+  // 안 흔들린다. 한 칸짜리는 그 이점이 없고, 네모 하나에 그림만 있으면
+  // 「이게 뭐지」가 된다. 제공자가 둘 이상이 되는 날 저절로 로고만으로 돌아간다
+  const only = others.length === 1;
   if (!providers?.google && others.length === 0) return null;
 
   return (
@@ -73,25 +96,43 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
         </button>
       )}
 
-      {/* 나머지는 한 줄에 나란히. 세로로 쌓으면 입력 칸이 화면 밖으로 밀린다 */}
+      {/* 나머지는 **크기가 똑같은 네모**로 한 줄에 나란히 (B안 — 로고만).
+          세로로 쌓으면 입력 칸이 화면 밖으로 밀린다 */}
       {others.length > 0 && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          {others.map(o => (
-            <button
-              key={o.key}
-              onClick={() => go(o.key)}
-              disabled={disabled}
-              style={{
-                // X 는 검정 위에 흰 글자다. 앱 배경도 검정이라 **테두리가 없으면
-                // 윤곽이 사라진다** — 그래서 제공자가 적어둔 테두리를 쓴다
-                flexGrow: 1, padding: '11px 0', border: o.border || 'none', borderRadius: 'var(--radius)',
-                background: o.background, color: o.color,
-                fontSize: 13, fontWeight: 700, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
-                cursor: disabled ? 'not-allowed' : 'pointer',
-              }}
-            >{o.label}</button>
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {others.map(o => (
+              <button
+                key={o.key}
+                onClick={() => go(o.key)}
+                disabled={disabled}
+                // 로고만 있는 단추다 — **읽어주는 화면에는 이름이 통째로** 들어간다
+                aria-label={`${o.ariaLabel || o.label}로 계속하기`}
+                title={`${o.ariaLabel || o.label}로 계속하기`}
+                style={{
+                  flex: '1 1 0', minWidth: 0, height: 44,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: o.border || 'none', borderRadius: 'var(--radius)',
+                  background: o.background, color: o.color,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {o.icon}
+                {only && (
+                  <span style={{
+                    marginLeft: 8, fontSize: 14, fontWeight: 600,
+                    fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                  }}>{o.label}로 계속하기</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {/* 로고만으로 못 알아보는 사람을 위한 한 줄. 단추 이름을 그대로 잇는다 */}
+          {!only && <p style={{
+            margin: 0, textAlign: 'center',
+            fontSize: 12, color: 'var(--text-muted)',
+          }}>{others.map(o => o.label).join(' · ')} 로도 계속할 수 있어요</p>}
+        </>
       )}
     </div>
   );

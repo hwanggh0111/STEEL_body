@@ -77,8 +77,21 @@ const setAuthCookies = issueTokens;
 
 // 요청 기반으로 백엔드/프론트엔드 URL 결정 (모바일/터널 지원)
 function getUrls(req) {
-  const host = req.get('host') || `localhost:${process.env.PORT || 4000}`;
+  let host = req.get('host') || `localhost:${process.env.PORT || 4000}`;
   const protocol = req.get('x-forwarded-proto') || req.protocol;
+  // ── 터널(https)로 들어온 것만 그 주소로 답한다 ── (2026-10-09)
+  //
+  // 메타는 `http://localhost` 를 리디렉션 주소로 **등록조차 못 하게** 막는다.
+  // 그래서 인스타를 내 컴퓨터에서 확인하려면 https 터널이 필요한데, 화면(vite)이
+  // 프록시하면서 Host 를 `localhost:4000` 으로 바꿔 쓴다 — 그대로 두면 제공자에게
+  // **localhost 를 돌아올 주소로 적어 보낸다.**
+  //
+  // **https 로 들어온 것만** 본다. 평소 개발(localhost:5173, http)은 전과 똑같이
+  // `localhost:4000` 으로 짓는다 — 구글 · 네이버 콘솔에 그 주소가 등록돼 있다.
+  if (!IS_PROD && protocol === 'https') {
+    const fwd = (req.get('x-forwarded-host') || '').split(',')[0].trim();
+    if (fwd && /^[a-z0-9.-]+(:\d+)?$/i.test(fwd)) host = fwd;
+  }
   // Host 헤더 검증 (SSRF 방지) - 프로덕션에서 유효하지 않으면 기본 URL 사용
   if (IS_PROD) {
     try {
@@ -318,6 +331,24 @@ function clearPendingCookie(res) {
   res.clearCookie(PENDING_COOKIE, { httpOnly: true, sameSite: 'lax', secure: IS_PROD, path: '/api/oauth' });
 }
 
+// ── 「취소」를 「실패」로 말하지 않는다 ── (2026-10-09)
+//
+// 제공자 동의 화면에서 **취소를 누르면** `code` 없이 `?error=access_denied` 로
+// 돌아온다. 지금까지는 그 길이 따로 없어서 `code: undefined` 로 토큰 교환을
+// 때리고 실패해 **「인스타그램 로그인에 실패했어요. 다시 시도해주세요」**를 들었다.
+//
+// 본인이 취소한 사람에게 「실패했다」는 **틀린 말**이고, 「다시 시도」는 시킬 일이
+// 아니다. 게다가 제공자에게 쓸모없는 요청을 한 번 더 보낸다.
+//
+// 인스타는 `error=access_denied`, X 는 `error=access_denied`, 구글은
+// `error=access_denied`, 네이버는 `error=access_denied` 로 같다 (네이버는
+// `error_description` 에 한글이 실린다).
+function providerDenied(req) {
+  const e = String(req.query.error || '');
+  if (!e) return false;
+  return true;
+}
+
 function failCode(provider, err) {
   if (err?.message === 'OAUTH_EMAIL_UNVERIFIED') return provider + '_unverified';
   if (err?.message === 'OAUTH_NO_EMAIL') return provider + '_no_email';
@@ -346,14 +377,21 @@ router.get('/providers', (req, res) => {
   res.json({
     google: !!process.env.GOOGLE_CLIENT_ID,
     naver: !!process.env.NAVER_CLIENT_ID,
-    // 인스타그램 · 트위터(X)는 **길은 살아 있는데 목록에서 뺐다** (2026-10-07).
+    // ── 인스타그램은 **안 한다** ── (2026-10-09, 본인 판단)
     //
-    // 열쇠를 못 받았고, 받으러 가는 길이 험해서 접었다. `false` 로 남겨두면 화면은
-    // 「아직 준비 중」으로 읽는데 **준비 중이 아니라 안 하기로 한 것**이다.
+    // 10/9 에 열쇠까지 받아 꽂았다. 거기서 인스타가 **「개발자 권한이 없다」**로
+    // 막았다 — 앱이 심사 전이라 **역할에 등록된 계정만** 들어오고, 그 등록은
+    // 콘솔과 인스타 앱 양쪽에서 수락을 받아야 한다. 게다가 끝까지 가도
+    // **프로페셔널 계정만** 통과한다(개인 계정은 콘솔을 아무리 맞춰도 못 들어온다).
     //
-    // 되살리려면 이 줄 둘을 다시 넣으면 된다 — 길도, 메일을 묻는 걸음도 그대로 있다.
+    // **쓰는 사람에게 그걸 시킬 수 없다.** 기술로 뚫을 자리가 아니라서 접었다.
+    // 길 · PKCE · 메일 묻는 걸음은 그대로 살아 있다 — `npm run oauth` 가 그 둘을
+    // 끝까지 돌려보는 검사를 계속 돌린다. 되살리려면 이 줄 하나를 되돌린다.
     //   instagram: !!process.env.INSTAGRAM_APP_ID,
     //   twitter: !!process.env.TWITTER_CLIENT_ID,
+    //
+    // X 도 **10/9 에 접었다** (본인 판단). 인스타와 달리 막힌 것은 없다 —
+    // 열쇠를 받는 데 드는 손을 안 쓰기로 한 것이다. 길은 그대로 살아 있다.
   });
 });
 
@@ -396,6 +434,8 @@ router.get('/google/callback', async (req, res) => {
       if (isAllowedFrontendOrigin(candidate)) frontendUrl = candidate;
     } catch {}
   }
+  // 취소는 실패가 아니다 — 돌아갈 곳(`frontendUrl`)을 정한 **뒤에** 본다
+  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=google_cancelled`);
   try {
     const { data: tokens } = await axios().post('https://oauth2.googleapis.com/token', {
       code: req.query.code,
@@ -454,6 +494,7 @@ router.get('/naver/callback', async (req, res) => {
   if (!sameOne || !validateState(req.query.state)) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
+  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=naver_cancelled`);
   try {
     const { data: tokens } = await axios().post('https://nid.naver.com/oauth2.0/token', null, {
       params: {
@@ -518,6 +559,8 @@ router.get('/instagram/callback', async (req, res) => {
   if (!sameOne || !validateState(req.query.state)) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
+  // 취소하고 돌아왔다 — 토큰 교환을 때리지 않는다 (`providerDenied` 에 까닭을 적어뒀다)
+  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=instagram_cancelled`);
   try {
     const { data: tokens } = await axios().post('https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
@@ -525,20 +568,48 @@ router.get('/instagram/callback', async (req, res) => {
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
         redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
-        code: req.query.code,
+        // 인스타는 돌려보낼 때 주소 끝에 **`#_` 를 붙인다** (메타 문서가 「떼어내라」고
+        // 적어뒀다). 우물 표시 뒤는 서버까지 안 오지만, 어딘가에서 한 번 더 감싸
+        // 들어오면 코드에 붙어 온다 — 들어오는 자리에서 떼는 것이 싸다
+        code: String(req.query.code || '').replace(/#_$/, ''),
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    const { data: profile } = await axios().get('https://graph.instagram.com/v21.0/me', {
-      params: { fields: 'user_id,username', access_token: tokens.access_token },
-    });
-    if (!profile || !profile.user_id) throw new Error('Instagram profile missing');
+    // ── 누구인지는 **토큰 응답이 이미 알려준다** ── (2026-10-09)
+    //
+    // 이 교환의 응답에 `user_id` 가 실려 온다. 전에는 그걸 안 쓰고 `/me` 가 준
+    // `user_id` 만 믿어서, **`/me` 의 모양이 바뀌면 로그인 자체가 실패**했다.
+    // 메타가 작년에 이 API 를 통째로 갈아엎은 자리다 — 거기에 로그인을 걸지 않는다.
+    const providerUserId = tokens?.user_id;
+    if (!tokens?.access_token || !providerUserId) throw new Error('Instagram token missing');
+
+    // 이름은 **있으면 좋은 것**이다. 없으면 메일 묻는 화면이 「@누구로 들어왔어요」를
+    // 못 쓰는 것뿐이고, 계정은 그대로 만들 수 있다 — 그래서 실패시키지 않는다
+    let username = '';
+    try {
+      const { data: profile } = await axios().get('https://graph.instagram.com/v21.0/me', {
+        params: { fields: 'user_id,username', access_token: tokens.access_token },
+      });
+      username = profile?.username || '';
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') console.error('[instagram] /me 를 못 읽었다 (로그인은 계속한다):', e.message);
+    }
+
     // 메일 칸을 **비워서** 넘긴다 — 인스타는 주지 않는다. 지어내지 않는다
     await finishSocial(res, frontendUrl, 'instagram', {
-      email: '', nickname: profile.username, providerUserId: profile.user_id,
+      email: '', nickname: username, providerUserId,
     });
   } catch (err) {
-    if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
+    // ── 인스타의 거절 까닭은 **몸통에 있다** ── (2026-10-09)
+    //
+    // 열쇠 · 리디렉션 주소가 한 글자만 달라도 인스타는 400 에 `error_message` 로
+    // 무엇이 틀렸는지 적어 보낸다. `err.message` 만 찍으면 그게 전부 날아가고
+    // 「Request failed with status code 400」만 남는다 — 콘솔을 다시 열어
+    // 한 줄씩 대보는 수밖에 없어진다 (10/7 에 네이버에서 그 한 바퀴를 돌았다)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('OAuth error:', err.message);
+      if (err.response?.data) console.error('[instagram] 인스타가 한 말:', JSON.stringify(err.response.data));
+    }
     res.redirect(`${frontendUrl}/login?error=${failCode('instagram', err)}`);
   }
 });
@@ -577,6 +648,7 @@ router.get('/twitter/callback', async (req, res) => {
   if (!sameOne || !validateState(req.query.state) || !verifier) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
+  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=twitter_cancelled`);
   try {
     const body = new URLSearchParams({
       grant_type: 'authorization_code',

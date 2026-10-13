@@ -51,11 +51,28 @@ axios.defaults.adapter = async (config) => {
   // 페북의 토큰 주소는 `/oauth/access_token` 이라 `/token` 으로는 안 걸린다 —
   // 그러면 토큰 자리에 사람 정보가 와서 **무엇을 보고 있는지가 흐려진다**
   const isToken = url.includes('/token') || url.includes('access_token');
+  // ── 인스타는 **토큰 응답에 `user_id` 를 실어 보낸다** ── (2026-10-09)
+  //
+  // 가짜가 그걸 빠뜨리고 있었다. 그래서 「`/me` 가 아니라 토큰 응답으로 누구인지
+  // 정한다」를 검사가 **못 보고 있었다** — 진짜 인스타가 주는 모양으로 맞춘다
+  if (isToken) {
+    return {
+      data: { access_token: 'tok', ...(PROFILE.user_id ? { user_id: PROFILE.user_id } : {}) },
+      status: 200, statusText: 'OK', headers: {}, config,
+    };
+  }
+  // `/me` 가 죽는 날을 흉내 낸다 — 이름은 못 가져와도 **로그인은 계속돼야** 한다
+  if (ME_DOWN && url.includes('graph.instagram.com')) {
+    const e = new Error('Request failed with status code 400');
+    e.response = { status: 400, data: { error: { message: 'Tried accessing nonexisting field' } } };
+    throw e;
+  }
   return {
-    data: isToken ? { access_token: 'tok' } : PROFILE,
+    data: PROFILE,
     status: 200, statusText: 'OK', headers: {}, config,
   };
 };
+let ME_DOWN = false;
 
 const express = require('express');
 const cookieParser = require('cookie-parser');
@@ -263,14 +280,16 @@ async function run() {
     console.log('');
     console.log('── 어느 길이 열려 있나 ── (2026-10-07)');
     const list = JSON.parse((await get('/api/oauth/providers')).body);
-    // ── 목록에 있는 것과 길이 살아 있는 것은 **다르다** ── (2026-10-07)
+    // ── 목록은 넷이다 ── (2026-10-09)
     //
-    // 인스타그램 · 트위터(X)는 **길은 그대로 살아 있다.** 아래에서 그 둘을 끝까지
-    // 돌려보는 검사가 계속 도는 것이 그 증거다. 목록에서만 뺐다 — 열쇠를 못 받았고
-    // (메타 콘솔에서 설정 자리를 못 찾았다), `false` 로 남겨두면 화면이
-    // 「아직 준비 중」으로 읽는데 **준비 중이 아니라 안 하기로 한 것**이다.
+    // 10/7 에는 둘이었다. 인스타그램 · 트위터(X)는 열쇠를 못 받아 **목록에서만**
+    // 뺐었고(길은 그대로 살아 있었다), 10/9 에 되돌렸다.
     //
-    // 열쇠가 들어오는 날 `oauth.js` 의 주석 처리한 두 줄만 되살리면 된다
+    // **키가 있는 것과 `true` 인 것은 다르다** — 열쇠가 아직 안 꽂혔으면 `false` 로
+    // 오고 화면에는 단추가 안 뜬다. 그래서 켜짐 여부는 아래에서 따로 본다
+    // 인스타그램 · X 는 **10/9 에 뺐다.** 인스타는 열쇠까지 꽂았는데 인스타 쪽이
+    // 막았고(프로페셔널 계정만), X 는 열쇠 받는 손을 안 쓰기로 했다.
+    // **길은 둘 다 살아 있다** — 아래에서 끝까지 돌려보는 검사가 그 증거다
     ok('목록은 둘이다', Object.keys(list).sort(), ['google', 'naver']);
     // **이 길은 로그인 횟수에 같이 깎이면 안 된다** (2026-10-07).
     // 로그인·가입 화면이 열릴 때마다 부르는 길인데 시간당 10 에 같이 세고 있었다 —
@@ -280,8 +299,13 @@ async function run() {
     const indexSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
     ok('켜진 길 묻기는 로그인 횟수에서 뺀다',
       indexSrc.includes("req.path === '/providers'"), true);
-    ok('  둘 다 켜져 있다 (열쇠를 넣었으니)', [list.google, list.naver], [true, true]);
-    // **길은 살아 있다** — 목록에 없다고 길까지 죽은 것이 아니다
+    ok('  구글 · 네이버는 켜져 있다 (열쇠를 넣었으니)', [list.google, list.naver], [true, true]);
+    // 인스타 · X 는 **열쇠가 들어오는 날 저절로 켜진다.** 지금 값이 무엇이든
+    // 「켜짐 = 열쇠 있음」이 맞으면 통과다 — 값을 넣기 전에 검사가 빨개지지 않는다
+    for (const gone of ['instagram', 'twitter']) {
+      ok('  ' + gone + ' 는 목록에 없다 (안 하기로 했다)', gone in list, false);
+    }
+    // **길은 늘 살아 있다** — 목록에서 뺐던 동안에도 그랬다
     for (const alive of ['instagram', 'twitter']) {
       ok('  ' + alive + ' 길은 그대로 산다',
         (await get('/api/oauth/' + alive)).status, 302);
@@ -421,6 +445,41 @@ async function run() {
     }
 
     console.log('');
+    console.log('── 인스타: 누구인지를 어디서 정하는가 ── (2026-10-09)');
+    //
+    // 전에는 `/me` 가 준 `user_id` 만 믿었다. 메타가 작년에 이 API 를 통째로
+    // 갈아엎은 자리라, 그 모양이 바뀌면 **로그인 자체가 실패**한다.
+    // 이제 **토큰 응답의 `user_id`** 로 정하고 `/me` 는 이름만 가져온다.
+    ME_DOWN = true;
+    PROFILE = { user_id: 8888 };
+    const igNoMe = await loginWith('instagram');
+    ok('/me 가 죽어도 로그인은 계속된다', new URL(igNoMe.loc).pathname, '/oauth/email');
+    ok('  이름만 못 가져온다 (못 물어봤으니 안 보낸다)', q(igNoMe.loc).name, undefined);
+    ME_DOWN = false;
+    // 반대로 **토큰 응답에 `user_id` 가 없으면** 누구인지를 모른다 — 그때는 멈춘다
+    PROFILE = { username: 'noid' };
+    const igNoId = await loginWith('instagram');
+    ok('누구인지 모르면 멈춘다', q(igNoId.loc).error, 'instagram_failed');
+    PROFILE = { user_id: 4242, username: 'keyboard_gh' };
+
+    console.log('');
+    console.log('── 취소는 실패가 아니다 ── (2026-10-09)');
+    //
+    // 동의 화면에서 취소를 누르면 `code` 없이 `?error=access_denied` 로 돌아온다.
+    // 그 길이 따로 없어서 **빈 코드로 토큰 교환을 때리고** 「실패했어요. 다시
+    // 시도해주세요」를 들려줬다 — 그만두기로 한 사람에게 할 말이 아니다
+    for (const p of ['google', 'naver', 'instagram', 'twitter']) {
+      const start = await get('/api/oauth/' + p, { Referer: 'http://localhost:5173/login' });
+      const st = new URL(start.loc).searchParams.get('state');
+      const back = await get('/api/oauth/' + p + '/callback?error=access_denied&state=' + st,
+        { Cookie: jarOf(start) });
+      ok(p + ' — 취소하고 돌아오면 그렇다고 말한다', q(back.loc).error, p + '_cancelled');
+    }
+    ok('  화면이 그 말을 갖고 있다',
+      fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'pages', 'LoginPage.jsx'), 'utf8')
+        .includes("kind === 'cancelled'"), true);
+
+    console.log('');
     console.log('── 화면이 그 까닭을 읽는가 ── (2026-10-07)');
     //
     // 서버가 `kakao_no_email` 을 보내도 화면이 `code === 'google_no_email'` 로
@@ -438,9 +497,17 @@ async function run() {
     const btnJsx = fs.readFileSync(
       path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'SocialLoginButtons.jsx'), 'utf8');
     ok('단추 목록에 naver 가 있다', btnJsx.includes("key: 'naver'"), true);
+    // 하나만 남으면 **이름을 적는다** — 네모 하나에 그림만 있으면 「이게 뭐지」가 된다
+    ok('  하나뿐일 때는 이름을 적는다', btnJsx.includes('others.length === 1'), true);
     for (const key of ['kakao', 'facebook', 'instagram', 'twitter']) {
       ok('  ' + key + ' 는 없다', btnJsx.includes("key: '" + key + "'"), false);
     }
+    // ── B안: 로고만 ── 로고만 있는 단추는 **읽어주는 화면에 이름이 없으면**
+    // 「단추」로만 읽힌다. `aria-label` 이 빠지는 순간 못 쓰는 화면이 된다
+    ok('  로고만 단추에 이름을 붙였다', btnJsx.includes('aria-label={`${o.ariaLabel || o.label}'), true);
+    // 제공자가 검정 바탕을 쓰면(X 가 그랬다) 앱 배경에 윤곽이 녹는다 — 테두리를
+    // 받을 자리는 남겨둔다. 지금 그걸 쓰는 제공자는 없다
+    ok('  테두리를 받을 자리가 있다', btnJsx.includes("o.border || 'none'"), true);
     // 메일을 묻는 화면이 **길에 걸려 있어야** 한다. 서버는 거기로 보내는데 길이
     // 없으면 인스타 · X 로 들어온 사람이 「없는 화면」에 떨어진다
     const appJsx = fs.readFileSync(

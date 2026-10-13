@@ -57,7 +57,16 @@ export default defineConfig({
         // 백엔드 CORS 허용 목록에 없어서 로그인부터 막힌다. 여기를 지난 요청은 화면과 같은
         // 주소에서 온 것이니 Origin 을 떼서 「같은 서버」로 보낸다. 백엔드 목록은 안 넓힌다
         configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin'));
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.removeHeader('origin');
+            // ── 터널로 들어온 주소를 백엔드에 알려준다 ── (2026-10-09)
+            //
+            // `changeOrigin` 이 Host 를 `localhost:4000` 으로 바꿔 쓴다. 그러면 소셜
+            // 로그인이 제공자에게 「돌아올 주소」로 **localhost 를 적어 보낸다** —
+            // 메타는 `http://localhost` 를 **아예 등록도 못 하게** 막는다(10/9 확인).
+            // 원래 들어온 주소를 따로 실어 보내면 백엔드가 그걸로 콜백 주소를 짓는다.
+            if (req.headers.host) proxyReq.setHeader('x-forwarded-host', req.headers.host);
+          });
         },
       },
     },
