@@ -9,7 +9,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 //
 // 주소를 바꿔 만들 때: `CAP_SERVER_URL=http://192.168.0.9:5173 npx cap sync android`
 // (배포 전 시험용 — 폰이 이 PC 와 같은 와이파이에 있고, 서버 둘이 떠 있어야 한다)
-const url = process.env.CAP_SERVER_URL || 'https://blackiron.onrender.com';
+const url = process.env.CAP_SERVER_URL || 'https://steel-body.onrender.com';
 
 const config: CapacitorConfig = {
   // 플레이스토어에 한 번 올리면 **영영 못 바꾼다**

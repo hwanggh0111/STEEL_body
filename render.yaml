@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: blackiron
+    name: steel-body
     runtime: node
     plan: free
     region: oregon
@@ -18,10 +18,15 @@ services:
         value: "1"
       - key: JWT_SECRET
         generateValue: true
+      # ── 배포 주소는 `steel-body` 다 ── (2026-10-09 에 본인이 정함)
+      #
+      # 10/1 까지 여기는 `blackiron`, 구글 콘솔은 `steel-body` 로 **갈려 있었다.**
+      # 그대로 배포하면 구글 로그인이 `redirect_uri_mismatch` 로 막힌다.
+      # **콘솔을 안 건드리는 쪽**으로 정했다 — 고칠 곳은 이 파일과 앱 껍데기뿐이다.
       - key: FRONTEND_URL
-        value: https://blackiron.onrender.com
+        value: https://steel-body.onrender.com
       - key: BACKEND_URL
-        value: https://blackiron.onrender.com
+        value: https://steel-body.onrender.com
       - key: ADMIN_EMAIL
         sync: false
       # ── 기록이 살아남게 ── (2026-10-01)
@@ -39,32 +44,24 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-      # 나머지 소셜 로그인. 서버가 아는 것은 넷이다 — 구글 · 네이버 · 인스타그램 ·
-      # 트위터(X). **넣은 것만 로그인 화면에 버튼으로 나온다** — 안 넣으면 안 보인다.
-      # 인스타그램만 이름이 APP_ID 다 (CLIENT_ID 가 아니다).
+      # ── 소셜 로그인은 **둘이다** — 구글 · 네이버 ── (2026-10-09)
       #
       # 받는 절차는 docs/social-login-setup.md 에 한 장으로 적어뒀다.
       #
-      # 인스타그램과 트위터는 **메일 주소를 주지 않는다.** 그 둘로 들어온 사람에게는
-      # 앱이 메일을 한 번 묻는다(/oauth/email) — 그래서 **SMTP 가 켜져 있어야
-      # 그 둘이 끝까지 돈다.** 아래 SMTP 세 줄을 같이 채운다.
+      #   카카오 · 페이스북   2026-10-07 에 걷어냈다
+      #   인스타그램          2026-10-09. 열쇠까지 꽂았는데 **인스타가 막았다** —
+      #                       심사 전에는 앱 역할에 등록된 계정만, 끝까지 가도
+      #                       **프로페셔널 계정만** 들어온다. 쓰는 사람에게 계정
+      #                       전환을 시킬 수 없어서 접었다
+      #   트위터(X)           2026-10-09. 막힌 것은 없다 — 열쇠 받는 손을 안 쓰기로 했다
       #
-      # 카카오 · 페이스북은 2026-10-07 에 걷어냈다 (되살리려면 그날 커밋을 되돌린다).
+      # 넷 다 **길은 코드에 살아 있다**(`npm run oauth` 가 끝까지 돌려본다).
+      # 되살리는 날 여기에 열쇠 줄을 다시 넣는다.
       - key: NAVER_CLIENT_ID
         sync: false
       - key: NAVER_CLIENT_SECRET
         sync: false
-      - key: INSTAGRAM_APP_ID
-        sync: false
-      - key: INSTAGRAM_APP_SECRET
-        sync: false
-      # TWITTER_CLIENT_SECRET 은 Confidential client 일 때만 넣는다 — Public client
-      # 면 **비워둔다**(섞으면 invalid_client 로 떨어진다)
-      - key: TWITTER_CLIENT_ID
-        sync: false
-      - key: TWITTER_CLIENT_SECRET
-        sync: false
-      # 메일 보내기. **비밀번호 찾기만** 이걸 쓴다 — 없으면 가입·로그인은 그대로 되고
+      # 메일 보내기. **비밀번호 찾기와 가입 인증번호**가 이걸 쓴다 — 없으면
       # 「비밀번호 찾기」 화면이 **누르기 전에** 지금은 안 된다고 말한다 (2026-10-01)
       - key: SMTP_HOST
         sync: false
