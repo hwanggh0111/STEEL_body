@@ -236,7 +236,7 @@ function sweepDeletedAccounts() {
     console.log(`[CLEANUP] 유예가 끝난 계정을 지웠습니다 (id=${user.id})`);
   }
 }
-setInterval(() => {
+function cleanupRound() {
   try { db.cleanExpiredRefreshTokens(); } catch (e) { console.error('[CLEANUP]', e.message); }
   // 지날 때가 지난 차단과 다 식은 로그인 실패 줄도 같이 걷는다 —
   // 안 걷으면 시도한 주소 수만큼 파일이 커진다
@@ -246,9 +246,26 @@ setInterval(() => {
   // **새 번호를 만들 때뿐**이라 조용한 서버에서는 파일에 남아 있었다
   try { db.cleanVerifyCodes(); } catch (e) { console.error('[CLEANUP:code]', e.message); }
   try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
-}, 30 * 60 * 1000);
-// 켜질 때도 한 번 본다 — 서버가 꺼져 있는 동안 지날 때가 지난 것이 있다
-try { sweepDeletedAccounts(); } catch (e) { console.error('[CLEANUP:account]', e.message); }
+}
+
+setInterval(cleanupRound, 30 * 60 * 1000);
+
+// ── 뜰 때도 한 바퀴 걷는다 ── (2026-10-13)
+//
+// 여태 뜰 때 도는 것은 **계정 삭제 하나뿐**이었다. 나머지 넷(만료 토큰 · 지난 차단 ·
+// 식은 로그인 실패 · 다 쓴 인증번호)은 위의 30분 타이머에만 걸려 있었다.
+//
+// **그런데 이 앱이 사는 곳은 15분만 놀면 잠든다.** 30분 타이머가 울리려면 서버가
+// 30분을 내리 깨어 있어야 하는데, 그러려면 15분 안에 계속 사람이 와야 한다.
+// 배포하면 프로세스가 또 새로 뜬다 — 오늘만 열 번 넘게 떴다.
+//
+// 그러니까 **저 넷은 배포본에서 거의 한 번도 안 돌았다.** 10/1 에 「조용한 서버에서는
+// 인증번호가 파일에 남아 있었다」고 적어뒀는데, 걷는 자리를 타이머에 얹은 것이
+// 같은 함정이었다 — 조용한 서버에서는 **그 타이머가 안 울린다.**
+//
+// 뜨는 시간에 얹지 않으려고 **2.5초 뒤**에 한다. 깨우는 요청은 그 전에 답을 받고
+// 가고(데우는 것과 같은 생각이다), 타이머는 프로세스를 붙잡지 않게 `unref` 한다.
+setTimeout(cleanupRound, 2500).unref();
 
 // 글로벌 Rate Limit — 숫자는 config/security.js 에 있다 (보안 대시보드가 같은 값을 읽는다)
 app.use(rateLimit({
@@ -500,7 +517,13 @@ function preCompressed(req, res, next) {
     res.vary('Accept-Encoding');
     staticHeaders(res, path.join(frontendDist, req.path));
     return res.sendFile(file, (err) => {
-      if (err) next(err);
+      if (!err) return;
+      // **받다가 끊기면 여기로 온다** — 창을 닫거나 지하철에서 신호가 끊긴 경우다.
+      // 이미 몸통이 나가는 중이라 새 답을 쓸 수 없다. 5번 끊어보고 기록을 봤을
+      // 때는 아무것도 안 남았지만, 그건 우연이지 약속이 아니다 — 아래 전역
+      // 핸들러가 500 을 쓰려 들면 「헤더를 이미 보냈다」가 기록에 쌓인다
+      if (res.headersSent || err.code === 'ECONNABORTED') return;
+      next(err);
     });
   }
   return next();
@@ -544,6 +567,12 @@ app.get('*', (req, res, next) => {
 
 // 전역 에러 핸들러 (내부 정보 노출 방지)
 app.use((err, req, res, next) => {
+  // ── 몸통이 이미 나갔으면 새 답을 쓸 수 없다 ── (2026-10-13)
+  //
+  // 파일을 내려주다가 끊긴 경우가 그렇다. 여기서 `res.status(500)` 을 부르면
+  // 「헤더를 이미 보냈다」가 터지고, 그건 사람에게 가지도 않으면서 기록만 더럽힌다.
+  // express 의 기본 핸들러에게 넘기면 연결을 닫아준다
+  if (res.headersSent) return next(err);
   // CORS 에러는 403으로
   if (err.message === 'CORS not allowed') {
     return res.status(403).json({ error: '허용되지 않은 곳에서 온 요청이에요' });
