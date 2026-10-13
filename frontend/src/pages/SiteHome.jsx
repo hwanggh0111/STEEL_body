@@ -725,6 +725,8 @@ export default function SiteHome() {
             <LogoMark size={16} />
             <a href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
             <a href="/support/notices" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>소식</a>
+            {/* 플레이스토어가 요구하는 공개 방침 주소다 — 꼬리에서 바로 닿게 둔다 (2026-10-09) */}
+            <a href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>개인정보처리방침</a>
             <span style={{ marginLeft: 'auto' }}>BLACK IRON</span>
           </div>
         </div>

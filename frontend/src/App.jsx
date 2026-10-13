@@ -48,6 +48,9 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 // 홈페이지 — **앱 밖으로 나가 새 화면으로 열린다** (2026-09-04).
 // 껍데기(Layout) 밖에 건다 — 아래 탭바도 내 계정도 없는, 웹사이트 같은 자리다
 const SiteHome = lazy(() => import('./pages/SiteHome'));
+// 개인정보처리방침 — **로그인 밖이다.** 플레이스토어가 아무나 열 수 있는 방침 주소를
+// 요구한다 (2026-10-09). 로그인 뒤에 있으면 심사자가 못 열어 반려된다
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const HomeworkoutPage = lazy(() => import('./pages/HomeworkoutPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
@@ -127,6 +130,7 @@ export default function App() {
                   앱을 아직 안 쓰는 사람에게 이 앱이 무엇인지 말하는 자리다.
                   로그인해야 보이면 그 일을 아예 못 한다 */}
               <Route path="/site" element={<SiteHome />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               {/* 인스타 · X 로 들어온 사람에게 메일을 묻는 자리. 그 둘은 메일 주소를
