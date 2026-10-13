@@ -9,7 +9,7 @@
 // 있던 json 을 그대로 두고 조용히 빠진다 — 빌드를 막을 이유가 없다.
 
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -144,6 +144,26 @@ try {
   // git 이 없거나 저장소가 아니다. 있던 파일을 그대로 둔다
   if (existsSync(OUT)) process.exit(0);
   data = { generated: null, items: [] };
+}
+
+// ── 한 건도 못 뽑았으면 **있던 것을 그대로 둔다** ── (2026-10-13)
+//
+// `git log` 가 터지는 것만 막아뒀는데, **성공하고 0건을 주는 자리**가 있었다.
+// Render 는 저장소를 얕게(`--depth`) 받아서 커밋이 한 개뿐이고, 그 한 개가
+// `chore:` 면 공개 대상이 아니라 걸러진다 — 그대로 40건짜리 파일을 **빈 목록으로
+// 덮었다.** 배포된 앱의 공지함·홈페이지 소식이 통째로 비어 있었다
+// (10/13 에 배포 기록에서 `[changelog] 0건` 을 보고 알았다).
+//
+// 깃에 들어 있는 파일은 내 컴퓨터에서 뽑은 **온전한 40건**이다. 0건이 나왔다는 것은
+// 「바뀐 것이 없다」가 아니라 **「뽑을 수 없었다」**는 뜻이라, 그때는 안 건드린다.
+if (data.items.length === 0 && existsSync(OUT)) {
+  try {
+    const kept = JSON.parse(readFileSync(OUT, 'utf8'));
+    if (Array.isArray(kept.items) && kept.items.length > 0) {
+      console.log(`[changelog] 0건이 나왔습니다 — 있던 ${kept.items.length}건을 그대로 둡니다 (얕은 clone 으로 보입니다)`);
+      process.exit(0);
+    }
+  } catch { /* 읽을 수 없으면 아래에서 새로 쓴다 */ }
 }
 
 mkdirSync(dirname(OUT), { recursive: true });
