@@ -6,7 +6,9 @@
  * 자동 판정에서 계정 삭제를 떼어냈다 — 오판이면 되돌릴 것이 남아 있어야 한다.
  * 지우는 것은 관리자가 화면에서 보고 직접 한다 (executeLevel4 주석 참고).
  */
-const jwt = require('jsonwebtoken');
+// 쓸 때 든다 — 까닭은 `utils/tokens.js` 에 적어뒀다 (2026-10-09)
+let _jwt;
+const jwt = () => (_jwt || (_jwt = require('jsonwebtoken')));
 const db = require('../db');
 
 // ── 상태 저장소 (인메모리, 크기 제한) ──
@@ -365,7 +367,7 @@ function userIdOf(req) {
   try {
     const token = req.cookies?.sb_access || req.headers.authorization?.split(' ')[1];
     if (!token || token.length > 2000 || !process.env.JWT_SECRET) return null;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    const decoded = jwt().verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     return decoded?.userId || null;
   } catch {
     return null;

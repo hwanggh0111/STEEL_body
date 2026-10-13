@@ -1,4 +1,10 @@
-const jwt = require('jsonwebtoken');
+// ── 열쇠 꾸러미는 **쓸 때 든다** ── (2026-10-09)
+//
+// `jsonwebtoken` 은 드는 데 66ms 다 — 이 서버가 뜨는 시간(403ms)의 6분의 1 이다.
+// Render 무료 판은 15분 놀면 잠들고, **깰 때마다** 그 값을 치른다.
+// 뜰 때 안 들고, 뜬 **뒤에** 미리 데워둔다 (`index.js` 의 `warmUp`).
+let _jwt;
+const jwt = () => (_jwt || (_jwt = require('jsonwebtoken')));
 const crypto = require('crypto');
 const db = require('../db');
 const { JWT } = require('../config/security');
@@ -45,7 +51,7 @@ const CSRF_COOKIE_OPTS = { ...BASE, httpOnly: false, path: '/', maxAge: JWT.refr
  * 그걸 받아 헤더로 다닌다 — 안 주면 갱신이 끝없이 도는 고리에 갇힌다.
  */
 function issueTokens(res, user) {
-  const accessToken = jwt.sign(
+  const accessToken = jwt().sign(
     { userId: user.id, role: user.role || 'user' },
     process.env.JWT_SECRET,
     { expiresIn: JWT.accessExpiry, algorithm: JWT.algorithm }

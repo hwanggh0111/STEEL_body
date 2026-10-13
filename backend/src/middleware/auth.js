@@ -2,7 +2,9 @@
 // (프론트가 err.response.data.error 를 그대로 띄운다).
 // 그런데 「Invalid token」 · 「User not found」 처럼 영문이 섞여 있었다 —
 // 앱의 다른 모든 글자는 한국어다. 무엇을 해야 하는지도 안 적혀 있었다.
-const jwt = require('jsonwebtoken');
+// 쓸 때 든다 — 까닭은 `utils/tokens.js` 에 적어뒀다 (2026-10-09)
+let _jwt;
+const jwt = () => (_jwt || (_jwt = require('jsonwebtoken')));
 const db = require('../db');
 const { recordTokenForgery } = require('./aiGuard');
 
@@ -24,7 +26,7 @@ module.exports = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+    const decoded = jwt().verify(token, process.env.JWT_SECRET, {
       algorithms: ['HS256'],
     });
     if (!decoded.userId) {
