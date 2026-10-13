@@ -51,3 +51,6 @@ backend/backups/
 
 # APK 에 실을 껍데기 (npm run shell 이 public/app-offline.html 에서 만든다)
 frontend/shell/
+
+# Render 에 넣을 값만 뽑아둔 쪽지 (비밀값이다)
+backend/.env.render
