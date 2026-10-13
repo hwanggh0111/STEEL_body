@@ -9,7 +9,7 @@
     "predev": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
     "dev": "vite",
     "prebuild": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/precompress.mjs",
     "preview": "vite preview",
     "shell": "node scripts/gen-shell.mjs",
     "android": "npm run build && npm run shell && cap sync android",
@@ -55,7 +55,8 @@
     "savedid": "node scripts/check-savedid.cjs",
     "logtypes": "node scripts/check-logtypes.cjs",
     "role": "node scripts/check-role.cjs",
-    "parts": "node scripts/gen-parts.mjs && node scripts/check-parts.cjs"
+    "parts": "node scripts/gen-parts.mjs && node scripts/check-parts.cjs",
+    "precompress": "node scripts/precompress.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -63,7 +64,7 @@
     "@capacitor/core": "^8.5.2",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@vitejs/plugin-react": "^4.2.1",
-    "axios": "^1.6.7",
+    "axios": "1.13.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.6",

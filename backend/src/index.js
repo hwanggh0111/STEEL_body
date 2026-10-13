@@ -391,6 +391,7 @@ app.use('/api/import',      require('./routes/importData'));
 
 // 프론트엔드 정적 파일 서빙 (SPA용 완화된 CSP 적용)
 const path = require('path');
+const fs = require('fs');
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 const spaCSP = (req, res, next) => {
   res.set('Content-Security-Policy', [
@@ -436,6 +437,76 @@ const staticHeaders = (res, filePath) => {
   }
   // 나머지는 아래 maxAge 가 맡는다
 };
+
+// ── 미리 압축해 둔 것을 집어 준다 ── (2026-10-13)
+//
+// 여태 `compression` 이 **요청마다** 압축했다. Render 무료 판은 CPU 가 0.1 코어라
+// 품질을 낮게 쓸 수밖에 없었고, 그래서 **브로틀리가 gzip 보다 오히려 컸다**
+// (배포본에서 재봤다 — vendor 가 br 52.60KB · gzip 51.75KB).
+//
+// 빌드할 때 품질을 제일 높여 한 번만 압축해 둔다(`frontend/scripts/precompress.mjs`).
+// 내용으로 이름을 지은 파일은 영영 안 변하니 그 압축본도 영영 그대로다.
+// 여기서는 **파일을 집어 주기만** 한다 — 압축에 드는 CPU 가 0 이 된다.
+//
+// 개발에서는 안 쓴다 — 화면은 vite 가 준다. 그래서 운영일 때만 켠다.
+const PRECOMPRESS_EXT = new Set(['.js', '.css', '.svg', '.json', '.map']);
+const ENCODINGS = [
+  { name: 'br', suffix: '.br' },
+  { name: 'gzip', suffix: '.gz' },
+];
+
+// 어떤 압축본이 있는지는 **뜰 때 한 번** 훑어 적어둔다. 요청마다 디스크를 물으면
+// 그 값이 요청 수만큼 든다 — 배포 뒤로 파일이 바뀌지 않으므로 한 번이면 맞다
+let _compressed = null;
+function compressedSet() {
+  if (_compressed) return _compressed;
+  _compressed = new Set();
+  const walk = (dir, base) => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel = base + '/' + e.name;
+      if (e.isDirectory()) walk(full, rel);
+      else if (rel.endsWith('.br') || rel.endsWith('.gz')) _compressed.add(rel);
+    }
+  };
+  walk(frontendDist, '');
+  return _compressed;
+}
+
+function preCompressed(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') return next();
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const ext = path.extname(req.path);
+  if (!PRECOMPRESS_EXT.has(ext)) return next();
+
+  const accept = String(req.headers['accept-encoding'] || '');
+  const have = compressedSet();
+  for (const { name, suffix } of ENCODINGS) {
+    if (!accept.includes(name)) continue;
+    if (!have.has(req.path + suffix)) continue;
+    const file = path.join(frontendDist, req.path + suffix);
+    // `..` 로 디렉터리를 벗어나는 길은 여기서 끊는다 (express.static 과 같은 선이다)
+    if (!file.startsWith(frontendDist)) return next();
+
+    // **압축본을 주지만 알맹이의 종류를 적어야 한다** — `.br` 로 종류를 정하게 두면
+    // `application/octet-stream` 이 되어 브라우저가 스크립트로 안 읽는다.
+    // `send` 는 Content-Type 이 이미 있으면 안 건드린다
+    res.type(ext);
+    res.set('Content-Encoding', name);
+    // 같은 주소라도 **받겠다고 한 압축에 따라 다른 몸통**이 나간다. 중간 캐시가
+    // 그걸 모르면 br 만 받는 쪽의 것을 gzip 만 받는 쪽에 줄 수 있다
+    res.vary('Accept-Encoding');
+    staticHeaders(res, path.join(frontendDist, req.path));
+    return res.sendFile(file, (err) => {
+      if (err) next(err);
+    });
+  }
+  return next();
+}
+
+app.use(spaCSP, preCompressed);
 
 app.use(spaCSP, express.static(frontendDist, {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
