@@ -1,0 +1,38 @@
+# BLACK IRON — https://steel-body.onrender.com
+#
+# 검색엔진에 보여줄 것은 **로그인 밖의 화면 넷**뿐이다.
+# 나머지는 로그인해야 열리므로(PrivateRoute → /login) 크롤러가 와도
+# 로그인 화면만 보고 간다 — 그 빈 걸음을 미리 막는다.
+#
+# `/` 는 로그인 안 한 사람을 /login 으로 보낸다. 사람이 처음 닿아야 하는
+# 자리는 `/site` 다.
+
+User-agent: *
+
+Allow: /site
+Allow: /privacy
+Allow: /login
+Allow: /register
+
+# 로그인해야 열리는 앱 화면 — 크롤러에게는 전부 로그인 화면으로 보인다
+Disallow: /home
+Disallow: /train
+Disallow: /routine
+Disallow: /body
+Disallow: /map
+Disallow: /parts
+Disallow: /goal
+Disallow: /gym
+Disallow: /search
+Disallow: /homeworkout
+Disallow: /history
+Disallow: /admin
+Disallow: /support
+Disallow: /reminders
+Disallow: /settings
+Disallow: /oauth/
+
+# 서버 길 — 사람이 읽는 글이 아니다
+Disallow: /api/
+
+Sitemap: https://steel-body.onrender.com/sitemap.xml

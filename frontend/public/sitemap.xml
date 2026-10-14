@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  BLACK IRON 사이트맵 — 2026-10-14
+
+  로그인 없이 열리는 화면만 적는다. 앱 안쪽(/home · /train · …)은
+  로그인해야 열려서 크롤러에게는 전부 로그인 화면으로 보인다 —
+  적어두면 같은 화면 스무 개를 색인하려 들 뿐이다.
+
+  `/` 는 적지 않는다. 로그인 안 한 사람을 /login 으로 보내므로
+  사람이 처음 닿아야 하는 자리는 `/site` 다.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://steel-body.onrender.com/site</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://steel-body.onrender.com/privacy</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://steel-body.onrender.com/login</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://steel-body.onrender.com/register</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
