@@ -147,6 +147,26 @@
   .chrome-off .urlbar, .chrome-off .statusbar { display: none; }
   .bar-off .homebar { display: none; }
 
+  /* 자판이 올라온 상태.
+     세트를 적을 때(무게 · 횟수) 자판이 **화면 아래 절반을 먹는다.** 그때 적는 칸이
+     가려지거나 「저장」이 자판 뒤로 숨으면 사람은 자판을 내려야 하고, 그게 세트마다다.
+     여기서 그 상태를 그대로 세운다 — 높이가 그만큼 줄어든다. */
+  .keyboard {
+    flex: none; display: none; flex-direction: column; justify-content: flex-end;
+    gap: 5px; padding: 7px 5px 9px;
+    background: #1a1711; border-top: 1px solid #000;
+  }
+  .kb-on .keyboard { display: flex; }
+  .keyboard .kbrow { display: flex; gap: 4px; }
+  .keyboard .kbrow span {
+    flex: 1; height: 100%; border-radius: 4px; background: #2b2619;
+    box-shadow: 0 1px 0 #0b0906;
+  }
+  .keyboard .kbrow { flex: 1; min-height: 0; }
+  .keyboard .kblabel {
+    flex: none; text-align: center; font-size: 10px; color: #6f6757; letter-spacing: .08em;
+  }
+
   /* 고른 기기가 무엇인지 · 폭 순서로 몇 번째인지 */
   .devnote {
     flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -202,6 +222,7 @@
   <div class="sep"></div>
   <button id="chrome" class="on" title="주소창 · 상태바 자리를 보일지">껍데기</button>
   <button id="homebar" class="on" title="아래 홈 바(제스처 바) 자리를 보일지">홈 바</button>
+  <button id="kb" title="자판이 올라온 상태 — 세트 적을 때 가려지는 자리를 본다">자판</button>
 </header>
 
 <div class="devnote" id="devNote"></div>
@@ -218,6 +239,13 @@
     <div class="screen" id="mobileScreen">
       <div class="urlbar"><span>🔒</span><span class="pill" id="mobileUrl">localhost:5173</span><span>⋮</span></div>
       <iframe id="mobileFrame" title="모바일 브라우저 미리보기"></iframe>
+      <div class="keyboard" id="mobileKb">
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span style="flex:2"></span><span style="flex:5"></span><span style="flex:2"></span></div>
+        <div class="kblabel">자판 (어림)</div>
+      </div>
       <div class="homebar" id="mobileHome"><i></i></div>
     </div>
   </section>
@@ -227,6 +255,13 @@
     <div class="screen" id="appScreen">
       <div class="statusbar"><span id="clock">9:41</span><span>▮▮▮ ▲ 🔋</span></div>
       <iframe id="appFrame" title="앱 웹뷰 미리보기"></iframe>
+      <div class="keyboard" id="appKb">
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="kbrow"><span style="flex:2"></span><span style="flex:5"></span><span style="flex:2"></span></div>
+        <div class="kblabel">자판 (어림)</div>
+      </div>
       <div class="homebar" id="appHome"><i></i></div>
     </div>
   </section>
@@ -275,6 +310,7 @@
     { g: '★ 양 끝 먼저', id: 'max',  name: '제일 넓은 폰 (440)', w: 440, h: 956, note: '넓어졌을 때 비어 보이지 않는지' },
     { g: '★ 양 끝 먼저', id: 'short',name: '제일 낮은 폰 (568)', w: 320, h: 568, note: '아래 탭바가 내용을 얼마나 먹는지' },
 
+    { g: 'iPhone', id: 'i4s',   name: 'iPhone 4S', w: 320, h: 480, note: '제일 낮다 — 아래 탭바가 내용의 1/5 를 먹는다' },
     { g: 'iPhone', id: 'se1',   name: 'iPhone SE(1세대) · 5s', w: 320, h: 568 },
     { g: 'iPhone', id: 'se3',   name: 'iPhone SE(2·3세대) · 8', w: 375, h: 667, note: '노치 없음 · 아직 많이 쓴다' },
     { g: 'iPhone', id: 'plus8', name: 'iPhone 8 Plus', w: 414, h: 736 },
@@ -288,7 +324,10 @@
     { g: 'iPhone', id: 'i16p',  name: 'iPhone 16 Pro', w: 402, h: 874 },
     { g: 'iPhone', id: 'i16pm', name: 'iPhone 16 Pro Max', w: 440, h: 956 },
 
+    { g: 'Galaxy', id: 'g-j',    name: 'Galaxy J · A 구형 (16:9)', w: 360, h: 640, note: '아직 쓰는 사람이 있다 · 세로가 짧다' },
+    { g: 'Galaxy', id: 'g-a7',   name: 'Galaxy A 구형 (18:9)', w: 360, h: 720 },
     { g: 'Galaxy', id: 'g-s9',   name: 'Galaxy S8 · S9 · Note 9', w: 360, h: 740 },
+    { g: 'Galaxy', id: 'g-note10',name: 'Galaxy Note 10', w: 360, h: 760 },
     { g: 'Galaxy', id: 'g-s10',  name: 'Galaxy S10 · S10e', w: 360, h: 760 },
     { g: 'Galaxy', id: 'g-a',    name: 'Galaxy A 계열 (A15 등)', w: 360, h: 800, note: '세계에서 제일 많이 팔리는 쪽' },
     { g: 'Galaxy', id: 'g-s24',  name: 'Galaxy S20~S25 (기본)', w: 360, h: 800, note: '제일 흔한 쪽' },
@@ -296,21 +335,33 @@
     { g: 'Galaxy', id: 'g-note', name: 'Galaxy Note 20', w: 412, h: 883 },
     { g: 'Galaxy', id: 'g-ultra',name: 'Galaxy S20~S25 Ultra', w: 412, h: 915 },
 
-    { g: 'Pixel · 그 밖', id: 'p5',    name: 'Pixel 5 · 5a', w: 393, h: 851 },
-    { g: 'Pixel · 그 밖', id: 'p7a',   name: 'Pixel 6a · 7a', w: 412, h: 892 },
-    { g: 'Pixel · 그 밖', id: 'p8',    name: 'Pixel 6 · 7 · 8 · 9', w: 412, h: 915 },
-    { g: 'Pixel · 그 밖', id: 'p8pro', name: 'Pixel 8 Pro · 9 Pro XL ≈', w: 448, h: 998 },
-    { g: 'Pixel · 그 밖', id: 'lg',    name: 'LG G · V 계열', w: 360, h: 740 },
-    { g: 'Pixel · 그 밖', id: 'redmi', name: 'Redmi Note · 샤오미 ≈', w: 393, h: 873 },
+    { g: 'Pixel · 그 밖', id: 'moto',   name: 'Moto G · 보급형 ≈', w: 360, h: 800 },
+    { g: 'Pixel · 그 밖', id: 'p5',     name: 'Pixel 5 · 4a · 5a', w: 393, h: 851 },
+    { g: 'Pixel · 그 밖', id: 'redmi',  name: 'Redmi Note · 샤오미 ≈', w: 393, h: 873 },
+    { g: 'Pixel · 그 밖', id: 'p3',     name: 'Pixel 3 · 3a', w: 412, h: 824 },
+    { g: 'Pixel · 그 밖', id: 'p7a',    name: 'Pixel 6a · 7a', w: 412, h: 892 },
+    { g: 'Pixel · 그 밖', id: 'nothing',name: 'Nothing Phone ≈', w: 412, h: 906 },
+    { g: 'Pixel · 그 밖', id: 'p8',     name: 'Pixel 6 · 7 · 8 · 9', w: 412, h: 915 },
+    { g: 'Pixel · 그 밖', id: 'oneplus',name: 'OnePlus 11 · 12 ≈', w: 412, h: 919 },
+    { g: 'Pixel · 그 밖', id: 'oppo',   name: 'Oppo · Vivo ≈', w: 414, h: 896 },
+    { g: 'Pixel · 그 밖', id: 'p8pro',  name: 'Pixel 8 Pro · 9 Pro XL ≈', w: 448, h: 998 },
+    { g: 'Pixel · 그 밖', id: 'lg',     name: 'LG G · V 계열', w: 360, h: 740 },
 
+    { g: '접는 폰', id: 'flip-cover',name: 'Z Flip 커버 화면 ≈', w: 362, h: 372, note: '아주 짧다 — 여기선 탭바만 보일 수 있다' },
+    { g: '접는 폰', id: 'fold1-in', name: 'Galaxy Fold(1세대) 접은 채', w: 320, h: 747, note: '제일 좁은데 길다' },
+    { g: '접는 폰', id: 'fold-in',  name: 'Galaxy Z Fold(4·5) 접은 채', w: 344, h: 882, note: '좁고 아주 길다' },
     { g: '접는 폰', id: 'flip',     name: 'Galaxy Z Flip (펼친 채)', w: 360, h: 880, note: '세로로 아주 길다' },
-    { g: '접는 폰', id: 'fold-in',  name: 'Galaxy Z Fold (접은 채)', w: 344, h: 882, note: '제일 좁고 제일 긴 틀' },
-    { g: '접는 폰', id: 'fold-out', name: 'Galaxy Z Fold (펼친 채)', w: 673, h: 841, note: '태블릿처럼 넓다' },
+    { g: '접는 폰', id: 'pfold-in', name: 'Pixel Fold 접은 채 ≈', w: 400, h: 820 },
+    { g: '접는 폰', id: 'fold-out', name: 'Galaxy Z Fold(4·5) 펼친 채', w: 673, h: 841, note: '태블릿처럼 넓다' },
+    { g: '접는 폰', id: 'pfold-out',name: 'Pixel Fold 펼친 채 ≈', w: 728, h: 840 },
+    { g: '접는 폰', id: 'fold6-out',name: 'Galaxy Z Fold(6) 펼친 채 ≈', w: 729, h: 859 },
 
     // 폰은 아니지만 **열린다.** 넓은 자리에서 한 줄이 너무 길어지지 않는지 본다
     { g: '태블릿 (열리기는 한다)', id: 'ipad-mini', name: 'iPad mini', w: 744, h: 1133 },
-    { g: '태블릿 (열리기는 한다)', id: 'ipad',      name: 'iPad (10세대)', w: 820, h: 1180 },
     { g: '태블릿 (열리기는 한다)', id: 'tab',       name: 'Galaxy Tab A ≈', w: 800, h: 1280 },
+    { g: '태블릿 (열리기는 한다)', id: 'ipad',      name: 'iPad (10세대) · Air', w: 820, h: 1180 },
+    { g: '태블릿 (열리기는 한다)', id: 'ipad-p11',  name: 'iPad Pro 11"', w: 834, h: 1194 },
+    { g: '태블릿 (열리기는 한다)', id: 'ipad-p13',  name: 'iPad Pro 13"', w: 1024, h: 1366, note: '여기서 한 줄이 너무 길어지지 않는지' },
   ];
 
   // 폭이 좁은 것부터 넘겨 보려면 이 차례다 (틀 없는 것은 뺀다).
@@ -392,6 +443,17 @@
       el.style.width = w + 'px';
       el.style.height = h + 'px';
       $(pane).style.width = w + 'px';
+    }
+
+    // 자판 높이. 폰마다 다르고 한글·영문 자판도 다르다 — **어림**이다.
+    // 세로에서는 화면의 1/3 쯤, 가로에서는 비율이 더 커진다(그래서 가로가 더 험하다)
+    const kbOn = document.body.classList.contains('kb-on');
+    for (const id of ['mobileKb', 'appKb']) {
+      const kb = $(id);
+      if (!kbOn) { kb.style.height = ''; continue; }
+      const h = framed ? (landscape ? d.w : d.h) : window.innerHeight;
+      const guess = landscape ? Math.round(h * 0.5) : Math.round(h * 0.36);
+      kb.style.height = Math.max(180, Math.min(340, guess)) + 'px';
     }
 
     // 무엇을 보고 있는지 한 줄로 적는다 — 틀만 보고 있으면 어느 폰인지 잊는다
@@ -501,6 +563,11 @@
     const off = document.body.classList.toggle('bar-off');
     e.currentTarget.classList.toggle('on', !off);
     measure();
+  });
+  $('kb').addEventListener('click', (e) => {
+    const on = document.body.classList.toggle('kb-on');
+    e.currentTarget.classList.toggle('on', on);
+    applyDevice();              // 자판 높이가 기기 크기에 따라 달라진다
   });
 
   let rt;
