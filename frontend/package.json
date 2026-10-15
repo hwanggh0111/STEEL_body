@@ -9,7 +9,7 @@
     "predev": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
     "dev": "vite",
     "prebuild": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
-    "build": "vite build && node scripts/precompress.mjs",
+    "build": "vite build && node scripts/route-chunks.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
     "shell": "node scripts/gen-shell.mjs",
     "android": "npm run build && npm run shell && cap sync android",

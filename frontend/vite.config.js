@@ -97,6 +97,9 @@ export default defineConfig({
     },
   },
   build: {
+    // 어느 주소가 어느 조각을 쓰는지 알아내려고 켠다 (scripts/route-chunks.mjs).
+    // dist/.vite/manifest.json 으로 나가고, 화면에서 받아 쓰는 파일이 아니다
+    manifest: true,
     cssMinify: true,
     sourcemap: false,
     target: 'es2020',

@@ -508,6 +508,19 @@ function preCompressed(req, res, next) {
     // 그걸 모르면 br 만 받는 쪽의 것을 gzip 만 받는 쪽에 줄 수 있다
     res.vary('Accept-Encoding');
     staticHeaders(res, path.join(frontendDist, req.path));
+    // ── 미리 압축한 것이 **캐시를 잃고 있었다** ── (2026-10-15)
+    //
+    // `staticHeaders` 는 두 경우만 적는다 — 늘 새로 받을 것(`no-cache`)과 이름에
+    // 해시가 박힌 것(1년 immutable). 나머지는 「아래 `maxAge` 가 맡는다」고 적어뒀는데,
+    // **그 maxAge 는 `express.static` 의 것**이다. 이 길은 `res.sendFile` 로 직접
+    // 보내고, 그 기본값은 **0** 이다.
+    //
+    // 그래서 10/13 에 미리 압축을 켠 뒤로 **해시가 없는 압축본이 전부 `max-age=0`**
+    // 으로 나갔다 — 앱 아이콘(`/icons/icon.svg`)이 열 때마다 다시 물어봤다.
+    // 재보고 알았다: 아이콘은 `max-age=0`, vendor 는 1년이었다.
+    if (!res.getHeader('Cache-Control')) {
+      res.set('Cache-Control', process.env.NODE_ENV === 'production' ? 'public, max-age=604800' : 'no-cache');
+    }
     return res.sendFile(file, (err) => {
       if (!err) return;
       // **받다가 끊기면 여기로 온다** — 창을 닫거나 지하철에서 신호가 끊긴 경우다.
@@ -528,6 +541,16 @@ app.use(spaCSP, express.static(frontendDist, {
   etag: true,
   lastModified: true,
   setHeaders: staticHeaders,
+  // ── `/` 는 여기서 내주지 않는다 ── (2026-10-15)
+  //
+  // 기본값은 `/` 에 `index.html` 을 바로 집어 주는 것이다. 그런데 그 길에서는
+  // **미리 압축해 둔 것을 못 쓴다**(위 `preCompressed` 는 확장자를 보고 고르는데
+  // `/` 에는 확장자가 없다) — `compression` 이 **요청마다** 다시 압축했다.
+  // 재보니 `/` 가 3,059바이트, 아래 폴백으로 내려보낸 같은 문서가 2,568바이트였다.
+  //
+  // 그래서 `/` 도 아래 SPA 폴백으로 흘려보낸다. 거기서 미리 압축한 것을 집어 주고
+  // `no-cache` 도 같은 규칙으로 붙는다.
+  index: false,
 }));
 
 // 헬스체크 (프로덕션에서는 최소 정보만)
@@ -542,6 +565,33 @@ app.get('/api/health', (req, res) => {
     memory: { rss: Math.round(mem.rss / 1024 / 1024), heap: Math.round(mem.heapUsed / 1024 / 1024) },
   });
 });
+
+// ── 주소에 맞는 문서가 있나 ── (2026-10-15)
+//
+// 빌드가 `dist/route-html/` 에 주소별 HTML 을 만들어 두고, 어느 주소에 있는지를
+// `dist/route-chunks.json` 에 적어둔다. **뜰 때 한 번** 읽는다 — 요청마다 디스크를
+// 물으면 그 값이 요청 수만큼 들고, 배포 뒤로 파일이 바뀌지 않으므로 한 번이면 맞다.
+//
+// 없으면 조용히 `index.html` 로 간다 — 이건 **빨라지는 장치**이고, 없을 때
+// 화면이 안 뜨면 안 된다.
+let _routeDocs = null;
+function routeDoc(urlPath) {
+  if (_routeDocs === null) {
+    _routeDocs = new Map();
+    try {
+      const meta = JSON.parse(fs.readFileSync(path.join(frontendDist, 'route-chunks.json'), 'utf8'));
+      for (const route of meta.routes || []) {
+        // 빌드 쪽과 **같은 규칙**으로 이름을 만든다 (`/support/notices` → `support__notices.html`)
+        const file = '/route-html/' + route.replace(/^\//, '').replace(/\//g, '__') + '.html';
+        if (fs.existsSync(path.join(frontendDist, file))) _routeDocs.set(route, file);
+      }
+      if (_routeDocs.size > 0) console.log(`[WEB] 주소 ${_routeDocs.size}개는 받을 조각을 미리 적어 보냅니다`);
+    } catch { /* 없으면 index.html 로 간다 */ }
+  }
+  // 끝의 `/` 는 같은 자리로 본다 (`/site/` 로 들어오는 사람이 있다)
+  const clean = urlPath.length > 1 ? urlPath.replace(/\/+$/, '') : urlPath;
+  return _routeDocs.get(clean) || null;
+}
 
 // SPA 폴백 — API가 아닌 모든 요청은 index.html로
 app.get('*', (req, res, next) => {
@@ -560,16 +610,29 @@ app.get('*', (req, res, next) => {
     // Render 무료 판은 CPU 가 0.1 코어다.
     //
     // 6.4KB → br 2.4KB. 빌드할 때 한 번 만들어 둔 것을 그냥 보낸다.
+    //
+    // ── 그리고 **주소에 맞는 문서**가 있으면 그것을 준다 ── (2026-10-15)
+    //
+    // 화면은 주소마다 따로 받는다. 여태 순서가 이랬다 —
+    // `index.html` → `index.js` 받아 **실행한 뒤에야** 「/site 면 SiteHome 이
+    // 필요하네」를 알고 요청한다. 그 마지막이 **왕복 한 번**이고, 배포본에서 재보니
+    // 깨어 있을 때 한 왕복이 **180~200ms** 다(서울 → 오레곤).
+    //
+    // 빌드가 주소마다 그 조각을 미리 적어둔 HTML 을 만들어 둔다
+    // (`frontend/scripts/route-chunks.mjs`). 그것을 주면 브라우저가 HTML 을 읽는
+    // 자리에서 받기 시작해 그 왕복이 겹친다. 없는 주소는 `index.html` 로 간다.
+    const docRel = routeDoc(req.path) || '/index.html';
+
     if (process.env.NODE_ENV === 'production') {
       const accept = String(req.headers['accept-encoding'] || '');
       const have = compressedSet();
       for (const { name, suffix } of ENCODINGS) {
         if (!accept.includes(name)) continue;
-        if (!have.has('/index.html' + suffix)) continue;
+        if (!have.has(docRel + suffix)) continue;
         res.type('.html');
         res.set('Content-Encoding', name);
         res.vary('Accept-Encoding');
-        return res.sendFile(path.join(frontendDist, 'index.html' + suffix), (err) => {
+        return res.sendFile(path.join(frontendDist, docRel + suffix), (err) => {
           if (!err) return;
           if (res.headersSent || err.code === 'ECONNABORTED') return;
           res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
@@ -577,7 +640,7 @@ app.get('*', (req, res, next) => {
       }
     }
 
-    res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+    res.sendFile(path.join(frontendDist, docRel), (err) => {
       if (!err) return;
       // **받다가 끊긴 것은 고장이 아니다** (2026-10-15). 위 `preCompressed` 에서
       // 10/13 에 고친 것과 같은 자리인데 여기만 남아 있었다 — 그리고 이쪽이 훨씬
