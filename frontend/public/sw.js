@@ -27,14 +27,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first strategy (API 요청은 캐시 안 함)
+// Fetch: **화면은 캐시 먼저, 나머지는 네트워크 먼저** (API 요청은 캐시 안 함)
 //
 // 세 가지를 지킨다.
 //
-// 1. 주소로 들어오는 화면(navigate)은 네트워크가 없으면 /index.html 로 돌린다.
+// 1. 주소로 들어오는 화면(navigate)은 **담아둔 /index.html 을 먼저 준다** (아래 5번).
 //    이 앱은 한 페이지짜리라 /support · /history 같은 주소에 해당하는 파일이 따로 없다.
-//    예전에는 그 주소를 캐시에서 찾다 못 찾고 undefined 를 돌려줬다 —
-//    홈 화면에 추가해둔 앱을 비행기 모드에서 열면 그냥 안 떴다.
+//    예전에는 그 주소를 캐시에서 찾다 못 찾고 undefined 를 돌려줬고(비행기 모드에서
+//    홈 화면 앱이 안 떴다), 그 뒤로는 네트워크를 먼저 쳤다 — 그러면 **잠든 서버**에
+//    걸렸다. 10/15 에 담아둔 것을 먼저 주는 쪽으로 바꿨다.
 //
 // 2. 남의 집 것은 캐시하지 않는다. 운동 검색(wger.de)이나 날씨 응답까지 담아두면
 //    캐시가 계속 부풀고, 옛 검색 결과가 되살아난다.
@@ -50,6 +51,54 @@ self.addEventListener('fetch', (event) => {
 
   const sameOrigin = url.origin === self.location.origin;
   const isNavigate = req.mode === 'navigate';
+
+  // ── 5. 화면은 **담아둔 것을 먼저 준다** ── (2026-10-15)
+  //
+  // 여태 주소로 들어오는 화면도 네트워크를 먼저 쳤고, 담아둔 것은 `fetch` 가
+  // **깨졌을 때만** 꺼냈다. 그런데 이 앱이 사는 곳은 **15분 놀면 잠드는 무료 판**이다.
+  //
+  // **잠든 서버는 깨지지 않는다. 느릴 뿐이다.** 거절도 안 하고 그냥 답이 안 온다 —
+  // 그래서 `catch` 에 안 걸리고, 담아둔 화면이 폰에 있는 채로 기다리기만 했다.
+  // 안드로이드 앱은 15초에 포기하고(`MainActivity.LOAD_TIMEOUT_MS`) 오프라인 화면으로
+  // 넘겼다. **한 번이라도 앱을 연 사람의 폰에 화면 한 벌이 있는데 그걸 안 쓴 것이다.**
+  //
+  // 이제 담아둔 것을 그 자리에서 주고, 새 것은 **뒤에서** 받아 담는다 — 다음에 열 때
+  // 적용된다. 이름에 해시가 박힌 파일들이 이미 이렇게 돌고 있다(아래 4번).
+  //
+  // 낡은 화면을 오래 붙들 걱정은 없다: `CACHE_NAME` 이 빌드마다 바뀌므로 배포하면
+  // 새 워커가 새 캐시를 채우고 옛 캐시를 지운다(install·activate).
+  if (sameOrigin && isNavigate) {
+    event.respondWith((async () => {
+      const shell = await caches.match('/index.html');
+      if (shell) {
+        // 뒤에서 새 것을 받아 담는다. **여기서 기다리지 않는다** — 기다리면 고친 의미가 없다.
+        // `waitUntil` 로 붙잡아 두어야 응답을 돌려준 뒤에도 워커가 끝까지 받아온다
+        event.waitUntil(
+          fetch(req)
+            .then((res) => {
+              if (res.status === 200 && res.type === 'basic') {
+                return caches.open(CACHE_NAME).then((c) => c.put('/index.html', res.clone()));
+              }
+            })
+            .catch(() => { /* 못 받아와도 사람은 이미 화면을 보고 있다 */ })
+        );
+        return shell;
+      }
+      // 담아둔 것이 없다 — **깔고 나서 맨 처음 여는 사람**이다. 이때는 서버를 기다린다
+      // (그 기다림은 앱의 오프라인 화면이 「깨우고 있어요」로 받는다)
+      try {
+        const res = await fetch(req);
+        if (res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put('/index.html', clone)).catch(() => {});
+        }
+        return res;
+      } catch {
+        return Response.error();
+      }
+    })());
+    return;
+  }
 
   // 4. 이름에 해시가 박힌 파일은 **캐시를 먼저 본다.**
   //
