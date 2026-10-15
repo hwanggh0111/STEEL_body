@@ -26,23 +26,11 @@ const db = require('./db');
 
 const app = express();
 
-// 프록시를 몇 홉이나 믿을지 — **함부로 믿으면 안 된다** (2026-09-15, 자체 침투 테스트에서 잡음).
-//
-// 예전에는 `1` 로 박아뒀다. 그런데 그러면 req.ip 를 X-Forwarded-For 헤더에서 읽는다.
-// 서버에 **직접**(개발·터널) 닿으면 그 헤더는 공격자가 마음대로 쓴다 — 헤더만 바꿔가며
-// 로그인 실패 IP 잠금 · aiGuard IP 차단 · 전역 rate limit 을 통째로 우회할 수 있었다.
-// (계정별 잠금은 이메일 기준이라 단일 계정 무차별 대입은 그대로 막힌다. 뚫린 건 IP 방어다.)
-//
-// 그래서 **앞에 진짜 프록시가 있다고 아는 곳에서만** 믿는다. 기본값은 0(안 믿음) —
-// req.ip 가 소켓 주소가 되어 헤더 위조가 안 통한다. Render 는 1 홉이라 render.yaml 에서
-// TRUST_PROXY=1 을 넣는다. 안 믿으면 터널에서는 모두가 한 IP 로 합쳐지지만, 그건 안전한 쪽이다.
-const trustProxy = (() => {
-  const v = String(process.env.TRUST_PROXY ?? '').trim().toLowerCase();
-  if (v === '' || v === '0' || v === 'false' || v === 'no') return false; // 헤더를 안 믿는다
-  if (/^\d+$/.test(v)) return Number(v);                                    // 홉 수 (Render=1)
-  return false; // 'true'(모두 신뢰)는 일부러 안 받는다 — 그게 바로 이 구멍이다
-})();
-app.set('trust proxy', trustProxy);
+// 프록시를 몇 홉이나 믿을지 — **함부로 믿으면 안 된다.**
+// 까닭과 10/15 에 「홉 수」를 버린 사연은 config/trustProxy.js 에 적어뒀다.
+// 검사에서도 같은 판정을 써야 해서 따로 뺐다 (`npm run proxy`).
+const { parseTrustProxy } = require('./config/trustProxy');
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
 
 // 보안 헤더
 app.use(helmet({

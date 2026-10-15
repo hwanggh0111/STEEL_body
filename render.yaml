@@ -11,11 +11,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Render 는 앱 앞에 프록시가 1 홉 있다. 그 홉만 믿어 req.ip 를 진짜 클라이언트로 읽는다.
-      # 이 값이 없으면 서버는 X-Forwarded-For 를 안 믿어(기본 0), 모든 요청이 프록시 IP 하나로
-      # 합쳐져 rate limit 이 전체를 함께 막는다. 직접 노출 시 헤더 위조를 막는 것과 같은 스위치다.
+      # 앞에 있는 프록시 중 **사설 주소인 홉만** 믿는다 → req.ip 가 진짜 접속자가 된다.
+      #
+      # 2026-10-15 에 "1" 에서 "private" 으로 바꿨다. Render 는 1 홉이 아니라 XFF 끝에
+      # 내부 주소(10.31.x.x)를 하나 더 붙인다 — 그래서 차단 목록에 사람 IP 가 아니라
+      # 그 내부 주소가 남았고, **한 명이 차단되면 그 홉을 지나는 사람이 전부 막혔다.**
+      # 홉 수를 "2" 로 올리는 것은 답이 아니다(홉이 하나 더 끼면 또 깨지고, 엣지가
+      # 하나뿐인 순간에는 클라이언트가 적어 보낸 값을 그대로 믿는다).
+      # 자세한 까닭은 backend/src/index.js 의 trustProxy 주석에 적어뒀다.
       - key: TRUST_PROXY
-        value: "1"
+        value: private
       - key: JWT_SECRET
         generateValue: true
       # ── 배포 주소는 `steel-body` 다 ── (2026-10-09 에 본인이 정함)

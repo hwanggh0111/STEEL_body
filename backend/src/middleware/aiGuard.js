@@ -35,6 +35,25 @@ const blockedIPs = new Map();       // IP → { until, level, reason }
 /** 우리 자신. 맨 앞에서 화이트리스트로 흘려보내는 주소들과 같은 목록이다 */
 const SELF_IPS = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
 
+// ── 사설 주소는 사람이 아니다 (2026-10-15) ──
+//
+// 10/14 에 차단 목록에 `10.31.78.209` · `10.31.50.190` 이 남아 있었다. Render 내부
+// 프록시 주소다(`TRUST_PROXY` 가 홉 수로 세고 있었다 — index.js 주석 참고).
+// **그걸 막으면 그 홉을 지나는 사람이 전부 막힌다.** 실제로 그랬다.
+//
+// 설정은 고쳤지만, 여기서도 막는다 — 사설 IP 가 차단 목록에 들어오는 것은
+// **그 자체가 「IP 를 잘못 읽고 있다」는 신호**다. 막을 것이 아니라 알아야 할 일이다.
+// 조용히 흘리면 또 못 보고 지나가므로 기록을 남긴다.
+const PRIVATE_V4 = /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
+/** 사람의 공인 IP 가 아닌가 (사설 · 루프백 · 링크로컬 · IPv6 사설 fc00::/7) */
+function isPrivateIp(ip) {
+  if (!ip || ip === 'unknown') return true;
+  const s = String(ip).toLowerCase().replace(/^::ffff:/, ''); // IPv4-mapped 로 속이는 길을 막는다
+  if (s === '::1' || s === '::') return true;
+  if (/^f[cd][0-9a-f]{2}:/.test(s) || /^fe80:/.test(s)) return true;
+  return PRIVATE_V4.test(s);
+}
+
 function block(ip, until, level, reason) {
   if (!ip || ip === 'unknown') return;
   // ── 우리 자신은 안 막는다 (2026-09-29) ──
@@ -48,6 +67,14 @@ function block(ip, until, level, reason) {
   // 자신이 앉아 있고, 관리자는 그것을 풀어야 하나 들여다보게 된다.
   // 적을 이유가 없는 것은 안 적는다.
   if (SELF_IPS.includes(ip)) return;
+  // 사설 주소를 막으라는 요청은 **읽기가 틀렸다는 뜻**이다 (2026-10-15, 위 주석 참고).
+  // 막으면 그 홉을 지나는 사람이 전부 걸리므로 막지 않고, 대신 소리를 낸다.
+  if (isPrivateIp(ip)) {
+    // 종류는 **이미 있는 `WARNING`** 을 쓴다. 새 글자를 만들면 관리자 화면이
+    // 이름표를 모르고 영문 키를 그대로 뿌린다 (`npm run logtypes` 가 그걸 잡는다)
+    addLog('WARNING', `사설 IP 를 막으라는 요청이 왔다 — TRUST_PROXY 설정이 틀렸을 수 있다: ${ip} (${reason})`, ip);
+    return;
+  }
   // **약한 것으로 덮어쓰지 않는다.** 파일 쪽(`db.blockIp`)은 이미 그렇게 하는데
   // 램만 덮어쓰고 있었다. 그러면 둘이 어긋난다 — 영구 차단된 주소를 관리자가
   // 「60분 차단」으로 다시 걸면 램은 60분이 되고 파일은 그대로 forever 다.
@@ -70,6 +97,13 @@ function hydrateBlocks() {
   let n = 0;
   try {
     for (const row of db.listBlocks()) {
+      // 10/14 에 남은 `10.31.x.x` 같은 것 — 사람이 아니라 프록시 주소다.
+      // 올려두면 그 홉을 지나는 사람이 전부 막힌다. 올리지 않고 파일에서도 지운다
+      // (손으로 비우러 Neon 을 열지 않아도 되게).
+      if (isPrivateIp(row.ip)) {
+        try { db.unblockIp(row.ip); } catch { /* 못 지워도 램에 안 올리는 것이 중요하다 */ }
+        continue;
+      }
       const until = row.until === 'forever' ? Infinity : new Date(row.until).getTime();
       limitedSet(blockedIPs, row.ip, { until, level: row.level, reason: row.reason });
       n++;
@@ -848,6 +882,8 @@ module.exports.unblockIP = (ip) => {
   return r;
 };
 module.exports.hydrateBlocks = hydrateBlocks;
+// 보안 라우트도 같은 판정을 쓴다 — 두 곳에 적어두면 반드시 어긋난다
+module.exports.isPrivateIp = isPrivateIp;
 module.exports.policy = policy;
 module.exports.THRESHOLDS = { RATE_STEPS, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
 

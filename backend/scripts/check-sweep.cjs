@@ -58,12 +58,15 @@ const seed = {
   verifyCodes: [
     { email: 'cold@sweep.local', code: '111111', createdAt: 아주전, expiresAt: 아주전 },
   ],
+  // **사설 주소(10.x)로 심지 않는다** (2026-10-15). 뜰 때 사설 IP 차단을 걷어내게
+  // 하면서(aiGuard 의 hydrateBlocks) 10.0.0.9 는 **식었는지와 무관하게** 걷혔다 —
+  // 그러면 이 검사는 만료 걷기가 고장나도 통과한다. 문서용 공인 대역(TEST-NET-3)으로 심는다
   loginFails: [
-    { ip: '10.0.0.1', count: 3, last: now - 3 * 하루 },
-    { ip: '10.0.0.2', count: 1, last: now },
+    { ip: '203.0.113.1', count: 3, last: now - 3 * 하루 },
+    { ip: '203.0.113.2', count: 1, last: now },
   ],
   blocks: [
-    { ip: '10.0.0.9', until: new Date(now - 하루).toISOString(), reason: '식은 차단' },
+    { ip: '203.0.113.9', until: new Date(now - 하루).toISOString(), reason: '식은 차단' },
   ],
   workouts: [], inbody: [], measures: [], myRoutines: [], notices: [], photos: [],
   suspensions: [], blacklist: [], reports: [], abuseLogs: [], ratings: [],
@@ -128,7 +131,7 @@ function waitHealth(child) {
     ok('  만료된 refresh token 을 걷었다', (after.refreshTokens || []).map((t) => t.token_hash), ['alivehash']);
     ok('  다 쓴 인증번호를 걷었다', (after.verifyCodes || []).length, 0);
     ok('  지날 때가 지난 차단을 걷었다', (after.blocks || []).length, 0);
-    ok('  식은 로그인 실패 줄을 걷었다', (after.loginFails || []).map((f) => f.ip), ['10.0.0.2']);
+    ok('  식은 로그인 실패 줄을 걷었다', (after.loginFails || []).map((f) => f.ip), ['203.0.113.2']);
     ok('  유예가 끝난 계정을 지웠다', ids.includes(51), false);
     ok('  아직 유예 안인 계정은 그대로다', ids.includes(52), true);
     ok('  평범한 계정은 그대로다', ids.includes(53), true);

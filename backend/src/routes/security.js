@@ -436,6 +436,14 @@ router.post('/ai-block', adminAuth, (req, res) => {
   if (isNaN(Number(minutes)) || Number(minutes) <= 0 || Number(minutes) > 525600) {
     return res.status(400).json({ error: '차단 시간은 1분~365일 범위여야 해요' });
   }
+  // 사설 주소는 사람이 아니라 프록시다 — 막으면 그 홉을 지나는 사람이 전부 걸린다
+  // (2026-10-15, aiGuard 의 isPrivateIp 주석 참고). 조용히 거르면 「차단되었어요」라고
+  // 말해놓고 아무 일도 안 한 것이 되므로 여기서 까닭까지 알려준다
+  if (aiGuard.isPrivateIp(ip)) {
+    return res.status(400).json({
+      error: '내부(사설) 주소는 막을 수 없어요. 프록시 주소라서 막으면 다른 사람까지 함께 막힙니다',
+    });
+  }
   const blockedUntil = aiGuard.manualBlock(ip, Number(minutes));
   addLog('ai-block', `AI Guard IP 수동 차단: ${ip} (${minutes}분)`);
   res.json({ message: `${ip}가 ${minutes}분간 차단되었어요`, blockedUntil });
