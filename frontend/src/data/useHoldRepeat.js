@@ -31,7 +31,7 @@ const 줄이는비 = 0.85;     // 간격이 점점 짧아진다 — 멀리 갈 �
  * @param {(isRepeat: boolean) => boolean|void} action
  *   누를 때마다 부른다. 첫 누름은 `false`, 꾹 눌러 이어지는 동안은 `true`.
  *   `false` 를 돌려주면 그 자리에서 멈춘다.
- * @returns {{onPointerDown: Function, onClick: Function, onKeyDown: Function}}
+ * @returns {{onPointerDown: Function, onClick: Function}}
  *   단추에 그대로 펼쳐 넣는다 — `<button {...hold(() => …)} />`
  */
 export function useHoldRepeat(action) {
@@ -88,18 +88,15 @@ export function useHoldRepeat(action) {
 
   // `pointerdown` 에서 이미 한 번 했으므로 **click 은 흘린다.**
   // 다만 키보드로 누른 것(Enter · Space)은 `pointerdown` 이 없다 —
-  // 그때는 `detail === 0` 이라 그것만 받는다
+  // 그때는 `detail === 0` 이라 그것만 받는다.
+  //
+  // **키보드 꾹 누르기를 따로 만들지 않는다.** 처음에 `keydown` 의 `e.repeat` 로
+  // 이어가게 했는데, 브라우저는 단추에서 Enter 를 누르고 있으면 **click 을 스스로
+  // 되풀이해 보낸다** — 그래서 한 번 누를 때 두 번 올라갔다. 되풀이는 브라우저에
+  // 맡기고 여기서는 click 만 센다. (Space 는 떼는 순간 한 번만 온다 — 그게 맞다)
   const onClick = useCallback((e) => {
     if (e.detail === 0) act.current(false);
   }, []);
 
-  // 키보드로도 꾹 누를 수 있게. 브라우저가 키를 되풀이해 보내주므로 한 번씩만 하면 된다
-  const onKeyDown = useCallback((e) => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    if (!e.repeat) return;            // 첫 눌림은 위의 click 이 받는다
-    e.preventDefault();
-    act.current(true);
-  }, []);
-
-  return { onPointerDown, onClick, onKeyDown };
+  return { onPointerDown, onClick };
 }

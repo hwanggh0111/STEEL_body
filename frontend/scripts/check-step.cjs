@@ -49,7 +49,7 @@ const grab = (name, kind = 'function') => {
   throw new Error(`${name} 의 끝을 못 찾았다`);
 };
 
-const bumpAt = src.indexOf('const bump = (dir) => {');
+const bumpAt = src.indexOf('const bump = (dir');
 if (bumpAt < 0) { console.log('FAIL NumberStep.jsx 에 bump 가 없다'); process.exit(1); }
 let depth = 0, bumpSrc = '';
 for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
@@ -59,16 +59,18 @@ for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
 
 const make = ({ value, step = 1, min = 0, max = 9999, startAt }) => {
   let now = value;
-  const onChange = (v) => { now = v; };
+  // 흉내: `set` 은 적어두고 바깥에 알린다. `mine` 은 컴포넌트의 ref 자리
+  const mine = { current: null };
+  const set = (v) => { mine.current = v; now = v; };
   // eslint-disable-next-line no-new-func
-  const fn = new Function('num', 'tidy', 'value', 'onChange', 'step', 'min', 'max', 'startAt',
+  const fn = new Function('num', 'tidy', 'value', 'set', 'mine', 'step', 'min', 'max', 'startAt',
     `${bumpSrc}; return bump;`);
   const numFn = new Function(`${grab('num')}; return num;`)();
   const tidyFn = new Function(`${grab('tidy')}; return tidy;`)();
   return {
-    bump: (dir) => {
-      const b = fn(numFn, tidyFn, now, onChange, step, min, max, startAt);
-      return b(dir);
+    bump: (dir, isRepeat = false) => {
+      const b = fn(numFn, tidyFn, now, set, mine, step, min, max, startAt);
+      return b(dir, isRepeat);
     },
     get value() { return now; },
   };
@@ -119,8 +121,27 @@ console.log('\n── 화면이 그렇게 쓰고 있는가 ──');
   ok('횟수는 1회씩', /tr-r[\s\S]{0,200}step=\{1\}/.test(page), true);
   // **자판을 막지 않는다.** 이상한 값은 눌러서 쳐야 한다
   const comp = src;
-  ok('칸은 그대로 쳐서 넣을 수 있다', /onChange=\{\(e\) => onChange\(e\.target\.value\)\}/.test(comp), true);
+  ok('칸은 그대로 쳐서 넣을 수 있다', /onChange\(e\.target\.value\)/.test(comp), true);
   ok('읽기 전용으로 잠그지 않았다', /readOnly/.test(comp), false);
+}
+
+console.log('\n── 꾹 누르는 동안 올라가다 멈추지 않는가 ──');
+{
+  // **처음에 여기서 두 번 넘어졌다.**
+  //   ① props 를 그대로 봤다 → 40ms 간격에서 React 가 아직 안 그려서 같은 값을
+  //      다시 읽었다. 올라가다 멈춘 것처럼 보인다
+  //   ② 「바깥 값이 내가 적어둔 것과 다르면 바깥을 따른다」로 고쳤다 → 연달아 두 번
+  //      누르면 **첫 번째 그림이 도착할 때 둘째가 지워졌다**
+  // 그래서 **누를 때마다(isRepeat=false) 바깥을 다시 읽고, 이어지는 동안은 적어둔 것**을 쓴다.
+  const comp = src;
+  ok('이어지는 동안은 적어둔 값에서 센다', /isRepeat && mine\.current !== null \? mine\.current : value/.test(comp), true);
+  ok('새로 누를 때는 바깥 값을 다시 읽는다', /bump\(-1, isRepeat\)/.test(comp), true);
+  ok('직접 치면 적어둔 값을 버린다', /mine\.current = null; onChange\(e\.target\.value\)/.test(comp), true);
+
+  // 키보드 꾹 누르기를 따로 만들면 **한 번에 두 번 올라간다** —
+  // 브라우저가 Enter 를 누르고 있을 때 click 을 스스로 되풀이해 보낸다
+  const hold = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'useHoldRepeat.js'), 'utf8');
+  ok('keydown 으로 되풀이하지 않는다 (click 이 두 번 세어진다)', /onKeyDown/.test(hold), false);
 }
 
 console.log('\n── 꾹 누르기가 손을 떼는 것을 window 에서 받는가 ──');

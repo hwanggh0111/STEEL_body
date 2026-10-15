@@ -16,6 +16,7 @@
 // 숫자로 바꿔 돌려주면 `''` 가 `0` 이 되어 **「맨몸」이 「0kg」으로 바뀐다** —
 // 그 둘은 다른 말이다. 그래서 들어온 모양 그대로 글자로 돌려준다.
 
+import { useRef } from 'react';
 import { useHoldRepeat } from '../data/useHoldRepeat';
 
 /** 글자 → 수. 비었거나 이상하면 null (0 과 구별해야 한다) */
@@ -45,32 +46,47 @@ export default function NumberStep({
   placeholder,
   inputMode = 'decimal',
 }) {
-  const bump = (dir) => {
-    const now = num(value);
+  // ── 꾹 누르는 동안은 **방금 올린 값**을 봐야 한다 ──
+  //
+  // props 를 그대로 보면 안 된다. 꾹 누르면 간격이 40ms 까지 짧아지는데 React 는
+  // state 를 **다음 그림에서** 반영한다 — 아직 안 그려졌으면 같은 값을 다시 읽어
+  // **올라가다 멈춘 것처럼** 보인다.
+  //
+  // 그래서 올린 값을 여기 적어두고 이어서 센다. 다만 **새로 누를 때마다 바깥 값을
+  // 다시 읽는다**(`isRepeat` 가 false 인 순간) — 그 사이에 지난 기록 미리 채우기 ·
+  // 드롭세트 · 직접 치기로 값이 바뀌었을 수 있고, 그때는 그쪽이 맞다.
+  // 「바깥 값이 내가 적어둔 것과 다르면 바깥을 따른다」로 했다가, 연달아 두 번
+  // 누르면 **첫 번째 그림이 도착할 때 둘째가 지워지는** 자리를 만들었다.
+  const mine = useRef(null);
+  const set = (v) => { mine.current = v; onChange(v); };
+
+  const bump = (dir, isRepeat) => {
+    const base = isRepeat && mine.current !== null ? mine.current : value;
+    const now = num(base);
     // 비어 있으면 첫 ＋ 는 정해둔 자리에서 시작한다.
     // **− 는 비어 있을 때 아무 일도 안 한다** — 맨몸보다 가벼운 것은 없다
     if (now === null) {
       if (dir < 0) return false;
-      onChange(tidy(startAt ?? step));
+      set(tidy(startAt ?? step));
       return true;
     }
     const next = now + step * dir;
     if (next < min) {
       if (now === min) return false;        // 이미 바닥이다 — 꾹 누르기를 멈춘다
-      onChange(tidy(min));
+      set(tidy(min));
       return true;
     }
     if (next > max) {
       if (now === max) return false;
-      onChange(tidy(max));
+      set(tidy(max));
       return true;
     }
-    onChange(tidy(next));
+    set(tidy(next));
     return true;
   };
 
-  const minus = useHoldRepeat(() => bump(-1));
-  const plus = useHoldRepeat(() => bump(1));
+  const minus = useHoldRepeat((isRepeat) => bump(-1, isRepeat));
+  const plus = useHoldRepeat((isRepeat) => bump(1, isRepeat));
 
   const btn = {
     flexShrink: 0, width: 42, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -96,7 +112,8 @@ export default function NumberStep({
           className="input"
           inputMode={inputMode}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          // 직접 치면 적어둔 값은 버린다 — 사람이 친 것이 맞다
+          onChange={(e) => { mine.current = null; onChange(e.target.value); }}
           placeholder={placeholder}
           style={{ flex: 1, minWidth: 0, textAlign: 'center' }}
         />
