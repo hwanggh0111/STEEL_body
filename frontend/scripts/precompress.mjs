@@ -29,7 +29,9 @@ const DIST = resolve(HERE, '../dist');
 
 // 압축해서 이득이 있는 것만. 그림(png·jpg·webp)과 글꼴(woff2)은 이미 압축돼 있어
 // 다시 압축하면 **커지거나 그대로**다 — 그런 파일에 두 벌을 더 두면 디스크만 먹는다
-const WORTH = new Set(['.js', '.css', '.html', '.svg', '.json', '.webmanifest', '.map', '.txt']);
+// **서버 쪽 목록(backend/src/index.js 의 PRECOMPRESS_EXT)과 맞춰둔다.**
+// 한쪽에만 적으면 만들어 놓고 안 쓰거나, 쓰려는데 없다
+const WORTH = new Set(['.js', '.css', '.html', '.svg', '.json', '.webmanifest', '.map', '.txt', '.xml']);
 
 // 1KB 아래는 건드리지 않는다. 헤더 몇 줄 값어치도 안 되고, 압축하면 커지는 일도 있다
 const MIN = 1024;

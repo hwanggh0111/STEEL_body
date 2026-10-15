@@ -68,7 +68,52 @@ for (const file of walk(ROOT)) {
 
 console.log('── 한글이 떨어지는 자리가 있나 ──');
 
-if (bad.length === 0) {
+
+// ── 첫 화면에서 받는 글꼴이 다시 불어나지 않았는가 ── (2026-10-15)
+let fontBad = 0;
+//
+// 재봤더니 **첫 화면에서 한글 글꼴 1,203.6KB** 를 받고 있었다 — 앱 첫 짐(JS 81.3KB)의
+// 열네 배다. 굵기 하나에 150~165KB 고, 명조는 **화면 넷의 첫 줄 한 줄**에 쓰면서
+// 236.6KB 였다.
+//
+// 줄여서 **646.5KB (−557.1KB · 46%)** 가 됐다 —
+//   · 한글 굵기 다섯 → 셋 (300·500 을 뺐다. 그 자리는 가장 가까운 굵기로 그려진다)
+//   · 명조는 **첫 화면에서 빼고** 뜬 뒤(idle)에 받는다 (`data/lateFonts.js`)
+//
+// 이 자리는 **글꼴을 하나 더 쓰고 싶을 때 조용히 되돌아간다.** `index.html` 에
+// `&family=…` 한 줄을 더하는 일은 쉽고, 그 값은 **폰에서만 치른다.**
+// 그래서 못을 박는다.
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf-8');
+  const urls = [...html.matchAll(/https:\/\/fonts\.googleapis\.com\/css2\?[^"]+/g)].map((m) => m[0]);
+
+  const say = (name, got, want) => {
+    const pass = JSON.stringify(got) === JSON.stringify(want);
+    if (!pass) fontBad += 1;
+    console.log((pass ? 'OK   ' : 'FAIL ') + name + ' → ' + JSON.stringify(got)
+      + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
+  };
+
+  console.log('\n── 첫 화면에서 받는 글꼴 ──');
+  say('글꼴 주소가 세 군데다 (preload · stylesheet · noscript)', urls.length, 3);
+  // 세 줄이 어긋나면 하나는 옛 목록을 받는다
+  say('세 줄이 모두 같다', new Set(urls).size, 1);
+  const url = urls[0] || '';
+  say('한글은 굵기 셋만 받는다', /IBM\+Plex\+Sans\+KR:wght@400;600;700/.test(url), true);
+  say('한글 굵기 300·500 은 안 받는다 (한 굵기가 150KB 다)',
+    /IBM\+Plex\+Sans\+KR:wght@[^&]*\b(300|500)\b/.test(url), false);
+  say('명조는 첫 화면에서 안 받는다 (236.6KB · 네 줄에 쓴다)', /Nanum/.test(url), false);
+  say('명조를 나중에 받는 길이 있다',
+    fs.existsSync(path.join(__dirname, '..', 'src', 'data', 'lateFonts.js')), true);
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.jsx'), 'utf-8');
+  say('앱이 뜬 뒤 그 길을 부른다', /loadLateFonts\(\)/.test(main), true);
+  // 명조가 아직 안 왔을 때도 한글이 보여야 한다 — `.serif-display` 의 폴백
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'globals.css'), 'utf-8');
+  say('명조가 오기 전에도 세리프로 보인다', /\.serif-display[\s\S]{0,160}serif;/.test(css), true);
+}
+
+
+if (bad.length === 0 && fontBad === 0) {
   // 몇 자리를 지키고 있는지도 말해준다 — 0 을 통과시키는 검사는 검사가 아니다
   let guarded = 0;
   for (const file of walk(ROOT)) {
@@ -82,6 +127,8 @@ if (bad.length === 0) {
   process.exit(0);
 }
 
+if (fontBad) console.log(`실패   첫 화면에서 받는 글꼴이 ${fontBad}건 어긋납니다`);
+ if (bad.length === 0) process.exit(1);
 console.log(`실패   ${bad.length} 자리에서 한글이 기기 기본 글꼴로 떨어집니다`);
 console.log('');
 for (const b of bad) {

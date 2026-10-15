@@ -454,7 +454,9 @@ const staticHeaders = (res, filePath) => {
 // 여기서는 **파일을 집어 주기만** 한다 — 압축에 드는 CPU 가 0 이 된다.
 //
 // 개발에서는 안 쓴다 — 화면은 vite 가 준다. 그래서 운영일 때만 켠다.
-const PRECOMPRESS_EXT = new Set(['.js', '.css', '.svg', '.json', '.map']);
+// 미리 압축해 둔 것을 집어 줄 확장자. 빌드 쪽(precompress.mjs)의 목록과 맞춰둔다 —
+// 한쪽에만 적으면 **만들어 놓고 안 쓰거나, 쓰려는데 없다**
+const PRECOMPRESS_EXT = new Set(['.js', '.css', '.svg', '.json', '.map', '.html', '.webmanifest', '.txt', '.xml']);
 const ENCODINGS = [
   { name: 'br', suffix: '.br' },
   { name: 'gzip', suffix: '.gz' },
@@ -549,6 +551,32 @@ app.get('*', (req, res, next) => {
     // 같은 규칙이다. 여기만 빼먹으면 `/home` 처럼 **주소로 바로 들어온 사람**만
     // 옛 화면을 보게 된다 (앱·PWA 로 쓰는 사람이 대부분 그 길이다)
     res.set('Cache-Control', 'no-cache');
+
+    // ── 이 문서도 미리 압축해 둔 것을 집어 준다 ── (2026-10-15)
+    //
+    // **앱에서 들어오는 사람은 전부 이 길을 지난다**(`/home` · `/train` …
+    // 주소에 해당하는 파일이 없으니 전부 여기로 떨어진다). 그래서 이 앱에서
+    // 제일 자주 나가는 문서인데, 여태 `compression` 이 **요청마다** 압축했다 —
+    // Render 무료 판은 CPU 가 0.1 코어다.
+    //
+    // 6.4KB → br 2.4KB. 빌드할 때 한 번 만들어 둔 것을 그냥 보낸다.
+    if (process.env.NODE_ENV === 'production') {
+      const accept = String(req.headers['accept-encoding'] || '');
+      const have = compressedSet();
+      for (const { name, suffix } of ENCODINGS) {
+        if (!accept.includes(name)) continue;
+        if (!have.has('/index.html' + suffix)) continue;
+        res.type('.html');
+        res.set('Content-Encoding', name);
+        res.vary('Accept-Encoding');
+        return res.sendFile(path.join(frontendDist, 'index.html' + suffix), (err) => {
+          if (!err) return;
+          if (res.headersSent || err.code === 'ECONNABORTED') return;
+          res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
+        });
+      }
+    }
+
     res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
       if (!err) return;
       // **받다가 끊긴 것은 고장이 아니다** (2026-10-15). 위 `preCompressed` 에서
