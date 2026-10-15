@@ -163,6 +163,32 @@ const within = (p, ms) => Promise.race([
     ok('받아온 새 화면을 담아뒀다 (다음에 열면 이것)', await after.text(), '새 화면');
   }
 
+  console.log('\n── 담아두는 것은 늘 /index.html 인가 ──');
+  {
+    // **오늘 넣은 둘이 서로 어긋나던 자리다.**
+    //
+    // 서버는 주소마다 다른 문서를 준다 — `/train` 으로 들어오면 그 화면 조각 열여덟
+    // 개를 미리 받으라고 적어 보낸다. 빨라지는 장치다.
+    //
+    // 그런데 그 답을 **껍데기로 담으면** 그 뒤로 모든 주소가 그것을 쓴다 —
+    // 다음에 `/site` 를 열 때 **train 조각 열여덟 개를 미리 받는다.** 안 쓸 것을.
+    let 받은주소 = [];
+    const fetchImpl = async (r) => {
+      const url = typeof r === 'string' ? r : r.url;
+      받은주소.push(url);
+      return mkRes(url.includes('index.html') ? '공용 껍데기' : '주소별 문서');
+    };
+    const caches = makeCaches();
+    const w = loadWorker({ caches, fetchImpl });
+    await w.install();
+
+    const { answered, waits } = w.fire(req(ORIGIN + '/train', { mode: 'navigate' }));
+    await answered;
+    await Promise.all(waits);
+    ok('껍데기는 /index.html 을 따로 받아서 담는다', 받은주소.some((u) => u.includes('/index.html')), true);
+    ok('주소별 문서를 껍데기로 담지 않는다', await (await caches.match('/index.html')).text(), '공용 껍데기');
+  }
+
   console.log('\n── 깔고 나서 맨 처음 여는 사람 (담아둔 것이 없다) ──');
   {
     const fetchImpl = async () => mkRes('서버가 준 화면');

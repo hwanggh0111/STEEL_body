@@ -69,29 +69,38 @@ self.addEventListener('fetch', (event) => {
   // 새 워커가 새 캐시를 채우고 옛 캐시를 지운다(install·activate).
   if (sameOrigin && isNavigate) {
     event.respondWith((async () => {
+      // ── 담아두는 것은 **늘 `/index.html`** 이다 ── (2026-10-15)
+      //
+      // 서버는 주소마다 다른 문서를 준다 — `/train` 으로 들어오면 그 화면 조각 열여덟
+      // 개를 **미리 받으라고 적어** 보낸다(backend 의 `routeDoc`). 빨라지는 장치다.
+      //
+      // 그런데 그 답을 **껍데기로 담으면 안 된다.** 담아둔 껍데기는 그 뒤로 **모든
+      // 주소**에 쓰이므로, `/train` 문서를 담아두면 다음에 `/site` 를 열 때
+      // **train 조각 열여덟 개를 미리 받는다.** 안 쓸 것을 받는 셈이다.
+      //
+      // 그래서 **사람에게는 주소에 맞는 문서를 주고, 담아두는 것은 `/index.html` 을
+      // 따로 받아서** 한다. 껍데기는 어느 주소에서나 맞아야 한다.
+      const stash = () => fetch('/index.html')
+        .then((res) => {
+          if (res.status === 200 && res.type === 'basic') {
+            return caches.open(CACHE_NAME).then((c) => c.put('/index.html', res.clone()));
+          }
+        })
+        .catch(() => { /* 못 받아와도 사람은 이미 화면을 보고 있다 */ });
+
       const shell = await caches.match('/index.html');
       if (shell) {
-        // 뒤에서 새 것을 받아 담는다. **여기서 기다리지 않는다** — 기다리면 고친 의미가 없다.
-        // `waitUntil` 로 붙잡아 두어야 응답을 돌려준 뒤에도 워커가 끝까지 받아온다
-        event.waitUntil(
-          fetch(req)
-            .then((res) => {
-              if (res.status === 200 && res.type === 'basic') {
-                return caches.open(CACHE_NAME).then((c) => c.put('/index.html', res.clone()));
-              }
-            })
-            .catch(() => { /* 못 받아와도 사람은 이미 화면을 보고 있다 */ })
-        );
+        // 뒤에서 새 껍데기를 받아 담는다. **여기서 기다리지 않는다** — 기다리면 고친
+        // 의미가 없다. `waitUntil` 로 붙잡아야 응답을 돌려준 뒤에도 워커가 끝까지 받는다
+        event.waitUntil(stash());
         return shell;
       }
       // 담아둔 것이 없다 — **깔고 나서 맨 처음 여는 사람**이다. 이때는 서버를 기다린다
-      // (그 기다림은 앱의 오프라인 화면이 「깨우고 있어요」로 받는다)
+      // (그 기다림은 앱의 오프라인 화면이 「깨우고 있어요」로 받는다).
+      // 이 한 번은 **주소에 맞는 문서**를 주는 것이 맞다 — 미리 받을 조각이 적혀 있다
       try {
         const res = await fetch(req);
-        if (res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put('/index.html', clone)).catch(() => {});
-        }
+        event.waitUntil(stash());
         return res;
       } catch {
         return Response.error();
