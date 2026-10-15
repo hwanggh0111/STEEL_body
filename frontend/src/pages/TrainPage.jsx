@@ -12,6 +12,7 @@ import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
 import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
 import VoiceSet from '../components/VoiceSet';
+import NumberStep from '../components/NumberStep';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import { toast } from '../components/Toast';
@@ -838,22 +839,31 @@ export default function TrainPage() {
               </svg>
             </button>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-              <div>
-                <label className="label" htmlFor="tr-w">무게 kg</label>
-                <input id="tr-w" className="input" inputMode="decimal" value={weight}
-                  onChange={(e) => setWeight(e.target.value)} placeholder="맨몸" />
-              </div>
+            {/* ── 자판을 안 부르고 넣는다 ── (2026-10-15)
+                여태 칸 셋 다 치는 것뿐이었다. 그런데 **자판이 화면 아래 1/3 을 먹는다** —
+                바로 아래의 원판 안내 · 저장 단추 · 아래 탭바가 그 뒤로 들어간다.
+                지난번 80kg 에서 82.5 로 올리는 데 손가락이 다섯 번 갔고, 그게 세트마다다.
+
+                **무게는 2.5kg** (원판 1.25kg 짝 — 바에 꽂는 제일 작은 단위다),
+                **횟수는 1회.** 꾹 누르면 이어진다. 칸은 그대로 둬서 이상한 값은
+                눌러서 친다 — 자판을 막는 게 아니라 **안 부르게** 하는 것이다.
+
+                세트 수는 ± 를 안 붙였다. 3↔5 처럼 **한 번에 정하는 값**이고,
+                칸 셋에 단추가 여섯이면 좁은 폰(360)에서 숫자가 안 보인다. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1.35fr)', gap: 8, marginBottom: 10 }}>
+              <NumberStep
+                id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
+                step={2.5} min={0} max={999} startAt={2.5} placeholder="맨몸" inputMode="decimal"
+              />
               <div>
                 <label className="label" htmlFor="tr-s">세트</label>
                 <input id="tr-s" className="input" inputMode="numeric" value={sets}
-                  onChange={(e) => setSets(e.target.value)} />
+                  onChange={(e) => setSets(e.target.value)} style={{ textAlign: 'center' }} />
               </div>
-              <div>
-                <label className="label" htmlFor="tr-r">횟수</label>
-                <input id="tr-r" className="input" inputMode="numeric" value={reps}
-                  onChange={(e) => setReps(e.target.value)} />
-              </div>
+              <NumberStep
+                id="tr-r" label="횟수" value={reps} onChange={setReps}
+                step={1} min={1} max={999} startAt={1} inputMode="numeric"
+              />
             </div>
 
             {/* ── 바에 뭘 꽂나 ── (2026-10-05)
