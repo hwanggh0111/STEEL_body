@@ -492,8 +492,10 @@ function preCompressed(req, res, next) {
     if (!accept.includes(name)) continue;
     if (!have.has(req.path + suffix)) continue;
     const file = path.join(frontendDist, req.path + suffix);
-    // `..` 로 디렉터리를 벗어나는 길은 여기서 끊는다 (express.static 과 같은 선이다)
-    if (!file.startsWith(frontendDist)) return next();
+    // `..` 로 디렉터리를 벗어나는 길은 여기서 끊는다 (express.static 과 같은 선이다).
+    // 경계에 구분자를 붙인다 — 안 붙이면 `dist` 옆의 `dist-something` 도 통과한다
+    // (지금은 압축본 목록에 없는 길이라 닿지 않지만, 선을 그을 때 제대로 긋는다)
+    if (!file.startsWith(frontendDist + path.sep)) return next();
 
     // **압축본을 주지만 알맹이의 종류를 적어야 한다** — `.br` 로 종류를 정하게 두면
     // `application/octet-stream` 이 되어 브라우저가 스크립트로 안 읽는다.
@@ -548,7 +550,15 @@ app.get('*', (req, res, next) => {
     // 옛 화면을 보게 된다 (앱·PWA 로 쓰는 사람이 대부분 그 길이다)
     res.set('Cache-Control', 'no-cache');
     res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
-      if (err) res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
+      if (!err) return;
+      // **받다가 끊긴 것은 고장이 아니다** (2026-10-15). 위 `preCompressed` 에서
+      // 10/13 에 고친 것과 같은 자리인데 여기만 남아 있었다 — 그리고 이쪽이 훨씬
+      // 자주 지난다. 앱·PWA 로 들어오는 사람은 **매번 이 길로 index.html 을 받는다.**
+      // 지하철에서 신호가 끊기거나 창을 닫으면 몸통이 나가는 중에 콜백이 불리고,
+      // 거기서 `res.status(500)` 을 부르면 「헤더를 이미 보냈다」가 터진다 —
+      // 사람에게 가지도 않으면서 기록만 더럽힌다
+      if (res.headersSent || err.code === 'ECONNABORTED') return;
+      res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
     });
   });
 });
