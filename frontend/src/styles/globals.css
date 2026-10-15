@@ -88,6 +88,39 @@ button:active:not(:disabled),
 .tab-item:active {
   transform: scale(0.985);
 }
+
+/* ─── 손가락으로 닿게 ─────────────────── */
+/* 마우스로는 16px 짜리 ✕ 도 눌린다. **손가락은 아니다** — 접촉면이 그만하지 않다.
+   안드로이드·iOS 둘 다 누르는 것은 최소 44px 를 권한다.
+
+   세어보니 **44px 아래인 단추가 151 자리**였다(`npm run tap`). 곁다리 단추들이다 —
+   「이 달 전체」 23px · 「취소」 24px · 「지우기」 27px. 손으로 하나씩 키울 일이
+   아니고, 키우면 **주된 단추와 구별이 안 된다.**
+
+   그래서 **누르는 기계에서만** 키운다. `pointer: coarse` 는 마우스가 아닌 기계다 —
+   폰 · 태블릿이 걸리고 PC 는 그대로다. 보이는 생김새(글자 크기 · 안쪽 여백 · 테두리)는
+   건드리지 않는다. 키는 것은 **닿는 높이**뿐이고, 단추는 제 안의 글자를 알아서
+   가운데에 둔다.
+
+   격자 칸(기록의 벽 · 몸 지도)은 `<span>` 이라 여기 안 걸린다 — 걸리면 칸마다 44px 가
+   되어 서로 겹치고, 옆 날짜가 눌린다. 그래서 단추에만 건다.
+   그래도 작아야 하는 단추가 생기면 `.tap-tight` 를 붙인다.
+
+   `!important` 를 쓴 까닭 — 이 앱의 단추는 **거의 다 인라인 스타일**이고, 그중
+   열여섯 자리가 `minHeight: 38` 처럼 44 아래를 직접 적어뒀다. 인라인은 바깥 CSS 를
+   이긴다. 그 열여섯을 손으로 고치면 **PC 에서도 같이 커진다** — PC 는 마우스라
+   키울 이유가 없다. 여기서만 덮어쓰는 것이 맞는 자리다. */
+@media (pointer: coarse) {
+  button:not(.tap-tight),
+  [role="button"]:not(.tap-tight),
+  summary:not(.tap-tight) {
+    min-height: 44px !important;
+  }
+  /* 글 안에 섞여 있는 글자 단추는 줄 높이를 밀어내지 않게 둔다 */
+  .link-inline:not(.tap-tight) {
+    min-height: 0 !important;
+  }
+}
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
