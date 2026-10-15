@@ -15,6 +15,8 @@ import { pickReference } from '../data/overlayShot';
 import { CHART } from '../data/chartColors';
 import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/compare';
 import { downloadable, dataUrlToBlob } from '../data/photoFile';
+import { toFiles, shareFiles, shareSheetLikely } from '../data/sharePhotos';
+import { mergeBeforeAfter } from '../data/mergeShots';
 
 // ─────────────────────────────────────────────────────────────
 // 비교 — 2026-09-02 에 다시 짰다.
@@ -351,6 +353,25 @@ export default function ComparePage({ embedded = false }) {
       const files = downloadable(data);
       if (files.length === 0) { toast('내려받을 사진이 없어요'); return; }
 
+      // ── 폰이면 공유 시트로 넘긴다 ── (2026-10-15)
+      //
+      // 아래 내려받기는 **폰에서 두 군데서 막힌다** — 앱 웹뷰는 `blob:` 내려받기를
+      // 잡아줄 자리가 없어서 눌러도 아무 일이 안 나고, 폰 브라우저도 여러 장을
+      // 연달아 받으면 둘째부터 막는다(그래서 아래에 「한 박자씩 띄운다」가 있다).
+      //
+      // 공유 시트는 그 둘을 다 지난다. 사진 앱에 담든 누구에게 보내든 폰이 묻는다.
+      // **안 되는 기기에서는 그대로 내려받기로 간다** — PC 에는 공유 시트가 없다.
+      const shareable = toFiles(files);
+      const how = await shareFiles(shareable, {
+        title: '내 기록 사진',
+        text: `BLACK IRON — 사진 ${shareable.length}장`,
+      });
+      if (how === 'shared') { toast(`사진 ${shareable.length}장을 보냈어요`, 'success'); return; }
+      // **닫은 것은 실패가 아니다.** 「못 보냈어요」를 띄우면 아무 일도 안 했는데
+      // 고장난 것처럼 보인다. 조용히 둔다
+      if (how === 'cancelled') return;
+      // 'unsupported'(PC 등) · 'failed'(iOS 가 손짓 차례를 끊은 경우) → 내려받기로
+
       let done = 0;
       for (const f of files) {
         const blob = dataUrlToBlob(f.dataUrl);
@@ -391,6 +412,63 @@ export default function ComparePage({ embedded = false }) {
   const sameDay = records.length >= 2 && picked.same;
   const list = sameDay ? [] : changes(graphBefore, graphAfter);
   const days = daysBetween(graphBefore.date, graphAfter.date);
+
+  // 그림에 적을 한 줄. **내 기록이고 체중이 달라졌을 때만** 적는다 —
+  // 예시 숫자(`SAMPLE_*`)로 그려진 화면의 값을 남에게 보내는 그림에 박으면 거짓이 된다
+  const weightChange = isExample || sameDay ? null : list.find((c) => c.key === 'weight');
+  const shotCaption = weightChange && weightChange.dir !== 0
+    ? `${spanLabel(days)} ${diffLabel(weightChange)}`
+    : '';
+
+  // ── 전·후를 한 장으로 보내기 ── (2026-10-15)
+  //
+  // **두 장은 한 장보다 약하다.** 따로 보내면 받는 사람 화면에서 차례가 섞이고
+  // 어느 것이 과거인지 모른다. 나란히 놓여야 변한 것이 보인다.
+  //
+  // 여기서는 **서버에 묻지 않는다.** 사진이 이미 화면 state 에 있어서다 —
+  // iOS 는 누른 손짓과 **같은 차례**에서 공유를 불러야 하는데, 중간에 서버를 다녀오면
+  // 그 차례가 끊긴다(`sharePhotos` 머리글). 합치는 일은 캔버스에서 끝난다.
+  const [sharingOne, setSharingOne] = useState(false);
+  const shareOne = async () => {
+    if (sharingOne) return;
+    setSharingOne(true);
+    try {
+      const dataUrl = await mergeBeforeAfter({
+        before: photos.before,
+        after: photos.after,
+        beforeAt: photoAt.before,
+        afterAt: photoAt.after,
+        // **몸무게를 함부로 안 적는다.** 남에게 보내는 그림이다 —
+        // 고른 두 기록이 **내 것일 때만**(예시 숫자가 아닐 때) 그리고 체중이 실제로
+        // 달라졌을 때만 한 줄 적는다. 예시로 그려진 숫자를 그림에 박으면 거짓이 된다
+        caption: shotCaption,
+      });
+      if (!dataUrl) { toast('사진을 읽지 못했어요', 'error'); return; }
+
+      const files = toFiles([{ type: 'compare', dataUrl, name: 'blackiron_전후.jpg' }]);
+      const how = await shareFiles(files, { title: '전·후', text: 'BLACK IRON' });
+      if (how === 'shared') return;                  // 보냈으면 조용히 둔다
+      if (how === 'cancelled') return;               // 닫은 것은 실패가 아니다
+
+      // 공유를 못 하는 기기(PC 등) — 한 장을 내려받게 해준다
+      const blob = dataUrlToBlob(dataUrl);
+      if (!blob) { toast('사진을 만들지 못했어요', 'error'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'blackiron_전후.jpg';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast('전·후 한 장을 내려받았어요', 'success');
+    } catch {
+      toast('사진을 만들지 못했어요', 'error');
+    } finally {
+      setSharingOne(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -499,6 +577,29 @@ export default function ComparePage({ embedded = false }) {
             {saving ? '챙기는 중…' : '사진 챙겨가기'}
           </button>
         </div>
+      )}
+
+      {/* ── 전·후 한 장 보내기 ── (2026-10-15)
+          **두 장이 다 있을 때만** 보인다 — 한 장으로는 견줄 것이 없고,
+          「보내기」가 떠 있는데 보낼 것이 없으면 누른 사람이 당황한다.
+
+          이 앱이 하려는 것은 「몸이 변하는 걸 눈으로 보여주는 것」인데 **보여줄
+          상대에게 보낼 길이 없었다.** 위의 「챙겨가기」는 내 보관용이고(파일 N개),
+          이건 **한 장으로 묶어 보내는** 길이다 — 받는 쪽에서 차례가 안 섞인다. */}
+      {photos.before && photos.after && (
+        <button
+          onClick={shareOne}
+          disabled={sharingOne}
+          className="btn-secondary"
+          style={{
+            width: '100%', marginBottom: 20, fontFamily: 'inherit',
+            cursor: sharingOne ? 'default' : 'pointer',
+          }}
+        >
+          {sharingOne
+            ? '한 장으로 만드는 중…'
+            : (shareSheetLikely() ? '전·후 한 장으로 보내기' : '전·후 한 장으로 내려받기')}
+        </button>
       )}
       {!photos.before && !photos.after && <div style={{ marginBottom: 20 }} />}
 
