@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 // 빌드마다 SW 캐시 버전 갱신 (사용자에게 새 번들 강제 적용)
@@ -28,6 +29,30 @@ const devPreviewPlugin = () => ({
       const path = req.url.split('?')[0];
       if (path === '/dev' || path === '/dev/') {
         req.url = '/dev/preview.html' + req.url.slice(path.length);
+      }
+      // ── 이 PC 의 LAN 주소를 미리보기가 물어볼 수 있게 ── (2026-10-15)
+      //
+      // **폰으로 직접 보려면 그 주소를 알아야 한다.** vite 가 뜰 때 한 번 찍어주지만
+      // 그 줄은 터미널을 스크롤하면 사라지고, 와이파이를 옮기면 바뀐다.
+      // 미리보기 화면에 늘 띄워두면 폰을 들고 그대로 치면 된다.
+      //
+      // 개발 서버에서만 산다(`apply: 'serve'`). 내보내는 것은 **사설 IP** 뿐이고,
+      // 그 주소로 들어올 수 있는 사람은 이미 같은 와이파이에 있는 사람이다.
+      if (path === '/dev/net.json') {
+        const nets = os.networkInterfaces();
+        const urls = [];
+        for (const [name, list] of Object.entries(nets)) {
+          for (const n of list || []) {
+            if (n.family !== 'IPv4' || n.internal) continue;
+            // 사설 대역만 — 공인 IP 가 잡히는 환경에서 그걸 적어두면 오해를 부른다
+            if (!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(n.address)) continue;
+            urls.push({ name, address: n.address });
+          }
+        }
+        const port = server.config.server.port || 5173;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ port, urls }));
+        return;
       }
       next();
     });

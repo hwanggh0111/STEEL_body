@@ -57,6 +57,7 @@
     "role": "node scripts/check-role.cjs",
     "parts": "node scripts/gen-parts.mjs && node scripts/check-parts.cjs",
     "precompress": "node scripts/precompress.mjs",
+    "phone": "node scripts/phone-dev.mjs",
     "tap": "node scripts/check-tap.cjs",
     "sw": "node scripts/check-sw.cjs",
     "privacy": "node scripts/check-privacy.cjs"
