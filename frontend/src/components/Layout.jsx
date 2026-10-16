@@ -29,9 +29,11 @@ import { useIsPC } from './useIsPC';
 const AccountDeleteModal = lazy(() => import('./AccountDeleteModal'));
 import OfflineBar from './OfflineBar';
 const AccountSheet = lazy(() => import('./AccountSheet'));
-import { DRAWER_ITEMS } from '../data/navItems';
+import { DRAWER_ITEMS, screenOf } from '../data/navItems';
 import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useToday } from '../data/useToday';
+import { pushWidget, canWidget } from '../data/homeWidget';
 import { useNoteStore } from '../store/noteStore';
 import { useRefreshStore } from '../store/refreshStore';
 import NavIcon from './NavIcon';
@@ -65,6 +67,59 @@ export default function Layout() {
   // 설정함에 서 있으면 기어에 불이 들어온다 — 아래 탭바가 안 켜지는 자리라
   // (탭의 자식이 아니다) 여기라도 켜주지 않으면 내가 어디인지 모른다
   const onSettings = location.pathname === '/settings';
+
+  // ── 머리의 길 줄 ── (2026-10-16)
+  //
+  // 탭 밖 화면에서는 아래 탭이 안 켜지거나(서랍 화면 여섯) 자기를 열어준 탭이
+  // 켜진다(탭의 자식 여섯). 뒤엣것도 **「운동」에 불이 들어와 있을 뿐**이지
+  // 지금 보는 것이 「운동 찾기」인지 「기구 세팅」인지는 아무 데도 안 적혀 있었다.
+  // 서랍 화면에서는 아예 아무것도 안 켜져서 **나가는 길이 기기의 뒤로가기뿐**이었다.
+  //
+  // 그래서 머리 아래에 한 줄을 깐다 — **여기가 어디인가(이름) · 어떻게 나가나(←)**.
+  // 탭 칸을 늘리지 않는다(9/19 에 「기구」를 뺀 판단을 뒤집지 않는다).
+  //
+  // 짝은 `data/navItems.js` 한 곳에 있다 — 탭바도 같은 것을 본다.
+  const crumb = screenOf(location.pathname);
+
+  // ── 홈 화면 위젯에 넘긴다 ── (2026-10-16)
+  //
+  // 「오늘 뭐 하지」의 답(「가슴이 3일째 식어 있습니다」)을 **앱을 안 열어도** 보게
+  // 한다. 계산은 홈 카드와 같은 하나를 본다 — 까닭과 규칙은 `data/homeWidget.js`.
+  //
+  // **이 자리에 두는 이유.** 껍데기는 어느 화면에서나 떠 있어서, 운동을 적고 어디로
+  // 가든 한 번은 지난다. 화면마다 두면 어떤 길로 적었느냐에 따라 위젯이 안 바뀐다
+  // (휴식 띠의 알림을 이 껍데기에 한 번만 둔 것과 같은 이유다).
+  //
+  // **브라우저에서는 아무 일도 안 한다** — 다리(`window.BlackIronApp`)가 없다.
+  const widgetWorkouts = useWorkoutStore(s => s.workouts);
+  const todayKey = useToday();
+  useEffect(() => {
+    if (!canWidget()) return undefined;
+    pushWidget(widgetWorkouts, todayKey);
+    // **앱을 떠날 때 한 번 더** 넘긴다. 적은 것이 서버로 올라가며 스토어가 늦게
+    // 바뀌는 경우가 있는데, 그 사이에 홈 화면으로 나가면 위젯은 옛 글을 들고 있다
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') pushWidget(useWorkoutStore.getState().workouts, todayKey);
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [widgetWorkouts, todayKey]);
+
+  /**
+   * 길 줄의 ← . **들어온 데로 돌아간다.**
+   *
+   * 앞 화면이 있으면 히스토리를 한 칸 되돌린다 — 「운동」에서 기구 세팅에 들어온
+   * 사람은 「운동」으로 돌아가는 것이 맞지, 그 화면의 부모 탭 첫 화면으로 튕기는
+   * 것이 아니다(스크롤도 적던 값도 그대로 있다).
+   *
+   * 주소를 직접 열어 온 사람은(북마크 · 폰 홈 화면 바로가기 · 알림에서) 되돌릴
+   * 칸이 없다(`location.key === 'default'`). 그때는 **부모 탭**으로, 서랍 화면이라
+   * 부모가 없으면 홈으로 보낸다 — 거기서 `-1` 을 하면 앱 밖으로 나간다.
+   */
+  const goBackFromCrumb = () => {
+    if (location.key && location.key !== 'default') navigate(-1);
+    else navigate(crumb?.tab || '/home');
+  };
 
   /**
    * 기어를 한 번 더 누르면 **나간다** (2026-09-30).
@@ -437,6 +492,39 @@ export default function Layout() {
           </button>
         </div>
       </header>
+
+      {/* ── 길 줄 ── 탭 밖 화면에서만 나온다 (2026-10-16).
+          탭 넷의 화면에서는 아래 탭바가 이미 그 일을 하므로 그리지 않는다 —
+          같은 말을 두 자리에서 하면 한 줄만큼 본문이 좁아진다 */}
+      {crumb && (
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 30,
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '8px 20px',
+          background: 'var(--surface)',
+          backdropFilter: 'var(--surface-blur)',
+          WebkitBackdropFilter: 'var(--surface-blur)',
+          borderBottom: '1px solid var(--border)',
+        }}>
+          <button
+            onClick={goBackFromCrumb}
+            aria-label="뒤로"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              // **44px 를 지킨다** — 누르는 기계에서 작은 단추는 손가락에 안 닿는다
+              // (2026-10-15 에 151 자리를 한꺼번에 고친 규칙이다)
+              minWidth: 44, minHeight: 32, marginLeft: -12,
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--accent)', fontSize: 17, lineHeight: 1, padding: 0,
+            }}
+          >←</button>
+          <span style={{
+            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+            fontSize: 14, letterSpacing: 1.4, color: 'var(--text-primary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{crumb.label}</span>
+        </div>
+      )}
 
       {/* 아래 탭바가 홈바만큼 두꺼워지면 **본문도 그만큼 더 비켜야** 한다 (2026-10-05).
           안 하면 목록 마지막 줄이 탭바 뒤로 들어간다 — 끝까지 스크롤해도 안 보인다 */}

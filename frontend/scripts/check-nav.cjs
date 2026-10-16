@@ -322,6 +322,34 @@ for (const pair of [
   ok('  useState 로 되돌아가지 않았다', /useState\('(inbody|calendar|mine)'\)/.test(src), false);
 }
 
+// ── 개인정보처리방침으로 가는 길 (2026-10-16) ──
+//
+// 방침 장은 **심사용으로 공개 자리에** 만들었다(2026-10-09) — 로그인 뒤에 있으면
+// 구글 심사자가 못 연다. 그래서 `/site` 바닥글에만 걸렸고, **앱 안에서는 한 번도
+// 닿을 수 없었다**: 자기 기록이 어디에 담기고 언제 지워지는지 보려면 앱을 나가서
+// 홈페이지를 찾아가야 했다.
+//
+// 그리고 이 장은 **껍데기 밖이라 탭바도 머리도 없다** — 돌아갈 길이 맨 위 단추
+// 하나뿐이다. 그 단추가 무조건 홈페이지를 가리키고 있었으니, 설정함에서 들어간
+// 사람은 **앱 밖으로 밀려났다.**
+console.log('');
+console.log('── 방침으로 가고, 들어온 데로 돌아오는가 ──');
+const privacy = codeOf(read('src/pages/PrivacyPage.jsx'));
+ok('설정함에 방침 줄이 있다', /개인정보처리방침[\s\S]{0,120}navigate\('\/privacy'\)/.test(settings), true);
+// 같은 자리로 가는 줄을 둘로 만들지 않는다 (고객센터에도 걸면 어느 쪽이 진짜인지 묻게 된다)
+{
+  const doors = walk('src')
+    .filter((f) => !/App\.jsx$|PrivacyPage\.jsx$|SiteHome\.jsx$/.test(f))
+    .filter((f) => /navigate\('\/privacy'\)|href="\/privacy"/.test(codeOf(read(f))))
+    .map((f) => f.split(path.sep).join('/'));
+  ok('  그 줄은 한 곳뿐이다', doors, ['src/pages/SettingsPage.jsx']);
+}
+ok('방침이 무조건 홈페이지로 보내지 않는다', /onClick=\{\(\) => nav\('\/site'\)\}/.test(privacy), false);
+ok('  앞 화면이 있으면 그리로', /location\.key !== 'default'\) nav\(-1\)/.test(privacy), true);
+ok('  바로 열렸으면 홈페이지로', /else nav\('\/site'\)/.test(privacy), true);
+// 주소는 **공개 자리에 그대로** 있어야 한다 — 스토어에 적어둔 주소이고 심사자가 연다
+ok('방침은 로그인 밖에 남아 있다', /<Route path="\/privacy"/.test(app), true);
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('전부 통과');

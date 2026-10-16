@@ -114,9 +114,17 @@ console.log('');
 console.log('── 그 자리에 서면 내가 어디인지 아는가 ──');
 // 탭 밖에서 열리는 화면은 **자기를 열어준 탭을 켠다.** 서랍 화면은 예외다 —
 // 그쪽은 머리의 내 계정과 PC 사이드바에서 자기 줄이 켜진다
-const parentOf = Object.fromEntries(
-  [...tabbar.matchAll(/'(\/[a-z]+)':\s*'(\/[a-z]+)'/g)].map((m) => [m[1], m[2]]),
-);
+// **짝은 `data/navItems.js` 에 있다** (2026-10-16 에 옮겼다). 여태 탭바 안에만
+// 있었는데, 머리의 길 줄도 같은 짝을 봐야 한다 — 두 군데 적으면 머리는 「설정함」이라
+// 하고 탭은 딴 데가 켜지는 날이 온다
+const subs = [...nav.matchAll(/'(\/[a-z/]+)':\s*\{\s*label: '([^']+)',\s*tab: (?:'(\/[a-z]+)'|null)/g)]
+  .map((m) => ({ url: m[1], label: m[2], tab: m[3] || null }));
+// 조용히 아무것도 안 보면 안 된다 (위의 `[^]]` 사고와 같은 자리다)
+if (subs.length < 10) {
+  console.log('FAIL 탭 밖 화면 짝을 못 읽었다 (navItems.js 의 SUBSCREENS) → ' + subs.length + '개');
+  process.exit(1);
+}
+const parentOf = Object.fromEntries(subs.filter((x) => x.tab).map((x) => [x.url, x.tab]));
 // **머리에서 열리는 화면**도 서랍과 같은 부류다 (2026-09-22 에 설정함이 생겼다).
 // 탭바가 아니라 머리의 단추에 불이 들어온다 — 아래에서 그 불을 실제로 확인한다
 const HEAD_PATHS = ['/settings'];
@@ -130,6 +138,20 @@ const homeless = renders
     && !drawerPaths.some((d) => url.startsWith(d + '/')));   // /support/notices 같은 하위 자리
 ok('탭도 서랍도 머리도 안 켜지는 화면', homeless, []);
 
+// ── 탭 밖 화면은 **머리에 이름과 나가는 길**이 있어야 한다 ── (2026-10-16)
+//
+// 위의 「안 켜지는 화면」은 **서랍 화면을 면제해 주고 있었다** — 「서랍에 줄이 있으니
+// 괜찮다」고 봤는데, 그 줄은 **PC 사이드바와 닫혀 있는 시트 안**에 있다. 폰에서 설정함 ·
+// 고객센터 · 운동 알림에 서면 아래 넷이 다 꺼진 채였고, 나가는 길은 기기의 뒤로가기뿐이었다.
+// 탭의 자식(기구 세팅 · 운동 찾기)도 「운동」에 불만 들어와 있을 뿐 **이름이 없었다.**
+const crumbless = renders
+  .map((r) => r.url)
+  .filter((url) => url !== '/' && !tabPaths.includes(url))
+  .filter((url) => !subs.some((x) => url === x.url || url.startsWith(x.url + '/')));
+ok('탭 밖 화면에 머리 길 줄이 없다', crumbless, []);
+ok('  길 줄은 탭 밖에서만 나온다', tabPaths.filter((t) => subs.some((x) => x.url === t)), []);
+ok('  이름이 다 적혀 있다', subs.filter((x) => !x.label).map((x) => x.url), []);
+
 // 머리에서 열리는 화면은 **그 단추에 불이 들어와야** 한다. 안 들어오면 아래 탭바도
 // 안 켜진 채로 서 있게 되어, 내가 어디인지 알 길이 없다
 const layout = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
@@ -142,6 +164,12 @@ ok('  거기 서면 기어에 불이 들어온다',
 // 켜라고 적어둔 부모가 **실제로 탭에 있는 칸**이어야 한다
 ok('  적어둔 부모가 다 실제 탭이다',
   Object.values(parentOf).filter((t) => !tabPaths.includes(t)), []);
+// 짝만 있고 그리는 데가 없으면 아무 일도 안 일어난다
+ok('머리가 그 짝을 보고 길 줄을 그린다', /screenOf\(location\.pathname\)/.test(layout), true);
+ok('  ← 가 들어온 데로 돌아간다', /location\.key !== 'default'\) navigate\(-1\)/.test(layout), true);
+ok('  바로 열렸으면 부모 탭으로 (없으면 홈)', /navigate\(crumb\?\.tab \|\| '\/home'\)/.test(layout), true);
+// 탭바가 짝을 한 벌 더 들고 있으면 머리와 어긋난다
+ok('탭바는 짝을 베껴 적지 않았다', /const PARENT_OF = \{/.test(tabbar), false);
 ok('  「오늘」의 자식 둘 (목표 · 몸 지도)', [parentOf['/goal'], parentOf['/map']], ['/home', '/home']);
 ok('  「운동」의 자식 둘 (검색 · 기능성운동)', [parentOf['/search'], parentOf['/homeworkout']], ['/train', '/train']);
 

@@ -6,7 +6,7 @@ import NavIcon from './NavIcon';
 import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
-import { DRAWER_ITEMS } from '../data/navItems';
+import { DRAWER_ITEMS, PARENT_OF } from '../data/navItems';
 
 // 아이콘은 이모지가 아니라 직접 그린 선이다 (NavIcon.jsx). 이모지 그림은 폰 만든
 // 회사 것이라 남의 것이고, 폰마다 다르게 나온다 — 금색 화면에 파란 종이 뜬다
@@ -142,19 +142,12 @@ export default function TabBar() {
   // (9/18 에 홈의 인바디 줄을 옛 단독 화면에서 「몸」 탭으로 돌린 이유가 이것이었다.
   //  그때는 그 한 줄만 고쳤고, 같은 일이 네 화면에 남아 있었다.)
   //
-  // **서랍 화면(`/support` · `/reminders` · `/admin`)은 여기 없다** — 그쪽은 머리의
-  // 내 계정과 PC 사이드바에서 자기 줄이 켜진다. 탭의 자식이 아니라 서랍의 자식이다.
-  const PARENT_OF = {
-    '/goal': '/home',        // 홈의 목표 카드에서만 들어온다
-    '/map': '/home',         // 「오늘」 첫 카드의 몸 지도
-    '/search': '/train',     // 운동 이름을 찾는 자리
-    '/homeworkout': '/train',// 기구 없이 하는 운동 — 「운동」의 갈래다
-    // 루틴 짜기 · 고치기. 「운동」의 「루틴 짜기」와 루틴 줄의 연필이 여는 자리고,
-    // 홈의 「루틴 만들기」도 여기로 온다 — 들어오는 문이 셋인데 탭은 안 켜졌다
-    '/routine': '/train',
-    // 기구 세팅 전부 보기 — 「운동」의 기구 카드에서 들어온다 (8차, 2026-09-19)
-    '/gym': '/train',
-  };
+  // **서랍 화면(`/support` · `/reminders` · `/settings` · `/admin` …)은 여기 없다** —
+  // 켤 탭이 아예 없다. 그쪽은 PC 사이드바에서 자기 줄이 켜지고, 폰에서는 **머리의
+  // 길 줄**이 이름과 나가는 길을 댄다 (2026-10-16, `Layout` 과 `data/navItems.js`).
+  //
+  // **이 짝은 `data/navItems.js` 에 있다** — 머리의 길 줄이 같은 것을 본다.
+  // 여기 한 벌 더 적으면 머리는 「설정함」이라 하고 탭은 딴 데가 켜지는 날이 온다.
 
   const isActive = (path) => {
     if (onPath(path)) return true;

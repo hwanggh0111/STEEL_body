@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LogoMark } from '../components/Logo';
 
 // 개인정보처리방침 — **로그인 밖(공개)이다.**
@@ -45,12 +45,29 @@ function Row({ what, why }) {
 
 export default function PrivacyPage() {
   const nav = useNavigate();
+  const location = useLocation();
+
+  // ── 나가기는 **들어온 데로** 돌아간다 ── (2026-10-16)
+  //
+  // 여태 무조건 `/site`(홈페이지)였다. 이 장이 홈페이지 바닥글에서만 열리던 때는
+  // 맞았는데, 설정함에서도 열리게 되면서 **앱을 쓰던 사람이 홈페이지로 튕겨 나간다.**
+  // 이 장은 껍데기 밖이라(탭바도 머리도 없다) 돌아올 길이 그 단추 하나뿐이다 —
+  // 틀린 곳을 가리키면 앱 밖으로 내보내는 셈이다.
+  //
+  // 앞 화면이 있으면 그리로(`-1`), 곧바로 이 주소로 들어왔으면(심사자 · 북마크 ·
+  // 스토어에 적어둔 주소) 홈페이지로 간다. `location.key` 가 'default' 면 **이 주소가
+  // 첫 화면**이라는 뜻이다 — 그때 `-1` 을 하면 앱 밖으로 나가버린다.
+  const goBack = () => {
+    if (location.key && location.key !== 'default') nav(-1);
+    else nav('/site');
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '24px 16px 56px' }}>
       <div style={{ maxWidth: MAX, margin: '0 auto' }}>
 
         <button
-          onClick={() => nav('/site')}
+          onClick={goBack}
           style={{
             display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none',
             cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 22,
@@ -86,6 +103,22 @@ export default function PrivacyPage() {
           {/* 플레이스토어 「데이터 보안」 양식이 **크래시 로그 · 진단 정보**를 적게
               한다 (2026-10-13). 보내고 있으면서 방침에 없으면 어긋난다 */}
           <Row what="화면이 터졌을 때의 기록" why="무엇이 터졌는지(메시지 · 터진 자리 앞부분) · 어느 화면 · 브라우저 종류입니다. 적어두신 기록이나 글은 붙이지 않습니다." />
+        </Sec>
+
+        {/* **건강 앱은 따로 적는다** (2026-10-16). 구글은 건강 데이터를 다른 것과 묶어
+            적는 것을 받아주지 않는다 — 무엇을 읽고 · 어디에 쓰고 · 어디로 안 보내는지를
+            이 장에서 따로 밝혀야 건강 앱 선언 심사를 지난다. 그리고 이 앱의 규칙은
+            「코드가 담는 것을 늘리면 이 장도 같이 고친다」다 (맨 위 머리글) */}
+        <Sec title="건강 앱(헬스 커넥트)에서 가져오는 것">
+          인바디를 적는 자리에서 <strong style={{ color: 'var(--text-primary)' }}>직접 「가져오기」를 누르셨을 때만</strong> 읽습니다.
+          읽는 것은 <strong style={{ color: 'var(--text-primary)' }}>체중과 체지방률 둘뿐</strong>이고, 최근 30일 안에 잰 것만 봅니다.
+          걸음수 · 심박 · 운동 · 식사는 받지 않습니다 — 권한 자체를 안 받습니다.
+          <div style={{ marginTop: 10 }}>
+            가져온 값은 <strong style={{ color: 'var(--text-primary)' }}>화면의 입력칸을 채울 뿐</strong>입니다.
+            저장을 누르시면 그때부터 위의 「몸 정보」와 똑같이 다뤄집니다(지우면 같이 사라집니다).
+            <strong style={{ color: 'var(--text-primary)' }}>건강 앱 쪽에는 아무것도 쓰지 않고</strong>, 광고에도 쓰지 않고,
+            다른 곳으로 보내지 않습니다. 권한은 폰의 헬스 커넥트에서 언제든 끊을 수 있습니다.
+          </div>
         </Sec>
 
         <Sec title="카메라를 쓰는 까닭">

@@ -36,3 +36,62 @@ export const DRAWER_ITEMS = [
   { path: '/support',    label: '고객센터',   icon: 'inbox' },
   { path: '/admin',      label: '관리자',     icon: 'gear', adminOnly: true },
 ];
+
+// ── 탭 밖 화면 ── (2026-10-16)
+//
+// 탭은 넷이고(오늘 · 운동 · 기록 · 몸), 화면은 그보다 많다. 탭 밖 화면은 **두 갈래**다 —
+//
+//   · **탭의 자식** — 목표 · 몸 지도 · 운동 찾기 · 기능성운동 · 루틴 · 기구 세팅.
+//     자기를 열어준 탭이 켜진다(`tab`). 9/19 에 붙인 규칙이다
+//   · **서랍의 자식** — 설정함 · 고객센터 · 공지함 · 운동 알림 · 부위 · 관리자.
+//     켜질 탭이 아예 없다(`tab: null`). PC 는 왼쪽 사이드바에 줄이 켜지지만
+//     **폰에는 그 줄이 없다** — 서랍은 머리의 「내 계정」 시트 안에 있고 그 시트는 닫혀 있다
+//
+// 그래서 폰에서 서랍 화면에 서면 **아래 넷이 다 꺼져 있다.** 여기가 어디인지도,
+// 어디로 돌아가는지도 화면에 없다 — 기기의 뒤로가기 하나뿐이다.
+//
+// **고친 방법은 머리에 한 줄**이다(`Layout` 의 길 줄). 탭 칸을 늘리지 않는다 —
+// 9/19 에 「기구」를 뺄 때 적은 「탭을 늘리는 것은 이 앱이 계속 거절해 온 일이다」를
+// 뒤집지 않는다. 그리고 이 한 줄은 서랍 여섯만이 아니라 **탭 밖 화면 열두 곳 전부**를
+// 같이 고친다.
+//
+// **이름과 부모를 한 곳에 적는다.** 여태 부모 탭은 `TabBar` 안에만 있었고 이름은
+// 아무 데도 없었다. 두 군데에 적으면 머리는 「설정함」이라 하고 탭은 딴 데가 켜지는
+// 날이 온다.
+export const SUBSCREENS = {
+  // 탭의 자식 — 그 탭이 켜진다
+  '/goal':       { label: '목표',       tab: '/home' },   // 홈의 목표 카드에서만 들어온다
+  '/map':        { label: '몸 지도',    tab: '/home' },
+  '/search':     { label: '운동 찾기',  tab: '/train' },
+  '/homeworkout':{ label: '기능성운동', tab: '/train' },
+  '/routine':    { label: '루틴',       tab: '/train' },
+  '/gym':        { label: '기구 세팅',  tab: '/train' },
+  // 서랍의 자식 — 켜질 탭이 없다
+  '/settings':        { label: '설정함',    tab: null },
+  '/support/notices': { label: '공지함',    tab: null },
+  '/support':         { label: '고객센터',  tab: null },
+  '/reminders':       { label: '운동 알림', tab: null },
+  '/parts':           { label: '부위',      tab: null },
+  '/admin':           { label: '관리자',    tab: null },
+};
+
+/**
+ * 이 주소가 탭 밖 화면인가. 맞으면 `{ path, label, tab }`, 아니면 `null`.
+ *
+ * **긴 쪽이 이긴다** — `/support/notices` 는 「공지함」이고 「고객센터」가 아니다.
+ * (`/support` 로도 걸리므로 차례만 믿으면 안 된다)
+ */
+export function screenOf(pathname) {
+  const here = String(pathname || '');
+  let best = null;
+  for (const path of Object.keys(SUBSCREENS)) {
+    if (here !== path && !here.startsWith(path + '/')) continue;
+    if (!best || path.length > best.length) best = path;
+  }
+  return best ? { path: best, ...SUBSCREENS[best] } : null;
+}
+
+/** 탭 밖 화면 → 켜줄 탭. 서랍 화면은 들어 있지 않다 (켤 탭이 없다). */
+export const PARENT_OF = Object.fromEntries(
+  Object.entries(SUBSCREENS).filter(([, v]) => v.tab).map(([path, v]) => [path, v.tab]),
+);
