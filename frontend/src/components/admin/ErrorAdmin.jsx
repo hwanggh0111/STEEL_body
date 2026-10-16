@@ -42,11 +42,40 @@ function group(rows) {
 
 const day = (s) => (s ? String(s).slice(5, 10).replace('-', '월 ') + '일' : '');
 
+// ── 「전부 복사」 ── (2026-10-16)
+//
+// 여기 쌓인 것을 **고치는 자리는 이 화면이 아니다.** 터진 말과 터진 자리를 들고
+// 코드로 가야 하는데, 여태 길이 하나뿐이었다 — **폰이나 PC 화면에서 눈으로 읽어
+// 손으로 옮겨 적기.** 스택은 접혀 있고 길다. 스물여섯 건을 그렇게 옮기는 사람은 없다.
+//
+// 그래서 **묶은 그대로 한 덩이 글**로 만든다. 붙여넣으면 그게 곧 할 일 목록이다.
+// 많이 난 것이 위에 온다 — 고칠 차례가 그 차례다.
+//
+// **사람이 적은 것은 여기에도 없다** (받는 쪽에서 아예 안 담는다).
+function asText(groups, rows) {
+  const lines = [`화면 오류 ${rows.length}건 · ${groups.length}가지`, ''];
+  groups.forEach((g, i) => {
+    lines.push(`${i + 1}. [${g.count}번] ${g.key}`);
+    lines.push(`   화면: ${g.paths.join(' · ') || '모름'}`);
+    lines.push(`   때: ${day(g.first)} ~ ${day(g.last)}`);
+    if (g.agent) lines.push(`   브라우저: ${g.agent}`);
+    if (g.stack) {
+      // 스택은 **앞 여섯 줄**이면 터진 자리를 찾는 데 넉넉하다. 통째로 넣으면
+      // 붙여넣은 글이 수백 줄이 되어 오히려 안 읽힌다
+      String(g.stack).split('\n').slice(0, 6).forEach((l) => lines.push(`   ${l.trim()}`));
+    }
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
 export default function ErrorAdmin() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(null);
+  // 클립보드가 막힌 기기에서 글을 펼쳐 두는 자리
+  const [dump, setDump] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -85,6 +114,24 @@ export default function ErrorAdmin() {
   };
 
   const groups = group(rows);
+
+  /**
+   * 묶은 것을 한 덩이 글로 복사한다 (2026-10-16).
+   *
+   * **클립보드가 막히는 자리가 있다** — 앱 웹뷰 · http 로 연 화면 · 권한을 거절한
+   * 브라우저. 그때 아무 일도 안 일어나면 사람은 복사된 줄 알고 붙여넣는다.
+   * 그래서 막히면 **글을 화면에 펼쳐** 길게 눌러 고르게 한다.
+   */
+  const copyAll = async () => {
+    const text = asText(groups, rows);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(`${rows.length}건을 복사했어요`);
+    } catch {
+      setDump(text);
+      toast('복사가 막혀서 아래에 펼쳤어요 — 길게 눌러 고르세요');
+    }
+  };
   const span = rows.length
     ? `${day(groups.reduce((m, g) => (g.first < m ? g.first : m), groups[0].first))} ~ ${day(groups.reduce((m, g) => (g.last > m ? g.last : m), groups[0].last))}`
     : '';
@@ -136,10 +183,25 @@ export default function ErrorAdmin() {
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{span}</div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <button className="btn-secondary" onClick={copyAll}>전부 복사</button>
               <button className="btn-secondary" onClick={load}>다시 읽기</button>
               <button className="btn-secondary" onClick={clearAll}>다 지우기</button>
             </div>
           </div>
+
+          {dump && (
+            <textarea
+              readOnly
+              value={dump}
+              onFocus={(e) => e.target.select()}
+              style={{
+                width: '100%', minHeight: 180, marginBottom: 12, padding: 10,
+                background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, lineHeight: 1.6,
+              }}
+            />
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {groups.map(g => {

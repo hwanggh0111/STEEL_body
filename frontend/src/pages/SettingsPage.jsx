@@ -11,6 +11,9 @@ import { speechSupported } from '../data/voiceLog';
 import { canLock, isLockSet } from '../data/appLock';
 import { reminderRow } from '../data/reminderLabel';
 import { canNotify, notifyPermission } from '../data/pushSupport';
+import { alarmPermission, askRestAlarmOnce } from '../data/restAlarm';
+import { canWidget } from '../data/homeWidget';
+import { healthReady, openHealthSettings } from '../data/healthLink';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
@@ -263,6 +266,25 @@ export default function SettingsPage() {
   // 여기는 **사실 셋을 모아 넘기는 일**만 한다.
   const [rem, setRem] = useState({ loaded: false, settings: null, serverReady: null });
   const [lockOpen, setLockOpen] = useState(false);
+  // ── 앱에서만 되는 것 셋을 여기서도 말한다 ── (2026-10-16)
+  //
+  // 오늘 셋을 붙였는데(잠금화면 알림 · 홈 위젯 · 건강 앱), **설정함에는 아무 말도
+  // 없었다.** 이 앱이 거듭 당한 자리다 — 「모으는 값을 볼 곳이 없으면 그 값은 없는
+  // 것과 같다」(회복 시간, 2026-09-30). 기능도 같다: **찾을 길이 없으면 없는 것이다.**
+  //
+  // 셋 다 **앱에서만** 되므로 브라우저에서는 줄을 아예 안 그린다 — 눌러도 아무 일이
+  // 안 일어나는 줄을 두지 않는다(바로 위 「앱 잠금」과 같은 규칙).
+  const [alarmState, setAlarmState] = useState('off');
+  const [widgetOn, setWidgetOn] = useState(false);
+  const [healthOn, setHealthOn] = useState(false);
+  useEffect(() => {
+    let live = true;
+    alarmPermission().then((v) => { if (live) setAlarmState(v); });
+    setWidgetOn(canWidget());
+    healthReady().then((v) => { if (live) setHealthOn(v); });
+    return () => { live = false; };
+  }, []);
+
   const [pwOpen, setPwOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
   const [nickEdit, setNickEdit] = useState(false);
@@ -865,6 +887,13 @@ export default function SettingsPage() {
             다만 30일 유예가 있다는 것을 옆에 적어, 누르기 전에 알게 한다
             (되돌릴 수 있다는 것을 모르면 아무도 안 누르고, 그게 더 나쁘다) */}
         <GoRow title="계정 삭제" sub="30일 안에 다시 로그인하면 되살아나요" onClick={() => setDelOpen(true)} />
+        {/* **앱 안에 방침으로 가는 길이 하나도 없었다** (2026-10-16).
+            `/privacy` 는 심사용으로 공개 자리에 만들어 두고(2026-10-09) 홈페이지
+            바닥글에만 걸었다 — 그래서 **앱을 쓰는 사람은 자기 기록이 어디에 어떻게
+            담기는지 볼 길이 없었다.** 계정 삭제 바로 아래가 맞는 자리다: 둘 다
+            「내 것이 어떻게 되나」에 답한다.
+            **길은 여기 하나만 둔다** — 고객센터에도 걸면 같은 자리로 가는 줄이 둘이 된다 */}
+        <GoRow title="개인정보처리방침" sub="무엇을 받고 · 어디에 맡기고 · 언제 지우는지" onClick={() => navigate('/privacy')} />
         {/* 프로필 사진은 **계정 시트에 그대로 둔다.** 거기서 아바타를 누르면 바로
             고르는 자리가 열린다 — 사진을 바꾸는 사람은 제 얼굴을 보면서 바꾼다.
             여기서는 **어디로 가면 되는지**만 적는다 (길을 두 벌로 만들지 않는다) */}
@@ -897,6 +926,51 @@ export default function SettingsPage() {
           warn={remRow.warn}
           onClick={() => navigate('/reminders')}
         />
+
+        {/* 쉬는 시간이 끝났다는 **OS 알림** (2026-10-16). 화면 쪽 삑 소리는 위의
+            「소리」가 맡고, 이것은 **폰을 주머니에 넣었을 때** 울리는 쪽이다.
+            **「켜짐」이라고 적어놓고 안 울리는 것이 제일 나쁘다** — 꺼진 까닭을 갈라 적는다 */}
+        {alarmState !== 'off' && (
+          <GoRow
+            title="쉬는 시간 끝 알림"
+            sub={alarmState === 'granted'
+              ? '켜짐 — 주머니에 넣어두셔도 잠금화면에 뜹니다'
+              : alarmState === 'denied'
+                ? '꺼짐 — 폰 설정 > 앱 > BLACK IRON > 알림에서 켜주세요'
+                : '아직 안 물어봤어요 — 눌러서 켜기'}
+            warn={alarmState === 'denied'}
+            onClick={async () => {
+              if (alarmState === 'granted') { toast('이미 켜져 있어요'); return; }
+              if (alarmState === 'denied') { toast('폰 설정에서만 다시 켤 수 있어요'); return; }
+              const got = await askRestAlarmOnce();
+              setAlarmState(got ? 'granted' : 'denied');
+            }}
+          />
+        )}
+
+        {/* 홈 화면 위젯 (2026-10-16). **얹는 법을 말하지 않으면 아무도 못 얹는다** —
+            위젯은 앱 안에서 켜는 것이 아니라 폰 홈 화면에서 얹는 것이라, 앱에는
+            그런 것이 있다는 말조차 나올 자리가 없다 */}
+        {widgetOn && (
+          <div style={{
+            padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11,
+            fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7,
+          }}>
+            <b style={{ color: 'var(--text-secondary)' }}>홈 화면 위젯</b> — 폰 홈 화면의 빈 곳을
+            길게 누르고 <b style={{ color: 'var(--text-secondary)' }}>위젯 → BLACK IRON</b> 을 고르면,
+            「오늘 뭐 하지」의 답 한 줄이 앱을 안 열어도 보입니다.
+          </div>
+        )}
+
+        {/* 건강 앱 (2026-10-16). 가져오는 자리는 인바디지만, **권한을 끊는 자리**는
+            폰의 헬스 커넥트다 — 그 길을 아무 데도 안 적으면 끊을 방법이 없다 */}
+        {healthOn && (
+          <GoRow
+            title="건강 앱 연동"
+            sub="인바디에서 체중 · 체지방률을 가져옵니다 — 권한 끄기"
+            onClick={openHealthSettings}
+          />
+        )}
       </Group>
 
       {/* ── 기록 챙기기 ──
