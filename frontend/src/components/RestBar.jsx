@@ -6,6 +6,7 @@ import { restView, exerciseOfLabel } from '../data/nextSet';
 import { useToday } from '../data/useToday';
 import { beepDone } from '../data/alertSound';
 import { useWakeLock } from '../data/useWakeLock';
+import { useRestAlarm } from '../data/useRestAlarm';
 
 // 휴식 중일 때 탭 바 바로 위에 뜨는 띠.
 //
@@ -14,6 +15,14 @@ import { useWakeLock } from '../data/useWakeLock';
 //
 // 끝났다고 알리는 것도 여기서 한다. 화면마다 따로 두면 어느 화면에 있느냐에 따라
 // 소리가 나기도 하고 안 나기도 한다 — 언제나 떠 있는 이 자리에 한 번만 둔다.
+
+// 「다음에 들 것」 한 줄. **띠와 OS 알림이 같은 줄을 쓴다** — 두 군데에 적으면
+// 한쪽만 고쳐지고, 잠금화면과 띠가 다른 말을 하게 된다.
+// 맨몸운동은 무게가 0 이다 — 「0kg」이라고 적지 않는다
+function nextLine(view, label) {
+  if (!view) return label || '휴식 중';
+  return `다음 · ${view.nextSet}세트 · ${view.weight > 0 ? view.weight + 'kg ' : ''}${view.reps}회`;
+}
 
 export default function RestBar({ bottom = 58 }) {
   const { leftMs, deadline, pausedLeft, finished, label, runSec, duration, sound, vibrate, tone, volume, add, pause, resume, stop, ackFinished } = useRestTimerStore();
@@ -45,10 +54,15 @@ export default function RestBar({ bottom = 58 }) {
     if (!finished) { alerted.current = false; return; }
     if (alerted.current) return;
     alerted.current = true;
-    beepDone({ sound, vibrate, tone, volume });
+    // **이미 들은 알림을 또 울리지 않는다** (2026-10-16). 주머니에서 OS 알림을 받고
+    // 3분 뒤에 앱을 열면, 멈춰 있던 타이머가 그제서야 끝을 세운다 — 그때 삑 소리를
+    // 내면 사람은 「지금 끝났나?」 하고 시계를 다시 본다. 앱에서만 쓰는 판단이다
+    if (!alarmFired.current) beepDone({ sound, vibrate, tone, volume });
     // 다 됐다는 표시를 잠깐 두고 스스로 걷는다 — 누르지 않아도 사라진다
     const t = setTimeout(() => ackFinished(), 6000);
     return () => clearTimeout(t);
+    // `alarmFired` 는 **의존성에 넣지 않는다.** ref 라 다시 돌 거리가 아닌 데다,
+    // 아래에서 만들어지는 값이라 넣으면 배열을 셀 때 터진다(TDZ)
   }, [finished, sound, vibrate, tone, volume, ackFinished]);
 
   const running = deadline != null;
@@ -66,6 +80,19 @@ export default function RestBar({ bottom = 58 }) {
   // **오래 잡고 있을 걱정은 없다.** 휴식은 길어야 10분이고(`MAX_SEC`), 다 되면
   // `deadline` 이 지워지면서 저절로 놓는다. **훅은 이른 반환보다 위에 있어야 한다**
   useWakeLock(running || paused);
+
+  // 쉬는 동안 **폰을 주머니에 넣으면** 띠가 못 울린다 (2026-10-16).
+  //
+  // 뒤로 간 웹뷰는 타이머가 늦춰지고 소리를 낼 자리도 잠든다 — 꺼내 보면 「휴식 끝」이
+  // 떠 있고 실제로는 한참 더 쉰 뒤다. 그래서 **앱이 뒤로 갈 때** 끝나는 시각에 OS 알림을
+  // 걸어둔다. 돌아오면 지운다 — 둘 다 울리면 안 된다 (`data/restAlarm.js` 머리글).
+  //
+  // **소리·진동을 둘 다 끈 사람에게는 안 건다.** 끈 사람이 끈 이유가 있다.
+  // 멈춰 둔 휴식(`paused`)도 안 건다 — 끝나는 시각이 없다.
+  //
+  // 알림에 적는 줄은 띠에 적는 것과 **같은 것**이다 — 두 벌로 만들면 한쪽만 고쳐진다
+  const alarmBody = nextLine(view, label);
+  const alarmFired = useRestAlarm(running && (sound || vibrate) ? deadline : null, alarmBody);
 
   if (!running && !paused && !finished) return null;
 
@@ -113,9 +140,7 @@ export default function RestBar({ bottom = 58 }) {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{paused ? '멈춤'
             : finished ? '다음 세트 하세요'
-            // 맨몸운동은 무게가 0 이다 — 「0kg」이라고 적지 않는다
-            : view ? `다음 · ${view.nextSet}세트 · ${view.weight > 0 ? view.weight + 'kg ' : ''}${view.reps}회`
-            : label || '휴식 중'}</span>
+            : nextLine(view, label)}</span>
         </div>
         {!finished && (
           <div className="progress-bg" style={{ height: 4, marginTop: 5 }}>
