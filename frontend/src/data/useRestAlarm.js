@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { canRestAlarm, askRestAlarmOnce, scheduleRestAlarm, cancelRestAlarm } from './restAlarm';
+import { canRestAlarm, askRestAlarmOnce, warmUpRestAlarm, scheduleRestAlarm, cancelRestAlarm } from './restAlarm';
 
 // 쉬는 동안 **앱이 뒤로 가면** 끝 시각에 OS 알림을 걸어둔다 (2026-10-16).
 //
@@ -35,8 +35,10 @@ export function useRestAlarm(deadline, body = '') {
     let armed = false;           // 걸어둔 적이 있나
     fired.current = false;       // 새 휴식이다 — 처음부터 센다
 
-    // 묻는 것은 **지금** — 화면이 떠 있는 이 순간뿐이다. 뒤로 간 뒤에는 창을 못 띄운다
-    askRestAlarmOnce();
+    // 묻는 것은 **지금** — 화면이 떠 있는 이 순간뿐이다. 뒤로 간 뒤에는 창을 못 띄운다.
+    // 묻고 나서 **미리 데워 둔다**: 뒤로 가는 순간에는 예약 한 번만 남아야 한다
+    // (안드로이드가 뒤로 간 웹뷰의 자바스크립트를 곧 얼린다 — `restAlarm.js` 머리글)
+    askRestAlarmOnce().then(() => warmUpRestAlarm());
 
     const apply = (active) => {
       if (!live) return;

@@ -97,8 +97,11 @@ const today = '2026-10-16';
     '2026-10-06': [{ exercise: '스쿼트', sets: 5, reps: 5 }],
   };
   const t = W.widgetText(w, today);
-  ok('식은 부위와 며칠째인지', [t.head, t.line], ['하체', '10일째 식어 있습니다']);
-  ok('  0일째라고 적지 않는다', /^0일째/.test(t.line), false);
+  // **숫자를 글자로 박지 않는다** — 박으면 앱을 일주일 안 여는 동안 위젯이 영영
+  // 「10일째」라고 말한다. 자리를 비워 보내고 위젯이 오늘 기준으로 채운다
+  ok('식은 부위와 자리를 비운 줄', [t.head, t.line], ['하체', '{d}일째 식어 있습니다']);
+  ok('  며칠째인지는 숫자로 따로 보낸다', t.days, 10);
+  ok('  어느 날 기준인지도 같이', t.basedOn, today);
 }
 // 기록이 아예 없는 사람 — **빈 몸을 보여줄 자리가 아니다**
 {
@@ -124,11 +127,24 @@ const today = '2026-10-16';
 console.log('');
 console.log('── 5. 브라우저에서는 아무 일도 안 한다 ──');
 ok('다리가 있을 때만 넘긴다', /typeof window\.BlackIronApp\?\.saveWidget === 'function'/.test(js), true);
-ok('  껍데기도 그것을 보고 비킨다', /if \(!canWidget\(\)\) return/.test(shell), true);
+// 껍데기는 **같은 판단을 직접** 한다 — `canWidget()` 을 부르려면 그 조각을 먼저
+// 받아야 하고, 그러면 브라우저로 쓰는 사람도 안 쓸 5.3KB 를 받는다
+ok('  껍데기도 다리를 보고 비킨다', /window\.BlackIronApp\?\.saveWidget !== 'function'\) return/.test(shell), true);
+ok('  그 뒤에야 조각을 받는다', /import\('\.\.\/data\/homeWidget'\)/.test(shell), true);
+ok('  위에서 미리 받지 않는다', /^import .*homeWidget/m.test(shell), false);
 // 같은 글을 거듭 넘기면 폰이 위젯을 괜히 다시 그린다
 ok('같은 글은 다시 안 넘긴다', /if \(seen === lastSent\) return false/.test(js), true);
 // **계산을 두 벌로 만들지 않는다** — 자바에 날짜 셈이 생기면 홈과 위젯이 갈린다
-ok('자바는 글을 받아 적기만 한다', /days|식어|일째/.test(widget.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '')), false);
+// 자바가 **부위를 고르거나 말을 짓지 않는다.** 하는 일은 「{d}」에 숫자를 넣는 뺄셈뿐이다
+{
+  // 주석을 걷고, **자리표(`{d}일째`)만 빼고** 본다 — 그 한 군데는 숫자를 못 읽었을 때
+  // 자리를 통째로 지우는 자리라 글자가 들어 있을 수밖에 없다
+  const code = widget.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '').split('{d}일째 ').join('');
+  ok('자바가 말을 짓지 않는다 (식어 · 부위 같은 말이 없다)', /식어|일째|부위/.test(code), false);
+  ok('  {d} 를 오늘 기준으로 채운다', /ChronoUnit\.DAYS\.between/.test(code) && /replace\("\{d\}"/.test(code), true);
+  // 이 줄만은 **걷어내기 전 코드**에서 본다 (위에서 자리표를 지워 봤기 때문)
+  ok('  못 읽는 값이면 자리를 지운다', /replace\("\{d\}일째 ", ""\)/.test(widget), true);
+}
 ok('  화면은 몸 지도와 같은 계산을 본다', /from '\.\/bodyHeat'/.test(js), true);
 
 console.log('');

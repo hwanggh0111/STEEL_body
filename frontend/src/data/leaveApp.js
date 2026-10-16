@@ -42,6 +42,15 @@ export async function leaveApp() {
     }
   }
 
+  // **홈 화면 위젯을 비운다** (2026-10-16). 위젯은 앱 밖에 있다 — 로그아웃해도
+  // 폰 홈 화면에는 나간 사람의 몸 이야기가 그대로 남아 있었다
+  // (「가슴이 3일째 식어 있습니다」).
+  //
+  // **여기서도 쓸 때 받는다.** 맨 위에서 받으면 이 파일을 쓰는 껍데기까지
+  // 위젯 조각(과 그것이 보는 `bodyHeat`)을 같이 받는다 — 방금 떼어낸 그것이다.
+  // 로그아웃은 사람이 누르는 일이라 그때 받아도 늦지 않다
+  try { (await import('./homeWidget')).clearWidget(); } catch { /* 위젯 때문에 못 나가면 안 된다 */ }
+
   await useAuthStore.getState().logout();
   return true;
 }

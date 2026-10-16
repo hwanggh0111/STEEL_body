@@ -42,7 +42,8 @@ export const WIDGET_KEY = 'today';
 export function widgetText(workouts, today) {
   const heat = buildHeat(workouts, today);
   const todaySets = (workouts?.[today] || []).reduce((n, r) => n + (Number(r?.sets) || 0), 0);
-  const base = { v: 1, head: '', line: '', sub: '', sets: todaySets, at: new Date().toISOString() };
+  // `basedOn` — **이 글을 어느 날 기준으로 썼나.** 아래 「날이 지나면」을 보라
+  const base = { v: 1, head: '', line: '', sub: '', sets: todaySets, basedOn: today, at: new Date().toISOString() };
 
   // 기록이 하나도 없으면 **빈 몸을 보여줄 자리가 아니다** (홈 카드도 안 그린다)
   if (!heat.any || !heat.coldest) {
@@ -54,7 +55,17 @@ export function widgetText(workouts, today) {
   const sub = hot.map((p) => `${p.part} ${p.days === 0 ? '오늘' : `${p.days}일 전`}`).join(' · ');
 
   if (cold.days === null) return { ...base, head: cold.part, line: '아직 한 번도 안 했습니다', sub };
-  if (cold.level === 0) return { ...base, head: cold.part, line: `${cold.days}일째 식어 있습니다`, sub };
+  // ── 날이 지나면 숫자가 **틀린다** ── (2026-10-16 에 고친 것)
+  //
+  // 「3일째 식어 있습니다」를 글자로 박아 넘기면, 앱을 일주일 안 여는 동안 위젯은
+  // **영영 「3일째」**라고 말한다. 위젯은 앱이 글을 넘길 때와 30분마다 다시
+  // 그려지는데, 다시 그려도 **들고 있는 글자가 그대로**이기 때문이다.
+  // 운동을 안 할수록 틀어지는 숫자다 — 하필 그때 봐야 하는 숫자다.
+  //
+  // 그래서 숫자 자리를 `{d}` 로 비워 보내고, **며칠이 지났는지만** 위젯이 더한다
+  // (`days` + 오늘 − `basedOn`). 자바가 하는 일은 **뺄셈 하나**지 부위를 고르는
+  // 계산이 아니다 — 그 계산은 여전히 `bodyHeat.js` 한 곳에만 있다.
+  if (cold.level === 0) return { ...base, head: cold.part, line: '{d}일째 식어 있습니다', days: cold.days, sub };
   return { ...base, line: '몸 전체가 고루 달아 있습니다', sub };
 }
 
@@ -80,6 +91,28 @@ export function pushWidget(workouts, today) {
     if (seen === lastSent) return false;
     lastSent = seen;
     window.BlackIronApp.saveWidget(JSON.stringify(payload));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * **로그아웃하면 위젯을 비운다** (2026-10-16).
+ *
+ * 위젯은 앱 밖에 있다 — 폰 홈 화면이다. 로그아웃해도 거기에는 **나간 사람의 몸
+ * 이야기**가 그대로 남아 있었다(「가슴이 3일째 식어 있습니다」). 폰을 같이 쓰는
+ * 집에서는 그게 남의 눈에 보이는 자리고, 계정을 지운 사람에게는 **지웠는데 남아
+ * 있는** 것이다.
+ *
+ * 비운 자리에는 처음 모습(「앱을 열어 기록을 적어보세요」)이 들어간다 —
+ * 위젯을 빈 칸으로 두면 고장 난 것처럼 보인다.
+ */
+export function clearWidget() {
+  if (!canWidget()) return false;
+  try {
+    lastSent = '';
+    window.BlackIronApp.saveWidget(JSON.stringify({ v: 1, head: '', line: '', sub: '', sets: 0, at: new Date().toISOString() }));
     return true;
   } catch {
     return false;

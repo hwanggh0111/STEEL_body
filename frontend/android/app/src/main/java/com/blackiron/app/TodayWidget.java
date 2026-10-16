@@ -11,6 +11,9 @@ import android.widget.RemoteViews;
 
 import org.json.JSONObject;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
 // 홈 화면 위젯 — **「오늘 뭐 하지」의 답 한 줄** (2026-10-16)
 //
 // 앱의 「오늘」 탭 첫 카드가 말하는 것을 폰 홈 화면에 얹는다. 앱을 안 열어도 보이고,
@@ -72,6 +75,10 @@ public class TodayWidget extends AppWidgetProvider {
                 line = o.optString("line", line);
                 sub = o.optString("sub", "");
                 sets = o.optInt("sets", 0);
+                // 「{d}일째 식어 있습니다」의 숫자를 **오늘 기준으로 다시 센다**.
+                // 글자로 박아 두면 앱을 일주일 안 여는 동안 영영 「3일째」다 —
+                // 운동을 안 할수록 틀어지는 숫자이고, 하필 그때 봐야 하는 숫자다
+                line = withDays(line, o.optInt("days", -1), o.optString("basedOn", ""));
             } catch (Exception e) {
                 // 글을 못 읽어도 **위젯은 뭔가를 보여줘야 한다.** 위의 기본 글로 간다
             }
@@ -106,5 +113,30 @@ public class TodayWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_root, pending);
 
         manager.updateAppWidget(id, views);
+    }
+
+    /**
+     * 「{d}일째 …」의 숫자를 **오늘 기준으로** 채운다.
+     *
+     * 화면이 넘긴 것은 `days`(글을 쓴 날 기준 며칠째)와 `basedOn`(그 날짜)다.
+     * 여기서 하는 일은 **뺄셈 하나** — 그 뒤로 며칠이 더 지났는지 더한다.
+     * 부위를 고르는 계산은 여전히 화면 쪽(`bodyHeat.js`) 한 곳에만 있다.
+     *
+     * 못 읽는 값이 오면 **자리만 지운다**: 「{d}일째」가 그대로 보이는 것보다 낫다.
+     */
+    private static String withDays(String line, int days, String basedOn) {
+        if (line == null || !line.contains("{d}")) return line;
+        int shown = days;
+        try {
+            if (days >= 0 && basedOn != null && basedOn.length() == 10) {
+                long passed = ChronoUnit.DAYS.between(LocalDate.parse(basedOn), LocalDate.now());
+                // 폰 시계를 과거로 돌려둔 경우에도 **줄어들지는 않게** 한다
+                if (passed > 0) shown = days + (int) passed;
+            }
+        } catch (Exception e) {
+            shown = days;
+        }
+        if (shown < 0) return line.replace("{d}일째 ", "");
+        return line.replace("{d}", String.valueOf(shown));
     }
 }

@@ -33,7 +33,6 @@ import { DRAWER_ITEMS, screenOf } from '../data/navItems';
 import { usePendingReports } from './usePendingReports';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
-import { pushWidget, canWidget } from '../data/homeWidget';
 import { useNoteStore } from '../store/noteStore';
 import { useRefreshStore } from '../store/refreshStore';
 import NavIcon from './NavIcon';
@@ -91,19 +90,61 @@ export default function Layout() {
   // (휴식 띠의 알림을 이 껍데기에 한 번만 둔 것과 같은 이유다).
   //
   // **브라우저에서는 아무 일도 안 한다** — 다리(`window.BlackIronApp`)가 없다.
-  const widgetWorkouts = useWorkoutStore(s => s.workouts);
+  // **껍데기를 기록에 매달지 않는다** (처음 판을 그날 바로 고친 것).
+  //
+  // 처음에는 `useWorkoutStore(s => s.workouts)` 로 구독했다. 그러면 **세트를 적을
+  // 때마다 껍데기 전체가 다시 그려진다** — 머리 · 탭바 · 휴식 띠까지. 위젯은
+  // **앱에서만** 쓰는 것인데 그 값을 브라우저로 쓰는 사람도 같이 치른다.
+  //
+  // 그래서 구독을 그리는 쪽에서 떼고 효과 안으로 넣는다(`store.subscribe`) —
+  // 값이 바뀌어도 다시 그리지 않고, 위젯 글만 다시 만든다.
+  //
+  // 그리고 **한가할 때 센다.** 기록 하나를 적으면 화면이 그 자리에서 바뀌어야 하는데,
+  // 그 순간에 5년치 날짜를 훑으면 손가락에 걸린다(`requestIdleCallback`).
+  //
+  // **조각도 앱에서만 받는다** (같은 날 재서 고친 것). 위에서 `import` 하면
+  // `homeWidget` 과 그것이 보는 `bodyHeat` 가 **껍데기 조각에 같이 실린다** —
+  // 재보니 5.3KB 였고, 홈 화면 조각에 이미 들어 있는 것을 **한 벌 더** 받는
+  // 셈이었다. 브라우저로 쓰는 사람은 **영영 안 쓸 것**이다.
+  // 다리가 있는지 먼저 보고, 있을 때만 받는다 (10/15 의 「첫 화면 무게」와 같은 결).
   const todayKey = useToday();
   useEffect(() => {
-    if (!canWidget()) return undefined;
-    pushWidget(widgetWorkouts, todayKey);
-    // **앱을 떠날 때 한 번 더** 넘긴다. 적은 것이 서버로 올라가며 스토어가 늦게
-    // 바뀌는 경우가 있는데, 그 사이에 홈 화면으로 나가면 위젯은 옛 글을 들고 있다
-    const onHide = () => {
-      if (document.visibilityState === 'hidden') pushWidget(useWorkoutStore.getState().workouts, todayKey);
+    // `canWidget()` 을 쓰지 않는다 — 그걸 부르려면 그 조각을 먼저 받아야 한다.
+    // 보는 것은 같은 것이다 (`data/homeWidget.js` 의 canWidget)
+    if (typeof window === 'undefined' || typeof window.BlackIronApp?.saveWidget !== 'function') return undefined;
+
+    let live = true;
+    let queued = false;
+    let push = null;
+    const run = () => {
+      queued = false;
+      if (push) push(useWorkoutStore.getState().workouts, todayKey);
     };
+    // 여러 번 바뀌어도 한 번만 센다 — 루틴 하나를 저장하면 기록이 연달아 들어온다
+    const soon = () => {
+      if (queued) return;
+      queued = true;
+      if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 2000 });
+      else setTimeout(run, 300);
+    };
+
+    import('../data/homeWidget').then((m) => {
+      if (!live) return;
+      push = m.pushWidget;
+      soon();
+    }).catch(() => { /* 위젯 하나 때문에 앱이 멈추면 안 된다 */ });
+
+    const unsub = useWorkoutStore.subscribe(soon);
+    // **앱을 떠날 때는 미루지 않고 바로** 넘긴다. 적은 것이 서버로 올라가며 스토어가
+    // 늦게 바뀌는 경우가 있는데, 그 사이에 홈 화면으로 나가면 위젯은 옛 글을 들고 있다
+    const onHide = () => { if (document.visibilityState === 'hidden') run(); };
     document.addEventListener('visibilitychange', onHide);
-    return () => document.removeEventListener('visibilitychange', onHide);
-  }, [widgetWorkouts, todayKey]);
+    return () => {
+      live = false;
+      unsub();
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [todayKey]);
 
   /**
    * 길 줄의 ← . **들어온 데로 돌아간다.**

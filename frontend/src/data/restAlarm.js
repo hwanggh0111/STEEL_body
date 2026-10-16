@@ -46,7 +46,9 @@ const LS_ASKED = 'steelbody_rest_notify_asked';
 
 let plugin = null;
 let channelReady = false;
+let channelTries = 0;
 let exactOk = null;              // null = 아직 안 물어봄
+let granted = false;             // 권한을 받아둔 것을 기억한다 (아래 「미리 데운다」)
 
 /** 이 기기에서 OS 알림을 걸 수 있나 (= 앱으로 열었나). */
 export function canRestAlarm() {
@@ -69,7 +71,8 @@ async function load() {
 // 안드로이드 8부터 알림은 **채널**에 속해야 소리·우선순위가 정해진다.
 // 채널이 없으면 조용한 기본 채널로 떨어져서 — 잠금화면에 안 뜬다
 async function ensureChannel(api) {
-  if (channelReady) return;
+  if (channelReady || channelTries >= 2) return;
+  channelTries += 1;
   try {
     await api.createChannel({
       id: CHANNEL,
@@ -79,10 +82,13 @@ async function ensureChannel(api) {
       visibility: 1,             // 잠금화면에 내용까지 보인다
       vibration: true,
     });
+    channelReady = true;
   } catch {
-    // iOS 에는 채널이 없다. 없어도 알림은 간다
+    // **실패를 영영 기억하지 않는다.** iOS 에는 채널이 아예 없어서 늘 여기로 오고,
+    // 안드로이드에서도 한 번쯤 실패할 수 있다. 그때 「만들었다」고 적어두면
+    // 다시는 안 만들고 — 알림이 조용한 기본 채널로 떨어져 **잠금화면에 안 뜬다.**
+    // 그래서 두 번까지만 다시 해본다(`channelTries`). 채널이 없어도 알림 자체는 간다
   }
-  channelReady = true;
 }
 
 /**
@@ -96,13 +102,48 @@ export async function askRestAlarmOnce() {
   try {
     const api = await load();
     const now = await api.checkPermissions();
-    if (now.display === 'granted') return true;
+    if (now.display === 'granted') { granted = true; return true; }
     if (now.display === 'denied') return false;
     // 'prompt' — 아직 안 물어본 상태. 한 번만 묻는다
     if (localStorage.getItem(LS_ASKED) === '1') return false;
     localStorage.setItem(LS_ASKED, '1');
     const asked = await api.requestPermissions();
-    return asked.display === 'granted';
+    granted = asked.display === 'granted';
+    return granted;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * **미리 데워 둔다** (2026-10-16 에 더한 것).
+ *
+ * 예약은 **앱이 뒤로 가는 순간**에 건다. 그런데 그 순간 할 일이 넷이었다 —
+ * 플러그인 내려받기 · 권한 묻기 · 채널 만들기 · 예약하기. 안드로이드는 뒤로 간
+ * 웹뷰의 자바스크립트를 **곧 얼린다** — 넷을 줄줄이 기다리다 얼면 **예약이 아예
+ * 안 걸리고**, 그러면 이 기능은 조용히 없는 것이 된다. 하필 **가장 흔한 경우**
+ * (주머니에 넣는 순간)에서 그렇다.
+ *
+ * 그래서 앞의 셋을 **휴식이 시작될 때(화면이 떠 있을 때)** 미리 해둔다.
+ * 뒤로 가는 순간에 남는 일은 `schedule()` 하나다.
+ */
+export async function warmUpRestAlarm() {
+  if (!canRestAlarm()) return false;
+  try {
+    const api = await load();
+    const perm = await api.checkPermissions();
+    granted = perm.display === 'granted';
+    if (!granted) return false;
+    await ensureChannel(api);
+    if (exactOk === null) {
+      try {
+        const st = await api.checkExactNotificationSetting();
+        exactOk = st.exact_alarm === 'granted';
+      } catch {
+        exactOk = false;
+      }
+    }
+    return true;
   } catch {
     return false;
   }
@@ -143,14 +184,19 @@ export async function scheduleRestAlarm(deadline, body = '') {
   if (deadline - Date.now() < 1000) return false;
   try {
     const api = await load();
-    const perm = await api.checkPermissions();
-    if (perm.display !== 'granted') return false;
+    // **데워져 있으면 다시 묻지 않는다.** 여기는 앱이 막 뒤로 간 순간이라
+    // 자바스크립트가 곧 얼어붙는다 — 왕복을 하나라도 줄여야 예약이 걸린다
+    if (!granted) {
+      const perm = await api.checkPermissions();
+      granted = perm.display === 'granted';
+      if (!granted) return false;
+    }
     await ensureChannel(api);
 
     if (exactOk === null) {
       try {
-        const s = await api.checkExactNotificationSetting();
-        exactOk = s.exact_alarm === 'granted';
+        const st = await api.checkExactNotificationSetting();
+        exactOk = st.exact_alarm === 'granted';
       } catch {
         exactOk = false;
       }
