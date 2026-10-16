@@ -12,6 +12,7 @@ import { useToday } from '../data/useToday';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
 import { CHART } from '../data/chartColors';
+import { healthReady, askHealth, latestBody, openHealthSettings } from '../data/healthLink';
 
 // 무거운 것은 필요할 때 받는다.
 // 그래프와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
@@ -167,6 +168,55 @@ export default function InbodyPage({ embedded = false }) {
   const bmiColor = bmiBand?.band?.tone === 'low' ? 'var(--info)'
     : bmiBand?.band?.tone === 'high' ? 'var(--warning)'
       : bmiBand ? 'var(--success)' : 'var(--text-muted)';
+
+  // ── 건강 앱에서 가져오기 ── (2026-10-16)
+  //
+  // 체중계(삼성 · 샤오미 · 인바디 앱)가 이미 헬스 커넥트에 넣어둔 값을 그대로 쓴다.
+  // 같은 숫자를 사람이 두 번 치면 틀린다.
+  //
+  // **체중과 체지방률만**이다 — 골격근량은 건강 앱에 없다(거기 있는 `제지방량`은
+  // 뼈 · 장기 · 수분이 다 든 다른 값이다). 까닭은 `data/healthLink.js` 머리글.
+  //
+  // **쓸 수 있을 때만 단추를 그린다** — 브라우저 · 플러그인을 뺀 판 · 헬스 커넥트가
+  // 없는 폰에서는 아예 안 나온다. 눌러도 아무 일이 안 나는 줄을 두지 않는다.
+  const [healthOn, setHealthOn] = useState(false);
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [healthFrom, setHealthFrom] = useState('');
+  useEffect(() => {
+    let live = true;
+    healthReady().then((v) => { if (live) setHealthOn(v); });
+    return () => { live = false; };
+  }, []);
+
+  const pullHealth = async () => {
+    setHealthBusy(true);
+    setError('');
+    try {
+      // 권한은 **누른 그 자리에서** 묻는다. 화면에 들어오자마자 물으면 무슨 일로
+      // 묻는지 모른 채 거절하고, 두 번 거절하면 헬스 커넥트 설정에서만 풀 수 있다
+      const allowed = await askHealth();
+      if (!allowed) {
+        setError('건강 앱에서 체중 · 체지방률 읽기를 켜주세요');
+        return;
+      }
+      const body = await latestBody(30);
+      if (!body || (body.weight == null && body.fatPct == null)) {
+        setError('최근 30일 안에 잰 것이 없어요');
+        return;
+      }
+      if (body.weight != null) setWeight(String(body.weight));
+      if (body.fatPct != null) {
+        setFatPct(String(body.fatPct));
+        setQuickMode(false);          // 체지방률 칸은 상세에만 있다 — 가져와 놓고 안 보이면 안 된다
+      }
+      // **언제 · 어디서 온 값인지 같이 보여준다.** 숫자만 꽂아 넣으면 사람은 그것이
+      // 오늘 잰 것인 줄 알고 저장한다
+      const when = body.at ? String(body.at).slice(0, 10) : '';
+      setHealthFrom(`${when}${body.source ? ' · ' + body.source : ''} 에서 가져왔어요 — 맞는지 보고 저장하세요`);
+    } finally {
+      setHealthBusy(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -391,6 +441,29 @@ export default function InbodyPage({ embedded = false }) {
               ? '체중만 적습니다. 키는 지난 기록에서 가져옵니다.'
               : '체중 · 키 · 체지방률 · 골격근량 · 체수분까지 적습니다.'}
           </div>
+
+          {healthOn && (
+            <div style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={pullHealth}
+                disabled={healthBusy}
+                style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: healthBusy ? 'default' : 'pointer' }}
+              >{healthBusy ? '가져오는 중…' : '건강 앱에서 가져오기'}</button>
+              {healthFrom && (
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                  {healthFrom}
+                  {' · '}
+                  <button
+                    type="button"
+                    onClick={openHealthSettings}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', font: 'inherit' }}
+                  >건강 앱 설정</button>
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
             <label className="label">날짜</label>
