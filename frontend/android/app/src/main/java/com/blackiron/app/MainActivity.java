@@ -1,5 +1,7 @@
 package com.blackiron.app;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -95,6 +97,26 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public String serverUrl() {
             return bridge.getServerUrl();
+        }
+
+        /**
+         * 홈 화면 위젯에 적을 글을 받아 둔다 (2026-10-16).
+         *
+         * **계산은 화면 쪽에 있다** — 부위가 며칠째 식었는지는 기록 전부를 봐야 아는
+         * 값이고, 그 계산을 자바로 한 벌 더 옮기면 위젯과 홈이 서로 다른 부위를
+         * 말하는 날이 온다 (`src/data/homeWidget.js` · `TodayWidget` 머리글).
+         *
+         * 여기서 하는 일은 둘이다 — 받아 적고, 얹혀 있는 위젯을 다시 그리게 한다.
+         * **위젯이 없어도 적어 둔다**: 나중에 얹는 사람이 빈 위젯을 보지 않는다.
+         */
+        @JavascriptInterface
+        public void saveWidget(String json) {
+            if (json == null || json.isEmpty()) return;
+            Context context = getApplicationContext();
+            SharedPreferences prefs = context.getSharedPreferences(TodayWidget.PREFS, Context.MODE_PRIVATE);
+            prefs.edit().putString(TodayWidget.KEY, json).apply();
+            // 그리는 일은 UI 쪽에서 — 자바스크립트 다리는 다른 줄에서 불린다
+            runOnUiThread(() -> TodayWidget.refresh(context));
         }
     }
 }

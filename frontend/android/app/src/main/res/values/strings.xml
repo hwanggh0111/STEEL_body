@@ -4,4 +4,7 @@
     <string name="title_activity_main">BLACK IRON</string>
     <string name="package_name">com.blackiron.app</string>
     <string name="custom_url_scheme">com.blackiron.app</string>
+    <!-- 홈 화면 위젯 (2026-10-16). 위젯 고르는 목록에 뜨는 이름과 설명이다 -->
+    <string name="widget_today_label">오늘 뭐 하지</string>
+    <string name="widget_today_desc">식은 부위를 홈 화면에서 바로 봅니다</string>
 </resources>
