@@ -51,6 +51,10 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = resolve(HERE, '../src/data');
 const OUT = resolve(DATA, 'feedList.json');
+// 공지함 · 고객센터가 쓰는 **전체 목록**(본문 없이)과, 본문만 따로 담은 파일
+const OUT_ALL = resolve(DATA, 'feedIndex.json');
+const PUBLIC = resolve(HERE, '../public');
+const OUT_DETAIL = resolve(PUBLIC, 'feed-detail.json');
 
 // 홈페이지가 다섯 줄을 쓰지만 여유를 둔다 — 고정한 공지가 여럿이면 날짜순 다섯이
 // 다 밀릴 수 있고, 걸러낸 뒤에 다섯이 남아야 한다
@@ -104,6 +108,59 @@ const out = {
   items: rows,
 };
 
+// ── 공지함 · 고객센터가 받는 것도 가볍게 ── (2026-10-16)
+//
+// 홈페이지는 10/6 에 위의 `feedList.json` 으로 가벼워졌는데, **고객센터와 공지함은
+// 여전히 두 파일을 통째로 받고 있었다** — 묶인 조각이 91KB(gzip 32KB)이고 그
+// 거의 전부가 본문(`detail`, 공지 19,663자 + 커밋 14,578자)이다. 고객센터에 오는
+// 사람 대부분은 **한 줄도 안 펼친다.**
+//
+// 그래서 여기서도 가른다 —
+//   feedIndex.json     전체 목록(본문 없이) — 묶음에 실린다
+//   public/feed-detail.json   본문만 — **펼치거나 찾을 때** 받는다
+//
+// 열쇠(`key`)는 화면이 쓰는 것과 **같은 규칙**으로 만든다(공지는 id, 커밋은 hash) —
+// 어긋나면 펼쳐도 본문이 안 나온다. `npm run checkfeed` 가 그 짝을 본다.
+const noticeRows = ((notices?.items) || []).map((n, i) => ({
+  key: n.id ?? `notice-${i}`,
+  date: n.date || '',
+  text: n.text || '',
+  notice: true,
+  ...(n.pinned ? { pinned: true } : null),
+  ...(n.detail ? { has: true } : null),
+}));
+const changeRows = ((changelog?.items) || []).map((c, i) => ({
+  key: c.hash ?? `change-${i}`,
+  date: c.date || '',
+  text: c.text || '',
+  label: c.label || '',
+  ...(c.scope ? { scope: c.scope } : null),
+  ...(c.detail ? { has: true } : null),
+}));
+
+const details = {};
+((notices?.items) || []).forEach((n, i) => {
+  if (n.detail) details[n.id ?? `notice-${i}`] = n.detail;
+});
+((changelog?.items) || []).forEach((c, i) => {
+  if (c.detail) details[c.hash ?? `change-${i}`] = c.detail;
+});
+
 if (!existsSync(DATA)) mkdirSync(DATA, { recursive: true });
 writeFileSync(OUT, `${JSON.stringify(out, null, 2)}\n`, 'utf8');
 console.log(`[feed] ${rows.length}줄 → src/data/feedList.json`);
+
+const all = {
+  note: '뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.',
+  items: [...noticeRows, ...changeRows],
+};
+writeFileSync(OUT_ALL, JSON.stringify(all, null, 2) + '\n', 'utf8');
+
+if (!existsSync(PUBLIC)) mkdirSync(PUBLIC, { recursive: true });
+// **줄바꿈 없이 쓴다** — 사람이 읽는 파일이 아니라 받아가는 파일이다
+writeFileSync(OUT_DETAIL, JSON.stringify(details), 'utf8');
+
+const kb = (n) => `${Math.round(n / 102.4) / 10}KB`;
+console.log(`[feed] ${all.items.length}줄(본문 없이) → src/data/feedIndex.json ${kb(JSON.stringify(all).length)}`);
+console.log(`[feed] 본문 ${Object.keys(details).length}개 → public/feed-detail.json ${kb(JSON.stringify(details).length)} (펼칠 때만 받는다)`);
+

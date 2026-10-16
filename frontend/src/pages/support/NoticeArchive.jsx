@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import NavIcon from '../../components/NavIcon';
 import { useNavigate } from 'react-router-dom';
-import { FEED } from './feedData';
+import { FEED, useFeedDetails } from './feedData';
 import FeedList from './FeedList';
 
 // ─────────────────────────────────────────────────────────────
@@ -56,19 +56,25 @@ export default function NoticeArchive({ embedded = false }) {
   const query = norm(q);
   const searching = query.length >= 2;
 
+  // 찾기 시작하면 **그때 본문을 받는다** (2026-10-16). 본문은 묶음에 없다 —
+  // 고객센터를 여는 사람 대부분은 한 줄도 안 펼치므로 미뤄뒀다(`feedData.js`).
+  // 찾는 것은 **사람이 일부러 하는 일**이라, 그 순간 한 번 받아오면 된다.
+  const { details, failed: detailFailed } = useFeedDetails(searching);
+
   const shown = useMemo(() => {
     const byTab = tab === 'all' ? FEED
       : tab === 'notice' ? FEED.filter(f => f.notice)
         : FEED.filter(f => !f.notice && f.label === tab);
     if (!searching) return byTab;
     // 제목뿐 아니라 세부 내용과 scope 까지 본다 — 무엇이 바뀌었는지는
-    // 대개 제목이 아니라 펼쳐야 나오는 쪽에 적혀 있다
+    // 대개 제목이 아니라 펼쳐야 나오는 쪽에 적혀 있다.
+    // **본문이 아직 안 왔으면 제목만으로 찾는다** — 빈 목록을 보여주는 것보다 낫다
     return byTab.filter(f =>
       norm(f.text).includes(query)
-      || norm(f.detail).includes(query)
+      || norm(details?.[f.key]).includes(query)
       || norm(f.scope).includes(query)
       || norm(f.label).includes(query));
-  }, [tab, query, searching]);
+  }, [tab, query, searching, details]);
 
   // 날짜별로 묶는다. 한 줄씩 흘려보내면 언제 일인지가 안 잡힌다
   const byDate = useMemo(() => {
@@ -158,7 +164,7 @@ export default function NoticeArchive({ embedded = false }) {
       {/* 무엇을 보고 있는지 적는다 */}
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18 }}>
         {searching
-          ? `「${q.trim()}」로 찾은 ${shown.length}건`
+          ? `「${q.trim()}」로 찾은 ${shown.length}건${details ? '' : detailFailed ? ' (제목만 — 본문을 못 불러왔어요)' : ' (제목만 — 본문 받는 중)'}`
           : q.trim()
             ? '두 글자부터 찾습니다'
             : `${shown.length}건`}

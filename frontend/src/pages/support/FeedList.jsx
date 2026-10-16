@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fmtDate } from './feedData';
+import { fmtDate, useFeedDetails } from './feedData';
 
 // 한 줄씩 세운 목록. 세부 내용이 있는 줄만 눌러서 펼친다.
 //
@@ -9,6 +9,9 @@ import { fmtDate } from './feedData';
 
 export default function FeedList({ items }) {
   const [open, setOpen] = useState(null);
+  // 본문은 **펼칠 때** 받는다 (2026-10-16). 묶음에는 목록만 실려 있다 —
+  // 까닭과 잰 값은 `feedData.js` 머리글에 적어뒀다
+  const { details, failed, retry } = useFeedDetails(open != null);
 
   if (!items.length) {
     return (
@@ -23,10 +26,10 @@ export default function FeedList({ items }) {
     return (
       <div key={c.key} style={{ borderBottom: '1px solid var(--border)' }}>
         <div
-          onClick={() => c.detail && setOpen(on ? null : c.key)}
+          onClick={() => c.hasDetail && setOpen(on ? null : c.key)}
           style={{
             display: 'flex', gap: 12, alignItems: 'baseline',
-            padding: '11px 0', cursor: c.detail ? 'pointer' : 'default',
+            padding: '11px 0', cursor: c.hasDetail ? 'pointer' : 'default',
           }}
         >
           <span style={{
@@ -47,18 +50,33 @@ export default function FeedList({ items }) {
             {c.text}
           </span>
           {/* 세부 내용이 있는 줄만 열린다. 없으면 표시도 안 한다 */}
-          {c.detail && (
+          {c.hasDetail && (
             <span style={{
               color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
               transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
             }}>+</span>
           )}
         </div>
-        {on && c.detail && (
+        {on && (
           <div style={{
             fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85,
             whiteSpace: 'pre-wrap', padding: '2px 0 16px', paddingLeft: 58, maxWidth: 460,
-          }}>{c.detail}</div>
+          }}>
+            {/* **아직 안 온 것과 못 받은 것을 가른다.** 신호가 없을 때 「불러오는 중」이
+                영영 돌면 사람은 기다리고, 「못 불러왔어요」만 있으면 다시 해볼 수 없다 */}
+            {details?.[c.key] ?? (failed
+              ? (
+                <span style={{ color: 'var(--text-muted)' }}>
+                  지금은 본문을 못 불러왔어요 ·{' '}
+                  <button
+                    type="button"
+                    onClick={retry}
+                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
+                  >다시</button>
+                </span>
+              )
+              : <span style={{ color: 'var(--text-muted)' }}>불러오는 중…</span>)}
+          </div>
         )}
       </div>
     );

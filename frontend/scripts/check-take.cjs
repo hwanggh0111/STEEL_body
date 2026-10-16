@@ -224,11 +224,28 @@ ok('  무거운 두 파일은 안 받는다', /(notices|changelog)\.json/.test(s
 }
 // 빈 상자를 먼저 띄웠다가 채우면 그 사이에 아래 상자들이 한 번 밀린다
 ok('  차기 전에는 상자를 안 그린다', /news\.length > 0 && \(/.test(site), true);
-// 공지함·고객센터는 **전부** 보여주는 자리다 (「자세히」까지 편다).
-// 거기서는 그대로 들여온다 — 미루는 것은 **홈페이지에서만** 하는 일이다.
-// 목록은 두 화면이 한 곳(`feedData.js`)에서 같이 본다
-ok('공지함 쪽은 그대로 통째로 읽는다',
-  /^import .*changelog\.json/m.test(read('src/pages/support/feedData.js')), true);
+// ── 공지함·고객센터도 **본문은 펼칠 때 받는다** ── (2026-10-16 에 바뀐 줄)
+//
+// 10/6 에는 「공지함은 전부 보여주는 자리이니 그대로 들여온다」였다. 그런데 재보니
+// 그 「그대로」가 **묶인 조각 91KB(gzip 32KB)** 였고, 거의 전부가 본문이다
+// (공지 19,663자 + 커밋 14,578자). **고객센터에 오는 사람 대부분은 한 줄도 안 편다.**
+// 목록만 싣고 본문을 미루니 gzip 32KB → 5.7KB 가 됐다.
+//
+// 그래서 여기서 지키는 것이 바뀌었다 — 「통째로 읽는가」가 아니라
+// **「목록만 싣고, 본문은 펼칠 때 받는가」**다.
+{
+  const feed = read('src/pages/support/feedData.js');
+  ok('공지함도 목록만 싣는다', /^import .*feedIndex\.json/m.test(feed), true);
+  ok('  무거운 원본을 안 들여온다', /^import .*(notices|changelog)\.json/m.test(feed), false);
+  ok('  본문은 펼칠 때 받는다', /fetch\('\/feed-detail\.json'\)/.test(feed), true);
+  // 열 줄을 펼쳐도 왕복은 한 번이어야 한다
+  ok('  한 번만 받는다', /if \(details\) return Promise\.resolve\(details\)/.test(feed), true);
+  // 신호가 없을 때 한 번 막혔다고 영영 안 받으면, 신호가 돌아와도 그대로다
+  ok('  실패를 기억하지 않는다', /pending = null; throw e;/.test(feed), true);
+  // 뽑은 파일이 실제로 만들어지는지 (빌드 앞에서 돈다)
+  ok('  본문 파일을 뽑아 둔다', fs.existsSync('public/feed-detail.json'), true);
+  ok('  목록 파일도', fs.existsSync('src/data/feedIndex.json'), true);
+}
 
 console.log('');
 console.log('── 누른 갈래가 대답하는가 ──');
