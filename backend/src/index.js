@@ -726,6 +726,10 @@ function start() {
   // 운동 알림 — VAPID 키가 없으면 스스로 안 뜬다 (설정이 없다고 서버가 못 뜨면 안 된다)
   require('./utils/reminderRunner').start();
 
+  // 잠들지 않게 스스로 두드린다 — 무료 판은 15분 놀면 자고, 깨는 데 22.3초다.
+  // 내 컴퓨터(localhost)에서는 스스로 안 뜬다 (`utils/keepWarm.js` 머리글)
+  require('./utils/keepWarm').start();
+
   // ── 뜬 **뒤에** 데운다 ── (2026-10-09)
   //
   // 무거운 꾸러미 둘(`jsonwebtoken` 66ms · `web-push` 31ms)을 뜰 때 안 들게
