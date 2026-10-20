@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
   searchExercises, koreanNameOf, translateQuery, isPart, PARTS, hasExercise,
@@ -210,6 +210,32 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
   const typed = query.trim().length >= 2 || isPart(query);
   // 앱 안의 사전은 네트워크가 필요 없다. 치는 동안 바로 나온다
   const results = useMemo(() => (typed ? searchExercises(query) : []), [query, typed]);
+
+  // ── 자세 설명을 **지하에 가기 전에 담아둔다** ── (2026-10-20)
+  //
+  // 10/5 에 이 조각(78KB)을 「자세 보기」를 누를 때 받게 갈랐다. 가른 것은 맞는데,
+  // **받아온 조각을 담아두는 길이 「한 번 받아본 것」뿐이다** — 서비스 워커가 미리
+  // 담는 것은 껍데기 둘(`/` · `/index.html`)이고 나머지는 지나간 것을 담는다.
+  // 그래서 **신호 없는 헬스장에서 처음 누르면 안 온다.** 오늘 붙인 「다시 받기」는
+  // 말을 해주는 것일 뿐이고, 신호가 없으면 다시 받아도 안 온다.
+  //
+  // 운동을 찾아 목록을 보고 있는 사람은 **한 번 누르면 닿는 자리**에 있다. 그 틈에
+  // 조용히 받아둔다 — 첫 그림을 막지 않게 **한가할 때** 받고, 데이터 아끼기를 켠
+  // 사람과 이미 신호가 없는 사람은 건드리지 않는다. 실패해도 아무 말도 안 한다
+  // (`loadForm` 이 실패한 약속을 버리므로 눌렀을 때 다시 해본다).
+  useEffect(() => {
+    if (!results.length) return undefined;
+    if (navigator.onLine === false) return undefined;
+    if (navigator.connection?.saveData) return undefined;
+    const run = () => { loadForm(); };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    // 사파리에는 `requestIdleCallback` 이 없다. 조금 늦게 받는 것으로 갈음한다
+    const t = setTimeout(run, 1500);
+    return () => clearTimeout(t);
+  }, [results.length]);
 
   const setQ = (v) => {
     setQuery(v);

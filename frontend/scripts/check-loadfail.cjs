@@ -95,6 +95,13 @@ ok('  접어버리지 않는다 (펴둔 채로 말한다)',
   /if \(!m\) \{ setOpenForm\(false\); return; \}/.test(finder), false);
 ok('  「못 불러왔어요」를 적는다', /못 불러왔어요/.test(finder), true);
 ok('  다시 받는 길을 준다', /다시 받기/.test(finder), true);
+// **다만 지하에서는 다시 받아도 안 온다.** 서비스 워커가 미리 담는 것은 껍데기
+// 둘뿐이고 조각은 지나간 것만 담는다 — 그래서 목록을 보고 있는 틈에 담아둔다
+ok('  목록을 보고 있을 때 미리 담아둔다', /requestIdleCallback/.test(finder), true);
+ok('    데이터 아끼기를 켠 사람은 건드리지 않는다', /saveData/.test(finder), true);
+ok('    신호가 없으면 안 받으러 간다', /navigator\.onLine === false/.test(finder), true);
+// 미리 담는 것이 **첫 그림을 막으면** 가른 까닭이 없어진다 — 위에서 들여오지 않는다
+ok('    위에서 들여오지는 않는다', /^import .*exerciseForm/m.test(finder), false);
 // 홈페이지의 운동 사전도 같은 자리다. 그쪽 검사는 `check-feed.cjs` 에 있다
 // (거기서 「첫 화면에서 안 받는다」와 함께 본다)
 const siteHome = read('pages/SiteHome.jsx');
