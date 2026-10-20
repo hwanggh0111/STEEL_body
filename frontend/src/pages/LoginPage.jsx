@@ -80,7 +80,9 @@ export default function LoginPage() {
   //
   // **앱 안의 자리만 받는다.** 거르는 규칙은 `data/afterAuth.js` 한 곳에 있다 —
   // **가입도 같은 값을 보기 때문이다** (2026-10-20). 까닭(오픈 리다이렉트)은 그 머리글에.
-  const backTo = useLocation().state?.from;
+  // **소셜로 돌아온 길에는 `state` 가 없다** (2026-10-20) — 서버가 주소에 실어
+  // 보낸 `?to=` 를 같이 본다. 거르는 것은 `afterAuthPath` 가 한다
+  const backTo = useLocation().state?.from || searchParams.get('to');
   const goAfterLogin = () => {
     navigate(afterAuthPath(backTo), { replace: true });
   };
@@ -302,7 +304,7 @@ function oauthErrorText(code) {
   const known = !!savedNickname && !!readLS('saved_id');
   const returning = known && !switched;
 
-  const social = <SocialLoginButtons disabled={loading} />;
+  const social = <SocialLoginButtons disabled={loading} to={safeBackTo(backTo)} />;
   const divider = (label) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: label === 'OR' ? 0 : 24 }}>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />

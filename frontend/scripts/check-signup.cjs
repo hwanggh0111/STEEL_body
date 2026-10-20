@@ -140,6 +140,33 @@ if (register) {
   // 로그인·가입으로 되돌리면 그 자리를 맴돈다
   ok('로그인·가입으로 되돌리지 않는다', [A.afterAuthPath('/login'), A.afterAuthPath('/register')], ['/home', '/home']);
   ok('  들고 온 것이 없으면 「오늘」', [A.afterAuthPath(undefined), A.afterAuthPath('')], ['/home', '/home']);
+
+  // ── 소셜도 같은 자리로 가나 ── (2026-10-20)
+  //
+  // 소셜은 **서버를 거쳐 돌아온다**(`window.location.href = /api/oauth/…`). 그래서
+  // 화면이 들고 있던 자리가 그대로 사라졌고, 홈페이지에서 「가입하고 열기 — 「몸 지도」
+  // 화면」을 누른 사람이 **소셜로 들어오면 「오늘」로** 갔다.
+  //
+  // 이제 셋이 이어진다 — 화면이 `?to=` 로 알려주고 · 서버가 **서명된 state 쿠키에**
+  // 담아두고(주소에 안 싣는다) · 돌아올 때 주소에 실어 보낸다.
+  const oauth = codeOf(read('../backend/src/routes/oauth.js'));
+  const social = read('src/components/SocialLoginButtons.jsx');
+  const oauthEmail = read('src/pages/OauthEmailPage.jsx');
+
+  ok('소셜 단추가 가려던 자리를 들고 간다', /to \? `\?to=\$\{encodeURIComponent\(to\)\}`/.test(social), true);
+  ok('  로그인 화면이 들려 준다', /<SocialLoginButtons disabled=\{loading\} to=\{safeBackTo\(backTo\)\}/.test(login), true);
+  ok('  가입 화면도 들려 준다', /<SocialLoginButtons[^>]*to=\{/.test(register), true);
+  // 서버는 **주소에 안 싣는다** — 서명된 state 쿠키에 담는다(10분이면 식는다)
+  ok('서버가 state 에 담는다', /startOauth\(req, res, \{ to: safeTo\(req\.query\.to\)/.test(oauth), true);
+  ok('  제공자 넷이 다 담는다', (oauth.match(/to: safeTo\(req\.query\.to\)/g) || []).length, 4);
+  ok('  서버도 한 번 거른다', /function safeTo\(/.test(oauth), true);
+  ok('  돌아올 때 주소에 실어 준다', /q\.set\('to', to\)/.test(oauth), true);
+  ok('  콜백 넷이 그 값을 넘긴다', (oauth.match(/\}, st\.to\);/g) || []).length, 4);
+  // 돌아온 길에는 `state` 가 없다 — 주소의 `?to=` 를 같이 봐야 한다
+  ok('돌아온 길에서 그 값을 읽는다', /useLocation\(\)\.state\?\.from \|\| searchParams\.get\('to'\)/.test(login), true);
+  // 메일을 묻는 걸음(인스타 · X)을 거쳐도 잃지 않는다
+  ok('  메일을 묻는 걸음도 같은 자리로', /afterAuthPath\(searchParams\.get\('to'\)\)/.test(oauthEmail), true);
+  ok('  거기도 「오늘」로 못 박혀 있지 않다', /navigate\('\/home', \{ replace: true \}\)/.test(oauthEmail), false);
 }
 
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));

@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import Logo from '../components/Logo';
 import { toast } from '../components/Toast';
+// 로그인·가입이 끝나고 어디로 갈지 — 규칙은 한 곳에 있다 (2026-10-20)
+import { afterAuthPath } from '../data/afterAuth';
 
 // 메일 주소를 받는 걸음 (2026-10-07 · 시안 B안).
 //
@@ -122,7 +124,9 @@ export default function OauthEmailPage() {
       const { data } = await client.post('/oauth/email', { email: email.trim(), code });
       useAuthStore.getState().socialLoggedIn({ nickname: data?.nickname, email: data?.email });
       if (data?.restored) toast('계정이 되살아났어요');
-      navigate('/home', { replace: true });
+      // **가려던 자리로** (2026-10-20). 메일을 묻는 걸음을 거쳐도 잃지 않는다 —
+      // 서버가 `?to=` 를 이 화면까지 들려 보낸다 (`routes/oauth.js` 의 finishSocial)
+      navigate(afterAuthPath(searchParams.get('to')), { replace: true });
     } catch (err) {
       const res = err.response?.data;
       // **다시 로그인부터 해야 하는 경우를 따로 다룬다.** 15분이 지났거나 쪽지가

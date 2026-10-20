@@ -391,7 +391,7 @@ export default function RegisterPage() {
             {/* 소셜로 들어오면 계정이 저절로 만들어진다 — **제일 빠른 길이라 맨 위에
                 둔다.** 예전에는 이 자리가 비어 있어서, 구글로 가입하려면 「로그인」
                 쪽으로 가야 한다는 걸 알아내야 했다 */}
-            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" />
+            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={afterAuthPath(backTo) === '/home' ? undefined : afterAuthPath(backTo)} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
               <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />

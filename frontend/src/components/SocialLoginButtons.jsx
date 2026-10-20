@@ -47,7 +47,13 @@ const OTHERS = [
   },
 ];
 
-export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기' }) {
+// `to` — 로그인이 끝나고 **가려던 자리** (2026-10-20).
+//
+// 이 길은 서버를 거쳐 돌아온다(`window.location.href`). 그래서 화면이 들고 있던
+// 자리가 그대로 사라졌고, 홈페이지에서 「가입하고 열기 — 「몸 지도」 화면」을 누른
+// 사람이 **소셜로 들어오면 「오늘」로** 갔다. 서버에게 알려주면 서버가 **서명된
+// state 쿠키에 담아뒀다가** 돌아올 때 주소에 실어 보낸다 (`routes/oauth.js`).
+export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기', to }) {
   const [providers, setProviders] = useState(null);
 
   useEffect(() => {
@@ -59,7 +65,10 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
   }, []);
 
   const go = (provider) => {
-    window.location.href = `${BACKEND_BASE}/api/oauth/${provider}`;
+    // 거르는 것은 **받는 쪽이 한다** — 서버가 한 번(`safeTo`), 돌아와서 화면이
+    // 한 번 더(`data/afterAuth.js`). 여기서는 들고만 간다
+    const q = to ? `?to=${encodeURIComponent(to)}` : '';
+    window.location.href = `${BACKEND_BASE}/api/oauth/${provider}${q}`;
   };
 
   const others = OTHERS.filter(o => providers?.[o.key]);

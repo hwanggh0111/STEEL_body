@@ -164,13 +164,13 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
 //
 // 그래서 **끝맺는 것을 함수 하나로** 둔다. 제공자 쪽 코드가 하는 일은
 // 「메일 · 이름 · 확인됐나」를 모아 이 함수에 넘기는 것까지다.
-async function finishSocial(res, frontendUrl, provider, got) {
+async function finishSocial(res, frontendUrl, provider, got, to) {
   // 메일을 받았으면 **묻지 않는다** — 인스타 · X 라도 나중에 주게 되면 그대로 통한다
   if (got.email || !ASK_EMAIL.has(provider)) {
     const info = await findOrCreateUser(got.email, got.nickname, provider,
       { emailVerified: got.emailVerified });
     setAuthCookies(res, info.user);
-    return res.redirect(successUrl(frontendUrl, info));
+    return res.redirect(successUrl(frontendUrl, info, to));
   }
   // 메일이 없다 — **계정을 만들지 않고** 묻는 걸음으로 보낸다
   const token = crypto.randomBytes(32).toString('hex');
@@ -183,6 +183,8 @@ async function finishSocial(res, frontendUrl, provider, got) {
   }, PENDING_TTL_MS);
   setPendingCookie(res, token);
   const q = new URLSearchParams({ provider });
+  // 메일을 묻는 걸음을 거쳐도 **가려던 자리는 잃지 않는다** (2026-10-20)
+  if (to) q.set('to', to);
   // 화면이 「@누구로 들어왔어요」를 띄운다 — 왜 메일을 묻는지가 설명 없이 읽힌다
   if (got.nickname) q.set('name', sanitize(String(got.nickname)).slice(0, 30));
   return res.redirect(`${frontendUrl}/oauth/email?${q}`);
@@ -193,10 +195,12 @@ async function finishSocial(res, frontendUrl, provider, got) {
 // `created` 를 같이 보낸다. 화면의 「닉네임 정하기」 단계는 **계정이 방금 만들어졌을
 // 때만** 나와야 하는데, 그동안은 소셜로 들어올 때마다 나왔다 — 백 번째 로그인에도
 // 이름을 다시 확인시키는 것은 로그인에 한 단계를 더 놓는 것이다
-function successUrl(frontendUrl, { nickname, email, created, restored }) {
+function successUrl(frontendUrl, { nickname, email, created, restored }, to) {
   const q = new URLSearchParams({ oauth: 'success', nickname, email });
   if (created) q.set('created', '1');
   if (restored) q.set('restored', '1');
+  // **가려던 자리**. 화면이 한 번 더 거른 뒤에 쓴다 (`data/afterAuth.js`)
+  if (to) q.set('to', to);
   return `${frontendUrl}/login?${q}`;
 }
 
@@ -270,6 +274,27 @@ const signState = (body) =>
  * 만들기와 담기를 따로 두면 한쪽을 빠뜨린다. 예전에 구글만 등록 줄을 갖고 있어서
  * 네이버 · 페이스북 · 인스타그램이 **100% `invalid_state`** 였던 적이 있다.
  */
+// 로그인이 끝나고 **가려던 자리**. 화면이 `?to=/map` 으로 알려준다 (2026-10-20).
+//
+// 홈페이지에 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀는데, 소셜로 들어온
+// 사람만 **「오늘」로** 갔다 — 이 길은 서버를 거쳐 돌아오느라 가려던 자리를 들고
+// 갈 칸이 없었다. 이제 state 쿠키에 같이 담는다(주소에 안 싣는다 — 서명된 쿠키라
+// 손댈 수 없고, 10분이면 식는다).
+//
+// **여기서도 거른다.** 규칙이 사는 곳은 화면(`frontend/src/data/afterAuth.js`)이고
+// 거기서 한 번 더 거르지만, 우리가 만들어 보내는 주소에 남이 넣은 글이 그대로
+// 실려 나가게 둘 이유가 없다 — `//남의사이트.com` 은 브라우저가 다른 집으로 읽는다.
+function safeTo(value) {
+  const to = typeof value === "string" ? value : "";
+  if (to.length > 200) return "";
+  if (!to.startsWith("/") || to.startsWith("//") || to.startsWith("/\\")) return "";
+  // 로그인·가입으로 되돌리면 그 자리를 맴돈다
+  if (to.startsWith("/login") || to.startsWith("/register")) return "";
+  // 줄바꿈·따옴표가 든 것은 주소에 실을 것이 아니다
+  if (/[\s"'<>]/.test(to)) return "";
+  return to;
+}
+
 function startOauth(req, res, extra = {}) {
   const state = crypto.randomBytes(16).toString('hex');
   // `extra` 는 지금 PKCE 검증값(`verifier`)을 담는다 — 트위터(X)가 요구한다.
@@ -422,7 +447,7 @@ router.get('/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND}/login?error=google_not_configured`);
   const { backendUrl } = getUrls(req);
   // state 에 프론트엔드 referer 를 같이 담아둔다 (콜백에서 돌아갈 곳을 정하는 데 쓴다)
-  const state = startOauth(req, res);
+  const state = startOauth(req, res, { to: safeTo(req.query.to) });
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: `${backendUrl}/api/oauth/google/callback`,
@@ -471,7 +496,7 @@ router.get('/google/callback', async (req, res) => {
     await finishSocial(res, frontendUrl, 'google', {
       email: profile?.email, nickname: profile?.name,
       emailVerified: profile?.verified_email, providerUserId: profile?.id,
-    });
+    }, st.to);
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     // **왜 안 됐는지 구분해서 보낸다** — 갈래는 `failCode` 한 곳에 있다
@@ -500,7 +525,7 @@ router.get('/naver', (req, res) => {
     client_id: process.env.NAVER_CLIENT_ID,
     redirect_uri: `${backendUrl}/api/oauth/naver/callback`,
     response_type: 'code',
-    state: startOauth(req, res),
+    state: startOauth(req, res, { to: safeTo(req.query.to) }),
   });
   res.redirect(`https://nid.naver.com/oauth2.0/authorize?${params}`);
 });
@@ -534,7 +559,7 @@ router.get('/naver/callback', async (req, res) => {
     if (!profile) throw new Error('Naver profile missing');
     await finishSocial(res, frontendUrl, 'naver', {
       email: profile.email, nickname: profile.nickname || profile.name, providerUserId: profile.id,
-    });
+    }, st.to);
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=${failCode('naver', err)}`);
@@ -565,7 +590,7 @@ router.get('/instagram', (req, res) => {
     redirect_uri: `${backendUrl}/api/oauth/instagram/callback`,
     scope: 'instagram_business_basic',
     response_type: 'code',
-    state: startOauth(req, res),
+    state: startOauth(req, res, { to: safeTo(req.query.to) }),
   });
   res.redirect(`https://www.instagram.com/oauth/authorize?${params}`);
 });
@@ -616,7 +641,7 @@ router.get('/instagram/callback', async (req, res) => {
     // 메일 칸을 **비워서** 넘긴다 — 인스타는 주지 않는다. 지어내지 않는다
     await finishSocial(res, frontendUrl, 'instagram', {
       email: '', nickname: username, providerUserId,
-    });
+    }, st.to);
   } catch (err) {
     // ── 인스타의 거절 까닭은 **몸통에 있다** ── (2026-10-09)
     //
@@ -650,7 +675,7 @@ router.get('/twitter', (req, res) => {
     redirect_uri: `${backendUrl}/api/oauth/twitter/callback`,
     // `users.read` 만으로는 X 가 거절한다 — `tweet.read` 를 같이 요구한다
     scope: 'users.read tweet.read',
-    state: startOauth(req, res, { verifier }),
+    state: startOauth(req, res, { verifier, to: safeTo(req.query.to) }),
     code_challenge: challenge,
     code_challenge_method: 'S256',
   });
@@ -697,7 +722,7 @@ router.get('/twitter/callback', async (req, res) => {
       email: profile.confirmed_email || '',
       nickname: profile.username || profile.name,
       providerUserId: profile.id,
-    });
+    }, st.to);
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') console.error('OAuth error:', err.message);
     res.redirect(`${frontendUrl}/login?error=${failCode('twitter', err)}`);
