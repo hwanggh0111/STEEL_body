@@ -120,5 +120,32 @@ console.log('\n── 보냈나 · 닫았나 · 막혔나 ──');
     console.log(bad + '건 실패 — 폰에서 사진을 못 챙길 수 있습니다.');
     process.exit(1);
   }
-  console.log('공유와 내려받기 두 길이 다 서 있습니다');
+  
+console.log('');
+console.log('── 남이 링크를 보낼 때 보이는 것 ── (2026-10-20)');
+//
+// 카카오톡 · X · 슬랙에 주소를 붙이면 **제목도 그림도 없는 맨 링크**였다. 앱에
+// 공유 단추를 붙여둔 날(10/15)부터 이 자리가 비어 있던 셈이다.
+//
+// **눈으로는 안 보인다** — 내 브라우저에서는 아무 차이가 없고, 남이 보낸 링크를
+// 받아본 사람만 안다. 그래서 검사가 센다.
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const meta = (prop) => (html.match(new RegExp(`property="${prop}" content="([^"]*)"`)) || [])[1] || '';
+
+  ok('제목·설명·그림이 있다',
+    ['og:title', 'og:description', 'og:image'].filter((k) => !meta(k)), []);
+  // 크롤러는 **상대 주소를 못 푼다** — 통째로 적어야 그림이 뜬다
+  ok('  그림 주소를 통째로 적었다', /^https:\/\//.test(meta('og:image')), true);
+  const img = meta('og:image').replace(/^https?:\/\/[^/]+/, '');
+  ok('  그 그림이 진짜 있다', fs.existsSync(path.join(__dirname, '..', 'public', img)), true);
+  // X 는 이 한 줄이 없으면 작은 네모로 펴고, 그러면 글자가 안 읽힌다
+  ok('  X 가 크게 펴게 적었다', /name="twitter:card" content="summary_large_image"/.test(html), true);
+  // 크기를 적어두면 받는 쪽이 자리를 먼저 잡는다(그림이 늦게 와도 안 흔들린다)
+  ok('  크기도 적어뒀다', [meta('og:image:width'), meta('og:image:height')], ['1024', '500']);
+  // 사람이 처음 닿아야 하는 자리는 `/site` 다 — `/` 는 로그인으로 보낸다
+  ok('  주소가 /site 를 가리킨다', /\/site$/.test(meta('og:url')), true);
+}
+
+console.log('공유와 내려받기 두 길이 다 서 있습니다');
 })();
