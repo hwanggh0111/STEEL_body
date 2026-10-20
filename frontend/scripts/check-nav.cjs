@@ -125,28 +125,28 @@ ok('  그래도 옛 주소는 살아 있다 (/inbody · /measure)',
   /path="inbody"/.test(app) && /path="measure"/.test(app), true);
 
 console.log('');
-console.log('── 홈페이지(/site) 머리 내비게이션 ── (2026-09-18)');
+console.log('── 홈페이지(/site) ── (2026-09-18 · 10/20 에 다시 짰다)');
 //
-// 이 화면에는 길찾기가 없었다 — 상자 일곱을 쌓아 놓고 머리에는 로고와 「앱 열기」뿐이라
-// 소식을 보러 온 사람도 시작하려고 온 사람도 끝까지 내려가며 찾았다.
-// 시안 셋(칸 이름 줄 · 로그인·가입 · 따라오는 점)을 셋 다 붙였다.
+// 9/18 에는 **길찾기가 없는 것**이 문제였다 — 상자 일곱을 쌓아 놓고 머리에는 로고와
+// 「앱 열기」뿐이었다. 그래서 시안 셋(칸 이름 줄 · 로그인·가입 · 따라오는 점)을 붙였다.
+//
+// **10/20 에 그 중 둘을 걷었다.** 칸 이름 줄 여덟과 따라오는 점 여덟이 **같은 일을
+// 두 벌로** 하고 있었고, 처음 온 사람은 아직 길을 찾을 단계가 아니다. 남은 길잡이는
+// 스크롤 하나다 — 그래서 여기서는 **되살아나지 않는지**를 본다.
 const site = codeOf(read('src/pages/SiteHome.jsx'));
-const css = fs.readFileSync('src/styles/globals.css', 'utf-8');
+// **주석을 걷고 본다** — 걷어낸 까닭을 적은 주석에 그 이름이 들어 있어서,
+// 글자만 세면 「아직 있다」가 된다 (check-font 가 같은 데 걸린 적이 있다)
+const css = codeOf(fs.readFileSync('src/styles/globals.css', 'utf-8'));
 
-ok('칸 이름 줄이 있다', /aria-label="이 화면의 칸"/.test(site), true);
-// **없는 자리를 가리키면 눌러도 아무 일도 안 일어난다.** 이름만 있고 자리표가 없는
-// 칸은 눈으로는 멀쩡해 보이므로, 목록과 실제 자리표를 여기서 맞춰본다
-{
-  const listed = [...site.matchAll(/\{ id: '([a-z-]+)',\s*label:/g)].map((m) => m[1]);
-  const anchored = new Set([...site.matchAll(/id="(site-[a-z-]+)"/g)].map((m) => m[1]));
-  ok('  이름을 건 칸이 여섯 이상이다', listed.length >= 6, true);
-  ok('  이름마다 실제 자리표가 있다', listed.filter((id) => !anchored.has(id)), []);
-}
-// 붙어 있는 머리가 제목을 덮으면 내려간 자리에서 무엇을 보는지 알 수 없다.
+ok('칸 이름 줄을 걷었다', /aria-label="이 화면의 칸"/.test(site), false);
+ok('  따라오는 점도 걷었다', /site-dots/.test(site), false);
+ok('  껍데기에 남은 CSS 도 없다', /\.site-dots|\.site-nav/.test(css), false);
+// 붙어 있는 머리가 제목을 덮으면 자리표(`#site-find`)로 들어온 사람이 머리 밑을 본다.
 // 숫자를 손으로 적어두면 머리를 한 줄 고칠 때마다 어긋나므로 **재서** 쓴다
-ok('  머리 높이를 재서 비운다', /scrollMarginTop: headH \+ 14/.test(site), true);
-// OS 에서 「동작 줄이기」를 켠 사람에게 부드러운 밀기는 멀미가 나는 움직임이다
-ok('  동작 줄이기를 지킨다', /prefers-reduced-motion: reduce/.test(site), true);
+ok('  머리 높이는 그대로 재서 비운다', /scrollMarginTop: headH \+ 14/.test(site), true);
+// 칸으로 밀어 보내는 코드가 사라졌으니 **지킬 움직임도 없다** — 다시 넣는 날에는
+// 「동작 줄이기」를 같이 지켜야 한다(9/18 에 그렇게 했다)
+ok('  부드럽게 미는 코드가 없다', /scrollIntoView/.test(site), false);
 
 // 들어와 있는 사람에게 「가입하기」는 틀린 말이고, 아직인 사람에게 「앱 열기」만
 // 있으면 가입할 자리가 머리에 없다
@@ -154,11 +154,36 @@ ok('머리가 사람에 따라 갈린다', /loggedIn \?/.test(site), true);
 ok('  들어와 있으면 앱 열기', /앱 열기/.test(site), true);
 ok('  아직이면 로그인 · 가입하기', /가입하기/.test(site) && /href="\/register"/.test(site), true);
 
-// 3px 짜리 여섯 개를 손가락으로 겨냥할 수 없다 — 폰에서는 칸 이름 줄이 그 일을 한다
-ok('따라오는 점은 폰에서 안 그린다', /\.site-dots \{ display: none; \}/.test(css), true);
-ok('  넓은 화면에서만 나온다', /@media \(min-width: 1040px\)[\s\S]{0,80}\.site-dots \{ display: flex; \}/.test(css), true);
-// 줄바꿈으로 두 줄이 되면 머리가 계속 자란다 — 폰에서는 좌우로 흐르게 둔다
-ok('칸 이름 줄은 폰에서 흐른다', /\.site-nav \{[\s\S]{0,200}overflow-x: auto;/.test(css), true);
+// ── 누를 수 없게 생긴 단추를 두지 않는다 ── (2026-10-20)
+//
+// 바로가기 여섯 칸 · 「내 몸 지도 보기」 · 꼬리의 고객센터 · 소식은 모두
+// `PrivateRoute` 안의 주소였다. 로그인하면 그 자리로 데려가주긴 하지만
+// (`PrivateRoute` 가 `from` 에 담아둔다) **계정이 없는 사람에게는 설명 없는 벽**이다.
+//
+// 길을 막는 것이 아니라 **무엇이 일어날지 먼저 말한다** — 로그인 전이면
+// 「가입하고 열기 ›」다. 그리고 바로가기 여섯은 **「하는 것」 여섯 줄과 같은 일**이라 걷었다.
+ok('앱으로 가는 길에 그 말이 적혀 있다', /가입하고 열기/.test(site), true);
+ok('  읽어주는 화면에도 같이 들어간다', /가입하고 열기'\} — \$\{where\}|'가입하고 열기'/.test(site), true);
+ok('  바로가기 여섯은 걷었다', /function Shortcut|<Shortcut/.test(site), false);
+ok('  몸 지도 단추는 들어와 있을 때만', /onGo=\{loggedIn \?/.test(site), true);
+ok('  꼬리의 고객센터·소식도 그때만', /loggedIn && \(\s*<>[\s\S]{0,400}href="\/support"/.test(site), true);
+ok('  방침은 늘 둔다 (스토어가 요구한다)', /href="\/privacy"/.test(site), true);
+
+// ── 증거 셋 ── (2026-10-20)
+//
+// 이 앱이 내세우는 한 가지는 「몸이 변하는 걸 눈으로 보여준다」인데, 여태 그림은
+// **몸 지도 하나**였다. 그림이 가장 좋은 둘(결산 · 1년 벽)을 안 보여주고 글로 설명했다.
+// **스크린샷을 올리지 않는다** — 앱의 조각과 계산을 그대로 쓴다(10/6 판단)
+ok('증거가 셋이다', /MapPreview/.test(site) && /FinishPreview/.test(site) && /WallPreview/.test(site), true);
+ok('  예시라고 적는다', (site.match(/note="예시"/g) || []).length >= 3, true);
+ok('  벽은 앱의 계산을 쓴다', /from '\.\.\/\.\.\/data\/yearWall'/.test(read('src/components/site/WallPreview.jsx')), true);
+
+// ── 카드는 하나다 ── (2026-10-20)
+//
+// 상자 일곱이 각각 테두리를 둘러서 **덩이가 일곱**이었다. 라벨 + 흐려지는 실선으로
+// 가르고(`Band`), 카드는 「시작하기」 하나만 남긴다 — 화면에 카드가 하나면 그것이 눈에 띈다
+ok('칸은 라벨과 선으로 가른다', /function Band\(/.test(site), true);
+ok('  카드는 시작하기 하나', (site.match(/boxShadow: 'var\(--card-edge\)'/g) || []).length, 1);
 
 // ── 설정함에서 나가는 길 (2026-09-30) ──
 //
@@ -277,8 +302,11 @@ console.log('── 「하는 것」을 눌러서 갈 수 있나 ── (2026-10
   }
 
   ok('누르면 그 자리로 간다 (go 를 부른다)', /onClick=\{\(\) => go\(to\)\}/.test(siteSrc), true);
-  // 읽어주는 화면에 「열어보기」만 여섯 번 읽히면 무엇을 여는지 알 수 없다
-  ok('  읽어주는 화면에는 이름이 통째로 들어간다', /aria-label=\{`\$\{t\} 열어보기/.test(siteSrc), true);
+  // 읽어주는 화면에 「열어보기」만 여섯 번 읽히면 무엇을 여는지 알 수 없다.
+  // **이름으로 시작하고 어디인지로 끝난다** — 가운데 말은 로그인 여부로 갈린다
+  // (「열어보기」 · 「가입하고 열기」, 2026-10-20)
+  ok('  읽어주는 화면에는 이름이 통째로 들어간다',
+    /aria-label=\{`\$\{t\} /.test(siteSrc) && /— \$\{where\}`\}/.test(siteSrc), true);
   // 설명 문장에 링크를 걸면 읽다가 손가락이 닿아 화면이 바뀐다
   ok('  설명 문장 자체는 안 눌린다 (누르는 칸이 따로 있다)',
     /열어보기 ›/.test(siteSrc) && !/onClick=\{\(\) => go\(to\)\}[\s\S]{0,80}\{d\}/.test(siteSrc), true);

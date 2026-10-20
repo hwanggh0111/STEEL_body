@@ -33,6 +33,9 @@ const FILES = [
   'src/components/YearWall.jsx',
   'src/components/home/GoalCard.jsx',
   'src/components/VoiceSet.jsx',
+  // 홈페이지의 증거 둘 (2026-10-20) — 각인 줄을 명조로 적는다
+  'src/components/site/FinishPreview.jsx',
+  'src/components/site/WallPreview.jsx',
   // 그 줄에 들어가는 글을 **만드는** 자리 — 「이번 주 세 번 하셨어요」(`weekLine`) ·
   // 「벤치프레스 80kg 10회」(`spokenLabel`)
   'src/data/goal.js',

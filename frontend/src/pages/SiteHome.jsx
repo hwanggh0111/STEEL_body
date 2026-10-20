@@ -4,122 +4,96 @@ import { LogoMark, LogoWord } from '../components/Logo';
 import NavIcon from '../components/NavIcon';
 import client from '../api/client';
 // **사전은 여기서 안 들여온다** (2026-10-16). 이 화면이 사전에서 쓰는 것은
-// 부위 이름 일곱뿐인데, 그걸 쓰려고 **운동 사전 조각 35KB(gzip 10KB)를 첫 화면에서
+// 부위 이름 일곱뿐인데, 그걸 쓰려고 **운동 사전 조각 22KB(gzip 10.2KB)를 첫 화면에서
 // 같이 받고 있었다.** 여기는 로그인도 앱 설치도 없이 처음 오는 사람이 보는 자리다.
 // 사전은 **칠 때** 받는다 (아래 `useEffect`).
 import { PARTS, isPartName } from '../data/partNames';
-// 몸 지도 미리보기. **「몸」 탭의 지도와 같은 조각을 쓴다** — 스크린샷을 올리면
-// 화면을 고칠 때마다 그림이 옛말이 되는데, 이것은 앱이 바뀌면 같이 바뀐다 (2026-10-06)
+// 증거 셋. **스크린샷을 올리지 않는다** — 그림을 올려두면 화면을 고칠 때마다 옛말이
+// 된다. 셋 다 앱의 조각·계산을 그대로 쓴다 (2026-10-06 에 몸 지도로 정한 방식)
 import MapPreview from '../components/site/MapPreview';
-// 머리 오른쪽에 무엇을 띄울지 정하는 데만 쓴다 — 들어와 있으면 「앱 열기」,
-// 아직이면 「로그인 · 가입하기」다 (2026-09-18)
+import FinishPreview from '../components/site/FinishPreview';
+import WallPreview from '../components/site/WallPreview';
+// 머리 오른쪽에 무엇을 띄울지, 그리고 **앱 안으로 가는 길을 정직하게 적는 데** 쓴다 —
+// 들어와 있으면 「열어보기」, 아직이면 「가입하고 열기」다 (2026-10-20)
 import { useAuthStore } from '../store/authStore';
-// 소식 두 파일(`notices.json` · `changelog.json`)은 **여기서 바로 안 들여온다.**
+// 소식 목록(`feedList.json`)은 **여기서 바로 안 들여온다.**
 // 아래 `useEffect` 가 화면이 뜬 뒤에 받아온다 — 까닭은 그 자리에 적어뒀다
 
 // 홈페이지 — **앱이 아니라 웹사이트다.**
 //
 // 2026-09-16 에 두 번 고쳤다. 아침 판은 껍데기만 웹사이트였고 **안에 든 것은
 // 커뮤니티 하나**였다 — 커뮤니티를 걷으면서 통째로 비었다. 저녁에 소개 글 한 장으로
-// 다시 지었는데, 「포털처럼 여러 칸으로」 가 다음 주문이었다.
+// 다시 지었고, 「포털처럼 여러 칸으로」가 다음 주문이어서 상자 일곱을 쌓았다.
 //
-// **그래서 칸을 나눴다.** 찾기 한 줄 · 바로가기 여섯 · 사진 · 소식 · 하는 것 ·
-// 안 하는 것. 한 화면에 여러 상자가 촘촘히 놓이는 결이다. 폰에서는 한 줄로 흐르고
-// 넓어지면 두 줄이 된다(`--site-two` 미디어 쿼리 대신 CSS 그리드 `auto-fit` 을 쓴다 —
-// 상자마다 최소 폭만 정해두면 화면이 알아서 접는다).
+// ── 2026-10-20 에 **증거 순서로 다시 짰다** ──
+//
+// 출시를 앞두고 보니 넷이 틀려 있었다 (시안을 내고 넷 다 고쳤다) —
+//
+//   ① **누를 수 없게 생긴 단추가 많았다.** 바로가기 여섯 칸과 「내 몸 지도 보기」는
+//      `PrivateRoute` 안의 주소로 간다. 로그인하면 그 자리로 데려가주긴 하지만
+//      (`PrivateRoute` 가 `from` 에 담아둔다), **계정이 없는 사람에게는 설명 없는
+//      로그인 벽**이다. 보러 온 사람을 문 앞에서 돌려세우는 자리가 일곱이었다
+//   ② **첫 화면에 네 덩이가 따로 말했다** — 제목 · 미리보기 카드 · 찾기 칸 ·
+//      바로가기 여섯. 넷이 각각 테두리를 둘러서 무엇부터 읽을지가 안 정해진다
+//   ③ **길잡이가 두 벌이었다** — 머리 아래 칸 이름 여덟과 오른쪽 따라오는 점 여덟이
+//      같은 일을 했다. 처음 온 사람은 아직 길을 찾을 단계가 아니다
+//   ④ **두 번째 자리가 운동 검색**이었다. 설치 전 사람에게 가장 안 급한 것이다
+//
+// 그래서 —
+//
+//   · **상자(카드)를 걷고 라벨 + 금실 한 줄로 가른다**(`Band`). 테두리가 사라지면
+//     덩이가 아니라 리듬이 된다. 카드는 **「시작하기」 하나만** 남긴다 — 화면에
+//     카드가 하나면 그것이 눈에 띈다
+//   · **증거를 셋으로 늘린다** — 몸 지도 · 결산 · 1년 열두 판. 이 앱에서 그림이
+//     가장 좋은 둘(결산 · 벽)을 여태 **안 보여주고 글로 설명**하고 있었다
+//   · **바로가기 여섯을 걷는다.** 「이 앱이 하는 것」 여섯 줄이 같은 여섯 곳을
+//     가리키는데 **설명까지 달려 있다.** 같은 일을 하는 자리가 두 벌이었다
+//   · **앱으로 가는 길에는 그 말을 적는다** — 로그인 전이면 「가입하고 열기 ›」다.
+//     길을 막는 것이 아니라 **무엇이 일어날지 먼저 말하는 것**이다
+//   · **찾기를 맨 아래로 내린다.** 대신 「가입 전에도 찾아볼 수 있다」를 적는다 —
+//     이 화면에서 **진짜로 끝까지 되는** 몇 안 되는 것이라 그게 값이다
 //
 // **로그인 없이 열린다.** 웹사이트인데 로그인해야 보이면 웹사이트가 아니다.
-// 그래서 여기서 쓰는 것은 **로그인 없이 되는 것뿐**이다 —
-//   · 소식은 앱에 같이 실려 오는 파일(notices.json · changelog.json)에서 읽는다
+// 여기서 끝나는 것은 셋이다 —
+//   · 소식은 뽑아둔 목록 파일(`feedList.json`)에서 읽는다
 //   · 사진은 `/api/site-photos` 에서 받는다 (보는 쪽은 로그인이 없다)
 //   · 찾기는 **이 화면에서** 끝난다. 운동 사전이 앱에 같이 실려 오는 파일이라
 //     서버도 로그인도 필요 없다 — 기록하려고 누를 때 비로소 앱으로 간다
 //
 // **지어내지 않는다.** 쓰는 사람 수도 후기도 별점도 없다 — 아직 배포도 안 한 앱이다.
+// 증거 셋은 전부 **예시**라고 적어둔다(라벨 오른쪽). 남의 기록을 내 것처럼
+// 보이게 하는 것은 이 앱이 안 하기로 한 것 중 하나다.
 
 const MAX = 860;
 
-// 상자 하나. 제목 줄 + 안쪽. 「더보기」는 있을 때만 그린다
-function Box({ id, title, more, onMore, children, style }) {
+// 칸 하나 — **카드가 아니다.** 라벨 한 줄과 흐려지는 실선으로 가른다 (2026-10-20).
+//
+// 앞서는 상자(`Box`)였다. 테두리 · 그라디언트 · 둥근 모서리가 칸마다 붙어서
+// **일곱 덩이가 각각 「나는 따로다」**라고 말했다. 가르는 일은 **선 하나로 충분하고**,
+// 테두리를 걷으면 그 자리에 숨이 생긴다.
+//
+// `note` 는 라벨 오른쪽 끝의 작은 글이다 — 증거 칸의 「예시」가 거기 붙는다.
+function Band({ id, title, note, children, style }) {
   return (
-    <section id={id} style={{
-      background: 'var(--card-bg)', border: '1px solid var(--border)',
-      boxShadow: 'var(--card-edge)', borderRadius: 'var(--radius)',
-      padding: '15px 16px 16px', ...style,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
-        <span style={{ width: 3, height: 15, background: 'var(--accent)', flexShrink: 0 }} />
+    <section id={id} style={{ paddingTop: 26, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 2,
-          color: 'var(--text-primary)', margin: 0, fontWeight: 400,
+          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 2.2,
+          color: 'var(--accent-low)', margin: 0, fontWeight: 400, whiteSpace: 'nowrap',
         }}>{title}</h2>
-        {more && (
-          <button
-            onClick={onMore}
-            style={{
-              marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12, color: 'var(--text-muted)', padding: 4,
-            }}
-          >{more} ›</button>
+        {/* 실선은 **흐려지며 나간다.** 양끝이 또렷한 선은 표의 줄이고, 흐려지는 선은 결이다 */}
+        <span style={{
+          flexGrow: 1, height: 1,
+          background: 'linear-gradient(90deg, var(--border-hover), transparent)',
+        }} />
+        {note && (
+          <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--text-muted)' }}>{note}</span>
         )}
       </div>
       {children}
     </section>
   );
 }
-
-// 바로가기 한 칸. 앱 안으로 들어가는 길이라, 로그인 전이면 로그인 화면이 받는다
-function Shortcut({ icon, label, to, onGo }) {
-  return (
-    <button
-      onClick={() => onGo(to)}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-        minHeight: 72, padding: '10px 4px', cursor: 'pointer',
-        background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-        color: 'var(--text-secondary)', fontFamily: 'inherit',
-      }}
-    >
-      <NavIcon name={icon} size={20} />
-      <span style={{ fontSize: 11.5, whiteSpace: 'nowrap' }}>{label}</span>
-    </button>
-  );
-}
-
-// ── 머리 내비게이션 ── (2026-09-18)
-//
-// **이 화면에는 길찾기가 없었다.** 상자 일곱을 위로 쌓아 놓고 머리에는 로고와
-// 「앱 열기」뿐이라, 소식을 보러 온 사람도 시작하려고 온 사람도 **끝까지 내려가며
-// 찾았다.** 앱 안은 탭바가 그 일을 하는데 이 화면만 비어 있었다.
-//
-// 시안 셋을 내고 **셋 다** 붙였다. 셋이 서로 다른 것을 말하기 때문이다 —
-//   A 칸 이름 줄  **무엇이 있는가** (머리 아래 한 줄. 누르면 그 상자로 내려간다)
-//   B 로그인·가입  **여기서 무엇을 할 수 있는가** (머리 오른쪽 끝)
-//   C 따라오는 점  **지금 어디를 읽고 있는가** (넓은 화면 오른쪽. 폰에서는 안 그린다)
-//
-// 셋을 합칠 때 **한 가지만 덜어냈다** — A 의 줄 끝에 있던 「시작하기 ›」다.
-// B 의 「가입하기」와 같은 일이고, 같은 일을 하는 단추를 한 머리에 두 벌 두면
-// 어느 쪽이 진짜인지 묻게 된다. 칸 이름 줄에는 **칸 이름만** 남긴다.
-//
-// **주소는 안 늘린다.** 다 같은 화면 안의 자리라 `#` 도 라우트도 새로 안 만든다 —
-// 길을 늘리는 것과 **지금 보고 있는 것을 말해주는 것**은 다른 일이다.
-
-// 칸과 그 이름. **실제로 그려지는 칸만** 내비에 오른다 (사진·소식은 없을 수 있다)
-const SITE_SECTIONS = [
-  // 미리보기가 첫 칸이다 (2026-10-06). **이 앱이 무엇인지 보여주는 자리**라
-  // 머리의 첫 이름이 그리로 가야 한다 — 앞서는 첫 이름이 「찾기」였고,
-  // 운동 사전 찾기는 이 앱에서 가장 차별점이 없는 것이다
-  { id: 'site-map',    label: '보여주는 것' },
-  { id: 'site-find',   label: '찾기' },
-  { id: 'site-photos', label: '사진',      when: (s) => s.photos > 0 },
-  { id: 'site-news',   label: '소식',      when: (s) => s.news > 0 },
-  { id: 'site-does',   label: '하는 것' },
-  { id: 'site-doesnt', label: '안 하는 것' },
-  // 「지하에서도」도 칸이다. 빠뜨리면 그 칸을 읽는 동안 앞 칸이 켜진 채로 남아서
-  // **점이 틀린 말을 한다** — 길찾기가 지금 어디인지를 잘못 말하면 없는 것보다 나쁘다
-  { id: 'site-offline', label: '지하에서도' },
-  { id: 'site-start',  label: '시작하기' },
-];
 
 export default function SiteHome() {
   const navigate = useNavigate();
@@ -135,41 +109,14 @@ export default function SiteHome() {
       .catch(() => {});
   }, []);
 
-  // 소식 — 손으로 적은 공지와 커밋에서 뽑힌 것을 날짜순으로 섞는다.
-  // 앱의 공지함이 하는 일과 같은데, **여기서는 다섯 줄만** 보여준다.
+  // 소식 — 뽑아둔 목록(`feedList.json`)에서 다섯 줄.
   //
-  // ── 화면이 뜬 뒤에 받아온다 ── (2026-09-17)
+  // ── 화면이 뜬 뒤에 받아온다 ── (2026-09-17 · 10/6 에 파일을 갈랐다)
   //
-  // 두 파일을 위에서 그냥 들여오면 **첫 화면에 같이 딸려 온다.** 재보면 73KB 다
-  // (`notices.json` 41KB + `changelog.json` 32KB, 묶으면 gzip 23.7KB).
-  // 그런데 이 화면이 쓰는 것은 **날짜와 한 줄, 그것도 다섯 개뿐**이다 —
-  // 무게의 거의 전부는 「자세히」에 들어가는 `detail` 이고, 그건 공지함이 쓴다.
-  //
-  // **여기는 로그인도 앱 설치도 없이 처음 오는 사람이 보는 자리다.** 아직 이 앱을
-  // 쓸지 말지도 모르는 사람에게 제일 먼저 23KB 를 받게 할 이유가 없다. 다섯 줄은
-  // 조금 늦게 차도 되는 것이고, 그동안 찾기도 바로가기도 이미 눌린다.
-  //
-  // ── 목록만 **뽑아둔 파일**을 받는다 ── (2026-10-06)
-  //
-  // 여기 적혀 있던 말은 「파일을 새로 만들어 두지 않는다 — 그러면 같은 소식이
-  // 두 곳에 있게 되고 한쪽만 낡는 날이 온다」였다. **손으로 적는 자리가 둘이 되면**
-  // 그 말이 맞다. 그런데 **뽑은 파일은 두 곳이 아니다** — 이 앱은 이미 그 방식을
-  // 쓴다(`changelog.json` 은 커밋에서, `exercisePart.js` 는 사전에서 뽑는다).
-  // 출처는 `notices.json` 하나로 남고 어긋나면 `npm run check` 가 잡는다.
-  //
-  // 재보면 이만큼이다 —
-  //
-  //     전   notices + changelog      83,999B  gzip 29,451B    ← 다섯 줄을 쓰려고
-  //     후   feedList.json             3,027B  gzip  1,105B
-  //
-  // **공지가 쌓일수록 더 벌어진다** — 10/6 하루에 열다섯 개를 더해서 notices 가
-  // 10KB 늘었다. 무게의 거의 전부가 「자세히」의 `detail` 이고(공지 41개에
-  // 18,125자) **이 화면은 그것을 한 줄도 안 쓴다.**
-  //
-  // 공지함은 그대로 전체를 받는다 — 거기는 `detail` 을 펼치고 그 글까지 검색한다.
-  //
-  // **받는 때는 그대로 미룬다.** 여기는 로그인도 앱 설치도 없이 처음 오는 사람이
-  // 보는 자리고, 다섯 줄은 조금 늦게 차도 되는 것이다.
+  // 원본 둘(`notices.json` + `changelog.json`)을 위에서 들여오면 **첫 화면에 같이
+  // 딸려 온다** — 재보니 83,999B(gzip 29,451B)였고 무게의 거의 전부가 「자세히」의
+  // `detail` 이다. **이 화면은 그것을 한 줄도 안 쓴다.** 뽑아둔 목록은 3,027B
+  // (gzip 1,105B)고, 어긋나면 `npm run checkfeed` 가 잡는다.
   const [news, setNews] = useState([]);
 
   useEffect(() => {
@@ -188,88 +135,36 @@ export default function SiteHome() {
 
   const go = (to) => navigate(to);
 
-  // ── 내비게이션이 들고 있는 것 ── (2026-09-18)
+  // 머리 높이를 **재서** 쓴다. 주소에 `#site-find` 처럼 자리표를 달고 들어오는 사람이
+  // 있어서 그만큼 비워야 **제목이 머리 밑에 깔리지 않는다** — 숫자를 손으로 적어두면
+  // 머리를 한 줄 고칠 때마다 어긋난다.
   //
-  // 머리 높이를 **재서** 쓴다. 칸으로 내려갈 때 그만큼 비워야 붙어 있는 머리가
-  // 제목을 덮지 않는다 — 숫자를 손으로 적어두면 머리를 한 줄 고칠 때마다 어긋난다.
+  // **머리의 칸 이름 줄과 따라오는 점은 걷었다** (2026-10-20 · 위 머리글 ③).
   const headRef = useRef(null);
-  const [headH, setHeadH] = useState(92);
+  const [headH, setHeadH] = useState(60);
   useEffect(() => {
     const el = headRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(() => setHeadH(el.offsetHeight || 92));
+    const ro = new ResizeObserver(() => setHeadH(el.offsetHeight || 60));
     ro.observe(el);
-    setHeadH(el.offsetHeight || 92);
+    setHeadH(el.offsetHeight || 60);
     return () => ro.disconnect();
   }, []);
 
-  const sections = useMemo(
-    () => SITE_SECTIONS.filter((s) => !s.when || s.when({ photos: photos.length, news: news.length })),
-    [photos.length, news.length],
-  );
-
-  // 지금 읽고 있는 칸. **머리 바로 아래를 지난 칸**을 그것으로 본다.
-  //
-  // `IntersectionObserver` 를 쓰지 않는다 — 문턱을 넘을 때만 알려주는 물건이라
-  // 「어느 것이 제일 위인가」를 알려면 문턱을 여러 개 걸어야 하고, 그래도 상자
-  // 높이가 저마다 다르면 어긋난다. 여기는 칸이 여섯이라 스크롤을 직접 보는 것이
-  // 더 정확하고 싸다. **프레임마다 한 번만** 센다 (`requestAnimationFrame`).
-  const [active, setActive] = useState(sections[0]?.id || '');
-  useEffect(() => {
-    let raf = 0;
-    const pick = () => {
-      raf = 0;
-      const line = headH + 16;
-      let found = sections[0]?.id || '';
-      for (const s of sections) {
-        const top = document.getElementById(s.id)?.getBoundingClientRect().top;
-        if (top == null) continue;
-        if (top <= line) found = s.id;
-      }
-      // 맨 아래에 닿았으면 마지막 칸을 켠다 — 짧은 칸은 화면에 다 들어와도
-      // 그 위를 지나지 못해서, 끝까지 내려도 앞 칸이 켜진 채로 남는다
-      const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 4;
-      if (atBottom && sections.length) found = sections[sections.length - 1].id;
-      setActive((prev) => (prev === found ? prev : found));
-    };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(pick); };
-    pick();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [sections, headH]);
-
-  // 칸으로 데려간다. **부드럽게 미는 것은 그러길 원하는 사람에게만** —
-  // OS 에서 「동작 줄이기」를 켠 사람에게는 멀미가 나는 움직임이다
-  const jump = (id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const smooth = !(typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
-    setActive(id);
-  };
-
-  // 칸마다 붙인다. 붙어 있는 머리 높이만큼 위를 비운다 (위 `headH` 참고) —
-  // 안 비우면 내려간 자리에서 **제목이 머리 밑에 깔린다**
   const anchorStyle = { scrollMarginTop: headH + 14 };
 
   // ── 찾기는 **이 화면에서** 한다 ── (2026-09-16)
   //
   // 앞서는 「찾기」가 앱의 검색 화면으로 넘겼다. 두 가지가 잘못이었다 —
   //   · 그 화면은 `?q=` 를 안 받는다. **친 말이 그대로 사라졌다**
-  //   · 그 화면은 로그인해야 열린다. 홈페이지는 로그인 없이 보는 자리인데,
-  //     찾기를 누르면 **로그인 화면이 받았다.** 찾아보러 온 사람을 문 앞에서 돌려세운 것
+  //   · 그 화면은 로그인해야 열린다. 찾아보러 온 사람을 문 앞에서 돌려세운 것
   //
   // 운동 사전은 앱에 같이 실려 오는 파일이라 **서버도 로그인도 필요 없다.**
   // 여기서 찾고 여기서 보여준다. 기록하려고 누를 때 비로소 앱으로 간다.
   //
   // **치는 동안 바로 나온다.** 단추를 눌러야 나오면 한 번 더 눌러야 하고,
   // 안 나오면 오타인지 없는 운동인지 알 수 없다. 단추는 자판의 엔터를 받는 자리로 남긴다.
+  //
   // ── 사전은 **칠 때 받는다** ── (2026-10-16)
   //
   // 조건은 예전과 같다: 두 글자 이상이거나 부위 이름(「등」 · 「팔」). 그 판단은
@@ -305,11 +200,18 @@ export default function SiteHome() {
     return dict.searchExercises(term, 8);
   }, [term, wants, dict]);
 
+  // 앱 안으로 가는 길의 말. **로그인 전이면 그렇다고 적는다** (2026-10-20) —
+  // 누르면 로그인 화면이 받고, 끝나면 `PrivateRoute` 가 담아둔 자리로 데려간다.
+  // 그 일을 **누르기 전에** 말해주는 것이 이 한 줄이 하는 일이다
+  const openLabel = loggedIn ? '열어보기 ›' : '가입하고 열기 ›';
+
   return (
     <div className="full-height" style={{ paddingBottom: 50 }}>
 
-      {/* 머리 — 두 줄이다 (2026-09-18).
-          위: 로고 + 할 수 있는 것(B) · 아래: 이 화면이 가진 칸의 이름(A) */}
+      {/* 머리 — **한 줄이다** (2026-10-20에 칸 이름 줄을 걷었다).
+          여기는 붙어 있는(sticky) 자리라 **가입 단추가 늘 손에 닿는다** —
+          그래서 화면 아래에 떠 있는 가입 띠를 따로 두지 않았다. 같은 일을 하는
+          단추를 두 벌 두면 어느 쪽이 진짜인지 묻게 된다 (9/18 에 정한 것이다) */}
       <header ref={headRef} style={{
         borderBottom: '1px solid var(--border)',
         background: 'var(--surface)',
@@ -324,10 +226,9 @@ export default function SiteHome() {
           <LogoMark size={28} />
           <LogoWord cap={18} />
 
-          {/* ── 여기서 할 수 있는 것 ── (B)
-              **이미 쓰는 사람과 처음 온 사람에게 할 말이 다르다.** 들어와 있으면
-              「앱 열기」 하나로 끝이고(가입하라는 말은 틀린 말이다), 아직 아니면
-              「로그인」과 「가입하기」다. 둘을 같이 띄우면 늘 한쪽은 남의 단추가 된다 */}
+          {/* **이미 쓰는 사람과 처음 온 사람에게 할 말이 다르다.** 들어와 있으면
+              「앱 열기」 하나로 끝이고(가입하라는 말은 틀린 말이다), 아직이면
+              「로그인」과 「가입하기」다 */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {loggedIn ? (
               <a href="/home" style={{
@@ -350,273 +251,92 @@ export default function SiteHome() {
             )}
           </div>
         </div>
-
-        {/* ── 이 화면이 가진 칸 ── (A)
-            **줄 하나에 칸 이름만.** 누르면 그 상자로 내려가고, 읽고 있는 칸이 켜진다.
-            폰에서는 좌우로 흐른다 (`.site-nav` — 줄바꿈으로 두 줄이 되면 머리가 자란다) */}
-        <nav aria-label="이 화면의 칸" className="site-nav" style={{
-          maxWidth: MAX, margin: '0 auto', padding: '0 20px',
-          display: 'flex', alignItems: 'center', gap: 18,
-          borderTop: '1px solid var(--bg-tertiary)',
-        }}>
-          {sections.map((s) => {
-            const on = active === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => jump(s.id)}
-                aria-current={on ? 'true' : undefined}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 13, whiteSpace: 'nowrap', padding: '10px 2px',
-                  color: on ? 'var(--accent)' : 'var(--text-secondary)',
-                  borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
-                }}
-              >{s.label}</button>
-            );
-          })}
-        </nav>
       </header>
 
-      {/* ── 따라오는 점 ── (C)
-          **어디까지 왔나**를 말한다. 이름은 대거나 키보드로 짚었을 때만 나온다 —
-          늘 적어두면 그것이 또 하나의 목록이 되고, 위 줄과 같은 말을 두 번 한다.
-          **폰에서는 아예 안 그린다** (`.site-dots` — 3px 여섯을 손가락으로 못 겨냥한다) */}
-      <div className="site-dots" aria-hidden="true" style={{
-        position: 'fixed', right: 16, top: '50%', transform: 'translateY(-50%)',
-        flexDirection: 'column', alignItems: 'flex-end', gap: 10, zIndex: 9,
-      }}>
-        {sections.map((s) => {
-          const on = active === s.id;
-          return (
-            <button
-              key={s.id}
-              className="site-dot"
-              tabIndex={-1}
-              onClick={() => jump(s.id)}
-              title={s.label}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
-                background: 'none', border: 'none', cursor: 'pointer', padding: '5px 0',
-                fontFamily: 'inherit',
-              }}
-            >
-              <span className="site-dot-label" style={{
-                fontSize: 11.5, color: 'var(--accent)', whiteSpace: 'nowrap',
-              }}>{s.label}</span>
-              <span style={{
-                display: 'block', width: 3, borderRadius: 2,
-                height: on ? 18 : 8,
-                background: on ? 'var(--accent)' : 'var(--border-hover)',
-                transition: 'height 0.15s ease, background 0.15s ease',
-              }} />
-            </button>
-          );
-        })}
-      </div>
+      <div style={{ maxWidth: MAX, margin: '0 auto', padding: '26px 20px 0' }}>
 
-      <div style={{ maxWidth: MAX, margin: '0 auto', padding: '20px 20px 0' }}>
-
-        {/* ── 한 줄 소개는 **이 페이지의 제목**이다 ── (2026-10-06)
+        {/* ── 까닭을 먼저 ──
             `div` 로 적혀 있었다. 사람 눈에는 제목처럼 보이지만 **검색 엔진과
-            읽어주는 도구에게는 이 페이지에 제목이 없는 것**이다 — 배포를 앞둔
-            홈페이지에서 그건 그냥 빠진 것이다. 글자 모양은 그대로 두고
-            태그만 바로잡는다 (`h1` 기본 여백·굵기는 여기서 끈다) */}
-        {/* 제목에는 자리표를 안 단다 — 머리의 「찾기」가 데려오는 곳은
-            **찾기 칸**이어야 한다 (아래 `form` 이 그 자리표를 들고 있다) */}
+            읽어주는 도구에게는 이 페이지에 제목이 없는 것**이다 (2026-10-06 에 고쳤다) */}
         <h1
           className="serif-display"
           style={{
-            fontSize: 'clamp(21px, 6vw, 26px)', lineHeight: 1.5, marginBottom: 16,
+            fontSize: 'clamp(22px, 6.2vw, 27px)', lineHeight: 1.5, margin: '0 0 15px',
             fontWeight: 400, ...anchorStyle,
           }}
         >
           무게는 늘었는데<br /><span style={{ color: 'var(--accent)' }}>무엇이 늘었는지</span>는 아무도 안 알려준다
         </h1>
 
-        {/* ── 주장 바로 다음에 증거 ── (2026-10-06)
-            이 앱이 내세우는 한 가지는 **「몸이 변하는 걸 눈으로 보여준다」**인데,
-            이 페이지는 그것을 **글자로만** 말하고 있었다 — 앱 화면 그림이 한 장도
-            없었다. 그래서 한 줄 소개 다음이 **운동 찾기 칸**이었다. 운동 사전
-            찾기는 이 앱에서 **가장 차별점이 없는 것**이고, 「그래서 뭘 보여주는데」의
-            답은 한참 내려가야 나왔다. 눈으로 보여준다고 말했으면 **보여준다.** */}
-        {/* 로그인 없이 열리는 화면이지만 **이 단추는 앱 안으로 간다** — 못 여는
-            자리라 `PrivateRoute` 가 로그인으로 보내고, 들어오면 `backTo` 가 다시
-            여기로 데려온다(`LoginPage` 에 적힌 그 자리다). 「보기만」 하는 그림은
-            위에 이미 있으니, 이 단추는 **자기 몸**을 보러 가는 길이다 */}
-        <MapPreview id="site-map" onGo={() => go('/map')} style={{ marginBottom: 16, ...anchorStyle }} />
+        {/* **제목 다음 한 줄이 비어 있었다** (2026-10-20에 넣었다).
+            제목은 「무엇이 문제인가」만 말하고 바로 그림이 나와서, 「그래서 이 앱이
+            무엇을 해주는가」를 말하는 줄이 한 줄도 없었다 */}
+        <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.85, margin: 0 }}>
+          세트를 적으면 <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>몸 그림 ·
+          들어올린 무게 · 1년 열두 판</b>으로 돌려줍니다. 겨루는 상대는 지난주의
+          자기 자신 하나입니다.
+        </p>
 
-        <form
-          id="site-find"
-          onSubmit={(e) => e.preventDefault()}
-          style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
-          background: 'var(--bg-secondary)', padding: '10px 13px', marginBottom: 16,
-          ...anchorStyle,
-        }}>
-          <NavIcon name="search" size={17} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="운동 이름으로 찾아보기"
-            aria-label="운동 검색"
-            style={{
-              flexGrow: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
-              color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 14,
-            }}
-          />
-          {/* 친 것을 지우는 자리. 결과가 떠 있을 때만 나온다 */}
-          {q && (
-            <button
-              type="button"
-              onClick={() => setQ('')}
-              aria-label="지우기"
-              style={{
-                flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', fontSize: 16, padding: '2px 6px', lineHeight: 1,
-              }}
-            >×</button>
-          )}
-          <button type="submit" style={{
-            flexShrink: 0, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
-            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
-            padding: '7px 14px', borderRadius: 'var(--radius)', cursor: 'pointer',
-          }}>찾기</button>
-        </form>
+        <hr className="rule-beam" style={{ marginTop: 24 }} />
 
-        {/* 찾은 것 — **이 화면에서 바로 보여준다.** 없으면 없다고 말하고,
-            부위 이름을 권한다(사전이 부위로도 찾기 때문이다) */}
-        {(hits || hits === undefined) && wants && (
-          <div style={{
-            border: '1px solid var(--border)', background: 'var(--bg-secondary)',
-            borderRadius: 'var(--radius)', padding: '6px 4px', marginBottom: 16,
-          }}>
-            {failed && !dict ? (
-              // **못 찾은 것과 못 받은 것은 다른 말이다.** 「없어요」라고 하면 없는 운동을
-              // 찾은 줄 알고 나간다 — 여기서는 사전을 못 받았다고 말하고 길을 준다
-              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                운동 사전을 못 불러왔어요. 신호를 확인해 주세요.<br />
-                <button
-                  type="button"
-                  onClick={() => setFailed(false)}
-                  style={{
-                    marginTop: 8, minHeight: 36, padding: '7px 14px', cursor: 'pointer',
-                    background: 'none', border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
-                    fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
-                  }}
-                >다시 받기</button>
-              </div>
-            ) : hits === undefined ? (
-              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)' }}>찾는 중…</div>
-            ) : hits.length === 0 ? (
-              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                「{q.trim()}」로는 못 찾았어요.<br />
-                부위로도 찾을 수 있어요 — {PARTS.slice(0, 5).map((pp) => (
+        {/* ── 증거 하나 — 몸 지도 ──
+            **「몸」 탭의 지도와 같은 조각을 쓴다** (2026-10-06).
+            「내 몸 지도 보기」 단추는 **들어와 있을 때만** 준다 — 계정이 없는 사람에게는
+            설명 없는 로그인 벽이고, 가입하는 길은 아래 「하는 것」과 머리에 이미 있다 */}
+        <Band id="site-map" title="오늘 이렇게 말합니다" note="예시" style={anchorStyle}>
+          <MapPreview onGo={loggedIn ? () => go('/map') : undefined} />
+        </Band>
+
+        {/* ── 증거 둘 — 결산 ── (2026-10-20) */}
+        <Band id="site-finish" title="마치면 이렇게 셉니다" note="예시" style={anchorStyle}>
+          <FinishPreview />
+        </Band>
+
+        {/* ── 증거 셋 — 1년 열두 판 ── (2026-10-20)
+            계산은 벽이 쓰는 그것이다(`data/yearWall.js`) — 각인 규칙이 바뀌면 같이 바뀐다 */}
+        <Band id="site-wall" title="한 해를 열두 판에" note="예시" style={anchorStyle}>
+          <WallPreview />
+        </Band>
+
+        <hr className="rule-beam" style={{ marginTop: 26 }} />
+
+        {/* 사진 — 관리자가 건 것. 없으면 이 칸이 통째로 없다 */}
+        {photos.length > 0 && (
+          <Band id="site-photos" title="사진" style={anchorStyle}>
+            <div className="filter-row" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              {photos.map((p) => (
+                <figure key={p.id} style={{ margin: 0, flexShrink: 0, width: 168 }}>
                   <button
-                    key={pp}
-                    onClick={() => setQ(pp)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px',
-                      fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
-                    }}
-                  >{pp}</button>
-                ))}
-              </div>
-            ) : (
-              hits.map((h) => (
-                <button
-                  key={h.ko}
-                  // **찾은 운동을 들려 보낸다** (2026-09-17).
-                  //
-                  // 여태 `/train` 만 열었다 — **찾아낸 이름이 그 자리에서 사라졌다.**
-                  // 「벤치프레스」를 찾아 「기록 ›」을 눌렀는데 빈 운동 화면이 열리니,
-                  // 거기서 이름을 **다시 쳐야** 했다. 홈페이지에서 찾아준 일이
-                  // 아무 데도 안 이어지는 셈이다.
-                  //
-                  // `state` 가 아니라 **주소에 싣는다.** 여기서 누르는 사람은 대개
-                  // 아직 로그인 전이고, 로그인 화면을 거치면 `state` 는 사라진다
-                  onClick={() => go(`/train?q=${encodeURIComponent(h.ko)}`)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 44,
-                    padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer',
-                    textAlign: 'left', fontFamily: 'inherit',
-                  }}
-                >
-                  <span style={{
-                    flexShrink: 0, fontSize: 11, color: 'var(--text-muted)',
-                    border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
-                  }}>{dict.partOf(h.ko)}</span>
-                  <span style={{ minWidth: 0, flexGrow: 1 }}>
-                    <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>{h.ko}</span>
-                    <span style={{
-                      display: 'block', fontSize: 12, color: 'var(--text-muted)', marginTop: 2,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{h.desc}</span>
-                  </span>
-                  <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--accent)' }}>기록 ›</span>
-                </button>
-              ))
-            )}
-          </div>
+                    onClick={() => setShot(p)}
+                    style={{ padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', display: 'block' }}
+                    aria-label={p.caption || '사진 크게 보기'}
+                  >
+                    <img
+                      src={p.data}
+                      alt={p.caption || ''}
+                      loading="lazy"
+                      style={{
+                        width: 168, height: 168, objectFit: 'cover', display: 'block',
+                        borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+                      }}
+                    />
+                  </button>
+                  {p.caption && (
+                    <figcaption style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
+                      {p.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+          </Band>
         )}
 
-        {/* 바로가기 여섯 */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))',
-          gap: 8, marginBottom: 18,
-        }}>
-          <Shortcut icon="body" label="몸 지도" to="/map" onGo={go} />
-          <Shortcut icon="dumbbell" label="운동 기록" to="/train" onGo={go} />
-          <Shortcut icon="calendar" label="기록의 벽" to="/history" onGo={go} />
-          <Shortcut icon="chart" label="인바디" to="/body" onGo={go} />
-          <Shortcut icon="bell" label="운동 알림" to="/reminders" onGo={go} />
-          <Shortcut icon="inbox" label="고객센터" to="/support" onGo={go} />
-        </div>
-
-        {/* 상자들 — 폰에서 한 줄, 넓어지면 두 줄. 화면이 알아서 접는다 */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: 12, alignItems: 'start',
-        }}>
-
-          {/* 사진 — 관리자가 건 것. 없으면 이 칸이 통째로 없다 */}
-          {photos.length > 0 && (
-            <Box id="site-photos" title="사진" style={{ gridColumn: '1 / -1', ...anchorStyle }}>
-              <div className="filter-row" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-                {photos.map((p) => (
-                  <figure key={p.id} style={{ margin: 0, flexShrink: 0, width: 168 }}>
-                    <button
-                      onClick={() => setShot(p)}
-                      style={{ padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', display: 'block' }}
-                      aria-label={p.caption || '사진 크게 보기'}
-                    >
-                      <img
-                        src={p.data}
-                        alt={p.caption || ''}
-                        loading="lazy"
-                        style={{
-                          width: 168, height: 168, objectFit: 'cover', display: 'block',
-                          borderRadius: 'var(--radius)', border: '1px solid var(--border)',
-                        }}
-                      />
-                    </button>
-                    {p.caption && (
-                      <figcaption style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
-                        {p.caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                ))}
-              </div>
-            </Box>
-          )}
-
-          {/* 소식 — **차기 전에는 안 그린다.** 빈 상자를 먼저 띄웠다가 채우면
-              그 사이에 아래 상자들이 한 번 밀린다 (사진 칸을 못 받아오면 아예 안
-              그리는 것과 같은 규칙이다) */}
-          {news.length > 0 && (
-          <Box id="site-news" title="소식" style={anchorStyle} more="공지함" onMore={() => go('/support/notices')}>
+        {/* 소식 — **차기 전에는 안 그린다.** 빈 상자를 먼저 띄웠다가 채우면 그 사이에
+            아래 칸들이 한 번 밀린다.
+            「공지함」으로 가는 길은 **들어와 있을 때만** — 그 화면도 `PrivateRoute` 안이다 */}
+        {news.length > 0 && (
+          <Band id="site-news" title="소식" style={anchorStyle}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {news.map((n, i) => (
                 <div key={`${n.date}-${i}`} style={{
@@ -633,147 +353,290 @@ export default function SiteHome() {
                 </div>
               ))}
             </div>
-          </Box>
-          )}
+            {loggedIn && (
+              <button
+                onClick={() => go('/support/notices')}
+                style={{
+                  marginTop: 10, minHeight: 44, width: '100%', background: 'none',
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-secondary)',
+                }}
+              >공지함 ›</button>
+            )}
+          </Band>
+        )}
 
-          {/* ── 하는 것 — **읽고 끝나던 글을 누를 수 있게 했다** ── (2026-10-07 · 시안 B안)
+        {/* ── 하는 것 — **읽고 끝나던 글을 누를 수 있게 했다** ── (2026-10-07 · 시안 B안)
 
-              여섯 줄이 **글자일 뿐**이었다. 읽고 「해보고 싶다」가 돼도 **어디 있는지
-              말해주지 않고, 눌러지지도 않았다.** 할 수 있는 것은 맨 아래 「시작하기」로
-              내려가는 것뿐이고, 어느 기능이 어디 있는지는 **들어가서 찾아야** 했다.
+            여섯 중 **셋은 자기 화면이 없다.** 「운동 끝 결산」은 운동을 **마칠 때**
+            뜨고, 「횟수 세기」는 **카메라를 켤 때** 돌고, 「1년 기록 벽」은 「기록」
+            탭 안의 **한 갈래**다. 그래서 가는 곳(`to`)과 **거기서 무엇을 하는지
+            (`where`)를 따로 적는다** — 탭 이름을 그대로 쓰니 앱에서도 그 글자를 찾으면 된다.
 
-              그래서 줄마다 **둘을 더했다 — 「어디 있나」와 「열어보기」.**
+            ── 2026-10-20: **무엇이 일어날지 먼저 말한다** ──
 
-              ── 「어디 있나」가 왜 꼭 필요한가 ──
+            단추에 「열어보기 ›」라고만 적혀 있었다. 계정이 없는 사람이 누르면 로그인
+            화면이 받는다 — 로그인이 끝나면 `PrivateRoute` 가 담아둔 그 자리로 데려가니
+            **길이 끊긴 것은 아니지만**, 누르기 전에는 그 말이 어디에도 없었다.
+            이제 로그인 전이면 **「가입하고 열기 ›」**다. 길을 막는 것이 아니라 말해주는 것이다.
 
-              여섯 중 **셋은 자기 화면이 없다.** 「운동 끝 결산」은 운동을 **마칠 때**
-              뜨고, 「횟수 세기」는 **카메라를 켤 때** 돌고, 「1년 기록 벽」은 「기록」
-              탭 안의 **한 갈래**다. 그 셋은 눌러서 데려다줘도 **무엇을 해야 그것이
-              나오는지** 모른다 — 운동 화면만 덩그러니 뜬다.
+            그리고 **바로가기 여섯 칸을 걷었다** — 이 여섯 줄이 같은 곳을 가리키는데
+            **설명까지 달려 있다.** 아이콘 여섯만 있던 그 줄은 같은 일의 빈 껍데기였다. */}
+        <Band id="site-does" title="이 앱이 하는 것" style={anchorStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              ['몸 지도', '최근에 자극한 부위가 금빛으로 달아 있고, 날이 갈수록 식는다',
+                '「몸 지도」 화면', '/map'],
+              ['운동 끝 결산', '마치면 오늘 들어올린 무게를 한 화면으로. 최고를 넘은 날에만 각인이 붙는다',
+                '「운동」 탭 · 마칠 때', '/train'],
+              ['1년 기록 벽', '한 해를 금속판 열두 장에 새긴다. 무겁게 든 날일수록 깊다',
+                '「기록」 탭 · 기록의 벽', '/history'],
+              // ── 아래 셋은 2026-09-30 에 더했다 ──
+              // 앱에는 9/22~9/30 에 붙었는데 **이 페이지는 그것을 모르고 있었다.**
+              // 앱이 하는 것을 홈페이지가 모르면, 읽은 사람은 없는 앱을 그려보고 들어온다
+              ['체형 읽기', '사진을 올리면 그 사진에서 잰 비율로 실루엣을 다시 그린다. 견주는 상대는 지난 번의 나다',
+                '「몸」 탭 · 체형', '/body'],
+              ['회복 시간', '동작이 끝나고 숨이 가라앉는 데 걸린 초를 잰다. 같은 동작 뒤에 그 초가 줄면 전보다 덜 힘들어진 것이다',
+                '「몸」 탭 · 회복', '/body'],
+              ['횟수 세기', '폰을 옆에 세워두면 관절이 접혔다 펴지는 것을 세서 횟수 칸에 넣는다. 저장은 사람이 누른다',
+                '「운동」 탭 · 카메라', '/train'],
+            ].map(([t, d, where, to]) => (
+              <div key={t}>
+                <div style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 3 }}>{d}</div>
+                {/* **줄 전체가 아니라 이 칸만 누른다.** 설명 문장에 링크를 걸면
+                    읽다가 손가락이 닿아서 화면이 바뀐다 — 읽으라고 쓴 글이다 */}
+                <button
+                  type="button"
+                  onClick={() => go(to)}
+                  /* 읽어주는 화면에는 **이름이 통째로** 들어간다. 「열어보기」만
+                     여섯 번 읽히면 무엇을 여는지 알 수 없다 */
+                  aria-label={`${t} ${loggedIn ? '열어보기' : '가입하고 열기'} — ${where}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 8, width: '100%', minHeight: 44, marginTop: 8, padding: '7px 11px',
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)', cursor: 'pointer', textAlign: 'left',
+                    fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                  }}
+                >
+                  <span style={{
+                    fontSize: 11.5, color: 'var(--text-secondary)', minWidth: 0,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{where}</span>
+                  <span style={{
+                    flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
+                  }}>{openLabel}</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </Band>
 
-              그래서 가는 곳(`to`)과 **거기서 무엇을 하는지(`where`)를 따로 적는다.**
-              탭 이름(운동 · 기록 · 몸)을 그대로 쓰니 앱에 들어가서도 그 글자를 찾으면 된다.
+        {/* 안 하는 것 — **이쪽이 더 많은 것을 말한다.**
+            글은 한 자도 안 고쳤다. 점(•)만 **짧은 금선**으로 바꿨다 (2026-10-20) —
+            점은 목록이고 선은 새긴 자국이다 */}
+        <Band id="site-doesnt" title="안 하는 것" style={anchorStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+            {[
+              ['남과 겨루지 않는다', '랭킹도 순위도 없다. 견주는 상대는 지난주의 자기 자신 하나다'],
+              ['말을 걸지 않는다', '커뮤니티를 뒀다가 걷어냈다. 운동하러 열었다가 남의 글을 읽고 나가는 자리는 필요 없었다'],
+              ['광고가 없다', '화면에 파는 것이 없다. 그래서 아무것도 안 눌러도 된다'],
+              // **여기가 앱과 어긋나 있었다** (2026-09-30 에 맞췄다).
+              // 「회복 시간도 추정하지 않는다」고 적어뒀는데, 9/30 에 회복 시간을 붙였다 —
+              // 짐작이 아니라 **숨을 들어 재는 것**이라 규칙을 깬 것은 아니지만,
+              // 읽는 사람에게는 거짓말로 보인다. 재는 것과 추정하는 것을 갈라 적는다
+              ['지어내지 않는다', '칼로리도 체지방률도 추정하지 않는다. 회복 시간은 짐작이 아니라 숨을 들어 재고, 못 재면 못 쟀다고 적는다'],
+              // 폰 안에서 끝난다는 것은 **이 앱의 값 중 하나**인데 어디에도 안 적혀 있었다.
+              // 사진이 서버에 저장되는 것은 사실이므로(비교 사진) **그것까지 같이 밝힌다** —
+              // 안 밝히면 이 줄이 다음 거짓말이 된다
+              ['읽는 일은 폰 안에서 끝난다', '사진에서 비율을 재고 · 숨을 듣고 · 횟수를 세는 일은 모두 기기에서 한다. 소리와 영상은 아무 데도 안 남는다 (견주기용 사진만 계정에 저장되고, 앱에서 지울 수 있다)'],
+            ].map(([t, d]) => (
+              <div key={t} style={{ display: 'flex', gap: 11 }}>
+                <span style={{
+                  width: 11, height: 1, background: 'var(--accent-low)', flexShrink: 0, marginTop: 10,
+                }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 600 }}>{t}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 2 }}>{d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Band>
 
-              ── 로그인 안 한 사람이 누르면 ──
+        {/* 지하 */}
+        <Band id="site-offline" title="지하에서도" style={anchorStyle}>
+          <div className="serif-display" style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 10 }}>
+            신호가 없어도<br />세트는 <span style={{ color: 'var(--accent)' }}>저장된다</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+            헬스장은 대개 지하에 있다. 신호가 끊기면 적은 것을 폰에 담아뒀다가
+            올라와서 저절로 올린다. 같은 기록이 두 번 올라가지 않는다.
+          </div>
+        </Band>
 
-              이 페이지는 **로그인 없이** 보는 자리다. 그런데 거기까지는 **이미 돼 있다** —
-              `PrivateRoute` 가 가려던 곳을 `from` 에 담아두고, 로그인이 끝나면 그리로
-              데려다준다. 여기서 따로 만들 것이 없다.
-          */}
-          <Box id="site-does" title="이 앱이 하는 것" style={anchorStyle}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                ['몸 지도', '최근에 자극한 부위가 금빛으로 달아 있고, 날이 갈수록 식는다',
-                  '「몸 지도」 화면', '/map'],
-                ['운동 끝 결산', '마치면 오늘 들어올린 무게를 한 화면으로. 최고를 넘은 날에만 각인이 붙는다',
-                  '「운동」 탭 · 마칠 때', '/train'],
-                ['1년 기록 벽', '한 해를 금속판 열두 장에 새긴다. 무겁게 든 날일수록 깊다',
-                  '「기록」 탭 · 기록의 벽', '/history'],
-                // ── 아래 셋은 2026-09-30 에 더했다 ──
-                // 앱에는 9/22~9/30 에 붙었는데 **이 페이지는 그것을 모르고 있었다.**
-                // 앱이 하는 것을 홈페이지가 모르면, 읽은 사람은 없는 앱을 그려보고 들어온다
-                ['체형 읽기', '사진을 올리면 그 사진에서 잰 비율로 실루엣을 다시 그린다. 견주는 상대는 지난 번의 나다',
-                  '「몸」 탭 · 체형', '/body'],
-                ['회복 시간', '동작이 끝나고 숨이 가라앉는 데 걸린 초를 잰다. 같은 동작 뒤에 그 초가 줄면 전보다 덜 힘들어진 것이다',
-                  '「몸」 탭 · 회복', '/body'],
-                ['횟수 세기', '폰을 옆에 세워두면 관절이 접혔다 펴지는 것을 세서 횟수 칸에 넣는다. 저장은 사람이 누른다',
-                  '「운동」 탭 · 카메라', '/train'],
-              ].map(([t, d, where, to]) => (
-                <div key={t}>
-                  <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{t}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 3 }}>{d}</div>
-                  {/* **줄 전체가 아니라 이 칸만 누른다.** 설명 문장에 링크를 걸면
-                      읽다가 손가락이 닿아서 화면이 바뀐다 — 읽으라고 쓴 글이다 */}
+        {/* ── 찾기는 **맨 아래로 내렸다** ── (2026-10-20 · 위 머리글 ④)
+            둘째 자리에 있을 것이 아니다 — 설치 전 사람에게 가장 안 급한 것이고,
+            이 앱에서 가장 차별점이 없는 것이다. 대신 **여기서 끝까지 된다**는 사실을
+            적는다. 이 화면에서 가입 없이 진짜로 되는 몇 안 되는 것이라 그게 값이다 */}
+        <Band id="site-find" title="운동 찾기" style={anchorStyle}>
+          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 12 }}>
+            이름 · 영어 이름 · 초성 · 부위로 찾습니다. <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+            가입 전에도 찾아볼 수 있어요</b> — 사전이 앱에 같이 실려 오는 파일이라
+            서버도 로그인도 필요 없습니다.
+          </div>
+
+          <form
+            onSubmit={(e) => e.preventDefault()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 9,
+              border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
+              background: 'var(--bg-secondary)', padding: '10px 13px',
+            }}
+          >
+            <NavIcon name="search" size={17} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="운동 이름으로 찾아보기"
+              aria-label="운동 검색"
+              style={{
+                flexGrow: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
+                color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 14,
+              }}
+            />
+            {/* 친 것을 지우는 자리. 결과가 떠 있을 때만 나온다 */}
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ('')}
+                aria-label="지우기"
+                style={{
+                  flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: 16, padding: '2px 6px', lineHeight: 1,
+                }}
+              >×</button>
+            )}
+            <button type="submit" style={{
+              flexShrink: 0, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
+              padding: '7px 14px', borderRadius: 'var(--radius)', cursor: 'pointer',
+            }}>찾기</button>
+          </form>
+
+          {/* 찾은 것 — **이 화면에서 바로 보여준다.** 없으면 없다고 말하고,
+              부위 이름을 권한다(사전이 부위로도 찾기 때문이다) */}
+          {(hits || hits === undefined) && wants && (
+            <div style={{
+              border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius)', padding: '6px 4px', marginTop: 12,
+            }}>
+              {failed && !dict ? (
+                // **못 찾은 것과 못 받은 것은 다른 말이다.** 「없어요」라고 하면 없는 운동을
+                // 찾은 줄 알고 나간다 — 여기서는 사전을 못 받았다고 말하고 길을 준다
+                <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                  운동 사전을 못 불러왔어요. 신호를 확인해 주세요.<br />
                   <button
                     type="button"
-                    onClick={() => go(to)}
-                    /* 읽어주는 화면에는 **이름이 통째로** 들어간다. 「열어보기」만
-                       여섯 번 읽히면 무엇을 여는지 알 수 없다 */
-                    aria-label={`${t} 열어보기 — ${where}`}
+                    onClick={() => setFailed(false)}
                     style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: 8, width: '100%', marginTop: 7, padding: '7px 10px',
-                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                      borderRadius: 7, cursor: 'pointer', textAlign: 'left',
-                      fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                      marginTop: 8, minHeight: 36, padding: '7px 14px', cursor: 'pointer',
+                      background: 'none', border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
+                      fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
+                    }}
+                  >다시 받기</button>
+                </div>
+              ) : hits === undefined ? (
+                <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)' }}>찾는 중…</div>
+              ) : hits.length === 0 ? (
+                <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                  「{q.trim()}」로는 못 찾았어요.<br />
+                  부위로도 찾을 수 있어요 — {PARTS.slice(0, 5).map((pp) => (
+                    <button
+                      key={pp}
+                      onClick={() => setQ(pp)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px',
+                        fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
+                      }}
+                    >{pp}</button>
+                  ))}
+                </div>
+              ) : (
+                hits.map((h) => (
+                  <button
+                    key={h.ko}
+                    // **찾은 운동을 들려 보낸다** (2026-09-17).
+                    //
+                    // 여태 `/train` 만 열었다 — **찾아낸 이름이 그 자리에서 사라졌다.**
+                    // `state` 가 아니라 **주소에 싣는다.** 여기서 누르는 사람은 대개
+                    // 아직 로그인 전이고, 로그인 화면을 거치면 `state` 는 사라진다
+                    onClick={() => go(`/train?q=${encodeURIComponent(h.ko)}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 44,
+                      padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer',
+                      textAlign: 'left', fontFamily: 'inherit',
                     }}
                   >
                     <span style={{
-                      fontSize: 11.5, color: 'var(--text-secondary)', minWidth: 0,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{where}</span>
-                    <span style={{
-                      flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
-                    }}>열어보기 ›</span>
+                      flexShrink: 0, fontSize: 11, color: 'var(--text-muted)',
+                      border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
+                    }}>{dict.partOf(h.ko)}</span>
+                    <span style={{ minWidth: 0, flexGrow: 1 }}>
+                      <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>{h.ko}</span>
+                      <span style={{
+                        display: 'block', fontSize: 12, color: 'var(--text-muted)', marginTop: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{h.desc}</span>
+                    </span>
+                    <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--accent)' }}>
+                      {loggedIn ? '기록 ›' : '가입하고 기록 ›'}
+                    </span>
                   </button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-          </Box>
+          )}
+        </Band>
 
-          {/* 안 하는 것 — **이쪽이 더 많은 것을 말한다** */}
-          <Box id="site-doesnt" title="안 하는 것" style={anchorStyle}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                ['남과 겨루지 않는다', '랭킹도 순위도 없다. 견주는 상대는 지난주의 자기 자신 하나다'],
-                ['말을 걸지 않는다', '커뮤니티를 뒀다가 걷어냈다. 운동하러 열었다가 남의 글을 읽고 나가는 자리는 필요 없었다'],
-                ['광고가 없다', '화면에 파는 것이 없다. 그래서 아무것도 안 눌러도 된다'],
-                // **여기가 앱과 어긋나 있었다** (2026-09-30 에 맞췄다).
-                // 「회복 시간도 추정하지 않는다」고 적어뒀는데, 9/30 에 회복 시간을 붙였다 —
-                // 짐작이 아니라 **숨을 들어 재는 것**이라 규칙을 깬 것은 아니지만,
-                // 읽는 사람에게는 거짓말로 보인다. 재는 것과 추정하는 것을 갈라 적는다
-                ['지어내지 않는다', '칼로리도 체지방률도 추정하지 않는다. 회복 시간은 짐작이 아니라 숨을 들어 재고, 못 재면 못 쟀다고 적는다'],
-                // 폰 안에서 끝난다는 것은 **이 앱의 값 중 하나**인데 어디에도 안 적혀 있었다.
-                // 사진이 서버에 저장되는 것은 사실이므로(비교 사진) **그것까지 같이 밝힌다** —
-                // 안 밝히면 이 줄이 다음 거짓말이 된다
-                ['읽는 일은 폰 안에서 끝난다', '사진에서 비율을 재고 · 숨을 듣고 · 횟수를 세는 일은 모두 기기에서 한다. 소리와 영상은 아무 데도 안 남는다 (견주기용 사진만 계정에 저장되고, 앱에서 지울 수 있다)'],
-              ].map(([t, d]) => (
-                <div key={t} style={{ display: 'flex', gap: 10 }}>
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-low)', flexShrink: 0, marginTop: 8 }} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>{t}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 2 }}>{d}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Box>
+        {/* ── 시작하기 — **이 화면의 카드는 이것 하나다** ──
+            나머지 칸은 라벨과 선으로 가른다(`Band`). 카드가 하나면 그것이 눈에 띈다 */}
+        <section id="site-start" style={{
+          marginTop: 30,
+          background: 'var(--card-bg)', border: '1px solid var(--accent)',
+          boxShadow: 'var(--card-edge)', borderRadius: 'var(--radius)',
+          padding: '20px 18px', ...anchorStyle,
+        }}>
+          <div className="serif-display" style={{ fontSize: 17, lineHeight: 1.5, marginBottom: 9 }}>
+            오늘 한 세트부터
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
+            적으면 됩니다. 이메일 하나면 가입이 끝나요.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ flex: 1 }} onClick={() => go('/register')}>가입하기</button>
+            <button className="btn-secondary" style={{ flex: 1 }} onClick={() => go('/login')}>로그인</button>
+          </div>
+        </section>
 
-          {/* 지하 */}
-          <Box id="site-offline" title="지하에서도" style={anchorStyle}>
-            <div className="serif-display" style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 10 }}>
-              신호가 없어도<br />세트는 저장된다
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-              헬스장은 대개 지하에 있다. 신호가 끊기면 적은 것을 폰에 담아뒀다가
-              올라와서 저절로 올린다. 같은 기록이 두 번 올라가지 않는다.
-            </div>
-          </Box>
-
-          {/* 시작하기 */}
-          <Box id="site-start" title="시작하기" style={{ borderColor: 'var(--accent)', ...anchorStyle }}>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 14 }}>
-              오늘 한 세트부터 적으면 됩니다. 이메일 하나면 가입이 끝나요.
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={() => go('/register')}>가입하기</button>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => go('/login')}>로그인</button>
-            </div>
-          </Box>
-
-        </div>
-
-        {/* 꼬리 */}
-        <div style={{ marginTop: 28 }}>
+        {/* 꼬리 — **로그인 없이 되는 것만 남긴다** (2026-10-20).
+            「고객센터」와 「소식(공지함)」은 둘 다 `PrivateRoute` 안이라, 계정이 없는
+            사람에게는 누르면 로그인 화면이 받는 자리였다. 들어와 있을 때만 그린다.
+            방침은 **플레이스토어가 요구하는 공개 주소**라 늘 둔다 (2026-10-09) */}
+        <div style={{ marginTop: 30 }}>
           <hr className="rule-beam" style={{ marginBottom: 16 }} />
           <div style={{
             display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             fontSize: 12.5, color: 'var(--text-muted)',
           }}>
             <LogoMark size={16} />
-            <a href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
-            <a href="/support/notices" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>소식</a>
-            {/* 플레이스토어가 요구하는 공개 방침 주소다 — 꼬리에서 바로 닿게 둔다 (2026-10-09) */}
+            {loggedIn && (
+              <>
+                <a href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
+                <a href="/support/notices" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>소식</a>
+              </>
+            )}
             <a href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>개인정보처리방침</a>
             <span style={{ marginLeft: 'auto' }}>BLACK IRON</span>
           </div>
