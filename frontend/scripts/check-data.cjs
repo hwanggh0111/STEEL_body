@@ -1349,7 +1349,12 @@ ok('앱 코드에 이모지가 없다',
 // 「예전 이름은 STEEL BODY 였다」까지 잡으면 왜 바꿨는지를 못 적는다)
 const oldName = srcFiles.concat(['index.html', 'public/manifest.json', 'public/sw.js', 'vite.config.js'])
   .filter((f) => fs.existsSync(f))
-  .filter((f) => /STEEL BODY|steelbody-|steel-body|IRONLOG|ironlog-/.test(codeOf(fs.readFileSync(f, 'utf-8'))))
+  // **배포 주소는 뺀다** (2026-10-20). 이름은 BLACK IRON 으로 바꿨지만 **주소는
+  // steel-body.onrender.com 에 그대로 남아 있다** — 주소를 바꾸는 것은 따로 할
+  // 판단이고(스토어 · 소셜 콘솔 · 네이버에 등록해둔 주소가 다 걸린다), 그 주소를
+  // 적어야 하는 자리가 있다(공유 카드의 og:url · og:image 는 통째로 적어야 한다).
+  .filter((f) => /STEEL BODY|steelbody-|IRONLOG|ironlog-|steel-body(?!.onrender.com)/
+    .test(codeOf(fs.readFileSync(f, 'utf-8'))))
   .map((f) => f.split(/[\\/]/).pop());
 ok('코드에 옛 이름이 안 남았다', oldName, []);
 
