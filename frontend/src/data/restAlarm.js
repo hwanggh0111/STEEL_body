@@ -68,6 +68,30 @@ async function load() {
   return plugin;
 }
 
+/**
+ * 조각을 **미리 받아둔다** (2026-10-20).
+ *
+ * 플러그인은 「쓸 때 받는다」(위). 그런데 **쓰는 때가 하필 헬스장**이다 —
+ * 안드로이드 앱은 화면을 APK 에 싣지 않고 서버 주소를 열고(`capacitor.config.ts`),
+ * 서비스 워커가 미리 담는 것은 껍데기 둘뿐이다(`public/sw.js` 의 `PRECACHE_URLS`).
+ * 조각은 **한 번 받아본 것만** 담기고, 배포하면 담아둔 것이 통째로 바뀐다.
+ *
+ * 그래서 **신호 없는 지하에서 첫 휴식을 시작하면 조각이 안 오고**, 알림은 조용히
+ * 없는 것이 된다 — 10/16 에 고친 그 일이 그대로 돌아온다.
+ *
+ * 앱을 열 때 한가한 틈에 받아둔다. **1.8KB 다**(gzip) — 들어와서 운동을 시작하기
+ * 전에 끝난다. 앱에서만, 브라우저는 안 받는다(`canRestAlarm`).
+ */
+export function prefetchRestAlarm() {
+  if (plugin || !canRestAlarm()) return;
+  const run = () => { load().catch(() => { /* 못 받으면 쉴 때 다시 해본다 */ }); };
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 4000 });
+  } else {
+    setTimeout(run, 2000);
+  }
+}
+
 // 안드로이드 8부터 알림은 **채널**에 속해야 소리·우선순위가 정해진다.
 // 채널이 없으면 조용한 기본 채널로 떨어져서 — 잠금화면에 안 뜬다
 async function ensureChannel(api) {

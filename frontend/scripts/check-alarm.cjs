@@ -64,6 +64,21 @@ ok('잠금화면에 뜨는 채널', /importance: 5/.test(alarm) && /visibility: 
 ok('권한은 한 번만 묻는다', /LS_ASKED/.test(alarm), true);
 
 console.log('');
+console.log('── 6. 조각이 지하에서도 와 있나 ── (2026-10-20)');
+//
+// 플러그인은 「쓸 때 받는다」. 그런데 **쓰는 때가 하필 헬스장**이다 — 앱은 화면을
+// APK 에 싣지 않고 서버 주소를 열고(`capacitor.config.ts`), 서비스 워커가 미리
+// 담는 것은 껍데기 둘뿐이다. 조각은 한 번 받아본 것만 담기고 배포하면 바뀐다.
+// **신호 없는 지하에서 첫 휴식을 시작하면 조각이 안 오고 알림은 조용히 없어진다.**
+const layout = read('src/components/Layout.jsx');
+ok('앱을 열 때 미리 받아둔다', /export function prefetchRestAlarm/.test(alarm), true);
+ok('  한가할 때 받는다 (첫 그림을 막지 않는다)',
+  /prefetchRestAlarm[\s\S]{0,600}?requestIdleCallback/.test(alarm), true);
+ok('  브라우저는 안 받는다', /prefetchRestAlarm[\s\S]{0,200}?canRestAlarm\(\)/.test(alarm), true);
+ok('  껍데기에 싣지 않는다 (앱인 자리에서 받는다)', /^import .*restAlarm/m.test(layout), false);
+ok('  앱일 때만 부른다', /BlackIronApp\?\.saveWidget[\s\S]{0,2000}?prefetchRestAlarm\(\)/.test(layout), true);
+
+console.log('');
 console.log('── 5. 한 줄을 두 벌로 만들지 않는다 ──');
 // 띠에 적는 줄과 알림에 적는 줄이 갈라지면 잠금화면과 띠가 다른 말을 한다
 // 셋 — 만드는 자리 하나, 쓰는 자리 둘(알림에 적는 줄 · 띠에 적는 줄)

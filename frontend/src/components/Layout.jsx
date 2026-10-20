@@ -134,6 +134,15 @@ export default function Layout() {
       soon();
     }).catch(() => { /* 위젯 하나 때문에 앱이 멈추면 안 된다 */ });
 
+    // ── 쉬는시간 알림 조각도 **여기서 데워둔다** ── (2026-10-20)
+    //
+    // 여기는 **앱이라는 것이 이미 밝혀진 자리**다(위의 `BlackIronApp.saveWidget`).
+    // 알림 플러그인은 「쓸 때 받는다」인데 **쓰는 때가 하필 신호 없는 지하**다 —
+    // 까닭과 무게(1.8KB)는 `data/restAlarm.js` 의 `prefetchRestAlarm` 머리글에 적었다.
+    import('../data/restAlarm').then((m) => {
+      if (live) m.prefetchRestAlarm();
+    }).catch(() => { /* 알림 하나 때문에 앱이 멈추면 안 된다 */ });
+
     const unsub = useWorkoutStore.subscribe(soon);
     // **앱을 떠날 때는 미루지 않고 바로** 넘긴다. 적은 것이 서버로 올라가며 스토어가
     // 늦게 바뀌는 경우가 있는데, 그 사이에 홈 화면으로 나가면 위젯은 옛 글을 들고 있다
