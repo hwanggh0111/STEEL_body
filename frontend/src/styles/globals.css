@@ -495,7 +495,9 @@ body::before {
  */
 @font-face {
   font-family: 'BI Myeongjo';
-  src: url('/fonts/bi-myeongjo.woff') format('woff');
+  /* **비테가 해시를 박아 `/assets/` 로 내보낸다** — 서비스 워커가 캐시를 먼저 보고,
+     이름이 내용으로 정해지니 글꼴을 다시 자른 날 저절로 새 이름이 된다 (2026-10-20) */
+  src: url('../assets/fonts/bi-myeongjo.woff') format('woff');
   font-weight: 400;
   font-style: normal;
   /* 받는 동안에도 글은 보인다 — 기기 글꼴로 먼저 그리고 오면 바뀐다 */

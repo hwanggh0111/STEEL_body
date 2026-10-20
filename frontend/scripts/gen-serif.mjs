@@ -43,11 +43,14 @@ const require = createRequire(import.meta.url);
 const { collect } = require('./serifGlyphs.cjs');
 
 const ROOT = path.resolve('.');
-const OUT_DIR = path.join(ROOT, 'public', 'fonts');
+// **public 이 아니라 src 에 둔다** (2026-10-20) — 비테가 이름에 해시를 박아
+// `/assets/` 로 내보내고, 그러면 서비스 워커가 **캐시를 먼저 보는 쪽**으로 다룬다
+// (`public/sw.js` 의 4번). 이름이 내용으로 정해지니 낡을 걱정도 없다.
+const OUT_DIR = path.join(ROOT, 'src', 'assets', 'fonts');
 const WOFF = path.join(OUT_DIR, 'bi-myeongjo.woff');
 // 담은 글자 목록은 **내주지 않는다** — 검사만 읽는다. public 에 두면 서버가 집어 준다
 const CHARS = path.join(ROOT, 'scripts', 'bi-myeongjo-chars.txt');
-const LICENSE = path.join(OUT_DIR, 'OFL.txt');
+const LICENSE = path.join(ROOT, 'public', 'fonts', 'OFL.txt');
 
 // 원본 글꼴 — 구글 폰트 저장소(OFL)
 const SRC_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/nanummyeongjo/NanumMyeongjo-Regular.ttf';
@@ -134,4 +137,4 @@ fs.writeFileSync(CHARS, `${text}\n`, 'utf8');
 const size = fs.statSync(WOFF).size;
 console.log(`\n잘라냈습니다 — ${path.relative(ROOT, WOFF)} ${kb(size)} (구글에서 받던 것 236.6KB)`);
 console.log(`담은 글자 목록 → ${path.relative(ROOT, CHARS)}`);
-console.log('이름은 `BI Myeongjo` 다 (OFL 의 예약 이름 규정). 라이선스는 public/fonts/OFL.txt');
+console.log('이름은 `BI Myeongjo` 다 (OFL 의 예약 이름 규정). 라이선스는 public/fonts/OFL.txt (그대로 내준다)');
