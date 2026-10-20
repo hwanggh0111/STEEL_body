@@ -42,6 +42,16 @@ app.use(helmet({
   // 다 없었다. 까닭은 그 파일 머리글에.
   contentSecurityPolicy: { directives: csp.helmetDirectives() },
   crossOriginEmbedderPolicy: false,
+  // **DNS 를 미리 찾아두게 허락한다** (2026-10-20).
+  //
+  // helmet 은 이것을 기본으로 끈다(`X-DNS-Prefetch-Control: off`). 그런데
+  // `index.html` 에는 **「DNS 프리페치 (외부 API)」라고 적어둔 줄 둘**이 있다
+  // (wger.de · api.open-meteo.com). 서버가 끄고 있었으니 **그 두 줄은 아무 일도
+  // 안 하고 있었다** — 적어둔 말과 실제가 다른 자리가 또 하나였다.
+  //
+  // 미리 찾아두는 것이 새는 정보는 **그 집 이름뿐**이고, 그 이름은 어차피 그 집에
+  // 물을 때 나간다. 켜는 쪽이 맞다.
+  dnsPrefetchControl: { allow: true },
   hsts: { maxAge: 31536000, includeSubDomains: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
