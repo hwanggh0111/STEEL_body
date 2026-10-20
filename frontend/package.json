@@ -6,9 +6,9 @@
   "scripts": {
     "changelog": "node scripts/gen-changelog.mjs",
     "feed": "node scripts/gen-feed.mjs",
-    "predev": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
+    "predev": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs && node scripts/gen-wall.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs",
+    "prebuild": "node scripts/gen-changelog.mjs && node scripts/gen-parts.mjs && node scripts/gen-feed.mjs && node scripts/gen-wall.mjs",
     "build": "vite build && node scripts/route-chunks.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
     "shell": "node scripts/gen-shell.mjs",
@@ -66,7 +66,8 @@
     "alarm": "node scripts/check-alarm.cjs",
     "widget": "node scripts/check-widget.cjs",
     "health": "node scripts/check-health.cjs",
-    "serif": "node scripts/gen-serif.mjs"
+    "serif": "node scripts/gen-serif.mjs",
+    "wall": "node scripts/gen-wall.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

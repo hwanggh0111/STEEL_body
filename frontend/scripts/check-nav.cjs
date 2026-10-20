@@ -14,6 +14,8 @@
 // 보면 알지만, 두 벌이 된 것은 **한쪽만 고친 날에야** 드러난다 — 그때는 늦다.
 const fs = require('fs');
 const path = require('path');
+// 뽑아둔 파일을 다시 뽑아 견주려면 그 스크립트를 돌려야 한다 (check-feed 와 같은 손)
+const { execFileSync } = require('child_process');
 
 const read = (f) => fs.readFileSync(f, 'utf-8');
 // 주석이 검사를 통과시키면 안 된다 — 코드만 본다.
@@ -176,7 +178,7 @@ ok('  방침은 늘 둔다 (스토어가 요구한다)', /href="\/privacy"/.test
 // **스크린샷을 올리지 않는다** — 앱의 조각과 계산을 그대로 쓴다(10/6 판단)
 ok('증거가 셋이다', /MapPreview/.test(site) && /FinishPreview/.test(site) && /WallPreview/.test(site), true);
 ok('  예시라고 적는다', (site.match(/note="예시"/g) || []).length >= 3, true);
-ok('  벽은 앱의 계산을 쓴다', /from '\.\.\/\.\.\/data\/yearWall'/.test(read('src/components/site/WallPreview.jsx')), true);
+// 벽은 **앱의 계산**으로 낸 숫자를 받는다 — 계산은 빌드할 때 돈다(아래)
 
 // ── 예시가 **앱이 세는 칸**을 쓰나 ── (2026-10-20에 돌려보고 알았다)
 //
@@ -185,11 +187,52 @@ ok('  벽은 앱의 계산을 쓴다', /from '\.\.\/\.\.\/data\/yearWall'/.test(
 // 그래서 **합계가 0 이 나오고 판 열둘이 전부 같은 깊이**였다. 벽이 평평하면
 // 「무겁게 든 달일수록 깊다」가 **그 화면에서 거짓**이 된다. 눈으로는 멀쩡해 보인다.
 const wallSrc = read('src/components/site/WallPreview.jsx');
-ok('  예시가 앱이 세는 칸을 쓴다 (weight)', /weight: String\(/.test(wallSrc), true);
-ok('    kg 로 적지 않았다 (합계가 0 이 된다)', /\[\{ kg:/.test(wallSrc), false);
+// 예시를 만드는 자리는 **뽑는 스크립트**로 옮겼다 (2026-10-20) — 화면은 숫자만 받는다
+const wallGen = read('scripts/gen-wall.mjs');
+ok('  예시가 앱이 세는 칸을 쓴다 (weight)', /weight: String\(/.test(wallGen), true);
+ok('    kg 로 적지 않았다 (합계가 0 이 된다)', /\[\{ kg:/.test(wallGen), false);
 // 무게가 0 인 달은 **각인을 아예 안 그린다** — 12% 짜리 얕은 각인을 그리면
 // 쉰 달이 운동한 달처럼 보인다
 ok('    쉰 달은 빈 판으로 둔다', /\{r > 0 && \(/.test(wallSrc), true);
+
+// ── 뽑아둔 판은 **썩는다** ── (2026-10-20)
+//
+// 미리보기는 각인 깊이를 **앱의 계산**으로 낸다(`data/yearWall.js`). 그런데 그 계산을
+// 화면에서 부르면 조각이 공개 첫 화면에 딸려 왔다 — `yearWall + weeklyReport +
+// personalRecord + bodyPart` 로 **7.2KB(gzip)**, /site 가 7.3 → **15.1KB** 가 됐다
+// (`bodyPart` 가 4.6KB 다 — 운동 이름을 부위로 옮기는 표가 거기 있다).
+//
+// 그래서 **빌드할 때 한 번 계산해 숫자만 적어둔다**(`scripts/gen-wall.mjs`).
+// 뽑은 파일의 위험은 하나다 — **원본이 바뀌었는데 안 돌려서 낡는 것.**
+// `feedList.json` 과 똑같이, 여기서 **다시 뽑아 지금 파일과 맞춰본다.**
+//
+// 검사는 **보기만 한다** — 뽑아본 것은 되돌려 놓는다. 안 그러면 낡은 것을 한 번만
+// 잡고(그때 이미 파일이 고쳐져 있다) 다음 사람은 까닭 모를 고쳐진 파일을 본다
+// (`check-feed.cjs` 에 그 까닭이 적혀 있다).
+{
+  const plates = path.join(__dirname, '..', 'src', 'data', 'sitePlates.json');
+  ok('뽑아둔 판이 있다', fs.existsSync(plates), true);
+  if (fs.existsSync(plates)) {
+    const before = fs.readFileSync(plates, 'utf8');
+    let after = before;
+    try {
+      execFileSync(process.execPath, [path.join(__dirname, 'gen-wall.mjs')],
+        { cwd: path.join(__dirname, '..'), stdio: 'pipe' });
+      after = fs.readFileSync(plates, 'utf8');
+    } finally {
+      if (fs.readFileSync(plates, 'utf8') !== before) fs.writeFileSync(plates, before);
+    }
+    ok('  다시 뽑아도 같다 (아니면 npm run wall)', before === after, true);
+    const data = JSON.parse(before);
+    // 판이 평평하면 「무겁게 든 달일수록 깊다」가 그 화면에서 거짓이 된다 (10/20)
+    ok('  판 깊이가 서로 다르다 (평평하지 않다)', new Set(data.plates).size >= 5, true);
+    ok('  쉰 달은 0 이다 (얕은 각인을 안 그린다)', data.plates.filter((p) => p === 0).length, 3);
+    ok('  뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 않는다/.test(data.note || ''), true);
+  }
+  // 화면은 **숫자만** 받는다 — 계산을 다시 들여오면 그 조각이 첫 화면에 딸려 온다
+  ok('미리보기가 숫자만 받는다', /from '\.\.\/\.\.\/data\/sitePlates\.json'/.test(wallSrc), true);
+  ok('  계산을 화면에서 안 부른다', /yearWall/.test(codeOf(wallSrc)), false);
+}
 // ── 카드는 하나다 ── (2026-10-20)
 //
 // 상자 일곱이 각각 테두리를 둘러서 **덩이가 일곱**이었다. 라벨 + 흐려지는 실선으로
