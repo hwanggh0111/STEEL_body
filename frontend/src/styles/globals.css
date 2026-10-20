@@ -472,8 +472,40 @@ body::before {
    로고만 혼자 놀고 있었다. 새 화면 셋(몸 지도 · 운동 끝 결산 · 1년 기록 벽)의
    **첫 줄에만** 명조를 앉힌다. 본문까지 명조로 깔면 작은 글씨에서 획이 뭉개진다.
    한글은 Nanum Myeongjo, 숫자·영문은 Playfair 가 받는다 (둘 다 굵기 400만 부른다). */
+/* ── 명조는 **우리가 잘라서 내준다** ── (2026-10-20)
+ *
+ * 구글에서 받던 Nanum Myeongjo 가 **236.6KB** 였다 — 앱 첫 짐(JS 81.3KB)의 세 배다.
+ * 그런데 명조로 적는 글자는 **닫혀 있다**(열 자리의 첫 줄 · 고정 문구 + 숫자 +
+ * 사전 운동 이름 + 부위 이름 = 467자). 그래서 그 467자만 잘라 **58.7KB** 로 만들었다.
+ *
+ * 받는 때를 손으로 미룰 필요도 없어졌다 — 브라우저는 `@font-face` 의 글꼴을
+ * **그 글꼴로 그릴 글자가 화면에 나올 때** 받는다. 명조 줄이 없는 화면
+ * (운동 · 기록 · 설정)에서는 한 바이트도 안 받는다. 그래서 `data/lateFonts.js`
+ * 를 걷어냈다(10/15 에 만든 것이다. `main.jsx` 에서 부르던 자리도 같이).
+ *
+ * 그리고 **우리 주소에서 오니 서비스 워커가 담는다** — 지하 헬스장에서도 온다.
+ * 구글에서 오던 것은 남의 집 것이라 담지 않았다(`public/sw.js` 의 2번).
+ *
+ * 이름이 `BI Myeongjo` 인 까닭: 나눔은 OFL 인데 **「Nanum」 이 예약된 이름**이고
+ * OFL 5절이 **고친 판에 그 이름을 쓰지 못하게** 한다. 글자를 잘라낸 것은 고친 판이다.
+ * 저작권·라이선스 글귀는 글꼴 안에 그대로 있고 `public/fonts/OFL.txt` 로 같이 나간다.
+ *
+ * 글자를 더 쓰려면 `npm run serif` 로 다시 자른다. **안 자르고 새 글자를 적으면
+ * 그 글자만 기기 글꼴로 떨어져 한 줄 안에서 글꼴이 섞인다** — `npm run font` 가 잡는다.
+ */
+@font-face {
+  font-family: 'BI Myeongjo';
+  src: url('/fonts/bi-myeongjo.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  /* 받는 동안에도 글은 보인다 — 기기 글꼴로 먼저 그리고 오면 바뀐다 */
+  font-display: swap;
+}
+
 .serif-display {
-  font-family: 'Nanum Myeongjo', 'Playfair Display', serif;
+  /* 'Nanum Myeongjo' 를 뒤에 남겨둔다 — 폰에 그 글꼴이 깔려 있는 사람(한국 폰은
+     흔하다)은 잘라둔 것에 없는 글자도 명조로 본다. 받으러 가지는 않는다 */
+  font-family: 'BI Myeongjo', 'Nanum Myeongjo', 'Playfair Display', serif;
   font-weight: 400;
   letter-spacing: -0.2px;
   color: var(--text-primary);

@@ -65,7 +65,8 @@
     "privacy": "node scripts/check-privacy.cjs",
     "alarm": "node scripts/check-alarm.cjs",
     "widget": "node scripts/check-widget.cjs",
-    "health": "node scripts/check-health.cjs"
+    "health": "node scripts/check-health.cjs",
+    "serif": "node scripts/gen-serif.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

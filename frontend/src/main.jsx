@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { Capacitor } from '@capacitor/core';
 import App from './App';
 import { devAutoLogin } from './dev/autoLogin';
-import { loadLateFonts } from './data/lateFonts';
 
 // 테마는 index.html 인라인 스크립트가 CSS 평가 이전에 이미 적용함
 
@@ -20,9 +19,12 @@ devBoot().finally(() => {
       <App />
     </React.StrictMode>
   );
-  // 첫 화면에 안 쓰이는 글꼴은 **뜬 뒤에** 받는다 — 까닭과 재본 값은
-  // `data/lateFonts.js` 에 적어뒀다 (명조 한 벌이 236.6KB 다)
-  loadLateFonts();
+  // **글꼴을 여기서 부르지 않는다** (2026-10-20에 걷어냈다).
+  //
+  // 10/15 에는 명조(236.6KB)를 첫 그림 뒤로 미루려고 여기서 `loadLateFonts()` 를
+  // 불렀다. 이제 명조는 **우리가 잘라 내주는 58.7KB** 이고 `@font-face` 로
+  // 선언돼 있어서, 브라우저가 **그 글꼴로 그릴 글자가 나올 때** 알아서 받는다 —
+  // 미루는 코드가 할 일이 없어졌다 (`styles/globals.css` 의 `.serif-display` 머리글).
 });
 
 // 안드로이드 앱의 뒤로 가기 단추
