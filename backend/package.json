@@ -31,7 +31,14 @@
     "id": "node scripts/check-id.cjs",
     "logfile": "node scripts/check-logfile.cjs",
     "odd": "node scripts/check-odd-api.cjs",
-    "sweep": "node scripts/check-sweep.cjs && node scripts/check-warm.cjs"
+    "sweep": "node scripts/check-sweep.cjs && node scripts/check-warm.cjs",
+    "abuse": "node scripts/check-abuse.cjs",
+    "account": "node scripts/check-account.cjs",
+    "api": "node scripts/check-api.cjs",
+    "reminder": "node scripts/check-reminder.cjs",
+    "routines": "node scripts/check-routines.cjs",
+    "security": "node scripts/check-security.cjs",
+    "warm": "node scripts/check-warm.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

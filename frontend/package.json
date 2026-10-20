@@ -67,7 +67,8 @@
     "widget": "node scripts/check-widget.cjs",
     "health": "node scripts/check-health.cjs",
     "serif": "node scripts/gen-serif.mjs",
-    "wall": "node scripts/gen-wall.mjs"
+    "wall": "node scripts/gen-wall.mjs",
+    "rest": "node scripts/check-rest.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
