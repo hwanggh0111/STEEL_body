@@ -15,8 +15,15 @@
 | 개인정보처리방침 | ✅ `https://steel-body.onrender.com/privacy` (배포 뒤 살아난다) |
 | 스토어 아이콘 512 | ✅ `frontend/assets/play/icon-512.png` |
 | 상단 그래픽 1024×500 | ✅ `frontend/assets/play/feature-1024x500.png` |
+| 공유 카드 (og:) | ✅ `index.html` · 그림은 상단 그래픽을 그대로 쓴다 (2026-10-20) |
+| 홈 화면 아이콘 | ✅ 아이폰 180 PNG · manifest 192·512·maskable (2026-10-20) |
 | 폰 스크린샷 | ❌ **직접 찍어야 한다** (아래 4번) |
 | 개발자 등록 $25 | ❌ 근호님 |
+
+**AAB 를 다시 뽑을 일은 없다** (2026-10-20). 앱은 화면을 APK 에 싣지 않고 서버 주소를
+열어서(`capacitor.config.ts`), 오늘 고친 것은 **배포하면 그대로 앱에도 적용된다.**
+APK 안에 드는 것은 껍데기 두 장뿐이다(`npm run shell`). 다시 뽑아야 하는 것은
+**앱 이름 · 아이콘 · 권한 · minSdk** 를 건드릴 때다.
 
 ---
 
