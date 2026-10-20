@@ -172,6 +172,47 @@ for (const file of files) {
 }
 ok('없어진 상태를 아직 부르는 자리가 없다', [...new Set(orphanSetters)], []);
 
+
+console.log('');
+console.log('── 빌드가 쓰는 짐이 **적혀 있나** ── (2026-10-20)');
+//
+// 배포는 `NODE_ENV=production` 으로 깔아서 **devDependencies 를 건너뛴다**
+// (`render.yaml`). 그래서 `prebuild`·`build` 가 부르는 짐이 devDependencies 에만
+// 있거나 아예 안 적혀 있으면 **내 컴퓨터에서는 돌고 배포에서 멈춘다.** 그날 멈추는
+// 것은 화면 전체다.
+//
+// 10/20 에 실제로 그랬다 — `gen-wall.mjs` 가 `esbuild` 를 부르는데 그것은 어디에도
+// 적혀 있지 않았다(비테를 타고 들어온 것이다). 지금은 돌지만 비테가 그것을 안 쓰는
+// 판으로 올라가는 날 배포가 깨진다.
+{
+  const pkg = JSON.parse(fs.readFileSync(path.join(path.join(__dirname, '..'), 'package.json'), 'utf8'));
+  const deps = new Set(Object.keys(pkg.dependencies || {}));
+  const dev = new Set(Object.keys(pkg.devDependencies || {}));
+  const builtin = new Set(require('module').builtinModules);
+
+  // 빌드가 부르는 스크립트만 본다 — 검사(`npm run check`)는 내 컴퓨터에서만 돈다
+  const buildLine = `${pkg.scripts.prebuild || ''} ${pkg.scripts.build || ''}`;
+  const files = [...buildLine.matchAll(/scripts\/([\w.-]+\.(?:mjs|cjs|js))/g)].map((m) => m[1]);
+  ok('빌드가 부르는 스크립트를 찾았다', files.length > 0, true);
+
+  const need = new Map();
+  for (const f of files) {
+    const full = path.join(path.join(__dirname, '..'), 'scripts', f);
+    if (!fs.existsSync(full)) { ok(`  ${f} 가 있다`, false, true); continue; }
+    const t = fs.readFileSync(full, 'utf8');
+    for (const m of t.matchAll(/(?:require\('([^'.][^']*)'\)|from '([^'.][^']*)')/g)) {
+      const p = (m[1] || m[2]).replace(/^node:/, '').split('/')[0];
+      if (builtin.has(p)) continue;
+      if (!need.has(p)) need.set(p, f);
+    }
+  }
+  const missing = [...need].filter(([p]) => !deps.has(p));
+  ok('빌드가 쓰는 짐이 dependencies 에 다 있다',
+    missing.map(([p, f]) => `${p} (${f}${dev.has(p) ? ' · devDependencies 에만 있다' : ' · 아예 없다'})`), []);
+  // 비테도 같은 까닭으로 dependencies 에 있다 — 거기서 빠지면 빌드가 아예 안 돈다
+  ok('  vite 도 dependencies 에 있다', deps.has('vite'), true);
+}
+
 console.log('');
 console.log(bad ? `${bad}건 실패` : '다 가져왔습니다');
 process.exit(bad ? 1 : 0);
