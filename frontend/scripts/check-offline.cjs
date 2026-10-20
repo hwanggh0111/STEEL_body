@@ -447,7 +447,38 @@ const S = () => useStore.getState();
   } finally {
     fs.unlinkSync(fakeClientPath);
     if (fs.existsSync(fakeNotePath)) fs.unlinkSync(fakeNotePath);
-    console.log('');
+    
+console.log('');
+console.log('── 홈 화면에 얹을 아이콘이 있나 ── (2026-10-20)');
+//
+// **아이폰은 SVG 터치 아이콘을 안 받는다.** 그동안 `apple-touch-icon` 이
+// `icon.svg` 였고, 그러면 홈 화면에 얹을 때 아이콘 자리에 **화면 캡처**가 들어간다 —
+// 검은 화면 한 장이 아이콘이 되는 셈이다.
+//
+// 안드로이드·크롬도 설치할 때 `manifest` 의 **PNG** 를 먼저 본다. `maskable` 이
+// 없으면 둥근 틀에서 흰 테가 생긴다.
+//
+// **눈으로는 안 보인다** — 내 브라우저에서는 아무 차이가 없고, 홈 화면에 얹어본
+// 사람만 안다. 아이콘은 스토어 심사에서도 보는 자리다.
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'manifest.json'), 'utf8'));
+  const has = (p) => fs.existsSync(path.join(__dirname, '..', 'public', p.replace(/^\//, '')));
+
+  const touch = (html.match(/rel="apple-touch-icon"[^>]*href="([^"]+)"/) || [])[1] || '';
+  ok('아이폰 터치 아이콘이 PNG 다', /\.png$/.test(touch), true);
+  ok('  그 파일이 진짜 있다', has(touch), true);
+  ok('  크기를 적어뒀다', /rel="apple-touch-icon" sizes="180x180"/.test(html), true);
+
+  const pngs = (manifest.icons || []).filter((i) => i.type === 'image/png');
+  ok('manifest 에 PNG 아이콘이 있다', pngs.length >= 2, true);
+  ok('  192 와 512 가 있다',
+    ['192x192', '512x512'].filter((s) => !pngs.some((i) => i.sizes === s)), []);
+  ok('  둥근 틀용(maskable)도 있다', (manifest.icons || []).some((i) => i.purpose === 'maskable'), true);
+  ok('  적어둔 파일이 다 있다', (manifest.icons || []).filter((i) => !has(i.src)).map((i) => i.src), []);
+}
+
+console.log('');
     console.log(bad ? bad + '건 실패' : '전부 통과');
     process.exit(bad ? 1 : 0);
   }

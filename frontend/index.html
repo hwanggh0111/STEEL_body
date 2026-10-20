@@ -115,7 +115,10 @@
          할 일이다. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="BLACK IRON" />
-    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+    <!-- **아이폰은 SVG 터치 아이콘을 안 받는다** (2026-10-20에 고쳤다) — 홈 화면에
+         얹으면 아이콘 자리에 **화면 캡처**가 들어간다. 180×180 PNG 를 준다
+         ( 에서 줄였다 — 아이콘을 두 벌 그리지 않는다) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
 
     <!-- 테마는 다크 하나뿐이다. 라이트를 지운 뒤로는 고를 것이 없으므로
          localStorage 를 읽던 인라인 스크립트도 함께 없앴다 (첫 페인트가 한 단계 짧아진다). -->

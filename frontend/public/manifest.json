@@ -1,19 +1,40 @@
 {
   "name": "BLACK IRON",
   "short_name": "BLACK IRON",
-  "description": "당신의 운동을 기록하세요",
+  "description": "적은 것을 몸 그림으로 돌려주는 운동 기록 앱",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#12100c",
   "theme_color": "#12100c",
   "orientation": "portrait",
-  "categories": ["fitness", "health"],
+  "categories": [
+    "fitness",
+    "health"
+  ],
   "icons": [
     {
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
