@@ -469,6 +469,40 @@ console.log('── 받아도 되는 집이 앱이 받는 집과 맞나 (CSP) �
   ok('  eval 은 열지 않았다', /'unsafe-eval'/.test(script.replace(/'wasm-unsafe-eval'/g, '')), false);
   // 미디어파이프가 blob 으로 일꾼을 세운다
   ok('  blob 일꾼을 받는다', /worker-src [^;]*blob:/.test(header), true);
+
+  // **앱 코드 전체**에서 바깥 집을 긁어 CSP 와 맞춰본다 (2026-10-20).
+  //
+  // 처음에는 `poseModel.js` 만 봤는데, 새 주소는 **어느 파일에서나** 생긴다 —
+  // 날씨 · 외부 운동 DB 처럼 하나 더 붙는 날 그 파일만 조용히 막힌다.
+  // 주석에 적어둔 주소는 뺀다(「예전에는 wger.de 에 물었다」까지 세면 안 된다).
+  const srcDir = path.join(__dirname, '..', '..', 'frontend', 'src');
+  const jsFiles = [];
+  (function walk(d) {
+    for (const n of fs.readdirSync(d)) {
+      const f = path.join(d, n);
+      if (fs.statSync(f).isDirectory()) walk(f);
+      else if (/\.(js|jsx)$/.test(n)) jsFiles.push(f);
+    }
+  })(srcDir);
+
+  const codeOnly = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+
+  const outside = new Map();
+  for (const f of jsFiles) {
+    const t = codeOnly(fs.readFileSync(f, 'utf8'));
+    for (const m of t.matchAll(/https:\/\/([a-z0-9.-]+)/g)) {
+      const host = `https://${m[1]}`;
+      // 우리 집은 CSP 의 'self' 다
+      if (host.includes('steel-body.onrender.com')) continue;
+      if (!outside.has(host)) outside.set(host, path.basename(f));
+    }
+  }
+  ok('앱이 적어둔 바깥 집을 찾았다', outside.size >= 3, true);
+  const header2 = csp.headerValue();
+  ok('  그 집이 CSP 에 다 있다',
+    [...outside].filter(([h]) => !header2.includes(h)).map(([h, f]) => `${h} (${f})`), []);
 }
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
