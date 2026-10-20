@@ -15,6 +15,31 @@ export const GOLD_LOW = '#d29a5f';
 export const SKIN = '#1c1813';
 export const SKIN_EDGE = '#2b251c';
 
+/**
+ * 달아오른 정도 → 칠. **0(식음)은 안 칠한다**(`null`).
+ *
+ * ── 왜 여기 있나 ── (2026-10-20에 옮겼다)
+ *
+ * 이 파일 머리글이 적어둔 그 까닭이다 — 「조각을 복사하면 두 그림이 조용히
+ * 달라진다」. 모양은 10/6 에 합쳐뒀는데 **칠은 안 합쳐서** 숫자가 세 곳에
+ * 따로 적혀 있었다 —
+ *
+ *     몸 지도(진짜 화면)       0.78 / 0.46 / 0.2
+ *     홈페이지 미리보기        0.82 / 0.5  / 0.22   ← 조금 더 밝았다
+ *
+ * 그래서 홈페이지에서 본 금색과 앱에서 본 금색이 **달랐다.** 둘을 나란히
+ * 놓고 보는 사람은 없으니 아무도 모르지만, 그게 바로 「조용히」다.
+ *
+ * 숫자는 **몸 지도의 것**을 남긴다 — 그쪽이 원본이고, 미리보기는 그걸 보여주는
+ * 자리다. `breathe` 는 오늘 자극한 부위만 숨 쉬게 하는 표시다(지도에서만 쓴다).
+ */
+export function heatPaint(level) {
+  if (level >= 3) return { fill: GOLD, opacity: 0.78, breathe: true };
+  if (level === 2) return { fill: GOLD_LOW, opacity: 0.46 };
+  if (level === 1) return { fill: GOLD_LOW, opacity: 0.2 };
+  return null;
+}
+
 /** 그림의 좌표계. 두 쪽이 같은 틀을 쓴다. */
 export const VIEWBOX = '0 0 120 240';
 

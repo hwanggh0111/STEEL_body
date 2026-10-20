@@ -1,4 +1,4 @@
-import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE } from '../bodyShapes';
+import { FRONT, BACK, HEAD, VIEWBOX, SKIN, SKIN_EDGE, heatPaint } from '../bodyShapes';
 
 // 홈페이지의 몸 지도 미리보기 (2026-10-06).
 //
@@ -36,13 +36,13 @@ const DEMO = [
   { part: '어깨', level: 0, ago: '엿새 전' },
 ];
 
-/** 달아오른 정도 → 칠. 지도와 같은 값을 쓴다(`BodyMap.jsx`). */
-function paintOf(level) {
-  if (level >= 3) return { fill: GOLD, opacity: 0.82 };
-  if (level === 2) return { fill: GOLD_LOW, opacity: 0.5 };
-  if (level === 1) return { fill: GOLD_LOW, opacity: 0.22 };
-  return null;
-}
+// 달아오른 정도 → 칠. **조각 파일에서 받는다** (2026-10-20).
+//
+// 여기 적혀 있던 주석은 「지도와 같은 값을 쓴다(`BodyMap.jsx`)」였는데 **값이 달랐다** —
+// 0.82/0.5/0.22 로 지도(0.78/0.46/0.2)보다 조금 더 밝았다. 홈페이지에서 본 금색과
+// 앱에서 본 금색이 다른 셈이다. 같은 값을 쓰겠다고 적어두는 것으로는 안 되고,
+// **같은 손에서 받아야** 같아진다 (`bodyShapes.jsx` 의 `heatPaint`).
+const paintOf = heatPaint;
 
 /**
  * 몸 하나. 한 부위만 칠한다.

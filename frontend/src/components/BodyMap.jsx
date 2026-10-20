@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { buildHeat, MAP_PARTS } from '../data/bodyHeat';
-import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE } from './bodyShapes';
+import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE, heatPaint } from './bodyShapes';
 
 // 몸 지도.
 //
@@ -35,13 +35,9 @@ import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE } from './b
 // 쓴다**(2026-10-06). 복사해 두면 지도에서 가슴을 넓혔을 때 카드의 가슴은 그대로라,
 // 같은 사람이 화면마다 다른 몸이 된다.
 
-/** 달아오른 정도 → 칠. 0(식음)은 안 칠한다. */
-function fillOf(level) {
-  if (level >= 3) return { fill: GOLD, opacity: 0.78, breathe: true };
-  if (level === 2) return { fill: GOLD_LOW, opacity: 0.46 };
-  if (level === 1) return { fill: GOLD_LOW, opacity: 0.2 };
-  return null;
-}
+// 달아오른 정도 → 칠. **조각 파일이 들고 있다**(2026-10-20) — 홈페이지 미리보기가
+// 같은 칠을 써야 한다. 숫자가 두 벌이던 동안 그쪽이 조금 더 밝았다
+const fillOf = heatPaint;
 
 /**
  * 부위 한 덩어리. 바탕 모양 위에 달아오른 칠을 겹친다.
@@ -182,13 +178,11 @@ export default function BodyMap() {
 
       {/* 범례 — 색이 무엇을 뜻하는지 한 줄 */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 18, marginTop: 4 }}>
-        {[
-          { c: GOLD, o: 0.78, t: '오늘' },
-          { c: GOLD_LOW, o: 0.46, t: '이틀 전' },
-          { c: GOLD_LOW, o: 0.2, t: '닷새 전' },
-        ].map((d) => (
+        {/* 범례의 색도 **같은 손에서 받는다** — 손으로 적어두면 칠을 고친 날
+            범례만 옛 색으로 남는다 (2026-10-20) */}
+        {[3, 2, 1].map((lv, i) => ({ ...heatPaint(lv), t: ['오늘', '이틀 전', '닷새 전'][i] })).map((d) => (
           <span key={d.t} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.c, opacity: d.o }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.fill, opacity: d.opacity }} />
             {d.t}
           </span>
         ))}

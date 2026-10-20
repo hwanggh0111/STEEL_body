@@ -12,6 +12,13 @@
 const esbuild = require('esbuild');
 const fs = require('fs');
 
+// 글자로 보는 자리도 있어서 읽는 손을 둔다 (다른 검사들과 같은 모양)
+const read = (f) => fs.readFileSync(f, 'utf8');
+// 주석을 걷고 본다 — 걷어낸 까닭을 적은 주석에 그 숫자가 들어 있을 수 있다
+const codeOf = (t) => t
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')
+  .replace(/^\s*\/\/.*$/gm, '');
+
 const bundle = (entry, out) => {
   esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
   const m = require(process.cwd() + '/' + out);
@@ -292,6 +299,33 @@ ok('「백이십」 = 120', voice.koreanNumber('백이십'), 120);
 ok('「스물다섯」 = 25', voice.koreanNumber('스물다섯'), 25);
 ok('「여덟」 = 8', voice.koreanNumber('여덟'), 8);
 ok('수가 아니면 null', voice.koreanNumber('바벨'), null);
+
+
+console.log('');
+console.log('── 달아오른 칠이 한 곳에서 오나 ── (2026-10-20)');
+//
+// `bodyShapes.jsx` 머리글이 적어둔 그 까닭이다 — 「조각을 복사하면 두 그림이
+// 조용히 달라진다」. 모양은 10/6 에 합쳤는데 **칠은 안 합쳐서** 숫자가 두 벌이었다 —
+//
+//     몸 지도(진짜 화면)    0.78 / 0.46 / 0.2
+//     홈페이지 미리보기     0.82 / 0.5  / 0.22    ← 조금 더 밝았다
+//
+// 게다가 미리보기 주석에는 **「지도와 같은 값을 쓴다」고 적혀 있었다.** 적어두는
+// 것으로는 안 되고 **같은 손에서 받아야** 같아진다.
+{
+  const shapes = read('src/components/bodyShapes.jsx');
+  const map = read('src/components/BodyMap.jsx');
+  const preview = read('src/components/site/MapPreview.jsx');
+
+  ok('칠을 만드는 손이 조각 파일에 있다', /export function heatPaint\(level\)/.test(shapes), true);
+  ok('  몸 지도가 그것을 쓴다', /const fillOf = heatPaint;/.test(map), true);
+  ok('  홈페이지 미리보기도 그것을 쓴다', /const paintOf = heatPaint;/.test(preview), true);
+  // 숫자를 다시 적어두면 그 자리만 옛 색으로 남는다
+  ok('  지도에 숫자를 다시 적지 않았다', /opacity: 0\.(78|46|2)\b/.test(codeOf(map)), false);
+  ok('  미리보기에도 없다', /opacity: 0\.\d+/.test(codeOf(preview)), false);
+  // 범례도 같은 손에서 받아야 한다 — 손으로 적으면 칠을 고친 날 범례만 옛 색이다
+  ok('범례도 같은 손에서 받는다', /\[3, 2, 1\]\.map\(\(lv, i\) => \(\{ \.\.\.heatPaint\(lv\)/.test(map), true);
+}
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
