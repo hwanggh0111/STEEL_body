@@ -164,11 +164,17 @@ const train = codeOf(read('src/pages/TrainPage.jsx'));
 ok('못 여는 자리는 가려던 곳을 들려 보낸다', /state=\{\{ from:/.test(app), true);
 ok('  뒤로 가기가 막히지 않게 replace 로 보낸다', /<Navigate to="\/login" replace/.test(app), true);
 ok('로그인하면 그 자리로 돌아간다', /backTo/.test(login) && /goAfterLogin/.test(login), true);
-// 이 값은 주소로도 들어올 수 있다(누가 링크를 만들어 보낼 수 있다) —
-// 그대로 믿으면 **로그인 직후 딴 데로 보내는 길**이 된다
-ok('  앱 밖으로는 안 보낸다 (오픈 리다이렉트)', /startsWith\('\/\/'\)/.test(login), true);
-ok('  로그인·가입으로 되돌리지 않는다 (그 자리를 맴돈다)', /startsWith\('\/login'\)/.test(login), true);
-ok('  들고 온 것이 없으면 홈으로', /: '\/home'/.test(login), true);
+// ── 거르는 규칙은 **`data/afterAuth.js` 한 곳으로 옮겼다** ── (2026-10-20)
+//
+// 10/20 에 **가입도 같은 값을 보게** 했다 — 홈페이지가 「가입하고 열기 — 「몸 지도」
+// 화면」이라고 적어둔 뒤로는, 가입을 거치면 「오늘」로 가는 것이 **거짓말**이 된다.
+// 규칙을 두 화면에 적으면 한쪽만 고쳐지는 날이 오니 한 곳에 뒀다.
+//
+// 그래서 여기서는 **그 손을 쓰는지**만 본다. 규칙이 진짜로 거르는지는
+// `npm run signup` 이 **함수를 돌려서** 본다(`//evil.example.com` 같은 것을 넣어본다).
+ok('  거르는 손을 쓴다 (afterAuth)', /afterAuthPath\(backTo\)/.test(login), true);
+ok('  규칙을 화면에 다시 적지 않았다', /startsWith\('\/\/'\)/.test(login), false);
+ok('  가입도 같은 손을 쓴다', /afterAuthPath\(backTo\)/.test(read('src/pages/RegisterPage.jsx')), true);
 
 // 「벤치프레스」를 찾아 「기록 ›」을 눌렀는데 **빈 운동 화면**이 열려서,
 // 거기서 이름을 다시 쳐야 했다 — 홈페이지가 찾아준 일이 아무 데도 안 이어졌다

@@ -8,6 +8,8 @@ import PasswordResetModal from '../components/PasswordResetModal';
 import client from '../api/client';
 import Logo from '../components/Logo';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
+// 로그인·가입이 끝나고 어디로 갈지. **가입도 같은 값을 본다** (2026-10-20)
+import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 // 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
 import { SESSION_EXPIRED_KEY } from '../data/localKeys';
 
@@ -76,17 +78,11 @@ export default function LoginPage() {
   // 홈페이지(`/site`)에서 「몸 지도」를 누른 사람은 몸 지도를 보러 온 것이지
   // 홈을 보러 온 것이 아니다.
   //
-  // **앱 안의 자리만 받는다.** 이 값은 주소로도 들어올 수 있는 자리라(누가 링크를
-  // 만들어 보낼 수 있다), 그대로 믿고 `navigate` 에 넘기면 `//남의사이트.com` 같은
-  // 것을 넣어 **로그인 직후 딴 데로 보내버리는 길**이 된다 (오픈 리다이렉트).
-  // `/` 로 시작하되 `//` 도 `/\` 도 아닌 것만 통과시킨다.
+  // **앱 안의 자리만 받는다.** 거르는 규칙은 `data/afterAuth.js` 한 곳에 있다 —
+  // **가입도 같은 값을 보기 때문이다** (2026-10-20). 까닭(오픈 리다이렉트)은 그 머리글에.
   const backTo = useLocation().state?.from;
   const goAfterLogin = () => {
-    const to = typeof backTo === 'string' ? backTo : '';
-    const safe = to.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\')
-      // 로그인·가입으로 되돌리면 그 자리를 맴돈다
-      && !to.startsWith('/login') && !to.startsWith('/register');
-    navigate(safe ? to : '/home', { replace: true });
+    navigate(afterAuthPath(backTo), { replace: true });
   };
 
   // 세션 만료 알림
@@ -515,7 +511,14 @@ function oauthErrorText(code) {
 
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>계정이 없나요? </span>
-          <Link to="/register" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>회원가입</Link>
+          {/* **가려던 자리를 들려 보낸다** (2026-10-20).
+              여기서 `from` 을 흘리면, 홈페이지에서 「가입하고 열기 — 「몸 지도」 화면」을
+              누른 사람이 가입을 끝내고 **「오늘」로** 간다. 적어둔 말이 거짓이 된다 */}
+          <Link
+            to="/register"
+            state={backTo ? { from: safeBackTo(backTo) } : undefined}
+            style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}
+          >회원가입</Link>
         </div>
       </div>
 

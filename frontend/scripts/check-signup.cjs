@@ -29,6 +29,14 @@ const fs = require('fs');
 const path = require('path');
 
 const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+// ESM 을 그대로 불러 **돌려본다** — 다른 검사들과 같은 손이다 (check-parts 등)
+const esbuild = require('esbuild');
+const bundle = (entry, out) => {
+  esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
+  const m = require(process.cwd() + '/' + out);
+  fs.unlinkSync(out);
+  return m;
+};
 // 주석을 걷고 본다 — 머리말에 옛 모습을 적어두는 것이 이 앱의 방식이라,
 // 안 걷으면 주석에 적힌 옛 코드를 살아 있는 코드로 본다
 const codeOf = (src) => src
@@ -86,6 +94,52 @@ if (register) {
   // 번호가 bcrypt 앞에 있는 까닭은 그대로다 — 틀린 번호마다 해시 비용을 치르지 않는다
   const hashAt = body.indexOf('bcrypt.hash');
   ok('  번호는 여전히 bcrypt 앞이다', codeAt > -1 && hashAt > -1 && codeAt < hashAt, true);
+}
+
+
+// ── 가려던 자리를 **끝까지** 들고 가는가 ── (2026-10-20)
+//
+// `PrivateRoute` 는 못 들어간 자리를 `state.from` 에 담아 로그인 화면으로 보내고,
+// 로그인 화면은 그걸 받아 그 자리로 데려간다 — 9월부터 돼 있던 길이다.
+//
+// 그런데 **가입은 그 값을 아예 안 봤다.** 그래서 이렇게 끊겼다 —
+//
+//   홈페이지에서 「가입하고 열기 — 「몸 지도」 화면」 → 로그인(from=/map)
+//   → 「회원가입」 (**여기서 from 이 사라진다**) → 가입 끝 → **「오늘」로 간다**
+//
+// 10/20 에 홈페이지에 **「가입하고 열기」라고 적어둔 뒤**로는 그게 어긋난 말이
+// 아니라 **거짓말**이다. 그래서 가입도 같은 값을 보게 했고, 거르는 규칙은
+// `data/afterAuth.js` **한 곳**에 뒀다 — 두 곳에 적으면 한쪽만 고쳐지는 날이 온다.
+{
+  console.log('');
+  console.log('── 가려던 자리를 끝까지 들고 가나 ──');
+
+  const login = read('src/pages/LoginPage.jsx');
+  const register = read('src/pages/RegisterPage.jsx');
+
+  ok('거르는 규칙이 한 곳에 있다', fs.existsSync(path.join(__dirname, '..', 'src/data/afterAuth.js')), true);
+  ok('  로그인이 그것을 쓴다', /afterAuthPath\(backTo\)/.test(login), true);
+  ok('  로그인에 규칙을 다시 적지 않았다', /startsWith\('\/\/'\)/.test(login), false);
+  // **여기서 흘리면 다음 화면은 알 길이 없다** — 링크에 들려 보내야 한다
+  ok('가입 링크가 가려던 자리를 들고 간다', /state=\{backTo \? \{ from: safeBackTo\(backTo\) \} : undefined\}/.test(login), true);
+  ok('가입이 끝나면 그 자리로 간다', /navigate\(afterAuthPath\(backTo\)/.test(register), true);
+  ok('  가입이 「오늘」로 못 박혀 있지 않다', /navigate\('\/home'\)/.test(register), false);
+  ok('  가입도 같은 값을 읽는다', /useLocation\(\)\.state\?\.from/.test(register), true);
+
+  // ── 규칙을 **돌려본다** ──
+  //
+  // 글자만 맞춰보면 「규칙이 있다」까지만 안다. 이 값은 **주소로도 들어올 수 있는
+  // 자리**라(누가 링크를 만들어 보낸다) 거르는 일이 실제로 되는지가 중요하다
+  const A = bundle('src/data/afterAuth.js', '.a1.cjs');
+  ok('앱 안의 자리는 그대로 간다', A.afterAuthPath('/map'), '/map');
+  ok('  물음표가 붙어도 그대로', A.afterAuthPath('/train?q=%EB%B2%A4%EC%B9%98'), '/train?q=%EB%B2%A4%EC%B9%98');
+  // 오픈 리다이렉트 — `//남의사이트.com` 은 브라우저가 **다른 집 주소**로 읽는다
+  ok('남의 집으로는 안 보낸다', A.afterAuthPath('//evil.example.com'), '/home');
+  ok('  역슬래시로 꾸민 것도', A.afterAuthPath('/\\evil.example.com'), '/home');
+  ok('  주소 전체를 넣어도', A.afterAuthPath('https://evil.example.com'), '/home');
+  // 로그인·가입으로 되돌리면 그 자리를 맴돈다
+  ok('로그인·가입으로 되돌리지 않는다', [A.afterAuthPath('/login'), A.afterAuthPath('/register')], ['/home', '/home']);
+  ok('  들고 온 것이 없으면 「오늘」', [A.afterAuthPath(undefined), A.afterAuthPath('')], ['/home', '/home']);
 }
 
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));

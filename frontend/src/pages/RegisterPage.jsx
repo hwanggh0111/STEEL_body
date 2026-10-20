@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
 import Logo from '../components/Logo';
 import { toast } from '../components/Toast';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import { saveLS } from '../data/safeStorage';
+// 가입이 끝나고 어디로 갈지. **로그인과 같은 규칙을 쓴다** (2026-10-20) —
+// 홈페이지가 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀으니 그 자리로 가야 한다
+import { afterAuthPath } from '../data/afterAuth';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -84,6 +87,9 @@ function suggestUsername(email) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  // 못 들어간 자리(`PrivateRoute` 가 담아둔 것)를 로그인 화면이 여기까지 들려 보낸다.
+  // 들고 온 것이 없으면 「오늘」이다 — 홈페이지의 「가입하기」로 바로 온 사람이 그렇다
+  const backTo = useLocation().state?.from;
   const navTimerRef = useRef(null);
   const emailCheckTimerRef = useRef(null);
   const usernameCheckTimerRef = useRef(null);
@@ -327,8 +333,8 @@ export default function RegisterPage() {
       saveLS('saved_nickname', nickname);
       saveLS('saved_id', email);
       toast('회원가입 완료! 자동 로그인됐어요');
-      // 자동 로그인 상태 → 홈으로
-      navTimerRef.current = setTimeout(() => navigate('/home'), 600);
+      // 자동 로그인 상태 → **가려던 자리로** (없으면 「오늘」)
+      navTimerRef.current = setTimeout(() => navigate(afterAuthPath(backTo), { replace: true }), 600);
     } catch (err) {
       // 번호가 틀렸거나 식었으면 **1걸음으로 돌려보낸다.** 2걸음에 머물면
       // 고칠 칸이 화면에 없는 잘못을 보여주는 셈이 된다
