@@ -124,7 +124,22 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record you
         gap: cap * 0.42, ...style,
       }} {...rest}>
         <LogoMark size={cap * 2.0} />
-        <LogoWord cap={cap} />
+        {/* ── 잉크를 가운데로 ── (2026-10-20, **재서** 넣은 값이다)
+            이탤릭은 **글자 칸과 잉크가 어긋난다.** Playfair Display Italic 로
+            「Black Iron」을 짜서 재보니 —
+
+              칸 너비 4467   잉크 -33 ~ 4417   (1000 유닛 = 1em)
+              칸의 가운데 2233.5 · 잉크의 가운데 2192.0 → **0.0415em 왼쪽**
+
+            첫 자  가 칸 밖으로 33유닛 나가고 끝 자  뒤에 50유닛이 남아서다.
+            그래서 칸을 가운데 맞추면 글자는 왼쪽으로 밀려 보이고(cap 48 에서 2.67px),
+            **완벽히 가운데인 마크와 그만큼 어긋난다.** 잰 값만큼 되돌린다
+            (0.0415em × 글자 크기 1.34cap = 0.0556cap). 세로로 세우는 자리에서만 한다 —
+            머리·탭바는 마크와 나란히 두는 자리라 가운데 맞추기가 없다.
+
+            싸인 획도 같이 재봤다: 잉크 무게중심 59.12 / 칸의 가운데 60 — 0.7% 라서
+            그대로 뒀다(cap 48 에서 1px 아래다). 쏠려 보인 것은 이 글자였다 */}
+        <LogoWord cap={cap} style={{ transform: `translateX(${cap * 0.0556}px)` }} />
         <Flourish width="62%" />
         {subtitle ? (
           <span style={{
