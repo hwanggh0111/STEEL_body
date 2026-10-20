@@ -16,6 +16,8 @@ if (process.env.JWT_SECRET.length < 32) {
 const express = require('express');
 const cors    = require('cors');
 const helmet  = require('helmet');
+// 무엇을 받아도 되는가 — 화면 문서와 나머지 응답이 **같은 것**을 쓴다
+const csp = require('./csp');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { RATE_LIMITS, BODY_LIMIT, PERMISSIONS_POLICY } = require('./config/security');
@@ -34,20 +36,11 @@ app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
 
 // 보안 헤더
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://api.open-meteo.com", "https://wger.de"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-    },
-  },
+  // **무엇을 받아도 되는가는 `src/csp.js` 한 곳에 있다** (2026-10-20).
+  // 여기와 아래 `spaCSP` 에 글자로 두 벌 적혀 있었고, 그래서 **체형 읽기와 횟수
+  // 세기가 운영에서 막혀 있었다** — 미디어파이프의 wasm·모델을 받을 자리가 양쪽에
+  // 다 없었다. 까닭은 그 파일 머리글에.
+  contentSecurityPolicy: { directives: csp.helmetDirectives() },
   crossOriginEmbedderPolicy: false,
   hsts: { maxAge: 31536000, includeSubDomains: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -399,17 +392,9 @@ const path = require('path');
 const fs = require('fs');
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 const spaCSP = (req, res, next) => {
-  res.set('Content-Security-Policy', [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob:",
-    "connect-src 'self' https://api.open-meteo.com https://wger.de",
-    "frame-src 'none'",
-    "object-src 'none'",
-    "base-uri 'self'",
-  ].join('; '));
+  // 위 helmet 과 **같은 한 곳**에서 받는다 (`src/csp.js`) — 두 벌로 적어두면
+  // 한쪽만 고쳐지고, 그러면 화면 문서와 나머지 응답이 다른 말을 한다
+  res.set('Content-Security-Policy', csp.headerValue());
   next();
 };
 // ── 얼마나 담아둘지는 **파일마다 다르다** ── (2026-10-05)

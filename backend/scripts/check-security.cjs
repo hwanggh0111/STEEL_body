@@ -434,6 +434,43 @@ const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src'
   // 커뮤니티 검사는 **기능과 함께 걷었다** (2026-09-16).
   // 「남의 글」이라는 갈래가 앱에서 없어졌다 — 이 앱에 남은 것은 다시 자기 것뿐이다.
 
+console.log('');
+console.log('── 받아도 되는 집이 앱이 받는 집과 맞나 (CSP) ── (2026-10-20)');
+//
+// **체형 읽기와 횟수 세기가 운영에서 막혀 있었다.** 그 둘은 미디어파이프를 쓰고,
+// 미디어파이프는 wasm 과 모델을 남의 집에서 받는다(jsdelivr · storage.googleapis).
+// 그런데 CSP 는 `script-src 'self'` · `connect-src 'self' …` 였다 — **둘 다 못 받는다.**
+// 홈페이지에 「하는 것」으로 적어둔 둘이 배포본에서는 안 되는 셈이었다.
+//
+// **눈으로는 안 보인다** — 개발 서버(비테)는 CSP 를 안 붙인다. 막히는 것은 배포본이고,
+// 그때 콘솔에만 한 줄 뜬다.
+//
+// 그리고 CSP 가 **두 벌**이었다(화면 문서용 · 나머지 응답용). 한쪽만 고치면 또 어긋난다.
+{
+  const csp = require('../src/csp');
+  const idx = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
+  const pose = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'data', 'poseModel.js'), 'utf8');
+
+  // 한 곳에서 받아 쓰나 — 글자로 두 벌 적어두면 또 어긋난다
+  ok('CSP 를 한 곳에서 받는다', /csp\.helmetDirectives\(\)/.test(idx) && /csp\.headerValue\(\)/.test(idx), true);
+  ok('  화면 문서에 글자로 다시 안 적었다', /"connect-src 'self'/.test(idx), false);
+
+  // **앱이 받는 집**을 코드에서 긁어 CSP 와 맞춰본다 — 새 주소를 쓰는 날 여기서 걸린다
+  const hosts = [...new Set([...pose.matchAll(/https:\/\/([a-z0-9.-]+)/g)].map((m) => `https://${m[1]}`))];
+  ok('체형·횟수가 받는 집을 찾았다', hosts.length >= 2, true);
+  const header = csp.headerValue();
+  const connect = (header.match(/connect-src ([^;]+)/) || [])[1] || '';
+  const script = (header.match(/script-src ([^;]+)/) || [])[1] || '';
+  ok('  그 집들이 connect-src 에 다 있다', hosts.filter((h) => !connect.includes(h)), []);
+  // wasm 글루는 **스크립트로** 들어온다 — connect 만 열어두면 그 자리에서 막힌다
+  ok('  wasm 글루 집이 script-src 에 있다', script.includes('https://cdn.jsdelivr.net'), true);
+  // WebAssembly 를 세우는 데 필요하다. `'unsafe-eval'` 과 다른 것이다
+  ok('  wasm 을 세울 수 있다 (wasm-unsafe-eval)', script.includes("'wasm-unsafe-eval'"), true);
+  ok('  eval 은 열지 않았다', /'unsafe-eval'/.test(script.replace(/'wasm-unsafe-eval'/g, '')), false);
+  // 미디어파이프가 blob 으로 일꾼을 세운다
+  ok('  blob 일꾼을 받는다', /worker-src [^;]*blob:/.test(header), true);
+}
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
+
 })();
