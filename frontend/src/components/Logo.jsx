@@ -64,6 +64,10 @@ export function LogoWord({ cap = 19, style }) {
       fontSize: cap * 1.34,
       // 흘림은 글자끼리 이어지는 결이라 자간을 더 좁힌다. 벌리면 이어진 느낌이 끊긴다
       letterSpacing: cap * 0.005,
+      // **마지막 글자 뒤에도 자간이 붙는다.** 그만큼 글자 칸이 오른쪽으로 넓어져서,
+      // 가운데 맞춘 자리(스플래시 · 로그인)에서는 글자가 **왼쪽으로 조금 밀린 듯** 보인다.
+      // 같은 값을 음수 여백으로 돌려줘 칸이 글자에 딱 붙게 한다 (2026-10-20)
+      marginRight: -(cap * 0.005),
       lineHeight: 1,
       color: 'var(--accent)',
       whiteSpace: 'nowrap',
