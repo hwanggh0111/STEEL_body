@@ -101,6 +101,43 @@ ok('  changelog.json 을 안 받는다', /changelog\.json/.test(site), false);
 ok('  화면이 뜬 뒤에 받는다 (위에서 안 들여온다)',
   /^import .*feedList/m.test(site), false);
 
+// ── 운동 사전도 같은 일이었다 ── (2026-10-20)
+//
+// 이 화면이 사전에서 쓰는 것은 **부위 이름 일곱 글자**뿐인데(「부위로도 찾을 수
+// 있어요 — 가슴 · 등 …」) 그걸 쓰려고 **사전 조각 22KB(gzip 10.2KB)를 첫 화면에서
+// 같이 받고 있었다.** 미리 받는 목록(`route-chunks.json`)에까지 올라가 있었다.
+//
+// 이제 **칠 때 받는다** — 두 글자를 치거나 부위 이름을 치면 그때 온다.
+ok('사전을 위에서 안 들여온다', /^import .*exerciseDict/m.test(site), false);
+ok('  칠 때 받는다', /import\('\.\.\/data\/exerciseDict'\)/.test(site), true);
+ok('  부위 이름은 partNames 에서 온다', /from '\.\.\/data\/partNames'/.test(site), true);
+// 받는 동안 「못 찾았어요」가 뜨면 없는 운동이라고 믿는다 — 그 사이는 「찾는 중」이다
+ok('  받는 동안은 「찾는 중」이다', /찾는 중/.test(site), true);
+
+// **두 벌이 되지 않게** — 부위 이름을 고치는 자리는 `partNames.js` 하나다
+const partNames = fs.readFileSync(path.join(DATA, 'partNames.js'), 'utf8');
+const dict = fs.readFileSync(path.join(DATA, 'exerciseDict.js'), 'utf8');
+ok('부위 이름의 원본은 partNames.js 다', /export const PARTS = \[/.test(partNames), true);
+ok('  사전은 그것을 다시 내보낸다', /export \{ PARTS \}/.test(dict), true);
+ok('  사전에 또 적혀 있지 않다', /export const PARTS = \[/.test(dict), false);
+// 떼어낸 것이 사전을 다시 끌고 오면 떼어낸 것이 아니다
+ok('  partNames 는 사전을 안 들여온다', /exerciseDict/.test(
+  partNames.split(String.fromCharCode(10)).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join(String.fromCharCode(10))), false);
+// 노드가 그대로 불러오는 파일이라 확장자가 있어야 한다 (`gen-parts.mjs`)
+ok('  사전은 확장자를 적어 들여온다 (노드가 부른다)', /from '\.\/partNames\.js'/.test(dict), true);
+
+// ── 미리 받는 목록에 사전이 없나 ──
+//
+// 조각을 갈라도 `route-chunks.json` 이 /site 에 적어두면 **첫 화면에서 같이 받는다.**
+// 여기가 이 일의 진짜 결과다
+const rc = path.join(ROOT, 'dist', 'route-chunks.json');
+if (fs.existsSync(rc)) {
+  const pre = (JSON.parse(fs.readFileSync(rc, 'utf8')).chunks || {})['/site'] || [];
+  ok('/site 가 미리 받는 것에 사전이 없다', pre.some((f) => /exerciseDict/.test(f)), false);
+} else {
+  console.log('--   dist 가 없어 미리 받는 목록은 건너뜀 (npm run build 뒤에 본다)');
+}
+
 console.log('');
 console.log('── 공지함은 그대로 전체를 받나 ──');
 // 거기는 `detail` 을 펼치고 **그 글까지 검색**한다. 거기서까지 목록만 받으면

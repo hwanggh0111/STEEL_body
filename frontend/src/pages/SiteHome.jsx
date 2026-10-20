@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { LogoMark, LogoWord } from '../components/Logo';
 import NavIcon from '../components/NavIcon';
 import client from '../api/client';
-import { searchExercises, partOf, isPart, PARTS } from '../data/exerciseDict';
+// **사전은 여기서 안 들여온다** (2026-10-16). 이 화면이 사전에서 쓰는 것은
+// 부위 이름 일곱뿐인데, 그걸 쓰려고 **운동 사전 조각 35KB(gzip 10KB)를 첫 화면에서
+// 같이 받고 있었다.** 여기는 로그인도 앱 설치도 없이 처음 오는 사람이 보는 자리다.
+// 사전은 **칠 때** 받는다 (아래 `useEffect`).
+import { PARTS, isPartName } from '../data/partNames';
 // 몸 지도 미리보기. **「몸」 탭의 지도와 같은 조각을 쓴다** — 스크린샷을 올리면
 // 화면을 고칠 때마다 그림이 옛말이 되는데, 이것은 앱이 바뀌면 같이 바뀐다 (2026-10-06)
 import MapPreview from '../components/site/MapPreview';
@@ -266,13 +270,30 @@ export default function SiteHome() {
   //
   // **치는 동안 바로 나온다.** 단추를 눌러야 나오면 한 번 더 눌러야 하고,
   // 안 나오면 오타인지 없는 운동인지 알 수 없다. 단추는 자판의 엔터를 받는 자리로 남긴다.
+  // ── 사전은 **칠 때 받는다** ── (2026-10-16)
+  //
+  // 조건은 예전과 같다: 두 글자 이상이거나 부위 이름(「등」 · 「팔」). 그 판단은
+  // 사전 없이도 할 수 있어서(`partNames.js`) 받기 전에 먼저 가른다.
+  const term = q.trim();
+  const wants = term.length >= 2 || isPartName(term);
+
+  const [dict, setDict] = useState(null);
+  useEffect(() => {
+    if (!wants || dict) return;
+    let live = true;
+    import('../data/exerciseDict')
+      .then((m) => { if (live) setDict(m); })
+      .catch(() => { /* 못 받아도 아래에서 「찾는 중」이 남는다 — 다시 치면 다시 해본다 */ });
+    return () => { live = false; };
+  }, [wants, dict]);
+
+  // `null` 은 **아직 찾을 때가 아니다**(상자를 안 그린다), `undefined` 는
+  // **사전을 받는 중**이다. 둘을 가르지 않으면 받는 동안 「못 찾았어요」가 뜬다
   const hits = useMemo(() => {
-    const term = q.trim();
-    // 사전은 한 글자로는 안 찾는다(거의 다 걸려서 도움이 안 된다).
-    // 다만 부위 이름은 한 글자여도 찾는다 — 「등」 · 「팔」
-    if (term.length < 2 && !isPart(term)) return null;
-    return searchExercises(term, 8);
-  }, [q]);
+    if (!wants) return null;
+    if (!dict) return undefined;
+    return dict.searchExercises(term, 8);
+  }, [term, wants, dict]);
 
   return (
     <div className="full-height" style={{ paddingBottom: 50 }}>
@@ -456,12 +477,14 @@ export default function SiteHome() {
 
         {/* 찾은 것 — **이 화면에서 바로 보여준다.** 없으면 없다고 말하고,
             부위 이름을 권한다(사전이 부위로도 찾기 때문이다) */}
-        {hits && (
+        {(hits || hits === undefined) && wants && (
           <div style={{
             border: '1px solid var(--border)', background: 'var(--bg-secondary)',
             borderRadius: 'var(--radius)', padding: '6px 4px', marginBottom: 16,
           }}>
-            {hits.length === 0 ? (
+            {hits === undefined ? (
+              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)' }}>찾는 중…</div>
+            ) : hits.length === 0 ? (
               <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
                 「{q.trim()}」로는 못 찾았어요.<br />
                 부위로도 찾을 수 있어요 — {PARTS.slice(0, 5).map((pp) => (
@@ -498,7 +521,7 @@ export default function SiteHome() {
                   <span style={{
                     flexShrink: 0, fontSize: 11, color: 'var(--text-muted)',
                     border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
-                  }}>{partOf(h.ko)}</span>
+                  }}>{dict.partOf(h.ko)}</span>
                   <span style={{ minWidth: 0, flexGrow: 1 }}>
                     <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>{h.ko}</span>
                     <span style={{
