@@ -81,6 +81,27 @@ for (const s of STORES.filter((x) => x.page)) {
 }
 
 console.log('');
+console.log('── 늦게 받는 조각이 못 왔을 때 ── (2026-10-20)');
+//
+// 무거운 조각을 **눌렀을 때 · 칠 때** 받게 가른 자리가 늘었다(자세 설명 78KB ·
+// 운동 사전 22KB). 가르는 것은 좋은데 **못 받는 날**이 생긴다 — 그날 화면이
+// 입을 닫으면 위의 스토어들과 똑같은 일이 된다. 지하 헬스장이 이 앱의 자리다.
+//
+// 「자세 보기」는 둘 다 틀렸었다 — 머리글에는 「접어두고 **말한다**」고 적어뒀는데
+// 코드는 접기만 했다. 누른 사람에게는 **아무 일도 안 일어난 것**으로 보인다.
+const finder = read('components/ExerciseFinder.jsx');
+ok('자세 설명 — 실패를 들고 있다', /setFormErr\(true\)/.test(finder), true);
+ok('  접어버리지 않는다 (펴둔 채로 말한다)',
+  /if \(!m\) \{ setOpenForm\(false\); return; \}/.test(finder), false);
+ok('  「못 불러왔어요」를 적는다', /못 불러왔어요/.test(finder), true);
+ok('  다시 받는 길을 준다', /다시 받기/.test(finder), true);
+// 홈페이지의 운동 사전도 같은 자리다. 그쪽 검사는 `check-feed.cjs` 에 있다
+// (거기서 「첫 화면에서 안 받는다」와 함께 본다)
+const siteHome = read('pages/SiteHome.jsx');
+ok('홈페이지 사전 — 실패를 들고 있다', /setFailed\(true\)/.test(siteHome), true);
+ok('  다시 받는 길을 준다', /다시 받기/.test(siteHome), true);
+
+console.log('');
 console.log('── 못 받았을 때 적는 폼을 열지 않나 ──');
 // 인바디 화면만 그런 자동 열기를 한다. **빈 목록이 「없다」가 아닐 수 있는데**
 // 그때 폼을 열면 있는데 또 적게 된다 — 같은 날이 두 줄이 된다

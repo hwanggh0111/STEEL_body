@@ -278,14 +278,24 @@ export default function SiteHome() {
   const wants = term.length >= 2 || isPartName(term);
 
   const [dict, setDict] = useState(null);
+  // **못 받은 것은 못 받았다고 말한다** (2026-10-20).
+  //
+  // 처음에는 `catch` 를 비워두고 「못 받아도 다시 치면 다시 해본다」고 적어뒀는데
+  // **그렇지 않았다.** 이 `useEffect` 가 보는 것은 `[wants, dict]` 둘뿐이라 글자가
+  // 바뀌어도 다시 돌지 않는다 — 신호가 한 번 끊겨 못 받으면 **「찾는 중…」이 영원히
+  // 남는다.** 지하 헬스장에서 열면 그 화면에서 끝난다.
+  //
+  // 그래서 못 받은 것을 적어두고(`failed`) **다시 해보는 단추**를 준다. 저절로
+  // 다시 받지는 않는다 — 글자마다 다시 받으러 가면 안 되는 신호를 계속 두드린다.
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (!wants || dict) return;
+    if (!wants || dict || failed) return;
     let live = true;
     import('../data/exerciseDict')
       .then((m) => { if (live) setDict(m); })
-      .catch(() => { /* 못 받아도 아래에서 「찾는 중」이 남는다 — 다시 치면 다시 해본다 */ });
+      .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
-  }, [wants, dict]);
+  }, [wants, dict, failed]);
 
   // `null` 은 **아직 찾을 때가 아니다**(상자를 안 그린다), `undefined` 는
   // **사전을 받는 중**이다. 둘을 가르지 않으면 받는 동안 「못 찾았어요」가 뜬다
@@ -482,7 +492,22 @@ export default function SiteHome() {
             border: '1px solid var(--border)', background: 'var(--bg-secondary)',
             borderRadius: 'var(--radius)', padding: '6px 4px', marginBottom: 16,
           }}>
-            {hits === undefined ? (
+            {failed && !dict ? (
+              // **못 찾은 것과 못 받은 것은 다른 말이다.** 「없어요」라고 하면 없는 운동을
+              // 찾은 줄 알고 나간다 — 여기서는 사전을 못 받았다고 말하고 길을 준다
+              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                운동 사전을 못 불러왔어요. 신호를 확인해 주세요.<br />
+                <button
+                  type="button"
+                  onClick={() => setFailed(false)}
+                  style={{
+                    marginTop: 8, minHeight: 36, padding: '7px 14px', cursor: 'pointer',
+                    background: 'none', border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
+                    fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
+                  }}
+                >다시 받기</button>
+              </div>
+            ) : hits === undefined ? (
               <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)' }}>찾는 중…</div>
             ) : hits.length === 0 ? (
               <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>

@@ -113,6 +113,12 @@ ok('  칠 때 받는다', /import\('\.\.\/data\/exerciseDict'\)/.test(site), tru
 ok('  부위 이름은 partNames 에서 온다', /from '\.\.\/data\/partNames'/.test(site), true);
 // 받는 동안 「못 찾았어요」가 뜨면 없는 운동이라고 믿는다 — 그 사이는 「찾는 중」이다
 ok('  받는 동안은 「찾는 중」이다', /찾는 중/.test(site), true);
+// **못 받은 것은 못 받았다고 말한다** (2026-10-20). 처음에는 `catch` 가 비어 있어서
+// 한 번 못 받으면 글자를 더 쳐도 다시 받지 않았다 — 의존 목록이 `[wants, dict]` 뿐이라
+// 글자가 바뀌어도 안 돌았고, **「찾는 중…」이 영원히 남았다**(지하 헬스장)
+ok('  못 받은 것을 적어둔다 (catch 가 비어 있지 않다)', /setFailed\(true\)/.test(site), true);
+ok('    다시 받는 길을 준다', /다시 받기/.test(site), true);
+ok('    못 찾은 것과 다른 말을 한다', /사전을 못 불러왔어요/.test(site), true);
 
 // **두 벌이 되지 않게** — 부위 이름을 고치는 자리는 `partNames.js` 하나다
 const partNames = fs.readFileSync(path.join(DATA, 'partNames.js'), 'utf8');

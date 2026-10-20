@@ -87,14 +87,25 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
   // **받기 전에 알아야 하는 값이라 사전에 묻는다** (위의 loadForm 머리글)
   const canOpen = hasExercise(ko);
 
-  const toggleForm = async () => {
+  // **못 받은 것은 말한다** (2026-10-20에 고쳤다).
+  //
+  // 머리글에는 「접어두고 **말한다**」고 적혀 있었는데 코드는 `setOpenForm(false)` 로
+  // **접기만 했다.** 신호가 끊긴 자리에서 「자세 보기」를 누르면 「불러오는 중…」이
+  // 잠깐 떴다 사라지고 **아무 말도 없이 처음으로 돌아간다** — 이 파일이 바로 위에서
+  // 「눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다」고 적어둔 그것이다.
+  const [formErr, setFormErr] = useState(false);
+  const tryForm = async () => {
+    setFormErr(false);
+    const m = await loadForm();
+    // 못 받으면 **펴둔 채로 말한다.** 다시 받는 것은 되는 일이다 — `loadForm` 이
+    // 실패한 약속을 버려서(`_loading = null`) 다음 번에 다시 받으러 간다
+    if (!m) { setFormErr(true); return; }
+    setForm(m.formOf(ko));
+  };
+  const toggleForm = () => {
     if (openForm) { setOpenForm(false); return; }
     setOpenForm(true);
-    if (form) return;
-    const m = await loadForm();
-    // 못 받으면(신호가 끊겼다) 접어두고 말한다 — 빈 칸을 펴두면 고장으로 읽힌다
-    if (!m) { setOpenForm(false); return; }
-    setForm(m.formOf(ko));
+    if (!form) tryForm();
   };
   return (
     <div className="card list-item" style={{ marginBottom: 6 }}>
@@ -129,9 +140,24 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
 
       {/* 받는 사이 — 보통 눈에 안 띄게 짧지만, 느린 신호에서는 눌렀는데 아무 일도
           안 일어나는 것처럼 보인다 */}
-      {openForm && !form && (
+      {openForm && !form && (formErr ? (
+        // **못 받은 것과 없는 것은 다르다.** 이 운동에 자세 설명이 없는 것이 아니라
+        // (없으면 단추를 안 그린다) 조각이 안 온 것이다
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+          자세 설명을 못 불러왔어요.{' '}
+          <button
+            type="button"
+            onClick={tryForm}
+            style={{
+              background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12, color: 'var(--accent)',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}
+          >다시 받기</button>
+        </div>
+      ) : (
         <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>불러오는 중…</div>
-      )}
+      ))}
 
       {openForm && form && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
