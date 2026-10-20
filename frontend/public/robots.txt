@@ -30,6 +30,11 @@ Disallow: /admin
 Disallow: /support
 Disallow: /reminders
 Disallow: /settings
+# 옛 주소 셋 — 북마크·폰 홈 화면 바로가기 때문에 **살려두고 넘긴다**(2026-09-19).
+# 넘어가는 자리도 로그인 뒤라 크롤러에게는 로그인 화면이다 (2026-10-20에 적었다)
+Disallow: /workout
+Disallow: /inbody
+Disallow: /measure
 Disallow: /oauth/
 
 # 서버 길 — 사람이 읽는 글이 아니다

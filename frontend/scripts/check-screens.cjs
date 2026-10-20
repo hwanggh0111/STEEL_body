@@ -414,6 +414,43 @@ for (const [name, file] of [
     drawWith(file, { records: [MEASURES[0]], onSave: () => {}, onDelete: () => {} }), null);
 }
 
+
+console.log('');
+console.log('── 크롤러에게 적어준 것이 라우트 표와 맞나 ── (2026-10-20)');
+//
+// `robots.txt` 와 `sitemap.xml` 은 **손으로 적는 파일**이다(10/14). 그런데 화면은
+// 계속 늘어난다 — 새 화면을 `PrivateRoute` 안에 넣고 robots 에 적는 것을 잊으면,
+// 크롤러가 그 주소로 와서 **로그인 화면을 색인한다.** 같은 화면 스무 개가 색인되는
+// 것을 막으려고 적어둔 파일인데, 적어두는 것을 잊으면 그 일이 그대로 돌아온다.
+//
+// 눈으로는 안 보인다 — 색인은 몇 주 뒤에 일어나고, 그때는 아무도 이 파일을 안 본다.
+{
+  const app = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.jsx'), 'utf8');
+  const robots = fs.readFileSync(path.join(__dirname, '..', 'public', 'robots.txt'), 'utf8');
+  const sitemap = fs.readFileSync(path.join(__dirname, '..', 'public', 'sitemap.xml'), 'utf8');
+
+  // `<Route path="/" element={<PrivateRoute>…` 안쪽의 자리들 — 거기가 로그인 뒤다
+  const at = app.indexOf('<PrivateRoute>');
+  const privateBlock = at > -1 ? app.slice(at) : '';
+  const privatePaths = [...privateBlock.matchAll(/<Route path="([a-z][a-z/-]*)"/g)]
+    .map((m) => `/${m[1]}`)
+    // 옛 주소를 살려둔 넘김 자리(`/workout` → `/train`)도 로그인 뒤다
+    .filter((p) => p !== '/');
+  ok('로그인 뒤 화면을 찾았다', privatePaths.length >= 10, true);
+
+  const disallowed = new Set([...robots.matchAll(/^Disallow:\s*(\S+)/gm)].map((m) => m[1]));
+  const covered = (p) => [...disallowed].some((d) => d.endsWith('/') ? p.startsWith(d) : p === d || p.startsWith(`${d}/`));
+  ok('  robots 가 그것들을 다 막는다', privatePaths.filter((p) => !covered(p)), []);
+
+  // 거꾸로도 본다 — 공개 화면을 막아두면 **아무도 못 찾는다**
+  const PUBLIC = ['/site', '/privacy', '/login', '/register'];
+  ok('  공개 화면은 막지 않았다', PUBLIC.filter((p) => covered(p)), []);
+  ok('  공개 화면이 sitemap 에 다 있다', PUBLIC.filter((p) => !sitemap.includes(`${p}</loc>`)), []);
+  // 로그인 뒤 화면이 sitemap 에 끼면 크롤러가 로그인 화면 스무 개를 색인한다
+  ok('  로그인 뒤 화면은 sitemap 에 없다',
+    privatePaths.filter((p) => sitemap.includes(`${p}</loc>`)), []);
+}
+
 console.log('');
 console.log(bad ? `${bad}건 실패` : '전부 그려집니다');
 process.exit(bad ? 1 : 0);
