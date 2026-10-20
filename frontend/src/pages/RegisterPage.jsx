@@ -8,7 +8,7 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import { saveLS } from '../data/safeStorage';
 // 가입이 끝나고 어디로 갈지. **로그인과 같은 규칙을 쓴다** (2026-10-20) —
 // 홈페이지가 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀으니 그 자리로 가야 한다
-import { afterAuthPath } from '../data/afterAuth';
+import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -391,7 +391,7 @@ export default function RegisterPage() {
             {/* 소셜로 들어오면 계정이 저절로 만들어진다 — **제일 빠른 길이라 맨 위에
                 둔다.** 예전에는 이 자리가 비어 있어서, 구글로 가입하려면 「로그인」
                 쪽으로 가야 한다는 걸 알아내야 했다 */}
-            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={afterAuthPath(backTo) === '/home' ? undefined : afterAuthPath(backTo)} />
+            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={safeBackTo(backTo)} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
               <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />

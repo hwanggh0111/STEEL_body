@@ -28,19 +28,24 @@ import { buildYear } from '../../data/yearWall';
 // 아니라 소음이다. 날짜를 규칙으로 깔고 무게도 규칙으로 올린다.
 //
 // 모양은 **사람이 실제로 하는 꼴**로 둔다 — 주 3~4회, 봄에 가장 무겁게,
-// 여름에 한 달 쉬고, 12월은 아직 비어 있다(= 지금 10월이라는 뜻).
+// 여름에 한 달 쉬고, 11·12월은 비어 있다(= 지금 10월이라는 뜻).
 function sampleYear(year) {
   const out = {};
-  for (let m = 0; m < 11; m += 1) {
+  // **10월까지만** 있다 — 지금이 10월이라는 뜻이다. 남은 두 판은 비어 있어야 글과 맞는다
+  for (let m = 0; m < 10; m += 1) {
     if (m === 6) continue;                       // 7월은 쉰 달
     const days = m === 2 || m === 3 ? [2, 4, 6, 9, 11, 13, 16, 18, 20, 23, 25, 27]
       : m === 9 ? [1, 3, 6, 8, 10, 13, 15]       // 10월은 아직 중간
-        : [2, 5, 7, 10, 12, 15, 17, 20, 22, 25, 27];
+        // 달 초에 사흘 이어서 한다 — 그래야 「가장 길게 이어진 것」이 1일이 아니다
+        : [2, 3, 4, 7, 9, 12, 14, 17, 19, 22, 24, 27];
     // 무게는 달이 갈수록 조금씩 오른다 (봄에 가장 무겁고 쉬고 난 뒤엔 낮다)
     const base = m === 2 || m === 3 ? 92 : m === 7 ? 62 : 70 + m * 2;
     days.forEach((d, i) => {
       const date = `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      out[date] = [{ kg: base + (i % 3) * 5, reps: 8 + (i % 2) * 2, sets: 4 }];
+      // **칸 이름은 `weight` 다** (`kg` 가 아니다 — `weeklyReport.js` 의 `volumeOf`).
+      // 처음에 `kg` 로 적어뒀더니 합계가 0 이 나와 **판 열둘이 전부 같은 깊이**였다.
+      // 돌려보고 알았다 — 벽이 평평하면 「무겁게 든 달일수록 깊다」가 거짓이 된다
+      out[date] = [{ weight: String(base + (i % 3) * 5), reps: 8 + (i % 2) * 2, sets: 4 }];
     });
   }
   return out;
@@ -88,7 +93,7 @@ export default function WallPreview({ year = 2026, style }) {
       </div>
       <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginTop: 8 }}>
         무겁게 든 달일수록 깊다. 가장 길게 이어진 것은 {wall.total.longest}일이고,
-        열두째 판은 아직 비어 있다.
+        남은 두 판은 아직 비어 있다.
       </div>
     </div>
   );

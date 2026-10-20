@@ -178,6 +178,18 @@ ok('증거가 셋이다', /MapPreview/.test(site) && /FinishPreview/.test(site) 
 ok('  예시라고 적는다', (site.match(/note="예시"/g) || []).length >= 3, true);
 ok('  벽은 앱의 계산을 쓴다', /from '\.\.\/\.\.\/data\/yearWall'/.test(read('src/components/site/WallPreview.jsx')), true);
 
+// ── 예시가 **앱이 세는 칸**을 쓰나 ── (2026-10-20에 돌려보고 알았다)
+//
+// 처음에 예시를 `{ kg: 90, reps: 10, sets: 4 }` 로 적었다. 앱이 무게를 세는 칸은
+// `weight` 다(`weeklyReport.js` 의 `volumeOf` 가 `parseWeight(r.weight)` 를 본다) —
+// 그래서 **합계가 0 이 나오고 판 열둘이 전부 같은 깊이**였다. 벽이 평평하면
+// 「무겁게 든 달일수록 깊다」가 **그 화면에서 거짓**이 된다. 눈으로는 멀쩡해 보인다.
+const wallSrc = read('src/components/site/WallPreview.jsx');
+ok('  예시가 앱이 세는 칸을 쓴다 (weight)', /weight: String\(/.test(wallSrc), true);
+ok('    kg 로 적지 않았다 (합계가 0 이 된다)', /\[\{ kg:/.test(wallSrc), false);
+// 무게가 0 인 달은 **각인을 아예 안 그린다** — 12% 짜리 얕은 각인을 그리면
+// 쉰 달이 운동한 달처럼 보인다
+ok('    쉰 달은 빈 판으로 둔다', /\{r > 0 && \(/.test(wallSrc), true);
 // ── 카드는 하나다 ── (2026-10-20)
 //
 // 상자 일곱이 각각 테두리를 둘러서 **덩이가 일곱**이었다. 라벨 + 흐려지는 실선으로
