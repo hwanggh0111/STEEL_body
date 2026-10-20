@@ -83,6 +83,29 @@ ok('  아는 칸 이름일 때만 거른다', /PHOTO_TYPES\.includes\(want\)/.te
 const compareSrc = fs.readFileSync('../frontend/src/pages/ComparePage.jsx', 'utf-8');
 ok('  비교 화면은 그대로 전부 받는다', /client\.get\('\/photos'\)/.test(compareSrc), true);
 
+
+console.log('');
+console.log('── 깨진 파일을 덮어쓰지 않는가 ── (2026-09-19 · 10/20 에 사진도)');
+//
+// 읽다가 터지면(`JSON.parse` 실패) 둘 다 **빈 것으로 시작한다** — 그래야 앱이 뜬다.
+// 그런데 그 다음 저장이 **깨진 파일을 덮어쓴다.** 원자적 쓰기를 붙인 뒤로는 거의 없는
+// 일이지만, 그 「거의」에 걸리는 날은 **기록 전부가 걸린 날**이다.
+//
+// 본 DB 는 9/19 부터 옆으로 치워뒀는데(`*.broken-<시각>`) **사진은 안 하고 있었다.**
+// 사진은 base64 덩어리라 한 번 덮으면 되살릴 길이 없다. 10/20 에 같은 대접을 한다.
+{
+  const dbSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'db.js'), 'utf8');
+  const main = dbSrc.indexOf('blackiron.json 파싱 실패');
+  const photo = dbSrc.indexOf('photos.json 파싱 실패');
+  const near = (at) => dbSrc.slice(at, at + 420);
+  ok('본 DB 는 깨진 파일을 치워둔다', /keepBroken\(storage\.MAIN\)/.test(near(main)), true);
+  ok('  사진도 치워둔다', /keepBroken\(storage\.PHOTOS\)/.test(near(photo)), true);
+  // 치우다 또 터져도 앱은 떠야 한다 — 거기서 던지면 서버가 아예 안 뜬다
+  ok('  치우다 터져도 앱은 뜬다', (near(photo).match(/catch \(e2\)/g) || []).length, 1);
+  // 옆으로 치운 이름에 **시각**이 들어가야 두 번째 사고가 첫 번째를 안 덮는다
+  ok('치운 이름에 시각이 들어간다', /broken-' \+ new Date\(\)\.toISOString\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'storage.js'), 'utf8')), true);
+}
+
 // 검사가 만든 파일은 스스로 치운다. **먼저 파일에 쓴 다음 지운다** —
 // 안 그러면 지운 뒤에 미뤄둔 쓰기가 다시 써놓는다
 if (typeof db.flushNow === 'function') db.flushNow();

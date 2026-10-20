@@ -131,7 +131,18 @@ function loadPhotos() {
       return _photoCache;
     }
   } catch (err) {
+    // **깨진 파일을 덮어쓰지 않는다** (2026-10-20에 여기도 붙였다).
+    //
+    // 본 DB 는 9/19 부터 옆으로 치워두는데(아래 `load`) **사진은 안 하고 있었다** —
+    // 여기서 빈 목록으로 시작하면 다음 저장이 그 파일을 덮어쓴다. 사진은 base64
+    // 덩어리라 한 번 덮으면 **되살릴 길이 없다.** 같은 대접을 한다.
     console.error('[DB] photos.json 파싱 실패, 초기화합니다:', err.message);
+    try {
+      const kept = storage.keepBroken(storage.PHOTOS);
+      if (kept) console.error('[DB] 깨진 사진 파일을 옆에 치워뒀습니다:', kept);
+    } catch (e2) {
+      console.error('[DB] 깨진 사진 파일을 치우지도 못했습니다:', e2.message);
+    }
   }
   _photoCache = { photos: [], _nextId: 1 };
   return _photoCache;
