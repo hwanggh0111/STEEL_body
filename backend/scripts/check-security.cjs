@@ -503,6 +503,40 @@ console.log('── 받아도 되는 집이 앱이 받는 집과 맞나 (CSP) �
   const header2 = csp.headerValue();
   ok('  그 집이 CSP 에 다 있다',
     [...outside].filter(([h]) => !header2.includes(h)).map(([h, f]) => `${h} (${f})`), []);
+
+  console.log('');
+  console.log('── 앱이 쓰는 기기 권한이 열려 있나 ── (2026-10-20)');
+  //
+  // `Permissions-Policy` 에 적혀 있던 말은 **「이 앱은 셋 다 안 쓴다」**였다
+  // (`camera=(), microphone=(), geolocation=()`). 그런데 **둘을 쓴다** —
+  // 카메라(횟수 세기 · 체형 사진) · 마이크(회복 시간, 숨이 가라앉는 초를 듣는다).
+  // `camera=()` 는 「아무도 못 쓴다」는 뜻이라 **배포본에서 그 둘이 통째로 막혀
+  // 있었다** — 브라우저가 묻기도 전에 거절한다.
+  //
+  // **눈으로는 안 보인다** — 개발 서버(비테)는 이 헤더를 안 붙인다.
+  //
+  // 그래서 **코드가 쓰는 것과 이 줄을 맞춰본다.**
+  {
+    const policy = require('../src/config/security').PERMISSIONS_POLICY;
+    const allowed = (f) => policy.includes(f + '=(self)');
+    const blocked = (f) => policy.includes(f + '=()');
+
+    // 앱 코드가 기기를 부르는 자리 — 주석은 뺀다
+    const uses = (re) => jsFiles.some((f) => re.test(codeOnly(fs.readFileSync(f, 'utf8'))));
+    const wantsCamera = uses(/getUserMedia\(\s*\{[^}]*video/s) || uses(/video:\s*\{/);
+    const wantsMic = uses(/getUserMedia\(\s*\{[^}]*audio/s) || uses(/audio:\s*true/);
+    const wantsGeo = uses(/navigator\.geolocation/);
+
+    ok('카메라를 쓴다 (횟수 세기 · 체형 사진)', wantsCamera, true);
+    ok('  그래서 우리 집에 열려 있다', allowed('camera'), true);
+    ok('마이크를 쓴다 (회복 시간 — 숨을 듣는다)', wantsMic, true);
+    ok('  그래서 우리 집에 열려 있다', allowed('microphone'), true);
+    // 안 쓰는 것은 막아둔다 — 끼어든 스크립트가 있어도 브라우저가 먼저 거절한다
+    ok('위치는 안 쓴다', wantsGeo, false);
+    ok('  그래서 막아뒀다', blocked('geolocation'), true);
+    // `*` 로 열면 iframe 에 끼어든 남의 페이지도 쓸 수 있다
+    ok('아무에게나 열지 않았다', /\*/.test(policy), false);
+  }
 }
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);

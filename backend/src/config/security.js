@@ -55,11 +55,28 @@ const BCRYPT_ROUNDS = 12;
 // 사진을 base64 로 보내기 때문에 넉넉하다. photoLimit 과 짝이다
 const BODY_LIMIT = '3mb';
 
-// 브라우저에게 「이 앱은 이것들을 안 쓴다」고 알려주는 값.
+// 브라우저에게 「이 앱이 무엇을 쓰는가」를 알려주는 값.
 //
 // 서버(index.js)가 헤더로 내보내고, 관리자 보안 보고서가 같은 값을 읽어 보여준다.
 // **한 곳에 둔다** — 8/27 까지는 헤더가 아예 안 나가는데 보고서만 「설정됨」이라고
 // 적고 있었다. 두 곳에 따로 적어두면 그렇게 된다.
-const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=()';
+//
+// ── 2026-10-20: **카메라와 마이크를 통째로 막고 있었다** ──
+//
+// 여기 적혀 있던 말은 「이 앱은 셋 다 안 쓴다」였다. **셋 중 둘을 쓴다** —
+//
+//     카메라    횟수 세기(`RepCounter`) · 체형 사진(`OverlayCamera`)
+//     마이크    회복 시간(`useBreath` — 숨이 가라앉는 초를 듣는다)
+//
+// `camera=()` 는 「아무도 못 쓴다」는 뜻이다. 그래서 **배포본에서 그 둘이 통째로
+// 막혀 있었다** — 브라우저가 `getUserMedia` 를 묻기도 전에 거절한다. 홈페이지
+// 「하는 것」에 적어둔 여섯 중 둘이 또 그 자리였다(CSP 로 막혀 있던 둘과 겹친다).
+//
+// **눈으로는 안 보인다** — 개발 서버(비테)는 이 헤더를 안 붙인다.
+//
+// 이제 **우리 집에만**(`self`) 열어준다 — 끼어든 스크립트나 iframe 은 여전히 못
+// 쓴다. 위치는 **진짜로 안 쓴다**(앱 코드에 `navigator.geolocation` 이 한 곳도 없다)
+// 그대로 막아둔다. 검사가 코드와 이 줄을 맞춰본다(`npm run security`).
+const PERMISSIONS_POLICY = 'camera=(self), microphone=(self), geolocation=()';
 
 module.exports = { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS };
