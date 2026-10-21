@@ -357,6 +357,38 @@ export const CATEGORY_DICT = {
   '승모근': 'trapezius', '광배근': 'latissimus',
 };
 
+// ── 근육 이름 → 부위 ── (2026-10-21)
+//
+// **「복근」으로 찾으면 카프레이즈가 나왔다.** 「비복근」(종아리)에 「복근」이
+// 글자로 들어 있어서 설명 검색에 걸린 것이다. 「이두」로 찾으면 리버스그립
+// 랫풀다운(등)이 맨 위였다 — 설명에 「광배 아래 + 이두」가 있다.
+//
+// 이 파일이 2026-09-02 에 이미 적어둔 말이 그대로 들어맞는다 —
+// **「부위는 글자로 찾을 것이 아니라 갈래로 거를 것이다.」** 그때 고친 것은
+// 부위 일곱(`PARTS`)뿐이었고, 사람이 실제로 치는 **근육 이름**은 그 일곱에 없어서
+// 글자 검색으로 흘러내렸다. 검사도 부위 일곱만 보고 있었다.
+//
+// 그래서 근육 이름을 부위에 맺어준다. 「이두」를 치면 **팔 운동만** 나오고,
+// 그 안에서 「이두」가 적힌 것이 위로 온다 — 엉뚱한 부위가 섞이지 않는 것이
+// 차례보다 먼저다.
+//
+// **`CATEGORY_DICT` 와 짝이다** — 거기 적힌 근육 이름은 다 여기에도 있어야 한다
+// (바깥 DB 에 물어볼 영어 말이 거기 있고, 앱 안에서 거를 부위가 여기 있다).
+// `npm run check` 가 둘을 맞춰본다.
+const MUSCLE_PART = {
+  '이두': '팔', '삼두': '팔', '전완': '팔',
+  '복근': '코어',
+  '둔근': '하체', '햄스트링': '하체', '종아리': '하체',
+  '승모근': '등', '광배근': '등',
+};
+
+/** 친 말이 근육 이름인가. 맞으면 그 부위, 아니면 `null` */
+export function partAliasOf(query) {
+  const want = String(query || '').trim();
+  const part = MUSCLE_PART[want];
+  return part && PARTS.includes(part) ? part : null;
+}
+
 // 공백·기호를 지운 소문자. '벤치 프레스' 와 '벤치프레스' 는 같은 말이다
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
 
@@ -381,6 +413,20 @@ export function searchExercises(query, limit = 30) {
   // 규칙에 걸려 아무것도 안 나오고 있었다. 그리고 부위는 글자로 찾을 것이 아니라
   // 갈래로 거를 것이다 — 설명에 「가슴 앞에 들고」가 있다고 가슴 운동은 아니다
   if (isPart(query)) return byCategory(query).slice(0, limit);
+
+  // **근육 이름도 부위로 거른다** (2026-10-21 — 위 `MUSCLE_PART` 머리글).
+  // 「복근」에 카프레이즈(「비복근」)가, 「이두」에 랫풀다운(「광배 아래 + 이두」)이
+  // 섞여 나오던 자리다. 그 부위 안에서 **그 근육 이름이 적힌 것을 위로** 올린다 —
+  // 「이두」를 치면 컬이 먼저 오고 삼두 운동은 그 아래다
+  const aliasPart = partAliasOf(query);
+  if (aliasPart) {
+    const want = norm(query);
+    const pool = byCategory(aliasPart);
+    const named = pool.filter(e => norm(e.ko).includes(want)
+      || norm(e.en).includes(want) || norm(e.desc).includes(want));
+    const hit = new Set(named);
+    return [...named, ...pool.filter(e => !hit.has(e))].slice(0, limit);
+  }
 
   const q = norm(query);
   if (q.length < 2) return [];
