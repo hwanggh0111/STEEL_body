@@ -12,10 +12,39 @@
 const RISKY = /^[=+@\t\r]/;
 const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
 
+/** 이 값은 앞에 작은따옴표를 붙여야 하나 (엑셀이 수식으로 읽는 꼴인가) */
+function needsGuard(v) {
+  const s = String(v ?? '');
+  return RISKY.test(s) || (s.startsWith('-') && !PLAIN_NUMBER.test(s));
+}
+
 function csvCell(v) {
   let s = String(v ?? '');
-  if (RISKY.test(s) || (s.startsWith('-') && !PLAIN_NUMBER.test(s))) s = "'" + s;
+  if (needsGuard(s)) s = "'" + s;
   return '"' + s.replace(/"/g, '""') + '"';
 }
 
-module.exports = { csvCell };
+// ── 붙인 것은 **되읽을 때 뗀다** ── (2026-10-21)
+//
+// 돌려보고 찾았다. 내보낼 때 붙인 이 작은따옴표를 **가져오기가 떼지 않았다** —
+//
+//     "-5도 인클라인"  →  내보냄 "'-5도 인클라인"  →  다시 읽음 "'-5도 인클라인"
+//     "+스쿼트"        →  "'+스쿼트"
+//     "@아침운동"      →  "'@아침운동"
+//
+// 기기를 바꿔 파일로 들여온 사람의 **운동명이 다른 이름이 된다.** 그러면 같은 운동이
+// 두 이름으로 갈라져서 최고 기록 · 몸 지도 · 「지난번」이 그 줄을 딴 운동으로 센다.
+//
+// 가져오기는 **BOM 을 이미 떼고 있다** — 「한글 엑셀을 위해 **우리가 붙인 것**이다」라고
+// 그쪽 머리글에 적혀 있다. 이 따옴표도 똑같이 우리가 붙인 것이다. 같이 뗀다.
+//
+// **아무 따옴표나 떼지 않는다.** 뒤에 오는 글자가 우리가 막으려던 꼴일 때만 뗀다 —
+// 그래서 사람이 적은 `'벤치'` 같은 이름은 그대로 남는다.
+function unguardCell(v) {
+  const s = String(v ?? '');
+  if (s[0] !== "'") return s;
+  const rest = s.slice(1);
+  return needsGuard(rest) ? rest : s;
+}
+
+module.exports = { csvCell, needsGuard, unguardCell };

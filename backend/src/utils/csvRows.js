@@ -15,12 +15,17 @@
 
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
 const { isRecordDay } = require('./dayRange');
+// 내보낼 때 엑셀 때문에 붙인 작은따옴표를 뗀다 — 규칙은 그쪽 한 곳에 있다
+const { unguardCell } = require('./csv');
 
 /**
  * CSV 한 장을 줄과 칸으로 쪼갠다.
  *
  * 우리가 내보낸 것을 되읽는 것이 본디 일이라 규칙은 내보내기와 짝이다 —
  *   · 맨 앞의 BOM(`﻿`)을 걷는다. 한글 엑셀을 위해 우리가 붙인 것이다
+ *   · 칸 앞의 작은따옴표도 걷는다 — **그것도 우리가 붙인 것**이다
+ *     (`utils/csv.js` 의 `unguardCell`). 2026-10-21 까지 안 걷어서 「-5도 인클라인」이
+ *     「'-5도 인클라인」으로 들어왔다
  *   · `"` 로 감싼 칸 안에서는 쉼표와 줄바꿈이 글자다. `""` 는 따옴표 하나다
  *   · `\r\n` 과 `\n` 을 같이 받는다 (엑셀은 `\r\n` 으로 저장한다)
  *   · 빈 줄은 버린다 (파일 끝의 줄바꿈 하나가 빈 줄로 읽힌다)
@@ -53,7 +58,9 @@ function parseCsv(text) {
   rows.push(row);
 
   return rows
-    .map((r) => r.map((v) => v.trim()))
+    // 앞뒤 공백은 **깎는 게 맞다** — 읽는 쪽도(`exercise`), 중복을 보는 열쇠도
+    // (`workoutKey`) 이미 깎아서 쓴다. 여기서만 남겨두면 세 자리가 어긋난다
+    .map((r) => r.map((v) => unguardCell(v.trim())))
     .filter((r) => r.some((v) => v !== ''));
 }
 
