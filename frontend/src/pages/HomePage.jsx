@@ -119,10 +119,9 @@ function BodyLine({ records, onGo }) {
 //
 // **몸을 작게 같이 그린다.** 글자만 있으면 다른 운동 기록 앱의 안내 문구와 구별이
 // 안 된다. 식은 자리를 눈으로 짚어주는 것이 이 앱이 하는 말이다.
-function TodayFocus({ workouts, today, onGo }) {
-  const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
-  // 기록이 아예 없으면 안 그린다 — 처음 온 사람에게 빈 몸을 보여줄 자리가 아니다
-  if (!heat.any || !heat.coldest) return null;
+// **달아오른 것은 홈이 세어 넘긴다** (2026-10-21). 여기서 세면 「제목을 그릴까」를
+// 홈이 알 수 없다 — 아래 `canFocus` 머리글
+function TodayFocus({ heat, onGo }) {
 
   const cold = heat.coldest;
   const hot = heat.list.filter((p) => p.level > 0).slice(0, 2);
@@ -284,6 +283,10 @@ export default function HomePage() {
   // 주간 달력 위에 거는 한 줄. 달력은 **어느 날** 했는지를 말하고, 이 줄은
   // **몇 번 남았는지**를 말한다 — 같은 주를 두 번 그리는 것이 아니라 한 번 더 세는 것이다
   const weekGoal = useMemo(() => weekProgress(workouts, goal, today), [workouts, goal, today]);
+  // 「오늘 할 곳」이 쓰는 값. **여기서 세는 까닭**은 제목을 그릴지도 이것으로 갈려서다 —
+  // 카드 안에서 세면 홈은 그릴지 말지를 모른 채 제목부터 그린다 (2026-10-21)
+  const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
+  const canFocus = heat.any && !!heat.coldest;
 
   const loading = wLoading || iLoading;
 
@@ -340,8 +343,17 @@ export default function HomePage() {
             onGo={() => navigate('/goal')}
           />
 
-          <SectionTitle id="home-focus">오늘 할 곳</SectionTitle>
-          <TodayFocus workouts={workouts} today={today} onGo={() => navigate('/map')} />
+          {/* ── 제목과 카드는 **같이 뜨고 같이 없어진다** ── (2026-10-21)
+
+              제목은 그냥 그리고 카드만 「기록이 없으면 안 그린다」로 두고 있었다.
+              그래서 **처음 온 사람의 홈에 「오늘 할 곳」 제목만 떠 있고 아래가
+              비어 있었다.** 유산소만 하는 사람도 같다 — 그 여섯 부위에 자리가
+              없어서 카드가 안 그려진다(`bodyHeat` 의 `cardio`).
+
+              바로 위의 목표 카드는 **이미 이렇게 돼 있었다**(`hasGoal` 로 제목까지
+              같이 가린다). 둘 중 하나만 달랐다. */}
+          {canFocus && <SectionTitle id="home-focus">오늘 할 곳</SectionTitle>}
+          {canFocus && <TodayFocus heat={heat} onGo={() => navigate('/map')} />}
 
           <SectionTitle id="home-today">오늘</SectionTitle>
           <TodayCard

@@ -51,6 +51,40 @@ const ok = (name, got, want) => {
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
 
+/**
+ * 화면 하나를 그려 **글자를 돌려준다** (2026-10-21).
+ *
+ * `draw` 는 「터졌나」만 본다. 빈 화면에 **있어서는 안 되는 말**이 남아 있는지는
+ * 그려낸 글자를 봐야 안다 (홈의 「오늘 할 곳」 제목만 떠 있던 자리).
+ * 못 그리면 `null` — 부른 쪽이 그걸 실패로 적는다.
+ */
+function drawHtml(file) {
+  const out = path.join(__dirname, '..', '.screen-html.cjs');
+  const realError = console.error;
+  const realWarn = console.warn;
+  console.error = () => {};
+  console.warn = () => {};
+  try {
+    esbuild.buildSync({
+      entryPoints: [path.join(__dirname, '..', file)],
+      bundle: true, format: 'cjs', outfile: out, platform: 'node', jsx: 'automatic',
+      external: ['react', 'react-dom', 'react-router-dom'],
+      define: { 'import.meta.env': '{}' },
+      logLevel: 'silent',
+    });
+    const mod = require(out);
+    const Page = mod.default || mod;
+    return renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Page)));
+  } catch {
+    return null;
+  } finally {
+    console.error = realError;
+    console.warn = realWarn;
+    if (fs.existsSync(out)) fs.unlinkSync(out);
+    delete require.cache[out];
+  }
+}
+
 // 화면 하나를 그려본다. 터지면 그 자리에서 무엇이 터졌는지 적는다
 function draw(file) {
   const out = path.join(__dirname, '..', '.screen.cjs');
@@ -414,6 +448,29 @@ for (const [name, file] of [
     drawWith(file, { records: [MEASURES[0]], onSave: () => {}, onDelete: () => {} }), null);
 }
 
+
+console.log('');
+console.log('── 빈 화면에 **제목만 떠 있지 않나** ── (2026-10-21)');
+//
+// 홈의 「오늘 할 곳」이 그랬다. 제목은 그냥 그리고 카드만 「기록이 없으면 안 그린다」로
+// 돼 있어서, **처음 온 사람의 홈에 제목만 떠 있고 아래가 비어 있었다.** 유산소만 하는
+// 사람도 같다 — 그 여섯 부위에 자리가 없어서 카드가 안 그려진다.
+//
+// 바로 위의 목표 카드는 **이미 제목까지 같이 가리고 있었다**(`hasGoal`). 하나만 달랐다.
+//
+// 여기는 **빈 상태**로 그려보는 자리라(위 머리글) 이 물음에 딱 맞는다 —
+// 빈 화면에 있어서는 안 되는 말이 글자로 남아 있나.
+{
+  const html = drawHtml('src/pages/HomePage.jsx');
+  ok('홈을 빈 상태로 그렸다', html !== null && html.length > 100, true);
+  // 셀 것이 없을 때 안 그리는 자리들. 제목만 남으면 사람은 **고장으로 읽는다**
+  for (const word of ['오늘 할 곳', '내 목표']) {
+    ok(`  빈 홈에 「${word}」 제목이 없다`, (html || '').includes(word), false);
+  }
+  // 거꾸로도 본다 — 늘 있어야 하는 제목은 있어야 한다 (검사가 아무것도 안 보면 안 된다)
+  ok('  「오늘」 · 「이번 주 운동」 은 늘 있다',
+    ['오늘', '이번 주 운동'].filter((w) => !(html || '').includes(w)), []);
+}
 
 console.log('');
 console.log('── 「어느 날 적는가」 칸이 자정을 따라가고 테두리가 있나 ── (2026-10-21)');
