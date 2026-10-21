@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
-import { dateKey } from '../../data/dateKey';
+import { useRecordDate } from '../../data/useRecordDate';
 
 // 어깨 측정.
 //
@@ -19,8 +19,10 @@ import { dateKey } from '../../data/dateKey';
 // 비율이 무엇을 뜻하는지는 한 줄로 적어두되, 어느 값이 좋다고는 말하지 않는다.
 
 export default function ShoulderSection({ records, onSave, onDelete }) {
-  const today = dateKey();
-  const [date, setDate] = useState(today);
+  // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`). 여기가 2026-09-30에
+  // 아래 테두리를 처음 건 자리인데, 그 교훈이 옆 칸 셋에는 안 가 있었다 —
+  // 이제 넷이 같은 자리를 지난다
+  const { date, pick: pickDate, today, min: minDay } = useRecordDate();
   const [shoulderWidth, setShoulderWidth] = useState('');
   const [waist, setWaist] = useState('');
 
@@ -63,9 +65,9 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
           className="input"
           type="date"
           value={date}
-          max={dateKey()}
-          min="2000-01-01"
-          onChange={(e) => setDate(e.target.value)}
+          max={today}
+          min={minDay}
+          onChange={(e) => pickDate(e.target.value)}
           style={{ marginBottom: 10 }}
         />
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>

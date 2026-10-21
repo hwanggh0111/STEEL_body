@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
-import { dateKey } from '../../data/dateKey';
+import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
 import ChangeSummary from './ChangeSummary';
 
@@ -29,7 +29,9 @@ const SIZE_FIELDS = [
 export default function BodySizeSection({ records, onSave, onDelete }) {
   const [values, setValues] = useState({});
   const [openIdx, setOpenIdx] = useState(null);
-  const [date, setDate] = useState(dateKey());
+  // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`) — 자정을 넘기면
+  // 따라가고, 사람이 고르면 그대로 있고, 아래 테두리도 같이 온다
+  const { date, pick: pickDate, today, min: minDay } = useRecordDate();
 
   const handleSave = () => {
     const filled = Object.entries(values).filter(([, v]) => v);
@@ -43,7 +45,8 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
       <div className="section-title"><div className="accent-bar" />전신 사이즈 측정</div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>줄자로 각 부위의 둘레를 측정하세요</div>
       <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={dateKey()} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 12 }} />
+      <input className="input" type="date" value={date} max={today} min={minDay}
+        onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 6, marginBottom: 10 }}>
         {SIZE_FIELDS.map(f => {
           const ch = changeOf(records, f.key);

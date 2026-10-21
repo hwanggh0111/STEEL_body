@@ -8,7 +8,7 @@ import BodyReading from '../components/BodyReading';
 import BodyChange from '../components/BodyChange';
 
 import { toast } from '../components/Toast';
-import { useToday } from '../data/useToday';
+import { useRecordDate } from '../data/useRecordDate';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
 import { CHART } from '../data/chartColors';
@@ -60,10 +60,15 @@ function getCompositionData(record) {
 export default function InbodyPage({ embedded = false }) {
   const location = useLocation();
   const [tab, setTab] = useState('record');   // embedded 일 때는 늘 'record' 다 (위 참고)
-  // 켜둔 채 날이 바뀌면 날짜 칸의 `max` 도 어제에 멈춰서 **오늘을 아예 못 고른다**
-  // (useToday 주석 참고)
-  const today = useToday();
-  const [date, setDate] = useState(today);
+  // ── 날짜 칸은 **한 곳에서 온다** ── (2026-10-21, `data/useRecordDate.js`)
+  //
+  // 여태 `max` 만 `useToday` 를 보고 있었고 **칸의 값은 열 때의 날짜를 붙잡고
+  // 있었다.** 그래서 어젯밤에 열어둔 앱으로 오늘 아침에 몸무게를 적으면
+  // **어제 줄로 들어갔다** — 체중 그래프의 점 하나가 하루 왼쪽에 찍힌다.
+  // 「운동 가기 전에 잰다」가 이 앱을 여는 가장 흔한 때라 더 그렇다.
+  // 「운동」 화면은 9/18 에 고쳤는데(그 화면의 `datePicked`) 여기는 안 와 있었다.
+  // 아래 테두리(`min`)도 거기서 온다 — `max` 만 걸면 연도는 직접 칠 수 있다
+  const { date, pick: pickDate, hold: holdDate, reset: resetDate, today, min: minDay } = useRecordDate();
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [fatPct, setFatPct] = useState('');
@@ -264,7 +269,7 @@ export default function InbodyPage({ embedded = false }) {
         await addRecord(payload);
         toast('인바디 기록 저장!');
       }
-      setDate(today); setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
+      resetDate(); setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
       // 적고 나면 접는다 — 방금 적은 것이 「지금」과 흐름에 반영된 것을 봐야지,
       // 빈 폼을 다시 들이밀 자리가 아니다
       setFormOpen(false);
@@ -281,7 +286,7 @@ export default function InbodyPage({ embedded = false }) {
     if (savedQuickMode === null) setSavedQuickMode(quickMode);
     setFormOpen(true);
     setEditingId(record.id);
-    setDate(record.date);
+    holdDate(record.date);   // 고치는 줄의 날짜다 — 자정을 넘겨도 안 건드린다
     setHeight(record.height ? String(record.height) : '');
     setWeight(String(record.weight));
     setFatPct(record.fat_pct ? String(record.fat_pct) : '');
@@ -290,12 +295,12 @@ export default function InbodyPage({ embedded = false }) {
     setQuickMode(false);
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [savedQuickMode, quickMode]);
+  }, [savedQuickMode, quickMode, holdDate]);
 
   const cancelEdit = () => {
     setEditingId(null);
     setFormOpen(false);
-    setDate(today);
+    resetDate();   // 오늘로 돌아가고 자정 따라가기를 다시 켠다
     setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
     setError('');
     // 수정 진입 전 quickMode 복원
@@ -467,7 +472,8 @@ export default function InbodyPage({ embedded = false }) {
 
           <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
             <label className="label">날짜</label>
-            <input className="input" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 10 }} />
+            <input className="input" type="date" value={date} max={today} min={minDay}
+              onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 10 }} />
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               {!quickMode && (

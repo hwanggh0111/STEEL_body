@@ -416,6 +416,62 @@ for (const [name, file] of [
 
 
 console.log('');
+console.log('── 「어느 날 적는가」 칸이 자정을 따라가고 테두리가 있나 ── (2026-10-21)');
+//
+// 이 앱은 폰 홈 화면에 붙여 쓰는 PWA 라 **며칠씩 열려 있는다.** `useToday` 머리글에
+// 그 말이 적혀 있다 — 「날짜 칸이 어제라 그대로 저장하면 어제 기록이 된다」.
+// 그런데 그 고침이 **「운동」 화면에만** 가 있었다(9/18). 인바디와 재는 도구 넷은
+// 열 때의 날짜를 `useState` 로 붙잡고 있어서, **어젯밤에 열어둔 앱으로 오늘 아침에
+// 적으면 어제 줄로 들어갔다** — 「운동 가기 전에 몸무게를 잰다」가 이 앱을 여는
+// 가장 흔한 때다.
+//
+// 테두리도 넷 중 하나(어깨)에만 있었다. `max` 만 걸면 **연도는 직접 칠 수 있다**
+// (2026 대신 1026). 서버가 막지만 사람에게는 **까닭 없는 실패**로 보인다.
+//
+// 눈으로는 못 잡는다 — 자정을 넘겨봐야 하고, 1026년은 서버가 거절하고 끝난다.
+{
+  // 기록을 적는 칸이 있는 화면들. 점검 스케줄(`MaintAdmin`)은 **앞날을 고르는
+  // 자리**라 여기 규칙이 아니다 — 거기는 `min` 이 오늘이고 `max` 가 없다
+  const WRITERS = [
+    'src/pages/InbodyPage.jsx',
+    'src/components/measure/BodySizeSection.jsx',
+    'src/components/measure/FitnessTestSection.jsx',
+    'src/components/measure/FlexibilitySection.jsx',
+    'src/components/measure/ShoulderSection.jsx',
+  ];
+  // 날짜 칸을 가진 화면이 더 생기면 여기도 늘어야 한다 — 목록이 어긋나면 그 칸만
+  // 옛 방식으로 남는다 (「운동」은 제 손으로 들고 있다: 오늘·어제 단추가 붙어 있다)
+  const withDate = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (e.name.endsWith('.jsx') && fs.readFileSync(f, 'utf8').includes('type="date"')) {
+        withDate.push(f.split(path.sep).join('/').replace(/^.*?src\//, 'src/'));
+      }
+    }
+  })(path.join(__dirname, '..', 'src'));
+  const EXEMPT = ['src/components/admin/MaintAdmin.jsx', 'src/pages/TrainPage.jsx'];
+  ok('날짜 칸을 가진 화면을 다 알고 있다',
+    withDate.filter((f) => !WRITERS.includes(f) && !EXEMPT.includes(f)), []);
+
+  for (const f of WRITERS) {
+    const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    const name = f.split('/').pop().replace(/\.jsx$/, '');
+    // 한 곳에서 오는가 — 다섯 군데에 같은 `ref` 를 흩어놓으면 한쪽만 고쳐진다
+    ok(`${name} 의 날짜가 한 곳에서 온다`, /useRecordDate\(\)/.test(src), true);
+    // 제 손으로 다시 들고 있으면 자정 따라가기가 그 자리에서 끊긴다
+    ok(`  ${name} 이 날짜를 따로 들고 있지 않다`, /useState\(dateKey\(\)\)/.test(src), false);
+    // 위아래 테두리 둘 다
+    ok(`  ${name} 의 날짜 칸에 위 테두리가 있다`, /max=\{today\}/.test(src), true);
+    ok(`  ${name} 의 날짜 칸에 아래 테두리가 있다`, /min=\{minDay\}/.test(src), true);
+  }
+  // 아래 테두리 값은 **서버가 보는 벽과 같아야** 한다 (`utils/dayRange.js` 의 2000년)
+  const hook = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'useRecordDate.js'), 'utf8');
+  ok('아래 테두리가 서버와 같은 해다 (2000-01-01)', /MIN_RECORD_DAY = '2000-01-01'/.test(hook), true);
+}
+
+console.log('');
 console.log('── 크롤러에게 적어준 것이 라우트 표와 맞나 ── (2026-10-20)');
 //
 // `robots.txt` 와 `sitemap.xml` 은 **손으로 적는 파일**이다(10/14). 그런데 화면은

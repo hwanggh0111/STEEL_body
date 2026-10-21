@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
-import { dateKey } from '../../data/dateKey';
+import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf, bestOf, diffLabel, sinceLabel, mmss, toSeconds } from '../../data/measureChange';
 
 // 체력 테스트.
@@ -37,7 +37,8 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
   // 1km 는 분 · 초 두 칸으로 받는다
   const [runMin, setRunMin] = useState('');
   const [runSec, setRunSec] = useState('');
-  const [date, setDate] = useState(dateKey());
+  // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`)
+  const { date, pick: pickDate, today, min: minDay } = useRecordDate();
   const [all, setAll] = useState(false);
 
   const handleSave = () => {
@@ -59,7 +60,8 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
         적으면 지난번과 견줘서 얼마나 달라졌는지 같이 보여드려요.
       </div>
       <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={dateKey()} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 12 }} />
+      <input className="input" type="date" value={date} max={today} min={minDay}
+        onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
         {FITNESS_TESTS.map(f => {

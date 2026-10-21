@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
-import { dateKey } from '../../data/dateKey';
+import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
 import ChangeSummary from './ChangeSummary';
 
@@ -23,7 +23,8 @@ const FLEX_FIELDS = [
 // **몸에는 좋고 나쁨을 매기지 않는다** — 방향만 말한다 (`ChangeSummary`).
 export default function FlexibilitySection({ records, onSave, onDelete }) {
   const [values, setValues] = useState({});
-  const [date, setDate] = useState(dateKey());
+  // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`)
+  const { date, pick: pickDate, today, min: minDay } = useRecordDate();
   const [all, setAll] = useState(false);
 
   const handleSave = () => {
@@ -37,7 +38,8 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
     <div style={{ marginBottom: 24 }}>
       <div className="section-title"><div className="accent-bar" />유연성 측정</div>
       <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={dateKey()} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 12 }} />
+      <input className="input" type="date" value={date} max={today} min={minDay}
+        onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       {FLEX_FIELDS.map(f => {
         const ch = changeOf(records, f.key);
         return (
