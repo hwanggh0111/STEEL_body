@@ -476,6 +476,20 @@ console.log('── 홈 화면에 얹을 아이콘이 있나 ── (2026-10-20)
     ['192x192', '512x512'].filter((s) => !pngs.some((i) => i.sizes === s)), []);
   ok('  둥근 틀용(maskable)도 있다', (manifest.icons || []).some((i) => i.purpose === 'maskable'), true);
   ok('  적어둔 파일이 다 있다', (manifest.icons || []).filter((i) => !has(i.src)).map((i) => i.src), []);
+
+  // ── 알림 아이콘도 PNG 여야 한다 ── (2026-10-21)
+  //
+  // 10/20 에 홈 화면 아이콘을 PNG 로 고치면서 **서비스 워커의 알림 아이콘은
+  // 그대로 뒀다.** 크롬은 알림 아이콘으로 SVG 를 안 받아서, 운동 알림이 뜰 때
+  // **아이콘 자리가 비어 기본 모양**으로 떴다 — 같은 날 고친 것과 같은 꼴이다.
+  //
+  // 알림은 서버가 정한 시각에 와야 보이고, 아이콘이 안 뜬 것은 「원래 그런 줄」
+  // 알게 된다. 그래서 눈이 아니라 여기서 본다.
+  const sw = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf8');
+  const notif = [...sw.matchAll(/^\s*(icon|badge):\s*'([^']+)'/gm)].map((m) => [m[1], m[2]]);
+  ok('알림 아이콘 둘을 찾았다', notif.length, 2);
+  ok('  둘 다 PNG 다', notif.filter(([, v]) => !/\.png$/.test(v)).map(([k, v]) => `${k}=${v}`), []);
+  ok('  그 파일이 진짜 있다', notif.filter(([, v]) => !has(v)).map(([, v]) => v), []);
 }
 
 console.log('');
