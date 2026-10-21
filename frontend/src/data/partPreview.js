@@ -1,6 +1,7 @@
 import { bodyPartOf } from './bodyPart';
 import { heatLevel, MAP_PARTS } from './bodyHeat';
 import { isSore } from './sorePart';
+import { eun } from './particle';
 
 // 이 운동을 하면 어디가 달아오르나 — **하기 전에** 본다 (2026-09-30).
 //
@@ -74,5 +75,6 @@ export function previewLine(p) {
 /** 아픈 부위를 고른 사람에게 할 말. 아니면 `null`. **막지는 않는다.** */
 export function soreWarn(p) {
   if (!p || !p.sore) return null;
-  return `${p.part}는 아프다고 적어두셨어요. 하실 거면 하셔도 되지만, 적어둔 건 알려드려요.`;
+  // 조사는 앞말에 맞춘다 — 「등는」이 아니라 「등은」이다 (2026-10-21)
+  return `${eun(p.part)} 아프다고 적어두셨어요. 하실 거면 하셔도 되지만, 적어둔 건 알려드려요.`;
 }

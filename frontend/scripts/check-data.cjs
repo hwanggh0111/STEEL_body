@@ -621,6 +621,62 @@ ok('역할을 우리말로 적는다', /ROLE_LABEL/.test(sec), true);
 // 옆 화면(해킹 보안)과 무엇이 다른지 안 적으면 어느 쪽에서 풀어야 할지 모른다
 ok('해킹 보안과 무엇이 다른지 적어둔다', /해킹 보안/.test(sec), true);
 
+console.log('');
+console.log('── 조사가 앞말에 맞나 ── (2026-10-21)');
+//
+// `data/particle.js` 가 **그 일을 하려고 있는 파일**이고, 머리글에 그 꼴이 적혀 있다 —
+// 「주간 요약: `${부위}가 2주째 없어요` → **「등가 2주째 없어요」**」.
+//
+// 그런데 **그 고침이 세 자리에만** 가 있었다(주간 요약 · 히스토리 · 루틴).
+// 10/21 에 돌려보니 화면에 이렇게 나오고 있었다 —
+//
+//     가슴 · 등를 권해요               (`sorePart.adviceLine`)
+//     팔는 빼뒀어요                    (같은 줄)
+//     최근 8주에 등는 한 번도 안 했어요   (`shapeRead`)
+//     등가 덜 했어요                   (같은 파일)
+//     등는 아프다고 적어두셨어요         (`partPreview.soreWarn`)
+//     벤치프레스은 가슴를 달궈요          (`PartsPage`)
+//
+// **글자가 박혀 있으면 반드시 틀린다** — 부위 여섯 중 셋(가슴 · 등 · 팔)이 받침이 있다.
+// 그래서 **부위 · 운동 이름 뒤에 조사를 글자로 박지 않는다.**
+{
+  const parts = ['가슴', '등', '어깨', '하체', '팔', '코어'];
+  const pa = bundle('src/data/particle.js', '.t31.cjs');
+  ok('받침 있는 부위에 은 · 이 · 을',
+    ['가슴', '등', '팔'].map((p) => [pa.eun(p), pa.i(p), pa.eul(p)].join(' ')),
+    ['가슴은 가슴이 가슴을', '등은 등이 등을', '팔은 팔이 팔을']);
+  ok('받침 없는 부위에 는 · 가 · 를',
+    ['어깨', '하체', '코어'].map((p) => [pa.eun(p), pa.i(p), pa.eul(p)].join(' ')),
+    ['어깨는 어깨가 어깨를', '하체는 하체가 하체를', '코어는 코어가 코어를']);
+
+  // 화면에 나가는 말을 만드는 자리들 — **보간 바로 뒤에 조사를 박지 않았나**
+  const SPEAKERS = [
+    'src/data/sorePart.js',
+    'src/data/partPreview.js',
+    'src/data/shapeRead.js',
+    'src/data/weeklyReport.js',
+    'src/pages/PartsPage.jsx',
+  ];
+  const stuck = [];
+  for (const f of SPEAKERS) {
+    const src = stripNotes(fs.readFileSync(f, 'utf-8'));
+    for (const m of src.matchAll(/\$\{[^}]*\}(은|는|이|가|을|를)(?![\w가-힣])/g)) {
+      stuck.push(f.split('/').pop() + ': ' + m[1]);
+    }
+  }
+  ok('보간 뒤에 조사를 글자로 박은 자리', stuck, []);
+
+  // 지어낸 말도 본다 — 받침 있는 부위에 틀린 짝이 붙었나
+  const sore = bundle('src/data/sorePart.js', '.t32.cjs');
+  const pp = bundle('src/data/partPreview.js', '.t33.cjs');
+  const WRONG = /(가슴|등|팔)(는|가|를)(?![\w가-힣])|(어깨|하체|코어)(은|이|을)(?![\w가-힣])/;
+  const said = [
+    sore.adviceLine({ picks: ['가슴', '등'], skipped: [] }),
+    sore.adviceLine({ picks: ['팔'], skipped: ['어깨', '등'] }),
+  ].concat(parts.map((p) => pp.soreWarn({ part: p, sore: true })));
+  ok('지어낸 말에 틀린 조사가 없다', said.filter((t) => WRONG.test(String(t))), []);
+}
+
 console.log('\n── 부위로 찾기 (2026-09-02 에 고쳤다) ──');
 // **「등」과 「팔」 단추가 아무것도 못 찾고 있었다.** 단추가 검색창에 그 글자를 넣는
 // 식이었는데, 사전 검색은 한 글자로는 안 찾는다(거의 다 걸려서 도움이 안 된다).

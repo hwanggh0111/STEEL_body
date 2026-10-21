@@ -1,6 +1,7 @@
 import { bodyPartOf } from './bodyPart';
 import { MAP_PARTS } from './bodyHeat';
 import { angleMoved, sameSetup, daysApart as daysBetween } from './shapeHistory';
+import { eun, i as iPart } from './particle';
 
 // 체형 읽기 — **01 단계: 사진 없이 「덜 한 곳」을 말한다** (2026-09-22).
 //
@@ -132,9 +133,23 @@ export function buildShapeRead(workouts, inbody, today) {
   MAP_PARTS.forEach((p) => {
     const s = byPart[p];
     s.delta = s.recent - s.prev;
+    // ── **한 번도 안 한 것은 「늘고 있다」가 아니다** ── (2026-10-21)
+    //
+    // 여태 `prev === 0` 이면 전부 `'new'` 였다. 그런데 **8주에 한 세트도 없는 부위**도
+    // 거기 걸렸다 — `prev` 도 `recent` 도 0 이니까. 그래서 화면이 이렇게 말했다:
+    //
+    //     최근 8주에 등은 한 번도 안 했어요.
+    //     지난 4주에 0세트 — 앞 4주에는 없던 것이에요.      ← 0 인데 「없던 것」
+    //     등은 아직 적지만 **늘고 있어요.** 조금 더 두고 봐요.  ← 한 적이 없는데
+    //
+    // 그리고 그 판정이 `'rising'` 이라 **단정도 안 했다** — 이 화면이 하려는 말
+    // (「덜 한 곳」)을 가장 분명하게 할 수 있는 경우가 바로 그 경우인데.
+    //
     // 앞 넷째 주가 통째로 비어 있으면(시작한 지 얼마 안 됐다) 늘었다고 안 한다 —
     // 0 에서 늘어난 것은 「늘고 있다」가 아니라 **그냥 시작한 것**이다
-    s.dir = s.prev === 0 ? 'new' : s.delta > 0 ? 'up' : s.delta < 0 ? 'down' : 'flat';
+    s.dir = s.sets === 0 ? 'none'
+      : s.prev === 0 ? 'new'
+        : s.delta > 0 ? 'up' : s.delta < 0 ? 'down' : 'flat';
     s.share = total > 0 ? Math.round((s.sets / total) * 1000) / 10 : 0;
   });
 
@@ -164,12 +179,16 @@ export function buildShapeRead(workouts, inbody, today) {
   lines.push({
     basis: '기록',
     text: least.sets === 0
-      ? `최근 8주에 ${least.part}는 한 번도 안 했어요.`
-      : `최근 8주에 ${least.part}가 ${least.sets}세트로 부위 중 가장 적어요.`,
+      ? `최근 8주에 ${eun(least.part)} 한 번도 안 했어요.`
+      : `최근 8주에 ${iPart(least.part)} ${least.sets}세트로 부위 중 가장 적어요.`,
   });
 
   // 2. 자기 자신 — 견줄 상대는 지난 달의 나
-  if (least.dir === 'down') {
+  if (least.dir === 'none') {
+    // 한 번도 안 한 부위다. 「앞 4주 · 지난 4주」를 숫자로 적으면 0→0 이 되어
+    // 아무 말도 아니다 — 한 줄로 사실만 적는다
+    lines.push({ basis: '기록', text: '앞 4주에도 지난 4주에도 없었어요.' });
+  } else if (least.dir === 'down') {
     lines.push({ basis: '기록', text: `지난 4주에도 ${least.prev}→${least.recent}세트로 줄었어요.` });
   } else if (least.dir === 'up') {
     lines.push({ basis: '기록', text: `그래도 지난 4주엔 ${least.prev}→${least.recent}세트로 늘고 있어요.` });
@@ -192,15 +211,20 @@ export function buildShapeRead(workouts, inbody, today) {
 
   // 4. 둘이 같은 곳을 가리킬 때만 단정한다
   let verdict = null;
-  if (least.dir === 'up' || least.dir === 'new') {
+  if (least.dir === 'none') {
+    // **제일 분명하게 말할 수 있는 경우다.** 꼴찌라서가 아니라 **없어서**다 —
+    // 순위도 흐름도 볼 것이 없다
+    verdict = 'less';
+    lines.push({ basis: '기록', text: `${eun(least.part)} 8주 동안 한 번도 안 했어요.` });
+  } else if (least.dir === 'up' || least.dir === 'new') {
     verdict = 'rising';
-    lines.push({ basis: '기록', text: `${least.part}는 아직 적지만 늘고 있어요. 조금 더 두고 봐요.` });
+    lines.push({ basis: '기록', text: `${eun(least.part)} 아직 적지만 늘고 있어요. 조금 더 두고 봐요.` });
   } else if (muscle && muscle.dir === 'up') {
     verdict = 'less';
     lines.push({ basis: '기록·인바디', text: `몸은 늘고 있는데 ${least.part}만 덜 했어요.` });
   } else {
     verdict = 'less';
-    lines.push({ basis: '기록', text: `${least.part}가 덜 했어요.` });
+    lines.push({ basis: '기록', text: `${iPart(least.part)} 덜 했어요.` });
   }
 
   // **가장 챙긴 곳**도 말한다. 「덜 한 곳」만 말하면 이 화면은 지적만 하는 자리가 된다 —

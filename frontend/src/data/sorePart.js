@@ -1,4 +1,5 @@
 import { MAP_PARTS } from './bodyHeat';
+import { eul, eun } from './particle';
 
 // 아픈 곳 — **사람이 적은 것만 쓴다** (2026-09-30).
 //
@@ -124,6 +125,9 @@ export function adviceLine(advice) {
   if (!advice) return null;
   const { picks, skipped } = advice;
   if (picks.length === 0) return '여섯 부위가 다 아프다고 적혀 있어요. 오늘은 쉬는 것도 운동이에요.';
-  const head = `${picks.join(' · ')}를 권해요`;
-  return skipped.length ? `${head} — ${skipped.join(' · ')}는 빼뒀어요.` : head;
+  // **조사를 앞말에 맞춘다** (2026-10-21). 여태 `를` · `는` 이 박혀 있어서
+  // 「가슴 · 등를 권해요」 · 「팔는 빼뒀어요」로 나왔다 — 앱에 고르는 손이 있는데
+  // (`data/particle.js`) 그 자리만 안 쓰고 있었다. 그 파일 머리글이 적어둔 바로 그 꼴이다
+  const head = `${eul(picks.join(' · '))} 권해요`;
+  return skipped.length ? `${head} — ${eun(skipped.join(' · '))} 빼뒀어요.` : head;
 }

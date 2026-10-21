@@ -12,6 +12,7 @@ import {
   restAdvice, adviceLine,
 } from '../data/sorePart';
 import { previewPart, previewLine, soreWarn } from '../data/partPreview';
+import { eul, eun, i as iPart } from '../data/particle';
 
 // 부위 — **아픈 곳**과 **이 운동이 어디를 달굴지** (2026-09-30).
 //
@@ -102,7 +103,7 @@ export default function PartsPage() {
                 /* 값을 직접 적는다 — SVG 속성에 `var(--warning)` 을 넣으면 아무 색도 안 칠해진다 */
                 mark={{ parts: rows.map((r) => r.part), color: MARK_WARNING }}
                 label={rows.length
-                  ? `${rows.map((r) => r.part).join(' · ')}가 아프다고 적혀 있어요`
+                  ? `${iPart(rows.map((r) => r.part).join(' · '))} 아프다고 적혀 있어요`
                   : '아직 아픈 곳을 안 적었어요'}
               />
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
@@ -244,9 +245,11 @@ export default function PartsPage() {
                     }
                     : { byPart: {}, max: 0, touched: [], untouched: MAP_PARTS }}
                   now={view.known ? { main: [view.part] } : null}
+                  /* 조사는 앞말에 맞춘다 (2026-10-21) — 여태 `은` · `를` 이 박혀 있어서
+                     「벤치프레스은 가슴를 달궈요」로 나왔다. 고르는 손은 `data/particle.js` 다 */
                   label={view.known
-                    ? `${view.name}은 ${view.part}를 달궈요`
-                    : `${view.name}은 어디를 달굴지 몰라요`}
+                    ? `${eun(view.name)} ${eul(view.part)} 달궈요`
+                    : `${eun(view.name)} 어디를 달굴지 몰라요`}
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{view.name}</div>
