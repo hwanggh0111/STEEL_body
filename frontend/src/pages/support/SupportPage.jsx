@@ -403,7 +403,10 @@ export default function SupportPage() {
           소개는 보여주는 자리다. 갈라서 `pages/IntroPage.jsx` 로 옮겼다 */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 26, paddingTop: 18 }}>
         <button
-          onClick={() => navigate('/home?v=about')}
+          /* **`/home?v=about` 로 보내고 있었다** (2026-10-21에 고쳤다) —
+             그 물음표를 읽는 자리가 아무 데도 없어서 **그냥 홈이 열렸다.**
+             소개 화면은 `pages/IntroPage.jsx` 에 그대로 있었는데 라우트가 없었다 */
+          onClick={() => navigate('/support/intro')}
           style={{
             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 10, width: '100%',

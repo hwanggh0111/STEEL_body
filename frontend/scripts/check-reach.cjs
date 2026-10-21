@@ -93,6 +93,27 @@ const renders = inApp.filter((r) => !/Navigate/.test(r.el));
 const unreachable = renders.filter((r) => !linked(r.url)).map((r) => r.url);
 ok('가는 길이 없는데 살아 있는 화면', unreachable, []);
 
+// ── 들여왔는데 **라우트가 없는** 화면 ── (2026-10-21)
+//
+// 위의 검사는 **라우트가 있는 화면만** 본다. 그래서 라우트가 아예 없으면 목록에
+// 안 들어오고 **조용히 통과한다** — 그 눈먼 자리에 `IntroPage` 가 들어가 있었다.
+// `App.jsx` 가 `lazy(() => import('./pages/IntroPage'))` 로 들여오기까지 하고
+// `<Route>` 만 안 걸어서, 소개 화면(308줄)은 **앱 어디에서도 열 수 없었다.**
+// 고객센터의 단추는 `/home?v=about` 으로 보냈고 그 물음표를 읽는 자리는 없었다.
+//
+// 들여온 것은 **쓰려고 들여온 것**이다. 안 쓸 것이면 줄을 지우는 게 맞다 —
+// 들여온 채로 두면 조각만 커지고, 무엇보다 **있는 줄 알게 된다.**
+{
+  const imported = [...app.matchAll(/lazy\(\(\) => import\('\.\/(pages\/[\w/]+)'\)\)/g)]
+    .map((m) => m[1]);
+  // 아무것도 안 걸리면 멈춘다 (이 파일이 거듭 배운 것이다)
+  ok('App.jsx 가 들여오는 화면을 찾았다', imported.length >= 10, true);
+  const routeEls = [...app.matchAll(/<Route\s[^>]*element=\{<(\w+)/g)].map((m) => m[1]);
+  const nameOf = (p) => p.split('/').pop();
+  ok('  들여왔는데 라우트가 없는 화면',
+    imported.filter((p) => !routeEls.includes(nameOf(p))), []);
+}
+
 console.log('');
 console.log('── 옛 주소는 살아 있고, 지금 자리로 넘기는가 ──');
 // 주소를 아예 없애면 북마크 · 폰 홈 화면 바로가기 · 옛 PWA 캐시가 빈 화면을 본다.

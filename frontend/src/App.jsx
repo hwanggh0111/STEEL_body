@@ -42,7 +42,18 @@ const GoalPage = lazy(() => import('./pages/GoalPage'));
 // 기구 — 적어둔 세팅을 한눈에 (2026-09-17, 7차). 「운동」 안의 카드는 '하나',
 // 이 탭은 '전부'다 — 같은 자리로 가는 두 벌의 길이 아니다
 const GymPage = lazy(() => import('./pages/GymPage'));
-// 앱 소개 — 고객센터에서 갈라 나왔다 (2026-09-04)
+// 앱 소개 — 고객센터에서 갈라 나왔다 (2026-09-04).
+//
+// **2026-10-21 까지 라우트가 없었다.** 들여오기만 해두고 `<Route>` 를 안 걸어서,
+// 이 화면(308줄)은 **앱 어디에서도 열 수 없었다.** 고객센터의 「이 앱이 무엇을
+// 하는지 보기」는 `/home?v=about` 으로 보냈는데 **그 물음표를 읽는 자리가 아무
+// 데도 없어서**, 눌러도 그냥 홈이 열렸다 — 9/19 에 「화면을 걷을 때 같이 묻힌 것」을
+// 잡으려고 `npm run reach` 를 붙였는데, 그 검사는 **라우트가 있는 화면만** 본다.
+// 라우트가 아예 없으면 목록에 안 들어와서 조용히 통과했다(그 눈먼 자리도 같이 메웠다).
+//
+// 자리는 **고객센터의 하위**다(`/support/intro`) — 공지함과 같은 결이다.
+// 홈의 「블랙아이언 소개」는 그대로 홈페이지(`/site`)로 간다: 그쪽은 로그인 없이
+// 보는 **남에게 보여주는 글**이고, 이쪽은 **내 숫자가 문장에 박히는** 화면이다
 const IntroPage = lazy(() => import('./pages/IntroPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 // 홈페이지 — **앱 밖으로 나가 새 화면으로 열린다** (2026-09-04).
@@ -172,6 +183,8 @@ export default function App() {
                     설정이 일곱 군데에 흩어져 있었다 */}
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support/notices" element={<NoticeArchive />} />
+                {/* 앱 소개 — 고객센터의 하위다 (위 `IntroPage` 머리글) */}
+                <Route path="support/intro" element={<IntroPage />} />
                 {/* 없어진 주소(북마크·홈 화면 바로가기·옛 PWA 캐시)는 홈으로 보낸다.
                     이벤트 페이지를 지우면서 /event 가 빈 화면이 됐다 — 라우트가 없으면
                     Layout 안이 통째로 비어서 앱이 죽은 것처럼 보인다. */}

@@ -69,6 +69,9 @@ export const SUBSCREENS = {
   // 서랍의 자식 — 켜질 탭이 없다
   '/settings':        { label: '설정함',    tab: null },
   '/support/notices': { label: '공지함',    tab: null },
+  // 앱 소개 — 공지함과 같은 결로 고객센터의 하위다 (2026-10-21).
+  // 그날까지 라우트가 아예 없어서 못 열리던 화면이다 (`App.jsx` 의 `IntroPage` 머리글)
+  '/support/intro':   { label: '앱 소개',   tab: null },
   '/support':         { label: '고객센터',  tab: null },
   '/reminders':       { label: '운동 알림', tab: null },
   '/parts':           { label: '부위',      tab: null },
