@@ -114,6 +114,47 @@ ok('가는 길이 없는데 살아 있는 화면', unreachable, []);
     imported.filter((p) => !routeEls.includes(nameOf(p))), []);
 }
 
+// ── **스토어의 손 가운데 화면에서 아무도 안 부르는 것** ── (2026-10-21)
+//
+// 아래의 「화면을 걷을 때 같이 묻힌 것이 없는가」는 **부품(.jsx)** 만 본다.
+// 그래서 **스토어의 손과 서버의 길**은 안 봤고, 그 눈먼 자리에서 기능 하나가
+// 통째로 묻혀 있었다 —
+//
+//   9/14   「세트마다 체크한다」를 붙였다(공지까지 나갔다). 서버에
+//          `PATCH /routine-session {setsDone}`, 스토어에 `checkSet`, 그리고 그것을
+//          그리는 자리는 **옛 기록 화면의 `RoutineRun`** 하나였다
+//   9/19   그 화면을 「같은 일을 하는 두 벌째 구현」이라며 지웠다 —
+//          **바로 이 검사를 붙인 그 커밋이다.** 최고 기록이 묻힌 것은 찾았는데
+//          세트 체크는 못 찾았다. 부품만 보고 있었기 때문이다
+//   10/21  한 달 넘게 이랬다: 서버는 받고, 스토어는 다 돼 있고, **화면은 아무도
+//          안 불렀다.** 진행표는 「4세트」라고만 적었다
+//
+// 스토어에 손을 만들어 두는 까닭은 **화면이 쓰라고**다. 안 쓰면 그 기능은 없는 것이다.
+{
+  const storeFiles = [...sources.keys()].filter((f) => f.includes('/store/'));
+  ok('스토어 파일을 찾았다', storeFiles.length >= 8, true);
+
+  // **일부러 비워둔 자리**는 뺀다. 까닭이 그 파일에 적혀 있다
+  const ONPURPOSE = {
+    'langStore.js': ['setLang'],   // 한국어 전용 — 영어를 되돌릴 때를 위해 빈 함수로 남겼다
+  };
+
+  const buried = [];
+  for (const f of storeFiles) {
+    const base = f.split('/').pop();
+    const src = sources.get(f);
+    // `create(...)` 안의 최상위 열쇠 중 함수인 것 (들여쓰기 두 칸)
+    const acts = [...new Set([...src.matchAll(/^ {2}(\w+):\s*(?:async\s*)?\(/gm)].map((m) => m[1]))];
+    for (const a of acts) {
+      if ((ONPURPOSE[base] || []).includes(a)) continue;
+      const re = new RegExp(String.raw`\b` + a + String.raw`\b`);
+      const used = [...sources].some(([g, t]) => g !== f && re.test(t));
+      if (!used) buried.push(`${base}: ${a}()`);
+    }
+  }
+  ok('  스토어의 손인데 아무도 안 부르는 것', buried, []);
+}
+
 console.log('');
 console.log('── 옛 주소는 살아 있고, 지금 자리로 넘기는가 ──');
 // 주소를 아예 없애면 북마크 · 폰 홈 화면 바로가기 · 옛 PWA 캐시가 빈 화면을 본다.

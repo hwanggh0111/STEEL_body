@@ -48,6 +48,52 @@ import { useSettingsStore } from '../store/settingsStore';
 
 const isBodyweight = (v) => v === '맨몸' || v === 'Bodyweight';
 
+// ── 세트 칸 ── (2026-09-14 에 만들었고 9/19 에 화면과 함께 묻혔다. 10/21 에 되살렸다)
+//
+// 몇 세트인지 알면(루틴에 적혀 있거나 지난 기록이 있으면) 그만큼 그린다. 모르면 한
+// 세트를 할 때마다 칸이 하나씩 늘어난다 — 그때는 「여기까지 기록」으로 끝낸다.
+//
+// **누르는 규칙은 하나다** — 빈 칸을 누르면 거기까지 체크, 체크된 칸을 누르면
+// 거기부터 푼다. 세트 사이에는 폰을 대충 누른다. 한 칸 건너 누르거나 잘못 누른 것을
+// 바로 되돌릴 수 있어야 한다. 손가락 자리는 42px 를 지킨다
+function SetChecks({ done, planned, onTap, disabled }) {
+  const count = planned ? Math.max(planned, done) : done + 1;
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {Array.from({ length: count }, (_, i) => {
+        const n = i + 1;
+        const on = n <= done;
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            onClick={() => onTap(on ? n - 1 : n)}
+            aria-pressed={on}
+            aria-label={on ? `${n}세트 체크 풀기` : `${n}세트 했음`}
+            style={{
+              width: 42, height: 42, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: 'var(--radius)', cursor: disabled ? 'default' : 'pointer',
+              border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
+              background: on ? 'var(--accent)' : 'transparent',
+              color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
+              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 1,
+            }}
+          >
+            {on ? (
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 8.5l3.5 3.5L13 4.5" />
+              </svg>
+            ) : n}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // 무게 칸은 비워도 된다 — 맨몸 운동이다
 const asWeight = (v) => (String(v).trim() ? String(v).trim() : '맨몸');
 
@@ -67,6 +113,8 @@ export default function TrainPage() {
   const startSession = useRoutineSessionStore((s) => s.start);
   const markItem = useRoutineSessionStore((s) => s.mark);
   const stopSession = useRoutineSessionStore((s) => s.stop);
+  // 세트마다 체크 (2026-09-14 에 만들고 9/19 에 묻혔다 — 아래 `tapSet` 머리글)
+  const checkSet = useRoutineSessionStore((s) => s.checkSet);
 
   const restLeft = useRestTimerStore((s) => s.leftMs);
   const restDeadline = useRestTimerStore((s) => s.deadline);
@@ -351,17 +399,25 @@ export default function TrainPage() {
     d === today ? '오늘' : d === yesterday ? '어제' : d.slice(5).replace('-', '/');
 
   // ── 적는다 ──
-  const save = async () => {
+  //
+  // `over` 가 있으면 폼 대신 그 값으로 적는다 — **세트 칸의 마지막 체크**가 쓴다
+  // (2026-10-21에 되살렸다, 아래 `tapSet` 머리글). **같은 길을 쓴다**: 따로 두면
+  // 최고 기록 · 휴식 타이머 · 진행표 넘기기 중 하나가 한쪽에서만 도는 날이 온다.
+  // 9/14 의 원래 판에도 그 말이 적혀 있었다
+  const save = async (over = null) => {
     if (saving) return;
-    const name = exercise.trim();
+    const name = String(over ? over.exercise : exercise).trim();
+    const useSets = over ? String(over.sets) : sets;
+    const useReps = over ? String(over.reps) : reps;
+    const useWeight = over ? over.weight : weight;
     if (!name) { setError('무슨 운동인지 골라주세요'); return; }
-    if (!sets || !reps) { setError('세트와 횟수를 적어주세요'); return; }
-    if (Number(sets) > 100 || Number(reps) > 1000) { setError('숫자가 너무 큽니다'); return; }
+    if (!useSets || !useReps) { setError('세트와 횟수를 적어주세요'); return; }
+    if (Number(useSets) > 100 || Number(useReps) > 1000) { setError('숫자가 너무 큽니다'); return; }
 
     setSaving(true);
     setError('');
     try {
-      const payload = { date, exercise: name, weight: asWeight(weight), sets: Number(sets), reps: Number(reps) };
+      const payload = { date, exercise: name, weight: asWeight(useWeight), sets: Number(useSets), reps: Number(useReps) };
       // 이어가기로 들어온 줄이면 표시를 단다. 고치는 중에는 안 단다 —
       // 고치는 것은 새로 이어 한 세트가 아니다
       if (nextLink && !editingId) payload.link = nextLink;
@@ -371,7 +427,8 @@ export default function TrainPage() {
       // 최고 기록 배너 · 휴식 타이머 · 진행표 넘기기는 **여기서 하지 않는다.**
       // 고치는 것은 새로 한 세트가 아니다 — 고쳤다고 쉬라고 하면 틀린 말이고,
       // 진행표가 한 칸 넘어가면 안 한 운동이 끝난 것이 된다
-      if (editingId) {
+      // **세트 칸에서 온 것은 새 줄이다** — 쉬는 사이에 옛 줄을 고치던 중일 수 있다
+      if (editingId && !over) {
         await updateWorkout(editingId, payload);
         toast('고쳤어요');
         setRecord(null);
@@ -399,7 +456,12 @@ export default function TrainPage() {
       // 어제 한 운동을 오늘 적어 넣는 중인데 휴식 타이머가 돌면 틀린 말이고,
       // 지금 하고 있는 루틴의 칸이 어제 기록으로 넘어가면 안 한 운동이 끝난 것이 된다
       // 이어가기 단추를 그리려고 방금 적은 것을 든다. 표시는 한 번만 붙으므로 비운다
-      setJustSaved({ exercise: name, kg: todayKg, reps: Number(reps), sets: Number(sets) });
+      setJustSaved({
+        exercise: name,
+        kg: over ? (Number(String(over.weight).match(/\d+(?:\.\d+)?/)?.[0]) || null) : todayKg,
+        reps: Number(useReps),
+        sets: Number(useSets),
+      });
       setNextLink(null);
 
       if (isToday) {
@@ -419,12 +481,108 @@ export default function TrainPage() {
 
         await advance('done', name);
       }
-      setPicked(null);
+      // **폼이 그 운동이 아니면 폼을 비우지 않는다** — 쉬는 사이에 다른 운동을
+      // 적던 중일 수 있다 (세트 칸에서 온 경우)
+      if (!over || exercise.trim() === name) setPicked(null);
     } catch (err) {
       setError(err.response?.data?.error || '저장하지 못했어요');
     } finally {
       setSaving(false);
     }
+  };
+
+  // ── 세트마다 체크한다 ── (2026-09-14 에 만들었고, **2026-09-19 에 묻혔다**)
+  //
+  // 9/14 에 붙인 기능이다(공지까지 나갔다) — 「진행표의 지금 운동 아래에 세트 칸.
+  // 누를 때마다 휴식 타이머가 돈다. 마지막 세트를 누르면 기록하고 다음 운동으로.
+  // 체크는 서버에 담는다 — 새로고침 · 다른 기기에서도 남는다」.
+  //
+  // 그런데 그것을 그리는 자리가 **옛 기록 화면의 `RoutineRun`** 하나였고, 9/19 에
+  // 「같은 일을 하는 두 벌째 구현」이라며 그 화면을 지울 때 **같이 묻혔다.** 그 커밋이
+  // 바로 「화면을 걷을 때 같이 묻힌 것」을 잡으려고 `npm run reach` 를 붙인 커밋인데,
+  // 그 검사가 보는 것은 **부품**뿐이라 **스토어의 손과 서버의 길**은 안 봤다.
+  //
+  // 그래서 10/21 까지 이랬다 —
+  //   서버   `PATCH /routine-session {index, setsDone}` 살아 있고 검증까지 있다
+  //   스토어 `checkSet` 이 낙관적 갱신 · 순번 · 409 복구까지 다 돼 있다
+  //   칸마다 `setsDone: 0` 을 담아 보내고 있었다
+  //   화면   **아무도 안 불렀다.** 진행표는 「4세트」라고만 적었다
+  //
+  // 최고 기록을 「기록 → 통계」로 옮긴 것과 같은 결로, **살아 있는 화면으로 옮긴다.**
+  //
+  // 몇 세트인지는 폼을 채울 때와 **같은 순서**로 안다 — 지난 기록이 먼저, 없으면
+  // 루틴에 적힌 것. 둘 다 없으면 모르는 것이고, 그때는 「여기까지 기록」으로 끝낸다
+  const plannedSets = useMemo(() => {
+    if (!current) return null;
+    const nm = current.name.trim();
+    for (const d of Object.keys(workouts).sort().reverse()) {
+      const hit = (workouts[d] || []).find((w) => w.exercise?.trim() === nm && w.link !== 'drop');
+      if (hit && Number(hit.sets) > 0) return Number(hit.sets);
+    }
+    return Number(current.sets) > 0 ? Number(current.sets) : null;
+  }, [current, workouts]);
+
+  const setsDone = current?.setsDone || 0;
+  // 세트를 몇 개 했는데 다 안 했다 — 그때만 「여기까지 기록」을 준다.
+  // 다 했으면 마지막 세트를 누르는 순간 저장되므로 필요 없다
+  const canFinishEarly = !!current && setsDone > 0 && (!plannedSets || setsDone < plannedSets);
+
+  /** 지금 칸을 그 세트 수로 적는다. 폼의 무게 · 횟수를 쓴다 (없으면 지난 기록) */
+  const saveRoutineSets = async (item, count) => {
+    const last = lastRecord && lastRecord.exercise?.trim() === item.name.trim() ? lastRecord : null;
+    const sameForm = exercise.trim() === item.name.trim();
+    const w = sameForm && String(weight).trim() ? weight : (last && !isBodyweight(last.weight) ? String(last.weight) : '');
+    const r = (sameForm && String(reps).trim()) || (item.reps ? String(item.reps) : '') || (last ? String(last.reps) : '');
+    if (!r) {
+      // 횟수를 모르면 지어내지 않는다 — 폼에 적어달라고 말한다
+      setError('횟수를 적어주세요 — 몇 회 했는지는 지어낼 수 없어요');
+      return;
+    }
+    await save({ exercise: item.name, weight: w, sets: String(count), reps: r });
+  };
+
+  // 세트 칸을 눌렀다. `next` 는 체크된 세트 수가 **될** 값이다 (풀면 줄어든다).
+  //
+  // **누르는 규칙은 하나다** — 빈 칸을 누르면 거기까지 체크, 체크된 칸을 누르면
+  // 거기부터 푼다. 세트 사이에는 폰을 대충 누른다. 잘못 누른 것을 바로 되돌릴 수
+  // 있어야 한다 (9/14 의 원래 판에 적혀 있던 말이다)
+  const tapSet = async (next) => {
+    const s = useRoutineSessionStore.getState().session;
+    if (!s || s.current < 0) return;
+    const idx = s.current;
+    const item = s.items[idx];
+    if (!item) return;
+    const before = item.setsDone || 0;
+
+    // 소리는 사람이 누른 이 순간에 준비해야 브라우저가 막지 않는다
+    if (next > before) primeAudio();
+    try {
+      await checkSet(idx, next);
+    } catch {
+      toast('체크하지 못했어요. 다시 눌러주세요', 'error');
+      return;
+    }
+
+    // 폼이 이 운동을 적고 있으면 세트 칸도 맞춰둔다 — 폼으로 저장해도 한 세트 수만큼 들어가게
+    if (!editingId && exercise.trim() === item.name.trim()) {
+      setSets(next > 0 ? String(next) : (plannedSets ? String(plannedSets) : ''));
+    }
+    if (next <= before) return;   // 푼 것이다
+
+    if (plannedSets && next >= plannedSets) {
+      await saveRoutineSets(item, next);   // 저장이 휴식 타이머도 돌리고 칸도 넘긴다
+      return;
+    }
+    primeAudio();
+    const started = useRestTimerStore.getState().autoStartAfterSet(`${item.name} ${next}세트`);
+    if (started) setShowTimer(true);
+  };
+
+  const finishSets = async () => {
+    const s = useRoutineSessionStore.getState().session;
+    const item = s && s.current >= 0 ? s.items[s.current] : null;
+    if (!item || !(item.setsDone > 0)) return;
+    await saveRoutineSets(item, item.setsDone);
   };
 
   /**
@@ -598,6 +756,39 @@ export default function TrainPage() {
               height: 3, background: 'var(--accent)', transition: 'width 0.2s',
             }} />
           </div>
+
+          {/* ── 지금 운동의 세트 칸 ── (2026-09-14 에 만들고 9/19 에 묻힌 것을 되살렸다)
+              **목록 위에 둔다** — 세트 사이에 제일 자주 누르는 자리다.
+              까닭은 위의 `tapSet` 머리글에 적었다 */}
+          {current && (
+            <div style={{
+              marginBottom: 12, padding: '12px 12px 11px',
+              background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+              borderRadius: 'var(--radius)',
+              display: 'flex', flexDirection: 'column', gap: 9,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{
+                  fontSize: 14, color: 'var(--accent)', fontWeight: 600, minWidth: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{current.name}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                  {setsDone}{plannedSets ? ` / ${plannedSets}` : ''}세트
+                </span>
+              </div>
+              <SetChecks done={setsDone} planned={plannedSets} onTap={tapSet} disabled={saving} />
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                {plannedSets
+                  ? '한 세트 끝낼 때마다 누르세요. 마지막 세트를 누르면 기록하고 다음 운동으로 갑니다.'
+                  : '한 세트 끝낼 때마다 누르세요. 다 하면 「여기까지 기록」을 누릅니다.'}
+              </div>
+              {canFinishEarly && (
+                <button className="btn-primary" disabled={saving} onClick={finishSets}>
+                  여기까지 기록 · {setsDone}세트
+                </button>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {session.items.map((item, i) => {
@@ -1008,7 +1199,9 @@ export default function TrainPage() {
               </div>
             )}
 
-            <button className="btn-primary" disabled={saving} onClick={save}>
+            {/* **괄호를 쓴다** — `onClick={save}` 로 두면 리액트가 클릭 사건을
+                `over` 자리에 넘긴다 (2026-10-21에 `over` 를 붙이면서) */}
+            <button className="btn-primary" disabled={saving} onClick={() => save()}>
               {saving
                 ? (editingId ? '고치는 중…' : '적는 중…')
                 : editingId ? '이대로 고치기' : isToday ? '이 운동 적기' : `${dayLabel(date)} 자리에 적기`}
