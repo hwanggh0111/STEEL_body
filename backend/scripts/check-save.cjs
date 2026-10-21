@@ -170,9 +170,11 @@ const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
     ['2026-09-30', '2026-09-20', '2026-09-10']);
 
   // 같은 날이 여럿이면 **적은 때**로 가른다 (늦게 적은 것이 앞).
-  // **시각을 벌려 넣는다** — `created_at` 이 밀리초라 한 번에 넣으면 둘이 같은 값이 되고,
-  // 그러면 차례를 가릴 것이 없어 「넣은 차례」가 그대로 남는다(옛 정렬도 그랬다).
-  // 여기서 보려는 것은 **시각이 다를 때** 늦게 적은 것이 앞에 오는가다
+  // **시각을 벌려 넣는다** — `created_at` 이 밀리초라 한 번에 넣으면 둘이 같은 값이 된다.
+  // 여기서 보려는 것은 **시각이 다를 때** 늦게 적은 것이 앞에 오는가다.
+  //
+  // 시각까지 같은 경우는 아래 「같은 밀리초에 들어간 줄」이 따로 본다 —
+  // 2026-10-21 까지 **그 자리가 틀려 있었다.** 여기서 비켜간 것이 거기였다
   await wait(8);
   db.createWorkout(S, '2026-09-20', '스쿼트', '100', 5, 5);
   const sameDay = db.getWorkouts(S).filter((w) => w.date === '2026-09-20').map((w) => w.exercise);
@@ -221,6 +223,109 @@ const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
   // 고치다 표시가 날아가면 드롭세트가 혼자 떨어져 「무게를 왜 내렸지」가 된다
   db.updateWorkout(w2, S, { reps: 5 });
   ok('  고쳐도 표시가 안 날아간다', db.getWorkouts(S).find((w) => w.id === w2).link, 'drop');
+
+  // ── 같은 밀리초에 들어간 줄 ── (2026-10-21)
+  //
+  // 바로 위에서 **일부러 비켜간 자리다** — 「한 번에 넣으면 둘이 같은 값이 되고,
+  // 그러면 차례를 가릴 것이 없어 넣은 차례가 그대로 남는다」고 적고 시각을 벌려 넣었다.
+  // 그런데 **그 자리가 틀려 있었다.**
+  //
+  // 루틴 한 판을 「운동 기록에 남기기」로 저장하면 네 줄이 같은 밀리초에 들어간다.
+  // `date` 도 `created_at` 도 같으니 견주는 자가 「같다(0)」를 준다. 그러면 —
+  //
+  //     적은 직후                   가슴 → 등 → 어깨
+  //     등의 날짜를 고쳤다 되돌린 뒤    가슴 → 어깨 → 등     ← 등이 저절로 내려갔다
+  //     서버가 다시 뜨면              가슴 → 등 → 어깨     ← 또 저절로 올라온다
+  //
+  // 색인은 옮긴 줄을 「같은 것들 뒤」에 꽂고, 파일을 다시 정렬하면 적힌 차례로 돌아온다.
+  // **두 길이 서로 다른 답을 줬다.**
+  const M = db.createUser('ms@t.local', 'x', '한판', 'ms1').lastInsertRowid;
+  const batch = ['가슴', '등', '어깨', '하체']
+    .map((n) => db.createWorkout(M, '2026-06-06', n, '60', 3, 10).lastInsertRowid);
+  const names = () => db.getWorkouts(M).map((w) => w.exercise);
+  ok('한 판 네 줄이 같은 밀리초에 들어갔다',
+    new Set(db.getWorkouts(M).map((w) => w.created_at)).size, 1);
+  ok('  적은 차례로 보인다', names(), ['가슴', '등', '어깨', '하체']);
+  db.updateWorkout(batch[1], M, { date: '2026-06-07' });
+  db.updateWorkout(batch[1], M, { date: '2026-06-06' });
+  ok('날짜를 고쳤다 되돌려도 자리가 그대로다', names(), ['가슴', '등', '어깨', '하체']);
+  // 서버가 다시 뜨면 색인을 **파일에서 다시 짓는다** — 그 차례와 같아야 한다
+  // (색인을 버리는 손은 밖으로 안 나와 있어서, 파일 쪽을 그 자로 직접 정렬해 견준다)
+  const fresh = db.rawSnapshot().workouts.filter((w) => w.user_id === M).slice()
+    .sort((a2, b2) => (a2.date < b2.date ? 1 : a2.date > b2.date ? -1 : 0)
+      || (String(a2.created_at) < String(b2.created_at) ? 1
+        : String(a2.created_at) > String(b2.created_at) ? -1 : 0)
+      || (a2.id - b2.id));
+  ok('  파일에서 다시 지어도 같다', fresh.map((w) => w.exercise), names());
+
+  // ── 아무 차례로 2천 번 흔들어도 색인이 진짜와 같은가 ── (2026-10-21)
+  //
+  // 위의 것들은 **내가 떠올린 경우**다. 색인은 그 자리만 고치는 식이라, 떠올리지 못한
+  // 차례에서 어긋난다 — 위의 버그를 찾은 것이 바로 이 판이다.
+  // 진짜는 **파일에 든 것을 그 자리에서 걸러 정렬한 것**이다 (색인을 전혀 안 쓴다).
+  {
+    let seed = 20261021;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const pick2 = (arr) => arr[Math.floor(rnd() * arr.length)];
+    const dayOf = (n) => new Date(Date.UTC(2026, 0, 1 + n)).toISOString().slice(0, 10);
+    const desc = (a2, b2) => (a2 < b2 ? 1 : a2 > b2 ? -1 : 0);
+    const CMP = {
+      workouts: (a2, b2) => desc(a2.date, b2.date)
+        || desc(a2.created_at || '', b2.created_at || '') || (a2.id - b2.id),
+      inbody: (a2, b2) => desc(a2.date, b2.date) || (a2.id - b2.id),
+    };
+    const truth = (table, who) => (db.rawSnapshot()[table] || [])
+      .filter((r) => r && r.user_id === who).slice().sort(CMP[table]);
+
+    const WHO = [0, 1, 2, 3].map((k) => db.createUser(`fz${k}@t.local`, 'x', '흔들' + k, 'fz' + k).lastInsertRowid);
+    const held = { workouts: {}, inbody: {} };
+    WHO.forEach((w) => { held.workouts[w] = []; held.inbody[w] = []; });
+    const OPS = ['addW', 'addW', 'addW', 'updW', 'updWdate', 'delW', 'addI', 'addI', 'updIdate', 'delI'];
+    const off = [];
+    for (let step = 0; step < 2000 && off.length === 0; step += 1) {
+      const who = pick2(WHO);
+      const op = pick2(OPS);
+      if (op === 'addW') {
+        held.workouts[who].push(db.createWorkout(who, dayOf(Math.floor(rnd() * 400)),
+          '벤치' + step, String(60 + (step % 40)), 1 + (step % 5), 8).lastInsertRowid);
+      } else if (op === 'addI') {
+        held.inbody[who].push(db.createInbody(who, dayOf(Math.floor(rnd() * 400)),
+          180, 80 + (step % 10), null, null, null, null).lastInsertRowid);
+      } else if (op === 'updW' && held.workouts[who].length) {
+        db.updateWorkout(pick2(held.workouts[who]), who, { weight: String(100 + (step % 30)) });
+      } else if (op === 'updWdate' && held.workouts[who].length) {
+        db.updateWorkout(pick2(held.workouts[who]), who, { date: dayOf(Math.floor(rnd() * 400)) });
+      } else if (op === 'updIdate' && held.inbody[who].length) {
+        db.updateInbody(pick2(held.inbody[who]), who, { date: dayOf(Math.floor(rnd() * 400)) });
+      } else if (op === 'delW' && held.workouts[who].length) {
+        const id = pick2(held.workouts[who]);
+        db.deleteWorkout(id, who);
+        held.workouts[who] = held.workouts[who].filter((x) => x !== id);
+      } else if (op === 'delI' && held.inbody[who].length) {
+        const id = pick2(held.inbody[who]);
+        db.deleteInbody(id, who);
+        held.inbody[who] = held.inbody[who].filter((x) => x !== id);
+      }
+      // **흔들 때마다 네 사람 모두를** 견준다 — 남의 저장이 내 목록을 건드리는지도 본다
+      for (const who2 of WHO) {
+        for (const [table, get] of [['workouts', db.getWorkouts], ['inbody', db.getInbody]]) {
+          const got = get(who2).map((r) => r.id);
+          const want = truth(table, who2).map((r) => r.id);
+          if (JSON.stringify(got) !== JSON.stringify(want)) {
+            off.push(`${step}걸음 ${op} — ${table}/${who2}`);
+            break;
+          }
+        }
+      }
+    }
+    ok('2천 번 흔들어도 색인이 진짜와 같다', off, []);
+
+    // 돌려주는 목록은 **사본**이다 — 받은 쪽이 고쳐도 색인이 안 망가져야 한다
+    const mine = db.getWorkouts(WHO[0]);
+    const was = mine.length;
+    mine.push({ id: -1, user_id: WHO[0], date: '2099-01-01' });
+    ok('받은 목록을 고쳐도 색인은 그대로', db.getWorkouts(WHO[0]).length, was);
+  }
 
   db.flushNow();
   clean();
