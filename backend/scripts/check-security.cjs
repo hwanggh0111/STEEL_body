@@ -499,10 +499,53 @@ console.log('── 받아도 되는 집이 앱이 받는 집과 맞나 (CSP) �
       if (!outside.has(host)) outside.set(host, path.basename(f));
     }
   }
-  ok('앱이 적어둔 바깥 집을 찾았다', outside.size >= 3, true);
+  // **둘이다** — 미디어파이프의 wasm(jsdelivr) · 모델(storage.googleapis).
+  // 10/21 까지는 셋이었다(wger.de 가 있었다). 그 기능을 걷으면서 이 수도 같이 줄었다 —
+  // 이 줄이 「조용히 아무것도 안 보는 것」을 막는 자리라 수를 적어둔다
+  ok('앱이 적어둔 바깥 집을 찾았다', outside.size >= 2, true);
   const header2 = csp.headerValue();
   ok('  그 집이 CSP 에 다 있다',
     [...outside].filter(([h]) => !header2.includes(h)).map(([h, f]) => `${h} (${f})`), []);
+
+  // ── **거꾸로도 본다** ── (2026-10-21)
+  //
+  // 위의 검사는 **코드 → CSP** 한 방향이다. 그래서 **CSP 에만 남은 집**은 조용히
+  // 통과했다 — 10/21 에 둘이 걸렸다:
+  //
+  //   api.open-meteo.com  날씨로 운동을 고르던 화면은 **8/19 에 지웠다**
+  //                       (`WeatherWorkout.jsx`, 커밋 d2a6cbe). **두 달** 동안
+  //                       CSP 와 `index.html` 의 DNS 프리페치에만 남아 있었다
+  //   wger.de             외부 운동 DB. 그쪽이 API 를 바꿔서 찾기 길이 404 가 됐다
+  //
+  // 더 나쁜 것은 10/20 에 **그 두 집의 DNS 를 미리 찾아두게 켠 것**이다 —
+  // 「적어둔 두 줄이 아무 일도 안 한다」고 고쳤는데, 알고 보니 **안 가는 집**이었다.
+  //
+  // CSP 는 **좁을수록 지킨다.** 안 쓰는 집을 열어두면 지키는 힘만 줄어든다.
+  // 그리고 이 검사가 있으면 **기능을 걷을 때 열어둔 자리도 같이 걷힌다.**
+  {
+    const allowed = new Set();
+    for (const list of Object.values(csp.DIRECTIVES)) {
+      for (const v of list) if (/^https:\/\//.test(v)) allowed.add(v);
+    }
+    ok('CSP 가 허락한 바깥 집을 찾았다', allowed.size >= 2, true);
+    // 글꼴은 `index.html` 이 부른다 — 앱 코드(js·jsx)에는 안 적힌다
+    const FROM_HTML = new Set(['https://fonts.googleapis.com', 'https://fonts.gstatic.com']);
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'frontend', 'index.html'), 'utf8');
+    const unused = [...allowed]
+      .filter((h) => !outside.has(h))
+      .filter((h) => !(FROM_HTML.has(h) && html.includes(h)));
+    ok('  허락했는데 앱이 안 묻는 집', unused, []);
+
+    // `index.html` 의 DNS 프리페치도 같다 — **안 가는 집의 주소를 미리 찾지 않는다.**
+    // CSP 에 있는 것만으로는 모른다(걷은 기능의 집이 CSP 에 남아 있을 수 있다) —
+    // **실제로 묻는 집**과 맞춘다
+    const reached = new Set([...outside.keys(), ...[...FROM_HTML].filter((h) => html.includes(h))]);
+    const prefetch = [...html.matchAll(/rel="dns-prefetch"\s+href="(https:\/\/[^"]+)"/g)]
+      .map((m) => m[1]);
+    ok('  미리 찾아두는 집이 CSP 에 다 있다', prefetch.filter((h) => !allowed.has(h)), []);
+    ok('  미리 찾아두는 집을 앱이 실제로 묻는다', prefetch.filter((h) => !reached.has(h)), []);
+  }
 
   console.log('');
   console.log('── 앱이 쓰는 기기 권한이 열려 있나 ── (2026-10-20)');

@@ -85,9 +85,26 @@
       />
     </noscript>
 
-    <!-- DNS 프리페치 (외부 API) -->
-    <link rel="dns-prefetch" href="https://wger.de" />
-    <link rel="dns-prefetch" href="https://api.open-meteo.com" />
+    <!-- DNS 프리페치 — **실제로 묻는 집만** (2026-10-21에 둘을 걷었다)
+
+         여기에 `wger.de` 와 `api.open-meteo.com` 이 「외부 API」라고 적혀 있었다.
+         10/20 에 그 두 줄이 **아무 일도 안 하고 있던 것**을 찾아 서버 쪽에서 켰는데,
+         오늘 보니 **두 집 다 앱이 묻지 않는 집**이었다 —
+
+           api.open-meteo.com  날씨로 운동을 고르던 화면은 **8/19 에 지웠다**
+                               (`WeatherWorkout.jsx`, 커밋 d2a6cbe). 두 달 동안
+                               CSP 와 이 줄에만 남아 있었다
+           wger.de             외부 운동 DB. 그쪽이 API 를 바꿔서 찾기 길이 **404** 다
+                               (`components/ExerciseFinder.jsx` 머리글)
+
+         즉 10/20 에 켠 것은 **아무도 안 가는 두 집의 주소를 매번 찾아두는 일**이었다.
+
+         남는 것은 글꼴 파일이 오는 집 하나다 — 위의 스타일시트가 `fonts.googleapis.com`
+         을 거쳐 **`fonts.gstatic.com`** 에서 파일을 받는다. 그 둘째 왕복은 **첫 방문마다**
+         일어나므로 미리 찾아두는 값이 있다. 미디어파이프의 두 집(wasm · 모델)은 **여기
+         두지 않는다** — 「체형」·「횟수 세기」를 연 사람만 가는 집이라, 안 여는 사람까지
+         값을 치를 이유가 없다 (조각도 그때 받는다 — `data/poseModel.js`). -->
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
