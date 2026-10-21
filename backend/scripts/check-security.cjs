@@ -227,6 +227,110 @@ ok('풀 때도 곧바로 파일에 쓴다', /db\.unblockIp\(ip\);\s*db\.flushNow
 ok('만료 청소가 파일을 먼저 본다', /db\.findBlock\(ip\)/.test(guardSrc), true);
 
 console.log('');
+console.log('── 우리가 적어달라고 한 글을 막고 있지 않나 ── (2026-10-21)');
+//
+// 돌려보고 찾았다. 입력 스캔에 **앱이 스스로 보내는 글**과 **버그를 알려주는 글**이
+// 걸렸다 —
+//
+//     BLOCK 403  화면 오류 — "Cannot set properties of null (setting 'innerHTML')"
+//     BLOCK 403  화면 오류 — 스택에 "at eval (…)"
+//     BLOCK 403  제보 — 본문에 "…(reading 'innerHTML')" 을 붙여넣음
+//
+// 흰 화면 보고는 **앱이 자동으로** 보낸다. 사람은 아무것도 안 쳤는데 막혔고, 그러면
+// **흰 화면이 났다는 사실조차 서버에 안 남는다.** 로그인한 사람이면 **두 번째 흰
+// 화면에 3일 정지**, 그 정지가 둘 쌓이면 영구 정지다.
+//
+// 제보도 우리가 권한 일이다 — 에러 경계가 「무슨 일인지 보기 … 제보에 붙여주시면
+// 우리가 찾기 쉽다」고 직접 적어놓고 붙여넣으면 막았다.
+//
+// **글자로만 보면 안 된다** — 실제로 미들웨어에 요청을 넣어 본다.
+{
+  const mw = require(path.join(__dirname, '..', 'src', 'middleware', 'aiGuard.js'));
+  let n = 0;
+  const fire = (p, body) => {
+    n += 1;
+    const req = {
+      ip: '203.0.113.' + (20 + (n % 60)),
+      path: p, originalUrl: p, method: 'POST',
+      body, query: {}, params: {}, cookies: {},
+      headers: { 'user-agent': 'Mozilla/5.0 (check)' },
+      get(h) { return this.headers[String(h).toLowerCase()]; },
+      connection: {}, on() {},
+    };
+    let code = 200;
+    const res = {
+      statusCode: 200,
+      status(c) { code = c; this.statusCode = c; return this; },
+      json() { return this; },
+      on() {},
+    };
+    mw(req, res, () => { code = 200; });
+    return code;
+  };
+
+  // ── 통과해야 하는 것 ──
+  ok('흰 화면 보고 — innerHTML 이 들어도 받는다',
+    fire('/api/client-error', { message: "Cannot set properties of null (setting 'innerHTML')", stack: 'at setAttr' }), 200);
+  ok('  스택에 eval( 이 있어도 받는다',
+    fire('/api/client-error', { message: 'x', stack: 'at eval (webpack:///./a.js:1:1)' }), 200);
+  ok('  document.write 도 받는다',
+    fire('/api/client-error', { message: 'document.write is not a function', stack: 'x' }), 200);
+  ok('제보 — 스택을 붙여넣어도 받는다',
+    fire('/api/reports', { kind: 'bug', title: '화면이 깨져요', body: "TypeError: …(reading 'innerHTML')" }), 200);
+
+  // ── 그래도 막아야 하는 것 ──
+  // 면제는 **칸 단위**다. 제보의 다른 칸과 다른 길은 그대로 본다
+  ok('제보의 다른 칸은 그대로 막는다',
+    fire('/api/reports', { kind: 'bug', title: 'x', body: 'y', meta: { screen: '<script>alert(1)</script>' } }), 403);
+  ok('운동 이름은 그대로 막는다',
+    fire('/api/workouts', { date: '2026-10-21', exercise: '<script>alert(1)</script>', weight: '80', sets: 4, reps: 8 }), 403);
+  ok('메모도 그대로 막는다',
+    fire('/api/notes', { date: '2026-10-21', body: '<iframe src=x onerror=alert(1)>' }), 403);
+  // **객체 리터럴로는 못 만든다** — `{ __proto__: … }` 는 프로토타입을 바꾸는 문법이고
+  // 제 칸(own property)이 안 생긴다. 몸통은 `JSON.parse` 를 거쳐 오므로 그쪽으로 만든다
+  // (express 의 reviver 가 운영에서는 파싱 때 걷지만, 가드도 제 손으로 봐야 한다)
+  ok('프로토타입 오염은 그대로 막는다',
+    fire('/api/workouts', JSON.parse('{"date":"2026-10-21","exercise":"a","__proto__":{"x":1}}')), 403);
+
+  // ── 받아도 되는 까닭을 **코드가 지키고 있나** ──
+  //
+  // 막지 않는 근거는 둘이다: 저장할 때 글자를 다듬는다 · 화면이 글자로만 그린다.
+  // 둘 중 하나가 깨지면 면제가 구멍이 된다 — 그래서 여기서 같이 못 박는다.
+  const reports = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'reports.js'), 'utf-8');
+  ok('제보 제목을 다듬어 저장한다', /sanitize\(title\)/.test(reports), true);
+  ok('  본문도 다듬어 저장한다', /sanitizeMultiline\(body\)/.test(reports), true);
+  const errs = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'clientErrors.js'), 'utf-8');
+  ok('흰 화면 보고는 길이를 자른다', /cut\(req\.body\?\.message, \d+\)/.test(errs), true);
+  ok('  1분에 몇 건으로 막아뒀다', /max: \d+/.test(errs), true);
+
+  // 앱 어디에도 **글자를 HTML 로 그리는 자리**가 없어야 한다
+  const front = path.join(__dirname, '..', '..', 'frontend', 'src');
+  const jsx = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (/\.jsx?$/.test(e.name)) jsx.push(f);
+    }
+  })(front);
+  ok('화면이 글자를 HTML 로 그리지 않는다',
+    jsx.filter((f) => fs.readFileSync(f, 'utf-8').includes('dangerouslySetInnerHTML'))
+      .map((f) => f.split(path.sep).pop()), []);
+
+  // 면제 표에 적어둔 칸이 **그 라우트가 실제로 읽는 칸**인가.
+  // 이름이 바뀌면 면제가 조용히 풀려서 다시 막기 시작한다
+  const guard = fs.readFileSync(path.join(__dirname, '..', 'src', 'middleware', 'aiGuard.js'), 'utf-8');
+  ok("면제 표에 '/api/client-error' 가 있다", /'\/api\/client-error': true/.test(guard), true);
+  ok("  제보는 제목·본문만 면제한다", /'\/api\/reports': \['title', 'body'\]/.test(guard), true);
+  ok('  제보 라우트가 그 두 칸을 읽는다', /const \{ kind, title, body/.test(reports), true);
+  // 조용히 흘리지 않는다 — 막지는 않아도 로그에는 남긴다
+  ok('면제한 칸에 걸린 것은 로그에 남긴다', /면제한 칸에 \$\{hit\.type\} 모양이 있었다/.test(guard), true);
+  // CSRF 도 같은 자리에서 같은 판단을 하고 있나 (둘이 어긋나면 한쪽만 받는다)
+  ok('흰 화면 보고는 CSRF 도 면제돼 있다',
+    /req\.path === '\/api\/client-error'\) return next\(\)/.test(indexSrc), true);
+}
+
+console.log('');
 console.log('── 관리자 화면이 「지금 막혀 있는 것」을 실제로 받는가 ──');
 
 // **이 앱이 세 번 당한 자리다.** 서버는 200 을 주고 화면은 아무 말도 안 한다 —

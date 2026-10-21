@@ -411,6 +411,61 @@ function userIdOf(req) {
 // ── 프로토타입 오염 패턴 ──
 const PROTO_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+/**
+ * 입력 스캔에서 **빼는 자리** (2026-10-21 — 아래 미들웨어의 머리글에 까닭을 적었다).
+ *
+ *   `true`      그 길은 통째로 안 본다
+ *   [칸 이름…]  그 칸만 빼고 나머지는 본다
+ *
+ * **여기 넣는 기준은 「우리가 적어달라고 한 글인가」와 「실행될 자리가 있나」 둘이다.**
+ * 저장할 때 글자를 다듬고(`utils/sanitize.js`) 화면이 글자로만 그리는 칸만 넣는다.
+ */
+const SCAN_SKIP = {
+  // 앱이 **자동으로** 보낸다. 내용은 정의상 코드 글자(메시지 · 스택)다.
+  // 길이가 잘려 있고(300/600자) 1분 5건으로 막혀 있다 (`routes/clientErrors.js`)
+  '/api/client-error': true,
+  // 사람이 **버그를 적는** 칸. 스택을 붙여넣으라고 우리가 권했다
+  '/api/reports': ['title', 'body'],
+};
+
+/**
+ * 스캔할 몸통 사본. 통째로 면제면 `null` 을 준다.
+ *
+ * **원본을 건드리지 않는다** — 라우트가 그 값을 그대로 저장한다.
+ */
+function skipScanFields(path, body) {
+  const rule = SCAN_SKIP[path];
+  if (rule === true) return null;
+  if (!Array.isArray(rule) || !body || typeof body !== 'object' || Array.isArray(body)) {
+    return body;
+  }
+  const copy = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (!rule.includes(k)) copy[k] = v;
+  }
+  return copy;
+}
+
+/**
+ * 면제한 칸에 뭐가 걸렸는지 **적어만 둔다** (2026-10-21).
+ *
+ * 막지도 세지도 않는다 — 까닭은 아래 미들웨어 머리글에. 그래도 **아는 것은 공짜**고,
+ * 조용히 흘리면 정말로 공격이 들어와도 우리가 모른다. 관리자 화면의 로그에 남는다.
+ */
+function logSkippedScan(req, ip) {
+  const rule = SCAN_SKIP[req.path];
+  if (!Array.isArray(rule) || !req.body || typeof req.body !== 'object') return;
+  for (const k of rule) {
+    const v = req.body[k];
+    if (typeof v !== 'string' || !v) continue;
+    const hit = scanInput(v, 0);
+    if (hit) {
+      addLog('INFO', `면제한 칸에 ${hit.type} 모양이 있었다 (막지 않음): ${req.path} · ${k}`, ip);
+      return;
+    }
+  }
+}
+
 // ── 입력 스캔 (XSS/인젝션/프로토타입오염) ──
 function scanInput(obj, depth) {
   if (depth > 5) return null;
@@ -638,8 +693,47 @@ function aiGuardMiddleware(req, res, next) {
     return res.status(403).json({ error: '비정상적인 요청으로 차단되었습니다.' });
   }
 
+  // ── **우리가 적어달라고 한 글은 스캔하지 않는다** ── (2026-10-21)
+  //
+  // 돌려보고 찾았다. 이 스캔에 **앱이 스스로 보내는 글**과 **버그를 알려주는 글**이
+  // 걸리고 있었다 —
+  //
+  //     BLOCK 403  화면 오류 — "Cannot set properties of null (setting 'innerHTML')"
+  //     BLOCK 403  화면 오류 — "document.write is not a function"
+  //     BLOCK 403  화면 오류 — 스택에 "at eval (…)"
+  //     BLOCK 403  제보 — 본문에 "…(reading 'innerHTML')" 을 붙여넣음
+  //
+  // **흰 화면 보고(`/api/client-error`)는 앱이 자동으로 보낸다.** 사람은 아무것도
+  // 안 쳤는데 막혔고, 그러면 **흰 화면이 났다는 사실조차 서버에 안 남는다** — 그
+  // 기능이 있는 이유가 바로 그것인데(`routes/clientErrors.js` 머리글). 게다가
+  // 로그인한 사람이면 **두 번째 흰 화면에 3일 정지**, 그 정지가 둘 쌓이면 영구 정지다.
+  // 사람이 한 일이 없는데.
+  //
+  // **제보도 우리가 권한 일이다.** 에러 경계가 「무슨 일인지 보기 … 제보에 붙여주시면
+  // 우리가 찾기 쉽다」고 직접 적어놓고, 붙여넣으면 막았다. 아래의 사다리 주석이
+  // 「버그를 알려주러 온 사람을 영구히 잠그는 것이 된다」고 적어둔 그 자리인데,
+  // **막는 것 자체**는 그대로여서 제보를 아예 못 보냈다.
+  //
+  // ── 받아도 되는 까닭 ──
+  //
+  // 저장할 때 `sanitize`·`sanitizeMultiline` 이 `< > " ' & \`` 를 지우고,
+  // 관리자 화면은 `{r.body}` 로 **글자로만** 그린다(이 앱에 `dangerouslySetInnerHTML`
+  // 은 한 곳도 없다 — 검사가 본다). **실행될 자리가 없다.** 위험이 없는 곳을 막으면
+  // 남는 것은 오탐뿐이다. CSRF 를 `/api/client-error` 에 면제해 둔 것과 같은 판단이다.
+  //
+  // **면제는 칸 단위다.** 제보의 `meta`·`device` 같은 나머지 칸은 그대로 본다.
+  const scanBody = skipScanFields(req.path, req.body);
+  if (scanBody === null) {
+    // 통째로 면제되는 길 — 404 감지만 걸고 넘긴다
+    res.on('finish', () => { if (res.statusCode === 404) checkNotFound(ip); });
+    return next();
+  }
+  // **면제한 칸은 보기는 본다 — 막지도 세지도 않는다.** 조용히 흘리면 정말로
+  // 공격이 들어와도 우리가 모른다. 막지 않는 까닭은 위에 적었고, 아는 것은 공짜다
+  logSkippedScan(req, ip);
+
   // XSS/인젝션 스캔 (body + query + params + URL 디코딩)
-  const allInput = { ...req.body, ...req.query, ...req.params };
+  const allInput = { ...scanBody, ...req.query, ...req.params };
   // URL 인코딩 우회 방지: 디코딩된 값도 스캔
   try {
     const decoded = decodeURIComponent(req.originalUrl);
@@ -656,9 +750,9 @@ function aiGuardMiddleware(req, res, next) {
   // 있어 이 스캔은 폭탄이 안 된다(깊이가 아무리 깊어도 글자 수만큼만 본다).
   // 프로토타입 오염 키는 `express.json` 의 reviver 가 파싱 때 이미 모든 깊이에서
   // 걷어내므로 여기서 다시 안 본다 — XSS 문자열만 훑으면 된다.
-  if (!threat && req.body && typeof req.body === 'object') {
+  if (!threat && scanBody && typeof scanBody === 'object') {
     try {
-      const flat = JSON.stringify(req.body);
+      const flat = JSON.stringify(scanBody);
       for (const pat of XSS_PATTERNS) {
         if (pat.test(flat)) { threat = { type: 'xss', pattern: pat.toString() }; break; }
       }
@@ -714,7 +808,12 @@ function aiGuardMiddleware(req, res, next) {
     else if (ipHits >= 3) executeLevel2(ip, threat.type, threat.pattern, 24);
     else if (ipHits >= 2) executeLevel2(ip, threat.type, threat.pattern, 1);
 
-    return res.status(403).json({ error: '악성 요청이 차단되었습니다.' });
+    // **무엇을 하면 되는지 적는다.** 여태 이 말 하나였다 — 그 말로는 고칠 수가 없다.
+    // 로그인한 사람에게는 위에서 이미 그렇게 말하고 있었다
+    return res.status(403).json({
+      error: '보낼 수 없는 글자가 들어 있어 막았습니다.',
+      message: '스크립트로 읽힐 수 있는 글자가 있어요. 그 부분을 빼고 다시 보내주세요.',
+    });
   }
 
   // 404 감지
