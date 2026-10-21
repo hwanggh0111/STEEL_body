@@ -364,6 +364,12 @@ export default function Layout() {
   // (shrinkImage 주석 참고). 그래도 안 되는 것만 안내한다
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
+    // **고른 것을 비워둔다** (2026-10-21에 고쳤다). 파일 칸은 **값이 같으면
+    // `change` 를 안 준다** — 그래서 사진을 지웠다가 **같은 사진을 다시 고르면
+    // 아무 일도 안 일어났다.** 올리다 실패해서 같은 것을 다시 고르는 길도 막혀 있었다.
+    // 가져오기 · 견주기 · 체형 · 홈페이지 사진 **넷은 이미 이 줄을 갖고 있었고
+    // 프로필 사진만 빠져 있었다** — 다섯 중 하나만 다른 자리는 잊은 자리다
+    e.target.value = '';
     if (!file) return;
     let photoData;
     try {
