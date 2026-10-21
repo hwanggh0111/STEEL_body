@@ -4,7 +4,7 @@ import client from '../api/client';
 import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore';
 import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
-import { resetPose } from '../data/poseModel';
+import { resetPose, resetPoseVideo } from '../data/poseModel';
 import { useRoutineSessionStore } from './routineSessionStore';
 import { useReportStore } from './reportStore';
 import { useGoalStore } from './goalStore';
@@ -154,6 +154,14 @@ export const useAuthStore = create((set) => ({
     // 아니지만**(모델은 누구에게나 같다), 10MB 를 든 채로 로그인 화면에 서 있을
     // 이유가 없다. 다음에 「체형」을 열면 CDN 이 아니라 브라우저 캐시에서 온다
     resetPose();
+    // **영상용도 같이 놓는다** (2026-10-21에 고쳤다).
+    //
+    // 9/30 에 횟수 세기를 붙이면서 모델을 **하나 더** 만들었다(흐르는 화면은 `VIDEO`
+    // 모드라야 한다). 놓아주는 짝(`resetPoseVideo`)도 그때 같이 적어뒀는데
+    // **아무도 안 불렀다** — 「`resetPose` 와 짝」이라고 주석까지 달아둔 채였다.
+    // 그래서 횟수를 한 번이라도 세면 그 10MB 를 로그인 화면까지 들고 서 있었다.
+    // 길이 둘인데 한쪽에만 적어둔, 이 앱이 거듭 당하는 그 모양이다
+    resetPoseVideo();
     // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
     useRoutineSessionStore.getState().reset();
     // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다
