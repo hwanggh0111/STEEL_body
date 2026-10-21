@@ -331,6 +331,59 @@ console.log('── 우리가 적어달라고 한 글을 막고 있지 않나 �
 }
 
 console.log('');
+console.log('── 로그아웃이 정말 쿠키를 걷는가 ── (2026-10-21)');
+//
+// `utils/tokens.js` 머리글이 적어둔 것: 「쿠키 설정이 양쪽에 복붙돼 있었다 … 한 곳에
+// 둔다」. 그런데 **심는 것만 한 곳이었다** — 지우는 자리는 `routes/auth.js` 에
+// 다섯 벌 복붙돼 있었고 `path` 를 손으로 또 적어뒀다. 내보내둔 `*_COOKIE_OPTS` 셋은
+// **아무도 안 쓰고 있었다.**
+//
+// 어긋나는 방향이 나쁘다. refresh 쿠키의 길(`/api/auth`)을 고치는 날 심는 쪽만
+// 바뀌고, 브라우저는 그 쿠키를 그대로 들고 있는다 — **「로그아웃했는데 다시 들어가
+// 있다」**. 쿠키 지우기는 이름과 길이 맞아야만 되는 일이라 조용히 안 된다.
+{
+  const tk = require(path.join(__dirname, '..', 'src', 'utils', 'tokens.js'));
+  const calls = [];
+  const fakeRes = { clearCookie(name, opts) { calls.push([name, opts && opts.path]); } };
+
+  tk.clearAuthCookies(fakeRes);
+  ok('셋을 다 걷는다', calls.map((c) => c[0]), ['sb_access', 'sb_refresh', 'sb_csrf']);
+  ok('  길이 심을 때와 같다', calls.map((c) => c[1]),
+    [tk.ACCESS_COOKIE_OPTS.path, tk.REFRESH_COOKIE_OPTS.path, tk.CSRF_COOKIE_OPTS.path]);
+  // 그 길이 실제로 그 값인가 — refresh 만 좁은 길이다 (다른 요청에 실려 다니지 않게)
+  ok('  refresh 는 좁은 길에 심는다', tk.REFRESH_COOKIE_OPTS.path, '/api/auth');
+  ok('  access · csrf 는 온 사이트', [tk.ACCESS_COOKIE_OPTS.path, tk.CSRF_COOKIE_OPTS.path], ['/', '/']);
+
+  calls.length = 0;
+  tk.clearAuthCookies(fakeRes, { accessOnly: true });
+  ok('갱신이 겹쳤을 때는 access 만 걷는다 (탭 두 개는 도둑이 아니다)',
+    calls.map((c) => c[0]), ['sb_access']);
+
+  // **딴 데서 손으로 지우지 않는다** — 길을 또 적는 자리가 생기면 어긋난다
+  const srcDir = path.join(__dirname, '..', 'src');
+  const byHand = [];
+  (function walk(d) {
+    for (const n of fs.readdirSync(d)) {
+      const f = path.join(d, n);
+      if (fs.statSync(f).isDirectory()) walk(f);
+      else if (/\.js$/.test(n) && n !== 'tokens.js') {
+        const body = fs.readFileSync(f, 'utf-8');
+        if (/clearCookie\(\s*'sb_/.test(body)) byHand.push(n);
+      }
+    }
+  })(srcDir);
+  ok('로그인 쿠키를 손으로 지우는 자리가 없다', byHand, []);
+
+  // 끊는 자리마다 실제로 부르고 있나 (갱신 겹침 · 재사용 · 만료 · 정지 · 로그아웃 · 계정 삭제)
+  const authSrc = fs.readFileSync(path.join(srcDir, 'routes', 'auth.js'), 'utf-8');
+  ok('끊는 자리가 그 손을 쓴다', (authSrc.match(/clearAuthCookies\(/g) || []).length >= 6, true);
+  // 정지된 계정으로 갱신이 오는 자리 — 여기만 쿠키를 안 걷고 있었다 (10/21)
+  const bannedAt = authSrc.indexOf('계정을 찾을 수 없거나 정지된 계정이에요');
+  ok('  정지된 계정도 그 자리에서 걷는다',
+    authSrc.slice(Math.max(0, bannedAt - 400), bannedAt).includes('clearAuthCookies(res)'), true);
+}
+
+console.log('');
 console.log('── 관리자 화면이 「지금 막혀 있는 것」을 실제로 받는가 ──');
 
 // **이 앱이 세 번 당한 자리다.** 서버는 200 을 주고 화면은 아무 말도 안 한다 —

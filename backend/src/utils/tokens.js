@@ -69,8 +69,38 @@ function issueTokens(res, user) {
   return { accessToken, refreshToken, csrfToken };
 }
 
+// ── 지우는 것도 여기서 한다 ── (2026-10-21)
+//
+// 이 파일 머리글이 적어둔 것: 「쿠키 설정이 양쪽에 복붙돼 있었다 … 한 곳에 둔다.
+// 고치면 두 길이 같이 바뀐다」. 그런데 **심는 것만 한 곳이었다** —
+// **지우는 자리는 다섯 곳에 복붙돼 있었고**(`routes/auth.js` 의 갱신 · 재사용 ·
+// 만료 · 로그아웃 · 계정 삭제), 거기에 `path` 를 **손으로 또 적어뒀다.**
+// 위의 `ACCESS_COOKIE_OPTS` 셋은 내보내 두기만 하고 **아무도 안 쓰고 있었다.**
+//
+// 어긋나는 방향이 나쁘다. refresh 쿠키의 길(`/api/auth`)을 고치는 날, 심는 쪽은
+// 바뀌고 지우는 쪽은 안 바뀐다 — **브라우저는 그 쿠키를 그대로 들고 있다.**
+// 증상은 「로그아웃을 눌렀는데 새로 열면 다시 들어가 있다」다. 쿠키를 지우는 것은
+// **이름과 길이 맞아야만** 되는 일이라, 조용히 안 지워진다.
+//
+// 쿠키를 지울 때 브라우저가 보는 것은 이름 · 도메인 · 길이다 (`secure` · `sameSite` 는
+// 안 본다). 그래서 길만 그 쿠키의 것과 같게 넘긴다.
+
+/**
+ * 로그인 쿠키 셋을 지운다.
+ *
+ * `accessOnly` 는 **갱신이 겹쳤을 때**만 쓴다(탭 두 개) — 그때는 세션을 끊는 것이
+ * 아니라 access 만 버리고 다시 갱신하게 둔다.
+ */
+function clearAuthCookies(res, { accessOnly = false } = {}) {
+  res.clearCookie('sb_access', { path: ACCESS_COOKIE_OPTS.path });
+  if (accessOnly) return;
+  res.clearCookie('sb_refresh', { path: REFRESH_COOKIE_OPTS.path });
+  res.clearCookie('sb_csrf', { path: CSRF_COOKIE_OPTS.path });
+}
+
 module.exports = {
   issueTokens,
+  clearAuthCookies,
   ACCESS_COOKIE_OPTS,
   REFRESH_COOKIE_OPTS,
   CSRF_COOKIE_OPTS,

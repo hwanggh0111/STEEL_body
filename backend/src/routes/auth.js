@@ -101,7 +101,8 @@ const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase()
 
 const { REFRESH_REUSE_GRACE_MS } = require('../config/security');
 const { sanitize, cleanName } = require('../utils/sanitize');
-const { issueTokens } = require('../utils/tokens');
+// 쿠키를 심는 것도 지우는 것도 한 곳에서 한다 (`utils/tokens.js` 머리글)
+const { issueTokens, clearAuthCookies } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED, warmMailer } = require('../utils/mailer');
 
 // 이메일 형식 검증
@@ -442,7 +443,8 @@ router.post('/refresh', (req, res) => {
     // 갱신하면 되고, 갱신 실패 세 번까지는 로그아웃하지 않는다
     if (reused && Date.now() - new Date(reused.used_at).getTime() < REFRESH_REUSE_GRACE_MS) {
       addLog('refresh_race', `Refresh race (탭 여럿): user ${reused.user_id}`);
-      res.clearCookie('sb_access', { path: '/' });
+      // 세션을 끊는 것이 아니다 — access 만 버리고 다시 갱신하게 둔다
+      clearAuthCookies(res, { accessOnly: true });
       return res.status(401).json({ error: '잠시 뒤에 다시 시도해주세요' });
     }
     if (reused) {
@@ -453,23 +455,23 @@ router.post('/refresh', (req, res) => {
         // 관리자 화면의 보안 기록에도 남긴다 — 사람이 봐야 하는 종류의 일이다
         require('../middleware/aiGuard').noteRefreshReuse(reused.user_id, req.ip || 'unknown', u?.email || '');
       } catch { /* 기록이 안 남아도 세션은 끊는다 */ }
-      res.clearCookie('sb_access', { path: '/' });
-      res.clearCookie('sb_refresh', { path: '/api/auth' });
-      res.clearCookie('sb_csrf', { path: '/' });
+      clearAuthCookies(res);
       return res.status(401).json({
         error: '보안을 위해 로그인을 모두 끊었어요. 다시 로그인해주세요',
         reason: 'refresh_reuse',
       });
     }
     // 토큰이 유효하지 않으면 모든 쿠키 클리어
-    res.clearCookie('sb_access', { path: '/' });
-    res.clearCookie('sb_refresh', { path: '/api/auth' });
-    res.clearCookie('sb_csrf', { path: '/' });
+    clearAuthCookies(res);
     return res.status(401).json({ error: '로그인이 만료됐어요. 다시 로그인해주세요' });
   }
   const user = db.findUserById(stored.user_id);
   if (!user || user.is_banned) {
     db.deleteRefreshToken(refreshToken);
+    // **쿠키도 같이 걷는다** (2026-10-21). 여기만 안 걷고 있었다 — 서버 쪽 줄은
+    // 지웠으니 다음 갱신에서 저절로 걷히긴 하지만, 그 사이 화면은 로그인한 꼴로
+    // 남아 있다. 끊긴 것은 그 자리에서 끊긴 모습이어야 한다
+    clearAuthCookies(res);
     return res.status(401).json({ error: '계정을 찾을 수 없거나 정지된 계정이에요' });
   }
   // 쓴 토큰은 **지우지 않고 「썼다」고 적는다.** 지우면 새어나가 다시 온 것인지
@@ -493,9 +495,7 @@ router.post('/logout', (req, res) => {
   if (refreshToken) {
     db.deleteRefreshToken(refreshToken);
   }
-  res.clearCookie('sb_access', { path: '/' });
-  res.clearCookie('sb_refresh', { path: '/api/auth' });
-  res.clearCookie('sb_csrf', { path: '/' });
+  clearAuthCookies(res);
   res.json({ message: '로그아웃 완료' });
 });
 
@@ -557,9 +557,7 @@ router.post('/delete', require('../middleware/auth'), async (req, res) => {
   addLog('account_delete_request', `Deletion requested: ${user.email} (id=${user.id}, due=${info.delete_due_at})`);
 
   // 예약과 동시에 로그아웃시킨다 — 잠갔다면서 그 기기에서 계속 쓰이면 안 된다
-  res.clearCookie('sb_access', { path: '/' });
-  res.clearCookie('sb_refresh', { path: '/api/auth' });
-  res.clearCookie('sb_csrf', { path: '/' });
+  clearAuthCookies(res);
   res.json({ ...info, grace_days: db.GRACE_DAYS });
 });
 
