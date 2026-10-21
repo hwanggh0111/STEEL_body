@@ -673,6 +673,25 @@ console.log('── 조사가 앞말에 맞나 ── (2026-10-21)');
   }
   ok('보간 뒤에 조사를 글자로 박은 자리', stuck, []);
 
+  // ── 괄호를 화면에 띄우지 않는다 ── (2026-10-21)
+  //
+  // 「을(를)」은 틀린 말은 아니지만 **기계가 찍어낸 티가 난다** — 이 파일 머리의
+  // `data/particle.js` 가 생긴 까닭이 그것이다. 그런데 네 자리가 그대로 남아 있었다 —
+  //
+  //     몸 지도 · 홈 「오늘 할 곳」   "등이(가) 9일째 식어 있습니다"
+  //     알림 설정의 미리보기          "등이(가) 9일째 식었어요"
+  //
+  // 사전은 있는데 안 쓴 자리다. **사전이 있으면 괄호가 남을 까닭이 없다.**
+  const BRACKET = /(이\(가\)|은\(는\)|을\(를\)|와\(과\)|\(으\)로|가\(이\))/;
+  const brackets = [];
+  for (const f of SPEAKERS) {
+    if (f.endsWith('data/particle.js')) continue;      // 거기가 그 괄호를 없애는 자리다
+    const src = stripNotes(fs.readFileSync(f, 'utf-8'));
+    const m = src.match(BRACKET);
+    if (m) brackets.push(f.split('/').pop() + ': ' + m[1]);
+  }
+  ok('괄호로 둘 다 적어둔 자리', brackets, []);
+
   // 지어낸 말도 본다 — 받침 있는 부위에 틀린 짝이 붙었나
   const sore = bundle('src/data/sorePart.js', '.t32.cjs');
   const pp = bundle('src/data/partPreview.js', '.t33.cjs');

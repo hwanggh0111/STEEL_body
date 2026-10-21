@@ -5,6 +5,7 @@ import { useToday } from '../data/useToday';
 import { buildHeat, MAP_PARTS } from '../data/bodyHeat';
 import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE, heatPaint } from './bodyShapes';
 
+import { particle } from '../data/particle';
 // 몸 지도.
 //
 // 최근에 자극한 부위가 아직 달아 있고, 날이 갈수록 식는다. 계산은 `data/bodyHeat.js`
@@ -181,11 +182,11 @@ export default function BodyMap() {
       {/* 한 줄로 말한다. 지도는 그 말의 근거다 */}
       <div className="serif-display" style={{ fontSize: 22, lineHeight: 1.5, marginBottom: 20 }}>
         {cold.days === null ? (
-          <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>은(는)<br />아직 한 번도 안 했습니다</>
+          <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>{particle(cold.part, '은', '는')}<br />아직 한 번도 안 했습니다</>
         ) : cold.days === 0 ? (
           <>오늘은 몸 전체가<br />고루 달아 있습니다</>
         ) : (
-          <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>이(가) {cold.days}일째<br />식어 있습니다</>
+          <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>{particle(cold.part, '이', '가')} {cold.days}일째<br />식어 있습니다</>
         )}
       </div>
 

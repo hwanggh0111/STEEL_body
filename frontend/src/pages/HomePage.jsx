@@ -22,6 +22,7 @@ import { showFinish } from '../components/SessionFinish';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
 import NavIcon from '../components/NavIcon';
 
+import { particle } from '../data/particle';
 // 홈.
 //
 // 매일 여는 화면인데 **오늘 뭘 할지는 아무 데도 없었다.** 위에서부터 로고 · 검색 ·
@@ -178,9 +179,9 @@ function TodayFocus({ heat, onGo }) {
       <div style={{ minWidth: 0, flexGrow: 1 }}>
         <div className="serif-display" style={{ fontSize: 18, lineHeight: 1.5 }}>
           {cold.days === null ? (
-            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>은(는) 아직<br />한 번도 안 했습니다</>
+            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>{particle(cold.part, '은', '는')} 아직<br />한 번도 안 했습니다</>
           ) : cold.level === 0 ? (
-            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>이(가) {cold.days}일째<br />식어 있습니다</>
+            <><span style={{ color: 'var(--accent)' }}>{cold.part}</span>{particle(cold.part, '이', '가')} {cold.days}일째<br />식어 있습니다</>
           ) : (
             <>몸 전체가 아직<br />고루 달아 있습니다</>
           )}

@@ -155,7 +155,11 @@ ok('기록이 아예 없어도 안 터진다', back.coldPartFor(null, TODAY), nu
 console.log('');
 console.log('── 알림에 적히는 말 ──');
 const m1 = messageOf('scheduled', null, { part: '등', days: 9 });
-ok('식은 부위를 말한다', m1.title, '등이(가) 9일째 식었어요');
+// 조사는 앞말에 맞춘다 — 괄호를 폰에 띄우지 않는다 (2026-10-21).
+// 부위 여섯을 다 보는 것은 `check-reminder.cjs` 가 한다
+ok('식은 부위를 말한다', m1.title, '등이 9일째 식었어요');
+ok('  받침 없는 부위는 「가」다', messageOf('scheduled', null, { part: '하체', days: 9 }).title,
+  '하체가 9일째 식었어요');
 // **지어내지 않는다** — 「회복됐어요」는 우리가 모르는 것이다
 ok('  회복됐다고 안 한다', /회복/.test(m1.title + m1.body), false);
 ok('  어디로 갈지 표시가 붙는다', m1.cold, '등');

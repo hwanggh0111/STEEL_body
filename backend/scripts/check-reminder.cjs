@@ -9,7 +9,7 @@
 //   1. **시간대** — 서버는 UTC 로 돌고 사람은 자기 시간대로 산다. 저녁 7시는 그 사람의 7시다
 //   2. **몇 번 보내나** — 한 번 보낼 것을 날마다 보내면 알림 자체를 꺼버린다
 const {
-  decide, localDateOf, localTimeOf, localDayOf, daysBetween, STREAK_GAP,
+  decide, messageOf, localDateOf, localTimeOf, localDayOf, daysBetween, STREAK_GAP,
 } = require('../src/utils/reminderSchedule');
 
 let bad = 0;
@@ -153,6 +153,64 @@ console.log('\n── 남의 기기 알림을 끌 수 있었다 (2026-09-04) ─
   for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }
+}
+
+console.log('');
+console.log('── 폰에 뜨는 말에 괄호가 없나 ── (2026-10-21)');
+//
+// 알림 제목이 이랬다 — **"등이(가) 9일째 식었어요"**. 괄호가 **폰 알림에 그대로** 뜬다.
+// 화면 문구는 10/20 에 조사를 다 맞췄는데 여기만 남았다. 게다가 여섯 부위 중
+// **셋(어깨 · 코어 · 하체)은 받침이 없어서 「가」가 맞다** — 괄호를 떼기만 해도 안 된다.
+{
+  const fs = require('fs');
+  const path = require('path');
+  const PARTS = ['가슴', '등', '어깨', '팔', '코어', '하체'];
+  const WANT = { 가슴: '가슴이', 등: '등이', 어깨: '어깨가', 팔: '팔이', 코어: '코어가', 하체: '하체가' };
+  const titles = PARTS.map((p) => messageOf('scheduled', 0, { part: p, days: 9 }).title);
+  ok('부위마다 조사가 맞다', titles, PARTS.map((p) => `${WANT[p]} 9일째 식었어요`));
+
+  // 서버가 사람에게 보내는 말 어디에도 괄호를 둘 다 적어두지 않는다
+  const BRACKET = /(이\(가\)|은\(는\)|을\(를\)|와\(과\)|\(으\)로)/;
+  const srcDir = path.join(__dirname, '..', 'src');
+  const said = [];
+  (function walk(d) {
+    for (const n of fs.readdirSync(d)) {
+      const f = path.join(d, n);
+      if (fs.statSync(f).isDirectory()) walk(f);
+      else if (/\.c?js$/.test(n)) {
+        // 주석은 뺀다 — 거기서는 그 괄호를 **이야기**한다
+        const body = fs.readFileSync(f, 'utf-8').replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+        const m = body.match(BRACKET);
+        if (m) said.push(n + ': ' + m[1]);
+      }
+    }
+  })(srcDir);
+  ok('서버가 보내는 말에 괄호가 없다', said, []);
+
+  // ── 조사 표가 두 벌이다. 답이 같은가 ──
+  //
+  // 서버와 화면이 각자 하나씩 들고 있다(두 패키지라 가져다 쓸 수가 없다).
+  // 어긋나면 **폰에 뜬 말과 열어본 화면의 말이 다르다** — 그게 여기서 걸려야 한다.
+  const mine = require(path.join(__dirname, '..', 'src', 'utils', 'particle.js'));
+  const theirs = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'frontend', 'src', 'data', 'particle.js'), 'utf-8',
+  );
+  const cut = theirs.slice(theirs.indexOf('export function hasFinalConsonant'))
+    .replace('export function', 'function');
+  const body = cut.slice(0, cut.indexOf('\n}') + 2);
+  // eslint-disable-next-line no-new-func
+  const front = new Function(`${body}\nreturn hasFinalConsonant;`)();
+  const words = PARTS.concat(['스쿼트', '풀업', '벤치프레스', '랫풀다운', 'row', 'bench', '', '1', '3', '2', '5', '10']);
+  ok('두 표의 답이 같다', words.filter((w) => mine.hasFinalConsonant(w) !== front(w)), []);
+  ok('  받침을 제대로 본다', PARTS.map((w) => mine.hasFinalConsonant(w)),
+    [true, true, false, true, false, false]);
+
+  // 미리보기는 **서버가 보내는 말 그대로**여야 한다 (9/17 에 캡처로 잡은 자리)
+  const prev = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'frontend', 'src', 'pages', 'RemindersPage.jsx'), 'utf-8',
+  );
+  ok('알림 설정 미리보기가 그 말과 같다',
+    prev.includes('>' + messageOf('scheduled', 0, { part: '등', days: 9 }).title + '<'), true);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

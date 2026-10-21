@@ -6,6 +6,9 @@
 // 저녁 7시에 보내라는 말은 **그 사람의** 저녁 7시다. 그래서 설정에 그 사람의
 // UTC 차이(분)를 같이 담아두고, 보낼 때마다 그걸로 현지 시각을 만들어 본다.
 
+// 사람에게 보내는 말의 조사는 한 곳에서 고른다 (`utils/particle.js`)
+const { i } = require('./particle');
+
 // tzOffset 은 브라우저의 `new Date().getTimezoneOffset()` 값이다.
 // 한국은 -540 (UTC 보다 9시간 앞).
 
@@ -116,7 +119,8 @@ function messageOf(reason, gap, cold) {
   }
   if (cold && cold.part && typeof cold.days === 'number') {
     return {
-      title: `${cold.part}이(가) ${cold.days}일째 식었어요`,
+      // **괄호를 폰에 띄우지 않는다** — 여섯 부위 중 셋(어깨 · 코어 · 하체)은 「가」다
+      title: `${i(cold.part)} ${cold.days}일째 식었어요`,
       body: '몸 지도에서 어디가 식었는지 볼 수 있어요.',
       cold: cold.part,
     };

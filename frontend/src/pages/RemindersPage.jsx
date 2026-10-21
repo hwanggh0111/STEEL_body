@@ -367,7 +367,7 @@ export default function RemindersPage() {
               지어내지 않으려면 「예를 들면」이라고 말해야 한다 */}
           {settings.coldPart !== false ? (
             <>
-              <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>등이(가) 9일째 식었어요</div>
+              <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>등이 9일째 식었어요</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>몸 지도에서 어디가 식었는지 볼 수 있어요.</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.65 }}>
                 예를 들면 이렇게 옵니다 · 고루 하고 계시면 「오늘 운동하는 날이에요」로 옵니다
