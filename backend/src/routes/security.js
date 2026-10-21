@@ -5,7 +5,14 @@ const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
 const { seoulDay } = require('../utils/seoulDay');
 const aiGuard = require('../middleware/aiGuard');
-const { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY } = require('../config/security');
+const {
+  RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY,
+  LOGIN_LOCK_DESC, HSTS_MAX_AGE,
+} = require('../config/security');
+// CSP 도 **지금 나가는 것**을 읽어 적는다 — 손으로 적어두면 바꾼 날 화면만 옛말을 한다
+const { DIRECTIVES } = require('../csp');
+const CSP_SUMMARY = ['script-src', 'connect-src']
+  .map((k) => `${k} ${(DIRECTIVES[k] || []).join(' ')}`).join(' · ');
 
 // 보안 로그 (메모리 + 파일 영속화)
 // 어디에 둘까. 기본은 저장소 옆 `security.log` 다.
@@ -592,11 +599,17 @@ router.get('/report', adminAuth, (req, res) => {
       memory: process.memoryUsage(),
       env: process.env.NODE_ENV || 'development',
     },
+    // ── 적어둔 값이 아니라 **지금 쓰는 값**을 보낸다 ── (2026-10-21)
+    //
+    // 여기 있던 숫자들은 **손으로 적어둔 것**이었다. 바로 아래 `permissionsPolicy` 가
+    // 8/27 에 같은 까닭으로 고쳐진 자리다 — 「안 나가는 헤더를 있다고 적고 있었다」.
+    // 그런데 이 뭉치는 그대로 남아서, 설정을 고치면 **화면만 옛 값을 말했다.**
+    // 관리자 화면은 이것을 보고 판단하는 자리다. 틀린 숫자는 없는 것보다 나쁘다.
     auth: {
-      jwtAlgorithm: 'HS256',
-      accessTokenExpiry: '15m',
-      refreshTokenExpiry: '7d',
-      bcryptRounds: 12,
+      jwtAlgorithm: JWT.algorithm,
+      accessTokenExpiry: JWT.accessExpiry,
+      refreshTokenExpiry: Math.round(JWT.refreshMs / 86400000) + 'd',
+      bcryptRounds: BCRYPT_ROUNDS,
       csrfProtection: 'double-submit cookie',
       cookieFlags: 'httpOnly + secure(prod) + sameSite',
     },
@@ -623,15 +636,20 @@ router.get('/report', adminAuth, (req, res) => {
       sqlInjection: 'JSON 파일 DB — SQL 을 아예 안 쓴다',
       nosqlInjection: '몽고를 안 쓴다. 입력은 타입·범위로 검사한다',
       prototypePollution: 'JSON reviver + aiGuard scan',
-      rateLimiting: 'Global 100/min + Auth 20/15min',
+      rateLimiting: `Global ${RATE_LIMITS.global.max}/${RATE_LIMITS.global.windowMs / 60000}min`
+        + ` + Login ${RATE_LIMITS.login.max}/${RATE_LIMITS.login.windowMs / 60000}min`,
       botDetection: 'User-Agent pattern matching',
       csrfProtection: 'Double-submit cookie',
-      bruteForce: 'IP+email tracking + 5-attempt lock',
+      // **여기가 틀려 있었다** — 「IP+email tracking + 5-attempt lock」이라고 적혀
+      // 있었는데, 그 열쇠(IP+이메일)는 **고치기 전의 버그**다. IP 를 바꿔가며 한 계정을
+      // 두들기면 카운터가 영영 안 찼다. 지금은 계정별 · 주소별로 따로 센다
+      bruteForce: LOGIN_LOCK_DESC,
     },
     headers: {
       helmet: true,
-      hsts: '31536000s',
-      csp: 'self + fonts.googleapis.com',
+      hsts: HSTS_MAX_AGE + 's',
+      // CSP 도 `csp.js` 에서 받아 적는다 — 10/20 에 거기서 집 둘을 걷고 셋을 더했다
+      csp: CSP_SUMMARY,
       xFrameOptions: 'SAMEORIGIN',
       xContentType: 'nosniff',
       referrerPolicy: 'strict-origin-when-cross-origin',

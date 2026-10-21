@@ -331,6 +331,69 @@ console.log('── 우리가 적어달라고 한 글을 막고 있지 않나 �
 }
 
 console.log('');
+console.log('── 보안 보고서가 **지금 쓰는 값**을 말하는가 ── (2026-10-21)');
+//
+// 관리자 화면의 보안 보고서는 **손으로 적어둔 문자열 뭉치**였다. 그 중 하나는 틀렸다 —
+//
+//     bruteForce: 'IP+email tracking + 5-attempt lock'
+//
+// 그 열쇠(IP+이메일)는 **이 파일 머리글이 적어둔 「고치기 전의 버그」**다. IP 를
+// 바꿔가며 한 계정을 두들기면 카운터가 영영 안 찼다. 횟수도 5가 아니라 계정별 10 ·
+// 주소별 20 이다. CSP 도 10/20 에 집을 걷고 더했는데 화면은 옛말을 했다.
+//
+// **관리자 화면은 이것을 보고 판단하는 자리다. 틀린 숫자는 없는 것보다 나쁘다.**
+// 그래서 보고서를 실제로 받아 설정과 견준다.
+{
+  const cfg = require(path.join(__dirname, '..', 'src', 'config', 'security.js'));
+  const csp = require(path.join(__dirname, '..', 'src', 'csp.js'));
+  // 관리자 인증은 검사에서 통과시킨다 — 여기서 보려는 것은 인증이 아니라 **적힌 값**이다.
+  // **먼저 끼워야 한다**: 아래 「지금 막혀 있는 것」 절이 같은 길을 다시 쓰는데,
+  // 여기서 진짜 인증이 든 채로 담기면 그쪽이 401 을 받는다 (그렇게 한 번 걸렸다)
+  const adminPath = require.resolve(path.join(__dirname, '..', 'src', 'middleware', 'adminAuth.js'));
+  require.cache[adminPath] = {
+    id: adminPath, filename: adminPath, loaded: true, exports: (rq, rs, nx) => nx(),
+  };
+  const sec = require(path.join(__dirname, '..', 'src', 'routes', 'security.js'));
+  const layer = sec.stack.find((l) => l.route && l.route.path === '/report');
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle;
+  let rep = null;
+  handler({ userId: 1 }, { json(o) { rep = o; } });
+
+  ok('보고서가 나온다', !!rep, true);
+  ok('access 유효기간이 설정 그대로다', rep.auth.accessTokenExpiry, cfg.JWT.accessExpiry);
+  ok('  refresh 도 설정에서 센 값이다', rep.auth.refreshTokenExpiry,
+    Math.round(cfg.JWT.refreshMs / 86400000) + 'd');
+  ok('  서명 방식도', rep.auth.jwtAlgorithm, cfg.JWT.algorithm);
+  ok('  bcrypt 횟수도', rep.auth.bcryptRounds, cfg.BCRYPT_ROUNDS);
+  ok('속도 제한이 설정 그대로다', rep.defense.rateLimiting.includes(String(cfg.RATE_LIMITS.global.max))
+    && rep.defense.rateLimiting.includes(String(cfg.RATE_LIMITS.login.max)), true);
+  ok('무차별 대입 설명이 설정 그대로다', rep.defense.bruteForce, cfg.LOGIN_LOCK_DESC);
+  // **그 설명이 지금의 열쇠를 말하나** — 옛 버그(IP+이메일 · 5회)를 되말하지 않는다
+  ok('  옛 열쇠를 되말하지 않는다', /IP\+email|5-attempt/i.test(rep.defense.bruteForce), false);
+  ok('  계정별과 주소별 둘을 말한다',
+    rep.defense.bruteForce.includes(String(cfg.LOGIN_LOCK.maxPerAccount))
+    && rep.defense.bruteForce.includes(String(cfg.LOGIN_LOCK.maxPerIp)), true);
+  // 로그인 자리가 **그 설정을 받아 쓰고 있나** (여기만 바꾸고 저쪽이 옛 숫자면 거짓말이다)
+  const authSrc2 = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'auth.js'), 'utf-8');
+  ok('로그인이 그 설정을 받아 쓴다', /LOGIN_MAX_ATTEMPTS = LOGIN_LOCK\.maxPerAccount/.test(authSrc2), true);
+  ok('  주소별도', /LOGIN_MAX_PER_IP = LOGIN_LOCK\.maxPerIp/.test(authSrc2), true);
+
+  ok('HSTS 가 설정 그대로다', rep.headers.hsts, cfg.HSTS_MAX_AGE + 's');
+  ok('  내보내는 helmet 도 같은 값을 쓴다',
+    /maxAge: HSTS_MAX_AGE/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf-8')), true);
+  ok('CSP 가 지금 나가는 것이다', rep.headers.csp.includes(csp.DIRECTIVES['connect-src'].join(' ')), true);
+  ok('  없는 집을 적어두지 않는다', /fonts\.googleapis\.com/.test(rep.headers.csp)
+    === csp.DIRECTIVES['connect-src'].some((v) => v.includes('fonts.googleapis.com')), true);
+  ok('권한 방침은 내보내는 값 그대로다', rep.headers.permissionsPolicy, cfg.PERMISSIONS_POLICY);
+
+  // **화면이 그 뭉치를 실제로 그리나.** 보내기만 하고 안 그리면 고친 일이 아무 데도 안 보인다
+  const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src',
+    'components', 'admin', 'SecurityScan.jsx'), 'utf-8');
+  ok('화면이 방어 시스템을 그린다', /Object\.entries\(report\.defense\)/.test(panel), true);
+  ok('  내보내는 헤더도 그린다', /Object\.entries\(report\.headers/.test(panel), true);
+}
+
+console.log('');
 console.log('── 로그아웃이 정말 쿠키를 걷는가 ── (2026-10-21)');
 //
 // `utils/tokens.js` 머리글이 적어둔 것: 「쿠키 설정이 양쪽에 복붙돼 있었다 … 한 곳에

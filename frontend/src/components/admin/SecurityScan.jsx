@@ -146,6 +146,23 @@ export default function SecurityScan() {
             ))}
           </div>
 
+          {/* ── 내보내는 헤더 ── (2026-10-21 에 붙였다)
+              서버는 이것을 **줄곧 보내고 있었는데 화면이 안 그렸다.** `routes/security.js` 의
+              `permissionsPolicy` 자리에 「화면이 「설정됨」이라고 읽는 자리다」라고 적혀
+              있는데 읽는 데가 없었다 — 8/27 에 그 값을 진짜로 나가는 것으로 고친 일이
+              **아무 데도 보이지 않고 있었다.** 방어 시스템과 같은 모양으로 그린다 */}
+          <div className="section-title"><div className="accent-bar" />내보내는 헤더</div>
+          <div className="card" style={{ padding: 12, marginBottom: 16 }}>
+            {Object.entries(report.headers || {}).map(([key, val]) => (
+              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{key}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right', wordBreak: 'break-all' }}>
+                  {String(val)}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <div className="section-title"><div className="accent-bar" />최근 보안 로그</div>
           <div style={{ maxHeight: 200, overflow: 'auto' }}>
             {(report.recentLogs || []).map((log, i) => (

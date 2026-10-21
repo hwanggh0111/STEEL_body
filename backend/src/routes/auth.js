@@ -2,7 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db     = require('../db');
-const { BCRYPT_ROUNDS } = require('../config/security');
+const { BCRYPT_ROUNDS, LOGIN_LOCK } = require('../config/security');
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
@@ -91,10 +91,12 @@ function checkCode(email, code) {
 // 계정을 잠그는 것은 **남이 일부러 잠글 수 있다**(그 사람 아이디로 열 번 틀리면 된다).
 // 그래서 15분으로 짧게 두고, 그동안에도 비밀번호 찾기는 열려 있다. 잠금을 아예 안 두면
 // 목록을 가진 쪽이 하루 종일 두들길 수 있어서, 둘 중에는 이쪽이 낫다.
-const LOGIN_WINDOW = 15 * 60 * 1000;
-const LOGIN_MAX_ATTEMPTS = 10;      // 계정 하나에 틀린 시도 열 번 (IP 를 바꿔도 같이 센다)
-const LOGIN_MAX_PER_IP = 20;        // 한 주소에서 스무 번 (계정을 바꿔도 같이 센다)
-const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 15분
+// 숫자는 **설정 한 곳에서** 온다 (`config/security.js` 의 `LOGIN_LOCK`) —
+// 관리자 보안 보고서가 같은 값을 읽어 화면에 적는다 (2026-10-21)
+const LOGIN_WINDOW = LOGIN_LOCK.windowMs;
+const LOGIN_MAX_ATTEMPTS = LOGIN_LOCK.maxPerAccount;
+const LOGIN_MAX_PER_IP = LOGIN_LOCK.maxPerIp;
+const LOGIN_LOCK_TIME = LOGIN_LOCK.lockMs;
 
 // 친 아이디를 하나의 말로 맞춘다 — 대소문자와 앞뒤 공백으로 카운터를 피할 수 있으면 안 된다
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();

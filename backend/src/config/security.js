@@ -50,6 +50,28 @@ const JWT = {
 // 유예 안이면 세션을 끊지 않고 그냥 401 을 준다(화면은 다시 갱신하면 된다).
 const REFRESH_REUSE_GRACE_MS = 20 * 1000;
 
+// ── 로그인 잠금 ── (2026-10-21 에 여기로 옮겼다)
+//
+// `routes/auth.js` 가 들고 있었다. 그러면 **관리자 보안 보고서가 그 숫자를 읽을 수가
+// 없어서 손으로 적어뒀고**, 그 적어둔 말이 틀려 있었다 — 「IP+email tracking +
+// 5-attempt lock」. 그 열쇠(IP+이메일)는 **고치기 전의 버그**다. IP 를 바꿔가며 한
+// 계정을 두들기면 카운터가 영영 안 찼다. 지금은 계정별 · 주소별로 따로 센다.
+//
+// 값을 고치면 화면의 말도 같이 바뀌어야 한다. 그래서 한 곳에 둔다.
+const LOGIN_LOCK = {
+  windowMs: 15 * 60 * 1000,
+  maxPerAccount: 10,                 // 계정 하나에 틀린 시도 열 번 (IP 를 바꿔도 같이 센다)
+  maxPerIp: 20,                      // 한 주소에서 스무 번 (계정을 바꿔도 같이 센다)
+  lockMs: 15 * 60 * 1000,
+};
+
+/** 사람이 읽는 말로 — 관리자 보안 보고서가 이 줄을 그대로 보여준다 */
+const LOGIN_LOCK_DESC = `계정별 ${LOGIN_LOCK.maxPerAccount}회 · 주소별 ${LOGIN_LOCK.maxPerIp}회`
+  + ` / ${LOGIN_LOCK.windowMs / 60000}분 → ${LOGIN_LOCK.lockMs / 60000}분 잠금`;
+
+// HSTS. 서버(index.js)가 헤더로 내보내고 보안 보고서가 같은 값을 읽어 보여준다
+const HSTS_MAX_AGE = 31536000;
+
 const BCRYPT_ROUNDS = 12;
 
 // 사진을 base64 로 보내기 때문에 넉넉하다. photoLimit 과 짝이다
@@ -79,4 +101,7 @@ const BODY_LIMIT = '3mb';
 // 그대로 막아둔다. 검사가 코드와 이 줄을 맞춰본다(`npm run security`).
 const PERMISSIONS_POLICY = 'camera=(self), microphone=(self), geolocation=()';
 
-module.exports = { RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS };
+module.exports = {
+  RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS,
+  LOGIN_LOCK, LOGIN_LOCK_DESC, HSTS_MAX_AGE,
+};

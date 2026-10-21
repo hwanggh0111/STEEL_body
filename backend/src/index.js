@@ -20,7 +20,7 @@ const helmet  = require('helmet');
 const csp = require('./csp');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const { RATE_LIMITS, BODY_LIMIT, PERMISSIONS_POLICY } = require('./config/security');
+const { RATE_LIMITS, BODY_LIMIT, PERMISSIONS_POLICY, HSTS_MAX_AGE } = require('./config/security');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const aiGuard = require('./middleware/aiGuard');
@@ -52,7 +52,8 @@ app.use(helmet({
   // 미리 찾아두는 것이 새는 정보는 **그 집 이름뿐**이고, 그 이름은 어차피 그 집에
   // 물을 때 나간다. 켜는 쪽이 맞다.
   dnsPrefetchControl: { allow: true },
-  hsts: { maxAge: 31536000, includeSubDomains: true },
+  // 숫자는 설정 한 곳에서 온다 — 보안 보고서가 같은 값을 읽어 화면에 적는다
+  hsts: { maxAge: HSTS_MAX_AGE, includeSubDomains: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
