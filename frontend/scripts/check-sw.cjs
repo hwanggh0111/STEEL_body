@@ -250,9 +250,15 @@ const within = (p, ms) => Promise.race([
     ok('해시 파일은 두 번째부터 네트워크를 안 탄다', 불린횟수, 받은뒤);
 
     // 4) 남의 집 것은 캐시하지 않는다
-    const outside = w.fire(req('https://wger.de/api/v2/exercise/'));
+    //
+    // **집을 바꿨다** (2026-10-21). 여기 `wger.de` 를 쓰고 있었는데 그 기능을
+    // 걷었다(그쪽 API 가 404 다 — `components/ExerciseFinder.jsx` 머리글).
+    // 지금 앱이 실제로 가는 남의 집은 미디어파이프의 모델이다 — **5MB 다.**
+    // 담아두면 안 되는 까닭이 여기 더 분명하다(브라우저 캐시가 알아서 들고 있다)
+    const OTHER = 'https://storage.googleapis.com/mediapipe-models/x.task';
+    const outside = w.fire(req(OTHER));
     await outside.answered;
-    const hit = await caches.match('https://wger.de/api/v2/exercise/');
+    const hit = await caches.match(OTHER);
     ok('남의 집 응답은 담아두지 않는다', hit === undefined, true);
   }
 

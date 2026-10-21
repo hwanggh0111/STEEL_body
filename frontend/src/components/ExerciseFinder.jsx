@@ -1,8 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import axios from 'axios';
-import {
-  searchExercises, koreanNameOf, translateQuery, isPart, PARTS, hasExercise,
-} from '../data/exerciseDict';
+import { useState, useMemo, useEffect } from 'react';
+import { searchExercises, isPart, PARTS, hasExercise } from '../data/exerciseDict';
 
 // ── 자세 설명은 **눌렀을 때** 받는다 ── (2026-10-05)
 //
@@ -35,10 +32,33 @@ function loadForm() {
 // 반드시 한쪽만 고쳐진다 (이 앱에서 이미 여러 번 겪었다 — 점검 아이콘 · 보안 규칙 ·
 // 응답 모양). 지금은 「운동 검색」 화면과 기록 화면이 **이 파일 하나**를 같이 쓴다.
 //
-// 하는 일은 그대로다:
-//   · 앱 안의 사전을 **치는 동안 바로** 보여준다 (한국어 · 영어 · 초성 · 부위)
+// 하는 일은 둘이다:
+//   · 앱 안의 사전을 **치는 동안 바로** 보여준다 (한국어 · 영어 · 초성 · 부위 · 근육)
 //   · 운동마다 **자세 설명**을 눌러서 편다 (순서 · 조심할 것)
-//   · 앱에서 못 찾으면 **눌렀을 때만** 인터넷(wger.de)에 나간다. 끊겨도 검색은 된다
+//
+// ── 「인터넷에서 더 찾기」는 2026-10-21 에 걷어냈다 ──
+//
+// 앱에서 못 찾으면 **눌렀을 때만** 외부 DB(wger.de)에 물었다. 그런데 **그 길이
+// 죽어 있었다** — `GET https://wger.de/api/v2/exercise/search/` 가 **404** 다
+// (그쪽이 API 를 바꿨다. 지금 그 집의 길 목록에 `exercise/search` 가 아예 없다).
+//
+// 그래서 누르면 늘 이렇게 끝났다 —
+//
+//     「인터넷에서 찾지 못했어요. **잠시 후 다시 해보세요.**」  + 재시도 단추
+//
+// **거짓말이다.** 잠시 후에도, 내일도 안 된다. 이 파일이 바로 위에서
+// 「눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다」고 적어둔 그것이고,
+// 알림 쪽에서 정한 「**될 것처럼 말하면 안 된다**」(`LoginPage` 의 `not_configured`)
+// 와도 어긋난다.
+//
+// **되살리지 않았다.** 그쪽에 이름으로 찾는 길이 지금 없다 — 운동 932개를 통째로
+// 받아 이름은 `exercise-translation` 에서 따로 맞춰야 하는데, 「눌러야 나가는 길」
+// 하나에 그걸 둘 수는 없다. 그리고 애초에 **그 자료가 더 나빴다** — 이 화면의
+// 맨 첫 머리글이 그 말이다: 「영어 이름뿐이라 설명이 없었다 · 좋은 자료를 버리고
+// 더 나쁜 것을 기다린 셈이다」. 사전은 219개 전부에 설명과 자세가 달려 있다.
+//
+// 못 찾았을 때 할 수 있는 일은 **그대로 쓰기**다(자유 입력이다 — 적으면 기록되고,
+// 이름의 낱말로 부위도 맞혀본다). 그 카드에 **부위로 둘러보는 길**을 같이 뒀다.
 //
 // **「같은 갈래 보기」는 2026-09-02 에 걷어냈다.** 「벤치프레스」를 찾으면 인클라인 ·
 // 디클라인이 **이미 그 목록에 다 나와 있다** — 사전 검색이 갈래 이름까지 보기 때문이다.
@@ -52,8 +72,6 @@ function loadForm() {
 // 여기에 손으로 적어두면 사전에 부위를 하나 더 만들었을 때 이 단추만 옛 목록으로 남는다.
 // 「등」 · 「팔」이 안 나오던 것도 이 자리와 사전이 따로 놀아서 생긴 일이다
 const CATEGORIES = PARTS.map((label) => ({ label, q: label }));
-
-const EXTERNAL_TIMEOUT = 8000;
 
 // 아래에 붙는 「자세 보기」. 글자만 놓아두면 눌러도 되는 것인지 모른다. 단추로 그린다
 function MoreLink({ onClick, children }) {
@@ -78,13 +96,16 @@ function MoreLink({ onClick, children }) {
 // 운동인가」이지 「어떻게 하는가」가 아니다. 「손 모아 다이아몬드. 삼두 + 가슴 안쪽」을
 // 읽고 처음 하는 사람이 그 자세를 잡을 수는 없다. 순서 서너 줄과 **조심할 것 한 줄**을
 // 눌러서 볼 수 있게 뒀다 — 늘 펼쳐두면 목록에서 운동을 못 고른다.
-function Card({ ko, en, desc, tag, pickLabel, onPick }) {
+// `tag`(「인터넷」 딱지)는 2026-10-21 에 같이 걷었다 — 넘기는 자리가 외부 DB 결과뿐이었다
+function Card({ ko, en, desc, pickLabel, onPick }) {
   const [openForm, setOpenForm] = useState(false);
   // 받아온 자세 설명. 누르기 전에는 null 이다
   const [form, setForm] = useState(null);
-  // 사전에 없는 이름(외부 DB 결과)에는 자세 설명이 없다. 그때는 단추를 아예 안 그린다 —
+  // 사전에 없는 이름에는 자세 설명이 없다. 그때는 단추를 아예 안 그린다 —
   // 눌러도 아무 일이 안 일어나는 자리를 남기면 고장으로 읽힌다.
-  // **받기 전에 알아야 하는 값이라 사전에 묻는다** (위의 loadForm 머리글)
+  // **받기 전에 알아야 하는 값이라 사전에 묻는다** (위의 loadForm 머리글).
+  // 지금 이 카드에 오는 것은 사전 결과뿐이지만(외부 DB 를 걷었다) 검사는 남겨둔다 —
+  // 「괄호 안을 뗀 이름」처럼 사전에 없는 꼴이 들어올 길이 아직 있다(`hasExercise`)
   const canOpen = hasExercise(ko);
 
   // **못 받은 것은 말한다** (2026-10-20에 고쳤다).
@@ -115,7 +136,6 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
             <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--text-primary)' }}>
               {ko}
             </span>
-            {tag && <span className="badge badge-accent">{tag}</span>}
           </div>
           {en && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{en}</div>}
           {desc && (
@@ -199,12 +219,6 @@ function Card({ ko, en, desc, tag, pickLabel, onPick }) {
 // 들어오는 자리에 쓴다. 처음 값일 뿐이라 사람이 지우면 그대로 지워진다
 export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false, initialQuery = '' }) {
   const [query, setQuery] = useState(initialQuery);
-  const [external, setExternal] = useState(null);   // null=안 찾음, []=없음
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // 늦게 온 응답이 새 검색을 덮어쓰지 않게 요청에 번호를 매긴다
-  const seqRef = useRef(0);
 
   // 부위 이름은 한 글자여도 찾는다 (「등」 · 「팔」)
   const typed = query.trim().length >= 2 || isPart(query);
@@ -237,35 +251,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
     return () => clearTimeout(t);
   }, [results.length]);
 
-  const setQ = (v) => {
-    setQuery(v);
-    setExternal(null);
-    setError('');
-  };
-
-  // 외부 DB — **눌러야 나간다.** 앱 안에서 못 찾았을 때만 쓸모가 있다
-  const searchExternal = async () => {
-    const term = translateQuery(query);
-    const seq = ++seqRef.current;
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await axios.get(
-        `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(term)}&language=english&format=json`,
-        { timeout: EXTERNAL_TIMEOUT },
-      );
-      if (seq !== seqRef.current) return;
-      setExternal(data.suggestions || []);
-    } catch {
-      if (seq !== seqRef.current) return;
-      // 실패했는데 옛 결과가 남아 있으면 오류 문구 아래 지난 검색이 붙어
-      // 검색이 된 것처럼 읽힌다
-      setExternal([]);
-      setError('인터넷에서 찾지 못했어요. 잠시 후 다시 해보세요.');
-    } finally {
-      if (seq === seqRef.current) setLoading(false);
-    }
-  };
+  const setQ = (v) => setQuery(v);
 
   return (
     <div>
@@ -318,70 +304,27 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
             </>
           )}
 
+          {/* ── 못 찾았을 때 ──
+              **할 수 있는 일만 준다**(2026-10-21). 여기 아래에 「인터넷에서 더 찾기」가
+              있었는데 그 길이 죽어 있었다(위 머리글) — 누르면 늘 「잠시 후 다시
+              해보세요」였다. 걷어내고, 그 자리에 **되는 것 둘**을 남긴다:
+              이름 그대로 쓰기 · 부위로 둘러보기 */}
           {results.length === 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>
                 앱 안에서는 못 찾았어요
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                이름 그대로 적으셔도 됩니다. 아래에서 인터넷으로 더 찾아볼 수도 있어요.
+                <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>이름 그대로 적으셔도 그대로 기록됩니다.</b>{' '}
+                사전에 없는 이름도 낱말을 보고 부위를 맞혀봅니다.
+                <br />오타일 수도 있어요 — 위의 부위 단추로 둘러보시거나,
+                근육 이름(이두 · 복근 · 광배근)으로도 찾을 수 있습니다.
               </div>
               <button
                 className="btn-primary"
                 style={{ marginTop: 12 }}
                 onClick={() => onPick(query.trim())}
               >「{query.trim()}」 그대로 쓰기</button>
-            </div>
-          )}
-
-          {/* 외부 DB — 눌러야 나간다 */}
-          <div style={{ marginTop: 20 }}>
-            {external === null ? (
-              <button className="btn-secondary" style={{ width: '100%' }} disabled={loading} onClick={searchExternal}>
-                {loading ? '인터넷에서 찾는 중…' : '인터넷에서 더 찾기'}
-              </button>
-            ) : (
-              <>
-                <div className="label">인터넷에서 찾은 것 {external.length}개</div>
-                {external.length === 0 ? (
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                    인터넷에서도 없었어요. 이 목록은 영어 자료라 한국어 이름으로는 잘 안 나옵니다.
-                  </div>
-                ) : (
-                  external.map((s, i) => {
-                    const ko = koreanNameOf(s.value || s.data?.name);
-                    const name = s.value || s.data?.name || '';
-                    return (
-                      <Card
-                        key={`${name}-${i}`}
-                        ko={ko || name}
-                        en={ko ? name : null}
-                        desc={s.data?.category ? `분류 · ${s.data.category}` : null}
-                        tag="인터넷"
-                        pickLabel={pickLabel}
-                        onPick={() => onPick(ko || name)}
-                      />
-                    );
-                  })
-                )}
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
-                  wger.de 의 공개 자료입니다. 영어 전용이라 설명이 없을 수 있습니다.
-                </div>
-              </>
-            )}
-          </div>
-
-          {error && (
-            <div style={{ color: 'var(--danger)', fontSize: 13, marginTop: 10 }}>
-              {error}
-              <button
-                onClick={searchExternal}
-                style={{
-                  marginLeft: 8, background: 'none', border: '1px solid var(--danger)',
-                  color: 'var(--danger)', padding: '2px 10px', borderRadius: 'var(--radius)',
-                  cursor: 'pointer', fontSize: 12,
-                }}
-              >재시도</button>
             </div>
           )}
         </>
