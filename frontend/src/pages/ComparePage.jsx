@@ -285,7 +285,13 @@ export default function ComparePage({ embedded = false }) {
   const { records, loading, fetchAll } = useInbodyStore();
   const [beforeIdx, setBeforeIdx] = useState(null);
   const [afterIdx, setAfterIdx] = useState(null);
-  const [photos, setPhotos] = useState(loadPhotos());
+  // **함수를 넘긴다** (2026-10-21에 고쳤다). `useState(loadPhotos())` 는 괄호를
+  // 여기서 바로 풀어서, 처음 한 번만 쓰이는 값인데 **렌더마다 다시 센다** —
+  // 이 자리가 세는 것은 `localStorage` 에서 읽은 사진 둘의 base64(최대 4MB)를
+  // `JSON.parse` 하는 일이다. 날짜를 고르거나 사진을 올릴 때마다 그 일이 한 번씩
+  // 더 일어나고 있었다. 홈트의 회복 이력은 `useState(loadRecoverLog)` 로
+  // 제대로 넘기고 있었다 — **둘 중 하나만 달랐다**
+  const [photos, setPhotos] = useState(loadPhotos);
   const [photoAt, setPhotoAt] = useState({});
 
   // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
