@@ -94,10 +94,47 @@ ok('한 번도 안 한 부위는 마지막 기록이 없다', v.byPart['어깨']
 // **조용히 빼지 않는다.** 「나는 이만큼 했는데 지도가 비어 있다」가 되면 지도를 못 믿는다
 ok("'기타' 로 빠진 것을 세어 알린다", v.other.count, 1);
 ok('  이름도 들고 있다', v.other.names, ['아무거나']);
+
 ok("  '기타' 세트는 어느 부위에도 안 더해진다",
   heat.MAP_PARTS.reduce((n, p) => n + v.byPart[p].sets7, 0), 12);
 ok('기록이 없으면 coldest 도 없다', heat.buildHeat({}, '2026-09-16').coldest, null);
 ok('  그때는 any 가 false', heat.buildHeat({}, '2026-09-16').any, false);
+
+// ── **「셀 곳이 없다」와 「못 알아봤다」를 갈라 센다** ── (2026-10-21)
+//
+// 여태 둘을 한 덩이(`other`)로 보고, 화면이 **전부에게** 이렇게 말했다 —
+// 「부위를 못 알아봐서 지도에 없어요 (런닝머신 · 실내 자전거) ·
+//  **운동 이름을 알아보게 적으면 지도에 들어옵니다**」.
+//
+// **거짓말이다.** 런닝머신은 사전에 있고 부위까지 적혀 있다(`전신 · 유산소`) —
+// 지도의 여섯 부위에 자리가 없는 것이다. 뽑아둔 부위 표가 그 말을 적어두고 있는데
+// (「못 맞힌 것이 아니라 셀 곳이 없다는 뜻이다」) 화면은 이름을 고치라고 했다.
+// 그 사람은 **어떻게 적어도 안 되는 일**을 한다.
+{
+  const cardioOnly = heat.buildHeat({
+    '2026-09-15': [
+      { exercise: '런닝머신', weight: '맨몸', sets: 1, reps: 30 },
+      { exercise: '실내 자전거', weight: '맨몸', sets: 1, reps: 40 },
+      { exercise: '버피', weight: '맨몸', sets: 3, reps: 15 },
+      { exercise: '아무거나', weight: '10', sets: 1, reps: 1 },
+    ],
+  }, '2026-09-15');
+  ok('사전이 아는 유산소는 유산소로 센다', cardioOnly.cardio.count, 3);
+  ok('  이름도 들고 있다', cardioOnly.cardio.names, ['런닝머신', '실내 자전거', '버피']);
+  ok('  못 알아본 이름만 other 에 남는다', cardioOnly.other.names, ['아무거나']);
+  // 유산소만 적은 사람의 지도는 여섯 부위가 비어 있다 — 그때 「기록하면 그려져요」라고
+  // 말하면 **매일 적고 있는 사람에게 적으라고 하는 것**이다. 화면이 그 둘을 가른다
+  ok('  유산소만 적으면 여섯 부위는 비어 있다', cardioOnly.any, false);
+  const map = read('src/components/BodyMap.jsx');
+  ok('  빈 지도가 적어둔 것이 있는지 본다', /heat\.cardio\.count > 0 \|\| heat\.other\.count > 0/.test(map), true);
+  ok('  유산소 줄과 못 알아본 줄을 따로 그린다',
+    /heat\.cardio\.count > 0 && \(/.test(map) && /heat\.other\.count > 0 && \(/.test(map), true);
+  // **유산소에게 「이름을 고쳐 적으라」고 하지 않는다** — 고쳐도 안 되는 일이다
+  const at = map.indexOf('유산소 · 전신 {heat.cardio.count}');
+  const cardioLine = at < 0 ? '' : map.slice(at, at + 400);
+  ok('  유산소 줄을 찾았다', at > 0, true);
+  ok('  유산소 줄에 「이름을 알아보게 적으면」이 없다', /알아보게 적으면/.test(cardioLine), false);
+}
 
 // ───────────────────────────────────────────
 console.log('\n── 1년 기록 벽 ──');

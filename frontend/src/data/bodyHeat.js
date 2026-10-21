@@ -1,4 +1,4 @@
-import { bodyPartOf } from './bodyPart';
+import { bodyPartOf, isKnownName } from './bodyPart';
 import { daysBetween } from './personalRecord';
 
 // 몸 지도 — **어느 부위가 아직 달아 있고 어디가 식었나.**
@@ -57,7 +57,13 @@ export function heatLevel(days) {
  *   list      식은 순서 (오래 안 건드린 것이 앞)
  *   coldest   그중 맨 앞 하나. 한 번도 안 한 부위가 있으면 그것이 맨 앞이다
  *   hot       오늘 건드린 부위 이름들
- *   other     어느 부위에도 못 들어간 것 { count, names } — 사전이 모자란 자리
+ *   other     **못 알아본 이름** { count, names } — 사전이 모자란 자리.
+ *             손으로 친 이름 · 오타가 여기 온다
+ *   cardio    **사전이 아는 전신 · 유산소** { count, names } — 지도의 여섯 부위에
+ *             자리가 없어서 빠진 것이다(2026-10-21 에 `other` 에서 갈라냈다).
+ *             **할 말이 다르다**: 이름을 고쳐 적어도 런닝머신은 여섯 중 하나가
+ *             되지 않는다 — 그런데 화면이 둘을 한 덩이로 보고 「이름을 알아보게
+ *             적으면 지도에 들어옵니다」라고 말하고 있었다
  *   maxSets7  부위 중 최근 이레 세트가 가장 많은 값 (막대 기준)
  *   any       기록이 하나라도 있나 — 없으면 화면은 지도 대신 안내를 낸다
  */
@@ -66,9 +72,11 @@ export function buildHeat(workouts, today) {
   MAP_PARTS.forEach((p) => {
     byPart[p] = { part: p, date: null, days: null, level: 0, count: 0, sets7: 0, last: null };
   });
-  // 어느 부위에도 못 들어간 것. 사전이 모자란 자리라 화면에서 한 줄로 밝힌다 —
-  // 조용히 빼면 「나는 이만큼 했는데 지도가 비어 있다」가 된다
+  // 어느 부위에도 못 들어간 것. 조용히 빼면 「나는 이만큼 했는데 지도가 비어 있다」가
+  // 된다. **둘로 갈라 센다** (2026-10-21) — 사전이 아는 유산소와, 못 알아본 이름.
+  // 화면이 둘에 할 말이 다르다 (`bodyPart.isKnownName` 머리글)
   const other = { count: 0, names: [] };
+  const cardio = { count: 0, names: [] };
 
   // 최근 이레. **오늘까지 7일**이다(오늘 포함) — 「이번 주」로 세면 월요일 아침마다
   // 모든 부위가 0 이 되어, 일요일에 조진 사람이 월요일에 아무것도 안 한 사람이 된다
@@ -80,9 +88,12 @@ export function buildHeat(workouts, today) {
     list.forEach((record) => {
       const part = bodyPartOf(record?.exercise);
       if (part === '기타') {
-        other.count += 1;
         const name = String(record?.exercise || '').trim();
-        if (name && !other.names.includes(name)) other.names.push(name);
+        // 사전이 아는 이름이면 **셀 곳이 없는 것**이고(유산소 · 전신),
+        // 모르는 이름이면 **못 알아본 것**이다
+        const bucket = isKnownName(name) ? cardio : other;
+        bucket.count += 1;
+        if (name && !bucket.names.includes(name)) bucket.names.push(name);
         return;
       }
       const slot = byPart[part];
@@ -130,6 +141,7 @@ export function buildHeat(workouts, today) {
     coldest: any ? list[0] : null,
     hot: MAP_PARTS.filter((p) => byPart[p].days === 0),
     other,
+    cardio,
     maxSets7,
     any,
   };

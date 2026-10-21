@@ -139,11 +139,33 @@ export default function BodyMap() {
   const [picked, setPicked] = useState(null);
 
   if (!heat.any) {
+    // ── **적은 것이 있는데 「기록하면」이라고 말하지 않는다** ── (2026-10-21)
+    //
+    // 유산소만 하는 사람(런닝머신 · 실내 자전거 · 로잉)은 **매일 적어도 지도의
+    // 여섯 부위가 비어 있다** — 그 부위에 유산소의 자리가 없기 때문이다.
+    // 그런데 이 자리가 「운동을 기록하면 여기에 몸이 그려져요」라고 말하고 있었다.
+    // **매일 적고 있는 사람에게 적으라고 한 것이다.** 이 파일이 아래에서
+    // 「나는 이만큼 했는데 지도가 비어 있다가 되면 지도를 못 믿게 된다」고 적어둔
+    // 그 자리고, 거기까지 생각이 안 와 있었다
+    const onlyCardio = heat.cardio.count > 0 || heat.other.count > 0;
     return (
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          운동을 기록하면 여기에 몸이 그려져요.<br />
-          최근에 한 부위가 금빛으로 달아오르고, 며칠 지나면 식습니다.
+          {onlyCardio ? (
+            <>
+              기록이 <span style={{ color: 'var(--accent)' }}>{heat.cardio.count + heat.other.count}건</span> 있는데
+              <br />지도의 여섯 부위에 자리가 없어요.
+              <br /><span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+                지도는 <b>근육 부위 여섯</b>(가슴 · 등 · 어깨 · 하체 · 팔 · 코어)을 그립니다 —
+                유산소 · 전신은 여기 자리가 없습니다.
+              </span>
+            </>
+          ) : (
+            <>
+              운동을 기록하면 여기에 몸이 그려져요.<br />
+              최근에 한 부위가 금빛으로 달아오르고, 며칠 지나면 식습니다.
+            </>
+          )}
         </div>
         <button className="btn-primary" onClick={() => navigate('/train')}>운동 기록하기</button>
       </div>
@@ -278,7 +300,25 @@ export default function BodyMap() {
       </div>
 
       {/* 어느 부위에도 못 들어간 것. **조용히 빼지 않는다** —
-          「나는 이만큼 했는데 지도가 비어 있다」가 되면 지도를 못 믿게 된다 */}
+          「나는 이만큼 했는데 지도가 비어 있다」가 되면 지도를 못 믿게 된다.
+
+          ── **둘에 할 말이 다르다** ── (2026-10-21)
+
+          여태 한 덩이로 보고 **전부에게** 이렇게 말했다 —
+          「부위를 못 알아봐서 지도에 없어요 (런닝머신 · 실내 자전거) ·
+           **운동 이름을 알아보게 적으면 지도에 들어옵니다**」.
+
+          **거짓말이다.** 런닝머신은 사전에 있고 부위까지 적혀 있다(`전신 · 유산소`) —
+          못 알아본 것이 아니라 **지도의 여섯 부위에 그 자리가 없는 것**이다. 뽑아둔
+          부위 표가 그 말을 적어두고 있다(「못 맞힌 것이 아니라 셀 곳이 없다는 뜻이다」).
+          그런데 화면은 **이름을 고쳐 적으라고** 했다 — 어떻게 적어도 안 되는 일이다. */}
+      {heat.cardio.count > 0 && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
+          유산소 · 전신 {heat.cardio.count}건은 지도에 자리가 없어요
+          {heat.cardio.names.length > 0 && ` (${heat.cardio.names.slice(0, 3).join(' · ')}${heat.cardio.names.length > 3 ? ' 외' : ''})`}.
+          지도는 근육 부위 여섯만 그립니다 — 기록은 그대로 남아 있습니다.
+        </div>
+      )}
       {heat.other.count > 0 && (
         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
           {heat.other.count}건은 부위를 못 알아봐서 지도에 없어요
