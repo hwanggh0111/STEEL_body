@@ -70,6 +70,47 @@ const tripRow = rows.readWorkouts(
 ok('줄까지 읽어도 이름이 그대로다', [tripRow.rows[0].exercise, tripRow.rows[0].weight], ['-5도 인클라인', '=1+1']);
 
 console.log('');
+console.log('── 화면에 적힌 이름표와 같은가 ── (2026-10-21)');
+//
+// `measureLabels.js` 머리글이 못 박아둔 것: 「화면에 적힌 이름 그대로 내보낸다」 ·
+// 「두 벌로 두면 항목 하나를 더할 때 한쪽만 고쳐지고, 그러면 **내보낸 파일을 그 앱이
+// 다시 못 읽는다**」. 그런데 이름표는 **화면 쪽에도 한 벌 더 있다**
+// (`components/measure/*Section.jsx` 의 `SIZE_FIELDS` · `FLEX_FIELDS` · `FITNESS_TESTS`).
+//
+// 지금은 둘이 맞다. 어긋나는 날 알 길이 없어서 여기서 센다 — 화면에 칸을 하나 더하면
+// 이 검사가 먼저 걸린다.
+{
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'measure');
+  const seen = [];
+  for (const f of fs.readdirSync(dir).filter((n) => /Section\.jsx$/.test(n))) {
+    const src = fs.readFileSync(path.join(dir, f), 'utf-8');
+    const re = /\{\s*key:\s*'([a-z0-9_]+)'\s*,\s*label:\s*'([^']+)'/g;
+    let m;
+    while ((m = re.exec(src))) seen.push({ file: f, key: m[1], label: m[2] });
+  }
+  ok('화면에서 이름표 달린 칸을 찾았다', seen.length > 0, true);
+  ok('이름표 표에 없는 칸이 없다',
+    seen.filter((s2) => !FIELD_LABEL[s2.key]).map((s2) => `${s2.file} ${s2.key}`), []);
+  ok('  적힌 말이 서로 같다',
+    seen.filter((s2) => FIELD_LABEL[s2.key] && FIELD_LABEL[s2.key] !== s2.label)
+      .map((s2) => `${s2.key}: 화면「${s2.label}」 ≠ 표「${FIELD_LABEL[s2.key]}」`), []);
+
+  // 종류 여섯은 **한 곳에서만** 적는다 — 라우트가 표를 받아 쓰고 있나
+  const mr = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'measures.js'), 'utf-8');
+  ok('받는 종류를 손으로 또 적지 않는다', /VALID_TYPES = Object\.keys\(MEASURE_LABEL\)/.test(mr), true);
+  // 이름표가 겹치면 거꾸로 읽는 표(`flip`)가 한쪽을 잃는다 — 그 칸이 딴 칸으로 들어간다
+  const dupe = (o) => {
+    const at2 = {}; const out = [];
+    for (const [k, v] of Object.entries(o)) { if (at2[v]) out.push(`${v}: ${at2[v]} / ${k}`); at2[v] = k; }
+    return out;
+  };
+  ok('이름표가 겹치지 않는다 (겹치면 거꾸로 읽을 때 한쪽을 잃는다)', dupe(FIELD_LABEL), []);
+  ok('  종류 이름표도', dupe(MEASURE_LABEL), []);
+}
+
+console.log('');
 console.log('── 운동 ──');
 const wCsv = `﻿날짜,운동명,무게,세트,횟수
 ${TODAY},벤치프레스,80,5,8

@@ -3,7 +3,14 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 
-const VALID_TYPES = ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch'];
+// ── 받는 종류는 **이름표 표에서 온다** ── (2026-10-21)
+//
+// 여태 여섯 개를 손으로 또 적어뒀다. `utils/measureLabels.js` 가 바로
+// 「두 벌로 두면 한쪽만 고쳐진다」고 적어놓고 옮겨간 표인데, 이 줄이 그 두 번째 벌이었다.
+// 어긋나면 **받아 저장은 되는데 내보낸 파일을 앱이 다시 못 읽는** 쪽으로 어긋난다
+// (내보내기는 모르는 종류를 열쇠 그대로 적고, 가져오기는 그 줄을 「모르는 종류」로 버린다).
+const { MEASURE_LABEL } = require('../utils/measureLabels');
+const VALID_TYPES = Object.keys(MEASURE_LABEL);
 
 const { sanitizeObj } = require('../utils/sanitize');
 const { isRecordDay } = require('../utils/dayRange');
