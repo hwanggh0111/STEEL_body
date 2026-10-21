@@ -91,10 +91,12 @@ export default function SupportPage() {
   const fetchReports = useReportStore(r => r.fetchAll);
   useEffect(() => { fetchReports(); }, [fetchReports]);
 
-  const latestReply = useMemo(
-    () => reports.reduce((max, i) => (i.reply_at && i.reply_at > max ? i.reply_at : max), ''),
-    [reports],
-  );
+  // **스토어의 손을 쓴다** (2026-10-21). 여태 이 자리에 똑같은 `reduce` 가 한 벌 더
+  // 적혀 있었다 — 스토어에 `latestReplyAt()` 이 **글자까지 같은 모양**으로 있는데
+  // 아무도 안 불렀다. 같은 것을 두 곳에 두면 반드시 한쪽만 고쳐진다.
+  // `reports` 를 deps 에 두는 것은 그대로다 — 답변이 오면 다시 세야 한다
+  const latestReplyAt = useReportStore(r => r.latestReplyAt);
+  const latestReply = useMemo(() => latestReplyAt(), [latestReplyAt, reports]);
   const [seenReply, setSeenReply] = useState(() => readLS(SEEN_REPLY_KEY) || '');
   const hasNewReply = !!latestReply && latestReply > seenReply;
 

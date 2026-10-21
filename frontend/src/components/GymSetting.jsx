@@ -93,10 +93,14 @@ export default function GymSetting({ exercise }) {
   const [gymInput, setGymInput] = useState('');
 
   const name = String(exercise || '').trim();
-  const setting = useMemo(
-    () => (name && gym ? all.find((s) => s.gym === gym && s.exercise === name) || null : null),
-    [all, gym, name],
-  );
+  // **스토어의 손을 쓴다** (2026-10-21). 여태 이 자리에 똑같은 `find` 가 한 벌 더
+  // 적혀 있었다 — 스토어에 `settingOf(exercise)` 가 **같은 규칙**으로 있는데
+  // 아무도 안 불렀다. 「지금 헬스장의 그 운동 세팅」을 찾는 규칙이 두 곳에 있으면
+  // 한쪽만 고쳐지는 날이 온다.
+  // `all` · `gym` 을 deps 에 두는 것은 그대로다 — 그 손은 `get()` 으로 읽으므로
+  // 여기서 구독을 놓으면 세팅이 바뀌어도 다시 안 그린다
+  const settingOf = useGymStore((s) => s.settingOf);
+  const setting = useMemo(() => settingOf(name), [settingOf, name, all, gym]);
   // 다른 헬스장에 같은 운동을 적어뒀나 — 맨땅부터 적게 하면 대개 안 적는다
   const copyable = useMemo(() => copyableFrom(all, gym, name), [all, gym, name]);
 
