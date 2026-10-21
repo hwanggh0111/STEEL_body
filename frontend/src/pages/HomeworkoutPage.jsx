@@ -20,6 +20,7 @@ import { useSettingsStore, senseOf } from '../store/settingsStore';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
+import { i as iPart } from '../data/particle';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -645,7 +646,8 @@ export default function HomeworkoutPage() {
     // 하는지 알 수 없다
     const names = failed.map((r) => r.exercise.split(' · ').pop()).join(' · ');
     if (saved > 0) {
-      toast(`${saved}줄은 올라갔고 ${names}이(가) 안 올라갔어요. 그것만 적어주세요`, 'error');
+      // 괄호를 걷는다 — 고르는 손이 있다 (2026-10-21, `data/particle.js`)
+      toast(`${saved}줄은 올라갔고 ${iPart(names)} 안 올라갔어요. 그것만 적어주세요`, 'error');
     } else {
       toast('기록을 못 올렸어요. 직접 적어주세요', 'error');
     }

@@ -12,6 +12,7 @@ import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 // 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
 import { SESSION_EXPIRED_KEY } from '../data/localKeys';
+import { i as iPart } from '../data/particle';
 
 // 로그인 — 다시 짰다 (2026-10-06).
 //
@@ -152,7 +153,8 @@ function oauthErrorText(code) {
   }
   if (kind === 'no_email') {
     const where = WHERE[name] || '「이메일 제공」';
-    return `${label}이 메일 주소를 주지 않았어요. ${where}에 동의하고 다시 눌러주세요.`;
+    // 조사는 앞말에 맞춘다 — 구글「이」 · 네이버「가」 (2026-10-21)
+    return `${iPart(label)} 메일 주소를 주지 않았어요. ${where}에 동의하고 다시 눌러주세요.`;
   }
   if (code === 'invalid_state') {
     // state 는 1회용이라, 뒤로 가기나 오래된 링크로 다시 오면 여기로 떨어진다

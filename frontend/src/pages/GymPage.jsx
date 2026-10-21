@@ -6,6 +6,7 @@ import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
 import NavIcon from '../components/NavIcon';
 import { filledSlots, GYM_MAX } from '../data/gymSetting';
+import { eul } from '../data/particle';
 
 // 「기구」 탭.
 //
@@ -134,7 +135,8 @@ export default function GymPage() {
   const onClearGym = async (name, count) => {
     const yes = await confirmDialog(
       `${name}에 적어둔 세팅 ${count}개를 다 지웁니다.\n\n운동 기록은 그대로 남습니다 — 지워지는 것은 「시트 몇 번 · 발판 몇 칸」 같은 기구 세팅뿐입니다.`,
-      { title: `${name}을 치울까요`, confirmText: '다 지우기', danger: true },
+      // 헬스장 이름은 사람이 적는 것이다 — 「집앞을」 · 「회사를」 (2026-10-21)
+      { title: `${eul(name)} 치울까요`, confirmText: '다 지우기', danger: true },
     );
     if (!yes) return;
     try {

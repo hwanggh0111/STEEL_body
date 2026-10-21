@@ -11,6 +11,7 @@ import {
   MAX_WEEKLY, hasGoal, weekProgress, weekLine, weekStreak, weekHistory,
   measureProgress, weightEta,
 } from '../data/goal';
+import { eul } from '../data/particle';
 
 // 목표 화면.
 //
@@ -157,7 +158,9 @@ function GoalForm({ goal, latest, onSave, onCancel, saving }) {
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
               {now != null
                 ? `지금 ${now}${m.unit} 에서 시작합니다 · ${m.hint}`
-                : `「몸 → 인바디」에 ${m.label}을 한 번 적으면 진행률이 그려집니다`}
+                /* 조사는 앞말에 맞춘다 — 지금 셋은 다 받침이 있어 「을」이 맞지만,
+                   칸이 하나 늘 때 조용히 틀린다 (2026-10-21) */
+                : `「몸 → 인바디」에 ${eul(m.label)} 한 번 적으면 진행률이 그려집니다`}
             </div>
           </div>
         );

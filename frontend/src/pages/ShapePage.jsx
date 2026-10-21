@@ -11,6 +11,7 @@ import { pickShapeReference } from '../data/overlayShot';
 import { pushShape, pickPrev, pickFirst, shapeSpan, slimShape, SHAPE_MAX } from '../data/shapeHistory';
 import { readLS, saveLS } from '../data/safeStorage';
 import { SHAPE_RATIOS_KEY, SHAPE_LOG_KEY, COMPARE_PHOTOS_KEY } from '../data/localKeys';
+import { i as iPart } from '../data/particle';
 
 // 체형 — 사진을 올리면 **그 사진에서 잰 비율로 실루엣을 다시 그리고**, 기록 · 인바디와
 // 합쳐 어디가 좋고 어디가 덜 했는지 말한다 (2026-09-22, 계획은 `docs/SHAPE-READ-2026-09-19.md`).
@@ -143,7 +144,8 @@ export default function ShapePage({ embedded = false }) {
       }
       const r = buildRatios(marks, { width: img.naturalWidth, height: img.naturalHeight });
       if (!r.ok) {
-        setError(`비율을 못 쟀어요 (${r.missing.join(' · ')}가 안 보여요).`);
+        // 조사는 앞말에 맞춘다 — 어깨「가」 · 골반「이」 · 무릎「이」 (2026-10-21)
+        setError(`비율을 못 쟀어요 (${iPart(r.missing.join(' · '))} 안 보여요).`);
         setStage(null);
         return;
       }

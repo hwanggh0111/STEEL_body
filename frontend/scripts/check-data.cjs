@@ -649,14 +649,21 @@ console.log('── 조사가 앞말에 맞나 ── (2026-10-21)');
     ['어깨', '하체', '코어'].map((p) => [pa.eun(p), pa.i(p), pa.eul(p)].join(' ')),
     ['어깨는 어깨가 어깨를', '하체는 하체가 하체를', '코어는 코어가 코어를']);
 
-  // 화면에 나가는 말을 만드는 자리들 — **보간 바로 뒤에 조사를 박지 않았나**
-  const SPEAKERS = [
-    'src/data/sorePart.js',
-    'src/data/partPreview.js',
-    'src/data/shapeRead.js',
-    'src/data/weeklyReport.js',
-    'src/pages/PartsPage.jsx',
-  ];
+  // **앱 코드 전체**를 본다 (2026-10-21).
+  //
+  // 처음에는 말을 만드는 자리 다섯만 적어뒀는데, 넓혀 보니 **여덟 군데가 더** 걸렸다 —
+  // 홈트의 「등를 채웠어요」 · 횟수 세기의 「팔꿈치을 봐요」 · 기구의 「회사을 치울까요」 ·
+  // 소셜 로그인의 「네이버이 메일 주소를…」 · 체형의 「골반가 안 보여요」.
+  // **새 말은 어느 파일에서나 생긴다** — CSP 검사를 10/20 에 앱 전체로 넓힌 것과 같다.
+  const SPEAKERS = [];
+  (function walk(d) {
+    for (const n of fs.readdirSync(d)) {
+      const f = path.join(d, n);
+      if (fs.statSync(f).isDirectory()) walk(f);
+      else if (/\.(js|jsx)$/.test(n)) SPEAKERS.push(f.split(path.sep).join('/'));
+    }
+  })('src');
+  ok('말을 만드는 자리를 찾았다', SPEAKERS.length > 100, true);
   const stuck = [];
   for (const f of SPEAKERS) {
     const src = stripNotes(fs.readFileSync(f, 'utf-8'));

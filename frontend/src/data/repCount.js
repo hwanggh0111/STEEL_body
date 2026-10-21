@@ -18,6 +18,9 @@
 // 이 파일은 카메라도 모델도 화면도 모른다. 점과 숫자만 받는다 — `npm run reps` 가 본다.
 
 /** 볼 수 있는 관절. 이름은 화면이 그대로 적는다. */
+// 조사를 앞말에 맞춘다 — 무릎「이」 · 팔꿈치「가」 (2026-10-21)
+import { i as iPart } from './particle';
+
 export const JOINTS = {
   knee: { label: '무릎', down: 100, up: 155 },
   elbow: { label: '팔꿈치', down: 100, up: 150 },
@@ -214,7 +217,8 @@ export function repsLine(st) {
   }
   if (st.seen === 0) return '아직 몸을 못 찾았어요.';
   const label = JOINTS[st.joint]?.label || '';
-  if (st.count === 0) return `${label}이 접혔다 펴지면 하나씩 세요. 아직 0이에요.`;
+  // 조사는 앞말에 맞춘다 — 무릎「이」 · 팔꿈치「가」 (2026-10-21)
+  if (st.count === 0) return `${iPart(label)} 접혔다 펴지면 하나씩 세요. 아직 0이에요.`;
   return `${st.count}번 셌어요.`;
 }
 

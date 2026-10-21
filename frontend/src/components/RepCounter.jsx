@@ -3,6 +3,7 @@ import { readPoseFrame } from '../data/poseModel';
 import {
   jointFor, jointAngle, startReps, repTick, repsLine, cannotCount, JOINTS,
 } from '../data/repCount';
+import { eul } from '../data/particle';
 
 // 횟수 세기 — **폰을 옆에 두면 대신 센다** (2026-09-30).
 //
@@ -138,7 +139,8 @@ export default function RepCounter({ exercise, onDone, onClose }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>횟수 세기</div>
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-            {exercise}{joint && joint !== 'hold' ? ` · ${JOINTS[joint].label}을 봐요` : ''}
+            {/* 조사는 앞말에 맞춘다 — 무릎「을」 · 팔꿈치「를」 (2026-10-21) */}
+            {exercise}{joint && joint !== 'hold' ? ` · ${eul(JOINTS[joint].label)} 봐요` : ''}
           </div>
         </div>
         <button

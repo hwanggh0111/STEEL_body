@@ -1,4 +1,5 @@
 import { MAP_PARTS } from '../data/bodyHeat';
+import { eul, eun } from '../data/particle';
 
 // 이 판이 **몸의 어디를 채웠나** (2026-09-22).
 //
@@ -86,8 +87,9 @@ export default function PumpBody({ pump, width = 68, now = null, label = null, m
       role="img"
       aria-label={label || (
         pump?.touched?.length
-          ? `이번 판에서 ${pump.touched.join(' · ')}를 채웠어요` +
-            (pump.untouched?.length ? `. ${pump.untouched.join(' · ')}는 아직이에요` : '')
+          // 조사는 앞말에 맞춘다 (2026-10-21) — 부위 여섯 중 셋이 받침이 있다
+          ? `이번 판에서 ${eul(pump.touched.join(' · '))} 채웠어요` +
+            (pump.untouched?.length ? `. ${eun(pump.untouched.join(' · '))} 아직이에요` : '')
           : '아직 아무 데도 안 채웠어요')
       }
     >
