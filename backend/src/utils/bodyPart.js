@@ -84,6 +84,24 @@ const { EXERCISE_PART } = require("./exercisePart.cjs");
 const N_OVERRIDES = OVERRIDES.map(([w, p]) => [norm(w), p]);
 const N_RULES = RULES.map(([p, ws]) => [p, ws.map(norm)]);
 
+// ── 사전 이름이 **안에 들어 있으면** 그것으로 본다 ── (2026-10-22)
+//
+// 화면 쪽과 **같은 차례**여야 한다. 화면만 고치고 여기를 안 고치면 같은 운동이
+// 서버와 화면에서 다른 부위가 된다 — 9/29 에 서른아홉 개가 그래서 어긋났고,
+// 오늘도 `npm run check` 가 「말을 붙인 1,314개」에서 60개를 잡아줬다.
+//
+// 긴 것부터 보는 까닭: 「클로즈그립 벤치프레스」(팔·삼두)는 「벤치프레스」(가슴)를
+// 품는다 — 짧은 쪽이 먼저 걸리면 삼두 운동이 가슴으로 간다.
+const CONTAINED = Object.keys(EXERCISE_PART).sort((a, b) => b.length - a.length);
+
+/** 이름 안에 든 **제일 긴** 사전 이름의 부위. 없으면 null */
+function containedPart(n) {
+  for (const key of CONTAINED) {
+    if (key.length >= 2 && n.includes(key)) return EXERCISE_PART[key];
+  }
+  return null;
+}
+
 /** 운동 이름 → 부위. 못 맞히면 '기타'. */
 function bodyPartOf(exercise) {
   const n = norm(exercise);
@@ -92,6 +110,10 @@ function bodyPartOf(exercise) {
   const known = EXERCISE_PART[n];
   if (known !== undefined) return known;
   for (const [word, part] of N_OVERRIDES) if (n.includes(word)) return part;
+  // **사전 이름을 품고 있으면 그것으로 본다** — 낱말 규칙보다 앞이다
+  // (사전 이름 한 덩이가 낱말 하나보다 센 증거다). 겹침표는 그보다 앞이다
+  const inside = containedPart(n);
+  if (inside !== null) return inside;
   for (const [part, words] of N_RULES) if (words.some((w) => n.includes(w))) return part;
   return '기타';
 }

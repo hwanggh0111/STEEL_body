@@ -392,7 +392,7 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
   const threats = {
     ...stats.threats,
     blockedIpCount: blockedIps.length,
-    todayWarnings: stats.threats.level1 + stats.threats.level2,
+    todayWarnings: stats.threats.level2,
     suspiciousIpCount: stats.suspiciousIPs?.length || 0,
     totalSuspensions: suspensions.length,
     activeSuspensions: suspensions.filter(s => s.expires_at === 'permanent' || s.expires_at > new Date().toISOString()).length,
@@ -420,7 +420,7 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
     stats: {
       totalRequests: stats.totalRequests,
       totalBlocks: stats.blockedRequests,
-      totalWarnings: stats.threats.level1 + stats.threats.level2,
+      totalWarnings: stats.threats.level2,
       activeLocks: stats.activeLocks,
       requestTracking: stats.requestTracking,
       loginFailureTracking: stats.loginFailureTracking,

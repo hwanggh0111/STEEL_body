@@ -178,14 +178,28 @@ const TOKEN_FORGE_STEP = { count: 30, hours: 1 };
 // 쓰이지 않는 숫자를 남겨두면 「세 시간 잠근다」고 믿게 된다 (이 앱에서 두 번 겪었다)
 const INPUT_SUSPEND_DAYS = 3;
 const SUSPEND_TO_BAN = 2;
-const WARN_TO_LOCK = { count: 10, hours: 168 };
-const warningCounts = new Map();    // IP → count
+// ── 「경고가 쌓이면 잠근다」는 **걷었다** ── (2026-10-22)
+//
+// `WARN_TO_LOCK = { count: 10, hours: 168 }` 과 그것을 쌓는 `executeLevel1` 이
+// 있었다. **그런데 `executeLevel1` 을 부르는 자리가 앱에 한 곳도 없었다.**
+// 그래서 경고는 한 번도 쌓이지 않았고 `threats.level1` 은 늘 0 이었다.
+//
+// 그런데 **관리자 화면은 그 규칙을 말하고 있었다** — 「경고가 10번 쌓이면 그 주소를
+// 이레 잠근다」. 그리고 「경고」 칸에 늘 0 을 그렸다. 10/21 에 보안 보고서에서
+// 고친 것과 같은 꼴이다: **없는 방어를 적어두면 있다고 믿고 판단하게 된다.**
+//
+// 되살리지 않는다. 벌이 **주소를 이레 잠그는 것**인데, 그것은 오늘 봇 판정에서
+// 걷어낸 것과 같은 결이다 — **한 주소 뒤에는 여럿이 있다.** 링크 미리보기 봇이
+// 열 번 지나가면 그 와이파이가 이레 막힌다.
+//
+// 지키는 일은 **행동을 보는 사다리**가 한다 — 속도(분당) · 없는 주소 훑기 ·
+// 로그인 실패 · 토큰 위조. 그 넷은 실제로 돌고 숫자도 화면과 같다.
 const suspensionCounts = new Map(); // userId → count
 const aiLogs = [];                  // max 500
 
 let totalRequests = 0;
 let blockedRequests = 0;
-let threats = { level1: 0, level2: 0, level3: 0, level4: 0 };
+let threats = { level2: 0, level3: 0, level4: 0 };
 
 // ── XSS 패턴 ──
 const XSS_PATTERNS = [
@@ -400,19 +414,8 @@ function executeLevel2(ip, triggerType, details, hours) {
   return aiReason;
 }
 
-// ── LEVEL 1: 경고 ──
-function executeLevel1(ip, triggerType, details) {
-  threats.level1++;
-  const count = (warningCounts.get(ip) || 0) + 1;
-  warningCounts.set(ip, count);
-  addLog('INFO', `LEVEL 1 — ${triggerType}: 경고 (${count}회 누적)`, ip);
-
-  // 경고가 쌓이면 잠근다
-  if (count >= WARN_TO_LOCK.count) {
-    executeLevel2(ip, 'accumulated', `경고 ${count}회 누적`, WARN_TO_LOCK.hours);
-    warningCounts.set(ip, 0);
-  }
-}
+// LEVEL 1(경고)은 **없다** — 부르는 자리가 한 곳도 없었다 (위 머리글).
+// 죽은 길을 남겨두면 다음 사람이 「이 앱은 경고를 쌓는다」고 읽는다
 
 // 입력 스캔에 걸린 횟수. 첫 번은 막고 경고만, 되풀이하면 올린다.
 // 사람을 알면 사람 단위로, 모르면 IP 단위로 센다
@@ -946,44 +949,15 @@ function spamCheck(req, res, next) {
   next();
 }
 
-// ── 계정 정지 체크 미들웨어 ──
-function suspensionCheck(req, res, next) {
-  if (!req.userId) return next();
-
-  const user = db.findUserById(req.userId);
-  if (!user) return next();
-
-  // banned 유저.
-  //
-  // 여기도 「계정 및 모든 데이터가 삭제되었습니다. 되돌릴 수 없습니다」라고 말하고
-  // 있었다. **데이터는 그대로 있고 되돌릴 수도 있다** — `banUser` 는 로그인을 막을
-  // 뿐이고, 지우는 것은 관리자가 화면에서 직접 할 때만 일어난다.
-  if (user.is_banned) {
-    return res.status(403).json({
-      error: '계정이 영구 정지되었습니다.',
-      message: L4_NOTE,
-    });
-  }
-
-  // 활성 정지
-  const suspension = db.getSuspension(req.userId);
-  if (suspension) {
-    const response = {
-      error: '계정이 정지되었습니다.',
-      level: suspension.level,
-      reason: suspension.ai_reason,
-    };
-    if (suspension.expires_at !== 'permanent') {
-      response.expiresAt = suspension.expires_at;
-      response.message = `정지 해제일: ${suspension.expires_at}`;
-    } else {
-      response.message = '영구 정지되었습니다.';
-    }
-    return res.status(403).json(response);
-  }
-
-  next();
-}
+// ── 「계정 정지 체크 미들웨어」는 **걷었다** ── (2026-10-22)
+//
+// `suspensionCheck` 가 있었는데 **아무도 안 썼다**(마운트하는 자리가 없다).
+// 그리고 그것은 `middleware/auth.js` 가 이미 하는 판단의 **두 번째 벌**이었다 —
+// 토큰을 풀 때 `is_banned` 과 정지를 보고 403 을 준다.
+//
+// 두 벌이면 **반드시 어긋난다.** 실제로 어긋나 있었다: `auth.js` 는 **관리자를
+// 정지에서 빼는데**(「자기 정지를 자기가 못 풀어 서비스가 멎는다」) 이쪽에는 그
+// 규칙이 없었다. 누군가 이것을 마운트하는 날 **관리자가 자기 앱에서 쫓겨난다.**
 
 // 사람이 읽는 시간. 「168시간」은 아무도 7일로 안 읽는다
 const hoursText = (h) => (h >= 24 ? `${Math.round(h / 24)}일` : `${h}시간`);
@@ -1033,10 +1007,6 @@ function policy() {
       detail: `1분에 ${SPAM_PER_MINUTE}건을 넘으면 막는다 (운동을 몰아 적는 사람이 걸리지 않게 넉넉히 뒀다)`,
     },
     {
-      title: '경고가 쌓이면',
-      detail: `${WARN_TO_LOCK.count}번 쌓이면 그 주소를 ${hoursText(WARN_TO_LOCK.hours)} 잠근다`,
-    },
-    {
       title: '정지가 쌓이면',
       detail: `${SUSPEND_TO_BAN}번 정지되면 영구 정지한다 — **계정과 기록은 지우지 않는다**`,
     },
@@ -1051,7 +1021,6 @@ function policy() {
 // ── 내보내기 ──
 module.exports = aiGuardMiddleware;
 module.exports.spamCheck = spamCheck;
-module.exports.suspensionCheck = suspensionCheck;
 module.exports.recordLoginFailure = recordLoginFailure;
 module.exports.recordTokenForgery = recordTokenForgery;
 module.exports.executeLevel4 = executeLevel4;
@@ -1067,7 +1036,6 @@ module.exports.getBlockedIPs = () => {
 };
 module.exports.getStats = () => ({
   totalRequests, blockedRequests, threats,
-  warningCounts: warningCounts.size,
   suspiciousIPs: [...blockedIPs.keys()],
   activeLocks: blockedIPs.size,
   requestTracking: requestCounts.size,
@@ -1094,7 +1062,7 @@ module.exports.hydrateBlocks = hydrateBlocks;
 // 보안 라우트도 같은 판정을 쓴다 — 두 곳에 적어두면 반드시 어긋난다
 module.exports.isPrivateIp = isPrivateIp;
 module.exports.policy = policy;
-module.exports.THRESHOLDS = { RATE_STEPS, ACCOUNT_RATE_PER_MIN, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
+module.exports.THRESHOLDS = { RATE_STEPS, ACCOUNT_RATE_PER_MIN, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, SPAM_PER_MINUTE };
 
 // 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
 // **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다

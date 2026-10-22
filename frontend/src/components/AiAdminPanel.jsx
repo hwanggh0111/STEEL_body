@@ -226,9 +226,11 @@ export default function AiAdminPanel() {
         <Num label="들어온 요청" value={stats.totalRequests} />
         <Num label="되돌려 보낸 요청" value={stats.totalBlocks} color="var(--danger)" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
         {[
-          { label: '경고', value: threats.level1, color: 'var(--warning)' },
+          // 「경고」 칸은 2026-10-22 에 걷었다 — **그 값은 늘 0 이었다.**
+          // 경고를 쌓는 함수(`executeLevel1`)를 부르는 자리가 서버에 한 곳도 없었다.
+          // 늘 0 인 칸은 「아무 일도 없었다」로 읽히고, 그것이 거짓이다
           { label: '잠금', value: threats.level2, color: 'var(--accent)' },
           { label: '정지', value: threats.level3, color: 'var(--danger)' },
           // 「L4 삭제」라고 적혀 있던 자리다. L4 는 지우는 것이 아니라 영구 정지다

@@ -142,6 +142,54 @@ console.log('\n── 4. 로그인 자리도 주소로 묶이지 않는가 ─�
   ok('  창의 길이가 같다 (견줄 수 있게)', RATE_LIMITS.login.windowMs, LOGIN_LOCK.windowMs);
 }
 
+console.log('\n── 4-2. 말하는 규칙이 **실제로 도는가** ── (2026-10-22)');
+// 관리자 화면은 서버가 주는 규칙 목록(`policy()`)을 그대로 그린다. 그 목록에
+// 「경고가 10번 쌓이면 그 주소를 이레 잠근다」가 있었는데, **경고를 쌓는 함수를
+// 부르는 자리가 앱에 한 곳도 없었다** — 늘 0 이고 영원히 안 걸린다.
+// 없는 방어를 적어두면 **있다고 믿고 판단하게 된다**(10/21 에 보안 보고서에서 고친 꼴).
+{
+  const fs2 = require('fs');
+  const path2 = require('path');
+  // **서버 전부를 본다.** 사다리를 거는 자리가 다른 파일에 있다 —
+  // 로그인 실패는 `routes/auth.js` 가, 토큰 위조는 `middleware/auth.js` 가 부른다.
+  // 한 파일만 보면 「안 돈다」고 거짓으로 말한다 (처음 판이 그랬다)
+  const walk = (dir, out = []) => {
+    for (const e of fs2.readdirSync(dir, { withFileTypes: true })) {
+      const p = path2.join(dir, e.name);
+      if (e.isDirectory()) { walk(p, out); continue; }
+      if (/.js$/.test(e.name)) out.push(p);
+    }
+    return out;
+  };
+  const srcDir = path2.join(__dirname, '..', 'src');
+  const guard = walk(srcDir).map((p) => fs2.readFileSync(p, 'utf-8')).join('\n');
+  // 규칙 목록이 말하는 사다리마다 **그것을 실제로 거는 함수가 불리는지** 본다
+  const 사다리 = [
+    ['너무 잦은 요청', 'checkRequestRate('],
+    ['로그인 실패가 쌓이는 주소', 'recordLoginFailure('],
+    ['없는 주소를 계속 두드리기', 'checkNotFound('],
+    ['위조 토큰', 'recordTokenForgery('],
+  ];
+  const 부르는자리 = (name) => {
+    // 정의하는 줄은 안 센다
+    const re = new RegExp(name.replace('(', '\\('), 'g');
+    return (guard.match(re) || []).length
+      - (new RegExp('function\\s+' + name.replace('(', '\\(')).test(guard) ? 1 : 0);
+  };
+  for (const [title, fn] of 사다리) {
+    const 적혀있나 = aiGuard.policy().some((p) => p.title === title);
+    ok(`「${title}」 — 규칙에 적혀 있다`, 적혀있나, true);
+    ok('  그 사다리를 실제로 부른다', 부르는자리(fn) > 0, true);
+  }
+  // **없는 규칙을 말하지 않는다**
+  ok('안 도는 「경고가 쌓이면」을 말하지 않는다',
+    aiGuard.policy().some((p) => p.title.includes('경고가 쌓이면')), false);
+  ok('  경고를 쌓는 함수도 없다', /function executeLevel1/.test(guard), false);
+  ok('  셈(threats)에 늘 0 인 칸이 없다', Object.keys(aiGuard.getStats().threats), ['level2', 'level3', 'level4']);
+  // 쓰지 않는 두 번째 벌도 없다 — `auth.js` 가 이미 같은 판단을 한다
+  ok('죽은 정지 미들웨어가 없다', /function suspensionCheck/.test(guard), false);
+}
+
 console.log('\n── 5. 화면에 적히는 말이 숫자와 같은가 ──');
 const rate = aiGuard.policy().find((p) => p.title === '너무 잦은 요청');
 ok('계정 몫이 적혀 있다', rate.detail.includes(String(aiGuard.THRESHOLDS.ACCOUNT_RATE_PER_MIN)), true);
