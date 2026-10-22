@@ -132,6 +132,33 @@ const SPAM_PER_MINUTE = 60;
 //
 // 숫자를 두 곳에 적어두면 반드시 어긋난다. 여기 한 곳에 두고 화면은 받아서 그린다.
 // 잘못된 방어 규칙을 보고 판단하는 것이, 규칙을 모르는 것보다 나쁘다.
+// ── 주소로 세면 **한 사람이 걸릴 때 그 뒤의 모두가 걸린다** ── (2026-10-22)
+//
+// 이 앱은 **헬스장에서 쓰는 앱**이다. 회원 여럿이 같은 와이파이에 붙어 있고,
+// 통신사 데이터도 NAT 로 묶여 **수백 명이 한 주소로 보인다.** 10/15 에 `req.ip` 를
+// 진짜 접속자로 고친 뒤로는 더 그렇다 — 이제 그 값이 **공유 주소**다.
+//
+// 한 사람이 운동을 몰아 적으면 분당 수십 건이다(세트 하나가 요청 하나다).
+// 거기에 화면을 열 때마다 열 몇 건이 더 나간다. **대여섯 사람이면 200을 넘긴다** —
+// 그러면 아래 사다리가 **그 와이파이를 1시간 잠근다.** 운동하러 온 사람들이
+// 한꺼번에 「접근이 차단되었습니다」를 본다. 공격이 아니라 **영업 시간**이다.
+//
+// 그래서 센 다음에 **무엇을 잠그는가**를 갈랐다 —
+//
+//   로그인한 요청   **계정별로** 센다. 넘으면 그 계정에만 429(「잠시 뒤에」)를 준다.
+//                   주소는 잠그지 않는다 — 옆 사람은 아무 일도 없다.
+//                   1분 창이 지나면 저절로 풀린다(관리자가 풀어줄 일이 없다)
+//   로그인 안 한 요청   여태처럼 **주소별로** 세고 사다리대로 잠근다. 훑고 다니는
+//                   것 · 봇 · 토큰 위조가 이쪽이고, 사람 몫은 분당 몇 건이라
+//                   NAT 뒤에서도 200 을 넘기지 않는다
+//
+// 느슨해진 것이 아니다. 요청은 **어느 쪽이든 막힌다**(계정은 429, 주소는 403) —
+// 되돌리기 어려운 쪽(주소 잠금)만 공격에 가까운 쪽에 남겼다. 10/21 에 입력 스캔에서
+// 한 판단과 같은 결이다: 막는 것은 늘 하고, **벌은 되풀이하는 쪽에만.**
+//
+// 계정 몫은 사다리의 첫 칸과 같은 숫자로 둔다 — 두 곳에 따로 적으면 어긋난다.
+const ACCOUNT_RATE_PER_MIN = 200;
+
 const RATE_STEPS = [
   { count: 500, hours: 168 },
   { count: 300, hours: 24 },
@@ -555,26 +582,36 @@ function recordTokenForgery(ip) {
 }
 
 // ── 요청 속도 체크 ──
-function checkRequestRate(ip) {
+/**
+ * 1분 창에 몇 번 왔나.
+ *
+ * `key` 는 계정이면 `u:<id>`, 아니면 주소다. **계정은 잠그지 않고** 넘쳤다고만
+ * 알려준다(부르는 쪽이 429 를 준다). 주소는 여태처럼 사다리대로 잠근다.
+ */
+function checkRequestRate(key, isAccount) {
   const now = Date.now();
-  if (!requestCounts.has(ip)) {
-    limitedSet(requestCounts, ip, { count: 1, firstRequest: now });
-    return;
+  if (!requestCounts.has(key)) {
+    limitedSet(requestCounts, key, { count: 1, firstRequest: now });
+    return false;
   }
-  const record = requestCounts.get(ip);
+  const record = requestCounts.get(key);
   if (now - record.firstRequest > 60000) {
-    requestCounts.set(ip, { count: 1, firstRequest: now });
-    return;
+    requestCounts.set(key, { count: 1, firstRequest: now });
+    return false;
   }
   record.count++;
+
+  // 계정 몫 — 잠그지 않는다. 이 분이 지나면 저절로 풀린다
+  if (isAccount) return record.count >= ACCOUNT_RATE_PER_MIN;
 
   // 위에서부터 본다 — 제일 센 것에 먼저 걸리게
   for (const step of RATE_STEPS) {
     if (record.count >= step.count) {
-      executeLevel2(ip, 'rate_limit', `${record.count}회`, step.hours);
+      executeLevel2(key, 'rate_limit', `${record.count}회`, step.hours);
       break;
     }
   }
+  return false;
 }
 
 // ── 404 체크 ──
@@ -630,13 +667,24 @@ function aiGuardMiddleware(req, res, next) {
   const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   totalRequests++;
 
-  // localhost + 헬스체크 화이트리스트
-  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
+  // 헬스체크와 정적 파일은 아무것도 안 본다
   if (req.path === '/api/health') return next();
-
   // 정적 파일 / SPA 경로는 보안 검사 스킵 (API만 검사)
   // — favicon, /assets/*, /icons/*, .js/.css/.png 등 → API 외 경로는 통과
   if (!req.path.startsWith('/api/')) return next();
+
+  // ── 세는 열쇠를 **맨 앞에서** 붙인다 ── (2026-10-22)
+  //
+  // 로그인했으면 계정, 아니면 주소다. 뒤에 서는 전역 제한기가 이 값을 쓴다
+  // (`index.js`). **화이트리스트보다 먼저** 붙이는 까닭이 있다 — 로컬에서 먼저
+  // 돌아나가면 개발에서는 열쇠가 안 붙어 **주소로 세고**, 운영에서만 계정으로
+  // 센다. 그러면 여기서 보는 것과 배포본이 다르게 움직인다.
+  // 토큰은 여기서 한 번만 풀고 아래에서 돌려 쓴다 (두 번 풀 이유가 없다).
+  const who = userIdOf(req);
+  req.rateKey = who ? 'u:' + who : null;
+
+  // localhost 는 여기서부터 안 본다 (검사·개발 도구가 제 제한에 걸리지 않게)
+  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
 
   // 블랙리스트 체크 (가입 시)
   if (req.path === '/api/auth/register' && req.method === 'POST') {
@@ -686,11 +734,28 @@ function aiGuardMiddleware(req, res, next) {
     return res.status(403).json({ error: '자동화된 접근이 차단되었습니다.' });
   }
 
-  // 요청 속도 체크
-  checkRequestRate(ip);
+  // ── 요청 속도 ──
+  //
+  // 로그인한 사람은 **계정별로** 센다. 토큰은 여기서 한 번만 풀고(`req.rateKey`),
+  // 뒤에 서는 전역 제한기도 같은 열쇠를 쓴다 — 두 번 풀 이유가 없고, 두 곳에서
+  // 따로 셈하면 어긋난다 (`index.js` 의 전역 제한을 보라)
+  const tooFast = checkRequestRate(req.rateKey || ip, Boolean(who));
   if (blockedIPs.has(ip)) {
     blockedRequests++;
     return res.status(403).json({ error: '비정상적인 요청으로 차단되었습니다.' });
+  }
+  if (tooFast) {
+    // 계정 몫이 넘쳤다 — **그 계정만** 잠깐 쉰다. 주소는 건드리지 않는다.
+    // 남은 초를 알려준다(화면이 그만큼 기다리고 다시 보낼 수 있게)
+    blockedRequests++;
+    const rec = requestCounts.get(req.rateKey);
+    const left = Math.max(1, Math.ceil((60000 - (Date.now() - (rec?.firstRequest || 0))) / 1000));
+    addLog('INFO', `계정 요청이 잦다 — ${rec?.count}회/분 (userId=${who}). 주소는 잠그지 않는다`, ip, who);
+    res.set('Retry-After', String(left));
+    return res.status(429).json({
+      error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요',
+      retryAfter: left,
+    });
   }
 
   // ── **우리가 적어달라고 한 글은 스캔하지 않는다** ── (2026-10-21)
@@ -771,7 +836,7 @@ function aiGuardMiddleware(req, res, next) {
     //
     // 횟수는 메모리에 센다. 서버가 다시 뜨면 초회로 돌아가는데, 그래도 요청은 늘 막히므로
     // 보호에는 구멍이 없다 — 되돌릴 수 없는 처벌만 늦게 간다. 이 방향의 오차가 맞다.
-    const userId = userIdOf(req);
+    const userId = who;       // 위에서 한 번 푼 것을 쓴다
     if (userId) {
       const hits = (inputHits.get(userId) || 0) + 1;
       limitedSet(inputHits, userId, hits);
@@ -896,8 +961,10 @@ function policy() {
   return [
     {
       title: '너무 잦은 요청',
-      detail: `1분에 ${RATE_STEPS.map((s) => s.count).join(' · ')}회를 넘으면 그 주소를 `
-        + `${RATE_STEPS.map((s) => hoursText(s.hours)).join(' · ')} 잠근다`,
+      detail: `로그인한 사람은 **계정별로** 센다 — 1분에 ${ACCOUNT_RATE_PER_MIN}회를 넘으면 `
+        + `그 계정에만 잠깐 기다리라고 한다(주소는 잠그지 않는다 — 한 와이파이에 여럿이 있다). `
+        + `로그인 안 한 요청은 주소별로 세어 1분에 ${RATE_STEPS.map((s) => s.count).join(' · ')}회를 `
+        + `넘으면 그 주소를 ${RATE_STEPS.map((s) => hoursText(s.hours)).join(' · ')} 잠근다`,
     },
     {
       title: '로그인 실패가 쌓이는 주소',
@@ -988,7 +1055,7 @@ module.exports.hydrateBlocks = hydrateBlocks;
 // 보안 라우트도 같은 판정을 쓴다 — 두 곳에 적어두면 반드시 어긋난다
 module.exports.isPrivateIp = isPrivateIp;
 module.exports.policy = policy;
-module.exports.THRESHOLDS = { RATE_STEPS, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
+module.exports.THRESHOLDS = { RATE_STEPS, ACCOUNT_RATE_PER_MIN, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
 
 // 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
 // **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다

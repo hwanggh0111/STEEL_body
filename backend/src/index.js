@@ -20,6 +20,8 @@ const helmet  = require('helmet');
 const csp = require('./csp');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+// 열쇠를 손으로 만들 때 IPv6 를 묶어주는 것 — 제한기가 같이 준다
+const { ipKeyGenerator } = require('express-rate-limit');
 const { RATE_LIMITS, BODY_LIMIT, PERMISSIONS_POLICY, HSTS_MAX_AGE } = require('./config/security');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
@@ -260,11 +262,29 @@ setInterval(cleanupRound, 30 * 60 * 1000);
 setTimeout(cleanupRound, 2500).unref();
 
 // 글로벌 Rate Limit — 숫자는 config/security.js 에 있다 (보안 대시보드가 같은 값을 읽는다)
+//
+// ── **주소로 세면 한 와이파이가 같이 걸린다** ── (2026-10-22)
+//
+// 기본 열쇠는 `req.ip` 다. 이 앱은 **헬스장에서 쓰는 앱**이고, 회원 여럿이 같은
+// 와이파이에 붙어 있다. 통신사 데이터도 NAT 로 묶여 수백 명이 한 주소로 보인다.
+// 그러면 분당 100 을 **그 사람들이 나눠 쓴다** — 네댓 명이 운동을 적는 시간에
+// 모두가 「요청이 너무 잦아요」를 본다. 10/15 에 `req.ip` 를 진짜 접속자로 고친
+// 뒤로는 더 그렇다(이제 그 값이 공유 주소다).
+//
+// 로그인했으면 **계정별로** 센다. 토큰은 앞에 선 aiGuard 가 이미 한 번 풀어
+// `req.rateKey` 에 놓아두었다 — 여기서 또 풀지 않는다(두 곳에서 따로 셈하면
+// 어긋난다). 로그인 안 한 요청만 주소별로 센다 — 가입·로그인·훑기가 그쪽이고,
+// 사람 몫은 분당 몇 건이라 NAT 뒤에서도 100 을 넘기지 않는다.
 app.use(rateLimit({
   ...RATE_LIMITS.global,
   message: { error: '요청이 너무 잦아요. 잠시 뒤에 다시 해주세요' },
   standardHeaders: true,
   legacyHeaders: false,
+  // IPv6 는 한 사람이 주소를 많이 받는다 — 묶어주는 것을 쓴다(제한기가 들고 있다)
+  // `ipKeyGenerator` 는 **주소 문자열**을 받는다 (req 가 아니다 — 객체를 주면 그것을
+  // 그대로 돌려주고, 요청마다 새 객체라 열쇠가 다 달라져 **제한이 통째로 꺼진다.**
+  // 돌려보고 잡았다: `RateLimit-Remaining` 이 몇 번을 불러도 99 였다)
+  keyGenerator: (req) => req.rateKey || ipKeyGenerator(req.ip || 'unknown'),
 }));
 
 // 인증 관련 엄격한 Rate Limit
