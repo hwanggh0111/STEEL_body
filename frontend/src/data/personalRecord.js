@@ -19,6 +19,33 @@ export function parseWeight(raw) {
 // Brzycki. 37 - reps 가 분모라 36회까지만 성립한다.
 export const RM_MAX_REPS = 36;
 
+// ── 환산을 **믿는 구간** ── (2026-10-22)
+//
+// 식이 성립하는 것(36회)과 믿을 수 있는 것은 다르다. 분모가 1 로 가까워질수록
+// 값이 터진다 —
+//
+//     60kg × 10회 →   80kg
+//     60kg × 20회 →  127kg
+//     60kg × 30회 →  309kg
+//     60kg × 36회 → **2,160kg**
+//     60kg × 37회 →   60kg   ← 한 회 차이로 36배가 떨어진다
+//
+// 그 값이 **그 사람의 「내 최고 1RM」이 되어 화면에 뜬다**(기록 화면 머리) —
+// 2,160kg 이 적히고, 오늘 든 60kg 은 그 3% 라서 「가볍게 · 자세 다듬기」라고 말한다.
+//
+// **이 앱이 스스로 적어둔 말이 이미 10회였다** — 1RM 계산기 화면에
+// 「Brzycki 공식, **10회 이하에서 정확**」이라고 적혀 있고 10회를 넘기면 경고도 띄운다.
+// 적어둔 말과 등수를 매기는 코드가 달랐다.
+//
+// 그래서 **등수에는 10회까지만 환산한다.** 그 위는 10회로 눌러서 센다 —
+// 「30회를 10회로 본다」는 **깎아서 세는 것**이다(실제 1RM 은 그보다 높다).
+// 환산을 아예 안 하고 무게만 보는 길도 있지만, 그러면 11회가 10회보다 **낮아진다** —
+// 더 많이 든 세트가 등수에서 내려가는 것은 설명할 수 없다.
+//
+// **계산기는 그대로 둔다.** 거기는 사람이 직접 묻는 자리라 경고와 함께 답해준다.
+// 앱이 **스스로 매기는 등수**에만 안 믿을 값을 안 쓴다.
+export const RM_TRUST_REPS = 10;
+
 export function estimate1RM(weight, reps) {
   const w = Number(weight);
   const r = Number(reps);
@@ -33,14 +60,17 @@ export function estimate1RM(weight, reps) {
  * 무게가 있으면 1RM 환산값, 맨몸이면 횟수로 센다. 둘은 서로 견주지 않는다 —
  * 맨몸 푸시업 50회와 벤치 80kg 을 한 자에 올릴 방법이 없다.
  *
- * 무게가 있는데 횟수가 36을 넘으면 Brzycki 가 성립하지 않는다. 그때는 무게만 본다
- * (그 구간에서 1RM 환산은 어차피 의미가 없다).
+ * 횟수가 믿는 구간(10회)을 넘으면 **10회로 눌러서** 환산한다 — 위 `RM_TRUST_REPS`
+ * 머리글. 36회를 그대로 넣으면 2,160kg 이 그 사람의 최고 기록이 된다.
  */
 export function strengthOf(record) {
   const kg = parseWeight(record?.weight);
   const reps = Number(record?.reps) || 0;
   if (kg === null) return { kind: 'bodyweight', score: reps, kg: null, reps };
-  const orm = estimate1RM(kg, reps);
+  // 1회 미만은 1회로, 믿는 구간을 넘으면 그 구간으로 눌러 센다.
+  // **깎아서 세는 쪽**이다 — 실제 1RM 은 이보다 높다
+  const useReps = Math.min(Math.max(reps, 1), RM_TRUST_REPS);
+  const orm = estimate1RM(kg, useReps);
   return { kind: 'weighted', score: orm ?? kg, kg, reps };
 }
 
