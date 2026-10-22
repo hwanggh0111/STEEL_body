@@ -120,6 +120,35 @@ const OVERRIDES = [
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
 
+// ── 사전 이름이 **안에 들어 있으면** 그것으로 본다 ── (2026-10-22)
+//
+// 사전에 **그 꼴로** 있으면 사전이 답한다. 그런데 사람은 꾸며서 적는다 —
+// 「라잉 아놀드프레스」 · 「덤벨 풀오버 (좌)」 · 「백 익스텐션 머신」 ·
+// 「집에서 앱 롤아웃」. 그때는 낱말 규칙이 맡는데, 규칙에 그 낱말이 없으면
+// **「기타」로 떨어진다** — 어깨 운동을 했는데 몸 지도가 모르는 것이다.
+//
+// 돌려봤다. 사전 219개에 변형 여덟 꼴을 붙여 1,752개를 넣으니 **60개가 어긋났다**
+// (뿌리 운동 열 개: 아놀드프레스 · 푸시프레스 · 비하인드넥프레스 · 덤벨 풀오버 ·
+// 백 익스텐션 · 랜드마인 프레스 · 앱 롤아웃 · 케이블 우드찹 · 밴드 풀어파트 ·
+// 밴드 몬스터 워크). 낱말을 열 개 더 적어 넣는 길도 있지만, **꾸밈말은 끝이 없다.**
+//
+// 그래서 **사전 이름이 안에 들어 있으면 그 이름으로 본다.** 긴 것부터 보는 까닭이
+// 있다 — 「클로즈그립 벤치프레스」(팔·삼두)는 「벤치프레스」(가슴)를 품고 있다.
+// 짧은 쪽이 먼저 걸리면 **삼두 운동이 가슴으로 간다.**
+//
+// 보는 차례는 이렇다: **적어둔 것 → 사전(그 꼴) → 겹침표 → 사전(품은 꼴) → 낱말.**
+// 겹침표가 품은 꼴보다 앞인 까닭도 있다 — 「덤벨 로우 크롤」은 「덤벨로우」를
+// 품지만 로우가 아니다(그래서 겹침표에 적어뒀다).
+const CONTAINED = Object.keys(EXERCISE_PART).sort((a, b) => b.length - a.length);
+
+/** 이름 안에 든 **제일 긴** 사전 이름의 부위. 없으면 null */
+function containedPart(n) {
+  for (const key of CONTAINED) {
+    if (key.length >= 2 && n.includes(key)) return EXERCISE_PART[key];
+  }
+  return null;
+}
+
 // ── 낱말은 **한 번만** 다듬는다 ── (2026-09-17)
 //
 // 여기가 앱에서 제일 뜨거운 자리였다. 예전에는 `bodyPartOf` 안에서 `norm(w)` 를
@@ -193,6 +222,9 @@ export function bodyPartOf(exercise) {
   for (const [word, part] of N_OVERRIDES) {
     if (n.includes(word)) { found = part; break; }
   }
+  // **사전 이름을 품고 있으면 그것으로 본다** (위 「안에 들어 있으면」).
+  // 낱말 규칙보다 앞이다 — 사전 이름 한 덩이가 낱말 하나보다 센 증거다
+  if (found === null) found = containedPart(n);
   if (found === null) {
     for (const [part, words] of N_RULES) {
       if (words.some((w) => n.includes(w))) { found = part; break; }
@@ -232,7 +264,10 @@ export function isKnownName(exercise) {
   // 「오버헤드 배낭 워크」 · 「로우 크롤」 · 「일립티컬」처럼 사전에 그 꼴로는 없지만
   // 우리가 셀 곳이 없다고 정해둔 이름들이다(`OVERRIDES`). 낱말 규칙(`RULES`)은
   // 걸리면 **실제 부위**를 주므로 여기서 볼 것이 없다
-  return N_OVERRIDES.some(([word]) => n.includes(word));
+  if (N_OVERRIDES.some(([word]) => n.includes(word))) return true;
+  // 꾸며 적은 이름도 **아는 이름이다** — 그러지 않으면 몸 지도가 「이름을 알아보게
+  // 적으면 들어옵니다」라고 말하는데 정작 부위는 이미 알고 있는 꼴이 된다
+  return containedPart(n) !== null;
 }
 
 /**

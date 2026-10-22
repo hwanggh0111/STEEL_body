@@ -41,6 +41,9 @@ const TYPES = {
   login_blocked:          { label: '로그인 차단', tone: 'danger' },
   block:                  { label: '유저 차단', tone: 'danger' },
   unblock:                { label: '차단 해제', tone: 'info' },
+  // 자동 판정(AI 가드 LEVEL 4)이 걸어둔 영구 정지를 관리자가 되돌린 것 (2026-10-22).
+  // 그 전에는 **되돌리는 길이 아예 없었다** — 기록 종류도 이제 생겼다
+  unban:                  { label: '영구 정지 해제', tone: 'info' },
   register:               { label: '회원가입', tone: 'info' },
   password_change:        { label: '비밀번호 변경', tone: 'info' },
   password_reset:         { label: '비밀번호 재설정', tone: 'warn' },
