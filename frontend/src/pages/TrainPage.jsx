@@ -1,7 +1,7 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
 import { readLS, saveLS } from '../data/safeStorage';
-import { plateText, BARS } from '../data/plateMath';
+import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -308,12 +308,25 @@ export default function TrainPage() {
   // 워밍업은 **아직 한 세트도 안 한 운동에만** 보여준다. 세트를 하고 있는데
   // 「빈 바부터 올라가세요」가 떠 있으면 다 한 일을 다시 하라는 말이 된다
   const doneToday = (workouts[date] || []).some(w => (w.exercise || '').trim() === exercise.trim());
+  // ── **꽂을 원판이 있느냐는 운동이 정한다** ── (2026-10-22)
+  //
+  // 고른 바(`barKg`)는 기기에 남는다 — 「그 헬스장에 어떤 바가 있나」라서다.
+  // 그런데 그 값을 **운동과 상관없이** 그대로 썼다. 그래서 덤벨컬을 적다
+  // 「덤벨 · 머신」을 고른 사람은 그 뒤로 **벤치프레스에서도 원판 안내를 못 봤고**
+  // (워밍업의 빈 바 줄까지 통째로 사라진다), 바를 20 으로 둔 사람은 **덤벨컬에서
+  // 「양쪽 2.5 + 1.25」**를 봤다. 둘 다 바 앞에서 못 쓰는 말이다.
+  //
+  // 이름으로 읽는다(`barFor`). 아는 것만 고치고 모르는 것은 고른 값을 그대로 쓴다
+  const useBar = useMemo(() => barFor(exercise, barKg), [exercise, barKg]);
+  // 운동이 정했나, 사람이 고른 것인가 — 화면이 **까닭을 말해야** 한다
+  const barByName = equipOf(exercise);
+
   // 원판 글귀까지 **여기서 한 번에** 만든다. 그리는 쪽에서 부르면 무게 칸을
   // 한 글자 칠 때마다 줄 수만큼 다시 센다
   const warmup = useMemo(
-    () => (doneToday ? [] : warmupSets(todayKg, { bar: barKg })
-      .map((w) => ({ ...w, plates: w.bar ? '' : plateText(w.kg, barKg).replace('양쪽 ', '') }))),
-    [todayKg, doneToday, barKg],
+    () => (doneToday ? [] : warmupSets(todayKg, { bar: useBar })
+      .map((w) => ({ ...w, plates: w.bar ? '' : plateText(w.kg, useBar).replace('양쪽 ', '') }))),
+    [todayKg, doneToday, useBar],
   );
 
   // 같은 칸은 한 번만 채운다. 안 그러면 사람이 고쳐놓은 값을 다시 덮어쓴다
@@ -993,7 +1006,9 @@ export default function TrainPage() {
                       }}>{todayKg} 본세트</span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6 }}>
-                      {barKg > 0 ? `빈 바는 ${barKg}kg 으로 봤어요.` : '바가 없는 기구로 봤어요.'}
+                      {useBar > 0
+                        ? `빈 바는 ${useBar}kg 으로 봤어요.`
+                        : (barByName === 'none' ? '덤벨 · 머신 운동으로 봤어요.' : '바가 없는 기구로 봤어요.')}
                     </div>
                   </div>
                 )}
@@ -1070,11 +1085,17 @@ export default function TrainPage() {
                 background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               }}>
                 <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>
-                  {barKg === 0
-                    ? '덤벨 · 머신 — 꽂을 원판이 없어요'
-                    : (plateText(todayKg, barKg) || `${barKg}kg 바보다 가벼워요`)}
+                  {useBar === 0
+                    ? (barByName === 'none'
+                      ? '덤벨 · 머신 운동이라 꽂을 원판이 없어요'
+                      : '덤벨 · 머신 — 꽂을 원판이 없어요')
+                    : (plateText(todayKg, useBar) || `${useBar}kg 바보다 가벼워요`)}
                 </span>
-                {/* 헬스장마다 바가 다르다. 한 번 고르면 이 기기에 남는다 */}
+                {/* 헬스장마다 바가 다르다. 한 번 고르면 이 기기에 남는다.
+                    **운동 이름이 기구를 말해주면 안 그린다** — 덤벨컬 앞에서 바를
+                    고르게 해놓으면 그 고른 값이 다음 벤치프레스까지 따라간다
+                    (그것이 2026-10-22 에 고친 버그다) */}
+                {barByName !== 'none' && (
                 <select
                   value={barKg}
                   onChange={(e) => changeBar(Number(e.target.value))}
@@ -1087,6 +1108,7 @@ export default function TrainPage() {
                 >
                   {BARS.map((b) => <option key={b.kg} value={b.kg}>{b.label}</option>)}
                 </select>
+                )}
               </div>
             )}
 

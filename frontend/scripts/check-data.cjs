@@ -1247,6 +1247,28 @@ const found = (q) => dictMod.searchExercises(q, 8).map((e) => e.ko);
 
 ok('이름으로 찾는다', found('벤치프레스').includes('벤치프레스'), true);
 ok('초성으로 찾는다 (ㅂㅊㅍㄹㅅ)', found('ㅂㅊㅍㄹㅅ').includes('벤치프레스'), true);
+// **띄어쓰기가 있는 이름도 초성으로 찾혀야 한다** (2026-10-22 에 고친 버그).
+//
+// 친 말은 공백이 지워진 채 들어오는데 사전 쪽은 이름을 그대로 초성으로 바꿨다 —
+// 「덤벨 벤치프레스」가 「ㄷㅂ (공백) ㅂㅊㅍㄹㅅ」이 되어 「ㄷㅂㅂㅊㅍㄹㅅ」로는
+// 절대 안 걸렸다. 사전 219개 중 **152개가 띄어쓰기가 있는 이름**이다 —
+// 초성 검색이 사실상 한 낱말짜리에만 들고 있었다.
+ok('  띄어쓴 이름도 (ㄷㅂㅂㅊㅍㄹㅅ)', found('ㄷㅂㅂㅊㅍㄹㅅ').includes('덤벨 벤치프레스'), true);
+ok('  띄어쓰기를 그대로 쳐도', found('ㄷㅂ ㅂㅊㅍㄹㅅ').includes('덤벨 벤치프레스'), true);
+ok('  세 낱말도 (ㄹㅁㄴㅇ ㄷㄷㄹㅍㅌ)', found('ㄹㅁㄴㅇㄷㄷㄹㅍㅌ').includes('루마니안 데드리프트'), true);
+// 초성으로 찾히지 않는 이름이 **몇 개 남았나** — 0 이어야 한다
+{
+  const chos = (t) => [...String(t)].map((c) => {
+    const CHO = [..."ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"];
+    const code = c.charCodeAt(0) - 0xAC00;
+    return (code < 0 || code > 11171) ? c : CHO[Math.floor(code / 588)];
+  }).join('');
+  const flat = (t) => String(t).replace(/\s/g, '');
+  const miss = dictMod.EXERCISE_DICT
+    .filter((e) => /^[가-힣\s]+$/.test(e.ko))
+    .filter((e) => !dictMod.searchExercises(chos(flat(e.ko)), 300).some((r) => r.ko === e.ko));
+  ok('초성으로 못 찾는 한글 이름이 없다', miss.map((e) => e.ko).slice(0, 8), []);
+}
 ok('영문으로 찾는다 (squat)', found('squat').includes('스쿼트'), true);
 ok('부위로 찾는다 (가슴)', found('가슴').length > 0, true);
 // 홈트·루틴에서 쓰는 이름도 여기서 찾혀야 한다 — 9/1 에 사전에 넣은 것들이다

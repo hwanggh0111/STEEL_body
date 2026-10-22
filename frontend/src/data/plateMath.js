@@ -34,6 +34,84 @@ export const BARS = [
   { kg: 0, label: '덤벨 · 머신' },
 ];
 
+// ── 그 운동에 **바가 있나** ── (2026-10-22)
+//
+// 바 무게는 기기에 남는다 — 「그 헬스장에 어떤 바가 있나」라서다. 그런데 **꽂을
+// 원판이 있느냐는 헬스장이 아니라 운동이 정한다.** 둘을 한 값으로 쓰고 있어서
+// 양쪽으로 틀렸다 —
+//
+//   덤벨컬을 적다 「덤벨 · 머신」을 고른 뒤 **벤치프레스**를 적으면
+//     → 「덤벨 · 머신 — 꽂을 원판이 없어요」. 워밍업에서 **빈 바 줄과 원판 안내가
+//       통째로 사라진다**(`warmupSets` 가 바를 0 으로 받는다)
+//   바를 20 으로 둔 채 **덤벨컬**을 적으면
+//     → 「양쪽 2.5 + 1.25」. 덤벨에 꽂을 수 없는 안내고, 워밍업이 「빈 바 20×8」로
+//       시작한다 — 덤벨컬에 빈 바가 왜 나오나
+//
+// 이름으로 읽는다. **아는 것만 고치고 모르는 것은 고른 값을 그대로 쓴다** —
+// 사람이 고른 것을 말없이 뒤집지 않는다(「체스트프레스」처럼 머신이지만 이름에
+// 기구가 안 적힌 것이 있고, 운동명은 자유 입력이다).
+//
+// 부위를 이름으로 맞히는 자리(`bodyPart.js`)와 같은 결이다 — 사전이 있으면 사전이,
+// 없으면 낱말이. 다만 사전에는 **기구 칸이 없다**(219개에 `part` 와 설명뿐이다).
+// 그래서 여기서는 낱말만 본다. 검사가 사전 219개를 통째로 넣어 본다(`npm run plate`).
+
+// 공백 · 기호를 지운 소문자 — 「덤벨 컬」과 「덤벨컬」은 같은 말이다
+const flat = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
+
+// **바가 없는 것** — 덤벨 · 머신 · 케이블 · 맨몸.
+// 고정 기구(랫풀다운 · 레그프레스)는 표시 무게가 곧 그 무게라 나눌 것이 없다
+const NO_BAR_WORDS = [
+  '덤벨', 'dumbbell', '케틀벨', 'kettlebell', '머신', 'machine',
+  '케이블', 'cable', '스미스', 'smith', '밴드', 'band', '튜브',
+  '랫풀', '풀다운', 'pulldown', '레그프레스', 'legpress', '레그컬', 'legcurl',
+  '레그익스텐션', 'legextension', '펙덱', 'pecdeck', '크로스오버', 'crossover',
+  '시티드로우', 'seatedrow', '해머스트렝스', '핵스쿼트', 'hacksquat',
+  '맨몸', '푸시업', 'pushup', '풀업', 'pullup', '친업', 'chinup', '딥스', 'dip',
+  '플랭크', 'plank', '버피', 'burpee', '크런치', 'crunch', '레그레이즈', 'legraise',
+  '점핑', 'jumping', '마운틴', 'mountain', '브릿지', 'bridge', '스트레칭',
+];
+
+// **바가 있는 것** — 바벨을 쓰는 큰 운동. 이름에 기구가 안 적혀도 바벨이 기본이다
+const BAR_WORDS = [
+  '바벨', 'barbell', '벤치프레스', 'benchpress', '스쿼트', 'squat',
+  '데드리프트', 'deadlift', '오버헤드프레스', '밀리터리', 'military',
+  '바벨로우', '벤트오버로우', 'bentoverrow', '클린', 'clean', '스내치', 'snatch',
+  '저크', 'jerk', '프론트스쿼트', '굿모닝', 'goodmorning', '힙쓰러스트', 'hipthrust',
+];
+
+/**
+ * 그 운동에 바가 있나.
+ *
+ * @returns 'none'     바가 없다 (덤벨 · 머신 · 맨몸) — 꽂을 원판이 없다
+ * @returns 'bar'      바벨이다 — 고른 바를 쓴다
+ * @returns 'unknown'  이름으로는 모른다 — 고른 값을 그대로 쓴다
+ */
+export function equipOf(name) {
+  const n = flat(name);
+  if (!n) return 'unknown';
+  // **바가 없는 쪽을 먼저 본다.** 「덤벨 벤치프레스」는 둘 다 걸리는데 덤벨이다 —
+  // 기구 낱말이 계열 낱말보다 세다
+  if (NO_BAR_WORDS.some((w) => n.includes(flat(w)))) return 'none';
+  if (BAR_WORDS.some((w) => n.includes(flat(w)))) return 'bar';
+  return 'unknown';
+}
+
+/**
+ * 이 운동에 **실제로 쓸 바 무게.**
+ *
+ * @param name   운동 이름 (자유 입력)
+ * @param chosen 사람이 고른 바 (기기에 남아 있는 값)
+ */
+export function barFor(name, chosen = 20) {
+  const c = BARS.some((b) => b.kg === Number(chosen)) ? Number(chosen) : 20;
+  const kind = equipOf(name);
+  if (kind === 'none') return 0;
+  // 바벨 운동인데 「덤벨 · 머신」이 남아 있으면 **바가 있는 것으로 본다.**
+  // 고른 바가 바벨 둘 중 하나면 그것을 그대로 쓴다 (헬스장 바는 사람이 안다)
+  if (kind === 'bar') return c > 0 ? c : 20;
+  return c;
+}
+
 /**
  * 목표 무게를 만들려면 **한쪽에** 무엇을 꽂나.
  *

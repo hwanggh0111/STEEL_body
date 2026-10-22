@@ -25,7 +25,7 @@ const ok = (name, got, want) => {
 };
 
 const P = bundle('src/data/plateMath.js', '.plate.cjs');
-const { platesFor, plateText, PLATES, BARS } = P;
+const { platesFor, plateText, PLATES, BARS, equipOf, barFor } = P;
 
 console.log('── 양쪽 합이 목표와 맞는가 ──');
 // 이 검사가 전부다. 어떤 조합이든 **바 + 양쪽 합**이 목표여야 한다
@@ -81,9 +81,39 @@ ok('기록 화면이 이것을 쓴다', /plateText\(/.test(page), true);
 // 바를 고르는 자리가 없으면 20kg 바가 없는 헬스장에서는 계속 틀린 답을 본다
 ok('  바를 고를 수 있다', /BARS\.map/.test(page), true);
 // 워밍업 줄은 고른 바로 계산해야 한다 — 기본값으로 두면 15kg 바에서 다 어긋난다
-ok('  워밍업도 고른 바를 쓴다', /warmupSets\(todayKg, \{ bar: barKg \}\)/.test(page), true);
+// 워밍업 줄은 **그 운동에 쓸 바**로 계산해야 한다. 고른 바를 그대로 쓰면
+// 덤벨컬에 「빈 바 20×8」이 뜨고, 「덤벨 · 머신」을 골라둔 사람은 벤치프레스에서
+// 원판 안내를 통째로 못 본다 (2026-10-22 에 고친 버그)
+ok('  워밍업도 그 운동의 바를 쓴다', /warmupSets\(todayKg, \{ bar: useBar \}\)/.test(page), true);
+ok('  원판 줄도 같은 값을 쓴다', /plateText\(todayKg, useBar\)/.test(page), true);
+ok('  바 고르는 칸은 덤벨 운동에서 안 그린다', /barByName !== 'none' && \(/.test(page), true);
 ok('바 목록이 셋이다 (20 · 15 · 덤벨)', BARS.map((b) => b.kg), [20, 15, 0]);
 ok('원판에 1.25 가 있다 (2.5kg 증량)', PLATES.includes(1.25), true);
+
+console.log('\n── 기구는 운동이 정한다 ── (2026-10-22)');
+// 바 무게는 기기에 남지만(헬스장 사정) **꽂을 원판이 있느냐는 운동이 정한다.**
+// 둘을 한 값으로 쓰다가 양쪽으로 틀렸다 — 벤치프레스에서 원판이 사라지고,
+// 덤벨컬에 「양쪽 2.5 + 1.25」가 떴다
+ok('벤치프레스는 바벨', equipOf('벤치프레스'), 'bar');
+ok('  덤벨 벤치프레스는 아니다 (기구가 계열보다 세다)', equipOf('덤벨 벤치프레스'), 'none');
+ok('  인클라인 덤벨프레스도', equipOf('인클라인 덤벨프레스'), 'none');
+ok('랫풀다운 · 레그프레스는 바가 없다',
+  [equipOf('랫풀다운'), equipOf('레그프레스')], ['none', 'none']);
+ok('맨몸 운동도', [equipOf('푸시업'), equipOf('플랭크')], ['none', 'none']);
+ok('모르는 이름은 모른다고 한다', equipOf('내맘대로운동'), 'unknown');
+
+// **고친 버그 그 자체** — 덤벨컬에서 「덤벨 · 머신」을 골라둔 뒤 벤치프레스
+ok('덤벨·머신을 골라뒀어도 벤치프레스는 바를 쓴다', barFor('벤치프레스', 0), 20);
+ok('  짧은 바를 골랐으면 그것을 쓴다 (헬스장 바는 사람이 안다)', barFor('벤치프레스', 15), 15);
+ok('바를 20 으로 둬도 덤벨컬은 0', barFor('덤벨컬', 20), 0);
+ok('  모르는 이름은 고른 값을 그대로', [barFor('내맘대로운동', 20), barFor('내맘대로운동', 0)], [20, 0]);
+
+// 사전 219개를 통째로 넣어 본다 — **덤벨이라 적힌 것이 바벨로 가면 안 된다**
+const dict = bundle('src/data/exerciseDict.js', '.plate-dict.cjs').EXERCISE_DICT;
+const wrongBar = dict.filter((e) => /덤벨|머신|케이블|밴드/.test(e.ko) && equipOf(e.ko) !== 'none');
+ok('사전에 덤벨·머신이라 적힌 것이 바벨로 안 간다', wrongBar.map((e) => e.ko), []);
+const barbells = dict.filter((e) => equipOf(e.ko) === 'bar');
+ok('  바벨로 읽는 것이 사전에 스물은 넘는다', barbells.length >= 20, true);
 
 console.log('\n' + (bad ? `${bad}건 어긋남` : '전부 통과'));
 process.exit(bad ? 1 : 0);

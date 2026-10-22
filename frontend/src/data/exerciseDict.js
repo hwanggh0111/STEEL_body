@@ -439,7 +439,17 @@ export function searchExercises(query, limit = 30) {
       if (ko === q || en === q) score = 100;
       else if (ko.startsWith(q) || en.startsWith(q)) score = 60;
       else if (ko.includes(q) || en.includes(q)) score = 40;
-      else if (chosung(e.ko).includes(q)) score = 30;
+      // **초성은 공백을 지우고 견준다** (2026-10-22).
+      //
+      // 친 말(`q`)은 `norm` 이 공백을 지운 뒤 들어온다. 그런데 사전 쪽은 이름을
+      // 그대로 초성으로 바꿨다 — 「덤벨 벤치프레스」가 「ㄷㅂ ㅂㅊㅍㄹㅅ」(가운데 공백)이
+      // 되어, 「ㄷㅂㅂㅊㅍㄹㅅ」로는 **절대 안 걸렸다.** 띄어쓰기를 그대로 쳐도
+      // 그 공백이 `norm` 에서 지워지므로 역시 안 걸린다.
+      //
+      // 사전 219개 중 **152개가 띄어쓰기가 있는 이름**이다 — 초성 검색이 사실상
+      // 한 낱말짜리(「벤치프레스」 · 「스쿼트」)에만 들었다. 안내 글귀는
+      // 「ㅂㅊㅍㄹㅅ 로 찾습니다」라고 적혀 있는데 대부분이 안 나오던 자리다.
+      else if (chosung(norm(e.ko)).includes(q)) score = 30;
       else if (norm(e.group).includes(q)) score = 20;
       else if (norm(e.desc).includes(q)) score = 10;
       return { e, score };
