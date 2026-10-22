@@ -276,8 +276,8 @@ function _syncFromDiskIfChanged() {
   const m = _changedOutsideMs();
   if (m === null) return;
   try {
-    const next = JSON.parse(storage.readSync(storage.MAIN));
-    if (!next.refreshTokens) next.refreshTokens = [];
+    // 바깥에서 고친 파일은 **표가 빠져 있기 쉽다** (손으로 고치는 자리다)
+    const next = fillMissing(JSON.parse(storage.readSync(storage.MAIN)));
     _cache = next;
     _lastWriteMs = m;
     // **파생 색인도 같이 버린다.** 이것을 안 버리면 판만 갈리고 찾는 자리는 옛것을
@@ -291,14 +291,54 @@ function _syncFromDiskIfChanged() {
   }
 }
 
+// ── 읽은 판에 **빠진 표를 채운다** ── (2026-10-22)
+//
+// 여태 읽고 나서 채우는 칸이 **하나뿐이었다** —
+//
+//     _cache = JSON.parse(storage.readSync(storage.MAIN));
+//     if (!_cache.refreshTokens) _cache.refreshTokens = [];
+//
+// 그 한 줄이 이 문제를 이미 한 번 맞은 흔적이다. 나머지 표는 그대로 비어 있는 채
+// 쓰이고, **담는 자리 대부분은 없는 표를 확인하지 않는다** —
+//
+//     data.workouts.push(workout);   // ← `workouts` 가 없으면 여기서 터진다
+//
+// 돌려봤다. 표가 빠진 파일을 들고 운동 하나를 적으면 **500** 이다:
+//
+//     POST /api/workouts  →  500 「서버에 문제가 생겼어요」
+//     (로그: Cannot read properties of undefined (reading 'push'))
+//
+// 표가 빠진 파일은 **실제로 쓰는 모양**이다 — 검사 여럿이 `{ users: [], _nextId: {} }`
+// 로 씨를 심고(`check-id` · `check-join` · `check-oauth` · `check-logfile`), 사람이
+// 손으로 고칠 수도 있고(그 자리는 `_syncFromDiskIfChanged` 가 다시 읽는다), 옛 판에서
+// 올라온 Postgres 한 줄에는 뒤에 생긴 표가 아예 없다.
+//
+// 담는 자리마다 `if (!data.X) data.X = []` 를 적는 길도 있다. 그러면 **빠뜨리는 자리가
+// 반드시 생긴다**(지금이 그 꼴이다 — 몇 곳은 적혀 있고 몇 곳은 없다).
+// **읽는 자리 한 곳**에서 채운다.
+function fillMissing(parsed) {
+  const out = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  for (const [key, val] of Object.entries(DEFAULT_DATA)) {
+    // **있는 것은 건드리지 않는다.** 빈 배열도 「있는 것」이다
+    if (out[key] !== undefined && out[key] !== null) continue;
+    out[key] = Array.isArray(val) ? [] : (typeof val === 'object' ? { ...val } : val);
+  }
+  if (!out.refreshTokens) out.refreshTokens = [];
+  // `_nextId` 는 표가 아니라 셈이다 — 빠진 칸만 채운다
+  if (!out._nextId || typeof out._nextId !== 'object') out._nextId = {};
+  for (const [k, v] of Object.entries(DEFAULT_DATA._nextId || {})) {
+    if (!Number.isInteger(out._nextId[k])) out._nextId[k] = v;
+  }
+  return out;
+}
+
 function load() {
   // 바깥에서 파일이 바뀌었고 안 쓴 것이 없으면 그쪽을 읽어 맞춘다 (2026-09-30)
   if (_cache) { _syncFromDiskIfChanged(); return _cache; }
   try {
     if (storage.existsSync(storage.MAIN)) {
-      _cache = JSON.parse(storage.readSync(storage.MAIN));
-      // refresh token 저장소 초기화
-      if (!_cache.refreshTokens) _cache.refreshTokens = [];
+      // **빠진 표를 채워서 쓴다** — 담는 자리마다 확인하지 않아도 되게 (위 머리글)
+      _cache = fillMissing(JSON.parse(storage.readSync(storage.MAIN)));
       _markWritten();          // 읽은 판이 곧 「우리가 아는 파일」이다
       return _cache;
     }
@@ -315,7 +355,7 @@ function load() {
       console.error('[DB] 깨진 파일을 치우지도 못했습니다:', e2.message);
     }
   }
-  _cache = { ...DEFAULT_DATA, refreshTokens: [] };
+  _cache = fillMissing({});
   _flushSync(_cache);
   return _cache;
 }
