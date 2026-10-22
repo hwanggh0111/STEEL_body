@@ -527,46 +527,89 @@ router.post('/scan', adminAuth, async (req, res) => {
   else pass(cat4, 'LEVEL4 위협 없음');
 
   // 5. XSS 필터 검증
+  //
+  // **이 검사는 등급을 늘 F 로 만들고 있었다** (2026-10-22). 새니타이즈는
+  // `<script>alert(1)</script>` 를 `script1)/script` 로 만든다. 꺾쇠도 `alert(` 도
+  // 지워져 **어디에 꽂아도 실행되지 않는 글자**인데, 검사 패턴이 `/script|alert/i`
+  // 라서 남은 글자 "script" 에 제가 걸렸다. CRITICAL 하나 → `grade === 'F'` —
+  // 관리자 화면의 보안 등급이 **처음부터 F 였다.**
+  //
+  // 거짓 경보가 섞인 등급은 아무도 안 본다. 그래서 묻는 것을 바꿨다 —
+  // 「위험한 낱말이 남았나」가 아니라 **「실행될 수 있는 모양이 남았나」**.
+  // 실행에 필요한 것은 꺾쇠(태그) · `on___=`(핸들러) · `javascript:`(스킴) ·
+  // 호출 괄호가 붙은 `eval(` `alert(` `expression(` 이다. 평문 "script" 는 위험이 아니다.
   const cat5 = 'XSS_FILTER';
   const { sanitize } = require('../utils/sanitize');
+  // 새니타이즈를 지나고도 **남아 있으면 안 되는** 모양
+  const EXECUTABLE = /[<>"'`]|\bon\w+\s*=|(?:java|vb)script\s*:|(?:eval|alert|expression)\s*\(/i;
   const xssTests = [
-    ['<script>alert(1)</script>', /script|alert/i],
-    ['<img onerror=alert(1)>', /onerror/i],
-    ['javascript:alert(1)', /javascript:/i],
-    ['<svg onload=alert(1)>', /onload/i],
-    ['<a onclick=alert(1)>', /onclick/i],
+    '<script>alert(1)</script>',
+    '<img onerror=alert(1)>',
+    'javascript:alert(1)',
+    '<svg onload=alert(1)>',
+    '<a onclick=alert(1)>',
+    // 아래 둘은 적혀 있던 다섯이 못 보던 우회다 — 이중 인코딩과 대소문자 섞기
+    '%3Cscript%3Ealert(1)%3C/script%3E',
+    '<IMG SRC=x OnErRoR=alert(1)>',
   ];
-  for (const [input, pattern] of xssTests) {
+  for (const input of xssTests) {
     const result = sanitize(input);
-    if (!pattern.test(result)) pass(cat5, 'XSS 차단: ' + input.substring(0, 25));
+    if (!EXECUTABLE.test(result)) pass(cat5, 'XSS 차단: ' + input.substring(0, 25));
     else fail(cat5, 'XSS 통과', 'CRITICAL', input + ' → ' + result);
   }
-
   // 6. 인젝션 필터 검증
+  //
+  // **여기는 아무것도 재지 않고 있었다** (2026-10-22). 패턴을 셋 적어놓고 그걸
+  // 쓰지 않은 채 for 안에서 무조건 `pass` 를 불렀다 — 필터를 통째로 떼어내도
+  // SAFE 가 셋 찍힌다. 재는 척하는 검사는 없는 검사보다 나쁘다.
+  //
+  // 게다가 적혀 있던 셋은 **이 앱에 없는 공격**이었다. SQL 도 MongoDB 도 없고
+  // 저장소는 JSON 파일 하나다. 그래서 aiGuard 는 SQL·몽고 패턴을 일부러 안 본다
+  // (오탐만 남아서다 — `middleware/aiGuard.js` 의 INJECTION_PATTERNS 주석).
+  // 안 보는 것을 「감지 가능」이라 적던 셈이다.
+  //
+  // 실제로 막는 것 — **프로토타입 오염** — 을 aiGuard 의 판정에 그대로 넣어 본다.
   const cat6 = 'INJECTION';
   const injTests = [
-    ["' OR 1=1 --", /OR\s+1=1/i],
-    ["'; DROP TABLE users;--", /DROP\s+TABLE/i],
-    ['{"$gt":""}', /\$gt/],
+    // 키로 들어오는 것 (JSON.parse 로 만들어야 진짜 `__proto__` 키가 된다)
+    ['{"__proto__":{"admin":true}}', JSON.parse('{"__proto__":{"admin":true}}')],
+    ['문자열 속 __proto__', '__proto__'],
+    ['constructor[ 접근', 'constructor["prototype"]'],
+    ['중첩된 키', { workout: { sets: [JSON.parse('{"__proto__":{"x":1}}')] } }],
   ];
-  for (const [input, pattern] of injTests) {
-    // 인젝션은 aiGuard가 차단 — sanitize는 별개
-    pass(cat6, '패턴 감지 가능: ' + input.substring(0, 25));
+  for (const [label, payload] of injTests) {
+    const hit = aiGuard.inspect(payload);
+    if (hit) pass(cat6, '인젝션 차단: ' + label);
+    else fail(cat6, '인젝션 통과', 'CRITICAL', label + ' 를 aiGuard 가 못 잡는다');
   }
-
+  // 안 보는 것은 **안 본다고 적는다.** SAFE 로 적으면 다음 사람이 믿고 만다
+  pass(cat6, 'SQL·NoSQL 패턴은 보지 않음 (DB 가 없다 — JSON 파일 하나)');
   // 7. 파일 시스템 보안
   const cat7 = 'FILES';
   const fss = require('fs');
   const envPath = require('path').join(__dirname, '../../.env');
-  if (fss.existsSync(envPath)) pass(cat7, '.env 파일 존재');
-  else fail(cat7, '.env 파일 없음', 'CRITICAL', '환경변수 파일 누락');
+  // **배포본에는 `.env` 파일이 없다** (2026-10-22). Render 는 환경값을 프로세스에
+  // 직접 넣어준다(`render.yaml` 의 envVars) — 파일을 쓰지 않는다. 그런데 이 검사는
+  // 파일이 없으면 CRITICAL 을 매겼다. 즉 **운영 등급이 늘 F** 였다.
+  // 파일이 없는 쪽이 오히려 안전하다 — 읽어 갈 파일이 없다.
+  //
+  // 봐야 하는 것은 파일이 아니라 **값이 들어왔는가**다. 값은 위의 ENV 검사가 본다.
+  if (fss.existsSync(envPath)) {
+    pass(cat7, '.env 파일 존재 (로컬)');
+  } else if (process.env.JWT_SECRET) {
+    pass(cat7, '.env 파일 없음 — 환경값이 프로세스에 직접 주입됨 (더 안전)');
+  } else {
+    fail(cat7, '환경값 없음', 'CRITICAL', '.env 파일도 없고 JWT_SECRET 도 비어 있다');
+  }
   const gitignorePath = require('path').join(__dirname, '../../../.gitignore');
-  if (fss.existsSync(gitignorePath)) {
+  // 없으면 pass 도 fail 도 없이 조용히 빠지고 있었다 — 검사가 사라져도 등급은 그대로다
+  if (!fss.existsSync(gitignorePath)) {
+    fail(cat7, '.gitignore 없음', 'HIGH', '.env · DB 파일이 커밋될 수 있다');
+  } else {
     const gi = fss.readFileSync(gitignorePath, 'utf-8');
     if (gi.includes('.env')) pass(cat7, '.env가 .gitignore에 포함');
     else fail(cat7, '.env가 .gitignore에 없음', 'CRITICAL', '.env 커밋 위험');
   }
-
   // 결과 집계
   const safe = results.filter(r => r.status === 'SAFE').length;
   const vuln = results.filter(r => r.status === 'VULN').length;

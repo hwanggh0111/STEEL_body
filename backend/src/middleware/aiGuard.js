@@ -980,6 +980,10 @@ module.exports.unblockIP = (ip) => {
   if (r) addLog('system', '수동 차단 해제', ip);
   return r;
 };
+// 보안 검사(POST /api/security/scan)가 **실제로 쓰는 판정**을 불러 쓴다.
+// 검사 쪽에 패턴을 다시 적어두면 어긋난다 — 10/21 에 고친 「보고서가 고치기 전의
+// 버그를 적던 것」과 같은 결이다. 여기 한 자리만 보면 된다
+module.exports.inspect = (obj) => scanInput(obj, 0);
 module.exports.hydrateBlocks = hydrateBlocks;
 // 보안 라우트도 같은 판정을 쓴다 — 두 곳에 적어두면 반드시 어긋난다
 module.exports.isPrivateIp = isPrivateIp;
