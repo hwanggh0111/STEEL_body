@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const storage = require('./storage');
 // 알림 기본값 — 판단하는 쪽이 들고 있는 그 값을 그대로 쓴다
 const { DEFAULTS: REMINDER_DEFAULTS } = require('./utils/reminderSchedule');
+// 보안 기록을 몇 건까지 들고 있나 (화면은 100건을 보여준다)
+const SECURITY_LOG_KEEP = 500;
 
 // 검사에서는 진짜 DB 를 건드리면 안 된다. 그때만 다른 파일을 가리킬 수 있게 열어둔다
 // (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
@@ -2093,6 +2095,40 @@ const db = {
   },
 
   // ── 운동 알림 ──
+  // ── 보안 기록 ── (2026-10-22)
+  //
+  // **배포본에는 디스크가 없다.** 이 기록은 여태 `security.log` 파일에만 남았는데,
+  // Render 무료 판은 재시작할 때마다 · 잠들었다 깰 때마다 파일이 사라진다
+  // (`storage.js` 머리글에 적어둔 그 까닭으로 10/14 에 DB 를 Postgres 로 옮겼다).
+  //
+  // 10/02 에 「램에 든 것만 보여주던」 것을 고치면서 **파일을 읽게** 했다. 그 고침의
+  // 까닭이 「서버가 다시 뜨면 사라진다」였는데, **파일도 같이 사라진다** — 배포본에서는
+  // 아직도 관리자가 들어갈 때마다 「기록이 없습니다」를 보게 된다.
+  //
+  // 그래서 **데이터가 사는 곳에** 둔다. 파일 모드에서는 blackiron.json, 배포본에서는
+  // Postgres 다 — 쓰는 자리를 바꾸지 않고 사는 곳만 따라간다.
+  //
+  // 몇 건까지 둘까. 화면은 100건을 보여주고, 밀린 것까지 보려는 자리라 넉넉히 500 이다.
+  // 파일처럼 2MB 를 굴리지 않는다 — DB 는 바뀔 때마다 통째로 다시 쓰므로 길면 비싸다.
+  addSecurityLog(entry) {
+    const data = load();
+    if (!Array.isArray(data.securityLogs)) data.securityLogs = [];
+    data.securityLogs.push({
+      type: String(entry?.type || ''),
+      detail: String(entry?.detail || ''),
+      timestamp: String(entry?.timestamp || new Date().toISOString()),
+    });
+    if (data.securityLogs.length > SECURITY_LOG_KEEP) {
+      data.securityLogs.splice(0, data.securityLogs.length - SECURITY_LOG_KEEP);
+    }
+    save(data);
+  },
+
+  /** 적힌 순서대로 (오래된 것이 앞). 화면 쪽이 세운다 */
+  getSecurityLogs() {
+    const data = load();
+    return Array.isArray(data.securityLogs) ? data.securityLogs : [];
+  },
   getReminder(userId) {
     const data = load();
     return (data.reminders || []).find(r => r.user_id === userId) || null;

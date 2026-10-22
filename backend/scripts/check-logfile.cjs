@@ -150,6 +150,43 @@ async function run() {
     ok('  최신 백 건이다 (맨 위가 마지막 줄)', capped.body[0].detail, 'n=299');
     ok('  맨 아래가 200번째다', capped.body[99].detail, 'n=200');
     ok('  차례가 내려간다', capped.body.every((e, i, a) => i === 0 || a[i - 1].timestamp >= e.timestamp), true);
+
+    console.log('\n── 파일이 통째로 날아가도 남는가 ── (2026-10-22)');
+    //
+    // **이것이 배포본의 모양이다.** Render 무료 판은 디스크를 못 붙여서, 재시작할
+    // 때마다 · 잠들었다 깰 때마다 파일이 사라진다 — 그 까닭으로 10/14 에 DB 를
+    // Postgres 로 옮겼다(`storage.js` 머리글). 그런데 보안 기록은 **파일에만**
+    // 남고 있었다. 10/02 에 「램만 보던 것」을 고치며 파일을 읽게 했지만, 운영에서는
+    // 그 파일도 같이 날아가므로 **고침이 듣지 않았다** — 들어갈 때마다 「기록이 없습니다」.
+    //
+    // 여기서는 파일 둘을 **지우고** 램을 비운 뒤, 그래도 나오는지 본다.
+    {
+      const security = require('../src/routes/security');
+      const db = require('../src/db');
+      security.addLog('login_fail', '재시작을 넘겨야 하는 줄');
+      // 파일에 쓰는 것은 비동기다 — 지우기 전에 한 숨 기다린다
+      await new Promise((r) => setTimeout(r, 400));
+
+      // **파일을 통째로 없앤다** (= 컨테이너가 새로 떴다)
+      for (const p of [TMP_LOG, TMP_LOG + '.1']) {
+        try { fs.unlinkSync(p); } catch (e) { /* 없으면 그만 */ }
+      }
+      // 램도 비운다 (= 프로세스가 새로 떴다)
+      const ramDropped = security.__dropRamLogsForCheck && security.__dropRamLogsForCheck();
+      ok('램을 비울 길이 있다 (검사용)', ramDropped !== undefined, true);
+
+      const after = await logs();
+      const found = (after.body || []).filter((e) => e.detail === '재시작을 넘겨야 하는 줄');
+      ok('파일도 램도 없는데 그 줄이 남아 있다', found.length, 1);
+      ok('  종류도 그대로다', found[0] && found[0].type, 'login_fail');
+      // DB 에 적힌 것이 그 출처다
+      ok('  DB 에 적혀 있다', db.getSecurityLogs().some((e) => e.detail === '재시작을 넘겨야 하는 줄'), true);
+
+      // **몇 건까지 두나** — DB 는 바뀔 때마다 통째로 다시 쓰므로 끝이 있어야 한다
+      for (let n = 0; n < 520; n += 1) db.addSecurityLog({ type: 't', detail: 'bulk ' + n, timestamp: at(n) });
+      ok('DB 에 쌓인 것이 끝없이 늘지 않는다', db.getSecurityLogs().length <= 500, true);
+      ok('  최근 것이 남는다 (오래된 것부터 버린다)', db.getSecurityLogs().some((e) => e.detail === 'bulk 519'), true);
+    }
   } catch (err) {
     bad += 1;
     console.log('FAIL 검사가 도중에 터졌다 -> ' + err.message);

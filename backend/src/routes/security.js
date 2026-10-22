@@ -110,6 +110,19 @@ function readLogFile() {
   return out;
 }
 
+// ── 어디에 남기나 ── (2026-10-22 에 한 곳 더 늘렸다)
+//
+// 램 · 파일 · **DB** 셋이다. 램은 빠르고, 파일은 내 컴퓨터에서 꼬리를 보기 좋고,
+// **DB 만 재시작을 넘긴다.**
+//
+// 10/02 에 「램에 든 것만 보여주던」 것을 고치며 파일을 읽게 했다. 그 까닭이
+// 「서버가 다시 뜨면 사라진다」였는데 — **배포본에서는 파일도 같이 사라진다.**
+// Render 무료 판은 디스크를 못 붙인다(`storage.js` 머리글. 그래서 10/14 에 DB 를
+// Postgres 로 옮겼다). 즉 이 고침이 **운영에서는 아직 듣지 않고 있었다** —
+// 관리자가 들어갈 때마다 「기록이 없습니다」를 본다.
+//
+// 이제 **데이터가 사는 곳에** 같이 적는다. 파일 모드면 blackiron.json, 배포본이면
+// Postgres 로 간다 — 이 자리는 그것을 몰라도 된다.
 function addLog(type, detail) {
   const entry = {
     type,
@@ -118,6 +131,11 @@ function addLog(type, detail) {
   };
   securityLogs.push(entry);
   if (securityLogs.length > 1000) securityLogs.shift();
+  // **재시작을 넘는 한 벌.** 적다 터져도 기록은 멈추지 않는다 — 여기서 던지면
+  // 로그인 · 가입 같은 길이 통째로 500 이 된다 (기록은 곁일이다)
+  try { db.addSecurityLog(entry); } catch (err) {
+    console.error('[security] 기록을 DB 에 남기지 못했습니다:', err.message);
+  }
   // 파일에도 기록 (비동기)
   const line = `[${entry.timestamp}] [${type}] ${detail}\n`;
   _rollIfBig(Buffer.byteLength(line));
@@ -169,7 +187,11 @@ router.get('/users', adminAuth, (req, res) => {
 const LOG_WANT = 100;
 
 router.get('/logs', adminAuth, (req, res) => {
-  const merged = [...readLogFile(), ...securityLogs];
+  // **DB 가 먼저다** — 재시작을 넘은 것이 그쪽에 있다. 파일과 램은 그 위에 얹는다
+  // (같은 줄은 아래에서 접는다). 셋 중 어디에 있어도 한 번만 보인다
+  let fromDb = [];
+  try { fromDb = db.getSecurityLogs(); } catch { /* DB 를 못 읽으면 나머지로 간다 */ }
+  const merged = [...fromDb, ...readLogFile(), ...securityLogs];
   // 같은 줄은 접는다 — 파일에도 있고 램에도 있는 것이 대부분이다
   const seen = new Set();
   const out = [];
@@ -706,3 +728,8 @@ router.get('/report', adminAuth, (req, res) => {
 
 module.exports = router;
 module.exports.addLog = addLog;
+// 검사(npm run logfile)가 **재시작을 흉내 내려고** 램을 비운다.
+// 배포본에서 보안 기록이 남는지 보려면 「파일도 램도 없는」 자리를 만들어야 하는데,
+// 서버를 내렸다 올리면 그 안에서 적은 것도 같이 사라져 볼 수가 없다.
+// 여기서만 쓰는 손잡이고, 이름에 그렇게 적어뒀다
+module.exports.__dropRamLogsForCheck = () => { securityLogs.length = 0; return true; };
