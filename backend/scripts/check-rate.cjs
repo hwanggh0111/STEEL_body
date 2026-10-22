@@ -26,6 +26,14 @@ process.env.DB_FILE = TMP;
 process.env.JWT_SECRET = 'rate-check-' + 'x'.repeat(40);
 process.env.NODE_ENV = 'test';
 
+// 관리자가 제 주소 잠금에 갇히지 않는지 보려면 **관리자 계정이 하나** 있어야 한다
+// (aiGuard 가 토큰의 주인을 DB 에서 찾아 역할을 본다)
+const ADMIN_ID = 999;
+fs.writeFileSync(TMP, JSON.stringify({
+  users: [{ id: ADMIN_ID, email: 'admin@check', role: 'admin' }],
+  _nextId: {},
+}), 'utf-8');
+
 const jwt = require('jsonwebtoken');
 const aiGuard = require('../src/middleware/aiGuard');
 
@@ -39,8 +47,9 @@ const ok = (name, got, want) => {
 
 const token = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET, { algorithm: 'HS256' });
 
-// 와이파이 하나 뒤의 요청 한 번. `who` 가 null 이면 로그인 안 한 사람
-function hit(ip, who, path2 = '/api/workouts') {
+// 와이파이 하나 뒤의 요청 한 번. `who` 가 null 이면 로그인 안 한 사람.
+// `ua` 는 봇 판정을 보는 자리에서 쓴다 (2026-10-22)
+function hit(ip, who, path2 = '/api/workouts', ua = 'Mozilla/5.0 (iPhone)') {
   const req = {
     ip,
     path: path2,
@@ -50,7 +59,7 @@ function hit(ip, who, path2 = '/api/workouts') {
     params: {},
     cookies: who ? { sb_access: token(who) } : {},
     headers: {},
-    get: () => 'Mozilla/5.0 (iPhone)',
+    get: () => ua,
   };
   let status = 200;
   const res = {
@@ -95,6 +104,33 @@ for (let i = 0; i < 260; i++) {
 }
 ok('넘치면 그 주소를 잠근다', anonBlocked > 0, true);
 ok('  잠긴 목록에 들어간다', aiGuard.getSuspiciousIPs().includes(낯선주소), true);
+
+console.log('\n── 3-2. 봇 판정이 그 주소를 잠그지 않는가 ── (2026-10-22)');
+// UA 하나로 **72시간** 잠그고 있었다. UA 는 증거가 아니라 힌트고(꾸며내기가 한 줄이다)
+// 실수로 걸리기가 너무 쉽다 — 운영에 curl 로 읽기 한 번 했다가 집 주소가 사흘 잠겼다.
+// 한 주소 뒤에는 여럿이 있다 (2·3 에서 고친 그 자리와 같은 결이다)
+{
+  const 봇주소 = '198.51.100.77';
+  const r = hit(봇주소, null, '/api/workouts', 'curl/8.0');
+  ok('자동화된 접근은 그 요청을 막는다', r.status, 403);
+  ok('  **주소는 잠그지 않는다**', aiGuard.getSuspiciousIPs().includes(봇주소), false);
+  ok('  옆 사람은 그대로 지나간다', hit(봇주소, 601).passed, true);
+  // 모니터링은 여태처럼 지나간다 (Render 가 데우려고 두드린다)
+  ok('  Render 헬스체크는 봇이 아니다', hit(봇주소, null, '/api/workouts', 'Render/1.0 HealthCheck').status, 200);
+}
+
+console.log('\n── 3-3. 관리자가 제 주소 잠금에 갇히지 않는가 ──');
+// 주소 잠금은 **토큰을 보기 전에** 걸러진다. 그래서 관리자가 한 번 걸리면 푸는 길
+// (`POST /security/ai-unblock`)에도 닿지 못한다 — 「자기 정지를 자기가 못 풀어서
+// 서비스가 잠긴다」와 같은 자리인데, 그 규칙이 주소 잠금에는 없었다
+{
+  const 잠긴주소 = '198.51.100.78';
+  aiGuard.manualBlock(잠긴주소, 60);
+  ok('잠긴 주소에서 보통 사람은 막힌다', hit(잠긴주소, 601).status, 403);
+  ok('  로그인 안 한 사람도 막힌다', hit(잠긴주소, null).status, 403);
+  ok('  **관리자는 지나간다**', hit(잠긴주소, ADMIN_ID).passed, true);
+  ok('  두 번째 검사(속도 사다리 뒤)도 지나간다', hit(잠긴주소, ADMIN_ID).status, 200);
+}
 
 console.log('\n── 4. 로그인 자리도 주소로 묶이지 않는가 ──');
 {

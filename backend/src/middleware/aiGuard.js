@@ -174,7 +174,8 @@ const NOT_FOUND_STEP = { count: 30, hours: 72 };
 // 만료는 정상이라 안 센다(auth 가 갈라준다). 서명 위조는 정상 사용에서 안 난다 —
 // 열쇠가 바뀐 직후 잠깐 몰릴 수 있어 문턱은 넉넉히 두고 잠금은 1시간(되돌기 쉽게).
 const TOKEN_FORGE_STEP = { count: 30, hours: 1 };
-const BOT_LOCK_HOURS = 72;
+// 봇 잠금 시간은 **걷었다** (2026-10-22). UA 로 주소를 잠그지 않기로 했고,
+// 쓰이지 않는 숫자를 남겨두면 「세 시간 잠근다」고 믿게 된다 (이 앱에서 두 번 겪었다)
 const INPUT_SUSPEND_DAYS = 3;
 const SUSPEND_TO_BAN = 2;
 const WARN_TO_LOCK = { count: 10, hours: 168 };
@@ -683,6 +684,24 @@ function aiGuardMiddleware(req, res, next) {
   const who = userIdOf(req);
   req.rateKey = who ? 'u:' + who : null;
 
+  // ── 관리자는 **주소 잠금 바깥**에 둔다 ── (2026-10-22)
+  //
+  // 자동 처벌에서 관리자를 빼는 규칙은 이미 있다(`executeLevel3` · `executeLevel4` —
+  // 「자기 정지를 자기가 못 풀어서 서비스가 잠긴다」). 그런데 **주소 잠금에는 그
+  // 규칙이 없었다.** 그리고 주소 잠금은 **토큰을 보기 전에** 걸러지므로,
+  // 관리자가 한 번 걸리면 **푸는 길(`POST /security/ai-unblock`)에도 닿지 못한다.**
+  //
+  // 오늘 실제로 당했다 — 운영에 `curl` 로 읽기 한 번 했다가 봇으로 판정돼 집 주소가
+  // 72시간 잠겼고, 관리자 화면에 들어갈 길이 그 자리에서 사라졌다. 램만이면 다시
+  // 뜰 때 풀리는데 **파일(DB)에도 적히므로** 배포를 다시 해도 되살아난다.
+  //
+  // 관리자 토큰을 들고 온 요청은 막지 않는다. 훔친 토큰이라면 그 계정이 이미
+  // 넘어간 것이고, 그때 막아야 하는 것은 주소가 아니라 그 계정이다.
+  let isAdminReq = false;
+  if (who) {
+    try { isAdminReq = db.findUserById(who)?.role === 'admin'; } catch { /* DB 를 못 읽으면 보통 사람으로 본다 */ }
+  }
+
   // localhost 는 여기서부터 안 본다 (검사·개발 도구가 제 제한에 걸리지 않게)
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
 
@@ -696,8 +715,8 @@ function aiGuardMiddleware(req, res, next) {
     }
   }
 
-  // IP 차단 체크
-  if (blockedIPs.has(ip)) {
+  // IP 차단 체크 — **관리자는 지나간다** (위 「주소 잠금 바깥」)
+  if (blockedIPs.has(ip) && !isAdminReq) {
     const info = blockedIPs.get(ip);
     if (info.until === Infinity || Date.now() < info.until) {
       blockedRequests++;
@@ -727,10 +746,23 @@ function aiGuardMiddleware(req, res, next) {
     try { db.unblockIp(ip); } catch { /* 파일이 안 지워져도 램에서는 풀렸다 */ }
   }
 
-  // 봇 감지 (Render/UptimeRobot 등 모니터링 서비스 제외)
+  // ── 봇 판정은 **그 요청만** 막는다 ── (2026-10-22 에 72시간 잠금을 뗐다)
+  //
+  // 여태 UA 하나로 **그 주소를 72시간 잠갔다.** 그런데 UA 는 증거가 아니라 **힌트**다 —
+  //   · 꾸며내기가 한 줄이다 (막으려는 쪽은 아무 때나 `Mozilla` 를 적는다)
+  //   · 그리고 **실수로 걸리기가 너무 쉽다** — `curl` 한 번, 회사 망의 점검 도구,
+  //     링크 미리보기 봇, 누군가의 파이썬 한 줄이면 걸린다
+  //   · 오늘 고친 자리와 같은 결이다: **한 주소 뒤에는 여럿이 있다.** 통신사 NAT ·
+  //     헬스장 와이파이에서 한 사람의 `curl` 이 **사흘 동안 그 자리의 모두를** 막는다
+  //
+  // 지키려는 것은 「훑고 다니는 자동 접근을 막는 것」이고, 그것은 **요청을 막으면**
+  // 이뤄진다. 72시간 잠금은 보호를 더 해주지 않고 **곁에 있는 사람만** 상하게 한다.
+  // 진짜로 두드리면 속도 사다리와 404 사다리가 잡는다 — 그쪽은 **행동**을 본다.
   const ua = req.get('user-agent') || '';
   if (BOT_PATTERNS.some(p => p.test(ua)) && !ua.includes('Mozilla') && !ua.includes('Render') && !ua.includes('UptimeRobot') && !ua.includes('HealthCheck')) {
-    executeLevel2(ip, 'bot', ua, BOT_LOCK_HOURS);
+    blockedRequests++;
+    // 기록은 남긴다 — 사람이 「이 주소가 뭘 하고 있나」를 볼 수 있어야 한다
+    addLog('INFO', `자동화된 접근을 막았습니다 (잠그지는 않습니다): ${ua.slice(0, 80)}`, ip);
     return res.status(403).json({ error: '자동화된 접근이 차단되었습니다.' });
   }
 
@@ -740,7 +772,9 @@ function aiGuardMiddleware(req, res, next) {
   // 뒤에 서는 전역 제한기도 같은 열쇠를 쓴다 — 두 번 풀 이유가 없고, 두 곳에서
   // 따로 셈하면 어긋난다 (`index.js` 의 전역 제한을 보라)
   const tooFast = checkRequestRate(req.rateKey || ip, Boolean(who));
-  if (blockedIPs.has(ip)) {
+  // 방금 사다리에 걸려 잠겼을 수 있다 — **여기도 관리자는 지나간다**
+  // (위의 「주소 잠금 바깥」. 이 줄을 빼먹어서 관리자가 그대로 막혔다)
+  if (blockedIPs.has(ip) && !isAdminReq) {
     blockedRequests++;
     return res.status(403).json({ error: '비정상적인 요청으로 차단되었습니다.' });
   }
@@ -982,7 +1016,9 @@ function policy() {
     },
     {
       title: '봇 · 크롤러',
-      detail: `사람 브라우저가 아닌 것으로 보이면 ${hoursText(BOT_LOCK_HOURS)} 잠근다`,
+      detail: '사람 브라우저가 아닌 것으로 보이면 **그 요청을 막는다**. '
+        + '주소를 잠그지는 않는다 — UA 는 꾸며내기 쉽고, 한 주소 뒤에는 여럿이 있다. '
+        + '진짜로 두드리면 속도 · 없는 주소 사다리가 잡는다',
     },
     {
       title: '보낼 수 없는 글자 (XSS · 프로토타입 오염)',
@@ -1055,7 +1091,7 @@ module.exports.hydrateBlocks = hydrateBlocks;
 // 보안 라우트도 같은 판정을 쓴다 — 두 곳에 적어두면 반드시 어긋난다
 module.exports.isPrivateIp = isPrivateIp;
 module.exports.policy = policy;
-module.exports.THRESHOLDS = { RATE_STEPS, ACCOUNT_RATE_PER_MIN, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, BOT_LOCK_HOURS, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
+module.exports.THRESHOLDS = { RATE_STEPS, ACCOUNT_RATE_PER_MIN, LOGIN_FAIL_STEPS, NOT_FOUND_STEP, TOKEN_FORGE_STEP, INPUT_SUSPEND_DAYS, SUSPEND_TO_BAN, WARN_TO_LOCK, SPAM_PER_MINUTE };
 
 // 로그인 유지 토큰이 두 곳에서 쓰였다 — 사람이 봐야 하는 일이라 기록에 남긴다.
 // **여기서 IP 를 막지는 않는다.** 다시 온 쪽이 주인일 수도 있어서다
