@@ -170,6 +170,27 @@ async function main() {
     ok('조용히 빈 것을 주지 않는다', /init/.test(msg), true);
   }
 
+  // ── 백업은 **앱과 같은 곳**에서 뜬다 ── (2026-10-22)
+  //
+  // `backup.cjs` 는 10/01 에 적은 그대로 **파일만** 읽고 있었다. 10/14 에 운영이
+  // Postgres 로 옮겨간 뒤로는, 운영을 가리켜 떠도 **내 컴퓨터의 파일**을 떠놓고
+  // 「떠뒀습니다 · 회원 18명」이라고 말했다. 되돌려야 하는 날에야 알게 된다.
+  //
+  // 가짜 pg 를 끼울 수 없는 자리라(딴 프로세스다) **닿지 않는 주소**로 돌려본다.
+  // 고치기 전에는 0 으로 끝나며 백업 한 벌을 남겼고, 이제는 터져야 한다.
+  console.log('\n── 백업은 앱과 같은 곳에서 뜬다 ──');
+  {
+    const outDir = path.join(tmp, 'backups');
+    const r = require('child_process').spawnSync(process.execPath,
+      [path.join(__dirname, 'backup.cjs'), '--out', outDir],
+      {
+        env: { ...process.env, DATABASE_URL: 'postgres://x:y@127.0.0.1:1/none', DB_FILE: '' },
+        encoding: 'utf8',
+      });
+    ok('운영을 가리키면 파일을 뜨지 않는다', r.status !== 0, true);
+    ok('  떠뒀다고 말하지 않는다', /떠뒀습니다/.test(r.stdout || ''), false);
+    ok('  한 벌도 남기지 않는다', fs.existsSync(outDir) && fs.readdirSync(outDir).length > 0, false);
+  }
   delete process.env.DATABASE_URL;
   delete process.env.DB_FILE;
   fs.rmSync(tmp, { recursive: true, force: true });
