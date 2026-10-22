@@ -3,23 +3,12 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
+const { normalizeWeight } = require('../utils/workoutFields');
 const { isRecordDay } = require('../utils/dayRange');
 
-// 무게는 자유 입력 칸이다 — '60', '20kg', '맨몸', '밴드' 가 다 들어온다.
-// 그래서 더더욱 형식을 정해둬야 하는데 지금까지 아무 검사 없이 body 값을 그대로 저장했다.
-// 운동명은 100자 제한에 새니타이즈까지 하면서 바로 옆 칸만 무방비였다.
-//   - 객체나 배열을 보내면 목록을 그리는 React 가 통째로 죽는다
-//   - 길이 제한이 없어 아주 긴 문자열이 그대로 DB 에 눌러앉는다
-function normalizeWeight(raw) {
-  if (raw === undefined || raw === null || raw === '') return { ok: true, value: '맨몸' };
-  if (typeof raw !== 'string' && typeof raw !== 'number') return { ok: false };
-  const value = sanitize(String(raw)).slice(0, 30).trim();
-  // 음수는 막는다. 기록에는 '-50' 이라 뜨는데 볼륨을 세는 쪽은 앞의 부호를 못 보고
-  // 50 으로 세서, 같은 줄의 두 숫자가 서로 다른 말을 하고 있었다
-  if (/^-\s*\d/.test(value)) return { ok: false };
-  return { ok: true, value: value || '맨몸' };
-}
-
+// 무게 칸과 운동명을 다듬는 자는 **`utils/workoutFields.js` 한 곳에** 있다
+// (2026-10-22 에 옮겼다). 파일로 넣는 길(`POST /import`)이 같은 자를 써야 한다 —
+// 여기만 음수를 막고 있어서 **CSV 로는 `-50` 이 그대로 들어왔다.**
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
   const workouts = db.getWorkouts(req.userId);
@@ -85,7 +74,7 @@ router.post('/', auth, spamCheck, (req, res) => {
   }
 
   const w = normalizeWeight(weight);
-  if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
+  if (!w.ok) return res.status(400).json({ error: w.why });
 
   // ── 앞 줄과 묶이는가 ── (2026-10-05)
   //
@@ -143,7 +132,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   }
 
   const w = normalizeWeight(weight);
-  if (!w.ok) return res.status(400).json({ error: '무게 값이 올바르지 않아요' });
+  if (!w.ok) return res.status(400).json({ error: w.why });
 
   const result = db.updateWorkout(id, req.userId, {
     date,

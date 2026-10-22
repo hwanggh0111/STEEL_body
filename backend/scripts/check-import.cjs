@@ -251,5 +251,54 @@ ok('  값이 같으면 같은 줄이다 (파일에 그 이상이 안 적혀 있�
 ok('  값이 없어도 안 터진다', typeof rows.measureKey({ date: TODAY, type: 'oneRM' }), 'string');
 
 console.log('');
+console.log('── 손으로 적는 길과 **같은 자**를 쓰는가 ── (2026-10-22)');
+// 같은 기록이 들어오는 길이 둘이다 — `POST /workouts` 와 파일로 넣는 이 길.
+// 그런데 자가 두 벌이어서 **파일로만 들어오는 줄**이 있었다:
+//
+//   손으로   '-50' → 400 「무게 값이 올바르지 않아요」
+//   파일로   '-50' → **그대로 저장**  (볼륨을 세는 쪽은 부호를 못 본다)
+//   파일로   '<<<>>>' → 새니타이즈하면 빈 이름인데 **이름 없이 저장**
+//
+// 이제 둘이 `utils/workoutFields.js` 하나를 쓴다.
+{
+  const fields = require('../src/utils/workoutFields');
+  const path = require('path');
+  const head = '날짜,운동명,무게,세트,횟수';
+  const read = (line) => rows.readWorkouts(head + '\n' + line);
+
+  const neg = read(`${TODAY},벤치프레스,-50,3,10`);
+  ok('음수 무게는 안 들어온다', neg.rows.length, 0);
+  ok('  몇째 줄이 왜인지 말한다', neg.bad[0] && neg.bad[0].why, '무게는 음수일 수 없어요');
+  ok('  줄 수도 말한다', neg.bad[0] && neg.bad[0].line, 2);
+
+  const blank = read(`${TODAY},<<<>>>,60,3,10`);
+  ok('새니타이즈하면 빈 이름도 안 들어온다', blank.rows.length, 0);
+  ok('  이름이 비었다고 말한다', blank.bad[0] && blank.bad[0].why, '운동명이 비어 있어요');
+
+  // 멀쩡한 줄은 그대로 들어온다 (막는 것만 막는다)
+  const good = read(`${TODAY},데드리프트, 100kg ,5,5`);
+  ok('쓸 수 있는 줄은 들어온다', good.rows.length, 1);
+  ok('  무게의 앞뒤 공백은 다듬는다', good.rows[0] && good.rows[0].weight, '100kg');
+  const bare = read(`${TODAY},런지,,3,12`);
+  ok('빈 무게는 맨몸이다 (화면과 같다)', bare.rows[0] && bare.rows[0].weight, '맨몸');
+
+  // **자가 한 곳에 있는가** — 두 곳에 적어두면 반드시 어긋난다
+  const route = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'workouts.js'), 'utf-8');
+  ok('저장하는 길이 그 자를 받아 쓴다', /require\('\.\.\/utils\/workoutFields'\)/.test(route), true);
+  ok('  제 손으로 다시 적지 않는다', /function normalizeWeight/.test(route), false);
+  const csvSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'csvRows.js'), 'utf-8');
+  ok('읽는 쪽도 그 자를 받아 쓴다', /require\('\.\/workoutFields'\)/.test(csvSrc), true);
+  const imp = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'importData.js'), 'utf-8');
+  ok('가져오는 라우트는 뒤에서 또 다듬지 않는다', /cleanName\(/.test(imp), false);
+
+  // 자 자체도 본다
+  ok('자: 음수를 막는다', fields.normalizeWeight('-50').ok, false);
+  ok('  빈 칸은 맨몸', fields.normalizeWeight('').value, '맨몸');
+  ok('  숫자로 와도 받는다', fields.normalizeWeight(60).value, '60');
+  ok('  객체는 못 받는다', fields.normalizeWeight({}).ok, false);
+  ok('자: 빈 이름은 null', fields.cleanExerciseName('<<<>>>'), null);
+  ok('  긴 이름은 null (100자 넘음)', fields.cleanExerciseName('가'.repeat(101)), null);
+}
+console.log('');
 console.log(bad ? bad + '건 실패' : '전부 통과');
 process.exit(bad ? 1 : 0);

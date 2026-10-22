@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
-const { cleanName, sanitizeObj } = require('../utils/sanitize');
+const { sanitizeObj } = require('../utils/sanitize');
 const {
   readWorkouts, readInbody, readMeasures,
   workoutKey, inbodyKey, measureKey,
@@ -103,8 +103,10 @@ router.post('/', auth, (req, res) => {
     if (have.has(k)) { skipped += 1; continue; }
     if (added >= room) { failed.push({ line: 0, why: `${spec.label} 기록이 가득 차서 나머지는 못 넣었어요` }); break; }
     try {
-      // 운동명은 저장하는 쪽과 같은 손질을 거친다 (보이지 않는 글자 · 앞뒤 공백)
-      if (kind === 'workouts') r.exercise = cleanName(r.exercise, 100);
+      // 운동명 · 무게는 **읽는 쪽이 이미 다듬었다**(`utils/csvRows` → `workoutFields`).
+      // 여기서 또 부르면 안 된다 — 2026-10-22 까지 그랬고, `cleanName` 이 `null` 을
+      // 돌려주면 **그 null 을 그대로 넣어 이름 없는 기록**이 남았다. 걸러낼 자리는
+      // 줄 수를 아는 읽는 쪽이다(사람에게 「몇째 줄이 왜」를 말할 수 있다)
       // 측정 값은 저장하는 쪽(`POST /measures`)과 **같은 손질**을 거친다 —
       // 여기만 날것으로 넣으면 화면이 그 줄에서 깨진다
       if (kind === 'measures') r.data = sanitizeObj(r.data);

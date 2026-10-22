@@ -14,6 +14,8 @@
 // 그래서 파일 한 장을 한 번에 받는다.
 
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
+// 무게 · 운동명을 다듬는 자는 저장하는 쪽과 **같은 것**을 쓴다 (2026-10-22)
+const { normalizeWeight, cleanExerciseName } = require('./workoutFields');
 const { isRecordDay } = require('./dayRange');
 // 내보낼 때 엑셀 때문에 붙인 작은따옴표를 뗀다 — 규칙은 그쪽 한 곳에 있다
 const { unguardCell } = require('./csv');
@@ -109,15 +111,22 @@ function readWorkouts(text) {
     const line = r + 1;                     // 사람이 보는 줄 수 (머리글이 1줄)
     const cells = rows[r];
     const date = cells[iDate] || '';
-    const exercise = (cells[iName] || '').slice(0, 100).trim();
+    // **저장하는 쪽과 같은 자로** 다듬는다 (2026-10-22).
+    // 여태 여기서는 「비었나」만 봤고, 가져오는 라우트가 뒤에서 `cleanName` 을 불러
+    // **`null` 이 되면 그대로 넣었다** — `<<<>>>` 처럼 새니타이즈하면 아무것도 안
+    // 남는 이름이 그렇다. 손으로 적는 길은 같은 값을 400 으로 막는다
+    const exercise = cleanExerciseName(cells[iName]);
     const sets = num(iSets >= 0 ? cells[iSets] : '');
     const reps = num(iReps >= 0 ? cells[iReps] : '');
     // 무게 칸은 자유 입력이다 — '60' · '20kg' · '맨몸' · '밴드' 가 다 들어온다.
     // 비어 있으면 맨몸으로 본다 (화면이 그렇게 저장한다)
-    const weight = (iWeight >= 0 ? (cells[iWeight] || '') : '').slice(0, 20).trim() || '맨몸';
+    // 무게도 같은 자다. **음수를 막는 것이 여기 없었다** — 저장하는 쪽은 400 을
+    // 주는데 파일로는 `-50` 이 그대로 들어왔다. 볼륨을 세는 쪽이 부호를 못 본다
+    const w = normalizeWeight(iWeight >= 0 ? cells[iWeight] : '');
 
     if (!isRecordDay(date)) { bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'})` }); continue; }
     if (!exercise) { bad.push({ line, why: '운동명이 비어 있어요' }); continue; }
+    if (!w.ok) { bad.push({ line, why: w.why }); continue; }
     if (!Number.isInteger(sets) || !Number.isInteger(reps) || sets < 1 || reps < 1) {
       bad.push({ line, why: '세트와 횟수는 1 이상의 정수여야 해요' });
       continue;
@@ -131,6 +140,7 @@ function readWorkouts(text) {
     const link = linkRaw === '드롭' || linkRaw === 'drop' ? 'drop'
       : linkRaw === '슈퍼' || linkRaw === 'super' ? 'super' : null;
 
+    const weight = w.value;
     out.push(link ? { date, exercise, weight, sets, reps, link } : { date, exercise, weight, sets, reps });
   }
   return { rows: out, bad };
