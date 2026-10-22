@@ -343,8 +343,11 @@ function executeLevel4(userId, ip, triggerType, details) {
   // 블랙리스트.
   // IP 대역(/24)까지 자동으로 막지 않는다 — 통신사 NAT 뒤에 있는 사람들이
   // 통째로 걸린다. 대역 차단이 필요하면 관리자가 보고 직접 넣는다
-  if (user?.email) db.addBlacklist('email', user.email, aiReason);
-  if (ip) db.addBlacklist('ip', ip, aiReason);
+  // **누구 때문에 넣은 줄인지 적는다** (2026-10-22). 안 적어두면 나중에 그 사람을
+  // 풀어주려 해도 **어느 주소가 그 사람 것인지 알 길이 없다** —
+  // 영구 정지는 되돌릴 수 있어야 하는 자리다(이 함수 머리글)
+  if (user?.email) db.addBlacklist('email', user.email, aiReason, userId);
+  if (ip) db.addBlacklist('ip', ip, aiReason, userId);
 
   // 정지 횟수 기록
   suspensionCounts.set(userId, (suspensionCounts.get(userId) || 0) + 1);

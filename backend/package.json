@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
-    "check": "node scripts/check-tables.cjs && node scripts/check-pgrun.cjs && node scripts/check-write.cjs && node scripts/check-rate.cjs && node scripts/check-join.cjs && node scripts/check-id.cjs && node scripts/check-logfile.cjs && node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-proxy.cjs && node scripts/check-web.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs && node scripts/check-sync.cjs && node scripts/check-storage.cjs && node scripts/check-owner.cjs && node scripts/check-sweep.cjs && node scripts/check-warm.cjs",
+    "check": "node scripts/check-unban.cjs && node scripts/check-tables.cjs && node scripts/check-pgrun.cjs && node scripts/check-write.cjs && node scripts/check-rate.cjs && node scripts/check-join.cjs && node scripts/check-id.cjs && node scripts/check-logfile.cjs && node scripts/check-oauth.cjs && node scripts/check-reminder.cjs && node scripts/check-account.cjs && node scripts/check-routines.cjs && node scripts/check-security.cjs && node scripts/check-proxy.cjs && node scripts/check-web.cjs && node scripts/check-photos.cjs && node scripts/check-cache.cjs && node scripts/check-cold.cjs && node scripts/check-day.cjs && node scripts/check-import.cjs && node scripts/check-save.cjs && node scripts/check-api.cjs && node scripts/check-abuse.cjs && node scripts/check-sync.cjs && node scripts/check-storage.cjs && node scripts/check-owner.cjs && node scripts/check-sweep.cjs && node scripts/check-warm.cjs",
     "storage": "node scripts/check-storage.cjs",
     "owner": "node scripts/check-owner.cjs",
     "backup": "node scripts/backup.cjs",
@@ -42,7 +42,8 @@
     "write": "node scripts/check-write.cjs",
     "rate": "node scripts/check-rate.cjs",
     "tables": "node scripts/check-tables.cjs",
-    "pgrun": "node scripts/check-pgrun.cjs"
+    "pgrun": "node scripts/check-pgrun.cjs",
+    "unban": "node scripts/check-unban.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

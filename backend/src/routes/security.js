@@ -240,6 +240,53 @@ router.post('/unblock-user/:id', adminAuth, (req, res) => {
   res.json({ message: '유저 차단이 해제되었어요' });
 });
 
+// POST /api/security/unban/:id — **영구 정지를 되돌린다** (2026-10-22)
+//
+// 자동 판정(`aiGuard` 의 LEVEL 4)은 네 가지를 한다 — 영구 정지 기록 · 로그인 차단 ·
+// 블랙리스트(이메일 + 주소) · 주소 영구 잠금. 그 함수 머리글에는 **「데이터는 남긴다 —
+// 오판이면 되돌려야 한다」**고 적혀 있다. 그런데 **되돌리는 길이 넷 중 하나뿐이었다**
+// (주소 잠금만 「AI 차단 해제」로 풀렸다). 나머지 셋은 푸는 함수가 DB 에 있는데
+// **아무도 안 불렀다** — 세어봤다: 거는 자리 2~5, 푸는 자리 0.
+//
+// 그래서 오판으로 걸린 사람은 기록은 남은 채 **영원히 못 들어오고**, 관리자도 풀 수가
+// 없었다. 그 사람에게 할 수 있는 관리자 동작은 **지우기뿐**이었다(아래 `DELETE`).
+// 방향이 거꾸로다 — 되돌릴 수 있어야 할 자리에 삭제만 있었다.
+//
+// **넷을 한 번에 되돌린다.** 하나만 풀면 다른 셋이 남아 「풀었는데 여전히 못
+// 들어온다」가 된다 — 그게 제일 나쁜 꼴이다(관리자는 풀었다고 믿는다).
+router.post('/unban/:id', adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '잘못된 ID에요' });
+  const user = db.findUserById(id);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+
+  const r = db.unbanUser(id);
+  if (!r) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+
+  // **주소 잠금도 같이 푼다.** 블랙리스트에서 뺀 주소가 램과 파일에 잠긴 채 남으면
+  // 그 사람은 여전히 못 들어온다 (`aiGuard.unblockIP` 가 둘 다 지운다)
+  let unlocked = 0;
+  for (const ip of r.ips) {
+    try { if (aiGuard.unblockIP(ip)) unlocked += 1; } catch { /* 못 풀어도 나머지는 푼다 */ }
+  }
+
+  // 아무것도 안 걸려 있었으면 그렇게 말한다 — 「풀었습니다」라고만 하면
+  // 관리자는 무언가를 되돌렸다고 믿는다
+  const did = (r.wasBanned ? 1 : 0) + r.lifted + r.blacklist + unlocked;
+  if (did === 0) {
+    return res.status(400).json({ error: '이 사람에게 걸린 영구 정지가 없어요' });
+  }
+
+  addLog('unban', `영구 정지 해제: id=${id}, email=${user.email} `
+    + `(정지기록 ${r.lifted} · 블랙리스트 ${r.blacklist} · 주소잠금 ${unlocked})`);
+  res.json({
+    message: '영구 정지를 풀었어요. 이 사람은 다시 로그인할 수 있어요',
+    lifted: r.lifted,
+    blacklist: r.blacklist,
+    unlockedIps: unlocked,
+  });
+});
+
 // DELETE /api/security/user/:id - 계정과 모든 데이터를 지운다
 //
 // 되돌릴 수 없다. 그래서 자동 판정에서는 절대 부르지 않는다 —

@@ -249,10 +249,26 @@ export default function SecurityPanel() {
     if (ok) handleAction(user.id, 'revoke-admin');
   };
 
+  // 영구 정지를 푸는 일은 **되돌리는 일**이라 위험하지 않다. 그래도 무엇이 같이
+  // 풀리는지 적어준다 — 블랙리스트와 주소 잠금까지 함께 풀린다
+  const unban = async (user) => {
+    const ok = await confirmDialog(
+      `${user.nickname || user.email} 님의 영구 정지를 풉니다.\n`
+      + '정지 기록 · 로그인 차단 · 블랙리스트(이메일 · 주소) · 주소 잠금을 한 번에 되돌립니다.\n'
+      + '욕설로 걸린 정지는 그대로 남습니다 (날이 정해져 있어 저절로 풀립니다).',
+      { confirmText: '풉니다' },
+    );
+    if (ok) handleAction(user.id, 'unban');
+  };
+
   const handleAction = async (userId, action) => {
     const actionMap = {
       'block': 'block-user',
       'unblock': 'unblock-user',
+      // **영구 정지를 되돌리는 길** (2026-10-22). 자동 판정(AI 가드 LEVEL 4)이 거는
+      // 넷을 한 번에 푼다 — 정지 기록 · 로그인 차단 · 블랙리스트 · 주소 잠금.
+      // 서버에 그 길이 없어서 **오판으로 걸린 사람을 풀 방법이 아예 없었다**
+      'unban': 'unban',
       'grant-admin': 'make-admin',
       'revoke-admin': 'revoke-admin',
     };
@@ -303,6 +319,14 @@ export default function SecurityPanel() {
     return 'var(--text-secondary)';
   };
 
+  // ── **영구 정지는 역할이 아니다** ── (2026-10-22)
+  //
+  // AI 가드가 영구 정지를 걸면 `is_banned` 가 켜지는데 **역할은 `user` 그대로다.**
+  // 그래서 이 화면에서 그 사람이 **멀쩡한 「일반」으로 보였다** — 로그인은 막혀 있는데
+  // 관리자는 보고 알 수가 없고, 풀어줄 단추도 없었다.
+  const bannedLabel = (u) => (u.is_banned ? '영구 정지' : ROLE_LABEL[u.role] || u.role);
+  const bannedColor = (u) => (u.is_banned ? 'var(--danger)' : roleColor(u.role));
+
   const needle = q.trim().toLowerCase();
   const shownUsers = users.filter(u => {
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
@@ -317,6 +341,8 @@ export default function SecurityPanel() {
   const isMe = (u) => myEmail && String(u.email || '').toLowerCase() === myEmail;
 
   const blockedCount = users.filter(u => u.role === 'blocked').length;
+  // 영구 정지는 따로 센다 — 역할로는 안 보이는 사람들이다 (위 「영구 정지는 역할이 아니다」)
+  const bannedCount = users.filter(u => u.is_banned).length;
   const adminCount = users.filter(u => u.role === 'admin').length;
 
   // 서버 설정을 접어두면 **열어보기 전에는 위험한 것이 있는지 모른다.**
@@ -360,6 +386,13 @@ export default function SecurityPanel() {
         <span style={{ fontSize: 13, color: blockedCount > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
           막아둔 사람 <b style={{ fontSize: 15 }}>{blockedCount}</b>명
         </span>
+        {/* **영구 정지는 자동으로 걸린다.** 관리자가 모르는 채 걸려 있을 수 있어서
+            0 이 아닐 때만 보여주고, 보이면 눈에 띄게 둔다 */}
+        {bannedCount > 0 && (
+          <span style={{ fontSize: 13, color: 'var(--danger)' }}>
+            영구 정지 <b style={{ fontSize: 15 }}>{bannedCount}</b>명
+          </span>
+        )}
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           오늘 가입 <b style={{ fontSize: 15, color: 'var(--text-secondary)' }}>{todaySignups ?? '-'}</b>명
         </span>
@@ -429,10 +462,10 @@ export default function SecurityPanel() {
               <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{user.nickname || '(이름 없음)'}</span>
               <span style={{
                 fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5,
-                color: roleColor(user.role),
-                border: `1px solid ${roleColor(user.role)}`,
+                color: bannedColor(user),
+                border: `1px solid ${bannedColor(user)}`,
                 borderRadius: 'var(--radius)', padding: '0 6px',
-              }}>{ROLE_LABEL[user.role] || user.role}</span>
+              }}>{bannedLabel(user)}</span>
               {isMe(user) && (
                 <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>나</span>
               )}
@@ -455,9 +488,16 @@ export default function SecurityPanel() {
               {user.role === 'blocked' && (
                 <UserBtn tone="success" onClick={() => handleAction(user.id, 'unblock')}>차단 풀기</UserBtn>
               )}
+              {/* **영구 정지를 푸는 단추가 없었다** (2026-10-22). 서버에도 길이 없었고
+                  DB 의 푸는 함수들은 아무도 안 불렀다 — 오판으로 걸린 사람에게 할 수
+                  있는 일이 **지우기뿐**이었다. 되돌릴 수 있어야 할 자리에 삭제만 있었다 */}
+              {user.is_banned && (
+                <UserBtn tone="success" onClick={() => unban(user)}>영구 정지 풀기</UserBtn>
+              )}
               {/* 지우기는 이미 막아둔 사람에게만 보인다.
                   멀쩡한 사람 옆에 삭제 단추가 늘 붙어 있으면 언젠가 눌린다 */}
-              {user.role === 'blocked' && (
+              {/* 지우기는 **이미 막혀 있는 사람에게만** 보인다 (서버도 그렇게 받는다) */}
+              {(user.role === 'blocked' || user.is_banned) && (
                 <UserBtn tone="danger" ghost onClick={() => { setDeleting(user); setConfirmEmail(''); }}>
                   계정 지우기
                 </UserBtn>

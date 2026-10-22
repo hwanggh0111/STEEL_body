@@ -1428,11 +1428,17 @@ const db = {
       return false;
     });
   },
-  addBlacklist(type, value, reason) {
+  // **누구 때문에 넣은 줄인지 적는다** (2026-10-22).
+  //
+  // 자동 판정(LEVEL 4)이 그 사람의 이메일과 **접속 주소**를 같이 넣는다. 그런데
+  // 주소 줄에는 주인이 안 적혀 있어서, 나중에 그 사람을 풀어주려 해도 **어느 주소가
+  // 그 사람 것인지 알 길이 없었다.** 사람 번호를 같이 적어두면 정확히 그 줄만 뺀다.
+  addBlacklist(type, value, reason, userId = null) {
     const id = nextId('blacklist');
     const data = load();
     if (!data.blacklist) data.blacklist = [];
     const record = { id, type, value, reason, created_at: new Date().toISOString() };
+    if (Number.isInteger(userId)) record.user_id = userId;
     data.blacklist.push(record);
     save(data);
     return { lastInsertRowid: id };
@@ -1449,6 +1455,84 @@ const db = {
     data.blacklist.splice(idx, 1);
     save(data);
     return { changes: 1 };
+  },
+
+  /**
+   * 그 사람 때문에 들어간 블랙리스트 줄을 뺀다.
+   *
+   * **주인이 적힌 줄**(2026-10-22 뒤에 들어간 것)과 **이메일이 같은 줄**(그 전에
+   * 들어간 것)을 둘 다 본다. 뺀 주소는 같이 돌려준다 — 부르는 쪽이 그 주소의
+   * 잠금까지 풀어야 한다.
+   */
+  removeBlacklistFor(userId, email) {
+    const data = load();
+    if (!data.blacklist || data.blacklist.length === 0) return { changes: 0, ips: [] };
+    const mine = data.blacklist.filter((b) => (
+      (Number.isInteger(userId) && b.user_id === userId)
+      || (email && b.type === 'email' && b.value === email)
+    ));
+    if (mine.length === 0) return { changes: 0, ips: [] };
+    const ips = mine.filter((b) => b.type === 'ip').map((b) => b.value);
+    data.blacklist = data.blacklist.filter((b) => !mine.includes(b));
+    save(data);
+    return { changes: mine.length, ips };
+  },
+
+  /**
+   * **영구 정지를 되돌린다** (2026-10-22).
+   *
+   * ── 왜 생겼나 ──
+   *
+   * 자동 판정(`aiGuard` 의 LEVEL 4)은 네 가지를 한다 — 영구 정지 기록 · 로그인 차단
+   * (`is_banned`) · 블랙리스트(이메일 + 주소) · 주소 영구 잠금. 그 함수 머리글에는
+   * **「데이터는 남긴다 — 오판이면 되돌려야 한다」**고 적혀 있다.
+   *
+   * 그런데 **되돌리는 길이 넷 중 하나뿐이었다.** 세어봤다 —
+   *
+   *     영구 정지 기록   거는 자리 5 · 푸는 자리 0 (`clearSuspensions` 는 아무도 안 부른다)
+   *     is_banned       거는 자리 2 · 푸는 자리 0 (false 로 되돌리는 코드가 아예 없다)
+   *     블랙리스트       거는 자리 2 · 푸는 자리 0 (`removeBlacklist` 도 아무도 안 부른다)
+   *     주소 잠금        「AI 차단 해제」가 푼다  ← 이것만 있었다
+   *
+   * 그래서 오판으로 걸린 사람은 **기록은 남은 채 영원히 못 들어오고**, 관리자도
+   * 풀 수가 없었다. 관리자 화면에서 그 사람에게 할 수 있는 일은 **지우기뿐**이었다
+   * (`DELETE /security/user/:id` — 「이미 막혀 있는 사람만 지울 수 있다」). 방향이
+   * 거꾸로다: 되돌릴 수 있어야 할 자리에 **삭제만** 있었다.
+   *
+   * 넷을 **한 번에** 되돌린다. 하나만 풀면 다른 셋이 남아 「풀었는데 여전히 못 들어온다」가 된다.
+   */
+  unbanUser(userId) {
+    const data = load();
+    const user = data.users.find((u) => u.id === userId);
+    if (!user) return null;
+
+    const was = {
+      banned: !!user.is_banned,
+      role: user.role === 'blocked',
+    };
+    delete user.is_banned;
+    // 역할로 막아둔 것도 같이 되돌린다 (관리자 화면의 「차단」은 역할을 바꾼다)
+    if (user.role === 'blocked') user.role = 'user';
+
+    // 영구 정지 기록만 뺀다 — **욕설로 걸린 정지는 그대로 둔다**
+    // (그쪽은 날이 정해져 있고 저절로 풀린다. 여기서 같이 풀면 욕설 벌이 사라진다)
+    const before = (data.suspensions || []).length;
+    data.suspensions = (data.suspensions || []).filter(
+      (s) => !(s.user_id === userId && (s.level === 4 || s.expires_at === 'permanent')),
+    );
+    const lifted = before - data.suspensions.length;
+
+    invalidateUserIndex();
+    save(data);
+
+    const bl = db.removeBlacklistFor(userId, user.email);
+    return {
+      wasBanned: was.banned || was.role,
+      lifted,
+      blacklist: bl.changes,
+      ips: bl.ips,
+      email: user.email,
+    };
   },
 
   // user ban + delete
