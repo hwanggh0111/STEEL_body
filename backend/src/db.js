@@ -162,7 +162,13 @@ function _flushPhotos() {
   _photoDirty = false;
   storage.write(storage.PHOTOS, text).catch((err) => {
     console.error('[DB] 사진 저장 실패:', err.message);
+    // **다시 써야 한다고 표시만 하고 끝냈다** (2026-10-22). 본체는 같은 자리에서
+    // 다음 쓰기를 **걸어둔다**(`_flush` 의 finally). 사진은 표시만 하고 아무도
+    // 부르지 않아, 다음 사진 저장이 있을 때까지 램에만 남았다 — 그 전에 프로세스가
+    // 죽으면(Render 무료 판은 메모리를 넘기면 바로 죽인다) 그 판은 사라진다.
     _photoDirty = true;
+    if (_photoTimer) clearTimeout(_photoTimer);
+    _photoTimer = setTimeout(_flushPhotos, 1000);
   });
 }
 
@@ -1468,13 +1474,18 @@ const db = {
   /**
    * 못 쓴 것을 **다 쓸 때까지 기다린다** (2026-10-01).
    *
-   * 파일일 때는 동기로 쓰므로 기다릴 것이 없다. Postgres 는 기다려야 한다 —
+   * 파일일 때도 기다릴 것이 있다(안 끝난 쓰기 사슬). Postgres 는 더 그렇다 —
    * 끝내면서 안 기다리면 **마지막 저장이 통째로 사라진다.**
    * `index.js` 의 끝내기가 부른다.
    */
   async drain() {
+    // **기다리는 것이 먼저다** (2026-10-22). 여태 동기로 쓴 뒤에 기다렸다 —
+    // 아직 안 끝난 비동기 쓰기가 남아 있으면 그쪽 `rename` 이 **나중에** 닿아
+    // 방금 동기로 쓴 마지막 판을 **옛 판으로 덮는다.** 비우고 나서 쓴다
+    await storage.drain();
     _flushImmediate();
     _flushPhotosSync();
+    // Postgres 에서는 `writeSync` 조차 비동기다 — 그 둘을 다시 기다린다
     await storage.drain();
   },
 

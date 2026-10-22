@@ -44,12 +44,34 @@ function fileWriteSync(file, text) {
   fs.renameSync(tmp, file);
 }
 
-async function fileWrite(file, text) {
-  const tmp = file + TMP_SUFFIX;
-  await fsp.writeFile(tmp, text, 'utf-8');
-  await fsp.rename(tmp, file);
-}
+// **겹쳐 쓰면 서로의 임시 파일을 밟는다** (2026-10-22).
+//
+// 임시 이름은 `파일명 + .writing` 하나다. 두 쓰기가 겹치면 둘이 **같은 임시 파일**에
+// 붓고, 먼저 끝난 쪽의 `rename` 이 **상대가 쓰던 것**을 본 파일 자리에 끼운 뒤
+// 뒤쪽 `rename` 은 `ENOENT` 로 터진다. 재현했다 — 12MB 두 장을 1~5ms 차로 쓰면
+// 쓰기 하나가 매번 실패한다.
+//
+// 본 DB 는 `db.js` 가 제 손으로 줄을 세워(`_writeLock` · `_writeQueue`) 여태
+// 안 걸렸다. **사진은 그 줄이 없다** — 그리고 사진이 더 크다(40MB · 196ms).
+// 500ms 미뤄 쓰는 사이에 쓰기가 끝나지 않으면 다음 쓰기와 겹친다.
+//
+// 줄 세우는 자리를 **여기 하나로** 모은다. Postgres 쪽은 이미 `writeChain` 으로
+// 그렇게 하고 있고(아래), 까닭도 같다 — 나중 것이 먼저 닿으면 옛 판이 이긴다.
+// 부르는 쪽마다 잠금을 적어두면 반드시 한 곳이 빠진다.
+const fileChains = new Map();     // 파일 이름 → 지금까지의 쓰기 사슬
 
+function fileWrite(file, text) {
+  const prev = fileChains.get(file) || Promise.resolve();
+  const next = prev.then(async () => {
+    const tmp = file + TMP_SUFFIX;
+    await fsp.writeFile(tmp, text, 'utf-8');
+    await fsp.rename(tmp, file);
+  });
+  // 사슬은 **실패해도 이어진다.** 한 번 터진 쓰기가 뒤의 모든 쓰기를 막으면 안 된다.
+  // 터진 것은 부르는 쪽이 받는다 (`db.js` 가 다시 쓴다고 표시한다)
+  fileChains.set(file, next.catch(() => {}));
+  return next;
+}
 // ── Postgres 로 둘 때 ──
 //
 // 표는 하나다. 「이름 → 글자」. 파일 두 장이 두 줄이 된다.
@@ -188,7 +210,12 @@ module.exports = {
 
   /** 못 쓴 것이 남아 있으면 그것을 기다린다. 끝내기 전에 부른다. */
   async drain() {
-    if (KIND === 'postgres') await writeChain;
+    if (KIND === 'postgres') return void (await writeChain);
+    // **파일일 때도 기다릴 것이 있다** (2026-10-22). 여태 파일 쪽은 할 일이 없다고
+    // 봤는데, 끝내는 자리에서 `writeSync` 가 같은 임시 파일에 붓는다 — 아직 안 끝난
+    // 비동기 쓰기가 남아 있으면 그쪽 `rename` 이 **나중에** 닿아 옛 판이 이긴다.
+    // 끝내기 전에 사슬을 비운다
+    await Promise.allSettled([...fileChains.values()]);
   },
 
   /**
