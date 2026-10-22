@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
 const push = require('../utils/push');
-const { messageOf } = require('../utils/reminderSchedule');
+const { messageOf, DEFAULTS } = require('../utils/reminderSchedule');
 
 // ─────────────────────────────────────────────────────────────
 // 운동 알림.
@@ -13,20 +13,10 @@ const { messageOf } = require('../utils/reminderSchedule');
 // 구독(push subscription)은 기기마다 하나다. 폰과 PC 는 다른 구독이라 둘 다 온다.
 // ─────────────────────────────────────────────────────────────
 
-const DEFAULTS = {
-  enabled: false,
-  days: [1, 3, 5],        // 0=일 … 6=토
-  time: '19:00',
-  tzOffset: 0,
-  streakGuard: true,
-  // 식은 부위를 알림에 싣는다 (2026-09-17).
-  //
-  // **기본으로 켠다.** 이 앱의 알림이 다른 앱과 달라지는 자리이고,
-  // 못 찾으면(고루 하고 있거나 기록이 적으면) 원래 하던 말을 그대로 한다 —
-  // 켜둬서 손해 보는 사람이 없다. 성가신 사람만 끄면 된다
-  coldPart: true,
-};
-
+// 기본값은 **판단하는 쪽**이 들고 있다 (`utils/reminderSchedule.js`).
+// 여기 한 벌 더 적어뒀더니 어긋났다 — 이 라우트는 기본값을 입혀 화면에 주는데
+// 보내는 쪽은 안 입혀서 읽었고, 그래서 **화면엔 「월·수·금 19:00」인데 알림은
+// 한 통도 안 갔다**(2026-10-22). 두 곳에 적어두면 반드시 이렇게 된다
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 // 받은 값을 다듬는다. **버린 것이 있으면 무엇을 버렸는지 같이 돌려준다.**

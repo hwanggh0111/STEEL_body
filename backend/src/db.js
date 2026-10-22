@@ -3,6 +3,8 @@ const crypto = require('crypto');
 // 내 컴퓨터에서는 파일, 배포하면 Postgres — 그 갈림이 이 파일 밖으로 안 샌다.
 // Render 무료 판은 디스크를 못 붙여서, 파일로 두면 재시작마다 기록이 사라진다
 const storage = require('./storage');
+// 알림 기본값 — 판단하는 쪽이 들고 있는 그 값을 그대로 쓴다
+const { DEFAULTS: REMINDER_DEFAULTS } = require('./utils/reminderSchedule');
 
 // 검사에서는 진짜 DB 를 건드리면 안 된다. 그때만 다른 파일을 가리킬 수 있게 열어둔다
 // (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
@@ -2102,7 +2104,13 @@ const db = {
     const now = new Date().toISOString();
     let row = data.reminders.find(r => r.user_id === userId);
     if (!row) {
-      row = { user_id: userId, created_at: now };
+      // **처음 만드는 줄에 기본값을 깔아둔다** (2026-10-22).
+      //
+      // 화면은 바뀐 것만 보낸다 — 「켜기」만 누르면 `{ enabled, tzOffset }` 뿐이고,
+      // 그러면 보내는 쪽이 읽을 `time` 과 `days` 가 없다. 읽는 자리에서도 기본값을
+      // 입히지만(`withDefaults`), **파일에 적힌 줄 자체가 온전한 쪽이 낫다** —
+      // 관리자 화면이나 내보낸 파일로 그 줄을 볼 때 빈 칸이 없어야 읽을 수 있다
+      row = { user_id: userId, ...REMINDER_DEFAULTS, created_at: now };
       data.reminders.push(row);
     }
     Object.assign(row, patch, { updated_at: now });

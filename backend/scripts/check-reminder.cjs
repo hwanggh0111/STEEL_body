@@ -10,6 +10,7 @@
 //   2. **몇 번 보내나** — 한 번 보낼 것을 날마다 보내면 알림 자체를 꺼버린다
 const {
   decide, messageOf, localDateOf, localTimeOf, localDayOf, daysBetween, STREAK_GAP,
+  DEFAULTS, withDefaults,
 } = require('../src/utils/reminderSchedule');
 
 let bad = 0;
@@ -139,7 +140,9 @@ console.log('\n── 남의 기기 알림을 끌 수 있었다 (2026-09-04) ─
   const page = fs.readFileSync(
     path.join(__dirname, '..', '..', 'frontend', 'src', 'pages', 'RemindersPage.jsx'), 'utf-8');
 
-  ok('서버는 꺼져 있으면 그 자리에서 돌아선다', /!reminder\?\.enabled\)\s*return no\('off'\)/.test(sched), true);
+  // 2026-10-22: `reminder?.enabled` 에서 꼬리표를 뗐다 — 이제 빈 칸에 기본값을 입힌
+  // 뒤라(`withDefaults`) 늘 객체다. **없는 줄은 `enabled: false` 가 되어 여기서 걸린다**
+  ok('서버는 꺼져 있으면 그 자리에서 돌아선다', /!reminder\.enabled\)\s*return no\('off'\)/.test(sched), true);
   ok('  화면도 그것을 안다 (const off)', /const off = !settings\.enabled/.test(page), true);
   // 딸린 것 넷이 다 `off` 에 걸려야 한다. 하나만 빠져도 그 칸만 live 로 보인다
   ok('  딸린 칸이 다 걸린다', (page.match(/busy \|\| off/g) || []).length >= 5, true);
@@ -211,6 +214,52 @@ console.log('── 폰에 뜨는 말에 괄호가 없나 ── (2026-10-21)');
   );
   ok('알림 설정 미리보기가 그 말과 같다',
     prev.includes('>' + messageOf('scheduled', 0, { part: '등', days: 9 }).title + '<'), true);
+}
+
+console.log('\n── 「켜기」만 누른 사람에게도 가는가 ── (2026-10-22)');
+// 화면은 **바뀐 것만** 보낸다(`RemindersPage` 의 `patch`). 그래서 토글만 누른 사람의
+// 줄은 `{ enabled, tzOffset }` 뿐이다 — `time` 도 `days` 도 없다. 그런데 보낼지
+// 판단하는 자리가 그 칸을 그대로 읽어서 **하루 1440분 중 가는 분이 0** 이었다.
+// 화면에는 기본값이 입혀져 「월·수·금 19:00」으로 보이니 아무도 모른다.
+{
+  // 서울. 2026-10-21 은 수요일이고 기본값 월·수·금에 들어 있다
+  const row = { user_id: 1, enabled: true, tzOffset: -540 };
+  const minutesThatSend = [];
+  for (let m = 0; m < 1440; m += 1) {
+    const t = Date.UTC(2026, 9, 21, 0, m, 0);
+    if (decide(row, t, '2026-10-10').send) minutesThatSend.push(m);
+  }
+  ok('켜기만 누른 줄에도 하루 한 번 간다', minutesThatSend.length, 1);
+  // 600분 = 10:00Z = 서울 19:00 (기본 시각)
+  ok('  그 시각이 기본값과 같다', localTimeOf(Date.UTC(2026, 9, 21, 0, minutesThatSend[0], 0), -540), DEFAULTS.time);
+
+  // **적어둔 값은 기본값을 이긴다**
+  const mine = { ...row, time: '06:30', days: [3] };
+  ok('내가 고른 시각이 이긴다', decide(mine, Date.UTC(2026, 9, 20, 21, 30), '2026-10-10').send, true);
+  ok('  기본 시각에는 안 간다', decide({ ...mine, streakGuard: false }, Date.UTC(2026, 9, 21, 10, 0), '2026-10-10').send, false);
+
+  // **일부러 비운 것은 비운 대로 둔다** — 요일을 다 끈 사람에게 월·수·금을 입히면
+  // 끈 것이 되살아난다. `[]` 는 「없음」이고 `undefined` 가 「안 적었음」이다
+  ok('요일을 비운 것은 되살리지 않는다', withDefaults({ days: [] }).days, []);
+  ok('  안 적은 것은 기본값', withDefaults({}).days, DEFAULTS.days);
+  ok('  null 도 안 적은 것으로 본다', withDefaults({ time: null }).time, DEFAULTS.time);
+
+  // 꺼둔 사람에게는 가지 않는다 (기본값이 켜짐을 덮어쓰면 안 된다)
+  ok('꺼둔 사람에게는 안 간다', decide({ ...row, enabled: false }, Date.UTC(2026, 9, 21, 10, 0), '2026-10-10').reason, 'off');
+  ok('  적어둔 것이 아예 없으면 꺼진 것으로 본다', decide({}, Date.UTC(2026, 9, 21, 10, 0), '2026-10-10').reason, 'off');
+}
+
+console.log('\n── 기본값이 두 곳에 적혀 있지 않은가 ──');
+{
+  // 라우트가 제 손으로 또 적어두면 어긋난다 — 그래서 이 버그가 났다
+  const fs = require('fs');
+  const path = require('path');
+  const route = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'reminders.js'), 'utf-8');
+  ok('라우트는 기본값을 받아 쓴다', /DEFAULTS \} = require\('\.\.\/utils\/reminderSchedule'\)/.test(route), true);
+  ok('  제 손으로 다시 적지 않는다', /const DEFAULTS = \{/.test(route), false);
+  // 새로 만드는 줄은 파일에도 온전하게 적힌다
+  const dbSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'db.js'), 'utf-8');
+  ok('새 줄에 기본값을 깔아둔다', /\.\.\.REMINDER_DEFAULTS/.test(dbSrc), true);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

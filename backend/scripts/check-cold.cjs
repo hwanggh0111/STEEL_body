@@ -172,7 +172,11 @@ ok('오래 쉰 알림에는 안 붙는다', messageOf('streak', 12, { part: '등
 console.log('');
 console.log('── 화면이 보내는 것을 서버가 받는가 ──');
 const route = fs.readFileSync(path.join(__dirname, '../src/routes/reminders.js'), 'utf-8');
-ok('설정에 coldPart 가 있다', /coldPart: true/.test(route), true);
+// 기본값은 2026-10-22 에 **판단하는 쪽으로** 옮겼다 — 라우트와 보내는 쪽에 따로
+// 적혀 있어서 「켜기만 누른 사람에게 한 통도 안 가는」 버그가 났다. 이제 한 곳만 본다
+const sched = fs.readFileSync(path.join(__dirname, '../src/utils/reminderSchedule.js'), 'utf-8');
+ok('설정에 coldPart 가 있다', /coldPart: true/.test(sched), true);
+ok('  기본값이 한 곳에만 있다', /const DEFAULTS = \{/.test(route), false);
 ok('  화면이 껐다 켤 수 있다', /body\?\.coldPart === 'boolean'/.test(route), true);
 const runner = fs.readFileSync(path.join(__dirname, '../src/utils/reminderRunner.js'), 'utf-8');
 // 껐는데도 훑으면 공짜가 아니다 (사람마다 기록 전부를 본다)

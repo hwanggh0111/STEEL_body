@@ -45,6 +45,44 @@ function daysBetween(a, b) {
 
 const STREAK_GAP = 3;   // 마지막 운동에서 사흘이 지나면 한 번 알린다
 
+// ── 적어둔 것이 없는 칸은 **여기 값으로 본다** ── (2026-10-22)
+//
+// 화면은 **바뀐 것만** 보낸다(`RemindersPage` 의 `patch`). 그래서 「알림 켜기」만
+// 누른 사람의 줄은 `{ enabled: true, tzOffset: -540 }` 뿐이다 — `time` 도 `days` 도
+// 없다. 그런데 보낼지 판단하는 이 자리는 그 칸을 **그대로** 읽었다:
+//
+//     if (localTimeOf(...) !== reminder.time) return no('not-time');
+//
+// `undefined` 와 같아지는 시각은 없다. **하루 1440분 중 알림이 가는 분이 0 이다.**
+// 쉼 알림도 `streakGuard` 가 `undefined` 라 안 간다. 켜둔 사람이 **한 통도 못 받는다.**
+//
+// 그리고 **화면에는 「월·수·금 19:00」이라고 뜬다** — 설정을 돌려주는 라우트는
+// 기본값을 입혀서 주기 때문이다(`routes/reminders.js` 의 `DEFAULTS`). 화면이 보는
+// 값과 서버가 쓰는 값이 달랐다. 조용히 안 오는 것이라 아무도 모른다.
+//
+// 기본값을 **판단하는 쪽이 들고**, 라우트가 그것을 받아 쓴다 — 두 곳에 적어두면
+// 반드시 어긋난다(이 앱에서 이미 여러 번 겪었다: 보안 문턱 · 로그인 잠금 · 헤더).
+const DEFAULTS = {
+  enabled: false,
+  days: [1, 3, 5],        // 0=일 … 6=토
+  time: '19:00',
+  tzOffset: 0,
+  streakGuard: true,
+  // 식은 부위를 알림에 싣는다 (2026-09-17). **기본으로 켠다** — 못 찾으면
+  // 원래 하던 말을 그대로 하므로 켜둬서 손해 보는 사람이 없다
+  coldPart: true,
+};
+
+/** 적어둔 것에 기본값을 입힌다. 적어둔 값이 이긴다 */
+function withDefaults(row) {
+  const out = { ...DEFAULTS, ...(row || {}) };
+  // **`undefined` 로 적힌 칸도 기본값으로 본다** — 펼치기는 `undefined` 도 덮는다
+  for (const k of Object.keys(DEFAULTS)) {
+    if (out[k] === undefined || out[k] === null) out[k] = DEFAULTS[k];
+  }
+  return out;
+}
+
 /**
  * 지금 이 사람에게 보낼까.
  *
@@ -54,11 +92,13 @@ const STREAK_GAP = 3;   // 마지막 운동에서 사흘이 지나면 한 번 �
  * @returns { send, reason, localDate, gap }
  *          reason 은 'scheduled'(정한 요일) 또는 'streak'(오래 쉼)
  */
-function decide(reminder, nowMs, lastWorkoutDate) {
-  const localDate = localDateOf(nowMs, reminder?.tzOffset);
+function decide(rawReminder, nowMs, lastWorkoutDate) {
+  // **빈 칸은 기본값으로 본다.** 안 그러면 「켜기」만 누른 사람에게 한 통도 안 간다
+  const reminder = withDefaults(rawReminder);
+  const localDate = localDateOf(nowMs, reminder.tzOffset);
   const no = (why) => ({ send: false, reason: why, localDate, gap: null });
 
-  if (!reminder?.enabled) return no('off');
+  if (!reminder.enabled) return no('off');
 
   // 같은 날 두 번 보내지 않는다
   if (reminder.last_sent_date === localDate) return no('already');
@@ -132,7 +172,7 @@ function messageOf(reason, gap, cold) {
 }
 
 module.exports = {
-  decide, messageOf,
+  decide, messageOf, DEFAULTS, withDefaults,
   localDateOf, localTimeOf, localDayOf, daysBetween,
   STREAK_GAP,
 };
