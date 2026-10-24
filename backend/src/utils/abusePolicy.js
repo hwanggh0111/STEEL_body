@@ -46,15 +46,23 @@ function daysFor(count) {
 function suspend(userId, verdict, days, count, isHate) {
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   const until = expiresAt.slice(0, 10);
+  // ── **막아둔 길을 가리키지 않는다** ── (2026-10-24)
+  //
+  // 여기 「잘못 걸렸다고 생각되면 **관리자에게 알려주세요**」라고 적혀 있었다.
+  // 그런데 정지된 사람은 **제보를 보낼 수 없다**(`POST /reports` 도 403 이다) —
+  // 이 글은 그 사람 화면에 그대로 뜨므로(10/24 에 붙인 정지 안내 화면), 할 수 없는
+  // 일을 하라고 적는 셈이다. 고객센터 답변은 처음부터 「**풀린 뒤에** 알려주세요」로
+  // 적혀 있었다 — 그 말과 같게 둔다.
+  const appeal = '잘못 걸렸다고 생각되면 **풀린 뒤에** 고객센터 제보함으로 알려주세요. 확인하고 바로 풀어드립니다.';
   const reason = isHate
     ? '비하하거나 깎아내리는 표현을 썼습니다.\n'
       + `걸린 말: ${verdict.hits.join(', ')}\n`
       + `${days}일간 정지됩니다 (${until} 해제).\n`
-      + '잘못 걸렸다고 생각되면 관리자에게 알려주세요. 확인하고 바로 풀어드립니다.'
+      + appeal
     : `욕설로 걸린 것이 ${count}번째입니다.\n`
       + `걸린 말: ${verdict.hits.join(', ')}\n`
       + `${days}일간 정지됩니다 (${until} 해제).\n`
-      + '잘못 걸렸다고 생각되면 관리자에게 알려주세요. 확인하고 바로 풀어드립니다.';
+      + appeal;
 
   db.createSuspension(userId, 3, isHate ? 'abuse-hate' : 'abuse', reason, expiresAt);
 }

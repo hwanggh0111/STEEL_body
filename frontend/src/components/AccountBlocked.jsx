@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useBlockStore } from '../store/blockStore';
 import { useAuthStore } from '../store/authStore';
 import NavIcon from './NavIcon';
+// 영구 정지에는 「풀린 뒤」가 없다 — 앱 밖의 연락처가 유일한 길이다 (한 곳에 있다)
+import { SUPPORT_EMAIL } from '../data/contact';
 import Logo from './Logo';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
@@ -94,9 +96,15 @@ export default function AccountBlocked() {
           <br />
           {/* **지금은 제보도 막혀 있다.** 보낼 수 없는 길을 가리키지 않는다 —
               고객센터 답변도 「풀린 뒤에 알려주세요」로 적혀 있다 (`support/faq.js`) */}
-          {block.forever
-            ? '관리자에게 알려주시면 확인해서 되돌립니다.'
-            : '지금은 제보도 보낼 수 없습니다. 풀린 뒤에 고객센터로 알려주시면 확인합니다.'}
+          {block.forever ? (
+            <>
+              {/* **닿을 수 있는 길을 적는다.** 제보함은 지금 막혀 있고(403),
+                  영구 정지에는 「풀린 뒤」도 없다 — 남는 길은 이 주소뿐이다 */}
+              잘못 걸렸다고 생각되시면{' '}
+              <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: 'var(--text-secondary)' }}>{SUPPORT_EMAIL}</a>
+              {' '}로 알려주세요. 확인해서 되돌립니다.
+            </>
+          ) : '지금은 제보도 보낼 수 없습니다. 풀린 뒤에 고객센터로 알려주시면 확인합니다.'}
         </div>
 
         <button

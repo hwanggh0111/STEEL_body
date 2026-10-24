@@ -120,6 +120,27 @@ for (const code of ['suspended', 'banned', 'blocked']) {
   ok(`  '${code}' 를 화면 쪽도 안다`, new RegExp(`\\b${code}:`).test(front), true);
 }
 
+console.log('');
+console.log('── **막아둔 길을 가리키지 않는가** ── (2026-10-24)');
+//
+// 정지된 사람은 **제보를 보낼 수 없다**(`POST /reports` 도 `auth` 를 지난다 → 403).
+// 그런데 정지 사유에 「관리자에게 알려주세요」라고 적어 보내고 있었다 — 그 글은
+// 정지 안내 화면에 **그대로 뜬다.** 할 수 없는 일을 하라고 적는 셈이다.
+// 고객센터 답변은 처음부터 「**풀린 뒤에** 알려주세요」였다 — 그 말과 같아야 한다.
+const abuse = read('backend/src/utils/abusePolicy.js');
+const guard = read('backend/src/middleware/aiGuard.js');
+ok('정지 사유는 「풀린 뒤에」라고 적는다', /\*\*풀린 뒤에\*\* 고객센터 제보함으로/.test(abuse), true);
+ok('  지금 제보하라고 하지 않는다', /생각되면 관리자에게 알려주세요/.test(abuse), false);
+// 영구 정지에는 「풀린 뒤」가 없다 — 남는 길은 앱 밖의 연락처뿐이고 화면이 그것을 붙인다
+ok('영구 정지 글은 제보함을 가리키지 않는다', /고객센터 제보함으로 알려주세요/.test(guard), false);
+ok('  화면이 닿을 수 있는 주소를 붙인다',
+  /SUPPORT_EMAIL/.test(read('frontend/src/components/AccountBlocked.jsx')), true);
+// 주소는 **한 곳**에 있다 (방침과 정지 안내가 같은 것을 쓴다)
+ok('  그 주소는 한 곳에서 온다',
+  /SUPPORT_EMAIL/.test(read('frontend/src/pages/PrivacyPage.jsx'))
+  && /@/.test(read('frontend/src/data/contact.js')), true);
+ok('    서버에는 그 주소를 안 적는다', /withpapa/.test(abuse + guard), false);
+
 try { fs.unlinkSync(TMP); } catch { /* 지워져 있으면 그만 */ }
 
 console.log('');

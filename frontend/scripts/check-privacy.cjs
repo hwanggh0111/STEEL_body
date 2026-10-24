@@ -77,7 +77,16 @@ for (const [말, 파일, 길] of 받는것) {
 // ── ④ 빠지면 심사에서 걸리는 둘 ──
 console.log('');
 console.log('── 심사에서 보는 둘 ──');
-ok('  연락할 메일이 적혀 있다', /[\w.]+@[\w.]+\.\w+/.test(visible), true);
+// 주소는 **한 곳**에 있다 (2026-10-24, `data/contact.js`) — 영구 정지 안내도
+// 같은 것을 쓴다(그 사람은 제보를 못 보내니 이 주소가 유일한 길이다).
+// 그래서 방침에 글자로 박혀 있는지가 아니라 **그 한 곳에서 받아 쓰는지**를 본다
+{
+  const contact = fs.readFileSync(path.join(ROOT, 'frontend/src/data/contact.js'), 'utf8');
+  const addr = (contact.match(/'([\w.]+@[\w.]+\.\w+)'/) || [])[1] || '';
+  ok('  연락할 메일이 한 곳에 있다', /[\w.]+@[\w.]+\.\w+/.test(addr), true);
+  ok('    방침이 그것을 받아 쓴다',
+    /SUPPORT_EMAIL/.test(fs.readFileSync(PAGE, 'utf8')) || visible.includes(addr), true);
+}
 ok('  방침 날짜가 적혀 있다', /20\d\d[.\-년]\s?\d{1,2}/.test(visible), true);
 
 console.log('');

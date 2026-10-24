@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { SUPPORT_EMAIL } from '../data/contact';
 import { LogoMark } from '../components/Logo';
 
 // 개인정보처리방침 — **로그인 밖(공개)이다.**
@@ -154,7 +155,8 @@ export default function PrivacyPage() {
         </Sec>
 
         <Sec title="물어볼 곳">
-          <a href="mailto:withpapa.002@gmail.com" style={{ color: 'var(--accent)' }}>withpapa.002@gmail.com</a>
+          {/* 주소는 `data/contact.js` 한 곳에 있다 — 정지 안내 화면도 같은 것을 쓴다 */}
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: 'var(--accent)' }}>{SUPPORT_EMAIL}</a>
           {' '}또는 앱 안의 <a href="/support" style={{ color: 'var(--accent)' }}>고객센터</a>로 알려주세요.
         </Sec>
 
