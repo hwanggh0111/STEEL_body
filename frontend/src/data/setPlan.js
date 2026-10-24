@@ -17,11 +17,19 @@
 // 바벨은 **양쪽에 같은 원판**을 끼우니 2.5kg 단위로 움직인다. 그 아래로는 빈 바(20kg)다.
 // 덤벨·머신은 보통 5kg 또는 한 칸 단위인데, 어느 쪽이든 2.5 배수면 읽을 수 있다.
 
-/** 2.5kg 단위로 **반올림**. 바벨이 만들 수 있는 무게로 떨어뜨린다 */
+/**
+ * 2.5kg 단위로 **반올림**. 바벨이 만들 수 있는 무게로 떨어뜨린다.
+ *
+ * **0 으로 떨어지면 `null` 이다** (2026-10-24). 반올림이라 아주 가벼운 무게는
+ * 한 칸 아래로 사라진다 — 3kg 덤벨의 40%는 1.2kg 이고 2.5 단위로는 **0** 이다.
+ * 그 0 을 그대로 돌려줘서 워밍업 줄에 **「0kg 으로 5회」**가 떴다.
+ * 만들 수 없는 무게는 「없다」로 말해야 부르는 쪽이 그 줄을 안 그린다
+ */
 export function toPlate(kg, step = 2.5) {
   const n = Number(kg);
   if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.round(n / step) * step;
+  const out = Math.round(n / step) * step;
+  return out > 0 ? out : null;
 }
 
 /** 오늘 무게가 1RM 의 몇 %인가. 못 세면 null */
@@ -115,13 +123,24 @@ export function dropSets(workKg, { drops = 2, cut = 0.20, step = 2.5 } = {}) {
   // `toPlate` 는 반올림이라 가벼운 무게에서는 내려가지 않는다 — 5kg 의 80%는 4kg 인데
   // 2.5 단위로 반올림하면 다시 5kg 이다. 앞 줄하고만 견주고 있어서 그 5kg 이 그대로
   // 나갔고, 화면이 「5kg 으로 내렸어요」라고 같은 무게를 말했다
-  const seen = new Set([w]);
-  let kg = w;
+  // **내려간 것만 내보낸다** (2026-10-24).
+  //
+  // 앞 줄과 같은 무게는 걸렀는데 **올라간 무게는 안 걸렀다.** `toPlate` 는
+  // 반올림이라 가벼운 무게에서 **위로** 떨어진다 —
+  //
+  //     2kg 의 80% = 1.6kg  →  2.5 단위로 반올림  →  **2.5kg**
+  //
+  // 그래서 2kg 으로 적은 사람에게 단추가 「드롭세트 2.5kg」으로 떴고, 누르면
+  // 「2.5kg 으로 내렸어요」라고 **올린 무게**를 말했다. 2·3·4kg 덤벨은
+  // 어깨 재활에서 늘 쓰는 무게다. 5kg 단위 머신이면 4.5kg 까지 그랬다.
+  //
+  // 「같은 무게」가 아니라 **「더 못 내려간다」**로 본다 — 그러면 둘 다 걸린다
+  let prev = w;
   for (let i = 0; i < drops; i += 1) {
-    kg = toPlate(kg * (1 - cut), step);
-    if (kg === null || kg <= 0) break;
-    if (seen.has(kg)) break;                 // 더 못 내려간다
-    seen.add(kg);
+    const kg = toPlate(prev * (1 - cut), step);
+    if (kg === null) break;
+    if (kg >= prev) break;                   // 더 못 내려간다 (같거나 되올라갔다)
+    prev = kg;
     out.push({ kg });
   }
   return out;
