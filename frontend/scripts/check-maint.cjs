@@ -85,5 +85,43 @@ ok('수정 폼이 repeats 로 갈라 그린다', /\{!repeats\(form\)/.test(admin
 ok('  폼을 직접 만들지 않는다 (formOf 를 지난다)', /setForm\(\{\s*\.\.\.schedules\[/.test(admin), false);
 
 console.log('');
+console.log('── 「점검 예정」에 무엇이 뜨나 ── (2026-10-24)');
+//
+// 고객센터가 날짜짜리의 **날짜를 한 번도 안 적었다** — `03:00 – 04:00 · 사유` 한 줄뿐이라
+// 오늘인지 다음 달인지 알 수 없었다. 그리고 **지나간 점검이 영영 「예정」으로 남았다**
+const REF = new Date('2026-10-24T12:00:00');
+const dated = (date, startHour = 3, durationMin = 60, extra = {}) =>
+  serverClean({ date, startHour, startMin: 0, durationMin, reason: '점검', type: 'regular', ...extra });
+
+ok('지나간 하루짜리는 안 보여준다', F.upcoming([dated('2026-08-25')], REF).length, 0);
+ok('  오늘 뒤에 올 것은 보여준다', F.upcoming([dated('2026-10-25')], REF).length, 1);
+ok('  오늘 아직 안 끝난 것은 보여준다', F.upcoming([dated('2026-10-24', 23)], REF).length, 1);
+ok('  오늘 이미 끝난 것은 안 보여준다', F.upcoming([dated('2026-10-24', 1)], REF).length, 0);
+ok('  자정을 넘기는 것은 넘어간 만큼 본다',
+  [F.isPast(dated('2026-10-23', 23, 60 * 14), REF), F.isPast(dated('2026-10-23', 23, 60), REF)], [false, true]);
+ok('요일 반복은 영영 돌아온다', F.upcoming([WEEKLY], REF).length, 1);
+// `type` 은 있는데 `date` 가 없는 것은 옛 「즉시 시작」이 남긴 찌꺼기다 —
+// `runsOn` 이 돌리지 않으므로 「예정」에도 뜨면 안 된다
+ok('돌지 않는 찌꺼기는 안 보여준다',
+  F.upcoming([{ startHour: 3, startMin: 0, durationMin: 5, type: 'emergency', days: [] }], REF).length, 0);
+ok('빈 값도 안 터진다', [F.upcoming(null).length, F.upcoming(undefined).length], [0, 0]);
+
+console.log('');
+console.log('── 언제인지를 사람 말로 ──');
+ok('날짜짜리는 날짜를 적는다', F.whenLabel(dated('2026-11-03'), REF), '11월 3일(화)');
+ok('  오늘 · 내일은 그렇게 적는다',
+  [F.whenLabel(dated('2026-10-24'), REF), F.whenLabel(dated('2026-10-25'), REF)], ['오늘', '내일']);
+ok('요일짜리는 요일을 적는다', F.whenLabel(WEEKLY, REF), '매주 월·수·금');
+ok('  요일이 비었으면 매일이다', F.whenLabel(serverClean({ startHour: 4, startMin: 0, durationMin: 60, reason: 'x', days: [] }), REF), '매일');
+ok('시각은 자정을 넘겨도 24 를 안 넘는다', F.timeRange(dated('2026-10-25', 23, 90)), '23:00 – 00:30');
+
+// 「그 날 도는가」를 **두 곳에 적지 않는다** — 고객센터가 따로 적어둔 것이 이 버그였다
+const screen = fs.readFileSync('src/components/MaintenanceScreen.jsx', 'utf-8');
+const support = fs.readFileSync('src/pages/support/SupportPage.jsx', 'utf-8');
+ok('점검 화면이 runsOn 을 들여온다', /import \{ runsOn \} from '\.\.\/data\/maintForm'/.test(screen), true);
+ok('  제 손으로 다시 적지 않는다', /function runsOn/.test(screen), false);
+ok('고객센터가 요일을 직접 그리지 않는다', /DAY_LABELS/.test(support), false);
+
+console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

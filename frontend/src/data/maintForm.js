@@ -78,3 +78,81 @@ export function entryOf(base, form) {
   else delete out.days;
   return out;
 }
+
+// ── 언제 도는 점검인가 ── (2026-10-24)
+//
+// 「점검 예정」을 고객센터가 보여주는데, **날짜로 잡은 점검의 날짜를 한 번도 안
+// 적었다.** 화면에 뜨는 것은 `03:00 – 04:00 · 정기 시스템 점검` 한 줄뿐이었다 —
+// 오늘인지 다음 달인지 읽는 사람이 알 길이 없다. 요일이 빈(=매일) 점검도 같았다.
+//
+// 그리고 **지나간 점검이 영영 「점검 예정」으로 남았다.** 걸러내는 자리가 없어서,
+// 8월에 한 번 걸어둔 5분짜리 긴급 점검이 관리자가 지울 때까지 고객센터 맨 위에
+// 「점검 예정」으로 붙어 있는다. 관리자 화면에는 그 줄이 남아 있어야 하고(지우려면
+// 보여야 한다) 사용자 화면에는 **올 일**만 떠야 한다 — 가르는 자를 여기 둔다.
+
+const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** 끝나는 시각(분). 자정을 넘기면 1440 을 넘는다 */
+export function endMinOf(s) {
+  return Number(s?.startHour || 0) * 60 + Number(s?.startMin || 0) + Number(s?.durationMin || 0);
+}
+
+/**
+ * 이 점검이 그 날 도는가.
+ *
+ * **`MaintenanceScreen` 이 쓰는 그 판단이다** — 거기 한 벌 더 적어뒀더니
+ * 고객센터가 「돌지 않는 찌꺼기」를 점검 예정으로 띄우고 있었다.
+ *   · `date` 가 있으면 그 하루만 돈다
+ *   · `type` 은 있는데 `date` 가 없는 것은 옛 「즉시 시작」이 남긴 찌꺼기다.
+ *     그때는 날짜를 안 적고 `days` 를 비워둬서 5분짜리 긴급 점검이 매일 되살아났다
+ *   · `days` 가 비어 있으면 매일
+ */
+export function runsOn(schedule, dateStr, weekday) {
+  if (!schedule) return false;
+  if (schedule.date) return schedule.date === dateStr;
+  if (schedule.type) return false;
+  if (schedule.days && schedule.days.length > 0) return schedule.days.includes(weekday);
+  return true;
+}
+
+/** 이미 지나가서 **다시 돌 일이 없는** 점검인가 (요일 반복은 영영 돌아온다) */
+export function isPast(schedule, ref = new Date()) {
+  if (!schedule) return true;
+  if (!schedule.date) return !!schedule.type;      // 찌꺼기는 돌지 않는다 = 올 일이 없다
+  const end = new Date(`${schedule.date}T00:00:00`);
+  if (Number.isNaN(end.getTime())) return true;
+  end.setMinutes(end.getMinutes() + endMinOf(schedule));
+  return end.getTime() <= ref.getTime();
+}
+
+/** 「10월 25일(토)」 · 「매주 월·수·금」 · 「매일」 — 언제인지를 사람 말로 */
+export function whenLabel(schedule, ref = new Date()) {
+  if (!schedule) return '';
+  if (schedule.date) {
+    const d = new Date(`${schedule.date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return schedule.date;
+    const today = dayKey(ref);
+    if (schedule.date === today) return '오늘';
+    const tomorrow = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 1);
+    if (schedule.date === dayKey(tomorrow)) return '내일';
+    return `${d.getMonth() + 1}월 ${d.getDate()}일(${DAY_LABELS[d.getDay()]})`;
+  }
+  if (schedule.days && schedule.days.length > 0 && schedule.days.length < 7) {
+    return `매주 ${schedule.days.map((d) => DAY_LABELS[d]).join('·')}`;
+  }
+  return '매일';
+}
+
+/** 「03:00 – 04:00」. 자정을 넘기면 24 를 넘지 않게 돌린다 */
+export function timeRange(s) {
+  const end = endMinOf(s);
+  return `${hhmm(Number(s?.startHour || 0), Number(s?.startMin || 0))} – ${hhmm(Math.floor(end / 60) % 24, end % 60)}`;
+}
+
+/** 사용자에게 보여줄 것만. 지나간 하루짜리와 돌지 않는 찌꺼기는 뺀다 */
+export function upcoming(schedules, ref = new Date()) {
+  return (Array.isArray(schedules) ? schedules : []).filter((s) => s && !isPast(s, ref));
+}

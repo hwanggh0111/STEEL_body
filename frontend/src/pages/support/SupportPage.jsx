@@ -5,9 +5,11 @@ import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { readLS, saveLS } from '../../data/safeStorage';
 import { getSchedules, fetchSchedules } from '../../components/MaintenanceScreen';
+// 「언제 도나」를 적는 자는 한 곳에 있다 — 여기서 따로 적어뒀더니 **날짜를 한 번도
+// 안 적었고**(03:00 – 04:00 한 줄뿐이었다) 지나간 점검도 영영 「예정」으로 남았다
+import { upcoming, whenLabel, timeRange } from '../../data/maintForm';
 import pkg from '../../../package.json';
 
-const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
 // 최근 바뀐 것 — 손으로 적지 않는다.
 // scripts/gen-changelog.mjs 가 git 커밋에서 뽑아 changelog.json 을 만들고, dev·build 앞에서 자동으로 돈다.
@@ -126,6 +128,9 @@ export default function SupportPage() {
   // 받아본 적 없을 때 영영 비어 있다
   const [schedules, setSchedules] = useState(() => { try { return getSchedules() || []; } catch { return []; } });
   useEffect(() => { fetchSchedules().then(list => setSchedules(list || [])); }, []);
+  // **올 일만 보여준다.** 지나간 하루짜리와 돌지 않는 찌꺼기를 안 걸러서,
+  // 한 번 걸어둔 5분짜리 긴급 점검이 관리자가 지울 때까지 여기 붙어 있었다
+  const soon = upcoming(schedules);
 
   const answered = reports.filter(r => r.reply).length;
 
@@ -197,22 +202,17 @@ export default function SupportPage() {
 
       {/* 점검 예정 — 지금 당장 영향을 주는 것이라 위로 올렸다.
           잡혀 있을 때만 나온다 */}
-      {schedules.length > 0 && (
+      {soon.length > 0 && (
         <div style={{
           borderLeft: '2px solid var(--warning)', paddingLeft: 18, marginBottom: 28,
         }}>
           <div style={{ fontSize: 11, letterSpacing: 2, color: 'var(--warning)', marginBottom: 8 }}>점검 예정</div>
-          {schedules.slice(0, 3).map((sc, i) => {
-            const end = sc.startHour * 60 + sc.startMin + sc.durationMin;
-            const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            return (
-              <div key={i} style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.85, fontWeight: 300 }}>
-                {sc.days?.length ? `매주 ${sc.days.map(d => DAY_LABELS[d]).join('·')} ` : ''}
-                {hhmm(sc.startHour, sc.startMin)} – {hhmm(Math.floor(end / 60) % 24, end % 60)}
-                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> · {sc.reason}</span>
-              </div>
-            );
-          })}
+          {soon.slice(0, 3).map((sc, i) => (
+            <div key={i} style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.85, fontWeight: 300 }}>
+              {whenLabel(sc)} {timeRange(sc)}
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> · {sc.reason}</span>
+            </div>
+          ))}
         </div>
       )}
 

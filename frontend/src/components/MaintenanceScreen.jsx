@@ -8,6 +8,9 @@ import client from '../api/client';
 import Logo from './Logo';
 import { isAdmin as isAdminUser } from '../data/admin';
 import { dateKey } from '../data/dateKey';
+// 「그 날 도는가」는 **한 곳에만 적는다** — 고객센터가 같은 판단을 따로 적어뒀더니
+// 돌지 않는 찌꺼기를 「점검 예정」으로 띄우고 있었다 (2026-10-24)
+import { runsOn } from '../data/maintForm';
 
 // 서버가 진짜다. localStorage 는 마지막으로 받아온 것을 담아두는 자리일 뿐이다 —
 // 첫 화면을 그리는 순간과 네트워크가 없을 때 쓴다.
@@ -59,19 +62,6 @@ const CURRENT_VERSION = JSON.stringify(DEFAULT_SCHEDULE);
 if (DEFAULT_SCHEDULE.length > 0 && readLS(MAINT_VERSION_KEY) !== CURRENT_VERSION) {
   saveLS(MAINT_KEY, CURRENT_VERSION);
   saveLS(MAINT_VERSION_KEY, CURRENT_VERSION);
-}
-
-// 이 스케줄이 그 날 도는가.
-//   date 가 있으면 그 하루만 도는 일회성이다 — 관리자가 날짜를 찍어 잡은 점검.
-//   date 가 없으면 요일 반복이다. days 가 비어 있으면 매일.
-//   type 은 있는데 date 가 없는 것은 옛 '즉시 시작' 이 남긴 찌꺼기다.
-//   그때는 날짜를 안 적고 days 를 비워둬서, 5분짜리 긴급 점검이 매일 같은 시각에
-//   되살아났다. 그런 항목은 돌리지 않는다 (목록에는 남으니 관리자가 지우면 된다).
-function runsOn(schedule, dateStr, weekday) {
-  if (schedule.date) return schedule.date === dateStr;
-  if (schedule.type) return false;
-  if (schedule.days && schedule.days.length > 0) return schedule.days.includes(weekday);
-  return true;
 }
 
 /**
