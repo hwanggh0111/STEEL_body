@@ -155,10 +155,15 @@ export default function MaintenanceScreen({ children }) {
   //
   // 관리자가 방금 잡은 점검이 이미 열어둔 화면에도 곧 반영돼야 한다.
   // 1초마다 부르면 서버가 상한다 — 시각 계산은 1초마다 하되 목록만 5분마다 받는다.
-  const [, setTick] = useState(0);
+  // **목록을 받으면 그 자리에서 다시 잰다** (2026-10-24).
+  //
+  // 여태 받아놓고 `setTick` 만 올렸다. 다시 그려지기는 하는데 `info` 는 그대로라,
+  // 아래 타이머(점검이 없을 때 30초)가 울릴 때까지 **점검 중인데 앱이 열려 있었다** —
+  // 앱을 처음 여는 사람은 담아둔 목록이 아예 없으니 그 30초를 통째로 겪는다.
+  // 반대로 점검이 끝났는데 30초 동안 막혀 있는 것도 같다
   useEffect(() => {
     let alive = true;
-    const pull = () => fetchSchedules().then(() => { if (alive) setTick(t => t + 1); });
+    const pull = () => fetchSchedules().then(() => { if (alive) setInfo(getMaintenanceInfo()); });
     pull();
     const id = setInterval(pull, 5 * 60 * 1000);
     return () => { alive = false; clearInterval(id); };
