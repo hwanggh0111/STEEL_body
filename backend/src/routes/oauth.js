@@ -399,10 +399,39 @@ function clearPendingCookie(res) {
 // 인스타는 `error=access_denied`, X 는 `error=access_denied`, 구글은
 // `error=access_denied`, 네이버는 `error=access_denied` 로 같다 (네이버는
 // `error_description` 에 한글이 실린다).
-function providerDenied(req) {
+// ── **취소와 고장을 가른다** ── (2026-10-24)
+//
+// 여태 `error` 가 **무엇이든** 「그만뒀어요」로 말했다(`return true`). 그런데
+// 제공자가 보내는 `error` 는 취소만이 아니다 — `server_error` ·
+// `temporarily_unavailable` · `invalid_scope` · `invalid_client` 도 같은 칸으로 온다.
+//
+// 그러면 두 가지가 나쁘다. **본인이 그만두지 않았는데 그만뒀다고 듣고**(그 사람은
+// 다시 눌러야 하는데 「다시 하려면 눌러주세요」가 취소 안내로 묻힌다), **운영자는
+// 설정이 틀어진 것을 영영 못 본다** — 「취소한 사람이 많네」로 읽힌다.
+//
+// 취소를 뜻하는 글자만 취소로 본다. 나머지는 **실패**로 돌려보내고, 날것 그대로
+// 보안 기록에 남긴다 — 관리자 화면에서 그 글자를 봐야 어디가 틀어졌는지 안다.
+const CANCEL_CODES = new Set([
+  'access_denied',          // 구글 · 네이버 · 인스타 · X 공통
+  'user_denied',            // 인스타가 때때로 이렇게 준다
+  'user_cancelled_login',
+  'user_cancelled_authorize',
+  'consent_required',
+]);
+
+function providerDenied(req, provider) {
   const e = String(req.query.error || '');
-  if (!e) return false;
-  return true;
+  if (!e) return null;
+  const desc = String(req.query.error_description || '').slice(0, 200);
+  const cancelled = CANCEL_CODES.has(e);
+  // **까닭을 적어둔다.** 취소도 적는다 — 어느 걸음에서 멈추는지 보려면 수가 필요하다
+  try {
+    require('./security').addLog(
+      cancelled ? 'oauth_cancelled' : 'oauth_error',
+      `${provider} 로그인 ${cancelled ? '취소' : '실패'}: error=${e}${desc ? ` (${desc})` : ''}`,
+    );
+  } catch { /* 기록이 안 남아도 로그인 길은 그대로 간다 */ }
+  return cancelled ? 'cancelled' : 'failed';
 }
 
 function failCode(provider, err) {
@@ -478,7 +507,11 @@ router.get('/google/callback', async (req, res) => {
     } catch {}
   }
   // 취소는 실패가 아니다 — 돌아갈 곳(`frontendUrl`)을 정한 **뒤에** 본다
-  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=google_cancelled`);
+  {
+    // 취소면 「그만뒀어요」, 고장이면 「실패」다 — `providerDenied` 에 까닭을 적어뒀다
+    const denied = providerDenied(req, 'google');
+    if (denied) return res.redirect(`${frontendUrl}/login?error=google_${denied}`);
+  }
   try {
     const { data: tokens } = await axios().post('https://oauth2.googleapis.com/token', {
       code: req.query.code,
@@ -537,7 +570,11 @@ router.get('/naver/callback', async (req, res) => {
   if (!st) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
-  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=naver_cancelled`);
+  {
+    // 취소면 「그만뒀어요」, 고장이면 「실패」다 — `providerDenied` 에 까닭을 적어뒀다
+    const denied = providerDenied(req, 'naver');
+    if (denied) return res.redirect(`${frontendUrl}/login?error=naver_${denied}`);
+  }
   try {
     const { data: tokens } = await axios().post('https://nid.naver.com/oauth2.0/token', null, {
       params: {
@@ -603,7 +640,11 @@ router.get('/instagram/callback', async (req, res) => {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   // 취소하고 돌아왔다 — 토큰 교환을 때리지 않는다 (`providerDenied` 에 까닭을 적어뒀다)
-  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=instagram_cancelled`);
+  {
+    // 취소면 「그만뒀어요」, 고장이면 「실패」다 — `providerDenied` 에 까닭을 적어뒀다
+    const denied = providerDenied(req, 'instagram');
+    if (denied) return res.redirect(`${frontendUrl}/login?error=instagram_${denied}`);
+  }
   try {
     const { data: tokens } = await axios().post('https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
@@ -691,7 +732,11 @@ router.get('/twitter/callback', async (req, res) => {
   if (!st || !verifier) {
     return res.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
-  if (providerDenied(req)) return res.redirect(`${frontendUrl}/login?error=twitter_cancelled`);
+  {
+    // 취소면 「그만뒀어요」, 고장이면 「실패」다 — `providerDenied` 에 까닭을 적어뒀다
+    const denied = providerDenied(req, 'twitter');
+    if (denied) return res.redirect(`${frontendUrl}/login?error=twitter_${denied}`);
+  }
   try {
     const body = new URLSearchParams({
       grant_type: 'authorization_code',

@@ -517,6 +517,35 @@ async function run() {
         .includes("kind === 'cancelled'"), true);
 
     console.log('');
+    console.log('── **고장은 취소가 아니다** ── (2026-10-24)');
+    //
+    // `error` 가 **무엇이든** 「그만뒀어요」로 말하고 있었다. 제공자는 취소만
+    // 보내지 않는다 — `server_error` · `temporarily_unavailable` ·
+    // `invalid_scope` · `invalid_client` 도 같은 칸으로 온다. 그러면 **본인이
+    // 그만두지 않았는데 그만뒀다고 듣고**, 운영자는 **설정이 틀어진 것을 영영
+    // 못 본다**(「취소한 사람이 많네」로 읽힌다).
+    for (const e of ['server_error', 'temporarily_unavailable', 'invalid_scope', 'invalid_client']) {
+      const start = await get('/api/oauth/google', { Referer: 'http://localhost:5173/login' });
+      const st = new URL(start.loc).searchParams.get('state');
+      const back = await get('/api/oauth/google/callback?error=' + e + '&state=' + st, { Cookie: jarOf(start) });
+      ok('  ' + e + ' 는 실패로 말한다', q(back.loc).error, 'google_failed');
+    }
+    // 인스타가 때때로 보내는 취소 글자도 취소로 본다
+    {
+      const start = await get('/api/oauth/instagram', { Referer: 'http://localhost:5173/login' });
+      const st = new URL(start.loc).searchParams.get('state');
+      const back = await get('/api/oauth/instagram/callback?error=user_denied&state=' + st, { Cookie: jarOf(start) });
+      ok('  user_denied 도 취소다', q(back.loc).error, 'instagram_cancelled');
+    }
+    // **날것 그대로 기록에 남는가** — 관리자 화면에서 그 글자를 봐야 어디가 틀어졌는지 안다
+    {
+      const logged = require('../src/db').getSecurityLogs()
+        .filter((l) => l.type === 'oauth_error' || l.type === 'oauth_cancelled');
+      ok('  까닭을 보안 기록에 남긴다', logged.length > 0, true);
+      ok('    날것 글자가 들어 있다', /error=server_error/.test(logged.map((l) => l.detail).join(' ')), true);
+    }
+
+    console.log('');
     console.log('── 화면이 그 까닭을 읽는가 ── (2026-10-07)');
     //
     // 서버가 `kakao_no_email` 을 보내도 화면이 `code === 'google_no_email'` 로
