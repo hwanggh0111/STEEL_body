@@ -46,6 +46,9 @@ const firstLine = (body) => {
 export default function MonthCalendar({
   year, month, workouts, plans = {}, notes = {}, notesFailed = false, selected, onSelect,
   onSaveNote, onDeleteNote, savingNote,
+  // 못 올린 메모를 **이 기기에도 담지 못했나** (2026-10-24). 받아서 쓰기만 한다 —
+  // 이 컴포넌트는 스토어를 모르고 그린다(부르는 쪽이 넘긴다)
+  noteUnsaved = false,
 }) {
   const today = dateKey();
   const weeks = useMemo(() => monthGrid(year, month), [year, month]);
@@ -202,9 +205,17 @@ export default function MonthCalendar({
                       못 올렸어요 — {note.error || '서버가 받지 않았어요'}
                     </div>
                   ) : note?.pending ? (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      아직 안 올라갔어요 · 이 기기에 담아뒀어요. 연결되면 올라가요
-                    </div>
+                    /* **담지 못했으면 그렇다고 말한다** (2026-10-24) — 자리가 없거나
+                       저장소를 막아둔 브라우저에서는 램에만 남는다(앱을 닫으면 사라진다) */
+                    noteUnsaved ? (
+                      <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                        아직 안 올라갔고 이 기기에도 담지 못했어요 — 앱을 닫으면 사라집니다
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        아직 안 올라갔어요 · 이 기기에 담아뒀어요. 연결되면 올라가요
+                      </div>
+                    )
                   ) : null}
 
                   {writing ? (

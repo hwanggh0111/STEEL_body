@@ -459,9 +459,15 @@ export default function TrainPage() {
       // 여기서 또 만들면 5년치에서 17ms 를 저장 단추 누르는 순간에 쓴다
       const before = bestMap;
       const saved = await addWorkout(payload);
+      // **담지 못했으면 그렇다고 말한다** (2026-10-24). 자리가 없거나(사진과 사본으로
+      // 5MB 가 찬다) 저장소를 막아둔 브라우저에서는 이 줄이 **램에만** 남는다 —
+      // 앱을 닫으면 사라지는데 「이 기기에 적어뒀어요」라고 말하고 있었다
       toast(saved?.queued
-        ? '신호가 없어 이 기기에 적어뒀어요. 연결되면 저절로 올라가요'
-        : isToday ? '적었어요' : `${dayLabel(date)} 자리에 적었어요`);
+        ? (saved.unsaved
+          ? '신호가 없고 이 기기에도 담지 못했어요. 앱을 닫으면 사라집니다 — 신호가 오면 바로 올려주세요'
+          : '신호가 없어 이 기기에 적어뒀어요. 연결되면 저절로 올라가요')
+        : isToday ? '적었어요' : `${dayLabel(date)} 자리에 적었어요`,
+      saved?.unsaved ? 'error' : undefined);
       // 최고 기록 알림을 꺼둔 사람에게는 안 띄운다 — 견주는 일은 그대로 한다
       setRecord(prBanner ? checkRecord(before, payload) : null);
 

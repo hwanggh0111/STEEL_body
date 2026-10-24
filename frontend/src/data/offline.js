@@ -120,11 +120,20 @@ export function editInQueue(queue, id, payload) {
 
 // 화면 위쪽에 뭐라고 적을 것인가. 상태 넷을 한 곳에서 정한다 —
 // 화면마다 조건을 따로 적으면 곧 서로 다른 말을 한다
-export function offlineStatus({ online, queue }) {
+export function offlineStatus({ online, queue, unsaved = false }) {
   const list = Array.isArray(queue) ? queue : [];
   const failed = list.filter(q => q && q.failed).length;
   const waiting = list.length - failed;
 
+  // ── **이 기기에도 담지 못했다** ── (2026-10-24)
+  //
+  // 제일 먼저 말한다. 다른 모든 줄은 「나중에 올라간다」는 뜻인데 이것만은
+  // **앱을 닫으면 사라진다**는 뜻이다 (자리가 없거나 저장소가 막혀 있다).
+  if (unsaved && list.length > 0) {
+    return { kind: 'unsaved', count: list.length,
+      text: `적어둔 ${list.length}개를 이 기기에 담지 못했어요`,
+      hint: '앱을 닫으면 사라집니다 — 신호가 오면 바로 올려주세요' };
+  }
   if (failed > 0) {
     return { kind: 'failed', count: failed,
       text: `${failed}개를 올리지 못했어요`, hint: '다시 시도하거나 지울 수 있어요' };
@@ -163,10 +172,29 @@ export function readQueue() {
   return Array.isArray(q) ? q.filter(x => x && x.id && x.payload) : [];
 }
 
+/**
+ * 못 올린 줄을 브라우저에 담는다. **담았는지 돌려준다.**
+ *
+ * ── 자리가 없으면 **사본을 버려서라도 담는다** ── (2026-10-24)
+ *
+ * `localStorage` 는 대개 5MB 다. 이 앱은 거기에 **사진도** 담고(프로필 · 비교 사진은
+ * base64 다) 90일치 기록 사본도 담는다. 차면 `setItem` 이 던지고, 여태 그 실패를
+ * `safeStorage` 가 삼켰다 — **줄은 램에만 남고** 화면은 「이 기기에 적어뒀어요」라고
+ * 말했다. 앱을 닫으면 헬스장에서 적은 것이 사라진다. 쿠키를 막아둔 브라우저에서는
+ * 늘 그랬다.
+ *
+ * 둘의 값이 다르다 — **사본(`cache`)은 서버에서 다시 받으면 되고, 줄(`queue`)은
+ * 사람이 손으로 적은 것이라 어디에도 없다.** 그래서 자리가 없으면 사본을 버린다.
+ * 그래도 안 되면 `false` 를 돌려주고, **부르는 쪽이 사람에게 말한다.**
+ */
 export function saveQueue(queue) {
   const list = Array.isArray(queue) ? queue : [];
   if (list.length === 0) return removeLS(WORKOUT_QUEUE_KEY);
-  return saveLS(WORKOUT_QUEUE_KEY, JSON.stringify(list));
+  const text = JSON.stringify(list);
+  if (saveLS(WORKOUT_QUEUE_KEY, text)) return true;
+  // 자리를 내준다 — 사본은 다시 받을 수 있다
+  removeLS(WORKOUT_CACHE_KEY);
+  return saveLS(WORKOUT_QUEUE_KEY, text);
 }
 
 export function readCache() {

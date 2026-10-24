@@ -35,12 +35,27 @@ function groupByDate(list) {
   }, {});
 }
 
+// ── 담는 자리는 **한 곳**이다 ── (2026-10-24)
+//
+// `localStorage` 가 찼거나 막혀 있으면 담기가 실패하고, 그러면 이 줄은 **램에만**
+// 남는다(앱을 닫으면 사라진다). 부르는 자리가 일곱이라 한 곳만 보고 적으면
+// 나머지는 조용히 삼킨다 — 그래서 담는 일과 적어두는 일을 묶어 둔다.
+// 줄이 비었을 때는 「담지 못했다」가 아니다 (지우기는 실패해도 잃을 것이 없다)
+const keepQueue = (set, next) => {
+  const ok = saveQueue(next);
+  set({ unsaved: (Array.isArray(next) ? next.length : 0) > 0 && !ok });
+  return ok;
+};
+
 export const useWorkoutStore = create((set, get) => ({
   // 서버에서 받은 것만 여기 담는다. 화면이 보는 `workouts` 는 여기에
   // **기다리는 줄을 섞은 것**이다 (아래 apply 참고)
   server: {},
   workouts: {},
   queue: [],
+  // 못 올린 줄을 **이 기기에도 담지 못했다** (자리가 없거나 막혀 있다).
+  // 그러면 앱을 닫으면 사라진다 — 화면이 그 사실을 말해야 한다
+  unsaved: false,
   online: isOnline(),
   loading: false,
   flushing: false,
@@ -144,10 +159,14 @@ export const useWorkoutStore = create((set, get) => ({
       if (!isOfflineError(err)) throw err;
       const item = makeQueued(workout);
       const queue = [...get().queue, item];
-      saveQueue(queue);
+      // **담겼는지 본다** (2026-10-24). `localStorage` 가 찼거나 막혀 있으면
+      // 이 줄은 **램에만** 남는다 — 앱을 닫으면 사라진다. 그런데 화면은
+      // 「이 기기에 적어뒀어요」라고 말하고 있었다. 사람이 헬스장에서 적은 것이다.
+      // `saveQueue` 가 사본을 버려서라도 담아보고, 그래도 안 되면 false 다
+      const kept = keepQueue(set, queue);
       get().apply(null, queue);
-      set({ online: false });
-      return { ...workout, id: item.id, queued: true };
+      set({ online: false, unsaved: !kept });
+      return { ...workout, id: item.id, queued: true, unsaved: !kept };
     }
   },
 
@@ -155,7 +174,7 @@ export const useWorkoutStore = create((set, get) => ({
     // 아직 안 올라간 것은 줄에서 고친다
     if (isLocalId(id)) {
       const queue = editInQueue(get().queue, id, workout);
-      saveQueue(queue);
+      keepQueue(set, queue);
       get().apply(null, queue);
       return { ...workout, id, queued: true };
     }
@@ -168,7 +187,7 @@ export const useWorkoutStore = create((set, get) => ({
     // 아직 안 올라간 것은 줄에서 뺀다. 서버에는 없는 것이라 DELETE 를 보내면 404 다
     if (isLocalId(id)) {
       const queue = dropFromQueue(get().queue, id);
-      saveQueue(queue);
+      keepQueue(set, queue);
       get().apply(null, queue);
       return;
     }
@@ -215,7 +234,7 @@ export const useWorkoutStore = create((set, get) => ({
           // 줄의 로컬 id 를 같이 보낸다 — 올리다 답이 끊겨 다시 보내도 서버가 한 번만 만든다
           await client.post('/workouts', { ...item.payload, clientKey: item.id });
           const next = dropFromQueue(get().queue, item.id);
-          saveQueue(next);
+          keepQueue(set, next);
           get().apply(null, next);
           sent += 1;
         } catch (err) {
@@ -230,7 +249,7 @@ export const useWorkoutStore = create((set, get) => ({
           if (blockOf(err)) { blocked = true; break; }
           const reason = err?.response?.data?.error || '서버가 받지 않았어요';
           const next = markFailed(get().queue, item.id, reason);
-          saveQueue(next);
+          keepQueue(set, next);
           get().apply(null, next);
           failed += 1;
         }
@@ -248,7 +267,7 @@ export const useWorkoutStore = create((set, get) => ({
   // 못 올린 것을 다시 시도한다 (표시를 지우고 한 번 더)
   retryFailed: async () => {
     const next = clearFailedMark(get().queue);
-    saveQueue(next);
+    keepQueue(set, next);
     get().apply(null, next);
     return get().flushQueue();
   },
@@ -257,7 +276,7 @@ export const useWorkoutStore = create((set, get) => ({
   // 적은 것이 소리 없이 사라진다
   dropFailed: () => {
     const next = get().queue.filter(q => !q.failed);
-    saveQueue(next);
+    keepQueue(set, next);
     get().apply(null, next);
   },
 }));

@@ -120,6 +120,8 @@ export default function HistoryPage() {
   // 화면은 「됐다」와 「기기에 담아뒀다」만 갈라 말한다.
   const dayNotes = useNoteStore((s) => s.notes);
   const notesFailed = useNoteStore((s) => s.loadFailed);
+  // 못 올린 메모를 이 기기에도 담지 못했나 (자리가 없거나 막혀 있다)
+  const noteUnsaved = useNoteStore((st) => st.unsaved);
   const [savingNote, setSavingNote] = useState(false);
 
   const saveDayNote = async (date, body, done) => {
@@ -372,6 +374,7 @@ export default function HistoryPage() {
         onSaveNote={(body, done) => saveDayNote(selectedDate, body, done)}
         onDeleteNote={removeDayNote}
         savingNote={savingNote}
+        noteUnsaved={noteUnsaved}
       />
 
       {/* 날짜를 고르면 그날 할 것을 정한다. 안 골랐으면 **다가오는 것 한 줄**만 —

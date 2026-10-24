@@ -424,12 +424,16 @@ function providerDenied(req, provider) {
   if (!e) return null;
   const desc = String(req.query.error_description || '').slice(0, 200);
   const cancelled = CANCEL_CODES.has(e);
-  // **까닭을 적어둔다.** 취소도 적는다 — 어느 걸음에서 멈추는지 보려면 수가 필요하다
+  // **까닭을 적어둔다.** 취소도 적는다 — 어느 걸음에서 멈추는지 보려면 수가 필요하다.
+  //
+  // 종류는 **글자 그대로** 쓴다(변수로 넘기지 않는다). 관리자 화면이 종류마다
+  // 한국어 이름표를 달고, `npm run logtypes` 가 **양쪽을 세어 견준다** — 변수로
+  // 넘기면 그 검사가 못 보고, 화면에는 영문 키가 그대로 뿌려진다
+  const detail = `${provider} 로그인 ${cancelled ? '취소' : '실패'}: error=${e}${desc ? ` (${desc})` : ''}`;
   try {
-    require('./security').addLog(
-      cancelled ? 'oauth_cancelled' : 'oauth_error',
-      `${provider} 로그인 ${cancelled ? '취소' : '실패'}: error=${e}${desc ? ` (${desc})` : ''}`,
-    );
+    const { addLog } = require('./security');
+    if (cancelled) addLog('oauth_cancelled', detail);
+    else addLog('oauth_error', detail);
   } catch { /* 기록이 안 남아도 로그인 길은 그대로 간다 */ }
   return cancelled ? 'cancelled' : 'failed';
 }

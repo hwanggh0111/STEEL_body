@@ -34,10 +34,13 @@ export default function OfflineBar() {
   const queue = [...workoutQueue, ...queueList(noteQueueMap)];
   const busy = flushing || noteFlushing;
 
-  const status = offlineStatus({ online, queue });
+  // **담지 못한 것은 가장 급한 말이다** — 다른 줄은 「나중에 올라간다」는 뜻이지만
+  // 이것만은 「앱을 닫으면 사라진다」는 뜻이다 (2026-10-24)
+  const unsaved = useWorkoutStore((s) => s.unsaved) || useNoteStore((s) => s.unsaved);
+  const status = offlineStatus({ online, queue, unsaved });
   if (!status) return null;
 
-  const danger = status.kind === 'failed';
+  const danger = status.kind === 'failed' || status.kind === 'unsaved';
 
   const retry = async () => {
     const a = await retryFailed();

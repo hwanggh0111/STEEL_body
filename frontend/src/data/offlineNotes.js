@@ -158,10 +158,20 @@ export function readNoteQueue() {
   return kept;
 }
 
+/**
+ * 못 올린 메모를 담는다. **담았는지 돌려준다** — 운동 쪽과 같은 규칙이다
+ * (`data/offline.js` 의 `saveQueue` 머리글에 까닭을 적어뒀다).
+ *
+ * 자리가 없으면 **사본을 버려서라도 담는다**: 사본은 서버에서 다시 받을 수 있고,
+ * 이 줄은 사람이 손으로 적은 것이라 어디에도 없다.
+ */
 export function saveNoteQueue(queue) {
   const q = asQueue(queue);
   if (Object.keys(q).length === 0) return removeLS(NOTE_QUEUE_KEY);
-  return saveLS(NOTE_QUEUE_KEY, JSON.stringify(q));
+  const text = JSON.stringify(q);
+  if (saveLS(NOTE_QUEUE_KEY, text)) return true;
+  removeLS(NOTE_CACHE_KEY);
+  return saveLS(NOTE_QUEUE_KEY, text);
 }
 
 export function readNoteCache() {

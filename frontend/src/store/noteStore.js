@@ -28,7 +28,17 @@ export function resetNoteCache() {
   loadedMonth = null;
 }
 
+// 담는 자리는 **한 곳**이다 — 운동 쪽(`workoutStore` 의 `keepQueue`)과 같은 결이다.
+// 자리가 없거나 막혀 있으면 램에만 남는다(앱을 닫으면 사라진다)
+const keepNoteQueue = (set, next) => {
+  const ok = saveNoteQueue(next);
+  set({ unsaved: Object.keys(next || {}).length > 0 && !ok });
+  return ok;
+};
+
 export const useNoteStore = create((set, get) => ({
+  // 못 올린 메모를 **이 기기에도 담지 못했다** (자리가 없거나 막혀 있다)
+  unsaved: false,
   // 서버에서 받은 것만 여기 담는다. 화면이 보는 `notes` 는 여기에 줄을 섞은 것이다
   server: {},
   notes: {},
@@ -91,7 +101,7 @@ export const useNoteStore = create((set, get) => ({
       const server = { ...get().server, [date]: data };
       // 올라갔으면 줄에 남아 있던 그 날짜 것은 뺀다 (실패 표시로 남아 있을 수 있다)
       const queue = dropEntry(get().queue, date);
-      saveNoteQueue(queue);
+      keepNoteQueue(set, queue);
       get().apply(server, queue);
       saveNoteCache(server, date.slice(0, 7));
       set({ online: true });
@@ -100,7 +110,7 @@ export const useNoteStore = create((set, get) => ({
       // 서버가 「그렇게는 안 받는다」고 답한 것은 다시 보내도 마찬가지다. 그대로 알린다
       if (!isOfflineError(err)) throw err;
       const queue = queueSave(get().queue, date, body);
-      saveNoteQueue(queue);
+      keepNoteQueue(set, queue);
       get().apply(null, queue);
       set({ online: false });
       return { id: get().server[date]?.id ?? localNoteId(date), date, body, queued: true };
@@ -117,7 +127,7 @@ export const useNoteStore = create((set, get) => ({
 
     if (serverId === null || isLocalNoteId(note.id)) {
       const queue = dropEntry(get().queue, date);
-      saveNoteQueue(queue);
+      keepNoteQueue(set, queue);
       get().apply(null, queue);
       return;
     }
@@ -128,7 +138,7 @@ export const useNoteStore = create((set, get) => ({
       if (isOfflineError(err)) {
         // **신호가 없다고 안 지워주면 되살아난 것처럼 보인다.** 줄에 세운다
         const queue = queueDelete(get().queue, date, serverId);
-        saveNoteQueue(queue);
+        keepNoteQueue(set, queue);
         get().apply(null, queue);
         set({ online: false });
         return;
@@ -139,7 +149,7 @@ export const useNoteStore = create((set, get) => ({
     const server = { ...get().server };
     delete server[date];
     const queue = dropEntry(get().queue, date);
-    saveNoteQueue(queue);
+    keepNoteQueue(set, queue);
     get().apply(server, queue);
     saveNoteCache(server, date.slice(0, 7));
   },
@@ -168,7 +178,7 @@ export const useNoteStore = create((set, get) => ({
           if (e.op === 'delete') await client.delete(`/notes/${e.id}`);
           else await client.post('/notes', { body: e.body, date });
           const next = dropEntry(get().queue, date);
-          saveNoteQueue(next);
+          keepNoteQueue(set, next);
           get().apply(null, next);
           sent += 1;
         } catch (err) {
@@ -179,14 +189,14 @@ export const useNoteStore = create((set, get) => ({
           // 지우려던 것이 이미 없으면 그것도 뜻대로 된 것이다
           if (e.op === 'delete' && err.response?.status === 404) {
             const next = dropEntry(get().queue, date);
-            saveNoteQueue(next);
+            keepNoteQueue(set, next);
             get().apply(null, next);
             sent += 1;
             continue;
           }
           const reason = err?.response?.data?.error || '서버가 받지 않았어요';
           const next = markNoteFailed(get().queue, date, reason);
-          saveNoteQueue(next);
+          keepNoteQueue(set, next);
           get().apply(null, next);
           failed += 1;
         }
@@ -201,7 +211,7 @@ export const useNoteStore = create((set, get) => ({
 
   retryFailed: async () => {
     const next = clearNoteFailed(get().queue);
-    saveNoteQueue(next);
+    keepNoteQueue(set, next);
     get().apply(null, next);
     return get().flushQueue();
   },
@@ -209,7 +219,7 @@ export const useNoteStore = create((set, get) => ({
   // 못 올린 것을 버린다. **사람이 눌러야만 지운다**
   dropFailed: () => {
     const next = dropFailedNotes(get().queue);
-    saveNoteQueue(next);
+    keepNoteQueue(set, next);
     get().apply(null, next);
   },
 }));

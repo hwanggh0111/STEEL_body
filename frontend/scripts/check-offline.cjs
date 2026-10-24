@@ -493,6 +493,64 @@ console.log('── 홈 화면에 얹을 아이콘이 있나 ── (2026-10-20)
 }
 
 console.log('');
+    console.log('── 저장소가 꽉 찼을 때 ── (2026-10-24)');
+    //
+    // `localStorage` 는 대개 5MB 다. 이 앱은 거기에 **사진도** 담고(프로필 · 비교
+    // 사진은 base64) 90일치 사본도 담는다. 차면 `setItem` 이 던지는데, 그 실패를
+    // `safeStorage` 가 삼켰다 — **줄은 램에만 남고** 화면은 「이 기기에 적어뒀어요」
+    // 라고 말했다. 앱을 닫으면 헬스장에서 적은 것이 사라진다. 저장소를 막아둔
+    // 브라우저(아이폰 비공개 모드 · 쿠키 전체 차단)에서는 **늘** 그랬다.
+    //
+    // 둘의 값이 다르다 — **사본은 서버에서 다시 받고, 줄은 사람이 손으로 적은 것이라
+    // 어디에도 없다.** 그래서 자리가 없으면 사본을 버린다.
+    {
+      const row = { date: '2026-10-24', exercise: '스쿼트', weight: '100', sets: 5, reps: 5 };
+      // ① 사본이 자리를 다 차지한 척한다 — 줄을 담으려면 사본을 버려야 한다
+      store.clear();
+      off.saveCache({ '2026-10-24': [row] });
+      ok('사본이 담겨 있다', off.readCache() !== null, true);
+      let full = true;                       // 사본이 있는 동안에는 자리가 없다
+      const realSet = global.localStorage.setItem;
+      global.localStorage.setItem = (k, v) => {
+        if (full && k.includes('queue') && store.has('ironlog_workouts_cache')) {
+          throw new Error('QuotaExceededError');
+        }
+        realSet(k, v);
+      };
+      const kept = off.saveQueue([{ id: 'local-1', payload: row }]);
+      global.localStorage.setItem = realSet;
+      ok('사본을 버려서라도 줄을 담는다', kept, true);
+      ok('  줄이 남아 있다', off.readQueue().length, 1);
+      ok('  사본은 버려졌다 (다시 받으면 된다)', off.readCache(), null);
+
+      // ② 저장소가 아예 막혀 있다 — 담을 수가 없다. **담았다고 말하면 안 된다**
+      store.clear();
+      global.localStorage.setItem = () => { throw new Error('SecurityError'); };
+      const kept2 = off.saveQueue([{ id: 'local-2', payload: row }]);
+      global.localStorage.setItem = realSet;
+      ok('막혀 있으면 담았다고 하지 않는다', kept2, false);
+      // 그때 화면이 **말해야 하는 것**
+      const st = off.offlineStatus({ online: false, queue: [{ id: 'local-2' }], unsaved: true });
+      ok('  「담지 못했다」를 제일 먼저 말한다', st.kind, 'unsaved');
+      ok('    앱을 닫으면 사라진다고 적는다', /앱을 닫으면 사라집니다/.test(st.hint), true);
+      // 담긴 평소에는 그 말을 안 한다
+      ok('  담겼으면 그 말을 안 한다',
+        off.offlineStatus({ online: false, queue: [{ id: 'x' }], unsaved: false }).kind, 'offline-waiting');
+      store.clear();
+    }
+
+    // 담는 자리가 **일곱**이다. 한 곳만 보고 적으면 나머지는 조용히 삼킨다
+    {
+      const storeSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'store', 'workoutStore.js'), 'utf8');
+      const noteSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'store', 'noteStore.js'), 'utf8');
+      ok('운동 줄은 한 자리에서만 담는다', (storeSrc.match(/[^.]saveQueue\(/g) || []).length, 1);
+      ok('  메모 줄도', (noteSrc.match(/[^.]saveNoteQueue\(/g) || []).length, 1);
+      ok('  그 자리가 담겼는지 적어둔다', /set\(\{ unsaved:/.test(storeSrc) && /set\(\{ unsaved:/.test(noteSrc), true);
+      ok('화면이 그 말을 갖고 있다',
+        /이 기기에도 담지 못했어요/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'pages', 'TrainPage.jsx'), 'utf8')), true);
+    }
+
+    console.log('');
     console.log(bad ? bad + '건 실패' : '전부 통과');
     process.exit(bad ? 1 : 0);
   }
