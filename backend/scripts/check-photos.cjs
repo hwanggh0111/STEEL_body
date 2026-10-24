@@ -106,6 +106,56 @@ console.log('── 깨진 파일을 덮어쓰지 않는가 ── (2026-09-19 �
   ok('치운 이름에 시각이 들어간다', /broken-' \+ new Date\(\)\.toISOString\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'storage.js'), 'utf8')), true);
 }
 
+console.log('');
+console.log('── 바깥에서 사진 파일을 바꾸면 ── (2026-10-24)');
+//
+// DB 는 램에 있고 파일은 그것을 흘려둔 자취다. 램이 늘 이기면 서버가 떠 있는 동안
+// 바깥의 고침이 **다음 저장 한 번에 조용히 되돌아간다.** 본체는 9/30 부터 이것을
+// 보는데 **사진은 안 보고 있었다** — 백업에서 사진 파일을 되돌려 놓고(서버를 안
+// 내리고) 프로필 사진 한 장을 바꾸면 되돌려 놓은 판이 옛 판으로 덮인다.
+// **사진은 base64 덩어리라 한 번 덮으면 되살릴 길이 없다.**
+const photoFile = TMP.replace(/\.json$/, '') + '.photos.json';
+{
+  // 지금까지 적은 것을 파일로 내린다
+  if (typeof db.flushPhotosNow === 'function') db.flushPhotosNow();
+  else if (typeof db.flushNow === 'function') db.flushNow();
+}
+setTimeout(() => {
+  const before = db.getSitePhotos().length;
+  ok('지금 걸린 사진 수를 안다', before > 0, true);
+
+  // **바깥에서** 한 장을 더해 놓는다 (백업에서 되돌린 자리를 흉내 낸다)
+  const onDisk = JSON.parse(fs.readFileSync(photoFile, 'utf8'));
+  // 홈페이지 사진은 같은 파일의 `sitePhotos` 에 있다 (사람 사진은 `photos`)
+  if (!Array.isArray(onDisk.sitePhotos)) onDisk.sitePhotos = [];
+  onDisk.sitePhotos.push({
+    id: 9999, data: IMG, caption: '바깥에서 넣은 것',
+    order: 99, created_at: new Date().toISOString(),
+  });
+  // 시각이 바뀌어야 한다 — 같은 밀리초에 쓰면 못 본다
+  const t = Date.now() + 1500;
+  fs.writeFileSync(photoFile, JSON.stringify(onDisk), 'utf8');
+  fs.utimesSync(photoFile, new Date(t), new Date(t));
+
+  // 다음 읽기에서 **파일 쪽을 읽어 맞춘다** (안 쓴 것이 없을 때만).
+  // 파일 시각을 보는 일은 **1초에 한 번으로 묶여 있다**(요청마다 stat 하지 않는다) —
+  // 그래서 그만큼 기다렸다 본다. 실제로도 최대 1초 늦게 따라온다
+  setTimeout(() => {
+    const after = db.getSitePhotos();
+    ok('바깥에서 넣은 것이 보인다', after.some((p) => p.caption === '바깥에서 넣은 것'), true);
+    ok('  있던 것도 그대로다', after.length, before + 1);
+
+    // 그 다음 저장이 **바깥의 고침을 안 지운다** (이것이 이 버그였다)
+    db.addSitePhoto(IMG, '그 뒤에 올린 것');
+    const names2 = db.getSitePhotos().map((p) => p.caption);
+    ok('그 뒤에 저장해도 안 사라진다', names2.includes('바깥에서 넣은 것'), true);
+    ok('  새로 올린 것도 있다', names2.includes('그 뒤에 올린 것'), true);
+
+    finish();
+  }, 1200);
+}, 800);
+
+function finish() {
 // 검사가 만든 파일은 스스로 치운다. **먼저 파일에 쓴 다음 지운다** —
 // 안 그러면 지운 뒤에 미뤄둔 쓰기가 다시 써놓는다
 if (typeof db.flushNow === 'function') db.flushNow();
@@ -116,3 +166,4 @@ setTimeout(() => {
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
 }, 700);
+}

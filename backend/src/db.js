@@ -125,13 +125,57 @@ const DEFAULT_DATA = {
 let _photoCache = null;
 let _photoDirty = false;
 let _photoTimer = null;
+// 우리가 쓴 뒤의 사진 파일 시각. 0 이면 아직 안 썼거나 못 재는 자리(Postgres)다
+let _photoWriteMs = 0;
+// 요청마다 stat 하지 않는다 — 본체와 같이 1초에 한 번으로 묶는다
+let _photoStatMs = 0;
+
+/** 우리가 쓴 뒤로 누가 사진 파일을 고쳤나. 못 재면 `null` (본체의 짝) */
+function _photoChangedOutside() {
+  if (!_photoWriteMs) return null;
+  const m = storage.statMs(storage.PHOTOS);
+  if (m === null) return null;                 // Postgres — 그런 일이 없다
+  return m === _photoWriteMs ? null : m;
+}
+
+// ── 사진도 **바깥에서 바뀐 것을 본다** ── (2026-10-24)
+//
+// 본체(`blackiron.json`)는 9/30 부터 이것을 한다 — 램이 늘 이기면 서버가 떠 있는
+// 동안 바깥의 고침이 **다음 저장 한 번에 조용히 되돌아간다.** 그런데 **사진은 그
+// 검사가 없었다.** 백업에서 사진 파일을 되돌려 놓고(서버를 안 내리고) 프로필 사진을
+// 한 장 바꾸면, 되돌려 놓은 판이 램에 있던 옛 판으로 덮인다.
+//
+// 사진은 base64 덩어리라 **한 번 덮으면 되살릴 길이 없다** — 이 파일의 `loadPhotos`
+// 가 「깨진 파일을 덮어쓰지 않는다」고 적어둔 것과 같은 까닭이다.
+//
+// 안 쓴 것이 없을 때만 읽는다(`!_photoDirty`) — 그때는 **잃을 것이 없다.**
+function _syncPhotosIfChanged() {
+  if (_photoDirty || !_photoCache) return;
+  const now = Date.now();
+  if (now - _photoStatMs < 1000) return;
+  _photoStatMs = now;
+  const m = _photoChangedOutside();
+  if (m === null) return;
+  try {
+    const next = JSON.parse(storage.readSync(storage.PHOTOS));
+    if (!Array.isArray(next.photos)) next.photos = [];
+    _photoCache = next;
+    _photoWriteMs = m;
+    console.warn('[DB] photos.json 이 바깥에서 바뀌었습니다 — 파일 쪽을 읽어 맞췄습니다.');
+  } catch (err) {
+    // 깨진 파일을 읽어 램을 망치지 않는다. 그 판은 `loadPhotos` 가 옆으로 치운다
+    _photoWriteMs = m;
+    console.error('[DB] 바깥에서 바뀐 사진 파일을 못 읽어 램에 있는 것을 씁니다:', err.message);
+  }
+}
 
 function loadPhotos() {
-  if (_photoCache) return _photoCache;
+  if (_photoCache) { _syncPhotosIfChanged(); return _photoCache; }
   try {
     if (storage.existsSync(storage.PHOTOS)) {
       _photoCache = JSON.parse(storage.readSync(storage.PHOTOS));
       if (!Array.isArray(_photoCache.photos)) _photoCache.photos = [];
+      _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
       return _photoCache;
     }
   } catch (err) {
@@ -156,6 +200,13 @@ function loadPhotos() {
 // **여기는 들여쓰기를 안 넣는다** — 사람이 읽을 파일이 아니고 base64 덩어리다
 function _flushPhotos() {
   if (!_photoDirty || !_photoCache) return;
+  // 안 쓴 것이 있으면 합칠 수가 없다 — **말하고 덮는다** (본체와 같은 대접)
+  const outside = _photoChangedOutside();
+  if (outside !== null) {
+    console.warn('[DB] photos.json 이 바깥에서 바뀌었습니다 — 아직 안 쓴 것이 있어 램에 있는 내용으로 덮어씁니다.');
+    console.warn('[DB] 사진 파일을 직접 되돌릴 때는 서버를 내리고 하세요.');
+    _photoWriteMs = outside;
+  }
   let text;
   try {
     text = JSON.stringify(_photoCache);
@@ -164,7 +215,10 @@ function _flushPhotos() {
     return;
   }
   _photoDirty = false;
-  storage.write(storage.PHOTOS, text).catch((err) => {
+  storage.write(storage.PHOTOS, text).then(() => {
+    // 우리가 쓴 시각을 기억한다 — 이 값이 「바깥에서 바뀌었나」의 기준이다
+    _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
+  }).catch((err) => {
     console.error('[DB] 사진 저장 실패:', err.message);
     // **다시 써야 한다고 표시만 하고 끝냈다** (2026-10-22). 본체는 같은 자리에서
     // 다음 쓰기를 **걸어둔다**(`_flush` 의 finally). 사진은 표시만 하고 아무도
@@ -182,6 +236,7 @@ function _flushPhotosSync() {
   try {
     storage.writeSync(storage.PHOTOS, JSON.stringify(_photoCache));
     _photoDirty = false;
+    _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
   } catch (err) {
     console.error('[DB] 사진 저장 실패:', err.message);
   }
