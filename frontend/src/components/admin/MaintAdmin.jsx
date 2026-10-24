@@ -6,6 +6,9 @@ import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
 import { saveLS } from '../../data/safeStorage';
 import { dateKey } from '../../data/dateKey';
+// 줄의 모양을 맞추는 일은 값만 다루는 자리에 있다 (`npm run maint` 로 돌려본다) —
+// 서버는 날짜짜리에 `days` 칸을 안 만드는데 폼은 그 칸이 늘 있다고 보고 그렸다
+import { NEW_FORM, formOf, entryOf, repeats } from '../../data/maintForm';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -115,9 +118,7 @@ function MaintForm({ kind, onSchedule }) {
 export default function MaintAdmin() {
   const [schedules, setSchedules] = useState(() => getSchedules());
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({
-    startHour: 4, startMin: 0, durationMin: 60, days: [1, 2, 3, 4, 5], reason: '정기 시스템 점검',
-  });
+  const [form, setForm] = useState(NEW_FORM);
 
   // 열 때 서버에서 최신 목록을 받아온다 — 다른 기기에서 잡아둔 것도 보여야 한다
   useEffect(() => { fetchSchedules().then(list => setSchedules(list)); }, []);
@@ -144,12 +145,14 @@ export default function MaintAdmin() {
   };
 
   const startNew = () => {
-    setForm({ startHour: 4, startMin: 0, durationMin: 60, days: [1, 2, 3, 4, 5], reason: '정기 시스템 점검' });
+    setForm(NEW_FORM);
     setEditing('new');
   };
 
+  // **서버가 돌려준 줄을 그대로 폼에 올리면 터졌다** — 날짜짜리에는 `days` 칸이
+  // 없는데 요일 단추가 `form.days.includes(i)` 를 읽었다. 모양은 `formOf` 가 맞춘다
   const startEdit = (idx) => {
-    setForm({ ...schedules[idx] });
+    setForm(formOf(schedules[idx]));
     setEditing(idx);
   };
 
@@ -159,16 +162,10 @@ export default function MaintAdmin() {
       return;
     }
     // 수정 폼은 시각·요일·사유만 다룬다. 원래 항목의 date·type 은 그대로 들고 간다 —
-    // 안 그러면 '8월 25일 하루' 짜리가 수정 한 번에 '매일' 로 바뀐다
+    // 안 그러면 '8월 25일 하루' 짜리가 수정 한 번에 '매일' 로 바뀐다.
+    // 날짜짜리에는 요일을 안 적는다(`entryOf`) — 서버가 만드는 모양과 같아야 한다
     const base = editing === 'new' ? {} : (schedules[editing] || {});
-    const entry = {
-      ...base,
-      startHour: Number(form.startHour),
-      startMin: Number(form.startMin),
-      durationMin: Number(form.durationMin),
-      days: form.days,
-      reason: form.reason,
-    };
+    const entry = entryOf(base, form);
     // 서버가 받아준 뒤에 알린다. 실패하면 save 가 알리고 폼도 안 닫는다
     const isNew = editing === 'new';
     const updated = isNew ? [...schedules, entry] : schedules.map((x, i) => (i === editing ? entry : x));
@@ -259,7 +256,7 @@ export default function MaintAdmin() {
   const toggleDay = (d) => {
     setForm(f => ({
       ...f,
-      days: f.days.includes(d) ? f.days.filter(x => x !== d) : [...f.days, d].sort(),
+      days: (f.days || []).includes(d) ? f.days.filter(x => x !== d) : [...(f.days || []), d].sort(),
     }));
   };
 
@@ -325,6 +322,19 @@ export default function MaintAdmin() {
             </div>
           </div>
 
+          {/* **날짜로 잡은 점검에는 요일을 안 보여준다** (2026-10-24).
+              `runsOn`(MaintenanceScreen)은 날짜가 있으면 요일을 아예 안 읽는다 —
+              그런데 여기 요일 일곱 개가 떠 있어서, 「월·수·금」으로 고쳐놓고 나가도
+              그 점검은 여전히 그 하루만 돌았다. 화면이 안 하는 일을 말하고 있었다 */}
+          {!repeats(form) ? (
+            <div style={{
+              fontSize: 12, color: 'var(--text-muted)', marginBottom: 12,
+              background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)', padding: '8px 12px',
+            }}>
+              {form.date} 하루짜리 점검입니다 — 요일 반복이 아니에요.
+              <br />다른 날로 옮기려면 지우고 위에서 다시 잡아주세요.
+            </div>
+          ) : (<>
           <label className="label">요일 선택</label>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             {DAY_LABELS.map((label, i) => (
@@ -344,6 +354,7 @@ export default function MaintAdmin() {
               >{label}</button>
             ))}
           </div>
+          </>)}
 
           <label className="label">점검 사유</label>
           <input
