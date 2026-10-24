@@ -132,7 +132,13 @@ const guard = read('backend/src/middleware/aiGuard.js');
 ok('정지 사유는 「풀린 뒤에」라고 적는다', /\*\*풀린 뒤에\*\* 고객센터 제보함으로/.test(abuse), true);
 ok('  지금 제보하라고 하지 않는다', /생각되면 관리자에게 알려주세요/.test(abuse), false);
 // 영구 정지에는 「풀린 뒤」가 없다 — 남는 길은 앱 밖의 연락처뿐이고 화면이 그것을 붙인다
-ok('영구 정지 글은 제보함을 가리키지 않는다', /고객센터 제보함으로 알려주세요/.test(guard), false);
+// **영구 정지 글만** 본다 — 같은 파일의 3일 정지 글은 「풀린 뒤에 제보함으로」가
+// 맞는 말이다(기간이 있으니까). 가려서 봐야 한다
+const l4 = (guard.match(/const L4_NOTE = '[^']*'/) || [''])[0];
+ok('영구 정지 글은 제보함을 가리키지 않는다', /제보함/.test(l4), false);
+ok('  그래도 되돌릴 수 있다고 말한다', /되돌립니다/.test(l4), true);
+// 기간이 있는 정지는 **풀린 뒤에** 라고 말할 수 있다
+ok('  3일 정지 글은 「풀린 뒤에」라고 적는다', /\*\*풀린 뒤에\*\* 고객센터 제보함으로/.test(guard), true);
 ok('  화면이 닿을 수 있는 주소를 붙인다',
   /SUPPORT_EMAIL/.test(read('frontend/src/components/AccountBlocked.jsx')), true);
 // 주소는 **한 곳**에 있다 (방침과 정지 안내가 같은 것을 쓴다)

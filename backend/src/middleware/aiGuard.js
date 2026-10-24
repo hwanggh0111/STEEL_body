@@ -897,7 +897,9 @@ function aiGuardMiddleware(req, res, next) {
       const reason = executeLevel3(userId, ip, threat.type, threat.pattern, INPUT_SUSPEND_DAYS);
       return res.status(403).json({
         error: '보안 정책 위반이 감지되었습니다.',
-        message: '되풀이되어 계정이 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 관리자에게 알려주세요.',
+        // **막아둔 길을 가리키지 않는다** (2026-10-24) — 정지되면 제보도 403 이다.
+        // 기간이 있는 정지라 「풀린 뒤에」가 할 수 있는 말이다 (`abusePolicy` 와 같은 말)
+        message: `되풀이되어 계정이 ${INPUT_SUSPEND_DAYS}일간 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 **풀린 뒤에** 고객센터 제보함으로 알려주세요.`,
         reason: reason,
       });
     }
