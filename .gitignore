@@ -37,8 +37,8 @@ backend/.check-*.json
 # 시안은 claude.ai 링크로 따로 남아 있고, 링크는 README 개발 일지에 적는다
 .design/
 
-# VS Code 작업 공간 — 사람마다 다르다
-hgh.code-workspace
+# VS Code 작업 공간 — 사람마다 다르다 (이름도 사람마다 다르다 → 2026-10-24)
+*.code-workspace
 
 # 재는 자리가 쓰는 임시 DB (npm run bench). 끝나면 지우지만 중간에 멎으면 남는다
 backend/scripts/.bench*.json

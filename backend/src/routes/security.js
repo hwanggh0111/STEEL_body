@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
+// 자체 검사가 **DB 파일 이름**을 알아야 한다 — 손으로 적으면 이름을 바꾼 날 어긋난다
+const storage = require('../storage');
 const { seoulDay } = require('../utils/seoulDay');
 const aiGuard = require('../middleware/aiGuard');
 const {
@@ -691,6 +693,14 @@ router.post('/scan', adminAuth, async (req, res) => {
     const gi = fss.readFileSync(gitignorePath, 'utf-8');
     if (gi.includes('.env')) pass(cat7, '.env가 .gitignore에 포함');
     else fail(cat7, '.env가 .gitignore에 없음', 'CRITICAL', '.env 커밋 위험');
+    // **적어둔 말만큼 본다** (2026-10-24). 바로 위 「.gitignore 없음」의 까닭에
+    // 「.env · **DB 파일**이 커밋될 수 있다」고 적어놓고 **DB 파일은 안 보고 있었다.**
+    // 그 파일에는 회원 전부의 기록과 비밀번호 해시가 들어 있다 — 한 번 올라가면
+    // 지워도 git 역사에 남는다. 이름은 `storage.js` 가 아는 그 둘이다
+    const dbFiles = [storage.MAIN, storage.PHOTOS].map((n) => require('path').basename(n));
+    const missing = dbFiles.filter((f) => !gi.includes(f));
+    if (missing.length === 0) pass(cat7, 'DB 파일 두 장이 .gitignore에 포함');
+    else fail(cat7, 'DB 파일이 .gitignore에 없음', 'CRITICAL', missing.join(' · ') + ' 커밋 위험');
   }
   // 결과 집계
   const safe = results.filter(r => r.status === 'SAFE').length;
