@@ -186,17 +186,26 @@ router.get('/users', adminAuth, (req, res) => {
 // 예전에 객체로 바꿔 읽다가 **로그 100건이 와도 언제나 「없습니다」**였던 자리다.
 const LOG_WANT = 100;
 
-router.get('/logs', adminAuth, (req, res) => {
-  // **DB 가 먼저다** — 재시작을 넘은 것이 그쪽에 있다. 파일과 램은 그 위에 얹는다
-  // (같은 줄은 아래에서 접는다). 셋 중 어디에 있어도 한 번만 보인다
+/**
+ * 최근 기록 — 셋에서 모아 접고 세운다. **한 자리에만 적는다** (2026-10-24).
+ *
+ * `/logs` 가 하던 일인데 **보고서(`/report`)는 램만 보고 있었다**(`securityLogs`).
+ * 배포본에서 램은 거의 늘 비어 있다 — 조용하면 잠들었다 깨므로. 그래서 「최근 보안
+ * 로그」 칸이 **언제나 텅 비어 있었고**, 비어 있는 목록은 「조용했다」로 읽힌다.
+ * 10/02 에 `/logs` 에서 고친 바로 그 모양이 이쪽에 그대로 남아 있었다.
+ *
+ * **DB 가 먼저다** — 재시작을 넘은 것이 그쪽에 있다. 파일과 램은 그 위에 얹는다.
+ * 셋 중 어디에 있어도 한 번만 보인다.
+ */
+function recentLogs(limit) {
   let fromDb = [];
   try { fromDb = db.getSecurityLogs(); } catch { /* DB 를 못 읽으면 나머지로 간다 */ }
   const merged = [...fromDb, ...readLogFile(), ...securityLogs];
   // 같은 줄은 접는다 — 파일에도 있고 램에도 있는 것이 대부분이다
   const seen = new Set();
   const out = [];
-  // 뒤에서부터 본다(최신이 뒤에 쌓인다). 100건을 채우면 멈춘다
-  for (let i = merged.length - 1; i >= 0 && out.length < LOG_WANT; i--) {
+  // 뒤에서부터 본다(최신이 뒤에 쌓인다). 그만큼 채우면 멈춘다
+  for (let i = merged.length - 1; i >= 0 && out.length < limit; i--) {
     const e = merged[i];
     const key = `${e.timestamp}|${e.type}|${e.detail}`;
     if (seen.has(key)) continue;
@@ -205,7 +214,11 @@ router.get('/logs', adminAuth, (req, res) => {
   }
   // 파일과 램을 이어 붙였으니 **차례가 섞여 있을 수 있다.** 적힌 때로 다시 세운다
   out.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
-  res.json(out);
+  return out;
+}
+
+router.get('/logs', adminAuth, (req, res) => {
+  res.json(recentLogs(LOG_WANT));
 });
 
 // POST /api/security/block-user/:id - 유저 차단
@@ -769,7 +782,8 @@ router.get('/report', adminAuth, (req, res) => {
       // 8/27 까지는 helmet 이 모르는 옵션이라 무시돼서, 안 나가는 헤더를 있다고 적고 있었다
       permissionsPolicy: PERMISSIONS_POLICY,
     },
-    recentLogs: securityLogs.slice(-20).reverse(),
+    // **램만 보지 않는다** (2026-10-24) — 위 `recentLogs` 머리글에 까닭을 적어뒀다
+    recentLogs: recentLogs(20),
   });
 });
 

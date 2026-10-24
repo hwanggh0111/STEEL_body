@@ -187,6 +187,21 @@ async function run() {
       ok('DB 에 쌓인 것이 끝없이 늘지 않는다', db.getSecurityLogs().length <= 500, true);
       ok('  최근 것이 남는다 (오래된 것부터 버린다)', db.getSecurityLogs().some((e) => e.detail === 'bulk 519'), true);
     }
+
+    console.log('');
+    console.log('── 보고서의 「최근 보안 로그」도 같은 자를 쓴다 ── (2026-10-24)');
+    //
+    // `/report` 는 **램만** 보고 있었다(`securityLogs.slice(-20)`). 배포본에서 램은
+    // 거의 늘 비어 있다 — 조용하면 잠들었다 깨므로. 그래서 그 칸이 **언제나 텅
+    // 비어 있었고**, 빈 목록은 「조용했다」로 읽힌다. 10/02 에 `/logs` 에서 고친
+    // 바로 그 모양이 이쪽에 남아 있었다. 이 검사는 램이 빈 서버다 — 그래서 여기서
+    // 보면 바로 드러난다
+    const report = await get('/api/security/report');
+    ok('보고서가 나온다', report.status, 200);
+    ok('  램이 비어 있어도 최근 기록이 들어 있다', (report.body.recentLogs || []).length > 0, true);
+    ok('  목록의 머리가 /logs 와 같다',
+      (report.body.recentLogs || [])[0]?.detail, (await logs()).body[0]?.detail);
+    ok('  스물까지만 준다', (report.body.recentLogs || []).length <= 20, true);
   } catch (err) {
     bad += 1;
     console.log('FAIL 검사가 도중에 터졌다 -> ' + err.message);
