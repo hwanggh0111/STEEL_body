@@ -283,6 +283,25 @@ Postgres 에서는 그런 일이 없으므로(`statMs` 가 null) 이 검사는 �
 - 소셜 기록 종류를 변수로 넘겼더니 **`npm run logtypes` 가 잡아줬다** — 그러면 관리자
   화면에 영문 키가 그대로 뿌려진다. 글자 그대로 쓰고 이름표도 달았다
 
+### ⑮ **부르는 자리가 0 인 함수 일곱** — 그런데 검사는 다 지나고 있었다 (`f3282f5`)
+
+10/22 의 「부르는 자리를 세어 0 이면 그 규칙은 장식이다」를 **화면 쪽에** 돌렸다.
+
+| 걷은 것 | 화면은 무엇을 쓰나 |
+|---|---|
+| `goal.fatProgress` · `muscleProgress` | 쫓는 값 셋을 목록으로 돌며 `measureProgress` 를 바로 부른다 |
+| `goal.goalLine` | 홈 카드는 `weekLine` + 자기 글귀 — 이 함수의 말은 **뜬 적이 없다** |
+| `exerciseDict.translateQuery` · `koreanNameOf` · `CATEGORY_DICT` | 외부 운동 DB(wger.de) 부품. 그 길은 10/21 에 404 라 없앴다 |
+| `personalRecord.bestList` | `bestRecords` 와 `sortBest` 를 따로 부른다 |
+| `bodyIndex.ffmiOfRecord` | **지금 치고 있는 값**으로 `ffmiOf` 를 부른다 |
+| `gymSetting.summaryOf` | `filledSlots` 로 칸을 따로 그린다 |
+
+**제일 나쁜 꼴은 「다 검사는 지나고 있었다」는 것이다.** 껍데기의 칸 이름을 잘못
+바꿔도 검사는 통과하고(화면은 그 함수를 안 쓴다), 반대로 화면 쪽이 틀어져도 검사는
+모른다. 그래서 걷으면서 **검사를 화면이 지나는 길로 돌려놨다** — `npm run goal` 은
+이제 화면과 **같은 칸 이름**으로 `measureProgress` 를 부르고, 홈·목표 화면이 그 칸
+이름을 들고 있는지까지 본다. 근육 이름 목록도 두 표에 두 벌이던 것이 **한 벌**이 됐다.
+
 ### 깨끗했던 자리 (봤고 버그 없음)
 
 `routineSession` · `export`/`importData` · `goals` · `reminders` · `maintenance` 라우트 ·
@@ -290,7 +309,10 @@ Postgres 에서는 그런 일이 없으므로(`statMs` 가 null) 이 검사는 �
 `oauth.js` 의 state·PKCE·쿠키 길 · `aiGuard` 의 정지 사다리(부르는 자리 다 있다) ·
 1년 벽(**6,576칸**을 견주었다) · FFMI(**23,850 가지**) · `dateKey`(1,096일 × 4시각) ·
 서버 길 114개와 화면이 부르는 자리(죽은 길 0) · 고객센터 FAQ 의 숫자 주장 아홉 ·
-`.gitignore`(비밀값·DB·백업 다 막혀 있다)
+`.gitignore`(비밀값·DB·백업 다 막혀 있다) · 입력 스캔에 **멀쩡한 글 15,132 가지**
+(운동 메모 · 기구 이름 · 이모티콘 `<3` · `--` · `a>b`) — 걸린 것 0 · 서비스워커의
+알림 받기와 누르기 · 화면이 부르는 길 전부가 서버에 있다 · 삼키는 `catch` 서른넷
+(전부 곁일이었다)
 
 ### 검사를 되돌려 재봤다
 
