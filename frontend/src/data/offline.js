@@ -33,6 +33,38 @@ export function isOfflineError(err) {
   return true;
 }
 
+// ── **「잠깐 쉬어라」는 거절이 아니다** ── (2026-10-24)
+//
+// 줄에 쌓인 것을 올릴 때 한 줄에 한 번씩 POST 한다. 그런데 전역 셈은 **분당 100**이다
+// (`backend/src/config/security.js`) — 신호 없는 헬스장에서 한 판을 다 적으면 쉽게
+// 수십 줄이고, 며칠 그러면 100 을 넘는다. 그러면 올리는 중간에 429 가 온다.
+//
+// 429 는 `err.response` 가 있으니 「신호 문제」가 아니고, 여태 **「서버가 받지
+// 않았어요」로 표시**됐다. 표시된 줄은 다음 올리기에서 빠지므로(`!q.failed`)
+// **사람이 「다시 시도」를 누를 때까지 영영 안 올라간다** — 고객센터 답변에는
+// 「연결되면 저절로 올립니다」라고 적혀 있다.
+//
+// 서버가 한 말은 「**잠시 뒤에** 다시 해주세요」다. 그러면 멈추고 기다렸다 다시 하는
+// 것이 맞다 — 그 줄에는 아무 잘못이 없다.
+export function isTooFastError(err) {
+  return err?.response?.status === 429;
+}
+
+/**
+ * 얼마나 뒤에 다시 할까 (밀리초).
+ *
+ * 서버가 알려주면 그것을 쓴다 — aiGuard 는 `retryAfterSec` 를 몸통에 담고,
+ * 전역 셈은 `Retry-After` 머리를 붙인다(`standardHeaders`). 둘 다 없으면 창 하나
+ * (1분)를 기다린다. 너무 길게 기다리면 사람이 앱을 닫고 그 사이에 못 올린다
+ */
+export function retryAfterMs(err) {
+  const body = Number(err?.response?.data?.retryAfterSec);
+  const head = Number(err?.response?.headers?.['retry-after']);
+  const sec = Number.isFinite(body) && body > 0 ? body
+    : Number.isFinite(head) && head > 0 ? head : 60;
+  return Math.min(Math.max(Math.ceil(sec), 1), 10 * 60) * 1000;
+}
+
 // 지금 신호가 있는가. `navigator.onLine` 은 **거짓말을 잘 한다**(와이파이에 붙어만
 // 있어도 true 다). 그래서 이것만 믿고 막지 않는다 — 일단 보내보고, 실패의 모양으로
 // 가른다. 이 값은 화면에 「신호 없음」을 띄울 때만 쓴다.
@@ -120,7 +152,7 @@ export function editInQueue(queue, id, payload) {
 
 // 화면 위쪽에 뭐라고 적을 것인가. 상태 넷을 한 곳에서 정한다 —
 // 화면마다 조건을 따로 적으면 곧 서로 다른 말을 한다
-export function offlineStatus({ online, queue, unsaved = false }) {
+export function offlineStatus({ online, queue, unsaved = false, tooFastLeftSec = 0 }) {
   const list = Array.isArray(queue) ? queue : [];
   const failed = list.filter(q => q && q.failed).length;
   const waiting = list.length - failed;
@@ -133,6 +165,12 @@ export function offlineStatus({ online, queue, unsaved = false }) {
     return { kind: 'unsaved', count: list.length,
       text: `적어둔 ${list.length}개를 이 기기에 담지 못했어요`,
       hint: '앱을 닫으면 사라집니다 — 신호가 오면 바로 올려주세요' };
+  }
+  // 서버가 「잠시 뒤에」라고 했다 — **거절이 아니다.** 그 줄은 표시하지 않고 기다린다
+  if (tooFastLeftSec > 0 && waiting > 0) {
+    return { kind: 'too-fast', count: waiting,
+      text: `서버가 잠깐 쉬라고 했어요 · 남은 ${waiting}개`,
+      hint: `${tooFastLeftSec}초 뒤에 저절로 다시 올려요` };
   }
   if (failed > 0) {
     return { kind: 'failed', count: failed,

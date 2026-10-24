@@ -3,7 +3,7 @@ import client from '../api/client';
 import {
   isOfflineError, isOnline, makeQueued, isLocalId, mergeQueue,
   dropFromQueue, markFailed, clearFailedMark, editInQueue,
-  readQueue, saveQueue, readCache, saveCache,
+  readQueue, saveQueue, readCache, saveCache, isTooFastError, retryAfterMs,
 } from '../data/offline';
 // 계정이 막힌 것은 **그 줄의 잘못이 아니다** (2026-10-24)
 import { blockOf } from '../data/accountBlock';
@@ -56,6 +56,8 @@ export const useWorkoutStore = create((set, get) => ({
   // 못 올린 줄을 **이 기기에도 담지 못했다** (자리가 없거나 막혀 있다).
   // 그러면 앱을 닫으면 사라진다 — 화면이 그 사실을 말해야 한다
   unsaved: false,
+  // 서버가 「잠시 뒤에」라고 한 때. 그때까지는 올리지 않고 기다린다 (2026-10-24)
+  tooFastUntil: 0,
   online: isOnline(),
   loading: false,
   flushing: false,
@@ -220,14 +222,15 @@ export const useWorkoutStore = create((set, get) => ({
   // 순서도 뒤집힌다. 서버가 거절한 것은 표시만 해두고 다음 것으로 넘어간다 —
   // 그 하나 때문에 뒤의 것이 영영 못 올라가면 안 된다.
   flushQueue: async () => {
-    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false };
+    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false, tooFastMs: 0 };
     const queue = get().queue.filter(q => !q.failed);
-    if (queue.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false };
+    if (queue.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false, tooFastMs: 0 };
     set({ flushing: true });
     let sent = 0;
     let failed = 0;
     let stopped = false;
     let blocked = false;
+    let tooFastMs = 0;
     try {
       for (const item of queue) {
         try {
@@ -239,6 +242,17 @@ export const useWorkoutStore = create((set, get) => ({
           sent += 1;
         } catch (err) {
           if (isOfflineError(err)) { stopped = true; set({ online: false }); break; }
+          // ── 「잠시 뒤에」는 거절이 아니다 ── (2026-10-24)
+          //
+          // 전역 셈은 분당 100 이다. 줄이 그보다 길면 올리는 중간에 429 가 온다 —
+          // 여태 그것을 **「서버가 받지 않았어요」로 표시**했고, 표시된 줄은 다음
+          // 올리기에서 빠지므로 **사람이 누를 때까지 영영 안 올라갔다.**
+          // 서버가 한 말은 「잠시 뒤에 다시」다. 멈추고 기다렸다 다시 한다
+          if (isTooFastError(err)) {
+            tooFastMs = retryAfterMs(err);
+            set({ tooFastUntil: Date.now() + tooFastMs });
+            break;
+          }
           // ── 계정이 막혔으면 **표시하지 않고 멈춘다** ── (2026-10-24)
           //
           // 정지는 **그 줄의 잘못이 아니다.** 그런데 여기서 「못 올렸어요」로
@@ -261,7 +275,7 @@ export const useWorkoutStore = create((set, get) => ({
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});
     }
-    return { sent, failed, stopped, blocked };
+    return { sent, failed, stopped, blocked, tooFastMs };
   },
 
   // 못 올린 것을 다시 시도한다 (표시를 지우고 한 번 더)

@@ -539,6 +539,45 @@ console.log('');
       store.clear();
     }
 
+    console.log('');
+    console.log('── 「잠시 뒤에」(429)는 거절이 아니다 ── (2026-10-24)');
+    //
+    // 올릴 때 한 줄에 한 번 POST 한다. 전역 셈은 **분당 100**이다 — 신호 없는
+    // 헬스장에서 며칠 적으면 줄이 그보다 길어지고, 올리는 중간에 429 가 온다.
+    // 429 는 `err.response` 가 있으니 「신호 문제」가 아니라서 여태 **「서버가 받지
+    // 않았어요」로 표시**됐고, 표시된 줄은 다음 올리기에서 빠지므로 **사람이 누를
+    // 때까지 영영 안 올라갔다** — 고객센터 답변은 「연결되면 저절로 올립니다」다.
+    ok('429 는 신호 문제가 아니다', off.isOfflineError({ response: { status: 429 } }), false);
+    ok('  그러나 거절도 아니다', off.isTooFastError({ response: { status: 429 } }), true);
+    ok('  400 · 403 은 「잠시 뒤에」가 아니다',
+      [off.isTooFastError({ response: { status: 400 } }), off.isTooFastError({ response: { status: 403 } })],
+      [false, false]);
+    ok('  망이 끊긴 것도 아니다', off.isTooFastError({ message: 'Network Error' }), false);
+    // 얼마나 기다릴까 — **서버가 알려주면 그것을 쓴다**
+    ok('몸통의 retryAfterSec 을 쓴다',
+      off.retryAfterMs({ response: { status: 429, data: { retryAfterSec: 30 } } }), 30000);
+    ok('  머리의 Retry-After 도 쓴다',
+      off.retryAfterMs({ response: { status: 429, headers: { 'retry-after': '15' } } }), 15000);
+    ok('  없으면 창 하나(1분)', off.retryAfterMs({ response: { status: 429 } }), 60000);
+    ok('  터무니없는 값은 10분까지만', off.retryAfterMs({ response: { status: 429, data: { retryAfterSec: 99999 } } }), 600000);
+    // 그때 화면이 **말해야 하는 것** — 「못 올렸다」가 아니라 「기다린다」다
+    {
+      const st = off.offlineStatus({ online: true, queue: [{ id: 'a' }, { id: 'b' }], tooFastLeftSec: 12 });
+      ok('「잠깐 쉬라고 했다」고 말한다', st.kind, 'too-fast');
+      ok('  몇 초 뒤에 저절로 올리는지 적는다', /12초 뒤에 저절로/.test(st.hint), true);
+      ok('  기다릴 것이 없으면 그 말을 안 한다',
+        off.offlineStatus({ online: true, queue: [{ id: 'a' }], tooFastLeftSec: 0 }).kind, 'sending');
+    }
+    // 멈춘 줄에 **표시를 남기지 않는다** (표시되면 다음 올리기에서 빠진다)
+    {
+      const storeSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'store', 'workoutStore.js'), 'utf8');
+      const noteSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'store', 'noteStore.js'), 'utf8');
+      const bar = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'OfflineBar.jsx'), 'utf8');
+      ok('운동 줄은 429 에서 표시 없이 멈춘다', /isTooFastError\(err\)/.test(storeSrc), true);
+      ok('  메모 줄도', /isTooFastError\(err\)/.test(noteSrc), true);
+      ok('띠가 때가 되면 저절로 다시 올린다', /flushQueue\(\);/.test(bar) && /tooFastLeftSec/.test(bar), true);
+    }
+
     // 담는 자리가 **일곱**이다. 한 곳만 보고 적으면 나머지는 조용히 삼킨다
     {
       const storeSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'store', 'workoutStore.js'), 'utf8');

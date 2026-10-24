@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';
 import { offlineStatus } from '../data/offline';
@@ -37,7 +38,31 @@ export default function OfflineBar() {
   // **담지 못한 것은 가장 급한 말이다** — 다른 줄은 「나중에 올라간다」는 뜻이지만
   // 이것만은 「앱을 닫으면 사라진다」는 뜻이다 (2026-10-24)
   const unsaved = useWorkoutStore((s) => s.unsaved) || useNoteStore((s) => s.unsaved);
-  const status = offlineStatus({ online, queue, unsaved });
+
+  // ── 서버가 「잠시 뒤에」라고 했으면 **기다렸다 저절로 다시 올린다** ── (2026-10-24)
+  //
+  // 전역 셈은 분당 100 이다. 줄이 그보다 길면 올리는 중간에 429 가 오는데, 여태
+  // 그것을 「서버가 받지 않았어요」로 표시해서 **사람이 누를 때까지 영영 안 올라갔다.**
+  // 이제 그 줄은 표시하지 않고 기다린다 — 기다리는 일은 이 띠가 한다(초를 센다).
+  const tooFastUntil = Math.max(
+    useWorkoutStore((s) => s.tooFastUntil) || 0,
+    useNoteStore((s) => s.tooFastUntil) || 0,
+  );
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (tooFastUntil <= Date.now()) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [tooFastUntil]);
+  const tooFastLeftSec = Math.max(0, Math.ceil((tooFastUntil - now) / 1000));
+  // 때가 되면 **한 번 더 올려본다.** 줄은 표시되지 않았으니 그대로 집어간다
+  useEffect(() => {
+    if (!tooFastUntil || tooFastLeftSec > 0) return;
+    useWorkoutStore.getState().flushQueue();
+    useNoteStore.getState().flushQueue();
+  }, [tooFastUntil, tooFastLeftSec]);
+
+  const status = offlineStatus({ online, queue, unsaved, tooFastLeftSec });
   if (!status) return null;
 
   const danger = status.kind === 'failed' || status.kind === 'unsaved';
@@ -51,6 +76,10 @@ export default function OfflineBar() {
     // (`AccountBlocked`)이 이미 까닭과 기한을 말하고 있다. 여기서 「신호가
     // 없어요」를 띄우면 없는 까닭을 말하는 것이 된다 (2026-10-24)
     else if (a.blocked || b.blocked) { /* 덮는 화면이 말한다 */ }
+    // 서버가 「잠시 뒤에」라고 한 것은 실패가 아니다 — 띠가 초를 세어 저절로 다시 한다
+    else if (a.tooFastMs || b.tooFastMs) {
+      toast('서버가 잠깐 쉬라고 했어요. 조금 뒤에 저절로 다시 올려요', 'warning');
+    }
     else if (a.stopped || b.stopped) toast('아직 신호가 없어요. 연결되면 다시 해볼게요', 'warning');
     else if (a.failed + b.failed > 0) toast('서버가 받지 않았어요. 내용을 고치거나 지워주세요', 'error');
   };

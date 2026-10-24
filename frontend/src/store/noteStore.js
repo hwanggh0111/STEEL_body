@@ -7,6 +7,8 @@ import {
 } from '../data/offlineNotes';
 // 계정이 막힌 것은 **그 줄의 잘못이 아니다** (2026-10-24, workoutStore 와 같은 결)
 import { blockOf } from '../data/accountBlock';
+// 429 는 거절이 아니다 — 규칙은 운동 쪽과 **한 곳**에 있다 (`data/offline.js`)
+import { isTooFastError, retryAfterMs } from '../data/offline';
 
 // 달력의 **그날 메모**. 신호가 없어도 적힌다.
 //
@@ -39,6 +41,8 @@ const keepNoteQueue = (set, next) => {
 export const useNoteStore = create((set, get) => ({
   // 못 올린 메모를 **이 기기에도 담지 못했다** (자리가 없거나 막혀 있다)
   unsaved: false,
+  // 서버가 「잠시 뒤에」라고 한 때 (2026-10-24)
+  tooFastUntil: 0,
   // 서버에서 받은 것만 여기 담는다. 화면이 보는 `notes` 는 여기에 줄을 섞은 것이다
   server: {},
   notes: {},
@@ -160,18 +164,19 @@ export const useNoteStore = create((set, get) => ({
   // 서버가 거절한 것은 표시만 하고 다음 것으로 넘어간다 — 그 하나 때문에 뒤의 것이
   // 영영 못 올라가면 안 된다.
   flushQueue: async () => {
-    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false };
+    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false, tooFastMs: 0 };
     // 적은 순서대로 올린다
     const entries = Object.entries(get().queue)
       .filter(([, e]) => !e.failed)
       .sort((a, b) => String(a[1].at).localeCompare(String(b[1].at)));
-    if (entries.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false };
+    if (entries.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false, tooFastMs: 0 };
 
     set({ flushing: true });
     let sent = 0;
     let failed = 0;
     let stopped = false;
     let blocked = false;
+    let tooFastMs = 0;
     try {
       for (const [date, e] of entries) {
         try {
@@ -183,6 +188,12 @@ export const useNoteStore = create((set, get) => ({
           sent += 1;
         } catch (err) {
           if (isOfflineError(err)) { stopped = true; set({ online: false }); break; }
+          // 「잠시 뒤에」(429)는 거절이 아니다 — 표시하지 않고 기다린다 (운동 쪽과 같다)
+          if (isTooFastError(err)) {
+            tooFastMs = retryAfterMs(err);
+            set({ tooFastUntil: Date.now() + tooFastMs });
+            break;
+          }
           // 계정이 막혔으면 **표시하지 않고 멈춘다** — 표시된 줄은 다음 올리기에서
           // 빠지므로, 정지가 풀린 뒤에도 사람이 누를 때까지 영영 안 올라간다
           if (blockOf(err)) { blocked = true; break; }
@@ -206,7 +217,7 @@ export const useNoteStore = create((set, get) => ({
     }
     // 올린 것이 있으면 보고 있는 달을 다시 받아 서버 것으로 맞춘다
     if (sent > 0 && loadedMonth) await get().fetchMonth(loadedMonth).catch(() => {});
-    return { sent, failed, stopped, blocked };
+    return { sent, failed, stopped, blocked, tooFastMs };
   },
 
   retryFailed: async () => {

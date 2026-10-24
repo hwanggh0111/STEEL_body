@@ -98,7 +98,9 @@ const nq = fs.readFileSync('src/store/noteStore.js', 'utf-8');
 const bar = fs.readFileSync('src/components/OfflineBar.jsx', 'utf-8');
 ok('운동 줄은 막혔으면 표시 없이 멈춘다', /if \(blockOf\(err\)\) \{ blocked = true; break; \}/.test(wq), true);
 ok('메모 줄도 같다', /if \(blockOf\(err\)\) \{ blocked = true; break; \}/.test(nq), true);
-ok('  멈춘 것을 부르는 쪽에 알려준다', /stopped, blocked \}/.test(wq) && /stopped, blocked \}/.test(nq), true);
+// 「막혔다」를 부르는 쪽까지 들고 간다 (10/24 늦게 `tooFastMs` 가 같이 붙었다)
+ok('  멈춘 것을 부르는 쪽에 알려준다',
+  /stopped, blocked,/.test(wq) && /stopped, blocked,/.test(nq), true);
 ok('막혀서 멈춘 것에 「신호가 없어요」라고 하지 않는다', /a\.blocked \|\| b\.blocked/.test(bar), true);
 
 console.log('');
