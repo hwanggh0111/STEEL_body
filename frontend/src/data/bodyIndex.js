@@ -82,8 +82,6 @@ export function ffmiBand(adjusted) {
   return BANDS.find((b) => v < b.max) || BANDS[BANDS.length - 1];
 }
 
-/** 인바디 기록 한 줄에서 바로 — `{ height, weight, fat_pct }` 를 받는다 */
-export function ffmiOfRecord(record) {
-  if (!record) return null;
-  return ffmiOf({ height: record.height, weight: record.weight, fatPct: record.fat_pct });
-}
+// `ffmiOfRecord` 는 **걷었다** (2026-10-24) — 부르는 자리가 0 이었다.
+// 인바디 화면은 적는 칸의 값(키 · 체중 · 체지방률)으로 `ffmiOf` 를 바로 부른다 —
+// 저장된 줄이 아니라 **지금 치고 있는 값**으로 그려야 하기 때문이다

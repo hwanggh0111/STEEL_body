@@ -41,12 +41,9 @@ export function filledSlots(s) {
   return SLOTS.filter((slot) => s[slot.key]).map((slot) => ({ ...slot, value: s[slot.key] }));
 }
 
-/** 목록 한 줄에 적는 한 줄 요약 — 「시트 4 · 발판 2 · 넓게」 */
-export function summaryOf(s) {
-  const parts = filledSlots(s).map((f) => (f.key === 'grip' ? f.value : `${f.label} ${f.value}`));
-  if (parts.length > 0) return parts.join(' · ');
-  return s?.note ? '한마디만 적음' : '';
-}
+// `summaryOf`(한 줄 요약)는 **걷었다** (2026-10-24) — 부르는 자리가 0 이었다.
+// 기구 세팅 화면은 `filledSlots` 로 **칸을 따로따로** 그린다(값만 굵게 하려고).
+// 글귀가 두 벌이면 다듬는 날 한쪽만 바뀐다
 
 /**
  * 보내기 전에 다듬는다.

@@ -350,12 +350,17 @@ export const EXERCISE_DICT = [
 
 ];
 
-export const CATEGORY_DICT = {
-  '가슴': 'chest', '등': 'back', '어깨': 'shoulder', '하체': 'leg', '팔': 'arm',
-  '이두': 'bicep', '삼두': 'tricep', '복근': 'abs', '코어': 'core',
-  '둔근': 'glute', '햄스트링': 'hamstring', '종아리': 'calf', '전완': 'forearm',
-  '승모근': 'trapezius', '광배근': 'latissimus',
-};
+// ── `CATEGORY_DICT` 는 **걷었다** ── (2026-10-24)
+//
+// 한국어 → 영어 표였다. 쓰임은 하나뿐이었다 — **외부 운동 DB(wger.de)에 물어볼 말**.
+// 그 길은 10/21 에 없앴다(404 였다). 영어 값은 그날로 쓸 데가 없어졌는데 표가 남아,
+// 검사가 그 **열쇠(근육 이름)** 를 「사람이 치는 말」 목록으로 쓰고 있었다.
+//
+// 그 목록이 필요한 것은 맞다. 그러니 **살아 있는 쪽**(`MUSCLE_PART` — 근육 이름을
+// 부위에 맺어주는 표)을 내보내고 검사가 그것을 돌게 한다. 열쇠가 두 표에 두 벌로
+// 적혀 있던 것이기도 하다 — 검사가 「둘이 같은가」를 재고 있었는데, 한 벌이면
+// 어긋날 일이 없다.
+
 
 // ── 근육 이름 → 부위 ── (2026-10-21)
 //
@@ -372,10 +377,11 @@ export const CATEGORY_DICT = {
 // 그 안에서 「이두」가 적힌 것이 위로 온다 — 엉뚱한 부위가 섞이지 않는 것이
 // 차례보다 먼저다.
 //
-// **`CATEGORY_DICT` 와 짝이다** — 거기 적힌 근육 이름은 다 여기에도 있어야 한다
-// (바깥 DB 에 물어볼 영어 말이 거기 있고, 앱 안에서 거를 부위가 여기 있다).
-// `npm run check` 가 둘을 맞춰본다.
-const MUSCLE_PART = {
+// **여기가 「사람이 치는 근육 이름」의 한 자리다** (2026-10-24).
+// 전에는 `CATEGORY_DICT`(바깥 DB 에 물어볼 영어 말)에도 같은 열쇠가 적혀 있었고
+// 검사가 둘을 맞춰봤다 — 그 표를 걷었으니 이제 한 벌이다.
+// `npm run check` 가 이 표를 돌며 **다 찾히는지**를 본다.
+export const MUSCLE_PART = {
   '이두': '팔', '삼두': '팔', '전완': '팔',
   '복근': '코어',
   '둔근': '하체', '햄스트링': '하체', '종아리': '하체',
@@ -524,25 +530,12 @@ export function isPart(query) {
   return PARTS.includes(String(query || '').trim());
 }
 
-/** 영어 이름 → 한국어 이름. 외부 DB 결과에 우리 이름을 붙여줄 때 쓴다. */
-export function koreanNameOf(enName) {
-  const lower = norm(enName);
-  if (!lower) return null;
-  const m = EXERCISE_DICT.find(e => lower.includes(norm(e.en)) || norm(e.en).includes(lower));
-  return m ? m.ko : null;
-}
-
-/** 한국어 검색어 → 외부 DB 에 물어볼 영어 말. 못 바꾸면 그대로 돌려준다. */
-export function translateQuery(query) {
-  const trimmed = String(query || '').trim();
-  if (CATEGORY_DICT[trimmed]) return CATEGORY_DICT[trimmed];
-  const q = norm(trimmed);
-  const exact = EXERCISE_DICT.find(e => norm(e.ko) === q);
-  if (exact) return exact.en;
-  const partial = EXERCISE_DICT.find(e => norm(e.ko).includes(q) || q.includes(norm(e.ko)));
-  if (partial) return partial.en;
-  for (const [kr, en] of Object.entries(CATEGORY_DICT)) {
-    if (trimmed.includes(kr)) return en;
-  }
-  return trimmed;
-}
+// ── `translateQuery` · `koreanNameOf` 는 **걷었다** ── (2026-10-24)
+//
+// 한국어를 영어로 바꿔 **외부 운동 DB(wger.de)에 물어보던** 길의 부품이다.
+// 그 길은 10/21 에 걷어냈다(그쪽이 API 를 바꿔서 찾기가 **404** 였고, 화면은
+// 「잠시 후 다시 해보세요」라고 될 것처럼 말하고 있었다). CSP · DNS 프리페치에서도
+// 같이 지웠는데 **이 둘만 남아 있었다** — 부르는 자리 0, 검사만 이상한 값을
+// 넣어보고 있었다.
+//
+// 지금 찾기는 `searchExercises` 하나가 한다 — 한국어 · 영어 · 초성을 그 안에서 본다.

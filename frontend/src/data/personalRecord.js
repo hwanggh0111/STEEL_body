@@ -156,9 +156,9 @@ export function sortBest(best) {
 }
 
 /** 종목별 최고 기록을 세운 날 최신순으로. 한 번에 다 필요할 때. */
-export function bestList(workouts, today = null) {
-  return sortBest(bestRecords(workouts, today));
-}
+// `bestList` 는 **걷었다** (2026-10-24) — 부르는 자리가 0 이었다. 최고 기록 화면은
+// `bestRecords` 와 `sortBest` 를 **따로** 부른다(사이에서 한 번 더 거른다).
+// 껍데기를 남겨두면 다음 사람이 그것을 고치고 화면은 안 바뀐다
 
 /** 'YYYY-MM-DD' 두 개 사이의 날 수. 어느 쪽이 앞이든 0 이상을 돌려준다. */
 export function daysBetween(a, b) {

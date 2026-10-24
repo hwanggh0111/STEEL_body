@@ -254,10 +254,11 @@ export function measureProgress(records, { field, target, start: pinned }) {
 }
 
 /**
- * 체중만 보는 자리 — 홈의 목표 카드와 목표 화면이 쓴다.
+ * 체중만 보는 자리 — **이 파일 안에서** 쓴다 (`weightEta`).
  *
- * **껍데기로 남긴다.** 쓰는 곳이 여럿이라 이름을 바꾸면 그 자리들을 다 고쳐야
- * 하는데, 바뀐 것은 셈이 아니라 **셈을 적어둔 자리**뿐이다.
+ * 머리글에 「홈의 목표 카드와 목표 화면이 쓴다」고 적혀 있었는데 **그 둘은 이것을
+ * 안 쓴다**(쫓는 값 셋을 목록으로 돌리며 `measureProgress` 를 바로 부른다).
+ * 적어둔 말과 코드가 달랐던 자리라 바로잡았다 (2026-10-24).
  */
 export function weightProgress(records, goal) {
   return measureProgress(records, {
@@ -267,23 +268,16 @@ export function weightProgress(records, goal) {
   });
 }
 
-/** 체지방률. **낮추는 쪽이 보통이지만 방향을 정하지 않는다** — 올리는 사람도 있다 */
-export function fatProgress(records, goal) {
-  return measureProgress(records, {
-    field: 'fat_pct',
-    target: goal?.fatTarget,
-    start: goal?.fatStart,
-  });
-}
-
-/** 골격근량. */
-export function muscleProgress(records, goal) {
-  return measureProgress(records, {
-    field: 'muscle_kg',
-    target: goal?.muscleTarget,
-    start: goal?.muscleStart,
-  });
-}
+// ── 체지방률 · 골격근량 껍데기는 **걷었다** ── (2026-10-24)
+//
+// `fatProgress` · `muscleProgress` 가 있었는데 **부르는 자리가 0 이었다** —
+// 화면 둘(홈의 목표 카드 · 목표 화면)은 쫓는 값 셋을 목록으로 돌리며
+// `measureProgress` 를 바로 부른다. 검사만 그 껍데기를 쓰고 있었다.
+//
+// 그 꼴이 나쁜 까닭: **검사가 화면이 안 지나는 길을 재고 있었다.** 껍데기의 칸
+// 이름을 잘못 바꿔도 검사는 그대로 통과하고, 화면은 그 함수를 안 쓰므로 아무 일도
+// 안 일어난다 — 반대로 화면 쪽 목록이 틀어져도 검사는 모른다.
+// 10/22 에 걷어낸 「경고 사다리」(부르는 자리 0)와 같은 자리다.
 
 /** 몇 월 어느 무렵인가 — 「11월 초」. 날짜를 콕 집으면 안 맞았을 때 거짓말이 된다. */
 function roughLabel(d) {
@@ -335,19 +329,10 @@ export function weightEta(records, goal, today = dateKey()) {
   return { days: daysLeft, label: roughLabel(when), perWeek: round1(perDay * 7) };
 }
 
-/**
- * 홈에 거는 한 줄.
- *
- * 홈은 **한 가지만 말한다.** 주 횟수와 체중을 둘 다 쫓고 있어도 한 줄에는
- * 하나만 나온다 — 지금 더 급한 쪽이다.
- */
-export function goalLine(workouts, records, goal, today = dateKey()) {
-  const w = weekProgress(workouts, goal, today);
-  if (w) return weekLine(w);
-  const b = weightProgress(records, goal);
-  if (b && b.now != null) {
-    if (b.reached) return '체중 목표에 닿았습니다';
-    return `목표까지 ${b.left}kg 남았습니다`;
-  }
-  return '';
-}
+// ── 「홈에 거는 한 줄」(`goalLine`)도 **걷었다** ── (2026-10-24)
+//
+// 부르는 자리가 0 이었다. 홈의 목표 카드는 `weekLine` 과 **자기 글귀**로 그린다
+// (「닿았습니다」 · 「3kg 남음」) — 즉 이 함수가 들고 있던 말(「체중 목표에
+// 닿았습니다」)은 **아무 화면에도 뜬 적이 없다.** 검사 셋만 그것을 재고 있었다.
+//
+// 글귀가 두 벌이면 다듬는 날 한쪽만 바뀐다. 쓰는 쪽 하나만 남긴다.

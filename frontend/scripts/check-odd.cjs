@@ -74,8 +74,10 @@ tryAll('searchExercises', dict.searchExercises, WEIRD.map(w => [w]));
 tryAll('byCategory', dict.byCategory, WEIRD.map(w => [w]));
 tryAll('partOf', dict.partOf, WEIRD.map(w => [w]));
 tryAll('isPart', dict.isPart, WEIRD.map(w => [w]));
-tryAll('koreanNameOf', dict.koreanNameOf, WEIRD.map(w => [w]));
-tryAll('translateQuery', dict.translateQuery, WEIRD.map(w => [w]));
+// `koreanNameOf` · `translateQuery` 는 **걷었다** (2026-10-24) — 외부 운동 DB
+// (wger.de) 에 물어보던 길의 부품이고, 그 길은 10/21 에 없앴다(404 였다).
+// 부르는 자리가 0 이었는데 **이 검사만 그것을 재고 있었다** — 그러면 「지워도 되는
+// 것」이 「검사가 지키는 것」처럼 보인다. 찾기는 `searchExercises` 하나가 한다
 
 const hw = load('src/data/homeworkoutPrograms.js', '.f7.cjs');
 tryAll('descOf', hw.descOf, WEIRD.map(w => [w]));

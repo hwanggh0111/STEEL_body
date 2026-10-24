@@ -149,7 +149,8 @@ ok('맨몸은 무게로 안 센다', pr.strengthOf({ exercise: '푸시업', weig
     pr.bestRecords(w, '2026-10-01').get('벤치프레스::weighted').weight, '200');
   ok('  날짜를 안 넘기면 여태처럼 다 센다',
     pr.bestRecords(w).get('벤치프레스::weighted').weight, '200');
-  ok('  목록에도 안 낀다', pr.bestList(w, '2026-09-30').length, 1);
+  // `bestList` 는 걷었다 (2026-10-24, 부르는 자리 0) — 화면이 지나는 그대로 센다
+  ok('  목록에도 안 낀다', pr.sortBest(pr.bestRecords(w, '2026-09-30')).length, 1);
   // 넘어야 할 기록이 앞날 것이면 **오늘 세운 진짜 기록이 경신이 아니게 된다**
   ok('앞날 것이 기준이 되지 않는다',
     pr.checkRecord(pr.bestRecords(w, '2026-09-30'),
@@ -785,10 +786,11 @@ ok('컬 · 삼두 · 딥스는 팔이다',
 // (「비복근」) **「이두」에 리버스그립 랫풀다운**이(「광배 아래 + 이두」) 나왔다.
 {
   const hit = (q) => dictP.searchExercises(q, 99);
-  // `CATEGORY_DICT` 는 바깥 DB 에 물어볼 영어 말을 들고 있다. 거기 적힌 이름은
-  // **앱 안에서도 거를 수 있어야** 한다 — 한쪽에만 적으면 그 말이 글자 검색으로 샌다
+  // 사람이 치는 근육 이름은 **`MUSCLE_PART` 한 자리**에 있다 (2026-10-24).
+  // 전에는 `CATEGORY_DICT`(바깥 DB 에 물어볼 영어 말)에도 두 벌로 적혀 있었고
+  // 여기서 둘을 맞춰봤다 — 그 표를 걷었으니 이제 한 벌이고, 그 한 벌을 돈다
   ok('근육 이름이 다 부위에 맺혀 있다',
-    Object.keys(dictP.CATEGORY_DICT)
+    Object.keys(dictP.MUSCLE_PART)
       .filter((k) => !dictP.PARTS.includes(k) && !dictP.partAliasOf(k)), []);
   // 터진 자리 둘 — 엉뚱한 부위가 섞이지 않는지 본다
   ok('「복근」에 종아리 운동이 안 섞인다',
@@ -800,7 +802,7 @@ ok('컬 · 삼두 · 딥스는 팔이다',
   ok('  「종아리」는 카프레이즈가 맨 위다', hit('종아리')[0].ko.includes('카프레이즈'), true);
   // 빈손이 되면 단추를 누른 사람이 고장으로 읽는다
   ok('근육 이름마다 찾히는 것이 있다',
-    Object.keys(dictP.CATEGORY_DICT).filter((k) => hit(k).length === 0), []);
+    Object.keys(dictP.MUSCLE_PART).filter((k) => hit(k).length === 0), []);
 }
 
 // 단추를 손으로 적어두면 사전에 부위를 하나 더 만들었을 때 이 자리만 옛 목록으로 남는다.

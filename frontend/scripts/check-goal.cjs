@@ -153,14 +153,13 @@ ok('옛 기록만 있으면 말하지 않는다',
 
 console.log('');
 console.log('── 홈에 거는 한 줄 ──');
-// 홈은 한 가지만 말한다 — 둘 다 쫓고 있어도 한 줄에는 하나만 나온다
-ok('주 횟수가 먼저다',
-  g.goalLine(W, R([['2026-09-18', 78]]), { weeklyTarget: 4, weightTarget: 75, weightStart: 80 }, TODAY),
+//
+// **`goalLine` 은 걷었다** (2026-10-24) — 부르는 자리가 0 이었고, 홈의 목표 카드는
+// `weekLine` 과 자기 글귀로 그린다. 즉 그 함수가 들고 있던 말은 아무 화면에도 뜬
+// 적이 없다. 여기서 재는 것도 **화면이 쓰는 그 자**로 바꾼다.
+ok('주 횟수 한 줄은 홈이 쓰는 그 말이다',
+  g.weekLine(g.weekProgress(W, { weeklyTarget: 4 }, TODAY)),
   '한 번만 더 하면 이번 주를 채웁니다');
-ok('주 횟수 목표가 없으면 체중을 말한다',
-  g.goalLine(W, R([['2026-09-18', 78]]), { weightTarget: 75, weightStart: 80 }, TODAY),
-  '목표까지 3kg 남았습니다');
-ok('목표가 없으면 빈 줄', g.goalLine(W, [], null, TODAY), '');
 
 console.log('');
 console.log('── 목표가 있는가 ──');
@@ -288,10 +287,25 @@ ok('목표가 없으면 null', mp('fat_pct', null, null), null);
 // 인바디에 그 칸이 비어 있는 사람. **목표는 있는데 값이 없다**고 말해야 한다
 ok('값이 없으면 now 가 null', mp('fat_pct', 15, 24) && mp('water_l', 15, null).now, null);
 
-// 껍데기 셋이 같은 함수를 쓰는가
+// 체중 껍데기는 이 파일 안에서 쓴다(`weightEta`) — 같은 답인지 본다
 ok('weightProgress 가 같은 답을 준다', g.weightProgress(REC, GM).left, mp('weight', 70, 78).left);
-ok('  fatProgress', g.fatProgress(REC, GM).left, mp('fat_pct', 15, 24).left);
-ok('  muscleProgress', g.muscleProgress(REC, GM).left, mp('muscle_kg', 36, 31).left);
+// 체지방률 · 골격근량 껍데기는 **걷었다** (2026-10-24, 부르는 자리 0).
+// 화면 둘이 지나는 길을 그대로 재는 쪽으로 바꾼다 — 칸 이름까지 **화면과 같이** 적는다
+for (const [label, field, targetKey, startKey] of [
+  ['체지방률', 'fat_pct', 'fatTarget', 'fatStart'],
+  ['골격근량', 'muscle_kg', 'muscleTarget', 'muscleStart'],
+]) {
+  const p = g.measureProgress(REC, { field, target: GM[targetKey], start: GM[startKey] });
+  ok(`  ${label} — 화면이 쓰는 칸으로 센다`, !!p && p.left === mp(field, GM[targetKey], GM[startKey]).left, true);
+}
+// 화면 둘이 **그 칸 이름을 그대로** 들고 있는가 (여기만 맞고 화면이 틀리면 아무 소용이 없다)
+{
+  const card = fs.readFileSync(__dirname + '/../src/components/home/GoalCard.jsx', 'utf8');
+  const page = fs.readFileSync(__dirname + '/../src/pages/GoalPage.jsx', 'utf8');
+  for (const key of ['fat_pct', 'muscle_kg', 'fatTarget', 'muscleTarget']) {
+    ok(`  홈·목표 화면이 ${key} 를 안다`, card.includes(key) || page.includes(key), true);
+  }
+}
 
 console.log('');
 console.log('── 목표가 넷 중 하나만 있어도 목표인가 ──');
