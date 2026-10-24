@@ -35,7 +35,6 @@ export default function AppLock() {
   const triesLeft = useLockStore((s) => s.triesLeft);
   const logout = useAuthStore((s) => s.logout);
   const loggedIn = useAuthStore((s) => s.isLoggedIn);
-  const release = useLockStore((s) => s.release);
 
   const [pin, setPin] = useState('');
   const [shake, setShake] = useState(false);
@@ -150,13 +149,16 @@ export default function AppLock() {
       `네 자리를 잊으셨으면 로그아웃으로 풉니다.
 
 이 기기에서 기록을 치우고 로그인 화면으로 갑니다. 서버의 기록은 그대로이니
-다시 로그인하시면 전부 돌아옵니다. 잠금은 그대로 걸려 있습니다.`,
+다시 로그인하시면 전부 돌아옵니다. **잠금도 함께 풀립니다** — 다시 걸고 싶으면
+내 계정에서 새 네 자리를 정하시면 됩니다.`,
       { title: '네 자리를 잊으셨나요', confirmText: '로그아웃', danger: true },
     );
     if (yes) {
-      // **잠금도 같이 놓는다** — 안 놓으면 다시 로그인한 뒤에도 잠긴 채로 열려서,
-      // 네 자리를 잊은 사람이 또 같은 자리에 선다. 잠금 자체(건 것)는 그대로 남는다
-      release();
+      // **건 것까지 잊는다** (2026-10-24). 여태 잠긴 것만 놓고 **건 것은 남겼다** —
+      // 그래서 네 자리를 잊은 사람은 앱을 다시 열 때마다 또 잠겼고(설정에서 풀려면
+      // 지금 네 자리를 맞혀야 한다) **푸는 길이 아예 없었다.** 이 창도 「잠금은
+      // 그대로 걸려 있습니다」라고 적고 있었는데, 고객센터 답변은 「로그아웃으로
+      // 풀 수 있다」였다. 지금은 `logout()` 이 `lockStore.forget()` 을 부른다
       logout();
     }
   };

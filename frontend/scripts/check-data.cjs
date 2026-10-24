@@ -1401,9 +1401,11 @@ for (const f of ['src/components/Layout.jsx', 'src/pages/SettingsPage.jsx']) {
 //   계정 삭제 뒤 : 기록도 같이 지우는 길이다
 //   앱 잠금 포기 : 네 자리를 잊어 이 기기를 비우는 길이다 (줄도 같이 비운다고 적혀 있다)
 const layoutSrc = fs.readFileSync('src/components/Layout.jsx', 'utf-8');
-const lockSrc = fs.readFileSync('src/components/AppLock.jsx', 'utf-8');
+// **주석은 걷고 센다** (2026-10-24). 까닭을 적다가 `logout()` 이라고 쓰면 그것까지
+// 세어서, 글만 보태도 이 줄이 FAIL 했다 — 세는 검사는 코드만 봐야 한다
+const lockSrc = stripNotes(fs.readFileSync('src/components/AppLock.jsx', 'utf-8'));
 ok('그냥 나가는 자리는 둘뿐이다',
-  (layoutSrc.match(/await logout\(\)/g) || []).length + (lockSrc.match(/logout\(\)/g) || []).length, 2);
+  (stripNotes(layoutSrc).match(/await logout\(\)/g) || []).length + (lockSrc.match(/logout\(\)/g) || []).length, 2);
 // 비밀번호를 바꾸면 다시 로그인해야 하는데, **계속 쓸 계정**이다 —
 // 그냥 나가면 신호 없을 때 적어둔 기록이 사라진다 (2026-09-22 에 찾았다)
 ok('비밀번호를 바꾼 뒤에도 줄을 올리고 나간다',

@@ -137,6 +137,13 @@ export const useAuthStore = create((set) => ({
     LOGOUT_KEYS.forEach(k => removeLS(k));
     // CSRF 쿠키 클라이언트에서도 삭제 (서버 실패 대비)
     try { document.cookie = 'sb_csrf=; Max-Age=0; path=/'; } catch { /* 쿠키를 막아둔 브라우저 */ }
+    // ── 앱 잠금 네 자리도 잊는다 ── (2026-10-24)
+    //
+    // 여태 **푸는 길이 없었다.** 네 자리를 잊으면 로그아웃 → 로그인으로 한 번은
+    // 들어오지만, 앱을 다시 열면 또 잠기고(`locked: isLockSet()`) 설정에서 풀려면
+    // 지금 네 자리를 맞혀야 한다. 고객센터 답변은 「로그아웃으로 풀 수 있다」고
+    // 적혀 있었다 — 그 말이 맞게 한다. 까닭은 `lockStore.forget` 에
+    useLockStore.getState().forget();
     set({ token: null, nickname: null, sex: null, isLoggedIn: false });
     // 다른 스토어 초기화
     // 담아둔 목록 · 못 올린 줄까지 비운다. 안 비우면 다음에 로그인한 사람 화면에
