@@ -51,7 +51,13 @@ export default function OfflineBar() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (tooFastUntil <= Date.now()) return undefined;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    // **때가 되면 세는 것을 멈춘다.** 안 멈추면 이 띠가 1초마다 계속 다시 그려진다 —
+    // 점검 화면에서 「점검이 없는 평소에도 1초에 한 번 앱 꼭대기가 다시 그려졌다」고
+    // 고친 것과 같은 자리다
+    const id = setInterval(() => {
+      setNow(Date.now());
+      if (Date.now() >= tooFastUntil) clearInterval(id);
+    }, 1000);
     return () => clearInterval(id);
   }, [tooFastUntil]);
   const tooFastLeftSec = Math.max(0, Math.ceil((tooFastUntil - now) / 1000));
