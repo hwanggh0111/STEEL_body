@@ -38,27 +38,33 @@ module.exports = (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: '계정을 찾을 수 없어요. 다시 로그인해주세요' });
     }
+    // ── 403 에는 **까닭 코드**를 같이 보낸다 ── (2026-10-24)
+    //
+    // 화면은 여태 이 403 을 아무 데서도 안 읽었다. 그래서 정지된 사람은 **까닭을
+    // 한 번도 못 듣고** 로그인 화면만 되풀이해 봤다 — `/auth/me` 가 403 이면
+    // `checkAuth` 가 로그아웃 꼴로 만들고, 로그인은 정지를 안 보니 또 들어가고,
+    // 다시 403 이다. 글자(`error`)로 가려내면 말을 다듬는 날 조용히 안 걸린다
     if (user.role === 'blocked') {
-      return res.status(403).json({ error: '차단된 계정이에요. 고객센터로 알려주세요' });
+      return res.status(403).json({ code: 'blocked', error: '차단된 계정이에요. 고객센터로 알려주세요' });
     }
     // 지우기로 한 계정. 로그인 유지 열쇠는 예약할 때 걷어냈지만, 그때 손에 들고 있던
     // access token 은 만료될 때까지 살아 있다 — 잠갔다면서 그 기기에서 계속 쓰이면
     // 잠근 것이 아니다. 되살리려면 **다시 로그인**해야 한다
     if (user.deleting_at) {
-      return res.status(401).json({ error: '삭제를 예약한 계정이에요. 다시 로그인하시면 되살아나요' });
+      return res.status(401).json({ code: 'deleting', error: '삭제를 예약한 계정이에요. 다시 로그인하시면 되살아나요' });
     }
 
     // AI Guard v2: 정지/차단 체크
     if (user.is_banned) {
       // 데이터는 지우지 않는다. 자동 판정이 틀렸을 때 되돌릴 것이 남아 있어야 한다
-      return res.status(403).json({ error: '계정이 영구 정지되었습니다.', message: '보안 정책 위반으로 정지되었습니다. 기록은 그대로 있습니다 — 잘못 걸렸다면 관리자에게 알려주세요.' });
+      return res.status(403).json({ code: 'banned', error: '계정이 영구 정지되었습니다.', message: '보안 정책 위반으로 정지되었습니다. 기록은 그대로 있습니다 — 잘못 걸렸다면 관리자에게 알려주세요.' });
     }
     // 관리자는 정지에 걸리지 않는다.
     // 자동 판정이 관리자를 정지시키면 관리자 화면에 못 들어가고, 자기 정지를 자기가
     // 풀 수 없다. 관리자가 한 명뿐이면 서비스가 통째로 잠긴다.
     const suspension = user.role === 'admin' ? null : db.getSuspension(decoded.userId);
     if (suspension) {
-      const resp = { error: '계정이 정지되었습니다.', level: suspension.level, reason: suspension.ai_reason };
+      const resp = { code: 'suspended', error: '계정이 정지되었습니다.', level: suspension.level, reason: suspension.ai_reason };
       if (suspension.expires_at !== 'permanent') {
         resp.expiresAt = suspension.expires_at;
         resp.message = `정지 해제일: ${suspension.expires_at}`;

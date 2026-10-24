@@ -17,6 +17,9 @@ import { useAuthStore } from './store/authStore';
 const Layout = lazy(() => import('./components/Layout'));
 import ErrorBoundary from './components/ErrorBoundary';
 import MaintenanceScreen from './components/MaintenanceScreen';
+// 계정이 막혔으면 앱을 덮고 까닭을 말한다 — 여태 정지된 사람은 까닭 없이
+// 되돌아오는 로그인 화면만 봤다 (2026-10-24)
+import AccountBlocked from './components/AccountBlocked';
 import Toast from './components/Toast';
 import ConfirmModalHost from './components/ConfirmModal';
 import AppLock from './components/AppLock';
@@ -118,6 +121,9 @@ export default function App() {
     <MaintenanceScreen>
       <Toast />
       <ConfirmModalHost />
+      {/* **라우터 밖이다.** 어느 화면에 있든, 로그인 화면으로 튕긴 뒤에도 같은 것이
+          덮어야 한다 — 정지된 사람이 보던 것이 바로 그 로그인 화면이었다 */}
+      <AccountBlocked />
 
       {/* 화면 하나가 죽어도 앱 전체가 흰 화면이 되지 않게. 배포 직후 옛 조각을
           못 받아오는 것도 여기서 받는다 — 잘못이 아니라 오래된 것이라 저절로 고친다 */}

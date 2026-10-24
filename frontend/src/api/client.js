@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { readLS, removeLS, saveLS, readCookies } from '../data/safeStorage';
 import { SESSION_EXPIRED_KEY } from '../data/localKeys';
+// 계정이 막힌 403 을 **읽는 자리**. 여태 아무도 안 읽어서, 정지된 사람은 까닭 없이
+// 되돌아오는 로그인 화면만 봤다 (2026-10-24)
+import { blockOf } from '../data/accountBlock';
+import { useBlockStore } from '../store/blockStore';
 
 // 쿠키에서 값 읽기 헬퍼.
 // document.cookie 도 샌드박스 iframe 에서는 던진다 — 요청 인터셉터에서 터지면
@@ -130,6 +134,17 @@ client.interceptors.response.use(
         return Promise.reject(refreshErr);
       }
     }
+
+    // ── 계정이 막힌 403 ── (2026-10-24)
+    //
+    // 서버는 할 말을 다 적어 보낸다(까닭 · 기한). 여태 그것을 읽는 자리가 없어서
+    // 화면마다 「불러오지 못했어요」가 떴고, `/auth/me` 도 403 이라 로그인 화면으로
+    // 되돌아갔다 — 로그인은 정지를 안 보므로 들어가면 또 403 이다.
+    //
+    // **평범한 403 과 섞지 않는다** — 서버가 적어 보낸 까닭 코드만 본다
+    // (`blockOf`). 요청 열 개가 한꺼번에 403 이 되어도 같은 것은 한 번만 세운다.
+    const blocked = blockOf(err);
+    if (blocked) useBlockStore.getState().setBlock(blocked);
 
     return Promise.reject(err);
   }
