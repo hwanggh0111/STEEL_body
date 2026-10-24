@@ -5,6 +5,8 @@ import {
   dropFromQueue, markFailed, clearFailedMark, editInQueue,
   readQueue, saveQueue, readCache, saveCache,
 } from '../data/offline';
+// 계정이 막힌 것은 **그 줄의 잘못이 아니다** (2026-10-24)
+import { blockOf } from '../data/accountBlock';
 
 // 화면마다 mount 될 때 목록을 받는다 — 홈 · 기록 · 히스토리 · 인바디 · 비교 · 검색.
 // 그대로 두면 화면을 옮길 때마다 통째로 다시 받는다. 두 가지로 막는다.
@@ -199,13 +201,14 @@ export const useWorkoutStore = create((set, get) => ({
   // 순서도 뒤집힌다. 서버가 거절한 것은 표시만 해두고 다음 것으로 넘어간다 —
   // 그 하나 때문에 뒤의 것이 영영 못 올라가면 안 된다.
   flushQueue: async () => {
-    if (get().flushing) return { sent: 0, failed: 0, stopped: false };
+    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false };
     const queue = get().queue.filter(q => !q.failed);
-    if (queue.length === 0) return { sent: 0, failed: 0, stopped: false };
+    if (queue.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false };
     set({ flushing: true });
     let sent = 0;
     let failed = 0;
     let stopped = false;
+    let blocked = false;
     try {
       for (const item of queue) {
         try {
@@ -217,6 +220,14 @@ export const useWorkoutStore = create((set, get) => ({
           sent += 1;
         } catch (err) {
           if (isOfflineError(err)) { stopped = true; set({ online: false }); break; }
+          // ── 계정이 막혔으면 **표시하지 않고 멈춘다** ── (2026-10-24)
+          //
+          // 정지는 **그 줄의 잘못이 아니다.** 그런데 여기서 「못 올렸어요」로
+          // 표시해 버리면 — 표시된 줄은 다음 올리기에서 아예 빠지므로
+          // (`queue.filter(q => !q.failed)`) 정지가 풀린 뒤에도 **사람이 「다시
+          // 시도」를 누를 때까지 영영 안 올라간다.** 헬스장에서 적어둔 기록이다.
+          // 신호가 없을 때와 같이 그냥 멈춘다. 까닭은 덮는 화면이 말한다
+          if (blockOf(err)) { blocked = true; break; }
           const reason = err?.response?.data?.error || '서버가 받지 않았어요';
           const next = markFailed(get().queue, item.id, reason);
           saveQueue(next);
@@ -231,7 +242,7 @@ export const useWorkoutStore = create((set, get) => ({
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});
     }
-    return { sent, failed, stopped };
+    return { sent, failed, stopped, blocked };
   },
 
   // 못 올린 것을 다시 시도한다 (표시를 지우고 한 번 더)

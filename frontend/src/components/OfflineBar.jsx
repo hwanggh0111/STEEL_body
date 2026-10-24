@@ -44,6 +44,10 @@ export default function OfflineBar() {
     const b = await noteRetry();
     const sent = a.sent + b.sent;
     if (sent > 0) toast.success(`${sent}개를 올렸어요`);
+    // 계정이 막혀서 멈춘 것이면 **아무 말도 안 한다** — 덮는 화면
+    // (`AccountBlocked`)이 이미 까닭과 기한을 말하고 있다. 여기서 「신호가
+    // 없어요」를 띄우면 없는 까닭을 말하는 것이 된다 (2026-10-24)
+    else if (a.blocked || b.blocked) { /* 덮는 화면이 말한다 */ }
     else if (a.stopped || b.stopped) toast('아직 신호가 없어요. 연결되면 다시 해볼게요', 'warning');
     else if (a.failed + b.failed > 0) toast('서버가 받지 않았어요. 내용을 고치거나 지워주세요', 'error');
   };

@@ -86,6 +86,21 @@ ok('기한이 지나면 저절로 열린다', /location\.reload/.test(screen), t
 // 지금은 제보도 403 이다 — 보낼 수 없는 길을 가리키면 안 된다
 ok('「지금 제보하세요」라고 하지 않는다', /지금은 제보도 보낼 수 없습니다/.test(screen), true);
 
+
+// ── 올리기 줄(큐)도 그것을 안다 ── (2026-10-24)
+//
+// 정지는 **그 줄의 잘못이 아니다.** 그런데 올리다 403 을 받고 「못 올렸어요」로
+// 표시해 버리면, 표시된 줄은 다음 올리기에서 아예 빠지므로(`!q.failed`) 정지가
+// 풀린 뒤에도 **사람이 「다시 시도」를 누를 때까지 영영 안 올라간다.**
+// 헬스장에서 적어둔 기록이라 값이 크다
+const wq = fs.readFileSync('src/store/workoutStore.js', 'utf-8');
+const nq = fs.readFileSync('src/store/noteStore.js', 'utf-8');
+const bar = fs.readFileSync('src/components/OfflineBar.jsx', 'utf-8');
+ok('운동 줄은 막혔으면 표시 없이 멈춘다', /if \(blockOf\(err\)\) \{ blocked = true; break; \}/.test(wq), true);
+ok('메모 줄도 같다', /if \(blockOf\(err\)\) \{ blocked = true; break; \}/.test(nq), true);
+ok('  멈춘 것을 부르는 쪽에 알려준다', /stopped, blocked \}/.test(wq) && /stopped, blocked \}/.test(nq), true);
+ok('막혀서 멈춘 것에 「신호가 없어요」라고 하지 않는다', /a\.blocked \|\| b\.blocked/.test(bar), true);
+
 console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

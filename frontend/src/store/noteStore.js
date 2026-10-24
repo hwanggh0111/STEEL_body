@@ -5,6 +5,8 @@ import {
   queueSave, queueDelete, dropEntry, markNoteFailed, clearNoteFailed, dropFailedNotes,
   readNoteQueue, saveNoteQueue, saveNoteCache, cachedMonth,
 } from '../data/offlineNotes';
+// 계정이 막힌 것은 **그 줄의 잘못이 아니다** (2026-10-24, workoutStore 와 같은 결)
+import { blockOf } from '../data/accountBlock';
 
 // 달력의 **그날 메모**. 신호가 없어도 적힌다.
 //
@@ -148,17 +150,18 @@ export const useNoteStore = create((set, get) => ({
   // 서버가 거절한 것은 표시만 하고 다음 것으로 넘어간다 — 그 하나 때문에 뒤의 것이
   // 영영 못 올라가면 안 된다.
   flushQueue: async () => {
-    if (get().flushing) return { sent: 0, failed: 0, stopped: false };
+    if (get().flushing) return { sent: 0, failed: 0, stopped: false, blocked: false };
     // 적은 순서대로 올린다
     const entries = Object.entries(get().queue)
       .filter(([, e]) => !e.failed)
       .sort((a, b) => String(a[1].at).localeCompare(String(b[1].at)));
-    if (entries.length === 0) return { sent: 0, failed: 0, stopped: false };
+    if (entries.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false };
 
     set({ flushing: true });
     let sent = 0;
     let failed = 0;
     let stopped = false;
+    let blocked = false;
     try {
       for (const [date, e] of entries) {
         try {
@@ -170,6 +173,9 @@ export const useNoteStore = create((set, get) => ({
           sent += 1;
         } catch (err) {
           if (isOfflineError(err)) { stopped = true; set({ online: false }); break; }
+          // 계정이 막혔으면 **표시하지 않고 멈춘다** — 표시된 줄은 다음 올리기에서
+          // 빠지므로, 정지가 풀린 뒤에도 사람이 누를 때까지 영영 안 올라간다
+          if (blockOf(err)) { blocked = true; break; }
           // 지우려던 것이 이미 없으면 그것도 뜻대로 된 것이다
           if (e.op === 'delete' && err.response?.status === 404) {
             const next = dropEntry(get().queue, date);
@@ -190,7 +196,7 @@ export const useNoteStore = create((set, get) => ({
     }
     // 올린 것이 있으면 보고 있는 달을 다시 받아 서버 것으로 맞춘다
     if (sent > 0 && loadedMonth) await get().fetchMonth(loadedMonth).catch(() => {});
-    return { sent, failed, stopped };
+    return { sent, failed, stopped, blocked };
   },
 
   retryFailed: async () => {
