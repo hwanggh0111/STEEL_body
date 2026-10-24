@@ -73,9 +73,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// gzip compression (1KB 미만은 압축 생략)
+// ── gzip (1KB 미만은 압축 생략) ──
+//
+// **누르는 세기를 5 로 내렸다** (2026-10-24). 기본값은 6 이다. 이 앱이 보내는 제일 큰
+// 몸통(운동 5년치 · 29,200줄 · 4.06MB JSON)으로 재봤다 —
+//
+//     level 1   247.3KB   8.9ms
+//     level 3   224.2KB  12.4ms
+//     level 5   199.2KB  20.1ms      ← 여기
+//     level 6   190.0KB  27.0ms      (기본값)
+//
+// **둘 다 누군가 치르는 값이다** — CPU 는 서버가, 바이트는 폰 데이터가 치른다.
+// 그래서 한쪽으로 몰지 않았다: 5 는 6 보다 **CPU 를 26% 덜 쓰고 바이트는 4.8% 늘어난다.**
+// 3 은 CPU 를 더 아끼지만 **34KB 를 더 보낸다** — 헬스장에서 LTE 로 쓰는 앱이라 그쪽은
+// 안 골랐다. **Render 무료 판은 CPU 0.1 코어**라 저 7ms 는 그쪽에서 70ms 쯤이고,
+// 서버가 한 줄로 돌기 때문에 그 동안 **다른 사람의 요청도 멈춰 있다.**
+//
+// 사진(base64)은 어느 세기에서나 같다(663KB) — 이미 눌린 자료라 누를 것이 없다.
+// 화면 조각(js · css · html)은 **빌드할 때 미리 brotli 로 눌러 둔다**(`preCompressed`)
+// — 여기 세기는 그쪽과 상관이 없다.
 app.use(compression({
   threshold: 1024,
+  level: 5,
   filter: (req, res) => {
     if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);

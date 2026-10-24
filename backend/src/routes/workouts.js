@@ -5,14 +5,19 @@ const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
 const { normalizeWeight } = require('../utils/workoutFields');
 const { isRecordDay } = require('../utils/dayRange');
+const { sendFresh } = require('../utils/fresh');
 
 // 무게 칸과 운동명을 다듬는 자는 **`utils/workoutFields.js` 한 곳에** 있다
 // (2026-10-22 에 옮겼다). 파일로 넣는 길(`POST /import`)이 같은 자를 써야 한다 —
 // 여기만 음수를 막고 있어서 **CSV 로는 `-50` 이 그대로 들어왔다.**
-// 전체 목록 조회
+// 전체 목록 조회.
+//
+// **바뀐 것이 없으면 다시 안 보낸다** (2026-10-24, `utils/fresh.js`). 앱은 화면을
+// 옮길 때마다 이 길을 다시 부르는데(30초 지나면) 5년치면 몸통이 4MB 다 —
+// 그 네 번 중 세 번은 바뀐 것이 없다. 그때는 304 한 줄이고, **줄을 모으지도
+// 글자로 만들지도 않는다**(`build` 를 안 부른다)
 router.get('/', auth, (req, res) => {
-  const workouts = db.getWorkouts(req.userId);
-  res.json(workouts);
+  sendFresh(req, res, db.dataTag('workouts', req.userId), () => db.getWorkouts(req.userId));
 });
 
 // 날짜별 조회는 **없다** (2026-09-19 에 걷었다).

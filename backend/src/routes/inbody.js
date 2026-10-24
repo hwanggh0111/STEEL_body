@@ -4,11 +4,11 @@ const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { isRecordDay } = require('../utils/dayRange');
 const { seoulDay } = require('../utils/seoulDay');
+const { sendFresh } = require('../utils/fresh');
 
-// 전체 목록
+// 전체 목록. **바뀐 것이 없으면 다시 안 보낸다** (`utils/fresh.js`, 2026-10-24)
 router.get('/', auth, (req, res) => {
-  const records = db.getInbody(req.userId);
-  res.json(records);
+  sendFresh(req, res, db.dataTag('inbody', req.userId), () => db.getInbody(req.userId));
 });
 
 // 추가

@@ -14,11 +14,11 @@ const VALID_TYPES = Object.keys(MEASURE_LABEL);
 
 const { sanitizeObj } = require('../utils/sanitize');
 const { isRecordDay } = require('../utils/dayRange');
+const { sendFresh } = require('../utils/fresh');
 
-// 전체 목록 조회
+// 전체 목록 조회. **바뀐 것이 없으면 다시 안 보낸다** (`utils/fresh.js`, 2026-10-24)
 router.get('/', auth, (req, res) => {
-  const measures = db.getMeasures(req.userId);
-  res.json(measures);
+  sendFresh(req, res, db.dataTag('measures', req.userId), () => db.getMeasures(req.userId));
 });
 
 // 추가

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { sendFresh } = require('../utils/fresh');
 
 // ── 필요한 것만 준다 ── (2026-10-05)
 //
@@ -16,14 +17,22 @@ const db = require('../db');
 const PHOTO_TYPES = ['profile', 'before', 'after'];
 
 router.get('/', auth, (req, res) => {
-  const photos = db.getPhotos(req.userId);
   const want = req.query.type;
   // **아는 칸 이름일 때만 거른다.** 오타(`?type=profil`)에 빈 배열을 주면
   // 화면은 「사진이 없다」로 읽고 있던 사진을 지운다 — 조용히 틀리는 자리다
-  if (typeof want === 'string' && PHOTO_TYPES.includes(want)) {
-    return res.json(photos.filter((p) => p.type === want));
-  }
-  res.json(photos);
+  const only = typeof want === 'string' && PHOTO_TYPES.includes(want) ? want : null;
+  // **바뀐 것이 없으면 다시 안 보낸다** (2026-10-24). 여기가 제일 무겁다 —
+  // 셋을 통째로 주면 **6MB** 까지 간다(사람 사진은 base64 다). 껍데기는 앱을 열 때마다
+  // 아바타 한 장 때문에 이 길을 부른다.
+  //
+  // **딱지에 어느 칸인지도 넣는다** — `?type=profile` 과 셋을 다 주는 길은 **다른
+  // 몸통**이다. 같은 딱지를 주면 한 장만 받아둔 브라우저가 셋을 다 받은 것으로 알고
+  // 비교 화면에 전·후 사진을 못 그린다
+  const tag = db.dataTag('photos', req.userId, only || '');
+  sendFresh(req, res, tag, () => {
+    const photos = db.getPhotos(req.userId);
+    return only ? photos.filter((p) => p.type === only) : photos;
+  });
 });
 
 // Save/update photo

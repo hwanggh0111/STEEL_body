@@ -254,7 +254,7 @@ function deleteUserPhotos(userId) {
   const store = loadPhotos();
   const before = store.photos.length;
   store.photos = store.photos.filter(p => p.user_id !== userId);
-  if (store.photos.length !== before) savePhotoStore();
+  if (store.photos.length !== before) { bumpVer('photos', userId); savePhotoStore(); }
   return { changes: before - store.photos.length };
 }
 
@@ -548,6 +548,59 @@ function invalidateUserQueries(userId) {
   _queryCache.delete('i_' + userId);
 }
 
+// ── **사람별 「바뀐 번호」** ── (2026-10-24, `npm run http` 로 재고 붙였다)
+//
+// ── 왜 ──
+//
+// 앱은 목록을 **통째로** 받아 들고 있고(`workoutStore`), 화면을 옮길 때마다 다시
+// 받는다(30초 지나면). 5년치면 그 몸통이 **4MB**다 — 서버는 그때마다 줄을 모아
+// 글자로 만들고(stringify) gzip 으로 누른다. 재보니 2년치 11,680줄에서
+// **1.65MB · 31ms**(이 기계)였고, Render 무료 판은 **CPU 0.1 코어**다.
+//
+// 그런데 그 네 번 중 세 번은 **바뀐 것이 하나도 없다.** 그러면 「안 바뀌었다」는
+// 한 줄만 보내면 된다(304). 그걸 말하려면 **지금 판이 몇 번째인지**를 값싸게 알아야
+// 하고, 그것이 이 번호다.
+//
+// ── 두 가지를 지킨다 ──
+//
+// 1. **사람별로 센다.** 전역 번호 하나면 남이 세트를 적을 때마다 모두의 딱지가
+//    틀려진다 — 9/17 에 `_queryCache` 에서 고친 바로 그 자리다(「남의 저장이 내
+//    비용이 된다」). 열쇠는 `표:사람`이다
+// 2. **서버가 다시 뜨면 딱지가 달라진다.** 번호는 램에 있으니 재시작하면 0 으로
+//    돌아간다 — 그 사이에 바깥에서 자료가 바뀌었을 수 있고(백업 되돌리기 ·
+//    다른 기기), 번호만 같으면 **옛 몸통을 그대로 쓰라고 말하는** 셈이 된다.
+//    그래서 뜰 때 만든 무작위 글자를 딱지에 같이 넣는다.
+const BOOT_TAG = require('crypto').randomBytes(4).toString('hex');
+const _dataVer = new Map();        // `표:사람` → 번호
+
+/** 그 사람의 그 표가 바뀌었다 */
+function bumpVer(table, userId) {
+  const key = table + ':' + userId;
+  _dataVer.set(key, (_dataVer.get(key) || 0) + 1);
+}
+
+/**
+ * 지금 판의 딱지. **몸통을 만들지 않고** 이것만으로 「바뀌었나」를 가른다.
+ *
+ * 꼴은 `W/"<표>-<뜬 때>-<번호>"` 다 — 약한 딱지(W/)로 두는 까닭은 gzip 으로 누른
+ * 몸통과 안 누른 몸통이 **같은 자료**이기 때문이다(바이트는 다르다).
+ */
+function dataTag(table, userId, variant = '') {
+  // ── **사람이 딱지에 들어 있어야 한다** ── (2026-10-24, 검사가 잡았다)
+  //
+  // 처음에는 `표-뜬때-번호` 로 만들었는데, 두 사람의 번호가 우연히 같으면 딱지가
+  // 같아진다. 주소는 둘 다 `/api/workouts` 다 — **한 폰에서 사람이 바뀌면**
+  // (로그아웃하고 다른 계정으로 들어오면) 브라우저가 들고 있던 **앞 사람 몸통**에
+  // 304 가 떨어진다. 9/22 에 `PER_USER_KEYS` 로 고친 「다음 사람 화면에 앞 사람
+  // 기록」과 **같은 자리**다.
+  //
+  // `variant` 는 **같은 표에서 몸통이 갈라지는 자리**에 쓴다 (`/photos?type=profile`).
+  // 번호는 표 하나로 센다 — 번호 열쇠에 변종을 섞으면 **그 변종은 영영 안 올라간다**
+  // (`bumpVer` 는 표 이름으로만 올린다). 딱지만 갈라 놓는다
+  const n = _dataVer.get(table + ':' + userId) || 0;
+  return `W/"${table}-${userId}-${BOOT_TAG}-${n}${variant ? '-' + variant : ''}"`;
+}
+
 /**
  * 운동·인바디 줄이 바뀌었다 — 표와 **사람별 색인**을 같이 버린다 (2026-09-18).
  *
@@ -555,6 +608,8 @@ function invalidateUserQueries(userId) {
  */
 function afterRowChange(table, userId, change) {
   invalidateUserQueries(userId);
+  // 딱지도 같이 올린다 — **이 자리를 빠뜨리면 「내가 적은 것이 안 보인다」가 된다**
+  bumpVer(table, userId);
   // **색인은 그 자리만 고친다** (위 참고). 못 알아들을 것이 오면 통째로 버린다 —
   // 틀린 색인을 들고 있는 것보다 다시 만드는 것이 낫다
   if (change?.added) rowAdded(table, change.added);
@@ -991,6 +1046,7 @@ const db = {
     if (!data.measures) data.measures = [];
     const record = { id, user_id: userId, type, date, data: measureData, created_at: new Date().toISOString() };
     data.measures.push(record);
+    bumpVer('measures', userId);
     save(data);
     return { lastInsertRowid: id };
   },
@@ -1000,6 +1056,7 @@ const db = {
     const idx = data.measures.findIndex(m => m.id === id && m.user_id === userId);
     if (idx === -1) return { changes: 0 };
     data.measures.splice(idx, 1);
+    bumpVer('measures', userId);
     save(data);
     return { changes: 1 };
   },
@@ -1265,6 +1322,7 @@ const db = {
       store._nextId = id + 1;
       store.photos.push({ id, user_id: userId, type, data: dataUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
+    bumpVer('photos', userId);
     savePhotoStore();
     return { changes: 1 };
   },
@@ -1273,6 +1331,7 @@ const db = {
     const idx = store.photos.findIndex(p => p.user_id === userId && p.type === type);
     if (idx === -1) return { changes: 0 };
     store.photos.splice(idx, 1);
+    bumpVer('photos', userId);
     savePhotoStore();
     return { changes: 1 };
   },
@@ -1672,6 +1731,11 @@ const db = {
     await storage.drain();
   },
 
+  /**
+   * 지금 판의 딱지 (`ETag`). **몸통을 만들지 않고** 바뀌었나를 가르는 데 쓴다 —
+   * 까닭은 위 `bumpVer` 머리글에 (2026-10-24).
+   */
+  dataTag,
   flushNow() { _flushImmediate(); },
   /**
    * 사진도 지금 쓴다.
@@ -2101,16 +2165,34 @@ const db = {
   },
   deleteUserRefreshTokens(userId) {
     const data = load();
-    if (!data.refreshTokens) return;
+    if (!data.refreshTokens) return 0;
+    const before = data.refreshTokens.length;
     data.refreshTokens = data.refreshTokens.filter(t => t.user_id !== userId);
-    save(data);
+    const dropped = before - data.refreshTokens.length;
+    // 걷은 것이 없으면 안 쓴다 — 한 장을 통째로 쓰는 DB 다 (위 머리글 참고)
+    if (dropped > 0) save(data);
+    return dropped;
   },
+  /**
+   * 지난 로그인 유지 열쇠를 걷는다.
+   *
+   * **걷은 것이 없으면 안 쓴다** (2026-10-24). 여태 거를 것이 없어도 `save` 를
+   * 불렀다 — 이 DB 는 **한 장을 통째로** 쓰므로 그 한 줄이 「6MB 를 글자로 만들어
+   * 다시 올리기」다. 부르는 자리는 **뜨고 2.5초 뒤**와 30분마다다(`index.js` 의
+   * `cleanupRound`): 즉 **잠에서 깰 때마다, 걷을 것이 없어도** 한 번 썼다.
+   * 그 2.5초는 깨운 사람의 첫 요청이 들어오는 때이고, Render 무료 판은 CPU 0.1 코어다.
+   * 옆의 넷(`cleanExpiredBlocks` · `cleanLoginFails` · `cleanVerifyCodes` ·
+   * `dropLegacyRefreshTokens`)은 처음부터 걷은 수를 보고 썼다 — 이 하나만 빠져 있었다.
+   */
   cleanExpiredRefreshTokens() {
     const data = load();
-    if (!data.refreshTokens) return;
+    if (!data.refreshTokens) return 0;
     const now = new Date().toISOString();
+    const before = data.refreshTokens.length;
     data.refreshTokens = data.refreshTokens.filter(t => t.expires_at > now);
-    save(data);
+    const dropped = before - data.refreshTokens.length;
+    if (dropped > 0) save(data);
+    return dropped;
   },
 
   // ── 답이 안 나온 말 ──
