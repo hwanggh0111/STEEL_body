@@ -174,6 +174,31 @@ console.log('\n── 화면이 그 자를 쓰는가 ──');
   ok('  넘긴 동작도 같이 버린다', /skippedRef\.current = new Set\(\);/.test(page), true);
 }
 
+  console.log('');
+  console.log('── **「부위별 몇 줄로 적혀요」가 사실인가** ── (2026-10-26)');
+  //
+  // 끝 화면이 「아래를 누르면 **부위별 N줄**로 적히고 몸 지도에도 쌓여요」라고
+  // 미리 적어준다. 그런데 그 N 을 **「건드린 부위」**(`touched`)로 세고 있었다 —
+  // 적히는 줄은 **주로 쓴 부위만**이다(`toRecords` 는 `main` 만 센다. 곁들여 쓴 것까지
+  // 적으면 베어 크롤 한 번으로 하체까지 한 것이 된다고 그 파일에 적어뒀다).
+  //
+  // 그래서 **아홉 판 중 여덟이 어긋났다** — 「코어 강화」는 5줄이라 적고 2줄,
+  // 「전신 초급」은 6줄이라 적고 4줄. 누르기 전에 한 약속이 지켜지지 않는다.
+  {
+    const wrong = Object.entries(prog.PROGRAMS).filter(([n, exs]) => {
+      const pump = hw.buildPump(exs, exs.length);
+      return pump.touched.length !== hw.toRecords(exs, exs.length, n).length;
+    }).map(([n]) => n);
+    // 데이터가 그런 꼴이라는 것을 못 박아둔다 — 이것이 0 이면 아래 검사가 뜻이 없다
+    ok('건드린 부위와 적히는 줄은 **원래 다르다** (곁들인 곳은 안 적는다)', wrong.length >= 5, true);
+
+    const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
+    ok('화면은 **적는 그 함수**에 물어본다', /부위별 \{recordRows\.length\}줄/.test(page), true);
+    ok('  건드린 부위로 세지 않는다', /부위별 \{donePump\.touched\.length\}줄/.test(page), false);
+    ok('  그 줄은 한 동작만 넘긴다 (`doneRows`)',
+      /const recordRows = toRecords\(doneRows, doneRows\.length, selected\)/.test(page), true);
+  }
+
   console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
   process.exit(bad ? 1 : 0);
 })();

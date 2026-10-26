@@ -941,6 +941,8 @@ export default function HomeworkoutPage() {
   // 판을 다 했을 때의 몸 — **전부를 센다**(`pump` 는 진행 중 것이라 여기서는 못 쓴다)
   // **한 것만 센다** — 넘긴 동작까지 칠하면 몸 그림이 거짓말을 한다 (2026-10-26)
   const donePump = buildPump(doneRows, doneRows.length);
+  // 「부위별 몇 줄로 적히나」는 **적는 그 함수에 물어본다** — 세는 자리가 둘이면 어긋난다
+  const recordRows = toRecords(doneRows, doneRows.length, selected);
   // 숨을 켜고 했으면 순위가 나온다. 안 켰으면 빈 것이라 그 칸이 통째로 안 그려진다
   const hardest = hardestOf(peaksRef.current, breath.base);
   // 이 판의 회복 시간 결산. **잰 칸이 없으면 `null`** 이라 아래가 통째로 안 그려진다
@@ -1046,7 +1048,11 @@ export default function HomeworkoutPage() {
             border: '1px solid var(--border-hover)', background: 'var(--bg-secondary)',
             fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6,
           }}>
-            아래를 누르면 <b style={{ color: 'var(--accent)' }}>부위별 {donePump.touched.length}줄</b>로 적히고
+            {/* **적는 그 함수에 물어본다** (2026-10-26). 여태 「건드린 부위」를 셌는데
+                (`touched`) 적히는 줄은 **주로 쓴 부위만**이다(`toRecords`) — 곁들여 쓴
+                곳은 안 적는다. 그래서 「코어 강화」는 **「부위별 5줄」이라 적어놓고 2줄**만
+                올라갔다. 아홉 판 중 여덟이 어긋났다. 두 곳이 세면 반드시 이렇게 된다 */}
+            아래를 누르면 <b style={{ color: 'var(--accent)' }}>부위별 {recordRows.length}줄</b>로 적히고
             <b style={{ color: 'var(--accent)' }}> 몸 지도</b>에도 쌓여요.
             {donePump.untouched.length > 0 && <> 안 한 {donePump.untouched[0]}이 「오늘 뭘 하지」에 올라옵니다.</>}
           </div>
