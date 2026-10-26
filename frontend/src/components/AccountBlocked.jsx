@@ -5,6 +5,7 @@ import NavIcon from './NavIcon';
 // 영구 정지에는 「풀린 뒤」가 없다 — 앱 밖의 연락처가 유일한 길이다 (한 곳에 있다)
 import { SUPPORT_EMAIL } from '../data/contact';
 import Logo from './Logo';
+import Emphasis from './Emphasis';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
 //
@@ -34,7 +35,10 @@ export default function AccountBlocked() {
 
   if (!block) return null;
 
-  const tone = block.kind === 'suspended' ? 'var(--warning)' : 'var(--danger)';
+  // **기한이 있나로 가른다** (2026-10-26). 여태 `kind === 'suspended'` 만 경고색이었다 —
+  // 종류를 하나 더 읽게 되면서(주소 차단) 3일 뒤 풀리는 것이 영구 정지와 같은 색이 됐다.
+  // 지금까지의 셋은 그대로다: 정지=기한 있음(경고) · 영구 정지·차단=기한 없음(위험)
+  const tone = block.forever ? 'var(--danger)' : 'var(--warning)';
 
   return (
     <div style={{
@@ -87,7 +91,10 @@ export default function AccountBlocked() {
             textAlign: 'left', marginBottom: 16, whiteSpace: 'pre-wrap',
           }}>
             <span style={{ color: 'var(--text-muted)', marginRight: 6 }}>까닭</span>
-            {block.reason}
+            {/* 서버는 이 글에 `**굵게**` 를 적어 보낸다. 그리는 자리가 관리자 화면
+                한 곳뿐이어서, **벌받은 사람만 별표를 글자로 읽고 있었다**
+                (2026-10-26. 「잘못 걸렸다고 생각되면 **풀린 뒤에**…」) */}
+            <Emphasis text={block.reason} />
           </div>
         )}
 
@@ -107,14 +114,29 @@ export default function AccountBlocked() {
           ) : '지금은 제보도 보낼 수 없습니다. 풀린 뒤에 고객센터로 알려주시면 확인합니다.'}
         </div>
 
-        <button
-          onClick={async () => { await logout(); clear(); }}
-          style={{
-            background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', padding: '9px 18px', fontSize: 13,
-            borderRadius: 'var(--radius)', cursor: 'pointer',
-          }}
-        >로그아웃</button>
+        {/* **계정 일일 때만 로그아웃을 둔다** (2026-10-26). 주소가 막힌 것은
+            로그아웃해도 안 풀린다 — 누르면 그 요청도 막히고(403) 화면은 그대로다.
+            할 수 없는 일을 단추로 내놓지 않는다. 대신 **다시 해보는** 길을 둔다:
+            기한이 지났으면 그 자리에서 열린다 */}
+        {block.account ? (
+          <button
+            onClick={async () => { await logout(); clear(); }}
+            style={{
+              background: 'none', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', padding: '9px 18px', fontSize: 13,
+              borderRadius: 'var(--radius)', cursor: 'pointer',
+            }}
+          >로그아웃</button>
+        ) : !block.forever && (
+          <button
+            onClick={() => { clear(); window.location.reload(); }}
+            style={{
+              background: 'none', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', padding: '9px 18px', fontSize: 13,
+              borderRadius: 'var(--radius)', cursor: 'pointer',
+            }}
+          >다시 해보기</button>
+        )}
       </div>
     </div>
   );

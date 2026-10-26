@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import client from '../api/client';
+import Emphasis from './Emphasis';
 import NavIcon from './NavIcon';
 import { toast } from './Toast';
 
@@ -265,12 +266,11 @@ export default function AiAdminPanel() {
             }}>
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 3 }}>{r.title}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                {/* 서버가 **굵게** 로 보내는 자리를 그대로 굵게 그린다 */}
-                {String(r.detail || '').split('**').map((part, j) => (
-                  j % 2
-                    ? <b key={j} style={{ color: 'var(--text-secondary)' }}>{part}</b>
-                    : <span key={j}>{part}</span>
-                ))}
+                {/* 서버가 **굵게** 로 보내는 자리를 그대로 굵게 그린다.
+                    **규칙은 한 자리에 있다**(`components/Emphasis.jsx`) — 여기만
+                    알고 있어서, 같은 글을 받는 정지 안내 화면은 별표를 글자로
+                    보여주고 있었다 (2026-10-26) */}
+                <Emphasis text={r.detail} />
               </div>
             </div>
           ))}

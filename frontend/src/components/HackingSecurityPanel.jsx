@@ -3,6 +3,7 @@ import { useToday } from '../data/useToday';
 import { dateKey } from '../data/dateKey';
 import client from '../api/client';
 import { toast } from './Toast';
+import Emphasis from './Emphasis';
 
 // 보안 로그 (관리자 화면의 「해킹 보안」).
 //
@@ -275,7 +276,11 @@ export default function HackingSecurityPanel() {
                   </div>
                   {/* 왜 막혔는지를 같이 적는다 — 이유를 모르면 풀지 말지 정할 수가 없다 */}
                   {b.reason && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{b.reason}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {/* 서버가 `**굵게**` 를 적어 보내는 글이다 — 별표를 글자로
+                          보여주지 않는다 (`components/Emphasis.jsx`, 2026-10-26) */}
+                      <Emphasis text={b.reason} />
+                    </div>
                   )}
                   {b.createdAt && (
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>막은 때 {timeOf(b.createdAt)}</div>

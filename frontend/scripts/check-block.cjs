@@ -63,6 +63,31 @@ const ban = B.blockOf(err(403, { code: 'banned', error: 'x' }));
 ok('영구 정지에는 기한이 없다', [ban.forever, ban.untilLabel, ban.left], [true, null, null]);
 
 console.log('');
+console.log('── **주소가 막힌 것도 집는다** ── (2026-10-26)');
+//
+// AI 가드의 403 들에는 까닭 코드가 아예 없어서 **이 화면이 뜬 적이 없었다.**
+// 더 나쁜 것은 입력 스캔으로 정지된 사람이다 — 그 벌은 계정 정지와 주소 차단을
+// 같이 걸고, 주소 잠금은 **토큰을 보기 전에** 걸러진다. 즉 계정 쪽 403(`auth.js`)에
+// 닿지도 못한다. 3일 동안 까닭을 한 번도 못 듣는 자리였다.
+const ipBlocked = B.blockOf(err(403, {
+  code: 'ip_blocked', error: '이 주소에서의 접근이 일시적으로 차단되었습니다.',
+  level: 3, reason: '[AI Guard 판정] 위협 레벨: LEVEL 3', expiresAt: UNTIL, blockedUntil: UNTIL,
+}));
+ok('주소 차단을 집는다', ipBlocked?.kind, 'ip_blocked');
+ok('  기한을 사람 말로 적는다', ipBlocked.untilLabel, '10월 31일(토) 15:12');
+ok('  까닭을 들고 간다', /AI Guard 판정/.test(ipBlocked.reason), true);
+// **계정 일이 아니다** — 로그아웃해도 안 풀린다. 화면이 그 단추를 안 그린다
+ok('  계정 일이 아니라고 말해준다', ipBlocked.account, false);
+ok('정지는 계정 일이다', b.account, true);
+// 기한 이름이 두 벌이다 — 한쪽만 읽으면 「풀리는 때」가 조용히 사라진다
+const onlyOld = B.blockOf(err(403, { code: 'ip_blocked', blockedUntil: UNTIL }));
+ok('예전 이름(blockedUntil)만 와도 기한을 읽는다', onlyOld.untilLabel, '10월 31일(토) 15:12');
+ok('  영구는 영구로 본다 (forever · permanent)',
+  [B.blockOf(err(403, { code: 'ip_blocked', blockedUntil: 'forever' })).forever,
+   B.blockOf(err(403, { code: 'suspended', expiresAt: 'permanent' })).forever], [true, true]);
+ok('기한이 없으면 영구다 (레벨 4)', B.blockOf(err(403, { code: 'ip_blocked', level: 4 })).forever, true);
+
+console.log('');
 console.log('── 남은 시간 ──');
 const REF = new Date('2026-10-24T12:00:00+09:00');
 const at = (ms) => new Date(REF.getTime() + ms).toISOString();
@@ -85,6 +110,12 @@ ok('앱을 덮어 그린다', /<AccountBlocked \/>/.test(app), true);
 ok('기한이 지나면 저절로 열린다', /location\.reload/.test(screen), true);
 // 지금은 제보도 403 이다 — 보낼 수 없는 길을 가리키면 안 된다
 ok('「지금 제보하세요」라고 하지 않는다', /지금은 제보도 보낼 수 없습니다/.test(screen), true);
+// 할 수 없는 일을 단추로 내놓지 않는다 — 주소가 막힌 것은 로그아웃해도 안 풀린다
+ok('계정 일일 때만 로그아웃을 그린다', /block\.account \?/.test(screen), true);
+// 서버가 사람에게 보내는 글에는 `**굵게**` 가 적혀 있다. 그리는 자리가 관리자 화면
+// 한 곳뿐이어서 **벌받은 사람만 별표를 글자로 읽고 있었다** (2026-10-26)
+ok('까닭의 **굵게** 를 글자로 보여주지 않는다', /<Emphasis text=\{block\.reason\} \/>/.test(screen), true);
+ok('  그 규칙은 한 자리에 있다', fs.existsSync('src/components/Emphasis.jsx'), true);
 
 
 // ── 올리기 줄(큐)도 그것을 안다 ── (2026-10-24)

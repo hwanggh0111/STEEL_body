@@ -54,6 +54,7 @@ fs.writeFileSync(TMP, JSON.stringify({
 
 const jwt = require('jsonwebtoken');
 const auth = require('../src/middleware/auth');
+const db = require('../src/db');
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -138,7 +139,12 @@ const l4 = (guard.match(/const L4_NOTE = '[^']*'/) || [''])[0];
 ok('영구 정지 글은 제보함을 가리키지 않는다', /제보함/.test(l4), false);
 ok('  그래도 되돌릴 수 있다고 말한다', /되돌립니다/.test(l4), true);
 // 기간이 있는 정지는 **풀린 뒤에** 라고 말할 수 있다
-ok('  3일 정지 글은 「풀린 뒤에」라고 적는다', /\*\*풀린 뒤에\*\* 고객센터 제보함으로/.test(guard), true);
+// 별표는 **그리는 자리가 있는 글에만** 적는다 (2026-10-26) — 정지 사유(`reason`)는
+// 정지 안내 화면이 `Emphasis` 로 굵게 그리지만, `error` 는 화면마다 글자로 그대로
+// 보여준다. 그래서 여기 둘을 한 자로 본다: 말은 같고 별표는 있을 수도 없을 수도
+ok('  3일 정지 글은 「풀린 뒤에」라고 적는다', /풀린 뒤에\*{0,2} 고객센터 제보함으로/.test(guard), true);
+ok('  사람 화면에 그대로 뜨는 글(error)에는 별표를 안 적는다',
+  /error: `되풀이되어 계정이 \$\{INPUT_SUSPEND_DAYS\}일간 정지되었습니다[^`]*\*\*/.test(guard), false);
 ok('  화면이 닿을 수 있는 주소를 붙인다',
   /SUPPORT_EMAIL/.test(read('frontend/src/components/AccountBlocked.jsx')), true);
 // 주소는 **한 곳**에 있다 (방침과 정지 안내가 같은 것을 쓴다)
@@ -146,6 +152,83 @@ ok('  그 주소는 한 곳에서 온다',
   /SUPPORT_EMAIL/.test(read('frontend/src/pages/PrivacyPage.jsx'))
   && /@/.test(read('frontend/src/data/contact.js')), true);
 ok('    서버에는 그 주소를 안 적는다', /withpapa/.test(abuse + guard), false);
+
+console.log('');
+console.log('── **AI 가드가 막은 403 도 까닭을 말하는가** ── (2026-10-26)');
+//
+// 10/24 에 만든 까닭 코드는 `auth.js` 에만 붙어 있었다. 그런데 **입력 스캔으로
+// 걸린 사람은 계정 정지와 주소 차단을 같이 받고**(`executeLevel3` 이 `block(ip,…)`
+// 를 부른다), 주소 잠금은 **토큰을 보기 전에** 걸러진다 — 즉 그 사람의 다음 요청은
+// `auth.js` 의 403 에 닿지도 못한다. 코드가 없으면 정지 안내 화면이 뜰 길이 없다.
+//
+// 여기는 **진짜로 미들웨어를 돌려서** 본다 (글자만 보면 또 「아무것도 안 재는 검사」다).
+const aiGuard = require('../src/middleware/aiGuard');
+
+/** 그 사람으로 요청 하나를 가드에 통과시켜 본다. 돌아온 것을 그대로 준다. */
+function hit(body, userId, ip, role = 'user') {
+  const token = jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '15m', algorithm: 'HS256' });
+  const req = {
+    path: '/api/workouts', originalUrl: '/api/workouts', method: 'POST',
+    body, query: {}, params: {},
+    cookies: { sb_access: token }, headers: {}, ip,
+    connection: { remoteAddress: ip },
+    get: (h) => (String(h).toLowerCase() === 'user-agent' ? 'Mozilla/5.0 (check-blocked)' : undefined),
+  };
+  const out = { status: 200, body: null, passed: false };
+  const res = {
+    status(c) { out.status = c; return this; },
+    json(b) { out.body = b; return this; },
+    set() { return this; },
+    on() { return this; },
+  };
+  aiGuard(req, res, () => { out.passed = true; });
+  return out;
+}
+
+const XSS = { exercise: '<script>alert(1)</script>' };
+
+// 첫 번은 막고 알려만 준다 — **무엇을 하면 되는지**가 `error` 에 있어야 한다.
+// `message` 에 적어 보내면 아무 화면도 안 읽는다 (앱 전체가 `data.error` 만 본다)
+const first = hit(XSS, 1, '203.0.113.21');
+ok('입력 스캔 첫 번 → 403', first.status, 403);
+ok('  무엇을 하면 되는지 **error 에** 적는다', /빼고 다시 보내주세요/.test(first.body?.error || ''), true);
+ok('  첫 번에는 정지가 아니다 (까닭 코드 없음)', first.body?.code, undefined);
+
+// 두 번째는 정지다. **그 403 이 유일하게 말할 기회**다 (다음 요청은 주소에서 막힌다)
+const second = hit(XSS, 1, '203.0.113.21');
+ok('되풀이 → 403 · suspended', [second.status, second.body?.code], [403, 'suspended']);
+ok('  **언제 풀리나**를 같이 준다', typeof second.body?.expiresAt, 'string');
+ok('  정지됐다고 말한다', /정지되었습니다/.test(second.body?.error || ''), true);
+ok('  까닭(AI 판정)도 같이 준다', /AI Guard 판정/.test(second.body?.reason || ''), true);
+ok('  정지가 실제로 걸렸다', db.getSuspensions().some((x) => x.user_id === 1), true);
+
+// 그다음부터는 **주소에서** 막힌다 — 토큰을 보기 전이라 계정 쪽 403 에 닿지 않는다
+const third = hit({ exercise: '벤치프레스' }, 1, '203.0.113.21');
+ok('그다음 요청 → 403 · ip_blocked', [third.status, third.body?.code], [403, 'ip_blocked']);
+ok('  기한을 준다 (영구가 아니다)', typeof third.body?.expiresAt, 'string');
+ok('  예전 이름도 같이 둔다 (blockedUntil)', typeof third.body?.blockedUntil, 'string');
+ok('  까닭을 적어 보낸다', /AI Guard 판정/.test(third.body?.reason || ''), true);
+
+// 관리자는 자동 처벌 대상이 아니다 — 요청은 막아도 **정지는 걸지 않는다**
+hit(XSS, 5, '203.0.113.22', 'admin');
+const bossBlocked = hit(XSS, 5, '203.0.113.22', 'admin');
+ok('관리자는 되풀이해도 정지되지 않는다', bossBlocked.body?.code, undefined);
+ok('  그래도 요청은 막는다', bossBlocked.status, 403);
+ok('  관리자 정지가 안 늘었다', db.getSuspensions().filter((x) => x.user_id === 5).length, 1);
+
+console.log('');
+console.log('── 화면이 그 둘도 읽는가 ──');
+ok("  'ip_blocked' 를 화면 쪽도 안다", /\bip_blocked:/.test(front), true);
+ok('  주소 차단의 기한 이름(blockedUntil)도 읽는다', /blockedUntil/.test(front), true);
+// 서버가 사람에게 보내는 글에는 `**굵게**` 가 적혀 있다. **그리는 자리가 관리자
+// 화면 한 곳뿐이어서 벌받은 사람만 별표를 글자로 읽고 있었다** (2026-10-26)
+const emphasis = 'frontend/src/components/Emphasis.jsx';
+ok('강조를 그리는 규칙이 한 자리에 있다', fs.existsSync(path.join(__dirname, '..', '..', emphasis)), true);
+for (const f of ['components/AccountBlocked.jsx', 'components/HackingSecurityPanel.jsx', 'components/AiAdminPanel.jsx']) {
+  ok(`  ${f.split('/').pop()} 가 그것을 쓴다`, /<Emphasis /.test(read('frontend/src/' + f)), true);
+}
+ok('  별표를 직접 쪼개는 자리가 남아 있지 않다',
+  /split\('\*\*'\)/.test(read('frontend/src/components/AiAdminPanel.jsx')), false);
 
 try { fs.unlinkSync(TMP); } catch { /* 지워져 있으면 그만 */ }
 

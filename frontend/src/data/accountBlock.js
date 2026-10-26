@@ -40,6 +40,25 @@ const KINDS = {
     title: '차단된 계정입니다',
     tail: '기록은 그대로 있습니다. 고객센터로 알려주시면 확인합니다.',
   },
+  // ── 주소가 막힌 것 ── (2026-10-26)
+  //
+  // 계정이 아니라 **지금 쓰는 인터넷 주소**가 막힌 것이다(AI 가드의 LEVEL 2~4 ·
+  // 입력 스캔). 여태 이 403 에는 까닭 코드가 없어서 **이 화면이 뜬 적이 없다** —
+  // 화면마다 「불러오지 못했어요」가 떴고, 그게 10/24 이전의 그 모습이다.
+  //
+  // 더 나쁜 것은 **입력 스캔으로 정지된 사람**이다. 그 벌은 계정 정지와 주소 차단을
+  // 같이 거는데(`aiGuard.executeLevel3`), 주소 잠금은 토큰을 보기 **전에** 걸러진다 —
+  // 즉 그 사람의 다음 요청은 계정 쪽 403(`auth.js`)에 닿지도 못한다. 이 코드가
+  // 없으면 3일 동안 까닭을 한 번도 못 듣는다.
+  //
+  // **한 주소 뒤에는 여럿이 있다**(통신사 NAT · 헬스장 와이파이). 그래서 「당신이
+  // 무엇을 했다」고 단정하지 않는다 — 그렇게 적으면 옆 사람이 자기가 한 줄로 읽는다
+  ip_blocked: {
+    title: '접근이 차단되었습니다',
+    tail: '계정과 적어두신 기록은 그대로입니다. 같은 인터넷 회선(와이파이 · 통신사)을 함께 쓰는 다른 사람 때문일 수도 있습니다.',
+    // 계정 일이 아니다 — 로그아웃해도 안 풀린다. 화면이 그 단추를 안 그린다
+    account: false,
+  },
 };
 
 /** 「10월 31일(토) 15:12」 — 서버가 주는 ISO 를 사람 말로. 못 읽으면 null */
@@ -76,11 +95,18 @@ export function blockOf(err) {
   const data = res.data || {};
   const kind = KINDS[data.code] ? data.code : null;
   if (!kind) return null;
-  const until = typeof data.expiresAt === 'string' ? data.expiresAt : null;
+  // 기한 이름이 두 벌이다 — 계정 쪽은 `expiresAt`, 주소 차단은 예전부터
+  // `blockedUntil` 로 보냈다(이제 둘 다 보낸다). **둘 다 읽는다** — 한쪽만 읽으면
+  // 「풀리는 때」가 조용히 사라지고, 그 칸이 이 화면에 온 사람이 제일 알고 싶은 것이다
+  const raw = typeof data.expiresAt === 'string' ? data.expiresAt
+    : typeof data.blockedUntil === 'string' ? data.blockedUntil : null;
+  const until = raw === 'permanent' || raw === 'forever' ? null : raw;
   return {
     kind,
     title: KINDS[kind].title,
     tail: KINDS[kind].tail,
+    // 계정 일인가 (로그아웃이 뜻이 있는가). 적어두지 않은 것은 계정 일이다
+    account: KINDS[kind].account !== false,
     // 자동 판정이 적어둔 까닭. 없을 수도 있다 (관리자가 손으로 건 것)
     reason: typeof data.reason === 'string' && data.reason.trim() ? data.reason.trim() : null,
     until,

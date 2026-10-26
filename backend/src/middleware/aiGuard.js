@@ -241,6 +241,41 @@ const BOT_PATTERNS = [
   /python-requests/i, /scrapy/i, /httpclient/i, /phantom/i,
 ];
 
+// ── 주소가 막힌 403 도 **까닭 코드를 달고 나간다** ── (2026-10-26)
+//
+// 10/24 에 「정지된 사람이 까닭을 듣는 자리」를 만들었다 — 서버가 403 에 `code` 를
+// 적어 보내면 앱이 그것을 읽어 화면을 덮고 까닭과 기한을 말한다
+// (`frontend/src/data/accountBlock.js`). 그런데 **그 코드를 붙인 곳은 `auth.js`
+// 뿐이었다.** 이 파일의 403 들에는 하나도 없었고, 그러면 아무 일도 일어나지 않는다 —
+// 화면마다 「불러오지 못했어요」가 뜨는 10/24 이전의 그 모습이다.
+//
+// 이쪽이 더 나쁘다. **입력 스캔으로 걸린 사람은 계정 정지와 같이 주소까지 막히고**
+// (`executeLevel3` 이 `block(ip, …)` 를 부른다), 주소 잠금은 **토큰을 보기 전에**
+// 걸러진다 — 즉 그 사람의 다음 요청은 `auth.js` 에 닿지도 못한다. 정지 안내 화면을
+// 띄울 길이 그 자리에서 사라진다. 3일 동안 「접근이 차단되었습니다」 한 줄만 보게 된다.
+//
+// `message` 는 **아무 화면도 읽지 않는다**(앱 전체에서 `data.error` 만 본다).
+// 그래서 사람에게 할 말은 `error` 에 담고, 기한은 `expiresAt` 로 보낸다 —
+// 이름도 `auth.js` 와 같게 둔다. 두 이름을 쓰면 읽는 쪽이 한쪽만 읽는다.
+function ipBlockBody(level, until, reason) {
+  const forever = until === Infinity || until === 'forever' || !until;
+  const body = {
+    code: 'ip_blocked',
+    error: forever
+      ? '이 주소에서의 접근이 영구히 차단되었습니다.'
+      : '이 주소에서의 접근이 일시적으로 차단되었습니다.',
+    level,
+  };
+  if (!forever) {
+    const iso = typeof until === 'number' ? new Date(until).toISOString() : String(until);
+    body.expiresAt = iso;
+    body.blockedUntil = iso;      // 예전 이름. 쓰는 자리가 있을 수 있어 같이 둔다
+  }
+  // 자동 판정이 적어둔 까닭. 화면이 그대로 보여준다 — 까닭 없이 막히는 것이 제일 나쁘다
+  if (reason) body.reason = String(reason);
+  return body;
+}
+
 // ── AI 사유 생성 ──
 //
 // **여기 적히는 말이 사용자에게 그대로 간다.** 그런데 일곱 자리가
@@ -378,6 +413,11 @@ function executeLevel4(userId, ip, triggerType, details) {
 }
 
 // ── LEVEL 3: 정지 ──
+//
+// **무엇을 했는지 돌려준다** (2026-10-26). 여태 까닭 글만 돌려줘서, 부르는 쪽은
+// 「정지가 걸렸나 · 며칠인가 · 언제 풀리나」를 알 수 없었다 — 그래서 403 에 기한을
+// 못 적어 보냈고, 정지 안내 화면이 뜰 수가 없었다 (`ipBlockBody` 머리글).
+// 관리자는 건너뛰고, 쌓이면 영구로 올라간다 — 셋이 다른 답이다.
 function executeLevel3(userId, ip, triggerType, details, days) {
   threats.level3++;
   const aiReason = generateAiReason(3, triggerType, details);
@@ -385,7 +425,7 @@ function executeLevel3(userId, ip, triggerType, details, days) {
   // 관리자는 자동 처벌 대상이 아니다 (LEVEL 4 와 같은 이유)
   if (db.findUserById(userId)?.role === 'admin') {
     addLog('ALERT', `LEVEL 3 대상이 관리자라 건너뜀 (userId=${userId})`, ip, userId);
-    return aiReason;
+    return { reason: aiReason, kind: null, expiresAt: null };
   }
 
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -399,13 +439,14 @@ function executeLevel3(userId, ip, triggerType, details, days) {
 
   // 정지가 쌓이면 영구 정지
   if (count >= SUSPEND_TO_BAN) {
-    return executeLevel4(userId, ip, 'accumulated', `${count}회`);
+    // 영구에는 **기한이 없다** — 화면이 「풀리는 때」를 안 그린다
+    return { reason: executeLevel4(userId, ip, 'accumulated', `${count}회`), kind: 'banned', expiresAt: null };
   }
 
   // IP 차단 (정지 기간만큼)
   block(ip, Date.now() + days * 24 * 60 * 60 * 1000, 3, aiReason);
 
-  return aiReason;
+  return { reason: aiReason, kind: 'suspended', expiresAt };
 }
 
 // ── LEVEL 2: 잠금 ──
@@ -731,11 +772,7 @@ function aiGuardMiddleware(req, res, next) {
     const info = blockedIPs.get(ip);
     if (info.until === Infinity || Date.now() < info.until) {
       blockedRequests++;
-      const response = { error: '접근이 차단되었습니다.', level: info.level };
-      if (info.until !== Infinity) response.blockedUntil = new Date(info.until).toISOString();
-      if (info.level === 4) response.message = '보안 정책 위반으로 영구 차단되었습니다.';
-      else response.message = 'AI Guard에 의해 일시 차단되었습니다.';
-      return res.status(403).json(response);
+      return res.status(403).json(ipBlockBody(info.level, info.until, info.reason));
     }
     // **지우기 전에 파일을 한 번 더 본다.** 램이 파일보다 약할 수 있어서다 —
     // 램의 60분이 지났다고 파일의 영구 차단까지 지우면 안 된다
@@ -746,12 +783,7 @@ function aiGuardMiddleware(req, res, next) {
       const until2 = persisted.until === 'forever' ? Infinity : new Date(persisted.until).getTime();
       limitedSet(blockedIPs, ip, { until: until2, level: persisted.level, reason: persisted.reason });
       blockedRequests++;
-      return res.status(403).json({
-        error: '접근이 차단되었습니다.',
-        level: persisted.level,
-        message: persisted.level === 4 ? '보안 정책 위반으로 영구 차단되었습니다.' : 'AI Guard에 의해 일시 차단되었습니다.',
-        ...(persisted.until === 'forever' ? {} : { blockedUntil: persisted.until }),
-      });
+      return res.status(403).json(ipBlockBody(persisted.level, until2, persisted.reason));
     }
     blockedIPs.delete(ip);
     try { db.unblockIp(ip); } catch { /* 파일이 안 지워져도 램에서는 풀렸다 */ }
@@ -787,7 +819,10 @@ function aiGuardMiddleware(req, res, next) {
   // (위의 「주소 잠금 바깥」. 이 줄을 빼먹어서 관리자가 그대로 막혔다)
   if (blockedIPs.has(ip) && !isAdminReq) {
     blockedRequests++;
-    return res.status(403).json({ error: '비정상적인 요청으로 차단되었습니다.' });
+    // 위의 차단과 **같은 모양으로** 돌려준다 (2026-10-26) — 여기만 까닭 코드도
+    // 기한도 없이 한 줄이었다. 사다리에 막 걸린 사람이 보는 첫 화면이 이쪽이다
+    const info = blockedIPs.get(ip) || {};
+    return res.status(403).json(ipBlockBody(info.level, info.until, info.reason));
   }
   if (tooFast) {
     // 계정 몫이 넘쳤다 — **그 계정만** 잠깐 쉰다. 주소는 건드리지 않는다.
@@ -887,20 +922,34 @@ function aiGuardMiddleware(req, res, next) {
       limitedSet(inputHits, userId, hits);
       addLog('WARNING', `입력 스캔 ${hits}회 — ${threat.type} (userId=${userId})`, ip, userId);
 
+      // ── **할 말은 `error` 에 담는다** ── (2026-10-26)
+      //
+      // 여기 `error` 는 「보안 정책 위반이 감지되었습니다.」 한 줄이고, 무엇을 하면
+      // 되는지는 `message` 에 적어 보냈다. 그런데 **`message` 를 읽는 화면이 한 곳도
+      // 없다** — 앱 전체가 `err.response.data.error` 만 본다(제보함 · 기록 · 사진 ·
+      // 설정 전부). 그래서 사람이 실제로 본 것은 저 한 줄뿐이었다. 10/24 에
+      // 비로그인 쪽은 이 까닭으로 고쳤는데(아래), **로그인한 사람 쪽은 그대로였다** —
+      // 그쪽이 더 무겁다: 두 번째에 계정이 정지되는데 그 사실조차 안 들린다.
       if (hits === 1) {
         return res.status(403).json({
-          error: '보안 정책 위반이 감지되었습니다.',
-          message: '보낼 수 없는 글자가 들어 있어 막았습니다. 계정은 그대로입니다 — 그 부분을 빼고 다시 보내주세요. 되풀이되면 정지될 수 있습니다.',
+          error: '보낼 수 없는 글자가 들어 있어 막았습니다. 계정은 그대로입니다 — 그 부분을 빼고 다시 보내주세요. 되풀이되면 정지될 수 있습니다.',
         });
       }
 
-      const reason = executeLevel3(userId, ip, threat.type, threat.pattern, INPUT_SUSPEND_DAYS);
+      const out = executeLevel3(userId, ip, threat.type, threat.pattern, INPUT_SUSPEND_DAYS);
       return res.status(403).json({
-        error: '보안 정책 위반이 감지되었습니다.',
+        // **까닭 코드를 붙인다** — 이것이 있어야 앱이 정지 안내 화면을 덮어 그린다
+        // (`frontend/src/data/accountBlock.js`). 10/24 에 만든 그 화면이 이 길에서는
+        // 뜬 적이 없다. 게다가 이 정지는 **주소까지 같이 막으므로**(`block(ip, …)`)
+        // 다음 요청은 `auth.js` 의 403 에도 닿지 못한다 — 여기서 말해야 한다
+        ...(out.kind ? { code: out.kind } : {}),
+        ...(out.expiresAt ? { expiresAt: out.expiresAt } : {}),
         // **막아둔 길을 가리키지 않는다** (2026-10-24) — 정지되면 제보도 403 이다.
         // 기간이 있는 정지라 「풀린 뒤에」가 할 수 있는 말이다 (`abusePolicy` 와 같은 말)
-        message: `되풀이되어 계정이 ${INPUT_SUSPEND_DAYS}일간 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 **풀린 뒤에** 고객센터 제보함으로 알려주세요.`,
-        reason: reason,
+        error: out.kind === 'banned'
+          ? '되풀이되어 계정이 영구 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 알려주세요. 확인해서 되돌립니다.'
+          : `되풀이되어 계정이 ${INPUT_SUSPEND_DAYS}일간 정지되었습니다. 기록은 지우지 않습니다 — 잘못 걸렸다면 풀린 뒤에 고객센터 제보함으로 알려주세요.`,
+        reason: out.reason,
       });
     }
 
@@ -922,9 +971,9 @@ function aiGuardMiddleware(req, res, next) {
 
     // **무엇을 하면 되는지 적는다.** 여태 이 말 하나였다 — 그 말로는 고칠 수가 없다.
     // 로그인한 사람에게는 위에서 이미 그렇게 말하고 있었다
+    // **한 줄로 합친다** (2026-10-26) — `message` 는 읽는 화면이 없다 (위 참고)
     return res.status(403).json({
-      error: '보낼 수 없는 글자가 들어 있어 막았습니다.',
-      message: '스크립트로 읽힐 수 있는 글자가 있어요. 그 부분을 빼고 다시 보내주세요.',
+      error: '보낼 수 없는 글자가 들어 있어 막았습니다. 스크립트로 읽힐 수 있는 글자가 있어요 — 그 부분을 빼고 다시 보내주세요.',
     });
   }
 
