@@ -86,6 +86,9 @@ ok('  바를 고를 수 있다', /BARS\.map/.test(page), true);
 // 원판 안내를 통째로 못 본다 (2026-10-22 에 고친 버그)
 ok('  워밍업도 그 운동의 바를 쓴다', /warmupSets\(todayKg, \{ bar: useBar \}\)/.test(page), true);
 ok('  원판 줄도 같은 값을 쓴다', /plateText\(todayKg, useBar\)/.test(page), true);
+// **「양쪽」을 한 번은 말한다** — 줄에 붙는 숫자는 자리가 좁아 「양쪽 」을 떼고
+// 그린다. 한쪽인지 합인지 모르면 **두 배를 꽂는다**
+ok('  워밍업 줄 옆의 원판이 양쪽 것이라고 적어준다', /원판은 양쪽에 꽂는 것이에요/.test(page), true);
 ok('  바 고르는 칸은 덤벨 운동에서 안 그린다', /barByName !== 'none' && \(/.test(page), true);
 ok('바 목록이 셋이다 (20 · 15 · 덤벨)', BARS.map((b) => b.kg), [20, 15, 0]);
 ok('원판에 1.25 가 있다 (2.5kg 증량)', PLATES.includes(1.25), true);
