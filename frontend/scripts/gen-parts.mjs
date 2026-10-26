@@ -48,6 +48,53 @@ export function buildTable(dict = EXERCISE_DICT) {
   return table;
 }
 
+// ── **기구도 사전이 안다** ── (2026-10-26)
+//
+// 원판 계산(`plateMath.js`)은 「그 운동에 바가 있나」를 **이름의 낱말로만** 맞히고
+// 있었다. 사전 219개를 넣어 보니 **91개가 「모름」**이었고, 「바벨」로 읽은 35개 중
+// 아홉은 **맨몸·케틀벨 운동**이었다 — 「점프 스쿼트」·「의자 스쿼트」·「고블릿
+// 스쿼트」가 「빈 바 20kg」 안내를 받았다(「스쿼트」가 들어 있어서다).
+//
+// 9/29 에 부위를 사전으로 옮긴 것과 **같은 까닭**이다: 낱말은 변형을 못 따라간다.
+// 그래서 사전 칸에 `gear` 를 적고(`'bar'`=바벨 · `'none'`=바 없음 · 안 적으면 모름),
+// 여기서 **이름 → 기구** 표만 뽑는다.
+//
+// **부위 표와 따로 둔다.** 부위는 홈 화면이 받고, 기구는 기록 화면만 쓴다 —
+// 한 파일에 담으면 홈이 쓰지 않는 표를 같이 받는다(이 파일을 만든 그 까닭이다).
+export function buildGear(dict = EXERCISE_DICT) {
+  const table = {};
+  for (const e of dict) {
+    // **안 적은 것은 적지 않는다.** 「모름」은 사람이 고른 바를 그대로 쓴다는 뜻이고,
+    // 여기에 'unknown' 을 적어두면 그 뜻이 「사전이 모른다」로 바뀐다
+    if (e.gear !== 'bar' && e.gear !== 'none') continue;
+    for (const name of [e.ko, e.en]) {
+      const k = norm(name);
+      if (k && !(k in table)) table[k] = e.gear;
+    }
+  }
+  return table;
+}
+
+export function renderGear(table) {
+  const rows = Object.entries(table).map(([k, v]) => `  '${k}': '${v}',`).join('\n');
+  return `// **뽑아 적은 파일이다. 손으로 고치지 않는다.**
+//
+//   npm run parts        사전에서 다시 뽑는다 (scripts/gen-parts.mjs)
+//   npm run plate        사전과 어긋나면 잡는다 (scripts/check-plate.cjs)
+//
+// 원본은 \`exerciseDict.js\` 의 \`gear\` 칸이다. 기구를 고치려면 **거기서** 고친다.
+//
+//   'bar'   바벨이다 — 양쪽에 같은 원판을 꽂는다
+//   'none'  바가 없다 — 덤벨 · 머신 · 케이블 · 맨몸. 표시 무게가 곧 그 무게다
+//
+// **안 적힌 이름은 「모름」이다** — 바벨로도 덤벨로도 하는 것(숄더프레스 · 슈러그 ·
+// 스컬크러셔 …)은 일부러 비워 둔다. 그때는 사람이 고른 바를 그대로 쓴다.
+export const EXERCISE_GEAR = {
+${rows}
+};
+`;
+}
+
 export function render(table) {
   const rows = Object.entries(table)
     .map(([k, v]) => `  '${k}': '${v}',`)
@@ -83,9 +130,11 @@ export function renderCjs(table) {
 }
 
 const table = buildTable();
+const gear = buildGear();
 const FILES = [
   [new URL('../src/data/exercisePart.js', import.meta.url), render(table), 'frontend/src/data/exercisePart.js'],
   [new URL('../../backend/src/utils/exercisePart.cjs', import.meta.url), renderCjs(table), 'backend/src/utils/exercisePart.cjs'],
+  [new URL('../src/data/exerciseGear.js', import.meta.url), renderGear(gear), 'frontend/src/data/exerciseGear.js'],
 ];
 
 const n = Object.keys(table).length;
@@ -98,4 +147,4 @@ for (const [url, text, label] of FILES) {
   wrote += 1;
   console.log(`[parts] ${n}개 → ${label}`);
 }
-if (wrote === 0) console.log(`[parts] 그대로 — ${n}개 · 두 판`);
+if (wrote === 0) console.log(`[parts] 그대로 — ${n}개 · 두 판 · 기구 ${Object.keys(gear).length}개`);

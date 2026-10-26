@@ -20,6 +20,10 @@
 // 말한다. 몰래 반올림해서 「100kg」이라고 적어주면 실제로는 97.5kg 을 들고
 // 기록에는 100 이 남는다 — 그게 다음 주 무게를 정한다.
 
+// **기구는 사전이 안다** — 빌드가 뽑아둔 표다 (`gen-parts.mjs` → `exerciseGear.js`).
+// 손으로 고치지 않는다. 고칠 자리는 `exerciseDict.js` 의 `gear` 칸이다
+import { EXERCISE_GEAR } from './exerciseGear.js';
+
 // 한국 헬스장에 보통 있는 원판 (kg). 큰 것부터.
 //
 // 1.25 까지 둔다 — 2.5 단위로 떨어지는 무게만 쓰면 양쪽 합 2.5kg 을 못 올린다.
@@ -56,7 +60,21 @@ export const BARS = [
 // 그래서 여기서는 낱말만 본다. 검사가 사전 219개를 통째로 넣어 본다(`npm run plate`).
 
 // 공백 · 기호를 지운 소문자 — 「덤벨 컬」과 「덤벨컬」은 같은 말이다
+// **사전에서 뽑은 표의 열쇠와 같은 다듬기여야 한다** (`gen-parts.mjs` 의 `norm`) —
+// 다르면 표를 찾는 열쇠가 어긋나 조용히 안 맞는다
 const flat = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
+
+// 사전 이름을 **긴 것부터** 본다 — 「의자 스쿼트」가 「스쿼트」보다 먼저 걸려야 한다.
+// 한 번만 세운다 (부를 때마다 세우면 기록 수천 건에서 그만큼 돈다)
+const GEAR_NAMES = Object.keys(EXERCISE_GEAR).sort((a, b) => b.length - a.length);
+
+/** 이름 안에 든 **제일 긴** 사전 이름의 기구. 없으면 null */
+function containedGear(n) {
+  for (const key of GEAR_NAMES) {
+    if (key.length >= 2 && n.includes(key)) return EXERCISE_GEAR[key];
+  }
+  return null;
+}
 
 // **바가 없는 것** — 덤벨 · 머신 · 케이블 · 맨몸.
 // 고정 기구(랫풀다운 · 레그프레스)는 표시 무게가 곧 그 무게라 나눌 것이 없다
@@ -89,9 +107,18 @@ const BAR_WORDS = [
 export function equipOf(name) {
   const n = flat(name);
   if (!n) return 'unknown';
-  // **바가 없는 쪽을 먼저 본다.** 「덤벨 벤치프레스」는 둘 다 걸리는데 덤벨이다 —
-  // 기구 낱말이 계열 낱말보다 세다
+  // ① 사전에 **그 꼴로** 있으면 사전이 답한다 (안 적힌 것은 「모름」이라 안 걸린다)
+  if (EXERCISE_GEAR[n]) return EXERCISE_GEAR[n];
+  // ② **바가 없는 쪽을 먼저 본다.** 「덤벨 벤치프레스」는 둘 다 걸리는데 덤벨이다 —
+  // 기구 낱말이 계열 낱말보다 세고, **사전이 품은 이름보다도 세다**
+  // (「스미스 벤치프레스」는 사전의 「벤치프레스」를 품지만 스미스머신이다)
   if (NO_BAR_WORDS.some((w) => n.includes(flat(w)))) return 'none';
+  // ③ 사전 이름을 **품고 있으면** 그 이름으로 본다 — 긴 것부터.
+  // 「라잉 아놀드프레스」 · 「집에서 의자 스쿼트」처럼 꾸며 적은 것이 여기서 걸린다.
+  // 짧은 쪽이 먼저 걸리면 「의자 스쿼트」가 「스쿼트」로 읽혀 빈 바가 나온다
+  const held = containedGear(n);
+  if (held) return held;
+  // ④ 계열 낱말 — 사전에 아예 없는 이름
   if (BAR_WORDS.some((w) => n.includes(flat(w)))) return 'bar';
   return 'unknown';
 }
