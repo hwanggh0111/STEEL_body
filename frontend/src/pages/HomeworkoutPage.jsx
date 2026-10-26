@@ -5,7 +5,7 @@ import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
 import { HOME_LAST_KEY, BREATH_LOG_KEY } from '../data/localKeys';
-import { buildPump, programPump, partsOf, toRecords } from '../data/homeworkoutParts';
+import { buildPump, programPump, partsOf, toRecords, doneList } from '../data/homeworkoutParts';
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import {
@@ -270,6 +270,8 @@ export default function HomeworkoutPage() {
   const [extraGiven, setExtraGiven] = useState(0);
   // 동작마다 그 동안 가장 컸던 숨. 끝 화면의 「숨이 제일 찼던 동작」이 쓴다
   const peaksRef = useRef([]);
+  // 사람이 **넘긴** 동작 번호. 한 것이 아니므로 몸 그림 · 기록 · 숨 순위에서 뺀다
+  const skippedRef = useRef(new Set());
   const stepStartRef = useRef(0);
 
   // ── 회복 시간 (2026-09-30, 계획은 `docs/BREATH-RECOVER-2026-09-30.md`) ──
@@ -353,8 +355,25 @@ export default function HomeworkoutPage() {
 
   // 여기까지 몸의 어디를 채웠나. 계산은 `data/homeworkoutParts.js` 가 한다 —
   // **쉬는 중이면 방금 끝낸 것까지** 센다(쉬는 동안은 그 동작을 이미 한 것이다)
-  const pumpDone = isRest ? currentIdx + 1 : currentIdx;
-  const pump = useMemo(() => buildPump(exercises, pumpDone), [exercises, pumpDone]);
+  // ── **건너뛴 동작은 안 센다** ── (2026-10-26)
+  //
+  // 「넘기기」는 **오늘 안 되는 동작**을 지나가는 단추다(노르딕 컬 · 월 핸드스탠드).
+  // 그런데 셈에서는 지나간 것을 **한 것으로** 세고 있었다 — 몸 지도에 안 한 운동이
+  // 칠해지고, 「운동 기록에 남기기」가 **하지 않은 운동을 서버에 적었다.**
+  // 한 번 적힌 기록은 다음에 할 곳을 고르는 데 쓰인다(몸 지도가 그 자리다).
+  //
+  // 여기 한 곳에서 **실제로 한 동작만** 모아 아래가 다 그것을 쓴다 — 몸 그림 ·
+  // 움직인 시간 · 진행 막대 · 기록 줄. 셈이 네 벌이면 한쪽만 고쳐진다
+  // 세는 규칙은 값만 다루는 자리에 있다 (`doneList`) — 검사가 눈 없이 본다
+  const doneRows = useMemo(
+    () => doneList(exercises, {
+      idx: currentIdx, rest: isRest, done: finished, skipped: skippedRef.current,
+    }),
+    // `skippedRef` 는 **넘긴 그 순간에 칸이 바뀌므로** 아래 셋만 보면 된다
+    // (넘기면 `advance` 가 다음 칸으로 넘어가며 `currentIdx` · `isRest` 를 바꾼다)
+    [exercises, currentIdx, isRest, finished],
+  );
+  const pump = useMemo(() => buildPump(doneRows, doneRows.length), [doneRows]);
   const current = exercises[currentIdx];
 
   // 지금 어느 단계인지. 화면 상태와 따로 ref 로도 들고 있는다 —
@@ -415,17 +434,30 @@ export default function HomeworkoutPage() {
     setTimeLeft(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
   };
 
-  const advance = () => {
+  /**
+   * 다음 단계로. **시계가 불렀나, 사람이 눌렀나**를 가린다 (2026-10-26).
+   *
+   * `bySkip` 이 참이면 사람이 「넘기기」(또는 「숨 더 안 줘도 돼요」)를 누른 것이다.
+   * 그때는 **숨을 보고 쉬는 시간을 늘리지 않는다** — 여태 가리지 않아서, 쉬는 중에
+   * 넘기기를 누르면 숨이 차 있으면 **쉬는 시간이 늘어났다.** 넘기려고 누른 단추가
+   * 반대로 움직인 셈이다(그 자리를 `setExtraGiven(99)` 로 비켜가고 있었다).
+   */
+  const advance = (bySkip = false) => {
     const { idx, rest } = phaseRef.current;
 
     // ── 숨을 보고 쉬는 시간을 늘린다 ──
     //
     // **끝나려는 그 순간에 한 번만 본다.** 쉬는 내내 보면 숨이 한 번 튈 때마다
     // 늘어나서 휴식이 언제 끝날지 모르게 된다
-    if (rest && breath.on && breath.phase === 'ready') {
+    // **사람이 넘긴 것은 늘리지 않는다** (2026-10-26, 위 머리글)
+    if (!bySkip && rest && breath.on && breath.phase === 'ready') {
       const add = extraFor(breath.state, extraGiven, breathMax);
       if (add > 0) { addRest(add); return; }
     }
+
+    // 사람이 넘긴 **동작**은 한 것이 아니다 — 셈에서 뺀다 (쉬는 것을 넘긴 것은 그냥
+    // 쉬는 시간을 줄인 것이라 안 적는다)
+    if (bySkip && !rest) skippedRef.current = new Set([...skippedRef.current, idx]);
 
     // ── 회복 시간을 닫는다 ──
     //
@@ -433,8 +465,10 @@ export default function HomeworkoutPage() {
     // 아직 가라앉기 전이면 `endRecover` 가 까닭을 달아준다 — **0초로 적지 않는다.**
     if (rest && recRef.current) finishRecover(endRecover(recRef.current));
 
-    // 동작이 끝났으면 그 동안 가장 컸던 숨을 적어둔다 (끝 화면의 순위에 쓴다)
-    if (!rest && breath.on && breath.phase === 'ready') {
+    // 동작이 끝났으면 그 동안 가장 컸던 숨을 적어둔다 (끝 화면의 순위에 쓴다).
+    // **넘긴 동작은 안 적는다** — 하지 않은 동작이 「숨이 제일 찼던 동작」에 오르면
+    // 그 줄 전체를 못 믿는다
+    if (!bySkip && !rest && breath.on && breath.phase === 'ready') {
       const ex = exercises[idx];
       if (ex?.name) {
         peaksRef.current = [
@@ -528,6 +562,14 @@ export default function HomeworkoutPage() {
     pausedLeftRef.current = 0;
     // 이 판에서 잰 회복 시간은 **판마다 새로 센다** (이력은 그대로 쌓여 있다)
     recRowsRef.current = [];
+    // ── **지난 판의 것을 들고 가지 않는다** ── (2026-10-26)
+    //
+    // 회복 시간은 비우는데 **숨 최고치와 넘긴 동작은 안 비우고 있었다.** 그래서
+    // 여덟 개짜리를 하고 다섯 개짜리를 돌리면, 끝 화면의 「숨이 제일 찼던 동작」에
+    // **앞 판의 여섯째 · 일곱째 동작**이 그 이름 그대로 올라왔다(칸을 번호로 묶어
+    // 두기 때문이다). 판을 바꿔 돌리면 더 눈에 띈다
+    peaksRef.current = [];
+    skippedRef.current = new Set();
     recRef.current = null;
     setRecLine(null);
     setFinished(false);
@@ -566,7 +608,7 @@ export default function HomeworkoutPage() {
   const skipStep = () => {
     if (!running) return;
     deadlineRef.current = Date.now();
-    advance();
+    advance(true);               // **사람이 누른 것이다** — 쉬는 시간을 늘리지 않는다
   };
 
   // 그만두기 — 처음으로 되돌린다
@@ -582,10 +624,11 @@ export default function HomeworkoutPage() {
   };
 
   // 어디까지 했나. 끝냈으면 전부, 중간에 멈췄으면 지나온 것까지
-  const doneCount = finished ? exercises.length : currentIdx;
-  const doneSeconds = exercises
-    .slice(0, doneCount)
-    .reduce((sum, e) => sum + e.duration, 0);
+  // **쉬는 중이면 방금 끝낸 것까지 센다** — 쉬는 시간은 그 동작을 **이미 한** 뒤의
+  // 일이다(`doneNow` 와 같은 자를 쓴다). 여태 이 자리만 `currentIdx` 였다:
+  //   · 첫 동작을 하고 그 휴식에서 멈추면 「여기까지 기록하기」가 **꺼져 있었다**
+  //   · 다섯째 휴식에서 멈추고 기록하면 **다섯째가 빠진 넷**만 올라갔다
+  const doneSeconds = doneRows.reduce((sum, e) => sum + e.duration, 0);
 
   // 기록 화면으로 넘길 값.
   //
@@ -605,8 +648,10 @@ export default function HomeworkoutPage() {
    * 못 올려도 **앱은 그대로 돈다**: 신호가 없으면 줄에 담겼다가 나중에 올라간다
    * (`workoutStore` 가 이미 그렇게 한다).
    */
-  const goRecord = async (count) => {
-    const rows = toRecords(exercises, count, selected);
+  const goRecord = async (list) => {
+    // **실제로 한 동작만** 넘긴다 (`doneRows`). 여태 「몇 개까지」라는 수를 넘겼는데,
+    // 그 수에는 **넘긴 동작도 들어 있었다** — 하지 않은 운동이 서버에 적혔다
+    const rows = toRecords(list, list.length, selected);
     if (rows.length === 0) { toast('적을 것이 없어요'); return; }
 
     // ── 올라간 줄과 못 올라간 줄을 **갈라서 센다** ── (2026-10-06)
@@ -887,7 +932,8 @@ export default function HomeworkoutPage() {
   }
 
   // 판을 다 했을 때의 몸 — **전부를 센다**(`pump` 는 진행 중 것이라 여기서는 못 쓴다)
-  const donePump = buildPump(exercises, exercises.length);
+  // **한 것만 센다** — 넘긴 동작까지 칠하면 몸 그림이 거짓말을 한다 (2026-10-26)
+  const donePump = buildPump(doneRows, doneRows.length);
   // 숨을 켜고 했으면 순위가 나온다. 안 켰으면 빈 것이라 그 칸이 통째로 안 그려진다
   const hardest = hardestOf(peaksRef.current, breath.base);
   // 이 판의 회복 시간 결산. **잰 칸이 없으면 `null`** 이라 아래가 통째로 안 그려진다
@@ -912,8 +958,13 @@ export default function HomeworkoutPage() {
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
             {selected}
             <br />
+            {/* **한 것을 센다.** 넘긴 동작까지 세면 「12개 운동」이라고 적어놓고
+                기록에는 열 줄이 올라간다 — 화면과 기록이 서로 다른 말을 한다 */}
             <span style={{ color: 'var(--text-primary)' }}>
-              {exercises.length}개 운동 · 움직인 시간 {Math.round(doneSeconds / 60)}분
+              {doneRows.length}개 운동 · 움직인 시간 {Math.round(doneSeconds / 60)}분
+              {doneRows.length < exercises.length && (
+                <span style={{ color: 'var(--text-muted)' }}> · 넘긴 {exercises.length - doneRows.length}개 빼고</span>
+              )}
             </span>
           </div>
         </div>
@@ -994,7 +1045,7 @@ export default function HomeworkoutPage() {
           </div>
         </div>
 
-        <button className="btn-primary" onClick={() => goRecord(exercises.length)}>
+        <button className="btn-primary" onClick={() => goRecord(doneRows)}>
           운동 기록에 남기기
         </button>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -1049,9 +1100,12 @@ export default function HomeworkoutPage() {
 
             {/* ── 숨과 몸 (2026-09-22) ──
                 **쉴 때만 그린다.** 버티는 45초 동안은 아무도 화면을 안 본다 —
-                그때 파형을 흔들어봐야 볼 사람이 없다 */}
+                그때 파형을 흔들어봐야 볼 사람이 없다.
+
+                「더 안 줘도 돼요」는 **사람이 누른 것**이라 늘리지 않고 바로 넘긴다 —
+                여태 `setExtraGiven(99)` 로 「이미 많이 줬다」고 속여서 비켜갔다 (2026-10-26) */}
             {isRest && breathable && (
-              <BreathRow breath={breath} extraGiven={extraGiven} onSkip={() => { setExtraGiven(99); advanceRef.current(); }} />
+              <BreathRow breath={breath} extraGiven={extraGiven} onSkip={() => advanceRef.current(true)} />
             )}
             {/* ── 회복 시간 (2026-09-30) ──
                 숨이 가라앉은 **그 순간에** 뜬다. 쉬는 시간이 끝날 때까지 기다리면
@@ -1123,7 +1177,7 @@ export default function HomeworkoutPage() {
                 <button className="btn-secondary" style={{ flex: 1 }} onClick={startProgram}>처음부터</button>
                 {/* 중간에 멈춘 만큼도 기록할 수 있어야 한다 —
                     예전에는 끝까지 해야만 「기록 저장」이 나왔다 */}
-                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => goRecord(currentIdx)} disabled={currentIdx < 1}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => goRecord(doneRows)} disabled={doneRows.length < 1}>
                   여기까지 기록하기
                 </button>
               </div>

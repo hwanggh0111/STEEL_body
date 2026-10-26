@@ -110,6 +110,70 @@ async function run(rejectIdx) {
   // **기본값은 켜져 있어야 한다** — 혼자 쓰는 자리에서 끄면 최고 기록이 잘못 뜬다
   ok('  기본값은 켜져 있다', /refetch = true/.test(store), true);
 
+console.log('\n── **한 것만 세는가** ── (2026-10-26)');
+//
+// 「넘기기」는 **오늘 안 되는 동작**을 지나가는 단추다(노르딕 컬 · 월 핸드스탠드 홀드).
+// 그런데 셈이 화면 안에 네 벌로 흩어져 있었고 — 몸 그림 · 움직인 시간 · 진행 막대 ·
+// **기록 줄** — 기록 쪽만 틀렸다. 두 가지가 같이 나왔다:
+//
+//   · **넘긴 동작이 한 것으로 적혔다.** 하지 않은 운동이 서버와 몸 지도에 남고,
+//     그 지도가 「오늘 뭘 하지」를 고른다
+//   · **쉬는 중에 멈추고 적으면 방금 끝낸 동작이 빠졌다**(`currentIdx` 를 그대로 썼다).
+//     첫 동작 뒤 휴식에서 멈추면 「여기까지 기록하기」가 **꺼져 있었다**(0 < 1)
+const L = prog.PROGRAMS[NAME];
+const at = (o) => hw.doneList(L, o).length;
+ok('운동 중이면 지나온 것까지', at({ idx: 3, rest: false }), 3);
+ok('  **쉬는 중이면 방금 끝낸 것까지**', at({ idx: 3, rest: true }), 4);
+ok('  첫 동작 뒤 휴식이면 하나는 센다 (단추가 켜진다)', at({ idx: 0, rest: true }), 1);
+ok('  아직 아무것도 안 했으면 0', at({ idx: 0, rest: false }), 0);
+ok('  끝냈으면 전부', at({ done: true }), L.length);
+ok('넘긴 동작은 뺀다', at({ idx: 5, rest: false, skipped: [1, 3] }), 3);
+ok('  끝까지 갔어도 뺀다', at({ done: true, skipped: [0] }), L.length - 1);
+ok('  아직 안 간 번호를 넘겼다고 해도 안 흔들린다', at({ idx: 2, rest: false, skipped: [7] }), 2);
+ok('  Set 으로 줘도 같다', at({ idx: 5, rest: false, skipped: new Set([1, 3]) }), 3);
+ok('이상한 값에도 안 터진다',
+  [hw.doneList(null, {}).length, hw.doneList(L, undefined).length,
+    at({ idx: -5, rest: true }), at({ idx: 999, rest: false })],
+  [0, 0, 0, L.length]);
+
+// **기록 줄도 그것을 쓴다** — 넘긴 동작의 부위가 줄에 섞이면 안 된다
+{
+  const all = hw.toRecords(L, L.length, NAME);
+  const skipFirst = hw.doneList(L, { done: true, skipped: [0] });
+  const less = hw.toRecords(skipFirst, skipFirst.length, NAME);
+  const sum = (rs) => rs.reduce((n, r) => n + r.sets, 0);
+  ok('넘긴 한 동작만큼 세트가 줄어든다', sum(all) - sum(less), hw.partsOf(L[0]).main.length);
+}
+
+console.log('\n── 화면이 그 자를 쓰는가 ──');
+{
+  const page = fs.readFileSync('src/pages/HomeworkoutPage.jsx', 'utf-8');
+  ok('셈을 값 쪽에서 가져온다', /doneList\(exercises, \{/.test(page), true);
+  ok('  몸 그림 · 기록 · 시간이 같은 것을 쓴다',
+    [/buildPump\(doneRows, doneRows\.length\)/.test(page),
+      /goRecord\(doneRows\)/.test(page),
+      /doneRows\.reduce\(\(sum, e\) => sum \+ e\.duration, 0\)/.test(page)], [true, true, true]);
+  ok('  「여기까지 기록하기」가 그 수로 켜진다', /disabled=\{doneRows\.length < 1\}/.test(page), true);
+  ok('  옛 셈(currentIdx 로 기록)이 남아 있지 않다', /goRecord\(currentIdx\)/.test(page), false);
+
+  // **사람이 넘긴 것과 시계가 끝난 것을 가린다** — 안 가리면 쉬는 중에 「넘기기」를
+  // 눌렀을 때 숨이 차 있으면 **쉬는 시간이 늘어난다**(넘기려고 누른 단추가 반대로 간다)
+  ok('넘긴 것인지 시계가 끝난 것인지 가린다', /const advance = \(bySkip = false\)/.test(page), true);
+  ok('  넘겼으면 쉬는 시간을 안 늘린다', /if \(!bySkip && rest && breath\.on/.test(page), true);
+  ok('  넘긴 동작을 적어둔다', /if \(bySkip && !rest\) skippedRef/.test(page), true);
+  ok('  넘긴 동작의 숨 최고치는 안 적는다', /if \(!bySkip && !rest && breath\.on/.test(page), true);
+  ok('  「넘기기」가 그 길로 부른다', /advance\(true\);/.test(page), true);
+  // 주석에는 그 글자가 **까닭으로** 남아 있다 — 세미콜론까지 봐서 코드만 센다
+  ok('  「더 안 줘도 돼요」도 (99 로 속이지 않는다)',
+    [/onSkip=\{\(\) => advanceRef\.current\(true\)\}/.test(page), /setExtraGiven\(99\);/.test(page)],
+    [true, false]);
+
+  // **판을 새로 시작하면 지난 판의 것을 들고 가지 않는다** — 숨 최고치는 칸 번호로
+  // 묶여 있어서, 여덟 개짜리 뒤에 다섯 개짜리를 돌리면 앞 판의 여섯째가 끝 화면에 올라왔다
+  ok('새 판은 지난 판의 숨 최고치를 버린다', /peaksRef\.current = \[\];/.test(page), true);
+  ok('  넘긴 동작도 같이 버린다', /skippedRef\.current = new Set\(\);/.test(page), true);
+}
+
   console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
   process.exit(bad ? 1 : 0);
 })();

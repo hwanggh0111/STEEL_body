@@ -87,6 +87,33 @@ export function buildPump(list, done) {
 }
 
 /**
+ * **실제로 한 동작만** 골라낸다 (2026-10-26).
+ *
+ * 화면 안에서 세고 있었더니 같은 셈이 네 벌이 됐고(몸 그림 · 움직인 시간 ·
+ * 진행 막대 · 기록 줄) **한 벌만 틀렸다.** 그래서 값만 다루는 이 자리로 옮긴다 —
+ * 검사가 눈 없이 볼 수 있다.
+ *
+ * 두 가지를 지킨다 —
+ *   · **쉬는 중이면 방금 끝낸 것까지 센다.** 쉬는 시간은 그 동작을 이미 한 뒤의
+ *     일이다. 여태 기록 쪽만 `currentIdx` 를 써서, 다섯째 휴식에서 멈추고 적으면
+ *     **다섯째가 빠진 넷**만 올라갔다
+ *   · **넘긴 동작은 뺀다.** 「넘기기」는 오늘 안 되는 동작을 지나가는 단추다 —
+ *     그것을 한 것으로 적으면 **하지 않은 운동이 서버와 몸 지도에 남는다**
+ *
+ * @param list     프로그램의 동작 배열
+ * @param at.idx   지금 몇 번째 칸인가 (`currentIdx`)
+ * @param at.rest  쉬는 중인가
+ * @param at.done  판을 끝냈나 (그러면 전부가 대상이다)
+ * @param at.skipped 사람이 넘긴 번호들 (Set 또는 배열)
+ */
+export function doneList(list, { idx = 0, rest = false, done = false, skipped } = {}) {
+  const rows = Array.isArray(list) ? list : [];
+  const skip = skipped instanceof Set ? skipped : new Set(Array.isArray(skipped) ? skipped : []);
+  const upto = done ? rows.length : Math.max(0, Math.min(rows.length, rest ? idx + 1 : idx));
+  return rows.filter((_, i) => i < upto && !skip.has(i));
+}
+
+/**
  * 판 전체가 **어디를 채우는 판인가** (고르기 전에 보는 것).
  *
  * `buildPump` 에 전부를 넘긴 것과 같다. 이름을 따로 두는 것은 부르는 자리에서
