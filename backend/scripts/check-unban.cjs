@@ -121,6 +121,41 @@ console.log('── 화면에도 그 길이 있는가 ──');
   ok('  머리에도 센다', /영구 정지 <b/.test(panel), true);
 }
 
+console.log('');
+console.log('── **주인이 없어진 줄은 뺄 수 있는가** ── (2026-10-26)');
+//
+// 위의 길은 **사람 단위**로 푼다(`removeBlacklistFor`). 그래서 10/22 에 고친 뒤에도
+// **`db.removeBlacklist` 를 부르는 자리는 0 이었다** — 그 머리글이 「푸는 자리 0」이라고
+// 적어둔 바로 그 함수다.
+//
+// 사람이 없어지면 그 줄을 뺄 길이 없다. 계정을 지우면(`DELETE /user/:id`)
+// `blacklist` 는 `USER_COLLECTIONS` 에 없어 **주인 없이 남고**, `unbanUser` 는 404 다.
+// 그 줄이 주소면 **그 주소에서는 아무도 가입할 수 없다** — 통신사 NAT 뒤의 모두가.
+{
+  const ORPHAN_IP = '198.51.100.77';
+  db.addBlacklist('ip', ORPHAN_IP, '지워진 사람 때문에 들어간 줄', 777);
+  db.addBlacklist('email', 'ghost@x.test', '지워진 사람', 777);
+  ok('주인이 없는 줄이 가입을 막는다', db.isBlacklisted('누구@x.test', ORPHAN_IP, 'Mozilla'), true);
+  ok('  사람 단위로는 못 푼다 (그 사람이 없다)', db.unbanUser(777), null);
+
+  const row = db.getBlacklist().find((b) => b.value === ORPHAN_IP);
+  ok('한 줄만 빼는 길이 있다', db.removeBlacklist(row.id).changes, 1);
+  ok('  그 주소에서 가입이 된다', db.isBlacklisted('누구@x.test', ORPHAN_IP, 'Mozilla'), false);
+  ok('  없는 줄은 0 이다 (화면이 404 로 받는다)', db.removeBlacklist(999999).changes, 0);
+  ok('  남은 줄은 그대로다', db.isBlacklisted('ghost@x.test', null, 'Mozilla'), true);
+
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'security.js'), 'utf-8');
+  ok('라우트가 그 함수를 부른다 (부르는 자리 0 이 아니다)', /db\.removeBlacklist\(/.test(src), true);
+  ok('  길이 있다', /router\.delete\('\/blacklist\/:id'/.test(src), true);
+  ok('  무엇을 풀었는지 기록에 남긴다', /블랙리스트 해제/.test(src), true);
+
+  const ai = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'AiAdminPanel.jsx'), 'utf-8');
+  ok('화면에 푸는 단추가 있다', /security\/blacklist\/\$\{b\.id\}/.test(ai), true);
+  ok('  가입이 막힌다는 것을 적어준다', /가입이 막힙니다/.test(ai), true);
+  ok('  누구 때문에 넣은 줄인지 보여준다', /회원 \{b\.user_id\}/.test(ai), true);
+}
+
 db.flushNow();
 setTimeout(() => {
   for (const p of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {

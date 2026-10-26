@@ -142,6 +142,21 @@ export default function AiAdminPanel() {
     }
   };
 
+  // 블랙리스트 한 줄 풀기. **무엇을 풀었는지 말한다** — 「풀었어요」만 뜨면
+  // 어느 줄이 빠졌는지 모른 채 목록이 다시 그려진다
+  const unblockListed = async (b) => {
+    setBusy(true);
+    try {
+      const { data: r } = await client.delete(`/security/blacklist/${b.id}`);
+      toast(`${r?.value || b.value} 가입 막힘을 풀었어요`);
+      await load();
+    } catch (err) {
+      toast(err?.response?.data?.error || '못 풀었어요', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
@@ -358,16 +373,40 @@ export default function AiAdminPanel() {
         ))}
       </Fold>
 
-      <Fold title="블랙리스트" count={`${blacklist.length}건`}>
+      {/* ── 블랙리스트 — **보여주기만 하고 있었다** ── (2026-10-26)
+          거는 자리 둘(LEVEL 4 의 이메일 · 주소), 한 줄을 푸는 자리 **0**.
+          유일한 푸는 길(「영구 정지 해제」)은 **그 사람의 계정이 있어야** 한다 —
+          계정을 지우면 이 줄은 주인 없이 남고 영원히 못 뺀다. 그 줄이 주소면
+          **그 주소에서는 아무도 가입할 수 없다**(통신사 NAT 뒤의 모두가) */}
+      <Fold title="블랙리스트 (가입 막힘)" count={`${blacklist.length}건`}>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+          여기 올라간 이메일 · 주소로는 <b style={{ color: 'var(--text-secondary)' }}>가입이 막힙니다.</b>{' '}
+          주소 한 줄 뒤에는 여럿이 있습니다 — 잘못 걸린 것은 풀어주세요.
+        </div>
         {blacklist.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>올려둔 것이 없습니다.</div>
         ) : blacklist.map((b) => (
           <div key={b.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ color: 'var(--text-muted)' }}>{b.type}</span>
               <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{b.value}</span>
+              {/* **누구 때문에 넣은 줄인지**를 적는다. 10/22 에 서버가 적어두기
+                  시작한 값인데(「안 적어두면 어느 주소가 그 사람 것인지 알 길이
+                  없다」) 화면이 그것을 안 보여주고 있었다 */}
+              {b.user_id ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>회원 {b.user_id}</span> : null}
+              {b.created_at ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{String(b.created_at).slice(0, 10)}</span> : null}
+              <button
+                className="btn-secondary"
+                style={{ marginLeft: 'auto', width: 'auto', fontSize: 11.5, padding: '4px 10px' }}
+                disabled={busy}
+                onClick={() => unblockListed(b)}
+              >풀기</button>
             </div>
-            {b.reason && <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 3 }}>{b.reason}</div>}
+            {b.reason && (
+              <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 3 }}>
+                <Emphasis text={b.reason} />
+              </div>
+            )}
           </div>
         ))}
       </Fold>

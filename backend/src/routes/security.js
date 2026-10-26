@@ -324,6 +324,39 @@ router.post('/unban/:id', adminAuth, (req, res) => {
   });
 });
 
+// DELETE /api/security/blacklist/:id — **한 줄을 뺀다** (2026-10-26)
+//
+// ── 또 거는 자리 2 : 푸는 자리 0 ──
+//
+// 10/22 에 영구 정지를 되돌리는 길(`POST /unban/:id`)을 냈다. 그 주석에 **「블랙리스트
+// 거는 자리 2 · 푸는 자리 0 (`removeBlacklist` 도 아무도 안 부른다)」**고 적어두고 —
+// 고친 뒤에도 `db.removeBlacklist` 를 **부르는 자리는 그대로 0** 이었다. 넷을 한 번에
+// 되돌리는 길은 `removeBlacklistFor`(사람 단위)를 쓰기 때문이다.
+//
+// 그래서 **사람이 없어지면 그 줄을 뺄 길이 없다.** 계정을 지우면(`DELETE /user/:id` —
+// 10/22 전까지 관리자가 그 사람에게 할 수 있는 유일한 일이었다) 블랙리스트 줄은
+// `blacklist` 가 `USER_COLLECTIONS` 에 없어서 **주인 없이 남고**, `unbanUser` 는
+// 「사용자를 찾을 수 없어요」로 404 다. 관리자 화면은 그 줄을 **보여주기만** 했다.
+//
+// 그 줄이 `ip` 면 **그 주소에서는 아무도 가입할 수 없다**(`isBlacklisted` 는 가입 길에서
+// 본다). 이 앱에서 주소는 사람 하나가 아니다 — 통신사 NAT · 헬스장 와이파이 뒤의
+// 모두가 영구히 막히고, 푸는 길이 없다. 같은 파일의 LEVEL 4 주석이 **대역 차단을 스스로
+// 금지해 둔** 것과 같은 이유다.
+//
+// **지우는 것이 아니라 푸는 것이다** — 계정을 지울 때 이 줄을 같이 지우지는 않는다.
+// 그러면 막아둔 사람이 그 자리에서 다시 가입할 수 있다. 사람이 보고 한 줄씩 푼다.
+router.delete('/blacklist/:id', adminAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '잘못된 ID에요' });
+  // 무엇을 풀었는지 기록에 남긴다 — 지운 뒤에는 값을 알 길이 없다
+  const row = db.getBlacklist().find((b) => b.id === id);
+  const result = db.removeBlacklist(id);
+  if (result.changes === 0) return res.status(404).json({ error: '그 줄을 찾을 수 없어요' });
+  addLog('unblock', `블랙리스트 해제: ${row?.type || '?'}=${row?.value || '?'}`
+    + (row?.user_id ? ` (userId=${row.user_id})` : '') + ` — 관리자 ${req.userId}`);
+  res.json({ message: '막아둔 것을 풀었어요', type: row?.type || null, value: row?.value || null });
+});
+
 // DELETE /api/security/user/:id - 계정과 모든 데이터를 지운다
 //
 // 되돌릴 수 없다. 그래서 자동 판정에서는 절대 부르지 않는다 —
