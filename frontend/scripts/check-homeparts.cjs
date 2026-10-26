@@ -196,5 +196,36 @@ console.log('── **밤에 켜도 되나를 괄호가 가리지 않는가** �
 }
 
 console.log('');
+console.log('── **머리글이 「운동기구 없이」라고 적어놓고 덤벨 판이 둘** ── (2026-10-26)');
+//
+// 9/22 에 「장비 없이 집에서」를 고쳤다 — 의자 · 식탁 · 수건 · 배낭을 쓰니까.
+// 그런데 10/5 에 **「덤벨 하나로」· 「밴드 하나로」 판이 둘** 생기면서 그 말이 또
+// 사실이 아니게 됐다. **판을 더하면서 머리글을 안 고친 것이다.**
+//
+// 그래서 머리글이 **세서 적게** 했다. 여기서는 그 셈과, 글자가 다시 박히지 않았나를 본다.
+{
+  const hp2 = bundle('src/data/homeworkoutPrograms.js', '.hp-tool.cjs');
+  const names = Object.keys(hp2.PROGRAMS);
+  const tool = names.filter(hp2.needsTool);
+  ok('덤벨 · 밴드가 필요한 판을 센다', tool, ['덤벨 하나로', '밴드 하나로']);
+  ok('  의자 · 수건 · 식탁은 운동기구가 아니다 (집에 있는 것이다)',
+    ['전신 초급', '상체 집중', '하체 집중'].map(hp2.needsTool), [false, false, false]);
+  ok('  준비물이 없는 판도 아니라고 한다', hp2.needsTool('코어 강화'), false);
+  ok('  없는 이름에도 안 터진다', hp2.needsTool('없는 판'), false);
+
+  const page = fs.readFileSync(require('path').join('src', 'pages', 'HomeworkoutPage.jsx'), 'utf-8');
+  // **주석은 세지 않는다.** 까닭을 적어두면 그 글자가 그대로 남는다 —
+  // 사람에게 보이는 글만 봐야 한다 (아까 원판 쪽에서도 같은 함정을 밟았다)
+  const noComments = page
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')      // JSX 주석
+    .replace(/\/\*[\s\S]*?\*\//g, '')            // 여러 줄 주석
+    .replace(/^\s*\/\/.*$/gm, '');                // 한 줄 주석
+  ok('머리글이 「운동기구 없이」라고 안 적는다', /운동기구 없이/.test(noComments), false);
+  ok('  대신 세서 적는다', /PROGRAM_NAMES\.filter\(needsTool\)/.test(page), true);
+  // **판을 더하면 말이 저절로 맞아야 한다** — 수를 손으로 적어두면 또 어긋난다
+  ok('  수를 손으로 안 적는다', /프로그램 9개|판 일곱|판 둘입니다/.test(page), false);
+}
+
+console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
 process.exitCode = bad ? 1 : 0;

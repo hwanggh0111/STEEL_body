@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
-import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf } from '../data/homeworkoutPrograms';
+import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf, needsTool } from '../data/homeworkoutPrograms';
 import { readLS, saveLS } from '../data/safeStorage';
 import { HOME_LAST_KEY, BREATH_LOG_KEY } from '../data/localKeys';
 import { buildPump, programPump, partsOf, toRecords, doneList } from '../data/homeworkoutParts';
@@ -729,6 +729,9 @@ export default function HomeworkoutPage() {
       loud: loudOf(name),
     }));
     const shown = cards.filter((c) => (!onlyQuiet || c.loud.length === 0) && (!onlyBare || c.gear.length === 0));
+    // 머리글이 **세서 적는다** — 판을 더해도 말이 저절로 맞는다 (`needsTool`)
+    const toolCount = PROGRAM_NAMES.filter(needsTool).length;
+    const bareCount = PROGRAM_NAMES.length - toolCount;
     const narrowed = onlyQuiet || onlyBare;
 
     return (
@@ -740,7 +743,11 @@ export default function HomeworkoutPage() {
         {/* **「장비 없이」라고 적으면 안 된다.** 의자 · 수건 · 배낭을 쓴다 —
             운동기구를 안 쓰는 것이지 아무것도 안 쓰는 것이 아니다 */}
         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.7 }}>
-          운동기구 없이, 집에 있는 것(의자 · 수건 · 배낭)으로 하는 프로그램 {PROGRAM_NAMES.length}개입니다.
+          {/* **세서 적는다** (2026-10-26). 여기 「운동기구 없이」라고 박혀 있었는데
+              10/5 에 덤벨 · 밴드 판이 둘 생겼다 — 9/22 에 「장비 없이」를 고친 바로
+              그 자리를, 판을 더하면서 또 사실이 아니게 만든 셈이다 */}
+          집에 있는 것(의자 · 수건 · 배낭)으로 하는 판 {bareCount}개와,
+          {' '}덤벨이나 밴드 하나만 있으면 되는 판 {toolCount}개입니다.
           <br />
           무엇이 필요하고 밤에 켜도 되는지를 카드에 적어뒀어요.
         </p>
