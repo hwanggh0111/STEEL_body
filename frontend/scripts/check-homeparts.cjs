@@ -154,5 +154,47 @@ ok('옛 방식은 지도에 아무것도 안 남겼다', oldHeat.any, false);
 ok('통째로 기타로 샜다', oldHeat.other.count, 1);
 
 console.log('');
+console.log('── **밤에 켜도 되나를 괄호가 가리지 않는가** ── (2026-10-26)');
+//
+// 프로그램의 이름에는 어디서 하는지가 괄호로 붙는다 — 「스텝업 (의자)」 ·
+// 「피스톨 스쿼트 (의자 보조)」. 뛰는 동작 목록(`LOUD`)을 **이름 그대로** 견주고
+// 있어서, 「점핑잭 (제자리)」 같은 줄이 생기면 **조용한 판으로 읽힌다.**
+//
+// 이 값이 틀리면 화면이 **아랫집에 소리가 안 간다고 거짓말을 한다** —
+// 밤 열한 시에 그 말을 믿고 켠다. 지금 그런 줄이 없어도 금은 막아둔다.
+{
+  const P = require('path');
+  const src = fs.readFileSync(P.join('src', 'data', 'homeworkoutPrograms.js'), 'utf-8');
+  ok('괄호를 걷고 견준다', /loud\.has\(base\(e\.name\)\)/.test(src), true);
+
+  // 값으로도 본다 — **괄호 붙은 뛰는 동작**을 직접 넣어 `loudOf` 에 물어본다
+  const hp = bundle('src/data/homeworkoutPrograms.js', '.hp-loud.cjs');
+  const loudName = hp.LOUD[0];
+  const got = hp.loudOf('검사용 판', [
+    { name: loudName + ' (제자리)', duration: 20, rest: 10, main: ['하체'] },
+    { name: '플랭크', duration: 30, rest: 0, main: ['코어'] },
+  ]);
+  ok('  괄호가 붙어도 뛰는 동작으로 센다', got, [loudName + ' (제자리)']);
+
+  // 지금 들어 있는 판들의 답이 안 흔들렸나
+  ok('기능성은 뛰는 동작 다섯', hp.loudOf('기능성(특수부대식)').length, 5);
+  ok('  「밤에 조용히」는 하나도 없다', hp.loudOf('밤에 조용히'), []);
+  ok('  타바타는 크로스 잭 하나 (적어둔 말과 같다)', hp.loudOf('유산소 타바타'), ['크로스 잭']);
+
+  // **적어둔 안내와 어긋나지 않는가** — 「뛰는 동작이 하나도 없다」고 적은 판에
+  // 뛰는 동작이 있으면 그게 제일 나쁘다
+  const lying = Object.keys(hp.PROGRAMS).filter((n) => (hp.PROGRAM_NOTES[n] || [])
+    .some((t) => /뛰는 동작이 하나도 없/.test(t)) && hp.loudOf(n).length > 0);
+  ok('「뛰는 동작이 하나도 없다」는 말이 사실이다', lying, []);
+  // 준비물도 같은 자로 본다 — 「준비물이 하나도 없는 판」이라 적었으면 비어 있어야 한다
+  const lyingGear = Object.keys(hp.PROGRAMS).filter((n) => (hp.PROGRAM_NOTES[n] || [])
+    .some((t) => /준비물이 하나도 없/.test(t)) && hp.gearOf(n).length > 0);
+  ok('  「준비물이 하나도 없다」도 사실이다', lyingGear, []);
+  // 마지막 동작 뒤에는 쉬지 않는다 (파일 머리글의 약속)
+  const tailRest = Object.entries(hp.PROGRAMS).filter(([, exs]) => exs[exs.length - 1].rest !== 0);
+  ok('  마지막 동작의 쉼은 0 이다 (머리글의 약속)', tailRest.map(([n]) => n), []);
+}
+
+console.log('');
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
 process.exitCode = bad ? 1 : 0;
