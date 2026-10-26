@@ -239,9 +239,29 @@ const waitFor = (fn, limit = 4000) => new Promise((resolve) => {
   //
   // 색인은 옮긴 줄을 「같은 것들 뒤」에 꽂고, 파일을 다시 정렬하면 적힌 차례로 돌아온다.
   // **두 길이 서로 다른 답을 줬다.**
+  //
+  // ── **전제를 못 박는다** ── (2026-10-26)
+  //
+  // 이 검사는 네 줄을 한 번에 넣어 「같은 밀리초」를 만들었다. 그런데 그것은 **운이다** —
+  // 밀리초 경계가 그 사이에 떨어지면 전제가 깨지고, 그러면 아래 두 줄은 **다른 것을
+  // 재면서 FAIL 한다.** 실제로 컴퓨터가 바쁠 때 거짓 FAIL 을 봤다. 검사가 거짓으로
+  // 울면 다음부터 그 검사를 안 믿게 되고, 그건 검사가 없는 것보다 나쁘다.
+  //
+  // 그래서 **같은 밀리초가 될 때까지 다시 넣는다.** 램에 넣는 일이라 네 줄은 보통
+  // 같은 밀리초에 들어가고, 경계에 걸리면 지우고 한 번 더 한다.
+  //
+  // **그리고 이 모양은 「루틴 한 판」이 아니다** — 앱은 줄마다 따로 올린다
+  // (`HomeworkoutPage` 의 `for` + `await addWorkout`). 서버에서 **한 번에** 여러 줄이
+  // 들어가는 자리는 **CSV 가져오기**(`routes/importData.js`)다. 거기서 적힌 차례가
+  // 뒤섞이면 가져온 기록이 제 차례를 잃는다.
   const M = db.createUser('ms@t.local', 'x', '한판', 'ms1').lastInsertRowid;
-  const batch = ['가슴', '등', '어깨', '하체']
-    .map((n) => db.createWorkout(M, '2026-06-06', n, '60', 3, 10).lastInsertRowid);
+  const PLAN = ['가슴', '등', '어깨', '하체'];
+  let batch = [];
+  for (let tries = 0; tries < 20; tries += 1) {
+    batch = PLAN.map((n) => db.createWorkout(M, '2026-06-06', n, '60', 3, 10).lastInsertRowid);
+    if (new Set(db.getWorkouts(M).map((w) => w.created_at)).size === 1) break;
+    for (const id of batch) db.deleteWorkout(id, M);     // 경계에 걸렸다 — 다시
+  }
   const names = () => db.getWorkouts(M).map((w) => w.exercise);
   ok('한 판 네 줄이 같은 밀리초에 들어갔다',
     new Set(db.getWorkouts(M).map((w) => w.created_at)).size, 1);
