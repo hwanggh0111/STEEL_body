@@ -45,6 +45,19 @@ function pick(raw, spec) {
   return out;
 }
 
+/**
+ * 남은 기록 중 **제일 먼저 걸린 때**. 다시 걸 때 그때부터 센다 (2026-10-26).
+ *
+ * 짜증(`mild`)과 오탐(`dismissed`)은 안 센다 — `recomputeDays` 와 같은 규칙이다.
+ * 셀 것이 없으면 `null` 이고, 그러면 다시 걸지 않는다.
+ */
+function earliestAbuseAt(logs) {
+  return (logs || [])
+    .filter((a) => a && a.level !== 'mild' && !a.dismissed && a.created_at)
+    .map((a) => a.created_at)
+    .sort()[0] || null;
+}
+
 function badId(req) {
   const id = Number(req.params.id);
   return Number.isInteger(id) && id > 0 ? null : id;
@@ -112,19 +125,34 @@ router.patch('/abuse/:id', adminAuth, (req, res) => {
   //
   // 그래서 욕설로 걸린 정지만 풀고, 남은 기록으로 다시 계산해서 필요하면 다시 건다.
   // **다시 걸 때는 처음 걸린 때부터 센다** — 지금부터 세면 오탐을 신고한 대가로 벌이 늘어난다
+  //
+  // ── 그리고 **되돌리는 쪽으로도 간다** ── (2026-10-26)
+  //
+  // 여태 `if (dismissed)` 였다 — **거는 자리 1 : 푸는 자리 0.** 「사전이 틀렸음」은
+  // 누적에서 한 건을 빼고 정지를 푸는 단추인데, 잘못 누르면 되돌릴 길이 아예 없었다.
+  // 서버는 `dismissed:false` 를 받아 적기는 했지만 **정지를 다시 계산하지 않아서**,
+  // 되돌려도 풀린 정지는 풀린 채였다 — 즉 되돌리기가 반쪽이었다.
+  // 10/24 에 `reviewed` 에 「확인 취소」를 붙인 것과 같은 자리인데, 더 무거운 쪽
+  // (정지를 푸는 쪽)이 남아 있었다.
+  //
+  // 양쪽 다 하는 일은 하나다 — **욕설로 걸린 정지를 걷고, 남은 기록으로 다시 센다.**
   let unsuspended = 0;
   let rebuilt = null;
-  if (dismissed) {
+  if (dismissed !== undefined) {
     const userId = result.log.user_id;
     const removed = db.clearAbuseSuspensions(userId);
     unsuspended = removed.changes;
-    const days = recomputeDays(db.abuseLogsOf(userId));
-    if (days > 0 && removed.earliest) {
-      const until = new Date(Date.parse(removed.earliest) + days * 86400000);
+    const logs = db.abuseLogsOf(userId);
+    const days = recomputeDays(logs);
+    // 되돌리는 쪽에는 **풀어줄 정지가 없다** — 그래서 `removed.earliest` 도 없다.
+    // 그때는 남은 기록 중 제일 이른 것을 처음 걸린 때로 본다 (여기도 지금부터 세지 않는다)
+    const from = removed.earliest || earliestAbuseAt(logs);
+    if (days > 0 && from) {
+      const until = new Date(Date.parse(from) + days * 86400000);
       // 다시 세어보니 이미 지난 벌이면 그냥 풀린 채로 둔다
       if (until.getTime() > Date.now()) {
-        db.createSuspension(userId, 3, 'abuse', 
-          `사전 오탐 하나를 뺀 뒤 다시 계산했습니다. 남은 누적으로 ${days}일 정지입니다 `
+        db.createSuspension(userId, 3, 'abuse',
+          `욕설 기록을 다시 계산했습니다. 남은 누적으로 ${days}일 정지입니다 `
           + `(${until.toISOString().slice(0, 10)} 해제).`,
           until.toISOString());
         rebuilt = { days, until: until.toISOString().slice(0, 10) };

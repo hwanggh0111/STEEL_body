@@ -57,13 +57,30 @@ function AbuseLogs() {
   };
   useEffect(load, []);
 
+  // ── **서버가 돌려준 말을 그대로 전한다** ── (2026-10-26)
+  //
+  // 여태 `unsuspended > 0` 이면 무조건 「정지도 풀었습니다」였다. 그런데 서버는
+  // 9/19 부터 **남은 누적으로 다시 계산해서 다시 건다**(`rebuilt`) — 세 번 걸린
+  // 사람에서 한 건이 오탐이면 맞는 벌은 1일이고, 0일이 아니다.
+  // 그 사람은 아직 막혀 있는데 관리자는 「풀었습니다」를 보고 있었다. 서버는
+  // 며칠인지 · 언제 풀리는지까지 적어 보내는데 **읽는 자리가 없었다.**
+  const resultText = (data, msg) => {
+    if (data.rebuilt) {
+      return `${msg} · 남은 누적으로 ${data.rebuilt.days}일 정지가 다시 걸렸습니다 (${data.rebuilt.until} 해제)`;
+    }
+    if (data.unsuspended > 0) return msg + ' · 정지도 풀었습니다';
+    return msg;
+  };
+
   const mark = async (id, fields, msg) => {
     setBusy(true);
     try {
       const { data } = await client.patch('/reports/abuse/' + id, fields);
       setLogs(prev => prev.map(a => (a.id === data.id ? { ...a, ...data } : a)));
-      toast(data.unsuspended > 0 ? msg + ' · 정지도 풀었습니다' : msg);
-      if (data.unsuspended > 0) load();
+      toast(resultText(data, msg));
+      // 정지가 달라졌으면 목록을 다시 읽는다 — 딱지(정지 중)가 그 값으로 그려진다.
+      // **다시 걸린 쪽도 포함이다**(`rebuilt`) — 풀린 것만 보고 읽으면 딱지가 거짓이 된다
+      if (data.unsuspended > 0 || data.rebuilt) load();
     } catch (err) {
       toast(err.response?.data?.error || '바꾸지 못했어요', 'error');
     } finally {
@@ -71,8 +88,11 @@ function AbuseLogs() {
     }
   };
 
-  // 확인 안 한 것 중에 막힌 것만 센다. 짜증은 처벌이 아니라 참고다
-  const pending = logs.filter(a => !a.reviewed && a.level !== 'mild').length;
+  // 확인 안 한 것 중에 막힌 것만 센다. 짜증은 처벌이 아니라 참고다.
+  // **오탐으로 뺀 것도 안 센다** — 머리에 붙는 수(`GET /reports/pending`)가 그 규칙이고,
+  // 둘이 다르면 머리와 카드가 서로 다른 수를 말한다 (오탐을 되돌릴 수 있게 된 뒤로는
+  // 「오탐이지만 확인 안 함」인 줄이 실제로 생긴다)
+  const pending = logs.filter(a => !a.reviewed && !a.dismissed && a.level !== 'mild').length;
 
   // 못 불러왔으면 그렇다고 말하고 다시 받을 길을 둔다. 조용히 사라지면 안 된다
   if (failed) {
@@ -133,7 +153,11 @@ function AbuseLogs() {
                   <span style={{ fontSize: 11, color: lv.color }}>{lv.label}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.action}</span>
                   {a.dismissed && <span style={{ fontSize: 10.5, color: 'var(--success)' }}>오탐 처리됨</span>}
-                  {a.suspended && !a.dismissed && <span style={{ fontSize: 10.5, color: 'var(--danger)' }}>정지 중</span>}
+                  {/* **오탐 처리와 정지는 같이 있을 수 있다** (2026-10-26). 여태
+                      `!a.dismissed` 가 붙어 있어서, 오탐 하나를 뺀 뒤 남은 누적으로
+                      **다시 걸린 정지**가 화면에서 사라졌다 — 「오탐 처리됨」만 보이고
+                      그 사람은 아직 막혀 있었다 */}
+                  {a.suspended && <span style={{ fontSize: 10.5, color: 'var(--danger)' }}>정지 중</span>}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                     {a.nickname || ('회원 ' + a.user_id)} · {day(a.created_at)}
                   </span>
@@ -144,7 +168,25 @@ function AbuseLogs() {
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                   걸린 말: {(a.hits || []).join(', ')} · {lv.note}
                 </div>
-                {!a.dismissed && (
+                {a.dismissed ? (
+                  // ── **오탐 처리도 되돌릴 수 있어야 한다** ── (2026-10-26)
+                  //
+                  // 이 단추가 하는 일은 「확인함」보다 무겁다 — 누적에서 한 건을 빼고
+                  // **정지를 푼다.** 그런데 누르면 단추 줄이 통째로 사라져서 **되돌릴
+                  // 길이 아예 없었다**(거는 자리 1 : 푸는 자리 0). 진짜로 욕한 사람의
+                  // 기록을 잘못 눌러 빼면 사다리가 영구히 한 칸 내려간 채로 남는다.
+                  // 서버는 되돌리면 남은 누적으로 **정지를 다시 계산한다**
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <button
+                      disabled={busy}
+                      onClick={() => mark(a.id, { dismissed: false }, '오탐 처리를 되돌렸습니다')}
+                      style={{
+                        background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
+                        padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
+                      }}
+                    >오탐 처리 되돌리기</button>
+                  </div>
+                ) : (
                   <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                     {!a.reviewed ? (
                       <button

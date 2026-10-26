@@ -161,8 +161,77 @@ console.log('── 제보 관리가 그 길을 쓰는가 ──');
 const reports = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'reports.js'), 'utf-8');
 ok('오탐 처리에 clearAbuseSuspensions 를 쓴다', /clearAbuseSuspensions\(userId\)/.test(reports), true);
 ok('  통째로 푸는 것을 안 쓴다', /clearSuspensions\(result\.log\.user_id\)/.test(reports), false);
-ok('  남은 누적으로 다시 계산한다', /recomputeDays\(db\.abuseLogsOf\(userId\)\)/.test(reports), true);
-ok('  다시 걸 때는 처음 걸린 때부터 센다', /Date\.parse\(removed\.earliest\)/.test(reports), true);
+ok('  남은 누적으로 다시 계산한다', /recomputeDays\(logs\)/.test(reports), true);
+ok('  다시 걸 때는 처음 걸린 때부터 센다', /Date\.parse\(from\)/.test(reports), true);
+
+console.log('');
+console.log('── **오탐 처리를 되돌릴 수 있는가** ── (2026-10-26)');
+//
+// 「사전이 틀렸음」은 누적에서 한 건을 빼고 **정지를 푸는** 단추다. 10/24 에
+// 「확인함」에는 되돌리기를 붙였는데 **이쪽에는 없었다** — 거는 자리 1 : 푸는 자리 0.
+// 서버는 `dismissed:false` 를 받아 적기는 했지만 `if (dismissed)` 라서 **정지를
+// 다시 계산하지 않았다.** 즉 되돌려도 풀린 정지는 풀린 채였다.
+//
+// 글자만 보지 않는다 — **길을 실제로 두드려 본다.**
+const jwt = require('jsonwebtoken');
+const reportsRouter = require('../src/routes/reports');
+
+/** 관리자로 `PATCH /abuse/:id` 를 한 번. 돌아온 것을 그대로 준다. */
+function patchAbuse(id, body, adminId) {
+  const token = jwt.sign({ userId: adminId, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '15m', algorithm: 'HS256' });
+  const req = {
+    url: '/abuse/' + id, originalUrl: '/api/reports/abuse/' + id, method: 'PATCH',
+    body, query: {}, params: {}, cookies: { sb_access: token }, headers: {}, ip: '203.0.113.9',
+    get: () => undefined,
+  };
+  const out = { status: 200, body: null };
+  const res = {
+    status(c) { out.status = c; return this; },
+    json(b) { out.body = b; return this; },
+    set() { return this; },
+  };
+  reportsRouter(req, res, () => {});
+  return out;
+}
+
+const boss = db.createUser('boss@t.local', 'x', '관리자', 'bossbo').lastInsertRowid;
+db.updateUserRole(boss, 'admin');
+const u3 = db.createUser('c@t.local', 'x', '세사람', 'cccc').lastInsertRowid;
+// 욕설 셋 — 사다리로 3일이다
+const logs3 = [];
+for (let i = 0; i < 3; i++) {
+  const rec = db.addAbuseLog(u3, { level: 'severe', hits: ['욕'], where: 'report', text: 'x', action: '정지', days: 3 });
+  logs3.push(rec.id);
+}
+db.createSuspension(u3, 3, 'abuse', '욕설 셋으로 3일', new Date(Date.now() + 2 * 86400000).toISOString());
+
+const off = patchAbuse(logs3[0], { dismissed: true, reviewed: true }, boss);
+ok('오탐으로 빼면 → 200', off.status, 200);
+ok('  누적 둘이 남아 1일로 다시 걸린다', off.body?.rebuilt?.days, 1);
+ok('  풀었다는 수도 같이 준다', off.body?.unsuspended, 1);
+ok('  **다시 걸린 것을 숨기지 않는다** (화면이 이것을 읽는다)', !!off.body?.rebuilt, true);
+
+const back = patchAbuse(logs3[0], { dismissed: false }, boss);
+ok('되돌리면 → 200', back.status, 200);
+ok('  그 건이 누적으로 돌아온다', db.countAbuse(u3), 3);
+ok('  정지도 3일로 다시 계산된다', back.body?.rebuilt?.days, 3);
+ok('  화면에 되돌리는 단추가 있다',
+  /dismissed: false \}, '오탐 처리를 되돌렸습니다'/.test(
+    fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'admin', 'ReportAdmin.jsx'), 'utf-8')), true);
+
+// 셋을 다 빼면 걸 벌이 없다 — 풀린 채로 둔다
+patchAbuse(logs3[1], { dismissed: true, reviewed: true }, boss);
+const none = patchAbuse(logs3[2], { dismissed: true, reviewed: true }, boss);
+ok('셋 다 오탐이면 다시 걸지 않는다', none.body?.rebuilt, null);
+ok('  정지가 남아 있지 않다', db.getSuspensions().filter((x) => x.user_id === u3).length, 0);
+
+console.log('');
+console.log('── 화면이 서버가 돌려준 말을 하는가 ──');
+const admin = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'admin', 'ReportAdmin.jsx'), 'utf-8');
+ok('다시 걸린 정지를 말한다 (rebuilt 를 읽는다)', /data\.rebuilt/.test(admin), true);
+ok('  「정지도 풀었습니다」를 그때는 안 쓴다', /data\.rebuilt\s*\)\s*\{[\s\S]{0,200}다시 걸렸습니다/.test(admin), true);
+ok('  오탐 처리됨 딱지가 정지 중 딱지를 가리지 않는다', /a\.suspended && !a\.dismissed/.test(admin), false);
+ok('  확인 안 한 수를 서버와 같은 규칙으로 센다', /!a\.reviewed && !a\.dismissed && a\.level !== 'mild'/.test(admin), true);
 
 console.log('');
 console.log('── 누적을 세는 규칙이 한 벌인가 ──');
