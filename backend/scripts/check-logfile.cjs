@@ -189,6 +189,40 @@ async function run() {
     }
 
     console.log('');
+    console.log('── **어디에 있든 최신이 먼저다** ── (2026-10-26)');
+    //
+    // 셋(DB · 파일 · 램)을 합친 뒤 **뒤에서부터** 100건을 세고 있었다. 그 차례는
+    // 「새 것 순」이 아니라 **출처 순**이다 — 파일이 뒤처져 있으면 100칸이 파일의
+    // 옛 줄로 다 차고, **DB 에만 있는 새 줄은 한 건도 안 나온다.**
+    //
+    // 파일은 뒤처질 수 있다. 쓰기가 비동기이고 **실패를 삼킨다**
+    // (`fs.appendFile(LOG_PATH, line, () => {})`) — 디스크가 읽기 전용이거나 차면
+    // 그날부터 파일은 멈춘 채 남는다. 그러면 관리자 화면은 **옛 기록을 보여주면서
+    // 오늘 일을 숨긴다.** 비어 있는 것보다 나쁘다 — 「조용했구나」로 읽힌다.
+    {
+      const security = require('../src/routes/security');
+      const db = require('../src/db');
+      // 파일에 옛 줄 150개 (9월 1일). 100칸을 혼자 다 채울 만큼
+      let stale = '';
+      for (let i = 0; i < 150; i += 1) {
+        stale += line(new Date(Date.UTC(2026, 8, 1, 0, 0, i)).toISOString(), 'login_success', `옛줄=${i}`);
+      }
+      fs.writeFileSync(TMP_LOG, stale, 'utf-8');
+      try { fs.unlinkSync(TMP_LOG + '.1'); } catch (e) { /* 없으면 그만 */ }
+      if (security.__dropRamLogsForCheck) security.__dropRamLogsForCheck();
+      // DB 에만 있는 새 줄 셋 (10월 26일)
+      for (let n = 1; n <= 3; n += 1) {
+        db.addSecurityLog({ type: 'login_fail', detail: '새 줄 ' + n, timestamp: `2026-10-26T0${n}:00:00.000Z` });
+      }
+      const mixed = await logs();
+      ok('파일이 뒤처져 있어도 DB 의 새 줄이 보인다',
+        (mixed.body || []).filter((e) => /^새 줄/.test(e.detail)).length, 3);
+      ok('  맨 위가 제일 새 것이다', mixed.body[0].detail, '새 줄 3');
+      ok('  차례가 내려간다', mixed.body.every((e, i, a) => i === 0 || a[i - 1].timestamp >= e.timestamp), true);
+      ok('  100건은 그대로 지킨다', mixed.body.length, 100);
+    }
+
+    console.log('');
     console.log('── 보고서의 「최근 보안 로그」도 같은 자를 쓴다 ── (2026-10-24)');
     //
     // `/report` 는 **램만** 보고 있었다(`securityLogs.slice(-20)`). 배포본에서 램은

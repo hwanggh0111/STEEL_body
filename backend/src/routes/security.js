@@ -37,6 +37,9 @@ const securityLogs = [];
 const LOG_MAX = 2 * 1024 * 1024;      // 2MB 쯤에서 민다
 let _logBytes = null;                 // 지금 몇 바이트인가. 한 번만 재고 더해 간다
 
+// 파일에 못 적었다고 **한 번** 말했나 (아래 `addLog`)
+let _logWriteFailed = false;
+
 function _rollIfBig(adding) {
   if (_logBytes === null) {
     try { _logBytes = fs.statSync(LOG_PATH).size; } catch { _logBytes = 0; }
@@ -141,7 +144,15 @@ function addLog(type, detail) {
   // 파일에도 기록 (비동기)
   const line = `[${entry.timestamp}] [${type}] ${detail}\n`;
   _rollIfBig(Buffer.byteLength(line));
-  fs.appendFile(LOG_PATH, line, () => {});
+  fs.appendFile(LOG_PATH, line, (err) => {
+    // **못 적으면 한 번은 말한다** (2026-10-26). 여태 `() => {}` 로 통째로 삼켰다 —
+    // 디스크가 읽기 전용이거나 차면 그날부터 파일은 멈춘 채 남는데 아무도 모른다.
+    // 화면은 「기록 파일에서 같이 읽어요」라고 적어두고 있고, 위의 `recentLogs` 는
+    // 그 뒤처진 파일을 읽는다. 줄마다 떠들면 로그가 로그를 밀어내니 **처음 한 번만**
+    if (!err || _logWriteFailed) return;
+    _logWriteFailed = true;
+    console.error('[security] 기록 파일에 못 적습니다 (DB 에는 남습니다):', err.message);
+  });
 }
 
 // GET /api/security/dashboard - 보안 대시보드
@@ -203,19 +214,30 @@ function recentLogs(limit) {
   let fromDb = [];
   try { fromDb = db.getSecurityLogs(); } catch { /* DB 를 못 읽으면 나머지로 간다 */ }
   const merged = [...fromDb, ...readLogFile(), ...securityLogs];
+  // ── **세운 다음에 센다** ── (2026-10-26)
+  //
+  // 여태 뒤에서부터 100건을 세고(= 출처 순) 그 100건만 세웠다. 출처 순은 「새 것
+  // 순」이 아니다 — **파일이 뒤처져 있으면 100칸이 파일의 옛 줄로 다 차고, DB 에만
+  // 있는 새 줄은 한 건도 안 나온다.** 관리자 화면은 그때 옛 기록을 보여주면서
+  // 오늘 일을 숨긴다. 비어 있는 것보다 나쁘다 — 빈 목록은 못 받은 것으로 읽히지만,
+  // 옛 목록은 **「조용했구나」로 읽힌다.**
+  //
+  // 파일은 뒤처질 수 있다. 쓰기가 비동기이고 **실패를 삼킨다**(아래 `addLog`) —
+  // 디스크가 읽기 전용이거나 차면 그날부터 파일은 멈춘 채 남는다.
+  //
+  // 적힌 때는 ISO 라 글자 차례가 곧 시간 차례다. 셋을 합쳐도 몇백 줄이라
+  // (DB 500 · 파일 꼬리 · 램 1000) 한 번 세우는 값은 싸다.
+  merged.sort((a, b) => String(b?.timestamp || '').localeCompare(String(a?.timestamp || '')));
   // 같은 줄은 접는다 — 파일에도 있고 램에도 있는 것이 대부분이다
   const seen = new Set();
   const out = [];
-  // 뒤에서부터 본다(최신이 뒤에 쌓인다). 그만큼 채우면 멈춘다
-  for (let i = merged.length - 1; i >= 0 && out.length < limit; i--) {
-    const e = merged[i];
+  for (const e of merged) {
+    if (out.length >= limit) break;
     const key = `${e.timestamp}|${e.type}|${e.detail}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(e);
   }
-  // 파일과 램을 이어 붙였으니 **차례가 섞여 있을 수 있다.** 적힌 때로 다시 세운다
-  out.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
   return out;
 }
 
