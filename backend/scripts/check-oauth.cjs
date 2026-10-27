@@ -570,7 +570,11 @@ async function run() {
     }
     // ── B안: 로고만 ── 로고만 있는 단추는 **읽어주는 화면에 이름이 없으면**
     // 「단추」로만 읽힌다. `aria-label` 이 빠지는 순간 못 쓰는 화면이 된다
-    ok('  로고만 단추에 이름을 붙였다', btnJsx.includes('aria-label={`${o.ariaLabel || o.label}'), true);
+    // **조사는 손이 고른다** (2026-10-27) — 여기 `${o.ariaLabel || o.label}로` 가
+    // 글자로 박혀 있었다. 「네이버로」는 맞지만 받침이 있는 이름이 오면 틀린다.
+    // 이름이 `aria-label` 에 **들어가는지**만 본다 — 조사는 `particle.js` 가 맡는다
+    ok('  로고만 단추에 이름을 붙였다',
+      btnJsx.includes('aria-label={`${euro(o.ariaLabel || o.label)}'), true);
     // 제공자가 검정 바탕을 쓰면(X 가 그랬다) 앱 배경에 윤곽이 녹는다 — 테두리를
     // 받을 자리는 남겨둔다. 지금 그걸 쓰는 제공자는 없다
     ok('  테두리를 받을 자리가 있다', btnJsx.includes("o.border || 'none'"), true);
