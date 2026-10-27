@@ -184,5 +184,35 @@ console.log(`     (뭉치 ${Object.keys(groups).length}개 · 칸 ${Object.value
   + ` · 통째로 그리는 뭉치 ${WHOLE.length}개 · 안 그리기로 정한 칸 ${Object.keys(SKIP).length}개)`);
 Object.entries(SKIP).forEach(([k, why]) => console.log(`     안 그린다: ${k} — ${why}`));
 
+// ──────────────────────────────────────────────────────────────
+// 관리자가 **한 일을 말하는가** (2026-10-27)
+// ──────────────────────────────────────────────────────────────
+//
+// 사람 목록의 다섯 동작(차단 · 차단 해제 · 영구 정지 풀기 · 관리자 주기 ·
+// 관리자 내리기)이 **성공하면 아무 말도 안 했다.** 보낸 뒤 응답을 통째로 버리고
+// 목록만 조용히 다시 그렸다 — 말은 실패에만 있었다.
+//
+// 서버는 할 말을 들고 있고(`message`), 영구 정지 풀기는 **숫자 셋**까지 보낸다
+// (`lifted` · `blacklist` · `unlockedIps`). 확인 창은 「정지 기록 · 로그인 차단 ·
+// 블랙리스트 · 주소 잠금을 한 번에 되돌립니다」라고 약속해놓고 **무엇이 몇 건
+// 풀렸는지는 한 번도 말하지 않았다.** 10/24 · 10/26 에 고친 그 모양이다.
+const PANEL = stripComments(read('src', 'components', 'SecurityPanel.jsx'));
+
+console.log('\n── 관리자가 한 일을 말한다 ──');
+yes('보낸 응답을 받아 든다', /const res = await client\.post\(`\/security\//.test(PANEL),
+  '응답을 버리면 서버가 보낸 말이 사람에게 안 닿는다');
+yes('성공했을 때도 말한다', /toast\(actionLine\(action, out\)\)/.test(PANEL),
+  '성공이 조용하면 눌린 것인지 알 수 없다');
+yes('서버가 보낸 말을 그대로 쓴다', /data\?\.message/.test(PANEL),
+  '화면이 따로 적어두면 서버가 하는 일이 바뀔 때 여기만 옛 말로 남는다');
+['lifted', 'blacklist', 'unlockedIps'].forEach((k) => {
+  yes(`영구 정지 풀기가 ${k} 를 읽는다`, new RegExp('data\\?\\.' + k).test(PANEL),
+    '서버가 세어 보내는데 화면이 안 읽는다');
+});
+yes('0 인 것은 안 적는다', /Number\(n\) > 0/.test(PANEL),
+  '「가입 막음 0」은 아무것도 안 알려주면서 줄만 길게 만든다');
+yes('한 일과 목록 받기를 가른다', /목록만 못 받아왔어요/.test(PANEL),
+  '한 try 에 두면 차단은 됐는데 목록 받기가 실패했을 때 「처리하지 못했어요」라고 말한다');
+
 console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 FAIL`);
 process.exit(bad === 0 ? 0 : 1);

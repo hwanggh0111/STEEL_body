@@ -262,6 +262,25 @@ export default function SecurityPanel() {
     if (ok) handleAction(user.id, 'unban');
   };
 
+  /**
+   * 한 일을 사람의 말로. **서버가 보낸 말을 그대로 쓴다** —
+   * 화면이 따로 적어두면 서버가 하는 일이 바뀔 때 여기만 옛 말로 남는다.
+   *
+   * 영구 정지 풀기만 숫자 셋을 덧붙인다. **0 인 것은 안 적는다** —
+   * 「가입 막음 0」은 아무것도 안 알려주면서 줄만 길게 만든다.
+   */
+  const actionLine = (action, data) => {
+    const said = String(data?.message || '').trim();
+    if (action !== 'unban') return said || '처리했어요';
+    const parts = [
+      ['정지 기록', data?.lifted],
+      ['가입 막음', data?.blacklist],
+      ['주소 잠금', data?.unlockedIps],
+    ].filter(([, n]) => Number(n) > 0).map(([k, n]) => `${k} ${Number(n)}`);
+    if (!parts.length) return said || '풀었어요';
+    return `${said || '영구 정지를 풀었어요'} (${parts.join(' · ')})`;
+  };
+
   const handleAction = async (userId, action) => {
     const actionMap = {
       'block': 'block-user',
@@ -274,16 +293,44 @@ export default function SecurityPanel() {
       'revoke-admin': 'revoke-admin',
     };
     const endpoint = actionMap[action] || action;
+
+    // ── **한 일을 말한다** ── (2026-10-27)
+    //
+    // 여태 보낸 뒤 **응답을 통째로 버렸다.** 그래서 다섯 동작(차단 · 차단 해제 ·
+    // 영구 정지 풀기 · 관리자 주기 · 관리자 내리기)이 **성공하면 아무 말도 안 했다** —
+    // 목록만 조용히 다시 그려졌다. 실패에만 말이 있었다.
+    //
+    // 서버는 할 말을 들고 있다 — 「유저가 차단되었어요」 · 「관리자 권한이
+    // 해제되었어요」. **영구 정지 풀기는 숫자 셋까지 보낸다**(`lifted` ·
+    // `blacklist` · `unlockedIps`). 확인 창은 「정지 기록 · 로그인 차단 ·
+    // 블랙리스트 · 주소 잠금을 한 번에 되돌립니다」라고 약속해놓고, 정작 **무엇이
+    // 몇 건 풀렸는지는 한 번도 말하지 않았다.** 10/24 · 10/26 에 고친 그 모양이다.
+    let out = null;
     try {
-      await client.post(`/security/${endpoint}/${userId}`);
+      const res = await client.post(`/security/${endpoint}/${userId}`);
+      out = res?.data || null;
+    } catch (e) {
+      // 조용히 넘어가면 목록이 그대로라 성공한 줄 안다. 사람을 차단하는 자리다
+      toast(e?.response?.data?.error || '처리하지 못했어요', 'error');
+      return;
+    }
+
+    // ── **한 일과 목록 받기를 가른다** ── (2026-10-27)
+    //
+    // 둘이 한 `try` 에 있었다. 그래서 **차단은 됐는데 목록 받기가 실패하면**
+    // 「처리하지 못했어요」라고 말했다 — 한 일을 안 한 것으로 말하는 자리다.
+    // 관리자는 그 말을 믿고 한 번 더 누른다.
+    try {
       const res = await client.get('/security/users');
       // 처음 불러올 때와 **같은 자리**다. 여기만 막지 않고 있었다 —
       // 배열이 아닌 것이 오면 아래의 map 에서 터지고, 터지면 흰 화면이다
       setUsers(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      // 조용히 넘어가면 목록이 그대로라 성공한 줄 안다. 사람을 차단하는 자리다
-      toast(e?.response?.data?.error || '처리하지 못했어요', 'error');
+    } catch {
+      toast('처리했어요. 목록만 못 받아왔어요 — 새로고침하면 보입니다', 'error');
+      return;
     }
+
+    toast(actionLine(action, out));
   };
 
   if (loading) {
