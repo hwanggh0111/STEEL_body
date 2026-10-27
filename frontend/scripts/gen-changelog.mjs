@@ -110,7 +110,13 @@ function build() {
     // **한글 꼬리표도 센다** (2026-10-05). `feat(개발): …/dev 미리보기` 가 사용자
     // 공지함에 「새 기능」으로 올라갔다 — 사용자는 열 수도 없는 자리다. 규칙이
     // 영어 `dev` 만 보고 있었는데, 이 저장소의 커밋 꼬리표는 한글이 기본이다
-    if (scope === 'dev' || scope === '개발' || /^\(?dev\)?/.test(scope || '')) continue;
+    //
+    // **검사만 고친 것도 같다** (2026-10-27). `fix(검사): 소셜 단추 검사가 조사까지
+    // 글자로 찾고 있었다` 가 사용자 공지함에 「고침」으로 올라갔다 — 검사는 사용자가
+    // 열 수도, 돌릴 수도 없는 자리다. 위의 `개발` 과 똑같은 까닭이라 같이 건너뛴다.
+    // (화면이 안 바뀌는 변경은 안 올린다 — 8/20 에 정한 선)
+    const SKIP_SCOPE = ['dev', '개발', '검사', 'test', 'ci'];
+    if (SKIP_SCOPE.includes(scope) || /^\(?dev\)?/.test(scope || '')) continue;
 
     entries.push({
       hash, date, type, label: labelFor(type, text),
