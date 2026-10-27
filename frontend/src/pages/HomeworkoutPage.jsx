@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from '../components/Toast';
 import NavIcon from '../components/NavIcon';
 import { PROGRAMS, PROGRAM_NOTES, descOf, gearOf, loudOf, needsTool } from '../data/homeworkoutPrograms';
-import { readLS, saveLS } from '../data/safeStorage';
-import { HOME_LAST_KEY, BREATH_LOG_KEY } from '../data/localKeys';
+import { readLS, saveLS, removeLS } from '../data/safeStorage';
+import { HOME_LAST_KEY, HOME_RESUME_KEY, BREATH_LOG_KEY } from '../data/localKeys';
+import { packResume, readResume, resumeLine, leftSeconds } from '../data/homeworkoutResume';
 import { buildPump, programPump, partsOf, toRecords, doneList } from '../data/homeworkoutParts';
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
@@ -59,6 +60,16 @@ function readLastDone() {
   }
 }
 const saveLastDone = (name) => saveLS(LS_LAST, JSON.stringify({ name, at: Date.now() }));
+
+/**
+ * 멈춘 자리 (2026-10-27). 계산은 `data/homeworkoutResume.js` 가 한다 —
+ * 여기는 **읽고 적는 일**만 한다 (`readRecoverLog` 와 같은 결이다).
+ *
+ * 깨진 것 · 없어진 판 · 오래된 것은 그쪽이 `null` 로 걸러준다
+ */
+function loadResume() {
+  return readResume(readLS(HOME_RESUME_KEY), { programs: PROGRAMS, now: Date.now() });
+}
 
 const dayStart = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
 /** 며칠 전인가. 「3일 전」이 「9월 1일」보다 빨리 읽힌다 */
@@ -231,6 +242,8 @@ export default function HomeworkoutPage() {
   const [preview, setPreview] = useState(null);
   // 지난번에 한 것 · 지금 되는 것만 좁혀 보기
   const [lastDone, setLastDone] = useState(readLastDone);
+  // 지난번에 **멈춘 자리** (2026-10-27). 화면을 벗어나도 남는다 — 아래 `stashNow` 참고
+  const [stash, setStash] = useState(loadResume);
   const [onlyQuiet, setOnlyQuiet] = useState(false);
   const [onlyBare, setOnlyBare] = useState(false);
   const [running, setRunning] = useState(false);
@@ -484,6 +497,7 @@ export default function HomeworkoutPage() {
     // **그 소리를 마이크가 같이 듣는다.** 안 버리면 앱이 제 소리를 듣고 「숨이 찼다」고 한다
     breath.blind();
     // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
+
     if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
       beginPhase(idx, true);
       return;
@@ -497,6 +511,8 @@ export default function HomeworkoutPage() {
       // 여기서 안 적으면 무엇을 했는지 아무 데도 안 남는다
       saveLastDone(selected);
       setLastDone(readLastDone());
+      // 끝냈으면 **이어갈 자리가 없다** — 담아둔 것을 버린다 (2026-10-27)
+      clearStash();
       toast('기능성운동 완료!');
       return;
     }
@@ -549,6 +565,50 @@ export default function HomeworkoutPage() {
   // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
   const pausedLeftRef = useRef(0);
 
+  /**
+   * 멈춘 자리를 **기기에 담아둔다** (2026-10-27).
+   *
+   * 세 자리에서 같이 부른다 — 「일시정지」 · 화면을 벗어날 때 · 앱이 뒤로 밀릴 때.
+   * **폰에서는 뒤로 밀리는 것이 더 흔하다**(알림을 따라 나가고, 전화가 오고,
+   * 앱을 밀어 없앤다) — 그래서 `pagehide` 까지 듣는다(`AppLock` 과 같은 자리다).
+   *
+   * 담을 것이 없으면(목록을 보는 중 · 판을 끝낸 뒤) **적혀 있던 것을 안 건드린다** —
+   * 지우는 것은 처음부터 돌리거나 그만두거나 기록한 자리에서만 한다.
+   */
+  const stashNow = () => {
+    if (!selected || finished) return;
+    const { idx, rest, done } = phaseRef.current;
+    // 돌고 있으면 시계로, 멈춰 있으면 멈출 때 적어둔 것으로 센다
+    const left = running && !done ? deadlineRef.current - Date.now() : pausedLeftRef.current;
+    const packed = packResume({
+      program: selected, idx, rest, leftMs: left, skipped: skippedRef.current, at: Date.now(),
+    });
+    if (packed) saveLS(HOME_RESUME_KEY, JSON.stringify(packed));
+  };
+  // 1초마다 도는 자리와 같은 까닭으로 ref 로 든다 — 바깥 이벤트가 옛 렌더의 값을
+  // 붙잡고 있으면 **앞 판의 자리**를 담아둔다
+  const stashRef = useRef(stashNow);
+  stashRef.current = stashNow;
+  /** 담아둔 것을 버린다. 이어갈 것이 없어진 자리에서만 부른다 */
+  const clearStash = () => { removeLS(HOME_RESUME_KEY); setStash(null); };
+
+  // 화면을 벗어날 때 · 앱이 뒤로 밀릴 때 담아둔다.
+  //
+  // **떠나는 길이 하나가 아니다** — 서랍으로 나가고(unmount), 알림을 따라 나가고
+  // (`visibilitychange`), 앱을 밀어 없앤다(`pagehide`). 하나만 들으면 나머지
+  // 길로 나간 사람은 돌아와서 처음부터 하게 된다
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') stashRef.current(); };
+    const onPageHide = () => stashRef.current();
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onPageHide);
+      stashRef.current();            // 화면을 떠나는 길도 같은 자리로 모은다
+    };
+  }, []);
+
   // 처음부터 시작한다. 멈춰뒀던 자리는 버린다
   const startProgram = () => {
     if (!exercises.length) return;
@@ -572,6 +632,9 @@ export default function HomeworkoutPage() {
     skippedRef.current = new Set();
     recRef.current = null;
     setRecLine(null);
+    // **처음부터 도는 것이니 담아둔 자리는 버린다.** 안 버리면 다음에 열었을 때
+    // 「8번째에서 멈췄어요」가 그대로 떠서, 방금 처음부터 돌린 것과 어긋난다
+    clearStash();
     setFinished(false);
     setRunning(true);
     beginPhase(0, false);
@@ -588,6 +651,9 @@ export default function HomeworkoutPage() {
     pausedLeftRef.current = Math.max(0, deadlineRef.current - Date.now());
     phaseRef.current = { ...phaseRef.current, done: true };
     setRunning(false);
+    // 멈춘 자리를 기기에 담아둔다 — 여기서 나가도 돌아와 이어갈 수 있다
+    // (`phaseRef.current.done` 을 바로 위에서 세웠으므로 멈춘 자리의 남은 초를 본다)
+    stashNow();
   };
 
   const resumeProgram = () => {
@@ -598,6 +664,34 @@ export default function HomeworkoutPage() {
     phaseRef.current = { ...phaseRef.current, done: false };
     setTimeLeft(Math.ceil(left / 1000));
     setRunning(true);
+  };
+
+  /**
+   * **담아둔 자리로 들어간다** (2026-10-27).
+   *
+   * 바로 돌리지 않는다 — 판 화면의 「이어서 하기」 앞에 데려다 놓는다. 그 자리에는
+   * 「처음부터」와 「여기까지 기록하기」가 같이 있어서, 돌아온 사람이 **고를 수 있다.**
+   * 눌렀더니 바로 20초가 흐르기 시작하면 자세를 잡을 새가 없다.
+   *
+   * **숨으로 모은 것은 안 담아뒀다** — 마이크는 멈출 때 껐고(`stopBreath`), 기준선도
+   * 다시 재야 한다. 없는 값을 이어 붙이면 「숨이 제일 찼던 동작」이 **앞 판의 것**을
+   * 말한다(10/26 에 판을 바꿔 돌리면 그렇게 됐던 자리다). 비우고 시작한다
+   */
+  const pickStash = () => {
+    if (!stash) return;
+    skippedRef.current = new Set(stash.skipped);
+    pausedLeftRef.current = stash.leftMs;
+    phaseRef.current = { idx: stash.idx, rest: stash.rest, done: true };
+    stepStartRef.current = Date.now();
+    peaksRef.current = [];
+    recRowsRef.current = [];
+    recRef.current = null;
+    setRecLine(null);
+    setCurrentIdx(stash.idx);
+    setIsRest(stash.rest);
+    setTimeLeft(leftSeconds(stash.leftMs));
+    setFinished(false);
+    setSelected(stash.program);
   };
 
   // 못 하는 운동은 넘어갈 수 있어야 한다.
@@ -616,6 +710,8 @@ export default function HomeworkoutPage() {
     pausedLeftRef.current = 0;
     // 재던 칸은 버린다. 그만둔 판의 회복 시간은 **쉬는 시간이 끝난 것이 아니다**
     recRef.current = null;
+    // 그만뒀으면 담아둔 자리도 버린다 (2026-10-27)
+    clearStash();
     phaseRef.current = { idx: 0, rest: false, done: true };
     setRunning(false);
     setCurrentIdx(0);
@@ -653,6 +749,16 @@ export default function HomeworkoutPage() {
     // 그 수에는 **넘긴 동작도 들어 있었다** — 하지 않은 운동이 서버에 적혔다
     const rows = toRecords(list, list.length, selected);
     if (rows.length === 0) { toast('적을 것이 없어요'); return; }
+
+    // ── **여기서 판을 접는다** ── (2026-10-27)
+    //
+    // 「여기까지 기록하기」로 중간에 적고 나가면, 담아둔 자리가 그대로 남아서 다음에
+    // 열었을 때 「8번째에서 멈췄어요」가 떴다 — **이미 기록한 것을 또 이어가라**고
+    // 하는 셈이다. 그리고 「지난번에 한 것」에는 **안 적혔다**(끝까지 간 판만 적었다):
+    // 서버에는 기록이 올라가 있는데 홈트 화면만 「처음 오셨네요」 꼴이었다
+    clearStash();
+    saveLastDone(selected);
+    setLastDone(readLastDone());
 
     // ── 올라간 줄과 못 올라간 줄을 **갈라서 센다** ── (2026-10-06)
     //
@@ -751,6 +857,43 @@ export default function HomeworkoutPage() {
           <br />
           무엇이 필요하고 밤에 켜도 되는지를 카드에 적어뒀어요.
         </p>
+
+        {/* ── 멈춘 자리 (2026-10-27) ──
+
+            **「일시정지」가 화면 안에서만 살아 있었다.** 쉬는 20초에 기록 화면을
+            들여다보고 돌아오면, 알림을 따라 나갔다 오면, 전화를 받고 앱이 뒤로
+            밀렸다 돌아오면 — 전부 **처음부터**였다. 열두 개짜리의 여덟째에서
+            그러면 일곱 개를 다시 한다.
+
+            이제 기기에 담아둔다(`data/homeworkoutResume.js`). 여섯 시간이 지난
+            것 · 없어진 판 · 깨진 것은 그쪽이 걸러서 이 카드가 안 뜬다.
+            **「지난번에 한 것」보다 위에 둔다** — 하던 것이 먼저다 */}
+        {stash && (
+          <div className="card" style={{ marginBottom: 12, borderColor: 'var(--accent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ minWidth: 0, flexGrow: 1 }}>
+                <div style={{ fontSize: 11.5, color: 'var(--accent)', letterSpacing: 1 }}>하다가 멈춘 것</div>
+                <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {stash.program}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+                  {resumeLine(stash)}
+                </div>
+              </div>
+              <button
+                className="btn-primary"
+                style={{ width: 'auto', flexShrink: 0, padding: '8px 14px', fontSize: 12.5 }}
+                onClick={pickStash}
+              >이어서 하기</button>
+            </div>
+            {/* **버릴 길을 같이 준다.** 안 이어갈 것이면 이 카드가 매번 위에 남는다 */}
+            <button
+              className="btn-secondary"
+              style={{ width: '100%', marginTop: 8, padding: '6px 0', fontSize: 11.5 }}
+              onClick={clearStash}
+            >안 이어가요 (지우기)</button>
+          </div>
+        )}
 
         {/* 지난번에 한 것 — 홈트는 이어서 하는 물건이다.
             처음 온 사람에게는 안 그린다 (빈 자리를 남겨두면 고장 난 것으로 읽힌다) */}
@@ -1182,8 +1325,11 @@ export default function HomeworkoutPage() {
         <div style={{ marginBottom: 16 }}>
           {pausedLeftRef.current > 0 ? (
             <>
+              {/* **한 자리에서 적는다** (2026-10-27). 같은 말이 목록의 「멈춘 자리」
+                  카드에도 나온다 — 두 곳이 따로 세면 하나만 고치는 날이 온다
+                  (10/26 의 「부위별 5줄」이 그 자리였다) */}
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                {currentIdx + 1}번째 {isRest ? '휴식' : '운동'}에서 멈췄어요 · {Math.ceil(pausedLeftRef.current / 1000)}초 남음
+                {resumeLine({ idx: currentIdx, rest: isRest, leftMs: pausedLeftRef.current })}
               </div>
               <button className="btn-primary" onClick={resumeProgram}>이어서 하기</button>
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
