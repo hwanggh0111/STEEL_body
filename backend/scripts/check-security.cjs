@@ -389,7 +389,11 @@ console.log('── 보안 보고서가 **지금 쓰는 값**을 말하는가 �
   // **화면이 그 뭉치를 실제로 그리나.** 보내기만 하고 안 그리면 고친 일이 아무 데도 안 보인다
   const panel = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src',
     'components', 'admin', 'SecurityScan.jsx'), 'utf-8');
-  ok('화면이 방어 시스템을 그린다', /Object\.entries\(report\.defense\)/.test(panel), true);
+  // **감싸고 그리는지까지 본다** (2026-10-27). 여기 `report.defense` 를 그대로 읽는
+  // 꼴로 적혀 있었는데, 그러면 서버가 다른 모양을 줄 때 그 줄에서 터져 관리자 화면이
+  // 통째로 흰 화면이 된다 — 같은 화면의 헤더 · 로그는 이미 감싸고 있었다.
+  // 감싼 꼴로 고치면서 이 검사가 FAIL 했다(글자가 안 맞아서다. 고친 쪽이 맞다)
+  ok('화면이 방어 시스템을 그린다', /Object\.entries\(report\.defense \|\| \{\}\)/.test(panel), true);
   ok('  내보내는 헤더도 그린다', /Object\.entries\(report\.headers/.test(panel), true);
 }
 
