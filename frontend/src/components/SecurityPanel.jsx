@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLangStore } from '../store/langStore';
 import client from '../api/client';
 import { toast } from './Toast';
+import { dayOf } from '../data/dateKey';
 import { confirmDialog } from './ConfirmModal';
 import { readLS } from '../data/safeStorage';
 
@@ -477,7 +478,9 @@ export default function SecurityPanel() {
             {/* 서버가 주는 이름은 `created_at` 인데 화면은 `createdAt` 을 읽고 있었다 —
                 그래서 **가입일이 언제나 「-」**였다 (8/26 에 고쳤다) */}
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-              {user.created_at ? `${String(user.created_at).slice(0, 10)} 가입` : '가입일 모름'} · id {user.id}
+              {/* **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** — 서버의 「오늘 가입」 셈은 이미 서울로 세는데(`seoulDay`)
+                  이 줄만 UTC 로 잘라, 새벽에 가입한 사람이 **어제 가입**으로 적혔다 */}
+              {user.created_at ? `${dayOf(user.created_at)} 가입` : '가입일 모름'} · id {user.id}
             </div>
 
             <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>

@@ -2,6 +2,7 @@ import { ffmiOf, ffmiBand } from '../data/bodyIndex';
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useInbodyStore } from '../store/inbodyStore';
+import { dayOf } from '../data/dateKey';
 import { useWorkoutStore } from '../store/workoutStore';
 import InbodyCard from '../components/InbodyCard';
 import BodyReading from '../components/BodyReading';
@@ -216,7 +217,8 @@ export default function InbodyPage({ embedded = false }) {
       }
       // **언제 · 어디서 온 값인지 같이 보여준다.** 숫자만 꽂아 넣으면 사람은 그것이
       // 오늘 잰 것인 줄 알고 저장한다
-      const when = body.at ? String(body.at).slice(0, 10) : '';
+      // **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다**
+      const when = dayOf(body.at);
       setHealthFrom(`${when}${body.source ? ' · ' + body.source : ''} 에서 가져왔어요 — 맞는지 보고 저장하세요`);
     } finally {
       setHealthBusy(false);

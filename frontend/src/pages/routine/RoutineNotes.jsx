@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import client from '../../api/client';
 import { toast } from '../../components/Toast';
 import { confirmDialog } from '../../components/ConfirmModal';
+import { dayOf } from '../../data/dateKey';
 import { noteTitle, countExercises, noteToRoutine } from '../../data/routineNote';
 
 // 루틴 메모장.
@@ -189,7 +190,7 @@ export default function RoutineNotes({ onToRoutine }) {
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{noteTitle(note.body)}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
-                운동 {countExercises(note.body)}개 · {String(note.updated_at || '').slice(0, 10)}
+                운동 {countExercises(note.body)}개 · {dayOf(note.updated_at)}
               </div>
             </div>
             <button

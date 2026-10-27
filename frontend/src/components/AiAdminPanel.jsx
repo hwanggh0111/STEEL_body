@@ -3,7 +3,7 @@ import client from '../api/client';
 import Emphasis from './Emphasis';
 import NavIcon from './NavIcon';
 import { toast } from './Toast';
-import { stampOf } from '../data/dateKey';
+import { stampOf, dayOf } from '../data/dateKey';
 
 // 관리자 화면의 「AI 관리자」 — **자동 판정이 어떻게 돌고 있는가**를 보는 자리.
 //
@@ -365,7 +365,8 @@ export default function AiAdminPanel() {
               <span style={{ color: 'var(--text-secondary)' }}>사람 {s.user_id}</span>
               <span style={{ color: 'var(--text-muted)' }}>레벨 {s.level}</span>
               <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 11 }}>
-                {s.expires_at === 'permanent' ? '영구' : `${String(s.expires_at).slice(0, 10)} 까지`}
+                {/* **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** (2026-10-27) */}
+                {s.expires_at === 'permanent' ? '영구' : `${dayOf(s.expires_at)} 까지`}
               </span>
             </div>
             {s.reason && <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 3 }}>{s.reason}</div>}
@@ -394,7 +395,7 @@ export default function AiAdminPanel() {
                   시작한 값인데(「안 적어두면 어느 주소가 그 사람 것인지 알 길이
                   없다」) 화면이 그것을 안 보여주고 있었다 */}
               {b.user_id ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>회원 {b.user_id}</span> : null}
-              {b.created_at ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{String(b.created_at).slice(0, 10)}</span> : null}
+              {b.created_at ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{dayOf(b.created_at)}</span> : null}
               <button
                 className="btn-secondary"
                 style={{ marginLeft: 'auto', width: 'auto', fontSize: 11.5, padding: '4px 10px' }}

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import client from '../../api/client';
 import { toast } from '../Toast';
 import NavIcon from '../NavIcon';
+import { dayOf } from '../../data/dateKey';
 
 // ─────────────────────────────────────────────────────────────
 // 제보 관리 — 들어온 버그 · 문의 · 건의를 보고 답을 단다.
@@ -27,7 +28,10 @@ const STATUS = {
 const FREQ = { always: '매번 그래요', sometimes: '가끔 그래요', once: '한 번만 그랬어요' };
 const WORKAROUND = { none: '방법이 없어요', clumsy: '불편하게 돌려서 해요', okay: '그냥 없어도 돼요' };
 
-const day = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
+// **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** (2026-10-27)
+// 여기서 묶은 날짜가 「오늘 온 제보」 머리글과 날짜 묶음을 만든다 —
+// 새벽에 온 제보가 **어제 묶음**에 들어가 있었다
+const day = dayOf;
 
 const ABUSE_LEVEL = {
   mild:   { label: '짜증', color: 'var(--text-muted)', note: '막지 않았습니다' },

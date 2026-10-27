@@ -1,3 +1,5 @@
+import { dayOf } from './dateKey';
+
 // 전·후를 **한 장으로** 합친다 (2026-10-15)
 //
 // ── 왜 한 장인가 ──
@@ -110,7 +112,9 @@ export async function mergeBeforeAfter({ before, after, beforeAt, afterAt, capti
 
     label(ctx, s.tag, x + 28, 56, { size: 34, weight: 700, color: '#eeb77d' });
     if (s.at && /^\d{4}-\d{2}-\d{2}/.test(s.at)) {
-      label(ctx, s.at.slice(0, 10).replace(/-/g, '. '), x + 28, 92, { size: 24, weight: 500, color: 'rgba(255,255,255,0.82)' });
+      // **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다**.
+      // 이 글자는 **내보내는 그림에 박힌다** — 고칠 수가 없다
+      label(ctx, dayOf(s.at).replace(/-/g, '. '), x + 28, 92, { size: 24, weight: 500, color: 'rgba(255,255,255,0.82)' });
     }
   });
 

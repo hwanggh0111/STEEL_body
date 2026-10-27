@@ -32,6 +32,28 @@ export function clockOf(iso) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
+/**
+ * **서버가 보낸 한 시각의 날짜** (2026-10-27).
+ *
+ * 서버가 적는 시각은 `new Date().toISOString()` — UTC 다. 그것을 글자로 열 자 자르면
+ * (`iso.slice(0, 10)`) 한국에서는 **자정부터 오전 9시까지가 하루 전**이 된다.
+ * 서버에도 같은 일을 하는 자리가 있다(`backend/src/utils/seoulDay.js`) — 거기
+ * 적혀 있는 까닭이 그것이다: 「그 사이에 가입한 사람이 관리자 화면의 『오늘 가입』에서
+ * 빠졌다」.
+ *
+ * 앱 곳곳이 그 글자 자르기를 쓰고 있었다 — 제보가 어제로 묶이고, 정지 만료일과
+ * 계정 삭제 마감일이 하루 빠르게 적히고, 내보내는 사진에 전날 날짜가 박혔다.
+ *
+ * **이미 날짜뿐인 글자는 그대로 돌려준다**(`'2026-10-27'`). 그것을 `Date` 로 읽으면
+ * UTC 자정으로 보고, 한국보다 뒤진 시간대에서는 또 하루가 밀린다 — 날짜는 날짜로 둔다.
+ */
+export function dayOf(v) {
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const d = new Date(v);
+  if (!v || Number.isNaN(d.getTime())) return '';
+  return dateKey(d);
+}
+
 /** 날짜와 시각. 「언제 검사했나」처럼 **날짜가 뜻이 있는** 자리에 쓴다 */
 export function stampOf(iso) {
   const d = new Date(iso);

@@ -1,3 +1,5 @@
+import { dayOf } from './dateKey';
+
 // 몸 사진을 파일로 챙겨 나가기.
 //
 // 내보내기는 운동 · 인바디 · 측정 셋을 CSV 로 빼주는데 **몸 사진만 길이 없었다.**
@@ -40,7 +42,8 @@ export function extOf(mime) {
  */
 export function photoFileName(type, at, dataUrl) {
   const label = TYPE_LABEL[type] || String(type || '사진');
-  const day = typeof at === 'string' && /^\d{4}-\d{2}-\d{2}/.test(at) ? at.slice(0, 10) : null;
+  // **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다**
+  const day = dayOf(at) || null;
   return `blackiron_${label}${day ? `_${day}` : ''}.${extOf(mimeOf(dataUrl))}`;
 }
 

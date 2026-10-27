@@ -67,4 +67,6 @@ export const STATUS = {
 };
 
 // 서버가 주는 날짜는 ISO 문자열이다. 화면에는 날짜만 쓴다
-export const dayOf = iso => (typeof iso === 'string' ? iso.slice(0, 10) : '');
+// **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** (2026-10-27).
+// 이름은 그대로 두고 속을 `data/dateKey.js` 의 것으로 바꾼다 — 부르는 자리가 여럿이다
+export { dayOf } from '../../data/dateKey';

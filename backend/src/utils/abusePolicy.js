@@ -1,5 +1,6 @@
 const db = require('../db');
 const { notifyAdmin } = require('./mailer');
+const { seoulDay } = require('./seoulDay');
 
 // ─────────────────────────────────────────────────────────────
 // 욕설 · 비하에 대한 처벌.
@@ -45,7 +46,11 @@ function daysFor(count) {
 // 여기서 거는 것은 기간이 정해진 정지뿐이다. 최대 7일, 그 위는 없다.
 function suspend(userId, verdict, days, count, isHate) {
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-  const until = expiresAt.slice(0, 10);
+  // **서울 날짜로 말한다** (2026-10-27). 여기서 자른 글자가 그 사람에게 가는
+  // 「○○까지 정지」다. 서버는 UTC 로 돌아서, 한국 자정~오전 9시에 걸린 사람은
+  // **하루 빠른 날**을 듣고 그 날에도 막혀 있었다 — 말과 실제가 다른 자리다.
+  // 같은 일을 하는 자리가 이미 있다(`utils/seoulDay.js`, 거기 적힌 까닭이 이것이다)
+  const until = seoulDay(expiresAt);
   // ── **막아둔 길을 가리키지 않는다** ── (2026-10-24)
   //
   // 여기 「잘못 걸렸다고 생각되면 **관리자에게 알려주세요**」라고 적혀 있었다.

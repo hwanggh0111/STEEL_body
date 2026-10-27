@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
+const { seoulDay } = require('../utils/seoulDay');
 const { recomputeDays } = require('../utils/abusePolicy');
 const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
 const { inspect } = require('../utils/profanity');
@@ -153,9 +154,10 @@ router.patch('/abuse/:id', adminAuth, (req, res) => {
       if (until.getTime() > Date.now()) {
         db.createSuspension(userId, 3, 'abuse',
           `욕설 기록을 다시 계산했습니다. 남은 누적으로 ${days}일 정지입니다 `
-          + `(${until.toISOString().slice(0, 10)} 해제).`,
+          // **서울 날짜로 말한다** (2026-10-27) — `abusePolicy` 와 같은 자리다
+          + `(${seoulDay(until)} 해제).`,
           until.toISOString());
-        rebuilt = { days, until: until.toISOString().slice(0, 10) };
+        rebuilt = { days, until: seoulDay(until) };
       }
     }
   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
+import { dayOf } from '../data/dateKey';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import SplashScreen from '../components/SplashScreen';
 import PasswordResetModal from '../components/PasswordResetModal';
@@ -334,7 +335,9 @@ function oauthErrorText(code) {
             fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8,
           }}>
             <b style={{ color: 'var(--text-primary)' }}>계정 삭제를 예약했어요.</b><br />
-            {String(deleted.delete_due_at || '').slice(0, 10)} 까지는 <b style={{ color: 'var(--accent)' }}>다시 로그인만 하시면
+            {/* **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** — 여기가 가장 아픈 자리다:
+                하루 빠르게 적히면 **살릴 수 있는 계정을 포기한다** */}
+            {dayOf(deleted.delete_due_at)} 까지는 <b style={{ color: 'var(--accent)' }}>다시 로그인만 하시면
             그대로 되살아납니다.</b> 그 뒤에는 기록이 전부 지워지고 되돌릴 수 없어요.
           </div>
         )}
