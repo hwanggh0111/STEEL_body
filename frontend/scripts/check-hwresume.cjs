@@ -15,8 +15,8 @@
 //   · 여섯 시간이 지났을 때 · 기기 시계가 앞날로 돌아가 있을 때
 //   · 칸 수가 줄어 적혀 있던 번호가 밖으로 나갔을 때
 //
-// 그래서 값으로 본다. 그리고 **화면 쪽도 글자로 센다** — 담아둔 것을 지우는 자리와
-// 떠나는 길을 다 듣는 자리.
+// 그래서 값으로 본다. 그리고 **화면 쪽도 글자로 센다** — 마이크를 끄는 자리,
+// 담아둔 것을 지우는 자리, 넘긴 동작 뒤에 쉬지 않는 자리.
 //
 // ★ **주석을 걷고 센다.** 까닭을 주석에 길게 적어두는 집이라, 글자만 세면
 // 「고쳤다는 주석」을 고친 코드로 읽는다 (10/26 에 두 번 밟았다).
@@ -46,6 +46,8 @@ const bundle = (entry, out) => {
 
 const R = bundle('src/data/homeworkoutResume.js', '.hwresume.cjs');
 const PR = bundle('src/data/homeworkoutPrograms.js', '.hwprog.cjs');
+const PT = bundle('src/data/particle.js', '.hwpt.cjs');
+const HEAT = bundle('src/data/bodyHeat.js', '.hwheat.cjs');
 
 const NOW = 1761523200000;                      // 2026-10-27 쯤. 고정 시각으로 본다
 const NAME = '기능성(특수부대식)';
@@ -105,6 +107,18 @@ ok('휴식에서 멈춤', R.resumeLine({ idx: 0, rest: true, leftMs: 1 }), '1번
 ok('올림으로 센다', R.leftSeconds(11001), 12);
 ok('칸이 없으면 안 적는다', R.resumeLine({}), null);
 
+console.log('\n── 조사를 고르는 손 ──');
+// 끝 화면의 「안 한 ○○ 「오늘 뭘 하지」에 올라옵니다」
+const partLines = HEAT.MAP_PARTS.map((p) => PT.i(p));
+ok('부위 여섯', partLines, ['가슴이', '등이', '어깨가', '하체가', '팔이', '코어가']);
+// 카드의 「밤에는 ○○ 바꿔서」
+Object.keys(PROGRAMS).forEach((name) => {
+  const loud = PR.loudOf(name);
+  if (loud.length < 2) return;
+  const line = PT.eul(loud.join(' · '));
+  yes(`밤 안내 「${line}」`, /[를을]$/.test(line) && !/점프을$/.test(line), '받침을 안 보고 「을」로 박혀 있다');
+});
+
 // ──────────────────────────────────────────────────────────────
 // 화면 쪽은 **주석을 걷고** 센다
 // ──────────────────────────────────────────────────────────────
@@ -161,6 +175,9 @@ yes('떠나는 길 셋을 다 듣는다',
   && /return \(\) => \{[\s\S]{0,400}stashRef\.current\(\)/.test(code),
   '폰에서는 앱이 뒤로 밀리는 것이 더 흔하다 — 하나만 들으면 그 길로 나간 사람은 처음부터 한다');
 
+yes('넘긴 동작 뒤에는 쉬지 않는다', /if \(!bySkip && !rest && exercises\[idx\]\?\.rest > 0/.test(code),
+  '「건너뛰기」를 눌렀는데 하지도 않은 동작의 쉬는 시간이 온다');
+
 yes('일시정지가 재던 회복 칸을 버린다',
   /const pauseProgram = \(\) => \{[\s\S]{0,600}recRef\.current = null/.test(code),
   '멈춰 있던 시간이 「숨이 가라앉는 데 걸린 초」로 이력에 쌓인다');
@@ -172,6 +189,9 @@ yes('일시정지가 마이크를 끈다',
 yes('끝 화면이 떠둔 기준선을 쓴다',
   code.includes('hardestOf(peaksRef.current, baseSeenRef.current)') && !/hardestOf\([^)]*breath\.base/.test(code),
   '마이크를 끄면 기준선이 null 이 되어 「숨이 제일 찼던 동작」이 통째로 사라진다');
+
+yes('안 한 부위에 조사를 붙인다', /iPart\(donePump\.untouched\[0\]\)/.test(code),
+  '「어깨이」 · 「하체이」 · 「코어이」가 된다 (여섯 중 셋)');
 
 yes('멈춘 자리 한 줄을 두 곳이 같이 쓴다', count(/resumeLine\(/g) >= 2,
   '목록 카드와 판 화면이 따로 세면 하나만 고치는 날이 온다');

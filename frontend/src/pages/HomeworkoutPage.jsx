@@ -21,7 +21,7 @@ import { useSettingsStore, senseOf } from '../store/settingsStore';
 import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
-import { i as iPart } from '../data/particle';
+import { i as iPart, eul as eulPart } from '../data/particle';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -505,9 +505,17 @@ export default function HomeworkoutPage() {
     beepDone(alertRef.current);
     // **그 소리를 마이크가 같이 듣는다.** 안 버리면 앱이 제 소리를 듣고 「숨이 찼다」고 한다
     breath.blind();
-    // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다
-
-    if (!rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
+    // 운동이 끝났고 쉬는 시간이 있으면 쉰다. 마지막 운동 뒤에는 쉬지 않는다.
+    //
+    // ── **넘긴 동작 뒤에는 쉬지 않는다** ── (2026-10-27)
+    //
+    // 「건너뛰기」는 **오늘 안 되는 동작**을 지나가는 단추다(노르딕 컬 · 월 핸드스탠드).
+    // 그런데 누르면 그 동작의 **쉬는 20초가 그대로 왔다** — 하지도 않은 동작의 회복
+    // 시간을 서서 기다린 셈이고, 다음 동작으로 가려면 「바로 시작」을 **한 번 더**
+    // 눌러야 했다. 넘기려고 누른 단추가 한 번에 안 넘어간다.
+    //
+    // 셈은 이미 넘긴 것을 뺀다(`doneList`) — 그 자와 같은 자를 쓴다
+    if (!bySkip && !rest && exercises[idx]?.rest > 0 && idx < exercises.length - 1) {
       beginPhase(idx, true);
       return;
     }
@@ -1030,7 +1038,9 @@ export default function HomeworkoutPage() {
                     <div>
                       {loud.length === 0
                         ? '밤에도 그대로 — 뛰는 동작이 없습니다'
-                        : `밤에는 ${loud.join(' · ')} ${loud.length === 1 ? '하나만' : '을'} 바꿔서 (미리 보기에 적어뒀어요)`}
+                        /* 여기도 고르는 손이 있다 — 「프로그 점프을」이라고 적혀 있었다
+                           (둘 이상인 판은 기능성 하나뿐이고, 그 마지막 동작이 받침이 없다) */
+                        : `밤에는 ${loud.length === 1 ? `${loud[0]} 하나만` : eulPart(loud.join(' · '))} 바꿔서 (미리 보기에 적어뒀어요)`}
                     </div>
                   </div>
                 </div>
@@ -1252,7 +1262,10 @@ export default function HomeworkoutPage() {
                 올라갔다. 아홉 판 중 여덟이 어긋났다. 두 곳이 세면 반드시 이렇게 된다 */}
             아래를 누르면 <b style={{ color: 'var(--accent)' }}>부위별 {recordRows.length}줄</b>로 적히고
             <b style={{ color: 'var(--accent)' }}> 몸 지도</b>에도 쌓여요.
-            {donePump.untouched.length > 0 && <> 안 한 {donePump.untouched[0]}이 「오늘 뭘 하지」에 올라옵니다.</>}
+            {/* **고르는 손이 있다** (2026-10-27). 여섯 부위 중 셋이 틀렸다 —
+                「어깨이」 · 「하체이」 · 「코어이」. 10/21 에 이 일을 하는 자리를
+                만들어뒀는데(`data/particle.js`) 이 한 줄만 「이」로 박혀 있었다 */}
+            {donePump.untouched.length > 0 && <> 안 한 {iPart(donePump.untouched[0])} 「오늘 뭘 하지」에 올라옵니다.</>}
           </div>
         </div>
 
