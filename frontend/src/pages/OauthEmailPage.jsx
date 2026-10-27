@@ -6,6 +6,7 @@ import Logo from '../components/Logo';
 import { toast } from '../components/Toast';
 // 로그인·가입이 끝나고 어디로 갈지 — 규칙은 한 곳에 있다 (2026-10-20)
 import { afterAuthPath } from '../data/afterAuth';
+import { euro, eun } from '../data/particle';
 
 // 메일 주소를 받는 걸음 (2026-10-07 · 시안 B안).
 //
@@ -172,7 +173,9 @@ export default function OauthEmailPage() {
           <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
             {who && <strong style={{ color: 'var(--text-primary)' }}>@{who}</strong>}
             <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)' }}>
-              {label}으로 들어왔어요
+              {/* **조사를 고르는 손** (2026-10-27). 「으로」가 글자로 박혀 있어서
+                  살아 있는 길인 **트위터(X)** 가 「트위터(X)으로 들어왔어요」가 됐다 */}
+              {euro(label)} 들어왔어요
             </span>
           </div>
         </div>
@@ -184,7 +187,7 @@ export default function OauthEmailPage() {
             padding: '12px 13px', marginBottom: 16,
             fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.7,
           }}>
-            지금은 <strong>메일을 보낼 수 없어요.</strong> {label}은 메일 주소를 알려주지 않아서
+            지금은 <strong>메일을 보낼 수 없어요.</strong> {eun(label)} 메일 주소를 알려주지 않아서
             이 걸음이 꼭 필요합니다 — <Link to="/login" style={{ color: 'var(--accent)' }}>
             Google 이나 네이버</Link>로 들어와 주세요.
           </div>

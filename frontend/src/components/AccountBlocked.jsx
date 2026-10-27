@@ -6,6 +6,7 @@ import NavIcon from './NavIcon';
 import { SUPPORT_EMAIL } from '../data/contact';
 import Logo from './Logo';
 import Emphasis from './Emphasis';
+import { euroJosa } from '../data/particle';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
 //
@@ -109,7 +110,8 @@ export default function AccountBlocked() {
                   영구 정지에는 「풀린 뒤」도 없다 — 남는 길은 이 주소뿐이다 */}
               잘못 걸렸다고 생각되시면{' '}
               <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: 'var(--text-secondary)' }}>{SUPPORT_EMAIL}</a>
-              {' '}로 알려주세요. 확인해서 되돌립니다.
+              {/* 조사를 고르는 손 (2026-10-27). 메일 주소가 `<a>` 안에 있어 조사만 가져온다 */}
+              {' '}{euroJosa(SUPPORT_EMAIL)} 알려주세요. 확인해서 되돌립니다.
             </>
           ) : '지금은 제보도 보낼 수 없습니다. 풀린 뒤에 고객센터로 알려주시면 확인합니다.'}
         </div>

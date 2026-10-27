@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
 import { estimate1RM, RM_MAX_REPS } from '../../data/personalRecord';
+import { euro } from '../../data/particle';
 
 // 계산 기록도 지울 수 없었다 — 측정 화면에 삭제가 있는데 안 넘겨줬다.
 // 날짜는 안 받는다. 지금 계산해서 그 자리에 저장하는 것이라 오늘이 맞다
@@ -53,7 +54,7 @@ export default function OneRMSection({ records, onSave, onDelete }) {
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
             {['벤치프레스', '스쿼트', '데드리프트', '숄더프레스'].map(ex => (
               <button key={ex} className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }}
-                onClick={() => handleSave(ex)}>{ex}로 저장</button>
+                onClick={() => handleSave(ex)}>{euro(ex)} 저장</button>
             ))}
           </div>
         </div>

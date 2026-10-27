@@ -37,7 +37,34 @@ export function particle(word, withFinal, withoutFinal) {
   return hasFinalConsonant(word) ? withFinal : withoutFinal;
 }
 
-/** 자주 쓰는 세 쌍. 앞말과 조사를 붙여서 돌려준다. */
+/**
+ * 「으로 / 로」는 **받침만으로 갈리지 않는다** (2026-10-27).
+ *
+ * 받침이 없으면 「로」, 있으면 「으로」인데 **ㄹ 받침은 「로」**다 —
+ * 「서울로」 · 「메일로」 · 「벤치프레스로」. 그래서 위의 세 쌍과 짜임이 다르고,
+ * 그 때문에 여태 이 쌍이 없었다. 없으니까 **다섯 자리가 글자로 박아뒀고
+ * 그중 둘이 틀렸다** — 「트위터(X)으로 들어왔어요」 · 「트위터(X)은 메일 주소를…」.
+ *
+ * 숫자도 읽는 소리로 본다 — 1(일) · 7(칠) · 8(팔) 은 ㄹ 받침이라 「로」,
+ * 3(삼) · 6(육) · 0(영) 은 「으로」.
+ */
+export function hasRieulFinal(word) {
+  const s = String(word ?? '').trim();
+  if (!s) return false;
+  const last = s[s.length - 1];
+  const code = last.charCodeAt(0);
+  if (code >= 0xAC00 && code <= 0xD7A3) return (code - 0xAC00) % 28 === 8;
+  if (last >= '0' && last <= '9') return '178'.includes(last);
+  return false;
+}
+
+/** 자주 쓰는 네 쌍. 앞말과 조사를 붙여서 돌려준다. */
 export const eul = (w) => `${w}${particle(w, '을', '를')}`;
 export const i = (w) => `${w}${particle(w, '이', '가')}`;
 export const eun = (w) => `${w}${particle(w, '은', '는')}`;
+/**
+ * 「으로 / 로」 **조사만**. 앞말이 다른 태그 안에 있을 때 쓴다 —
+ * 정지 안내는 메일 주소를 `<a>` 로 감싸고 그 뒤에 조사를 붙인다
+ */
+export const euroJosa = (w) => (hasFinalConsonant(w) && !hasRieulFinal(w) ? '으로' : '로');
+export const euro = (w) => `${w}${euroJosa(w)}`;

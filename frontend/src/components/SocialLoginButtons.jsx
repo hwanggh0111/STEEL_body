@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
+import { euro } from '../data/particle';
 
 // 소셜 로그인 버튼들. 로그인 화면과 회원가입 화면이 같이 쓴다.
 //
@@ -116,8 +117,8 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
                 onClick={() => go(o.key)}
                 disabled={disabled}
                 // 로고만 있는 단추다 — **읽어주는 화면에는 이름이 통째로** 들어간다
-                aria-label={`${o.ariaLabel || o.label}로 계속하기`}
-                title={`${o.ariaLabel || o.label}로 계속하기`}
+                aria-label={`${euro(o.ariaLabel || o.label)} 계속하기`}
+                title={`${euro(o.ariaLabel || o.label)} 계속하기`}
                 style={{
                   flex: '1 1 0', minWidth: 0, height: 44,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -131,7 +132,7 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
                   <span style={{
                     marginLeft: 8, fontSize: 14, fontWeight: 600,
                     fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
-                  }}>{o.label}로 계속하기</span>
+                  }}>{euro(o.label)} 계속하기</span>
                 )}
               </button>
             ))}

@@ -447,7 +447,7 @@ export default function GoalPage() {
                     <div className="label" style={{ marginBottom: 7 }}>{m.label}</div>
                     {p.now == null ? (
                       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                        목표는 {p.target}{m.unit} 입니다. 「몸 → 인바디」에 {m.label}을 한 번 적으면
+                        목표는 {p.target}{m.unit} 입니다. 「몸 → 인바디」에 {eul(m.label)} 한 번 적으면
                         여기에 진행률이 그려집니다.
                       </div>
                     ) : (
