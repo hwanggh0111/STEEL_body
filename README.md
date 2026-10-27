@@ -1,10 +1,16 @@
 # BLACK IRON
 
-운동 기록 PWA. 운동·인바디를 기록하고, 루틴·홈트·측정으로 이어간다. 미션이 이어가는 이유를 만든다.
+운동 기록 PWA. 운동·인바디를 기록하고, 루틴·홈트·측정으로 이어간다.
+**몸 지도가 식고 연속 주가 쌓이는 것**이 이어가는 이유를 만든다.
 
-- **Frontend** `frontend/` — React 18 + Vite + Zustand + Recharts
-- **Backend** `backend/` — Node.js + Express + JSON 파일 DB, JWT 인증
-- **배포** Render (`render.yaml`)
+> **미션은 2026-09-03 에 걷어냈다**(`MissionSystem.jsx` 삭제). 이 줄이 그 뒤로도
+> 「미션이 이어가는 이유를 만든다」라고 말하고 있었다 — 10/27 에 고쳤다.
+
+- **Frontend** `frontend/` — React 18 + Vite + Zustand · 그래프는 **직접 그린다**(SVG) ·
+  안드로이드 앱은 Capacitor · 자세 인식은 MediaPipe
+- **Backend** `backend/` — Node.js + Express + JWT 인증.
+  저장은 **운영에서 Postgres, 내 컴퓨터에서는 JSON 파일 한 장**(`storage.js` 가 가른다)
+- **배포** Render (`render.yaml`) · DB 는 Neon Postgres (2026-10-14)
 
 ```bash
 cd frontend && npm run dev     # http://localhost:5173
