@@ -57,13 +57,27 @@ function missing(req, res) {
 
 function shape(row) {
   if (!row) return null;
+  // ── **지나간 것과 한 것을 가른다** ── (2026-10-27)
+  //
+  // `done` 은 「지나간 칸」이다 — 한 것과 **넘긴 것**을 같이 센다. 진행 막대는 그게
+  // 맞다(넘긴 칸으로 돌아가지 않는다). 그런데 홈의 「진행 중」 카드가 그 수에
+  // **「완료」**를 붙여 적고 있었다 — 여덟 중 셋을 건너뛰면 **「8 / 8 완료」**다.
+  //
+  // 10/26 에 홈트에서 정한 선과 같다: **넘긴 것은 「한 것」이 아니다.** 그래서 한
+  // 것과 넘긴 것을 **여기서** 세어 보낸다 — 화면이 빼서 세면 세는 자리가 둘이 된다.
   const done = row.items.filter(i => i.state !== 'todo').length;
+  const completed = row.items.filter(i => i.state === 'done').length;
+  const skipped = row.items.filter(i => i.state === 'skip').length;
   const current = row.items.findIndex(i => i.state === 'todo');
   return {
     routineId: row.routine_id,
     name: row.name,
     items: row.items,
+    // 지나간 칸 (진행 막대가 쓴다 — 넘긴 칸으로 돌아가지 않으니 같이 센다)
     done,
+    // 실제로 한 칸 · 넘긴 칸. **「완료」라고 적는 자리는 이쪽을 읽는다**
+    completed,
+    skipped,
     total: row.items.length,
     // 다 했으면 -1. 화면은 이걸로 「끝났다」를 안다
     current,

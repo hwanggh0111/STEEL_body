@@ -50,7 +50,14 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         </div>
 
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-          <div className="label" style={{ marginBottom: 0 }}>{session.done} / {session.total} 완료</div>
+          {/* **건너뛴 것을 「완료」로 세고 있었다** (2026-10-27). 여덟 중 셋을
+              건너뛰면 「8 / 8 완료」였다 — 「운동」 화면은 그 칸을 「건너뜀」이라고
+              줄 그어 적는데, 홈만 다르게 말하고 있었다.
+              **한 것과 넘긴 것은 서버가 갈라서 보낸다** (세는 자리를 둘로 두지 않는다) */}
+          <div className="label" style={{ marginBottom: 0 }}>
+            {session.completed} / {session.total} 완료
+            {session.skipped > 0 && <> · {session.skipped} 건너뜀</>}
+          </div>
           {current && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               다음 · {current.name}
