@@ -50,11 +50,6 @@ export async function pushSchedules(schedules) {
   return list;
 }
 
-// 기본 스케줄 강제 적용 (테스트용)
-export function forceDefaultSchedule() {
-  saveLS(MAINT_KEY, JSON.stringify(DEFAULT_SCHEDULE));
-}
-
 // 앱 시작 시 기본 스케줄과 localStorage 동기화
 // DEFAULT_SCHEDULE이 코드에서 바뀌면 자동 반영 (빈 배열이면 건너뜀 — 사용자 설정 보존)
 const MAINT_VERSION_KEY = MAINT_VERSION_LS_KEY;

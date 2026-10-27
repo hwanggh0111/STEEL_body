@@ -19,11 +19,13 @@ export const CHART = {
   border: '#332b1e',   // --border
 };
 
-// 축 글씨 · 말풍선 — 그래프 넷이 같이 쓴다
-export const AXIS_TICK = { fill: CHART.muted, fontSize: 11 };
-export const TOOLTIP_STYLE = {
-  background: CHART.card,
-  border: `1px solid ${CHART.border}`,
-  color: CHART.text,
-  fontSize: 13,
-};
+// ── **「축 글씨 · 말풍선 — 그래프 넷이 같이 쓴다」를 걷었다** ── (2026-10-27)
+//
+// 그 두 뭉치(`AXIS_TICK` · `TOOLTIP_STYLE`)는 recharts 에게 넘기던 값이고,
+// 8/28 에 recharts 를 걷고 직접 그리기 시작한 뒤로 **아무도 안 썼다.**
+// 그런데 「넷이 같이 쓴다」는 말은 남아 있었고, 그래서 **값이 조용히 어긋났다** —
+// 거기 적힌 축 글씨는 11이고 실제로 그려지는 것은 10이다.
+//
+// 지금 그리는 쪽(`components/charts/LineChart.jsx`)은 위의 `CHART` 를 그대로 읽고
+// 크기는 제자리에서 적는다. **없는 것을 쓴다고 적어두지 않는다** — 그 말이 다음에
+// 보는 사람을 틀린 자리로 보낸다.

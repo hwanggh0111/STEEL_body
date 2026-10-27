@@ -125,4 +125,5 @@ export function restView(workouts, exercise, today) {
   };
 }
 
-export const _internals = { rowsOfDay, lastDayOf, dropOf };
+// 「검사가 안쪽을 들여다보라」고 내보냈던 `_internals` 는 걷었다 (2026-10-27) —
+// **검사도 안 쓰고 있었다.** 이 파일은 밖으로 내보내는 셋만으로 다 확인된다
