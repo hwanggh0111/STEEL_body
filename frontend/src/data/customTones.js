@@ -1,4 +1,5 @@
 import { CUSTOM_TONES_KEY } from './localKeys';
+import { readLS, saveLS } from './safeStorage';
 
 // 내가 만드는 알림 소리 (2026-09-22).
 //
@@ -113,7 +114,8 @@ export function buildTone(draft) {
  */
 export function loadTones() {
   try {
-    const raw = localStorage.getItem(CUSTOM_TONES_KEY);
+    // 집의 손으로 읽는다 — 막아둔 브라우저에서 던지는 것을 그쪽이 받는다 (2026-10-27)
+    const raw = readLS(CUSTOM_TONES_KEY);
     const list = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(list)) return [];
     return list.slice(0, MAX_TONES).map((t) => buildTone({ ...t.draft, id: t.id, name: t.name }));
@@ -127,7 +129,7 @@ export function saveTones(list) {
   const keep = (Array.isArray(list) ? list : []).slice(0, MAX_TONES).map((t) => ({
     id: t.id, name: t.name, draft: t.draft,
   }));
-  try { localStorage.setItem(CUSTOM_TONES_KEY, JSON.stringify(keep)); } catch { /* 막아둔 브라우저 */ }
+  saveLS(CUSTOM_TONES_KEY, JSON.stringify(keep));   // 못 적어도 고른 소리는 이번 판에 돈다
   return keep.map((t) => buildTone({ ...t.draft, id: t.id, name: t.name }));
 }
 

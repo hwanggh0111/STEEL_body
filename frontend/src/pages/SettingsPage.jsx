@@ -17,7 +17,7 @@ import { healthReady, openHealthSettings } from '../data/healthLink';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
-import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import { EMAIL_KEY, NICKNAME_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -386,7 +386,8 @@ export default function SettingsPage() {
     client.put('/auth/nickname', { nickname: trimmed })
       .then(() => {
         useAuthStore.setState({ nickname: trimmed });
-        try { localStorage.setItem('nickname', trimmed); } catch { /* 막아둔 브라우저 */ }
+        // 집의 손으로 적고, 열쇠는 이름으로 부른다 (2026-10-27)
+        saveLS(NICKNAME_KEY, trimmed);
         setNickEdit(false);
         toast('이름이 바뀌었어요');
       })

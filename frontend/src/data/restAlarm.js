@@ -37,6 +37,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { REST_ASKED_KEY } from './localKeys';
+import { readLS, saveLS } from './safeStorage';
 
 // 예약은 **언제나 하나다** — 휴식도 하나뿐이다. 번호를 고정해두면 지울 때 찾을 필요가 없다
 const ID = 7101;
@@ -131,8 +132,15 @@ export async function askRestAlarmOnce() {
     if (now.display === 'granted') { granted = true; return true; }
     if (now.display === 'denied') return false;
     // 'prompt' — 아직 안 물어본 상태. 한 번만 묻는다
-    if (localStorage.getItem(LS_ASKED) === '1') return false;
-    localStorage.setItem(LS_ASKED, '1');
+    // ── **집의 손으로 읽고 적는다** ── (2026-10-27)
+    //
+    // 여기서 `localStorage` 를 바로 만지고 있었다. 쿠키·사이트 데이터를 막아둔
+    // 브라우저는 **읽는 것조차 던진다**(`data/safeStorage.js` 첫 줄). 그러면 아래
+    // `catch` 가 그것을 받아 `return false` — **권한을 한 번도 묻지 않는다.**
+    // 즉 그 브라우저에서는 휴식 알림이 **조용히 없는 기능**이 됐다.
+    // `readLS` 는 못 읽으면 `null` 을 주고, 그러면 묻는 데까지 간다
+    if (readLS(LS_ASKED) === '1') return false;
+    saveLS(LS_ASKED, '1');
     const asked = await api.requestPermissions();
     granted = asked.display === 'granted';
     return granted;

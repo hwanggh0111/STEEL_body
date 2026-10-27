@@ -142,5 +142,33 @@ yes('지우는 쪽이 그 목록을 그대로 쓴다',
   /LOGOUT_KEYS = PER_USER_KEYS/.test(fs.readFileSync(path.join(SRC, 'store', 'authStore.js'), 'utf8')),
   '나가는 쪽이 따로 나열하면 한쪽에만 새 줄이 생기는 날이 온다');
 
+// ──────────────────────────────────────────────────────────────
+// **집의 손으로 읽고 적는가** (2026-10-27)
+// ──────────────────────────────────────────────────────────────
+//
+// `data/safeStorage.js` 의 첫 줄이 그 까닭을 적어두고 있다 —
+//
+// > 쿠키·사이트 데이터를 막아둔 브라우저에서는 localStorage 를 **「읽는 것」조차**
+// > SecurityError 를 던진다. 던진 자리가 모듈 최상위나 요청 인터셉터면 앱 전체가
+// > 흰 화면이 된다.
+//
+// 그래놓고 다섯 자리가 `localStorage` 를 바로 만지고 있었다. 전부 `try` 로
+// 감싸 있어서 흰 화면은 안 됐지만, **휴식 알림은 그 때문에 한 번도 안 물었다** —
+// 던진 것을 바깥 `catch` 가 받아 `return false` 로 끝났다. 그 브라우저에서는
+// 기능이 **조용히 없는 것**이 됐다. 집의 손은 못 읽으면 `null` 을 준다.
+console.log('\n── 집의 손으로 읽고 적는다 ──');
+{
+  const raw = [];
+  for (const f of walk(SRC)) {
+    const rel = path.relative(SRC, f).replace(/\\/g, '/');
+    // 그 손이 사는 자리와 개발용 도우미는 뺀다
+    if (rel === 'data/safeStorage.js' || rel.startsWith('dev/')) continue;
+    codeLines(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      if (/localStorage\.(getItem|setItem|removeItem)\s*\(/.test(line)) raw.push(`${rel}:${i + 1}`);
+    });
+  }
+  ok('바로 만지는 자리', raw, []);
+}
+
 console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 FAIL`);
 process.exit(bad === 0 ? 0 : 1);
