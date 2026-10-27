@@ -128,7 +128,15 @@ const hashed = (() => {
     const site = await get('/site');
     const plain = await get('/support');
     ok('  /site 가 열린다', site.status, 200);
-    ok('  /site 는 받을 조각을 미리 적어 보낸다 (문서가 더 크다)', site.bytes > plain.bytes, true);
+    // ── 여기서 FAIL 하면 **`dist` 를 어떻게 지었는지부터 본다** ── (2026-10-27)
+    //
+    // 조각을 미리 적어 넣는 일은 **빌드 뒤에 따로 도는 걸음**이다
+    // (`npm run build` → `[route-chunks] 주소 8개에 …`). `npx vite build` 로 지으면
+    // 그 걸음이 **안 돌아서** 이 줄이 FAIL 한다 — 코드는 멀쩡한데 검사가 운다.
+    // 오늘 그걸로 두 번 멈췄다. **`npm run build` 로 다시 짓고 보라.**
+    ok('  /site 는 받을 조각을 미리 적어 보낸다 (문서가 더 크다)'
+      + ' [FAIL 이면 frontend 에서 `npm run build` 로 다시 지어 보세요]',
+    site.bytes > plain.bytes, true);
     ok('  목록에 없는 주소도 그냥 열린다', plain.status, 200);
 
     console.log('\n  / 가 정적 쪽으로 새지 않는가');
