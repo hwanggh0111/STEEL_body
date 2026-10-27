@@ -285,6 +285,15 @@ export default function HomeworkoutPage() {
   const peaksRef = useRef([]);
   // 사람이 **넘긴** 동작 번호. 한 것이 아니므로 몸 그림 · 기록 · 숨 순위에서 뺀다
   const skippedRef = useRef(new Set());
+  // 숨의 **기준선을 떠둔다** (2026-10-27).
+  //
+  // 끝 화면의 「숨이 제일 찼던 동작」은 최고치를 기준선으로 나눈 값이다
+  // (`hardestOf`). 그런데 기준선은 **마이크가 들고 있는 값**이라, 마이크를 끄면
+  // `null` 이 되고 그 칸이 **통째로 사라진다** — 판을 끝내고 마이크를 끄는 것은
+  // 당연한 일인데(아래 `stopBreath`), 그러면 방금 모은 순위가 같이 날아간다.
+  // 그래서 켜져 있는 동안 본 것을 여기 떠둔다
+  const baseSeenRef = useRef(null);
+  if (Number(breath.base) > 0) baseSeenRef.current = breath.base;
   const stepStartRef = useRef(0);
 
   // ── 회복 시간 (2026-09-30, 계획은 `docs/BREATH-RECOVER-2026-09-30.md`) ──
@@ -511,8 +520,10 @@ export default function HomeworkoutPage() {
       // 여기서 안 적으면 무엇을 했는지 아무 데도 안 남는다
       saveLastDone(selected);
       setLastDone(readLastDone());
-      // 끝냈으면 **이어갈 자리가 없다** — 담아둔 것을 버린다 (2026-10-27)
+      // 끝냈으면 **이어갈 자리가 없다** — 담아둔 것을 버리고 마이크를 끈다 (2026-10-27).
+      // 기준선은 위에서 떠뒀으므로(`baseSeenRef`) 「숨이 제일 찼던 동작」은 그대로 뜬다
       clearStash();
+      stopBreath();
       toast('기능성운동 완료!');
       return;
     }
@@ -561,6 +572,23 @@ export default function HomeworkoutPage() {
   // 정작 매일 겪는 루틴 진행과 휴식 중에는 세트마다 폰을 깨워야 했다
   // 설정함에서 끌 수 있다 (2026-09-22)
   useWakeLock(running && keepAwake);
+
+  /**
+   * 마이크를 끈다 (2026-10-27).
+   *
+   * ── 무엇이 잘못돼 있었나 ──
+   *
+   * `breath.start()` 를 부르는 자리는 하나였는데 **끄는 자리가 하나도 없었다.**
+   * `useBreath` 의 첫 줄이 「끄면 그 자리에서 트랙을 멈춘다 — 탭의 녹음 표시가 바로
+   * 사라져야 사람이 꺼진 것을 안다」인데, 이 화면은 **한 번도 끄지 않았다.**
+   * 그래서 판을 그만두고 목록으로 돌아가도, 다 끝내고 끝 화면을 보고 있어도,
+   * 일시정지하고 전화를 받아도 **마이크가 계속 켜져 있었다.** 화면을 아예 떠날 때만
+   * 꺼졌다(`useBreath` 의 마지막 안전망).
+   *
+   * 「재보기가 켠 마이크는 재보기가 끈다」를 `RecoverTry` 는 지키고 있었다 —
+   * **판이 켠 마이크는 아무도 안 껐다.** 거는 자리 1 : 푸는 자리 0 이었다.
+   */
+  const stopBreath = () => { if (breath.on) breath.stop(); };
 
   // 멈춘 자리에 남은 밀리초. 이어서 하기가 이걸 본다
   const pausedLeftRef = useRef(0);
@@ -650,6 +678,25 @@ export default function HomeworkoutPage() {
   const pauseProgram = () => {
     pausedLeftRef.current = Math.max(0, deadlineRef.current - Date.now());
     phaseRef.current = { ...phaseRef.current, done: true };
+    // ── **재던 회복 시간을 버린다** ── (2026-10-27)
+    //
+    // 회복 시간은 **벽시계로** 센다(`recoverTick` 이 `now - startAt` 을 본다).
+    // 그런데 멈춘 동안에도 그 시계는 흐른다 — 쉬는 중에 일시정지하고 전화를 40초
+    // 받고 오면, 숨이 가라앉는 순간에 **그 40초가 같이 적혔다.** 3분을 넘기면
+    // 「너무 오래 걸려서 안 적었어요」가 됐다.
+    //
+    // 더 나쁜 것은 **그 값이 이력에 쌓인다**는 것이다(`saveRecoverLog`). 다음에
+    // 같은 동작을 하면 「전보다 25초 느려졌어요」라고 한다 — 느려진 것이 아니라
+    // 전화를 받은 것이다. 이 앱이 「전보다 덜 힘든가」를 말하는 유일한 자리라
+    // 거짓 초 하나가 그 말 전체를 못 믿게 만든다.
+    //
+    // 그만둘 때와 같이 **버린다**(`quitProgram`) — 멈춘 판의 회복 시간은
+    // 쉬는 시간이 끝난 것이 아니다. 못 쟀으면 못 쟀다고 하는 것이 9/30 에 정한 선이다
+    recRef.current = null;
+    // **마이크도 끈다.** 일시정지는 사람이 폰을 딴 데 쓰려고 누르는 단추다 —
+    // 그 동안 숨을 듣고 있을 이유가 없다(전화 목소리가 「숨이 제일 찼던 동작」에
+    // 오르기까지 했다). 이어서 할 때 다시 켠다
+    stopBreath();
     setRunning(false);
     // 멈춘 자리를 기기에 담아둔다 — 여기서 나가도 돌아와 이어갈 수 있다
     // (`phaseRef.current.done` 을 바로 위에서 세웠으므로 멈춘 자리의 남은 초를 본다)
@@ -660,6 +707,10 @@ export default function HomeworkoutPage() {
     primeAudio();
     const left = pausedLeftRef.current;
     if (left <= 0) { startProgram(); return; }
+    // **일시정지에서 끈 마이크를 다시 켠다** (2026-10-27). 권한 창은 사람이 누른
+    // 그 순간에만 뜨므로 이 자리가 물어볼 수 있는 때다(「시작하기」와 같은 자리).
+    // 기준선을 3초 다시 재지만, 떠둔 것이 있어 끝 화면의 순위는 안 날아간다
+    if (breathable && !breath.on) breath.start();
     deadlineRef.current = Date.now() + left;
     phaseRef.current = { ...phaseRef.current, done: false };
     setTimeLeft(Math.ceil(left / 1000));
@@ -710,7 +761,8 @@ export default function HomeworkoutPage() {
     pausedLeftRef.current = 0;
     // 재던 칸은 버린다. 그만둔 판의 회복 시간은 **쉬는 시간이 끝난 것이 아니다**
     recRef.current = null;
-    // 그만뒀으면 담아둔 자리도 버린다 (2026-10-27)
+    // 그만뒀으면 **마이크를 끈다** · 담아둔 자리도 버린다 (2026-10-27)
+    stopBreath();
     clearStash();
     phaseRef.current = { idx: 0, rest: false, done: true };
     setRunning(false);
@@ -759,6 +811,7 @@ export default function HomeworkoutPage() {
     clearStash();
     saveLastDone(selected);
     setLastDone(readLastDone());
+    stopBreath();
 
     // ── 올라간 줄과 못 올라간 줄을 **갈라서 센다** ── (2026-10-06)
     //
@@ -1087,7 +1140,9 @@ export default function HomeworkoutPage() {
   // 「부위별 몇 줄로 적히나」는 **적는 그 함수에 물어본다** — 세는 자리가 둘이면 어긋난다
   const recordRows = toRecords(doneRows, doneRows.length, selected);
   // 숨을 켜고 했으면 순위가 나온다. 안 켰으면 빈 것이라 그 칸이 통째로 안 그려진다
-  const hardest = hardestOf(peaksRef.current, breath.base);
+  // **떠둔 기준선**을 쓴다 (2026-10-27). 판을 끝내면 마이크를 끄는데, 마이크가
+  // 들고 있는 `breath.base` 를 보면 그 순간 `null` 이 되어 이 칸이 통째로 사라진다
+  const hardest = hardestOf(peaksRef.current, baseSeenRef.current);
   // 이 판의 회복 시간 결산. **잰 칸이 없으면 `null`** 이라 아래가 통째로 안 그려진다
   const recSum = recoverSummary(recRowsRef.current, recLog, today);
 

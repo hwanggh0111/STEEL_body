@@ -139,6 +139,16 @@ const count = (re) => (code.match(re) || []).length;
 console.log('\n── 화면 (주석을 걷고 센다) ──');
 yes('주석이 걷혔다', !code.includes('무엇이 잘못돼 있었나'), '주석 걷는 자리가 안 듣는다 — 아래 셈을 못 믿는다');
 
+// 거는 자리 : 푸는 자리. 10/26 에 블랙리스트가 2:0 으로 나온 그 셈이다
+// **끄는 자리가 진짜로 끄는지**까지 본다. `stopBreath` 를 빈 껍데기로 두면
+// 부르는 자리는 그대로라 세기만 해서는 안 잡힌다 (되돌려 보고 알았다)
+yes('끄는 자리가 진짜로 끈다', /const stopBreath = \(\) => \{[^}]*breath\.stop\(/.test(code),
+  'stopBreath 가 아무것도 안 한다 — 부르는 자리만 있고 꺼지지는 않는다');
+const starts = count(/breath\.start\(/g);
+const stops = count(/stopBreath\(\)/g);
+yes(`마이크 거는 자리 ${starts} : 푸는 자리 ${stops}`, starts > 0 && stops >= starts,
+  '켜는 자리만 있고 끄는 자리가 모자란다 — 판을 그만둬도 녹음 표시가 남는다');
+
 const writes = count(/saveLS\(HOME_RESUME_KEY/g);
 const clears = count(/removeLS\(HOME_RESUME_KEY/g);
 yes(`담아두는 자리 ${writes} : 지우는 자리 ${clears}`, writes > 0 && clears > 0,
@@ -150,6 +160,18 @@ yes('떠나는 길 셋을 다 듣는다',
   code.includes("addEventListener('visibilitychange'") && code.includes("addEventListener('pagehide'")
   && /return \(\) => \{[\s\S]{0,400}stashRef\.current\(\)/.test(code),
   '폰에서는 앱이 뒤로 밀리는 것이 더 흔하다 — 하나만 들으면 그 길로 나간 사람은 처음부터 한다');
+
+yes('일시정지가 재던 회복 칸을 버린다',
+  /const pauseProgram = \(\) => \{[\s\S]{0,600}recRef\.current = null/.test(code),
+  '멈춰 있던 시간이 「숨이 가라앉는 데 걸린 초」로 이력에 쌓인다');
+
+yes('일시정지가 마이크를 끈다',
+  /const pauseProgram = \(\) => \{[\s\S]{0,900}stopBreath\(\)/.test(code),
+  '폰을 딴 데 쓰려고 누른 단추인데 숨을 계속 듣는다');
+
+yes('끝 화면이 떠둔 기준선을 쓴다',
+  code.includes('hardestOf(peaksRef.current, baseSeenRef.current)') && !/hardestOf\([^)]*breath\.base/.test(code),
+  '마이크를 끄면 기준선이 null 이 되어 「숨이 제일 찼던 동작」이 통째로 사라진다');
 
 yes('멈춘 자리 한 줄을 두 곳이 같이 쓴다', count(/resumeLine\(/g) >= 2,
   '목록 카드와 판 화면이 따로 세면 하나만 고치는 날이 온다');
