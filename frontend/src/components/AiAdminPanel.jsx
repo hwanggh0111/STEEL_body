@@ -3,6 +3,7 @@ import client from '../api/client';
 import Emphasis from './Emphasis';
 import NavIcon from './NavIcon';
 import { toast } from './Toast';
+import { stampOf } from '../data/dateKey';
 
 // 관리자 화면의 「AI 관리자」 — **자동 판정이 어떻게 돌고 있는가**를 보는 자리.
 //
@@ -35,11 +36,10 @@ const LOG_STYLES = {
   system:     { icon: 'gear', color: 'var(--text-muted)', label: '시스템' },
 };
 
-const timeOf = (iso) => {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString();
-};
+// **한 자리에서 적는다** (2026-10-27, `data/dateKey.js`). 이 화면만 맞게 적고
+// 있었고, 같은 보안 로그를 그리는 「자동 보안 검사」 쪽은 UTC 글자를 그대로 잘라
+// **아홉 시간 전**을 적고 있었다 — 두 화면이 같은 시각을 다르게 말했다
+const timeOf = stampOf;
 
 // 「2시간 12분째」처럼 읽히게. 「7,932초」는 아무도 못 읽는다
 const sinceText = (iso) => {

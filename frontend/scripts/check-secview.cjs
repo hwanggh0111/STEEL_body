@@ -1,0 +1,188 @@
+// 관리자 보안 화면이 **서버가 하는 말을 다 하는가 · 시각을 맞게 적는가** (2026-10-27)
+//
+//   npm run secview     (npm run check 에도 들어 있다)
+//
+// ── 왜 이 검사가 있나 ──
+//
+// 둘을 본다.
+//
+// **① 시각.** 서버가 보내는 시각은 `new Date().toISOString()` — 끝에 `Z` 가 붙은
+// UTC 다. 그것을 글자로 자르면(`iso.substring(11, 19)`) 한국에서는 **아홉 시간 전**이
+// 적힌다. 실제로 「자동 보안 검사」의 최근 보안 로그가 그랬다 — 저녁 6시에 일어난
+// 일이 오전 9시로 적혔고, **같은 로그를 그리는 AI 관리자 화면은 맞게 적고 있었다.**
+// 눈으로는 안 잡힌다: 숫자가 그럴듯해서 「그 시간에 뭐가 있었나」로 읽고 지나간다.
+//
+// **② 서버가 보내는데 화면이 안 읽는 칸.** 10/24 와 10/26 에 나온 버그 스물다섯 중
+// 열여섯이 이 모양이었다 — **서버는 할 말을 들고 있는데 그 말이 사람에게 안 닿는다.**
+// 그래서 `/security/report` 가 보내는 칸 이름을 **라우트 파일에서 뽑아** 화면이 그
+// 이름을 읽는지 센다. 안 그리기로 정한 것은 **까닭과 함께 아래 목록에 적는다** —
+// 새 칸이 서버에 생기면 둘 중 어디에도 없어서 이 검사가 FAIL 한다.
+//
+// ★ **주석을 걷고 센다** — 까닭을 주석에 적어두는 집이라, 글자만 세면 주석이 코드로
+// 읽힌다 (10/26 에 두 번 밟았다).
+
+const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
+
+let bad = 0;
+const ok = (name, got, want) => {
+  const pass = JSON.stringify(got) === JSON.stringify(want);
+  if (!pass) bad += 1;
+  console.log((pass ? 'OK   ' : 'FAIL ') + name + ' → ' + JSON.stringify(got)
+    + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
+};
+const yes = (name, cond, why) => {
+  if (!cond) bad += 1;
+  console.log((cond ? 'OK   ' : 'FAIL ') + name + (cond ? '' : ' — ' + why));
+};
+
+const bundle = (entry, out) => {
+  esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
+  const m = require(process.cwd() + '/' + out);
+  fs.unlinkSync(out);
+  return m;
+};
+
+const D = bundle('src/data/dateKey.js', '.seckey.cjs');
+
+// 주석 · 문자열을 가리지 않고 걷으면 문자열 속 `//` 가 주석으로 읽힌다 — 한 글자씩 본다
+function stripComments(src) {
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === '/' && d === '/') { while (i < src.length && src[i] !== '\n') i += 1; continue; }
+    if (c === '/' && d === '*') { i += 2; while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i += 1; i += 2; continue; }
+    if (c === '"' || c === "'" || c === '`') {
+      out += c; i += 1;
+      while (i < src.length && src[i] !== c) {
+        if (src[i] === '\\') { out += src[i]; i += 1; }
+        if (i < src.length) { out += src[i]; i += 1; }
+      }
+      out += c; i += 1; continue;
+    }
+    out += c; i += 1;
+  }
+  return out;
+}
+
+const read = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
+const SCAN = stripComments(read('src', 'components', 'admin', 'SecurityScan.jsx'));
+const AI = stripComments(read('src', 'components', 'AiAdminPanel.jsx'));
+
+// ──────────────────────────────────────────────────────────────
+console.log('── 시각을 그 사람의 시계로 적는다 ──');
+
+// 고정 시각 하나로 본다. **기대값을 손으로 적지 않는다** — 같은 Date API 로 뽑아
+// 견준다(이 검사가 시간대를 지어내면 그것이 또 하나의 거짓이 된다)
+const ISO = '2026-10-27T09:12:33.123Z';
+const d = new Date(ISO);
+const p2 = (x) => String(x).padStart(2, '0');
+const wantClock = `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+ok('시:분:초', D.clockOf(ISO), wantClock);
+ok('날짜까지', D.stampOf(ISO), `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${wantClock}`);
+
+// **글자로 자른 것과 다른가** — 시간대가 UTC 가 아닌 곳에서는 반드시 달라야 한다
+const cut = ISO.substring(11, 19);
+if (d.getTimezoneOffset() === 0) {
+  console.log('SKIP 이 기계가 UTC 라 「글자로 자른 것」과 구별이 안 된다');
+} else {
+  yes(`글자로 자른 ${cut} 와 다르다 (${D.clockOf(ISO)})`, D.clockOf(ISO) !== cut,
+    'UTC 글자를 그대로 적고 있다 — 한국에서는 아홉 시간 전이다');
+}
+
+ok('없는 값', [D.clockOf(null), D.clockOf(''), D.clockOf(undefined)], ['-', '-', '-']);
+ok('깨진 값', [D.clockOf('어제'), D.stampOf('{}')], ['-', '-']);
+
+console.log('\n── 화면이 ISO 를 그대로 안 뿌린다 ──');
+yes('주석이 걷혔다', !SCAN.includes('무엇이 잘못돼'), '주석 걷는 자리가 안 듣는다 — 아래 셈을 못 믿는다');
+yes('글자로 자르지 않는다', !/substring\(11/.test(SCAN) && !/slice\(11/.test(SCAN),
+  'UTC 글자를 잘라 쓰면 한국에서 아홉 시간 전이 적힌다');
+yes('검사 시각을 옮겨 적는다', /stampOf\(result\.scannedAt\)/.test(SCAN),
+  'ISO 글자가 그대로 화면에 뿌려진다');
+yes('로그 시각을 옮겨 적는다', /clockOf\(log\.timestamp\)/.test(SCAN),
+  'ISO 글자가 그대로 화면에 뿌려진다');
+yes('시각 적는 자리가 한 곳이다', /const timeOf = stampOf/.test(AI),
+  '두 관리자 화면이 따로 적으면 같은 시각을 다르게 말하는 날이 온다');
+
+console.log('\n── 흰 화면이 안 되게 감싸고 읽는다 ──');
+// 모양을 **확인하고** 받는지까지 본다. `const sum = result.summary` 로만 받으면
+// 이름은 생겼지만 터지는 자리는 그대로다 (되돌려 보고 알았다)
+yes('요약을 모양까지 확인하고 받는다', /typeof result\.summary === 'object'/.test(SCAN),
+  '서버가 요약 자리에 글자나 없는 것을 주면 그 줄에서 터진다');
+[
+  ['result.summary.', 'const sum = '],
+  ['report.server.', 'const srv = '],
+  ['report.users.', 'const usr = '],
+  ['report.threats.', 'const thr = '],
+  ['report.auth.', 'const aut = '],
+].forEach(([raw, guard]) => {
+  yes(`${raw}* 를 바로 안 읽는다`, !SCAN.includes(raw) && SCAN.includes(guard),
+    '서버가 다른 모양을 주면 그 줄에서 터져 관리자 화면이 통째로 흰 화면이 된다');
+});
+yes('results 를 배열로 확인하고 펼친다', /Array\.isArray\(result\?\.results\)/.test(SCAN),
+  '[...undefined] 는 그 자리에서 터진다');
+yes('defense 를 감싼다', /Object\.entries\(report\.defense \|\| \{\}\)/.test(SCAN),
+  '같은 화면의 headers · recentLogs 는 이미 감쌌는데 여기만 안 감쌌다');
+
+// ──────────────────────────────────────────────────────────────
+// 서버가 보내는 칸을 **라우트에서 뽑아** 화면이 읽는지 센다
+// ──────────────────────────────────────────────────────────────
+console.log('\n── 서버가 보내는데 화면이 안 읽는 칸 ──');
+
+const ROUTE = stripComments(fs.readFileSync(
+  path.join(__dirname, '..', '..', 'backend', 'src', 'routes', 'security.js'), 'utf8'));
+
+// `/report` 의 응답 뭉치만 떼어낸다
+const at = ROUTE.indexOf("router.get('/report'");
+yes('/report 라우트를 찾았다', at >= 0, 'security.js 가 바뀌었다면 이 검사도 고쳐야 한다');
+const body = ROUTE.slice(at, ROUTE.indexOf("router.get('/shield'", at));
+
+// 뭉치 이름(`server: {`)과 그 안의 칸 이름을 들여쓰기로 가른다
+const groups = {};
+let cur = null;
+body.split('\n').forEach((line) => {
+  const g = line.match(/^ {4}(\w+): \{\s*$/);
+  if (g) { cur = g[1]; groups[cur] = []; return; }
+  if (/^ {4}\},?\s*$/.test(line)) { cur = null; return; }
+  const k = line.match(/^ {6}(\w+):/);
+  if (cur && k) groups[cur].push(k[1]);
+});
+
+// **안 그리기로 정한 것은 까닭과 함께 적는다.** 여기도 저기도 없는 이름이 나오면
+// 서버에 새 칸이 생긴 것이고, 그때 이 검사가 FAIL 해서 알려준다
+const SKIP = {
+  'server.memory': '바이트 네 개(rss · heapTotal …)는 관리자가 보고 할 일이 없다. 모자라면 Render 쪽에서 본다',
+  'auth.csrfProtection': '같은 말이 「방어 시스템」 목록에 이미 있다 (defense.csrfProtection)',
+  'auth.cookieFlags': '쿠키 설정은 「방어 시스템」 목록에서 함께 읽는다',
+};
+
+// **통째로 그리는 뭉치**는 칸 이름이 화면에 안 적힌다 — `Object.entries` 로 돌려
+// 서버가 보낸 것을 다 그리므로, 칸이 늘어도 저절로 따라온다. 그 자리는 **뭉치째**로 본다
+const WHOLE = ['defense', 'headers'];
+WHOLE.forEach((g) => {
+  // 정규식으로 쓰면 `(` · `|` · `{` 가 다 뜻을 가져서 **엉뚱한 것에 맞는다** —
+  // 글자 그대로 찾는다
+  yes(`${g} 를 통째로 그린다`, SCAN.includes(`Object.entries(report.${g} || {})`),
+    '서버가 보낸 것을 다 그리지 않거나 감싸지 않았다');
+});
+
+const unread = [];
+Object.entries(groups).forEach(([g, keys]) => {
+  if (WHOLE.includes(g)) return;
+  keys.forEach((k) => {
+    const full = `${g}.${k}`;
+    if (SKIP[full]) return;
+    // 화면이 그 이름을 어딘가에서 읽는가 (`srv.env` · `usr.banned` …)
+    if (!new RegExp(`\\b${k}\\b`).test(SCAN)) unread.push(full);
+  });
+});
+ok('서버가 보내는 칸을 화면이 다 읽는다', unread, []);
+console.log(`     (뭉치 ${Object.keys(groups).length}개 · 칸 ${Object.values(groups).reduce((a, b) => a + b.length, 0)}개`
+  + ` · 통째로 그리는 뭉치 ${WHOLE.length}개 · 안 그리기로 정한 칸 ${Object.keys(SKIP).length}개)`);
+Object.entries(SKIP).forEach(([k, why]) => console.log(`     안 그린다: ${k} — ${why}`));
+
+console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 FAIL`);
+process.exit(bad === 0 ? 0 : 1);
