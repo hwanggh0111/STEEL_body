@@ -57,6 +57,53 @@ for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
   else if (src[i] === '}') { depth -= 1; if (depth === 0) { bumpSrc = src.slice(bumpAt, i + 1); break; } }
 }
 
+// ──────────────────────────────────────────────────────────────
+// 세트 칸으로 적을 때 **무게를 지어내지 않는가** (2026-10-27)
+// ──────────────────────────────────────────────────────────────
+//
+// 세트 칸은 **폼을 안 보고 누르는 자리**다(그게 이 기능의 뜻이다). 그래서 적을 때
+// 무게가 어디서 오는지가 흐릿했고, **모르면 「맨몸」으로 지어내고 있었다** —
+// 빈 값은 `asWeight` 가 「맨몸」으로 바꾼다. 루틴을 돌다 폼에서 다른 운동을 고른 채
+// 세트 칸을 누르면 **벤치프레스가 「맨몸」으로 적혔다.**
+//
+// 바로 옆의 횟수는 「몇 회 했는지는 지어낼 수 없어요」로 막고 있었다 —
+// **무게만 그 자를 안 쓰고 있었다.**
+{
+  const src2 = fs.readFileSync(path.join(__dirname, '..', 'src', 'pages', 'TrainPage.jsx'), 'utf8');
+  const at = src2.indexOf('export function setsWeight(');
+  if (at < 0) { console.log('FAIL TrainPage 에 setsWeight 가 없다'); process.exit(1); }
+  let depth = 0; let body = '';
+  // **매개변수의 중괄호부터 세면 안 된다** — 이 함수는 `({ sameForm, … })` 로 받는다.
+  // 괄호가 닫힌 **뒤**의 첫 중괄호가 몸통의 시작이다 (처음에 여기서 틀렸다)
+  const paramEnd = src2.indexOf(')', at);
+  for (let i = src2.indexOf('{', paramEnd); i < src2.length; i += 1) {
+    if (src2[i] === '{') depth += 1;
+    else if (src2[i] === '}') { depth -= 1; if (depth === 0) { body = src2.slice(at, i + 1); break; } }
+  }
+  const mod = { exports: {} };
+  // `isBodyweight` 도 같이 떼어 온다 — 그 자가 맨몸을 가린다
+  const iso = src2.match(/const isBodyweight = [^;]+;/)[0];
+  // eslint-disable-next-line no-new-func
+  const fn = new Function(`${iso}
+${body.replace('export function', 'function')}
+return setsWeight;`)();
+
+  console.log('\n── 세트 칸으로 적을 때 무게 ──');
+  ok('폼이 그 운동이면 폼의 값', fn({ sameForm: true, formWeight: '80', lastWeight: '70' }), { ok: true, weight: '80' });
+  ok('  폼이 비어 있으면 **그것이 답이다** (맨몸)', fn({ sameForm: true, formWeight: '', lastWeight: '70' }), { ok: true, weight: '' });
+  ok('폼이 딴 운동이면 지난 기록', fn({ sameForm: false, formWeight: '40', lastWeight: '70' }), { ok: true, weight: '70' });
+  ok('  지난 기록이 맨몸이면 무게가 아니다', fn({ sameForm: false, formWeight: '', lastWeight: '맨몸' }), { ok: false, weight: '' });
+  ok('  둘 다 없으면 **지어내지 않는다**', fn({ sameForm: false, formWeight: '', lastWeight: null }), { ok: false, weight: '' });
+  ok('  없는 값도 안 터진다', fn({}), { ok: false, weight: '' });
+
+  // **값만 맞아서는 모자란다** — 세는 자를 만들어두고 **안 쓰면** 그대로다.
+  // 되돌려 보니 멈추는 자리를 빼도 위의 여섯은 다 통과했다 (10/27)
+  const cut = src2.slice(src2.indexOf('const saveRoutineSets'), src2.indexOf('const tapSet'));
+  ok('  적는 자리가 그 자를 쓴다', /setsWeight\(\{\s*sameForm/.test(cut), true);
+  ok('  모르면 멈춘다', /if \(!wv\.ok\) \{/.test(cut) && /return;/.test(cut), true);
+  ok('  횟수도 지어내지 않는다 (옆의 같은 자)', /지어낼 수 없어요/.test(cut), true);
+}
+
 const make = ({ value, step = 1, min = 0, max = 9999, startAt }) => {
   let now = value;
   // 흉내: `set` 은 적어두고 바깥에 알린다. `mine` 은 컴포넌트의 ref 자리

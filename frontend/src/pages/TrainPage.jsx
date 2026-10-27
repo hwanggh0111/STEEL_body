@@ -97,6 +97,33 @@ function SetChecks({ done, planned, onTap, disabled }) {
 // 무게 칸은 비워도 된다 — 맨몸 운동이다
 const asWeight = (v) => (String(v).trim() ? String(v).trim() : '맨몸');
 
+/**
+ * 세트 칸으로 적을 때 **무게를 어디서 가져오나** (2026-10-27).
+ *
+ * ── 왜 이 자가 따로 있나 ──
+ *
+ * 세트 칸은 **폼을 안 보고 누르는 자리**다(그게 이 기능의 뜻이다). 그래서 적을 때
+ * 무게가 어디서 오는지가 흐릿했고, **모르면 「맨몸」으로 지어내고 있었다** —
+ * 빈 값은 `asWeight` 가 「맨몸」으로 바꾼다.
+ *
+ * 바로 옆의 횟수는 **지어내지 않는다**(「몇 회 했는지는 지어낼 수 없어요」).
+ * 무게만 그 자를 안 쓰고 있었다.
+ *
+ * 가져올 자리는 둘이다 —
+ *   · **폼이 그 운동을 적고 있으면** 폼의 값. 비어 있으면 그것이 **사람의 답**이다
+ *     (이 앱에서 빈 무게 칸은 맨몸이라고 화면에 적어둔다)
+ *   · 아니면 **지난 기록**. 맨몸으로 적힌 지난 기록은 무게가 아니라 안 쓴다
+ *
+ * 둘 다 없으면 **모르는 것**이다. 루틴 칸에는 무게가 안 적히므로(세트·횟수뿐)
+ * 지어낼 재료가 아예 없다 — 그때는 멈추고 묻는다.
+ */
+export function setsWeight({ sameForm, formWeight, lastWeight }) {
+  if (sameForm) return { ok: true, weight: String(formWeight ?? '').trim() };
+  const last = String(lastWeight ?? '').trim();
+  if (last && !isBodyweight(last)) return { ok: true, weight: last };
+  return { ok: false, weight: '' };
+}
+
 export default function TrainPage() {
   const navigate = useNavigate();
   const today = useToday();
@@ -550,7 +577,15 @@ export default function TrainPage() {
   const saveRoutineSets = async (item, count) => {
     const last = lastRecord && lastRecord.exercise?.trim() === item.name.trim() ? lastRecord : null;
     const sameForm = exercise.trim() === item.name.trim();
-    const w = sameForm && String(weight).trim() ? weight : (last && !isBodyweight(last.weight) ? String(last.weight) : '');
+    // **무게도 지어내지 않는다** (2026-10-27) — 바로 아래 횟수와 같은 자다.
+    // 폼이 **다른 운동**을 적고 있고 지난 기록도 없으면 몇 kg 인지 알 길이 없는데,
+    // 빈 값은 `asWeight` 가 **「맨몸」**으로 바꿔 적었다 — 벤치프레스가 맨몸이 된다
+    const wv = setsWeight({ sameForm, formWeight: weight, lastWeight: last?.weight });
+    if (!wv.ok) {
+      setError(`${item.name} 무게를 모르겠어요 — 위에서 그 운동을 고르고 적어주세요 (맨몸이면 비워두세요)`);
+      return;
+    }
+    const w = wv.weight;
     const r = (sameForm && String(reps).trim()) || (item.reps ? String(item.reps) : '') || (last ? String(last.reps) : '');
     if (!r) {
       // 횟수를 모르면 지어내지 않는다 — 폼에 적어달라고 말한다
