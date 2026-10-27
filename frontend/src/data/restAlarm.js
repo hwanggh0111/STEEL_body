@@ -36,13 +36,15 @@
 // 동안에는 어차피 띠가 제때 울린다.
 
 import { Capacitor } from '@capacitor/core';
+import { REST_ASKED_KEY } from './localKeys';
 
 // 예약은 **언제나 하나다** — 휴식도 하나뿐이다. 번호를 고정해두면 지울 때 찾을 필요가 없다
 const ID = 7101;
 const CHANNEL = 'rest-end';
 
 // 권한을 물어본 적이 있나. 세트마다 묻지 않으려고 이 기기에 적어둔다
-const LS_ASKED = 'steelbody_rest_notify_asked';
+// 이름은 `data/localKeys.js` 한 곳에 있다 (2026-10-27)
+const LS_ASKED = REST_ASKED_KEY;
 
 let plugin = null;
 let channelReady = false;

@@ -12,7 +12,7 @@ import { readLS, removeLS, saveLS } from '../data/safeStorage';
 // 로그인·가입이 끝나고 어디로 갈지. **가입도 같은 값을 본다** (2026-10-20)
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 // 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
-import { SESSION_EXPIRED_KEY } from '../data/localKeys';
+import { AUTO_LOGIN_KEY, EMAIL_KEY, ROLE_KEY, SAVED_ID_KEY, SAVED_NICKNAME_KEY, SESSION_EXPIRED_KEY } from '../data/localKeys';
 import { i as iPart } from '../data/particle';
 
 // 로그인 — 다시 짰다 (2026-10-06).
@@ -47,13 +47,13 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 const BACKEND_BASE = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL.replace(/\/api$/, '');
 
 // autoLogin 실패 시 정리할 키
-const AUTO_LOGIN_KEYS = ['token', 'auto_login', 'nickname', 'ironlog_email', 'ironlog_role'];
+const AUTO_LOGIN_KEYS = ['token', AUTO_LOGIN_KEY, 'nickname', EMAIL_KEY, ROLE_KEY];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(readLS('saved_id') || '');
+  const [email, setEmail] = useState(readLS(SAVED_ID_KEY) || '');
   const [password, setPassword] = useState('');
-  const savedNickname = readLS('saved_nickname') || '';
-  const [autoLogin, setAutoLogin] = useState(!!readLS('auto_login'));
+  const savedNickname = readLS(SAVED_NICKNAME_KEY) || '';
+  const [autoLogin, setAutoLogin] = useState(!!readLS(AUTO_LOGIN_KEY));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
@@ -217,13 +217,13 @@ function oauthErrorText(code) {
       // 살아 있는지 모르는 채로** 앱을 쓰게 된다 — 되살아났다고 분명히 말한다
       if (res?.restored) toast.success('계정이 되살아났어요. 삭제 예약이 취소됐습니다');
       // 아이디/닉네임 저장
-      saveLS('saved_id', email);
-      saveLS('saved_nickname', useAuthStore.getState().nickname || '');
+      saveLS(SAVED_ID_KEY, email);
+      saveLS(SAVED_NICKNAME_KEY, useAuthStore.getState().nickname || '');
       // 자동 로그인
       if (autoLogin) {
-        saveLS('auto_login', 'true');
+        saveLS(AUTO_LOGIN_KEY, 'true');
       } else {
-        removeLS('auto_login');
+        removeLS(AUTO_LOGIN_KEY);
       }
       setShowSplash(true);
     } catch (err) {
@@ -304,7 +304,7 @@ function oauthErrorText(code) {
   // 줄일 수가 없다 — 어느 계정으로 보낼지 모른다.
   //
   // 「다른 계정으로」를 누르면 그 사람이 아니라고 말한 것이므로 보통 폼으로 돌아간다.
-  const known = !!savedNickname && !!readLS('saved_id');
+  const known = !!savedNickname && !!readLS(SAVED_ID_KEY);
   const returning = known && !switched;
 
   const social = <SocialLoginButtons disabled={loading} to={safeBackTo(backTo)} />;

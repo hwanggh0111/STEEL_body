@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 import { isAdmin } from '../data/admin';
 import { readLS, saveLS } from '../data/safeStorage';
+import { ERRORS_SEEN_KEY } from '../data/localKeys';
 
 // 새로 쌓인 화면 오류가 몇 건인가 (2026-10-01).
 //
@@ -16,7 +17,7 @@ import { readLS, saveLS } from '../data/safeStorage';
 //
 // 어디까지 봤는지는 **이 기기에만** 적는다. 보는 사람이 하나뿐인 자리라
 // 서버에 둘 만큼의 값이 아니다 — 기기를 바꾸면 한 번 다시 보게 되는 것이 전부다.
-const SEEN_KEY = 'ironlog_errors_seen';
+const SEEN_KEY = ERRORS_SEEN_KEY;
 const PULL_MS = 3 * 60 * 1000;
 
 export function readSeen() {

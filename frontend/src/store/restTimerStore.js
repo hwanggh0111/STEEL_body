@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { readLS, saveLS, removeLS } from '../data/safeStorage';
+import { REST_KEYS } from '../data/localKeys';
 import { VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME, knownTone, looksLikeToneId } from '../data/alertSound';
 
 // 휴식 타이머.
@@ -13,14 +14,19 @@ import { VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME, knownTone, looksLikeToneId } fro
 // 끝나는 시각(deadline)을 정해두고 250ms 마다 시계를 다시 본다.
 // (8/24 에 홈트 타이머에서 같은 것을 고쳤는데, 이쪽은 그대로 남아 있었다)
 
-const LS_DURATION = 'steelbody_rest_duration';
-const LS_AUTO = 'steelbody_rest_auto';
-const LS_SOUND = 'steelbody_rest_sound';
-const LS_VIBRATE = 'steelbody_rest_vibrate';
+// ── **이름은 `data/localKeys.js` 한 곳에 있다** ── (2026-10-27)
+//
+// 그 파일이 생긴 까닭이 이것이다 — 「로그아웃할 때 지울 목록과, 실제로 저장하는
+// 화면이 **따로 적어두고 있었다.** 그러면 새 키를 만든 사람이 목록에 넣는 것을
+// 잊는다.」 그래놓고 이 여섯이 **양쪽에 똑같이** 적혀 있었다.
+const LS_DURATION = REST_KEYS.duration;
+const LS_AUTO = REST_KEYS.auto;
+const LS_SOUND = REST_KEYS.sound;
+const LS_VIBRATE = REST_KEYS.vibrate;
 // 열쇠 이름의 `steelbody_` 는 옛 앱 이름이다. **앱 이름이 바뀌어도 안 바꾼다** —
 // 바꾸면 쓰던 사람의 설정이 통째로 사라진다 (8/28 · 9/1 에 정한 규칙이다)
-const LS_TONE = 'steelbody_rest_tone';
-const LS_VOLUME = 'steelbody_rest_volume';
+const LS_TONE = REST_KEYS.tone;
+const LS_VOLUME = REST_KEYS.volume;
 
 export const PRESETS = [30, 60, 90, 120, 180];
 export const MIN_SEC = 5;

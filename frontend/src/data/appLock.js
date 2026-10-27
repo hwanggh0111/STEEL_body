@@ -22,9 +22,12 @@
 // 다섯 번 틀려야 한 번 나온다). `npm run lock` 이 값으로 본다.
 
 import { readLS, saveLS, removeLS } from './safeStorage';
+import { LOCK_KEY_NAME } from './localKeys';
 
 /** 기기에 담는 자리. **사람마다가 아니라 기기마다**라 로그아웃해도 안 지운다 */
-export const LOCK_KEY = 'steelbody_lock';
+// **이름은 `data/localKeys.js` 한 곳에 있다** (2026-10-27). 여기도 같은 글자를
+// 적어두고 있었다 — 한쪽만 고치는 날이 오면 쓰던 사람의 잠금이 통째로 사라진다
+export const LOCK_KEY = LOCK_KEY_NAME;
 
 /** 네 자리. 여섯 자리로 늘리면 「기억해야 하는 것」이 하나 더 무거워진다 */
 export const PIN_LEN = 4;

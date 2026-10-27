@@ -5,6 +5,7 @@ import { toast } from './Toast';
 import { dayOf } from '../data/dateKey';
 import { confirmDialog } from './ConfirmModal';
 import { readLS } from '../data/safeStorage';
+import { EMAIL_KEY } from '../data/localKeys';
 
 const T = {
   ko: {
@@ -385,7 +386,7 @@ export default function SecurityPanel() {
 
   // 나 자신에게는 위험한 단추를 안 그린다. 서버도 막지만(자기 관리자 권한은 못 내린다)
   // **못 하는 것을 눌러보게 두지 않는다**
-  const myEmail = String(readLS('ironlog_email') || '').toLowerCase();
+  const myEmail = String(readLS(EMAIL_KEY) || '').toLowerCase();
   const isMe = (u) => myEmail && String(u.email || '').toLowerCase() === myEmail;
 
   const blockedCount = users.filter(u => u.role === 'blocked').length;

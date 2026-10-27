@@ -295,9 +295,16 @@ ok('화면이 소리 넷과 크기 셋을 다 그린다', /TONES\.map/.test(rt) 
 // 눌러서 들어보지 않고 이름만 보고 고르라고 하면 아무도 안 고른다
 ok('고르면 그 자리에서 들려준다', /previewTone\(/.test(rt), true);
 ok('고른 소리의 설명을 적어준다', /\.desc\}/.test(rt), true);
-// 열쇠 이름은 옛 앱 이름 그대로 둔다 — 바꾸면 쓰던 사람의 설정이 사라진다
+// 열쇠 이름은 옛 앱 이름 그대로 둔다 — 바꾸면 쓰던 사람의 설정이 사라진다.
+//
+// **이름이 사는 자리가 `data/localKeys.js` 로 옮겨졌다** (2026-10-27). 여섯이
+// 양쪽에 똑같이 적혀 있었고, 한쪽만 고치는 날이 오면 쓰던 사람의 휴식 설정이
+// 통째로 사라진다. 그래서 **이름이 그대로인지**와 **가게가 그것을 가져다 쓰는지**를
+// 같이 본다 (`npm run keys` 가 밖에 또 적힌 열쇠를 찾는다)
 ok('설정 열쇠를 앱 이름 따라 안 바꿨다',
-  /steelbody_rest_tone/.test(fs.readFileSync('src/store/restTimerStore.js', 'utf-8')), true);
+  /steelbody_rest_tone/.test(fs.readFileSync('src/data/localKeys.js', 'utf-8')), true);
+ok('  휴식 가게가 그 이름을 가져다 쓴다',
+  /REST_KEYS\.tone/.test(fs.readFileSync('src/store/restTimerStore.js', 'utf-8')), true);
 
 console.log('\n── 조사 (주간 요약 · 히스토리 · 루틴이 같이 쓴다) ──');
 for (const [word, want] of [['등', '등이'], ['하체', '하체가'], ['가슴', '가슴이'], ['어깨', '어깨가']]) {

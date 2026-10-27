@@ -1,5 +1,6 @@
 import { readLS } from './safeStorage';
+import { ROLE_KEY } from './localKeys';
 export function isAdmin() {
-  const role = readLS('ironlog_role');
+  const role = readLS(ROLE_KEY);
   return role === 'admin';
 }

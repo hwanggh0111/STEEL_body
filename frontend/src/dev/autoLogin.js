@@ -1,6 +1,7 @@
 import { useAuthStore } from '../store/authStore';
 // 개발 도구도 앱이 뜨기 전에 도는 코드다 — 쿠키를 막아둔 브라우저에서 던지면 흰 화면이 된다
 import { readLS, readCookies } from '../data/safeStorage';
+import { EMAIL_KEY } from '../data/localKeys';
 
 // 개발 중에만 동작하는 자동 로그인.
 // import.meta.env.DEV 는 빌드 시 false 로 치환되므로 프로덕션 번들에서는 통째로 죽는다.
@@ -25,7 +26,7 @@ export async function devAutoLogin() {
   // axios 클라이언트가 아니라 fetch 를 쓴다 — 401 이 응답 인터셉터를 타면
   // refresh 를 시도하고 실패 시 /login 으로 튕겨서, 여기서 다시 로그인할 기회가 없어진다.
   const authed = readLS('token') || readCookies().includes('sb_csrf=');
-  if (authed && readLS('ironlog_email') === email) {
+  if (authed && readLS(EMAIL_KEY) === email) {
     const base = import.meta.env.VITE_API_URL || '/api';
     const alive = await fetch(`${base}/auth/me`, { credentials: 'include' })
       .then(r => r.ok)

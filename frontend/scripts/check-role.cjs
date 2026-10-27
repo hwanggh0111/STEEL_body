@@ -48,7 +48,11 @@ ok('소셜', social.length > 0, true);
 
 console.log('\n── 셋 다 「무엇을 할 수 있는 사람인지」를 담는가 ──');
 // 소셜은 주소줄로 받지 않고 **서버에 다시 묻는다** — 그래서 모양이 다른 것이 맞다
-const getsRole = (b) => /ironlog_role/.test(b) || /checkAuth\(\)/.test(b);
+// **이름으로 담는다** (2026-10-27) — 열쇠 글자는 `data/localKeys.js` 한 곳에 있고
+// 쓰는 쪽은 `ROLE_KEY` 를 가져다 쓴다 (그 전에는 글자가 열여섯 자리에 박혀 있었다).
+// 글자와 이름을 **둘 다** 받는다 — 어느 쪽으로 적혀 있어도 「담는다」는 같은 일이다
+const ROLE = /ironlog_role|ROLE_KEY/;
+const getsRole = (b) => ROLE.test(b) || /checkAuth\(\)/.test(b);
 ok('이메일 로그인', getsRole(login), true);
 ok('가입', getsRole(register), true);
 ok('소셜 (서버에 다시 묻는다)', getsRole(social), true);
@@ -63,7 +67,7 @@ console.log('\n── 소셜은 주소줄의 role 을 믿지 않는가 ──');
 // 주소줄 값은 사람이 고쳐서 보낼 수 있다. 담는 것은 서버가 말해준 것이어야 한다
 const page = read('src/pages/LoginPage.jsx');
 ok('주소줄에서 role 을 꺼내 쓰지 않는다', /searchParams\.get\(['"]role['"]\)/.test(page), false);
-ok('  담는 것도 아니다', /saveLS\(\s*['"]ironlog_role['"]/.test(page), false);
+ok('  담는 것도 아니다', /saveLS\(\s*(['"]ironlog_role['"]|ROLE_KEY)/.test(page), false);
 
 console.log('\n── checkAuth 를 실제로 부르는가 ──');
 // 「앱 시작 시 호출」이라고 적어만 두고 아무도 안 부르고 있었다 (10/1 에 찾음)
@@ -76,7 +80,7 @@ ok('401/403 일 때만 로그인을 끈다', /401|403/.test(check), true);
 ok('  그 밖의 실패에는 상태를 안 건드린다', /set\(\{\s*isLoggedIn:\s*false\s*\}\)/g.test(check) && (check.match(/isLoggedIn: false/g) || []).length === 1, true);
 
 console.log('\n── 관리자에서 내려오면 담아둔 것도 지우는가 ──');
-ok('관리자가 아니면 지운다', /removeLS\(['"]ironlog_role['"]\)/.test(check), true);
+ok('관리자가 아니면 지운다', /removeLS\((['"]ironlog_role['"]|ROLE_KEY)\)/.test(check), true);
 
 console.log(bad === 0 ? '\n전부 통과' : '\n' + bad + '건 실패');
 process.exit(bad === 0 ? 0 : 1);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PER_USER_KEYS } from '../data/localKeys';
+import { EMAIL_KEY, PER_USER_KEYS, ROLE_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
 import client from '../api/client';
 import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore';
 import { useNoteStore, resetNoteCache } from './noteStore';
@@ -57,8 +57,8 @@ export const useAuthStore = create((set) => ({
     const { data } = await client.post('/auth/login', { email, password });
     if (data.token) saveLS('token', data.token);
     saveLS('nickname', data.nickname);
-    if (data.email) saveLS('ironlog_email', data.email);
-    if (data.role) saveLS('ironlog_role', data.role);
+    if (data.email) saveLS(EMAIL_KEY, data.email);
+    if (data.role) saveLS(ROLE_KEY, data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
     // **방금 비밀번호를 댄 사람에게 네 자리를 또 묻지 않는다** (2026-09-18).
     //
@@ -86,9 +86,9 @@ export const useAuthStore = create((set) => ({
       saveLS('nickname', nickname);
       // **다음에 올 때 인사할 이름도 담는다.** 이메일 로그인은 담는데 소셜만 안 담아서,
       // 소셜로 쓰는 사람은 늘 「처음 온 사람」 차림의 화면을 봤다
-      saveLS('saved_nickname', nickname);
+      saveLS(SAVED_NICKNAME_KEY, nickname);
     }
-    if (email) saveLS('ironlog_email', email);
+    if (email) saveLS(EMAIL_KEY, email);
     set({ nickname: nickname || null, isLoggedIn: true });
     useLockStore.getState().release();
     // **역할은 서버에 물어서 담는다** (2026-10-01).
@@ -110,8 +110,8 @@ export const useAuthStore = create((set) => ({
     const { data } = await client.post('/auth/register', { email, password, nickname, username, code });
     if (data?.token) saveLS('token', data.token);
     if (data?.nickname) saveLS('nickname', data.nickname);
-    if (data?.email) saveLS('ironlog_email', data.email);
-    if (data?.role) saveLS('ironlog_role', data.role);
+    if (data?.email) saveLS(EMAIL_KEY, data.email);
+    if (data?.role) saveLS(ROLE_KEY, data.role);
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
     // 가입 직후도 같다 — 방금 계정을 만든 사람에게 네 자리를 묻지 않는다
     useLockStore.getState().release();
@@ -195,8 +195,8 @@ export const useAuthStore = create((set) => ({
       const { data } = await client.get('/auth/me');
       saveLS('nickname', data.nickname);
       // 관리자에서 내려왔으면 **담아둔 것도 지운다.** 안 지우면 옛 값이 그대로 산다
-      if (data.role === 'admin') saveLS('ironlog_role', data.role);
-      else removeLS('ironlog_role');
+      if (data.role === 'admin') saveLS(ROLE_KEY, data.role);
+      else removeLS(ROLE_KEY);
       // 인바디 참고 범위가 이걸 본다. 「checkAuth 때 받아온다」고 적어만 두고
       // 실제로는 안 받아오고 있었다 (2026-10-01)
       set({ nickname: data.nickname, sex: data.sex ?? null, isLoggedIn: true });

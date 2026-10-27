@@ -9,6 +9,7 @@ import { saveLS } from '../data/safeStorage';
 // 가입이 끝나고 어디로 갈지. **로그인과 같은 규칙을 쓴다** (2026-10-20) —
 // 홈페이지가 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀으니 그 자리로 가야 한다
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
+import { SAVED_ID_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -330,8 +331,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, password, nickname, username, code.trim());
-      saveLS('saved_nickname', nickname);
-      saveLS('saved_id', email);
+      saveLS(SAVED_NICKNAME_KEY, nickname);
+      saveLS(SAVED_ID_KEY, email);
       toast('회원가입 완료! 자동 로그인됐어요');
       // 자동 로그인 상태 → **가려던 자리로** (없으면 「오늘」)
       navTimerRef.current = setTimeout(() => navigate(afterAuthPath(backTo), { replace: true }), 600);

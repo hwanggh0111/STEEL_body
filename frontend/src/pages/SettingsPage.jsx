@@ -17,7 +17,7 @@ import { healthReady, openHealthSettings } from '../data/healthLink';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
-import { SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -441,8 +441,8 @@ export default function SettingsPage() {
         //
         // 무엇을 둘지는 `data/savedId.js` 가 정한다(`npm run savedid` 가 값으로 본다) —
         // **메일을 적어둔 사람은 건드리지 않는다.**
-        const nextSaved = nextSavedId(readLS('saved_id'), acct.username, data.username);
-        if (nextSaved) saveLS('saved_id', nextSaved);
+        const nextSaved = nextSavedId(readLS(SAVED_ID_KEY), acct.username, data.username);
+        if (nextSaved) saveLS(SAVED_ID_KEY, nextSaved);
         setAcct((a) => ({ ...a, username: data.username, daysLeft: Number(data.daysLeft) || 0 }));
         setIdEdit(false);
         setIdDraft('');
@@ -1043,7 +1043,7 @@ export default function SettingsPage() {
         {pwOpen && (acct.isSocial
           ? (
             <PasswordResetModal
-              fixedEmail={acct.email || readLS('ironlog_email') || ''}
+              fixedEmail={acct.email || readLS(EMAIL_KEY) || ''}
               onClose={() => setPwOpen(false)}
               // 번호를 쓰면 서버가 리프레시 토큰을 다 버린다 — 조금 뒤에 저절로
               // 튕기게 두지 않고 여기서 정리하고 보낸다 (비밀번호 바꾸기와 같다)

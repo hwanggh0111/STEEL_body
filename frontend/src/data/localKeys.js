@@ -22,10 +22,29 @@
 // 새 키를 여기 만들면 지우는 일은 저절로 따라온다.
 
 // ── 사람마다 다른 것. 로그아웃하면 지운다 ──
+//
+// **누구인지를 적어두는 다섯에도 이름을 준다** (2026-10-27).
+// 여태 이 다섯은 아래 `PER_USER_KEYS` 에 **글자로만** 들어 있었다. 그래서 쓰는 쪽은
+// `readLS('ironlog_email')` 처럼 **글자를 또 적었고, 그 자리가 열여섯이었다.**
+// 이 파일의 첫 줄(「따로 적어두면 새 키를 목록에 넣는 것을 잊는다」)이 말하는 바로
+// 그 모양이라, 이름을 주고 양쪽이 같은 것을 보게 한다.
+export const TOKEN_KEY = 'token';
+export const NICKNAME_KEY = 'nickname';
+export const EMAIL_KEY = 'ironlog_email';
+export const ROLE_KEY = 'ironlog_role';
+export const AUTO_LOGIN_KEY = 'auto_login';
+export const SAVED_ID_KEY = 'saved_id';
+export const SAVED_NICKNAME_KEY = 'saved_nickname';
+
 export const PROFILE_PHOTO_KEY = 'ironlog_profile_photo';
 export const COMPARE_PHOTOS_KEY = 'ironlog_photos';
 export const SEARCH_HISTORY_KEY = 'ironlog_search_history';
 export const SEEN_REPLY_KEY = 'steelbody_report_seen_reply';
+// 관리자가 **새 오류를 언제까지 봤나** (`components/useNewClientErrors.js`).
+// 사람에 딸린 것이라 로그아웃하면 지운다 — 안 지우면 다음 관리자에게 앞 사람이
+// 본 시각이 남아 새 오류가 「이미 본 것」으로 처리된다 (위의 「답변 확인 시각」과
+// 똑같은 자리다). **목록에 없던 하나**였다 (2026-10-27)
+export const ERRORS_SEEN_KEY = 'ironlog_errors_seen';
 // 신호가 없을 때 쓰는 둘 (`data/offline.js`).
 //   cache — 마지막으로 받아온 기록. 못 받아오면 이것으로 그린다
 //   queue — 아직 못 올린 기록. **사람이 적은 것이라 제일 잃으면 안 되는 값이다**
@@ -79,13 +98,14 @@ export const BAR_KEY = 'gym:bar';
 
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
-  'token', 'nickname', 'ironlog_role', 'ironlog_email',
-  'auto_login', 'saved_id', 'saved_nickname',
+  TOKEN_KEY, NICKNAME_KEY, ROLE_KEY, EMAIL_KEY,
+  AUTO_LOGIN_KEY, SAVED_ID_KEY, SAVED_NICKNAME_KEY,
   // 그 사람의 것
   PROFILE_PHOTO_KEY,
   COMPARE_PHOTOS_KEY,
   SEARCH_HISTORY_KEY,
   SEEN_REPLY_KEY,
+  ERRORS_SEEN_KEY,
   WORKOUT_CACHE_KEY,
   WORKOUT_QUEUE_KEY,
   NOTE_CACHE_KEY,
@@ -139,13 +159,22 @@ export const SETTINGS_KEYS = {
   inbodyScore: 'steelbody_set_inbodyscore',
 };
 
+// 휴식 알림 권한을 **물어본 적이 있나** (`data/restAlarm.js`).
+// 세트마다 묻지 않으려고 이 기기에 적어둔다 — 그 기기의 것이라 로그아웃해도 남긴다.
+// **여기 없었다** (2026-10-27): 이름을 모으는 파일인데 이 하나가 밖에만 있었다
+export const REST_ASKED_KEY = 'steelbody_rest_notify_asked';
+
 // 내가 만든 알림 소리 (`data/customTones.js`, 2026-09-22).
 // 고른 재료(높이 · 몇 번 · 빠르기 · 결)만 남긴다 — **소리 파일은 안 받는다**.
 // 그 기기에서 어떻게 쓰는지에 대한 취향이라 로그아웃해도 남긴다.
 export const CUSTOM_TONES_KEY = 'steelbody_my_tones';
 
-// 앱 잠금 (`data/appLock.js` 가 들고 있다 — 계산이 거기 있어서 이름도 거기 둔다).
-// **기기의 가림막**이라 로그아웃해도 남긴다: 로그인은 그보다 센 자물쇠다.
+// 앱 잠금. **기기의 가림막**이라 로그아웃해도 남긴다 — 로그인은 그보다 센 자물쇠다.
+//
+// 여기 「계산이 `data/appLock.js` 에 있어서 이름도 거기 둔다」고 적어두고 **양쪽에
+// 똑같은 글자를 적어뒀다** (2026-10-27 에 찾았다). 이 파일의 첫 줄이 「이름을 여기
+// 두고 지우는 쪽은 `PER_USER_KEYS` 를 그대로 쓴다」인데, 그 파일 안에서 두 벌이
+// 된 셈이다. 이제 `appLock.js` 가 **이것을 가져다 쓴다**
 export const LOCK_KEY_NAME = 'steelbody_lock';
 // 「로그인이 풀렸어요」를 로그인 화면에 한 번 알리는 쪽지 (`api/client.js`).
 // 로그인 화면이 읽고 그 자리에서 지운다 — 사람에 딸린 것이 아니다.
