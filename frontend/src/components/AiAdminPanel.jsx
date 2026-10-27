@@ -27,6 +27,10 @@ import { stampOf, dayOf } from '../data/dateKey';
 
 const PULL_MS = 15 * 1000;
 
+// 로그를 몇 줄 그릴까. **다 그리면 DOM 이 무거워진다** — 서버가 100건을 보낸다.
+// 더 있으면 **그렇다고 적는다**(아래) — 말없이 자르지 않는다
+const SHOWN_LOGS = 50;
+
 const LOG_STYLES = {
   // 이모지가 아니라 직접 그린 아이콘의 이름이다 (`components/NavIcon.jsx`).
   // 이모지 그림은 폰 만든 회사 것이라 남의 것이고, 폰마다 다르게 나온다
@@ -325,13 +329,24 @@ export default function AiAdminPanel() {
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         이것도 램에 쌓입니다 — <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 뜨면 비워집니다.</b>
       </div>
+      {/* ── **안 보이는 것이 있으면 그렇다고 말한다** ── (2026-10-27)
+          서버는 최근 100건을 보내는데 여기서 **50건만 그리고 아무 말도 없었다.**
+          보안 기록은 「없는 것」과 「안 보여주는 것」이 전혀 다른 자리다 —
+          10/26 에 이 화면이 **오늘 일을 숨기고 옛 기록을 보여준** 일이 있었다.
+          종목별 최고 기록이 「나머지 N종목은 히스토리에 있습니다」라고 적는 그 자와 같다 */}
+      {logs.length > SHOWN_LOGS && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+          받아온 <b style={{ color: 'var(--text-secondary)' }}>{logs.length}건</b> 중
+          최근 <b style={{ color: 'var(--text-secondary)' }}>{SHOWN_LOGS}건</b>만 그립니다.
+        </div>
+      )}
       {logs.length === 0 ? (
         <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 18 }}>
           아직 판정한 것이 없습니다.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18, maxHeight: 420, overflowY: 'auto' }}>
-          {logs.slice(0, 50).map((log, i) => {
+          {logs.slice(0, SHOWN_LOGS).map((log, i) => {
             const kind = LOG_STYLES[log.type] || LOG_STYLES.system;
             return (
               <div key={`${log.time}-${i}`} className="card" style={{ padding: '10px 12px', borderLeft: `3px solid ${kind.color}` }}>

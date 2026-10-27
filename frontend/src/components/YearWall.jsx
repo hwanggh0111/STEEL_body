@@ -52,10 +52,15 @@ export default function YearWall({ onPickMonth }) {
           {shown}년 <span style={{ color: 'var(--accent)' }}>{total.days}일</span>을<br />새겼습니다
         </div>
 
-        {/* 해가 여럿일 때만 고를 것을 준다. 한 해뿐이면 고를 것이 없다 */}
+        {/* 해가 여럿일 때만 고를 것을 준다. 한 해뿐이면 고를 것이 없다.
+            ── **세 해만 주고 있었다** ── (2026-10-27)
+            `years.slice(0, 3)` 이라, 기록이 네 해 이상이면 **옛 해로 갈 길이
+            아예 없었다.** 앱 소개가 「한 해를 금속판 열두 장에 새깁니다」라고
+            말하는 바로 그 자리다 — CSV 로 몇 해치를 넣은 사람은 그 해를 못 본다.
+            단추는 작고 수는 기록이 있는 해만큼이라, **다 주고 넘치면 접는다** */}
         {years.length > 1 && (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            {years.slice(0, 3).map((y) => (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {years.map((y) => (
               <button
                 key={y}
                 onClick={() => setYear(y)}

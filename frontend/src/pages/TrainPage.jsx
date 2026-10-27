@@ -94,6 +94,11 @@ function SetChecks({ done, planned, onTap, disabled }) {
   );
 }
 
+// 시작하는 자리에 그리는 루틴 수. **다 그리면 적는 폼이 화면 밖으로 밀린다** —
+// 이 화면의 일은 「적는 것」이고 루틴 고르기는 그 앞의 한 걸음이다.
+// 더 있으면 **그렇다고 적는다**(아래) — 말없이 자르지 않는다
+const SHOWN_ROUTINES = 4;
+
 // 무게 칸은 비워도 된다 — 맨몸 운동이다
 const asWeight = (v) => (String(v).trim() ? String(v).trim() : '맨몸');
 
@@ -899,7 +904,7 @@ export default function TrainPage() {
               {/* 줄 하나에 **시작**과 **고치기**가 같이 있다. 단추 안에 단추를 넣을 수
                   없어서 줄을 div 로 두고 둘을 나란히 놓는다.
                   고치는 자리는 루틴 화면이다 — 폼을 여기 한 벌 더 그리면 두 벌이 된다 */}
-              {routines.slice(0, 4).map((r) => (
+              {routines.slice(0, SHOWN_ROUTINES).map((r) => (
                 <div
                   key={r.id}
                   style={{
@@ -939,6 +944,17 @@ export default function TrainPage() {
                   </button>
                 </div>
               ))}
+              {/* ── **안 보이는 것이 있으면 그렇다고 말한다** ── (2026-10-27)
+                  넷만 그리면서 **아무 말도 없었다.** 루틴이 다섯 개 이상인 사람은
+                  방금 짠 것이 여기 없으면 사라진 줄 안다. 홈트의 거르개에 적어둔
+                  그 자와 같다 — 「좁혀서 안 보이는 것이 있으면 그렇다고 말한다.
+                  안 적으면 프로그램이 줄어든 줄 안다」 */}
+              {routines.length > SHOWN_ROUTINES && (
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 2 }}>
+                  짜둔 루틴 {routines.length}개 중 {SHOWN_ROUTINES}개만 보여요 —
+                  아래 <b style={{ color: 'var(--text-secondary)' }}>「루틴 짜기」</b>에서 다 볼 수 있어요.
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.7 }}>
