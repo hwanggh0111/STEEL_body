@@ -17,7 +17,7 @@ import { healthReady, openHealthSettings } from '../data/healthLink';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
-import { EMAIL_KEY, NICKNAME_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -383,11 +383,12 @@ export default function SettingsPage() {
     const trimmed = String(nickDraft || '').trim();
     if (!trimmed || savingNick) return;
     setSavingNick(true);
-    client.put('/auth/nickname', { nickname: trimmed })
+    // **담는 일은 스토어 한 자리가 한다** (2026-10-28, `authStore.rename`).
+    // 머리의 계정 시트와 이 화면이 같은 일을 두 벌로 적고 있었고, 그래서 둘 다
+    // 로그인 화면이 인사할 이름(`SAVED_NICKNAME_KEY`)을 빠뜨렸다 —
+    // **아이디는 10/02 에 그 자리를 고쳤는데 이름은 안 왔다**
+    useAuthStore.getState().rename(trimmed)
       .then(() => {
-        useAuthStore.setState({ nickname: trimmed });
-        // 집의 손으로 적고, 열쇠는 이름으로 부른다 (2026-10-27)
-        saveLS(NICKNAME_KEY, trimmed);
         setNickEdit(false);
         toast('이름이 바뀌었어요');
       })

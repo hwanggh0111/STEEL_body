@@ -55,5 +55,35 @@ ok('새 아이디가 없으면 가만둔다', nextSavedId('oldname01', 'oldname0
 ok('  undefined 도 같다', nextSavedId('oldname01', undefined, undefined), null);
 
 console.log('');
+console.log('── 이름을 바꾸면 인사할 이름도 같이 고치나 ──');
+// ── 왜 (2026-10-28) ──
+//
+// 위의 아이디 자리를 10/02 에 고치면서 「바꾼 사람이 제일 먼저 하는 일이 로그아웃이라,
+// 이 자리를 빠뜨리면 바로 걸린다」고 적어뒀다. **그런데 이름은 안 왔다** —
+// 로그인 화면은 `SAVED_NICKNAME_KEY` 로 「다시 오셨군요 ○○」를 그리고 아바타 첫
+// 글자까지 거기서 가져오는데, 이름을 바꾸는 **두 화면이 그 값을 안 고쳤다.**
+//
+// 그 둘이 **같은 일을 두 벌로** 적고 있었던 것이 까닭이다(머리의 계정 시트 · 설정함).
+// 담는 일을 `authStore.rename` 한 자리로 모았으니, **두 화면이 그것을 부르는지**와
+// **그 자리가 열쇠 둘을 다 담는지**를 본다.
+{
+  const store = fs.readFileSync('src/store/authStore.js', 'utf8');
+  const code = store.replace(/(^|[\s\{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+  const body = (code.match(/rename: async \(name\) => \{([\s\S]*?)\n  \},/) || ['', ''])[1];
+  ok('이름 바꾸는 자리가 스토어에 있다', !!body, true);
+  ok('  서버로 가는 길은 하나다', /client\.put\('\/auth\/nickname'/.test(body), true);
+  ok('  담는 이름', /saveLS\(NICKNAME_KEY/.test(body), true);
+  ok('  **인사할 이름도** 담는다', /saveLS\(SAVED_NICKNAME_KEY/.test(body), true);
+  ok('  서버가 다듬은 것을 쓴다', /data\?\.nickname/.test(body), true);
+
+  // 두 화면이 손으로 적지 않는가 — 두 벌이면 하나 늘 때 한쪽만 고쳐진다
+  for (const [name, f] of [['머리의 계정 시트', 'src/components/Layout.jsx'], ['설정함', 'src/pages/SettingsPage.jsx']]) {
+    const src = fs.readFileSync(f, 'utf8').replace(/(^|[\s\{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+    ok('  ' + name + '이 그 자리를 부른다', /\.rename\(/.test(src), true);
+    ok('    직접 치지 않는다', /client\.put\('\/auth\/nickname'/.test(src), false);
+  }
+}
+
+console.log('');
 console.log(bad ? bad + '건 실패' : '전부 통과');
 process.exit(bad ? 1 : 0);

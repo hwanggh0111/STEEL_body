@@ -124,6 +124,35 @@ export const useAuthStore = create((set) => ({
     return data.sex ?? null;
   },
 
+  /**
+   * 이름 바꾸기 (2026-10-28 에 여기로 모았다).
+   *
+   * **두 화면이 같은 일을 손으로 적고 있었다** — 머리의 계정 시트와 설정함.
+   * 둘 다 `PUT /auth/nickname` 을 치고 `NICKNAME_KEY` 를 담고 상태를 바꿨다.
+   * 서버로 가는 길은 하나였지만 **담는 쪽이 두 벌**이라, 담을 것이 하나 늘 때
+   * 한쪽만 고쳐진다. 그리고 실제로 그랬다 —
+   *
+   * **`SAVED_NICKNAME_KEY` 를 아무도 안 고쳤다.** 로그인 화면은 그 값으로
+   * 「다시 오셨군요 ○○」를 그리고 아바타 첫 글자까지 거기서 가져온다. 이름을
+   * 바꾸고 로그아웃하면 **옛 이름으로 인사한다.** 10/02 에 아이디를 바꾸는 자리에
+   * 「로그인 화면에 적어둔 아이디도 같이 고친다 — 바꾼 사람이 제일 먼저 하는 일이
+   * 로그아웃이라, 이 자리를 빠뜨리면 바로 걸린다」고 적어놓고 **이름은 안 왔다.**
+   *
+   * 알리는 것은 부르는 쪽이 한다 — 화면마다 할 말이 다르다.
+   */
+  rename: async (name) => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) throw new Error('이름이 비었다');
+    const { data } = await client.put('/auth/nickname', { nickname: trimmed });
+    // **서버가 다듬은 것을 쓴다** — `cleanName` 이 앞뒤·가운데 공백을 줄인다
+    const next = data?.nickname || trimmed;
+    saveLS(NICKNAME_KEY, next);
+    // 다음에 올 때 인사할 이름도 같이 (`SAVED_NICKNAME_KEY`)
+    saveLS(SAVED_NICKNAME_KEY, next);
+    set({ nickname: next });
+    return next;
+  },
+
   logout: async () => {
     try {
       await client.post('/auth/logout');

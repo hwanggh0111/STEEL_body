@@ -17,7 +17,7 @@ import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
-import { EMAIL_KEY, NICKNAME_KEY, PROFILE_PHOTO_KEY } from '../data/localKeys';
+import { EMAIL_KEY, PROFILE_PHOTO_KEY } from '../data/localKeys';
 // **사진을 고를 때만 받는다** (2026-09-22). 이미지를 줄이는 코드는 캔버스를 다루는
 // 덩어리라, 사진을 한 번도 안 올리는 사람에게까지 첫 화면에서 받게 할 이유가 없다
 // 모달 둘과 계정 시트는 **열 때 받는다.** 비밀번호를 바꾸거나 계정을 지우는 일은
@@ -394,13 +394,14 @@ export default function Layout() {
 
   // 이름을 고친다. **성공했을 때만 편집 칸을 닫는다** (`done`) —
   // 실패했는데 닫히면 고쳐 쓰던 것이 사라지고, 무엇이 안 됐는지도 안 보인다
+  // **담는 일은 스토어 한 자리가 한다** (2026-10-28, `authStore.rename`) —
+  // 여기와 설정함이 같은 일을 손으로 적고 있었고, 그래서 둘 다
+  // `SAVED_NICKNAME_KEY`(로그인 화면이 인사할 이름)를 빠뜨렸다
   const saveNickname = useCallback((name, done) => {
     const trimmed = String(name || '').trim();
     if (!trimmed || savingNick) return;
     setSavingNick(true);
-    client.put('/auth/nickname', { nickname: trimmed }).then(() => {
-      saveLS(NICKNAME_KEY, trimmed);
-      useAuthStore.setState({ nickname: trimmed });
+    useAuthStore.getState().rename(trimmed).then(() => {
       done?.();
       toast('이름이 바뀌었어요');
     }).catch((err) => {
