@@ -37,10 +37,22 @@ const ok = (name, got, want) => {
 // 서버의 `clean` 이 돌려주는 **그 모양**이다 (날짜가 있으면 `days` 칸이 없다).
 // 이 줄을 손으로 적지 않으려고 서버 쪽 함수를 그대로 꺼내 쓴다 — 두 벌로 적어두면
 // 서버가 모양을 바꿀 때 이 검사가 거짓으로 통과한다
+//
+// **그 함수가 밖의 이름을 쓰면 떼어낸 조각은 터진다** (2026-10-28). 글자 수에
+// 이름을 주자(`REASON_MAX`) 이 조각이 `ReferenceError` 로 죽었고, 체인(`&&`)이라
+// **그 뒤의 검사들이 아예 안 돌았다** — 10/27 ⑨ 와 똑같은 모양이다.
+// 그래서 **밖의 이름도 그 파일에서 읽어 같이 넘긴다.** 손으로 적지 않는다 —
+// 적으면 서버가 60을 바꿀 때 이 검사만 옛 값으로 남는다.
 const serverClean = (() => {
   const src = fs.readFileSync('../backend/src/routes/maintenance.js', 'utf-8');
   const body = src.slice(src.indexOf('function clean'), src.indexOf('// 누구나 읽는다'));
-  return new Function('sanitize', body + '; return clean;')((s) => s);
+  // 그 함수가 쓰는 밖의 상수 — 같은 파일에서 값을 꺼낸다
+  const outer = {};
+  for (const m of src.matchAll(/^const ([A-Z][A-Z0-9_]*) = (\d+);$/gm)) outer[m[1]] = Number(m[2]);
+  const names = Object.keys(outer);
+  return new Function('sanitize', ...names, body + '; return clean;')(
+    (x) => x, ...names.map((n) => outer[n]),
+  );
 })();
 
 const DATED = serverClean({ date: '2026-10-25', startHour: 3, startMin: 0, durationMin: 60, reason: '긴급 점검', type: 'emergency', days: [] });
