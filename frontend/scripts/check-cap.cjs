@@ -202,5 +202,42 @@ console.log('── 글자 수: 화면이 미리 막는가 ──');
 }
 
 console.log('');
+console.log('── 숫자 칸: 테두리를 칸에 붙였나 ──');
+// ── 왜 (2026-10-28) ──
+//
+// 인바디 칸 다섯(키 · 체중 · 체지방률 · 골격근량 · 체수분)에 `max` 가 **하나도
+// 없었다.** 201kg 을 적고 저장을 누른 다음에야 서버 말을 들었고, **골격근량과
+// 체수분은 화면이 아무 검사도 안 했다.**
+//
+// 그리고 같은 테두리가 **세 자리**에 글자로 박혀 있었다(서버 두 번 · 파일로 넣는 길)
+// — 거기서 **체지방률만 서로 달랐다**: 화면 60 : 서버·파일 100. `csvRows.js` 는 그 줄
+// 위에 **「화면·서버가 쓰는 것과 같은 테두리」**라고 적어두고 있었다. 아니었다.
+// 셋을 `backend/src/utils/inbodyRange.js` 한 자리로 모았다.
+{
+  const NUMS = [
+    { name: 'INBODY_HEIGHT_MAX', label: '키' },
+    { name: 'INBODY_WEIGHT_MAX', label: '체중' },
+    { name: 'FAT_PCT_MAX', label: '체지방률' },
+    { name: 'MUSCLE_KG_MAX', label: '골격근량' },
+    { name: 'WATER_L_MAX', label: '체수분' },
+  ];
+  const page = read('src/pages/InbodyPage.jsx');
+  const range = codeOf(fs.readFileSync(path.join(__dirname, '..', '..', 'backend', 'src', 'utils', 'inbodyRange.js'), 'utf8'));
+  const csv = codeOf(fs.readFileSync(path.join(__dirname, '..', '..', 'backend', 'src', 'utils', 'csvRows.js'), 'utf8'));
+  const route = codeOf(fs.readFileSync(path.join(__dirname, '..', '..', 'backend', 'src', 'routes', 'inbody.js'), 'utf8'));
+
+  for (const c of NUMS) {
+    ok(c.label + ' 이름이 한 자리에 있다', new RegExp('export const ' + c.name + ' = \\d+;').test(limits), true);
+    ok('  서버도 그 이름으로 든다', new RegExp('const ' + c.name + ' = \\d+;').test(range), true);
+    ok('  화면 칸이 그 이름으로 막는다', new RegExp('max=\{' + c.name + '\}').test(page), true);
+  }
+  // 파일로 넣는 길과 라우트가 **그 한 자리에서** 가져오는가 (제 표를 또 들지 않는다)
+  ok('파일로 넣는 길이 같은 테두리를 쓴다', /require\('\.\/inbodyRange'\)/.test(csv), true);
+  ok('  제 표를 또 들지 않는다', /fat_pct: \[0, 100\]/.test(csv), false);
+  ok('라우트도 그 자리에서 가져온다', /require\('\.\.\/utils\/inbodyRange'\)/.test(route), true);
+  ok('  거절하는 말이 그 수로 지어진다', /\${FAT_PCT_MAX}/.test(route), true);
+}
+
+console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

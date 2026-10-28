@@ -6,6 +6,12 @@ const { isRecordDay } = require('../utils/dayRange');
 const { seoulDay } = require('../utils/seoulDay');
 const { sendFresh } = require('../utils/fresh');
 
+// 칸의 테두리는 **한 자리에서** 온다 (`utils/inbodyRange.js`) — 파일로 넣는 길도
+// 같은 것을 쓴다. 여태 세 자리에 글자로 박혀 있었고 체지방률만 서로 달랐다
+const {
+  INBODY_WEIGHT_MAX, INBODY_HEIGHT_MAX, FAT_PCT_MAX, MUSCLE_KG_MAX, WATER_L_MAX,
+} = require('../utils/inbodyRange');
+
 // 전체 목록. **바뀐 것이 없으면 다시 안 보낸다** (`utils/fresh.js`, 2026-10-24)
 router.get('/', auth, (req, res) => {
   sendFresh(req, res, db.dataTag('inbody', req.userId), () => db.getInbody(req.userId));
@@ -25,11 +31,21 @@ router.post('/', auth, spamCheck, (req, res) => {
   muscle_kg = (muscle_kg !== undefined && muscle_kg !== null && muscle_kg !== '') ? Number(muscle_kg) : null;
   water_l = (water_l !== undefined && water_l !== null && water_l !== '') ? Number(water_l) : null;
 
-  if (isNaN(weight) || weight <= 0 || weight > 500) return res.status(400).json({ error: '체중 값이 올바르지 않아요' });
-  if (height !== null && (isNaN(height) || height <= 0 || height > 300)) return res.status(400).json({ error: '키 값이 올바르지 않아요' });
-  if (fat_pct !== null && (isNaN(fat_pct) || fat_pct < 0 || fat_pct > 100)) return res.status(400).json({ error: '체지방률 값이 올바르지 않아요' });
-  if (muscle_kg !== null && (isNaN(muscle_kg) || muscle_kg < 0 || muscle_kg > 200)) return res.status(400).json({ error: '골격근량 값이 올바르지 않아요' });
-  if (water_l !== null && (isNaN(water_l) || water_l < 0 || water_l > 200)) return res.status(400).json({ error: '체수분 값이 올바르지 않아요' });
+  if (isNaN(weight) || weight <= 0 || weight > INBODY_WEIGHT_MAX) {
+    return res.status(400).json({ error: `체중은 0~${INBODY_WEIGHT_MAX}kg 사이로 적어주세요` });
+  }
+  if (height !== null && (isNaN(height) || height <= 0 || height > INBODY_HEIGHT_MAX)) {
+    return res.status(400).json({ error: `키는 0~${INBODY_HEIGHT_MAX}cm 사이로 적어주세요` });
+  }
+  if (fat_pct !== null && (isNaN(fat_pct) || fat_pct < 0 || fat_pct > FAT_PCT_MAX)) {
+    return res.status(400).json({ error: `체지방률은 0~${FAT_PCT_MAX}% 사이로 적어주세요` });
+  }
+  if (muscle_kg !== null && (isNaN(muscle_kg) || muscle_kg < 0 || muscle_kg > MUSCLE_KG_MAX)) {
+    return res.status(400).json({ error: `골격근량은 0~${MUSCLE_KG_MAX}kg 사이로 적어주세요` });
+  }
+  if (water_l !== null && (isNaN(water_l) || water_l < 0 || water_l > WATER_L_MAX)) {
+    return res.status(400).json({ error: `체수분은 0~${WATER_L_MAX}L 사이로 적어주세요` });
+  }
 
   // BMI 자동 계산
   const bmi = height && height > 0 ? +(weight / ((height / 100) ** 2)).toFixed(1) : null;
@@ -71,11 +87,21 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   muscle_kg = (muscle_kg !== undefined && muscle_kg !== null && muscle_kg !== '') ? Number(muscle_kg) : null;
   water_l = (water_l !== undefined && water_l !== null && water_l !== '') ? Number(water_l) : null;
 
-  if (isNaN(weight) || weight <= 0 || weight > 500) return res.status(400).json({ error: '체중 값이 올바르지 않아요' });
-  if (height !== null && (isNaN(height) || height <= 0 || height > 300)) return res.status(400).json({ error: '키 값이 올바르지 않아요' });
-  if (fat_pct !== null && (isNaN(fat_pct) || fat_pct < 0 || fat_pct > 100)) return res.status(400).json({ error: '체지방률 값이 올바르지 않아요' });
-  if (muscle_kg !== null && (isNaN(muscle_kg) || muscle_kg < 0 || muscle_kg > 200)) return res.status(400).json({ error: '골격근량 값이 올바르지 않아요' });
-  if (water_l !== null && (isNaN(water_l) || water_l < 0 || water_l > 200)) return res.status(400).json({ error: '체수분 값이 올바르지 않아요' });
+  if (isNaN(weight) || weight <= 0 || weight > INBODY_WEIGHT_MAX) {
+    return res.status(400).json({ error: `체중은 0~${INBODY_WEIGHT_MAX}kg 사이로 적어주세요` });
+  }
+  if (height !== null && (isNaN(height) || height <= 0 || height > INBODY_HEIGHT_MAX)) {
+    return res.status(400).json({ error: `키는 0~${INBODY_HEIGHT_MAX}cm 사이로 적어주세요` });
+  }
+  if (fat_pct !== null && (isNaN(fat_pct) || fat_pct < 0 || fat_pct > FAT_PCT_MAX)) {
+    return res.status(400).json({ error: `체지방률은 0~${FAT_PCT_MAX}% 사이로 적어주세요` });
+  }
+  if (muscle_kg !== null && (isNaN(muscle_kg) || muscle_kg < 0 || muscle_kg > MUSCLE_KG_MAX)) {
+    return res.status(400).json({ error: `골격근량은 0~${MUSCLE_KG_MAX}kg 사이로 적어주세요` });
+  }
+  if (water_l !== null && (isNaN(water_l) || water_l < 0 || water_l > WATER_L_MAX)) {
+    return res.status(400).json({ error: `체수분은 0~${WATER_L_MAX}L 사이로 적어주세요` });
+  }
 
   const bmi = height && height > 0 ? +(weight / ((height / 100) ** 2)).toFixed(1) : null;
   // 고치는 쪽은 안 주면 그대로 둔다. 말이 안 되는 날짜면 **안 바꾼다** (2026-09-18)

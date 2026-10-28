@@ -14,6 +14,7 @@ import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
 import { CHART } from '../data/chartColors';
 import { healthReady, askHealth, latestBody, openHealthSettings } from '../data/healthLink';
+import { FAT_PCT_MAX, INBODY_HEIGHT_MAX, INBODY_WEIGHT_MAX, MUSCLE_KG_MAX, WATER_L_MAX } from '../data/limits';
 
 // 무거운 것은 필요할 때 받는다.
 // 그래프와 비교 탭은 인바디 화면을 처음 그릴 때 필요하지 않다 —
@@ -168,8 +169,11 @@ export default function InbodyPage({ embedded = false }) {
     [effectiveHeight, weight, fatPct],
   );
   const ffmiTone = ffmiBand(ffmi?.adjusted);
-  const ffmiColor = ffmiTone?.tone === 'low' ? 'var(--info)'
-    : ffmiTone?.tone === 'high' ? 'var(--accent)' : 'var(--success)';
+  // **`check` 는 등급이 아니다** (2026-10-28) — 「적은 값을 다시 봐주세요」 자리다.
+  // 모르는 결이 초록(잘됨)으로 떨어지면 **말과 색이 서로 다른 말을 한다**
+  const ffmiColor = ffmiTone?.tone === 'check' ? 'var(--warning)'
+    : ffmiTone?.tone === 'low' ? 'var(--info)'
+      : ffmiTone?.tone === 'high' ? 'var(--accent)' : 'var(--success)';
 
   const bmiColor = bmiBand?.band?.tone === 'low' ? 'var(--info)'
     : bmiBand?.band?.tone === 'high' ? 'var(--warning)'
@@ -232,20 +236,33 @@ export default function InbodyPage({ embedded = false }) {
       setError('체중은 필수에요');
       return;
     }
+    // ── 테두리는 **한 자리에서** 온다 ── (2026-10-28, `data/limits.js`)
+    //
+    // 여태 이 수들이 화면에만 또 적혀 있었고 **칸에는 `max` 가 없었다** —
+    // 201kg 을 적고 저장을 누른 다음에야 서버 말을 들었다. 그리고 **골격근량과
+    // 체수분은 여기서 아무 검사도 안 했다**(서버만 봤다).
     const w = Number(weight);
-    if (isNaN(w) || w <= 0 || w > 500) {
-      setError('체중은 0~500kg 범위여야 해요');
+    if (isNaN(w) || w <= 0 || w > INBODY_WEIGHT_MAX) {
+      setError(`체중은 0~${INBODY_WEIGHT_MAX}kg 범위여야 해요`);
       return;
     }
     if (effectiveHeight) {
       const h = Number(effectiveHeight);
-      if (isNaN(h) || h <= 0 || h > 300) {
-        setError('키는 0~300cm 범위여야 해요');
+      if (isNaN(h) || h <= 0 || h > INBODY_HEIGHT_MAX) {
+        setError(`키는 0~${INBODY_HEIGHT_MAX}cm 범위여야 해요`);
         return;
       }
     }
-    if (fatPct && (Number(fatPct) < 0 || Number(fatPct) > 60)) {
-      setError('체지방률은 0~60% 범위여야 해요');
+    if (fatPct && (Number(fatPct) < 0 || Number(fatPct) > FAT_PCT_MAX)) {
+      setError(`체지방률은 0~${FAT_PCT_MAX}% 범위여야 해요`);
+      return;
+    }
+    if (muscleKg && (Number(muscleKg) < 0 || Number(muscleKg) > MUSCLE_KG_MAX)) {
+      setError(`골격근량은 0~${MUSCLE_KG_MAX}kg 범위여야 해요`);
+      return;
+    }
+    if (waterL && (Number(waterL) < 0 || Number(waterL) > WATER_L_MAX)) {
+      setError(`체수분은 0~${WATER_L_MAX}L 범위여야 해요`);
       return;
     }
     setSaving(true);
@@ -489,12 +506,12 @@ export default function InbodyPage({ embedded = false }) {
               {!quickMode && (
                 <div style={{ flex: 1 }}>
                   <label className="label">키 (cm) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
+                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_HEIGHT_MAX} placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
                 </div>
               )}
               <div style={{ flex: 1 }}>
                 <label className="label">체중 (kg) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input ref={weightInputRef} className="input" type="number" inputMode="decimal" step="0.1" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                <input ref={weightInputRef} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_WEIGHT_MAX} placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
               </div>
             </div>
 
@@ -502,15 +519,15 @@ export default function InbodyPage({ embedded = false }) {
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1 }}>
                   <label className="label">체지방률 (%) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" placeholder="15" value={fatPct} onChange={(e) => setFatPct(e.target.value)} />
+                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={FAT_PCT_MAX} placeholder="15" value={fatPct} onChange={(e) => setFatPct(e.target.value)} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="label">골격근량 (kg) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" placeholder="32" value={muscleKg} onChange={(e) => setMuscleKg(e.target.value)} />
+                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={MUSCLE_KG_MAX} placeholder="32" value={muscleKg} onChange={(e) => setMuscleKg(e.target.value)} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="label">체수분 (L) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" placeholder="40" value={waterL} onChange={(e) => setWaterL(e.target.value)} />
+                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={WATER_L_MAX} placeholder="40" value={waterL} onChange={(e) => setWaterL(e.target.value)} />
                 </div>
               </div>
             )}

@@ -162,15 +162,32 @@ function readInbody(text) {
     return { rows: [], bad: [{ line: 1, why: '「날짜」와 「체중(kg)」 칸이 있어야 해요' }] };
   }
 
-  // 화면·서버가 쓰는 것과 같은 테두리. 여기서만 느슨하게 받으면 그래프가 망가진다
-  const RANGE = { height: [1, 300], weight: [1, 500], fat_pct: [0, 100], muscle_kg: [0, 200], water_l: [0, 200] };
+  // 화면·서버가 쓰는 것과 **진짜로 같은** 테두리 — `utils/inbodyRange.js` 한 자리에서
+  // 온다. 여태 이 줄이 그 말을 적어두고 **체지방률만 100 으로 느슨했다**(화면은 60) —
+  // 파일로 넣는 길만 61~100 을 통과시키고 있었다 (2026-10-28)
+  const { RANGE } = require('./inbodyRange');
+  // **거절하는 말에 영어 칸 이름이 나가고 있었다** (2026-10-28) —
+  // 「fat_pct 값이 범위를 벗어났어요」. 파일을 넣은 사람이 읽는 글이고, 그 사람은
+  // 제 파일에 **「체지방률(%)」**이라고 적어 보냈다. 몇 줄이 왜 빠졌는지 알려주는
+  // 자리에서 모르는 낱말을 쓰면 고칠 수가 없다. 테두리와 함께 **이름도 한 자리**에 둔다
+  const LABEL = {
+    height: '키(cm)', weight: '체중(kg)', fat_pct: '체지방률(%)',
+    muscle_kg: '골격근량(kg)', water_l: '체수분(L)',
+  };
   const pick = (cells, i, key, bad, line) => {
     if (i < 0) return null;
     const n = num(cells[i]);
+    const name = LABEL[key] || key;
     if (n == null) return null;
-    if (Number.isNaN(n)) { bad.push({ line, why: `${key} 칸이 숫자가 아니에요` }); return undefined; }
+    if (Number.isNaN(n)) { bad.push({ line, why: `${name} 칸이 숫자가 아니에요` }); return undefined; }
     const [lo, hi] = RANGE[key];
-    if (n < lo || n > hi) { bad.push({ line, why: `${key} 값이 범위를 벗어났어요 (${n})` }); return undefined; }
+    if (n < lo || n > hi) {
+      // **조사를 붙이지 않는다** — 이름이 괄호로 끝난다(「체지방률(%)」).
+      // 「…(%) 는」처럼 적으면 조사가 어긋나는데, 이 앱은 조사를 자리마다 맞추는
+      // 자리가 따로 있다(`data/particle.js`). 여기서는 **조사가 필요 없는 꼴**로 적는다
+      bad.push({ line, why: `${name} — ${lo}~${hi} 사이로 적어주세요 (${n} 이라고 적혀 있어요)` });
+      return undefined;
+    }
     return n;
   };
 

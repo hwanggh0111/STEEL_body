@@ -74,3 +74,21 @@ export const BODY_MAX = 2000;
  *   (서버 안에 `MAX_ITEMS` 가 둘이라 — 점검 20 · 루틴 진행 50 — 이름을 또렷하게 뒀다)
  */
 export const MAINT_MAX = 20;
+
+/**
+ * 인바디 칸의 테두리.
+ *
+ * 서버가 거절하는 그 수다. 여태 **세 자리**(서버 두 번 · 파일로 넣는 길)에 글자로
+ * 박혀 있었고 **화면에는 아무 데도 없었다** — 칸에 `max` 가 없어서 201kg 을 적고
+ * 저장을 누른 다음에야 「골격근량 값이 올바르지 않아요」를 들었다.
+ *
+ * **체지방률만 서로 달랐다** — 화면은 저장 전에 0~60 으로 막는데 서버와 파일 길은
+ * 100 까지 받았다. 사람의 체지방률은 60%를 넘지 않는다 → 셋을 60 으로 맞췄다.
+ *
+ *   다섯 다 → backend/src/utils/inbodyRange.js
+ */
+export const INBODY_WEIGHT_MAX = 500;
+export const INBODY_HEIGHT_MAX = 300;
+export const FAT_PCT_MAX = 60;
+export const MUSCLE_KG_MAX = 200;
+export const WATER_L_MAX = 200;

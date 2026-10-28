@@ -109,5 +109,53 @@ const keys = fsrc('src/data/localKeys.js');
 ok('열쇠 이름은 한 곳에 있다', /inbodyScore: 'steelbody_set_inbodyscore'/.test(keys), true);
 
 console.log('');
+// ══════════════════════════════════════════════════════════
+// **말이 안 되는 수에 이름을 붙이지 않는가** (2026-10-28)
+// ══════════════════════════════════════════════════════════
+//
+// FFMI 칸의 맨 끝이 `Infinity` 여서 **무슨 수가 와도 이름이 붙었다** —
+// 체중 칸에 175 를 적으면 FFMI 48.9, 체중 500 · 체지방 0 이면 163.6 인데
+// 화면은 둘 다 **「드문 자리」**라고 적었다. 칭찬처럼 읽히는 말이다.
+//
+// 이 파일이 지켜온 선이 「숫자를 보는 사람에게 누명을 씌우지 않는다」인데,
+// **거꾸로 지어내 칭찬하는 것도 같은 잘못**이다.
+//
+// **자를 재는 대상에서 가져오지 않는다** — 오늘 원판에서 그 함정을 밟았다
+// (상한을 되돌리니 `undefined` 와 견주어 검사가 통과했다). 여기서는 검사가
+// 제 수를 들고 있고, **그 수가 코드와 같은지를 따로** 본다
+{
+  const BI = bundle('src/data/bodyIndex.js', '.sc-bi.cjs');
+  const CHECK_ABOVE = 30;      // 이 위는 등급이 아니라 「다시 봐주세요」다
+
+  console.log('\n── FFMI: 말이 안 되는 수 ──');
+  const band = (h, w, f) => {
+    const r = BI.ffmiOf({ height: h, weight: w, fatPct: f });
+    return { ffmi: r && r.adjusted, b: BI.ffmiBand(r && r.adjusted) };
+  };
+
+  const ok30 = band(175, 95, 10);          // 28.2 — 사람의 몸이다
+  ok('잘 키운 몸에는 이름이 붙는다', [ok30.ffmi < CHECK_ABOVE, ok30.b.tone], [true, 'high']);
+
+  // 사람이 칠 수 있는 오타 셋
+  for (const [label, h, w, f] of [
+    ['체중 칸에 키를 적음', 175, 175, 15],
+    ['체중 500 · 체지방 0', 175, 500, 0],
+    ['큰 체격 · 체지방 5', 160, 120, 5],
+  ]) {
+    const got = band(h, w, f);
+    ok('  ' + label + ' → 등급을 안 매긴다', [got.ffmi > CHECK_ABOVE, got.b.tone], [true, 'check']);
+  }
+  ok('  그 말이 「다시 봐주세요」다', band(175, 500, 0).b.label, '적은 값을 다시 봐주세요');
+
+  // 코드가 든 상한이 이 검사의 수와 같은가 — 바뀌면 사람이 정한다
+  const src = fsrc('src/data/bodyIndex.js');
+  ok('  코드의 상한이 그 수다', new RegExp('max: ' + CHECK_ABOVE + ',').test(src), true);
+
+  // 화면이 그 결을 **색으로도** 가르는가 — 모르는 결이 초록(잘됨)으로 떨어지면
+  // 말과 색이 서로 다른 말을 한다
+  const page = fsrc('src/pages/InbodyPage.jsx');
+  ok("  화면이 'check' 를 따로 칠한다", /tone === 'check' \? 'var\(--warning\)'/.test(page), true);
+}
+
 console.log(bad ? bad + '건 어긋남' : '모두 통과');
 process.exitCode = bad ? 1 : 0;
