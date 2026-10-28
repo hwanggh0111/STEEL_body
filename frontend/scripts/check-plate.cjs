@@ -25,7 +25,18 @@ const ok = (name, got, want) => {
 };
 
 const P = bundle('src/data/plateMath.js', '.plate.cjs');
-const { platesFor, plateText, PLATES, BARS, equipOf, barFor } = P;
+const { platesFor, plateText, PLATES, BARS, equipOf, barFor, PER_SIDE_MAX } = P;
+
+// ── **자를 재는 대상에서 가져오지 않는다** ── (2026-10-28)
+//
+// 한쪽 장수 상한을 `PER_SIDE_MAX` 로 가져와 견줬더니, 그 상한을 **되돌려 보는
+// 재보기에서 검사가 통과했다** — 상한이 사라지면 그 이름이 `undefined` 가 되고
+// `길이 > undefined` 는 늘 거짓이라, 재는 자가 함께 사라진 것이다.
+//
+// 그래서 **검사가 제 수를 들고 있는다.** 그리고 그 수가 코드와 같은지를 따로 본다 —
+// 코드가 바뀌면 FAIL 하고, 그때는 사람이 정한다(10/22 에 세운 「같은 숫자가 두 곳에
+// 있으면 어긋난다」의 짝이다: 어긋나는 것을 **검사가 알게** 둔다).
+const CAP = 10;
 
 console.log('── 양쪽 합이 목표와 맞는가 ──');
 // 이 검사가 전부다. 어떤 조합이든 **바 + 양쪽 합**이 목표여야 한다
@@ -198,15 +209,22 @@ ok('워밍업의 빈 바와 고르는 바가 같다', SP.BAR_KG, BARS[0].kg);
 ok('± 단추 단위가 제일 작은 원판 둘과 같다', Math.min(...PLATES) * 2, 2.5);
 ok('  무게 칸이 그 값을 쓴다', /step=\{2\.5\}/.test(page), true);
 
+ok('한쪽 장수 상한을 코드가 들고 있다', PER_SIDE_MAX, CAP);
+
 console.log('\n── 원판 조합을 통째로 ──');
 // 조합을 수천 개 넣어 **값으로** 본다 — 합이 목표와 맞나 · 넘기지 않나 ·
 // 모자람이 음수가 아닌가 · 없는 원판을 쓰지 않나 · **더 쌓을 수 있는데 게으르지 않나**
 const SETS = [PLATES, [25, 20, 15, 10, 5, 2.5], [20, 10, 5], [2.5], [25]];
 let combos = 0;
 const wrongAll = [];
+// **1000kg 까지 본다** (2026-10-28). 여태 400 까지만 넣어서 **한쪽 장수 상한이
+// 없는 것**을 아무도 몰랐다 — 100 을 치려다 1000 을 치면 화면이
+// 「양쪽 25×10 + 20×10 + 15×2 + 10」(한쪽 **스물다섯 장**)이라고 적고
+// **「딱 맞다」**고 말했다. 무게 칸은 자유 입력이라 상한이 없다.
+// 검사의 눈이 짧으면 그 밖은 아무도 안 본다
 for (const plates of SETS) {
   for (const bar of [20, 15]) {
-    for (let t = 0; t <= 400; t += 0.25) {
+    for (let t = 0; t <= 1000; t += 0.25) {
       const r = platesFor(t, bar, plates);
       combos += 1;
       if (!r) { if (t >= bar) wrongAll.push(`${t}kg bar${bar}: null`); continue; }
@@ -218,8 +236,15 @@ for (const plates of SETS) {
       if (r.perSide.some((p) => !plates.includes(p))) wrongAll.push(`${t}kg: 없는 원판`);
       if (r.perSide.some((p, i) => i > 0 && p > r.perSide[i - 1])) wrongAll.push(`${t}kg: 차례 거꾸로`);
       const min = Math.min(...plates);
-      if (r.short >= min * 2 - 1e-9 && r.perSide.filter((p) => p === min).length < 10) {
+      // 장수가 찼으면 더 못 쌓는 것이 맞다 — 그때는 「게으르다」가 아니다
+      if (r.perSide.length < CAP
+        && r.short >= min * 2 - 1e-9 && r.perSide.filter((p) => p === min).length < CAP) {
         wrongAll.push(`${t}kg bar${bar} [${plates}]: 더 쌓을 수 있는데 ${r.short}kg 모자라다고 한다`);
+      }
+      // **한쪽에 꽂는 장수가 상한을 넘지 않는다** (2026-10-28) —
+      // 읽어도 못 쓰는 답을 「딱 맞다」고 말하던 자리
+      if (r.perSide.length > CAP) {
+        wrongAll.push(`${t}kg bar${bar}: 한쪽 ${r.perSide.length}장 (상한 ${CAP})`);
       }
     }
   }
