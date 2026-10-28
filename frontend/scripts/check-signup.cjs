@@ -165,7 +165,10 @@ if (register) {
   // 돌아온 길에는 `state` 가 없다 — 주소의 `?to=` 를 같이 봐야 한다
   ok('돌아온 길에서 그 값을 읽는다', /useLocation\(\)\.state\?\.from \|\| searchParams\.get\('to'\)/.test(login), true);
   // 메일을 묻는 걸음(인스타 · X)을 거쳐도 잃지 않는다
-  ok('  메일을 묻는 걸음도 같은 자리로', /afterAuthPath\(searchParams\.get\('to'\)\)/.test(oauthEmail), true);
+  // **글자로 지키던 그 줄이 틀려 있었다** (2026-10-28) — 화면이 들고 있는 이름은
+  // `params` 인데 `searchParams` 라고 적혀 있었다. 검사가 틀린 코드를 지켰다.
+  // 이제 **그 화면이 들고 있는 이름**으로 본다 (`npm run name` 이 없는 이름을 잡는다)
+  ok('  메일을 묻는 걸음도 같은 자리로', /afterAuthPath\(params\.get\('to'\)\)/.test(oauthEmail), true);
   ok('  거기도 「오늘」로 못 박혀 있지 않다', /navigate\('\/home', \{ replace: true \}\)/.test(oauthEmail), false);
 }
 

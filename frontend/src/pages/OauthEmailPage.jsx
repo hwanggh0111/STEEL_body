@@ -127,7 +127,12 @@ export default function OauthEmailPage() {
       if (data?.restored) toast('계정이 되살아났어요');
       // **가려던 자리로** (2026-10-20). 메일을 묻는 걸음을 거쳐도 잃지 않는다 —
       // 서버가 `?to=` 를 이 화면까지 들려 보낸다 (`routes/oauth.js` 의 finishSocial)
-      navigate(afterAuthPath(searchParams.get('to')), { replace: true });
+      // **이 화면이 들고 있는 이름은 `params` 다** (2026-10-28 에 고쳤다).
+      // 여기 `searchParams` 라고 적혀 있었다 — **선언된 적이 없는 이름**이라
+      // 이 줄을 밟으면 그 자리에서 터진다(흰 화면). 인스타 · X 를 10/9 에 접어서
+      // **이 화면에 오는 길이 지금 없어** 아무도 안 밟았고, 검사는 그 줄을
+      // **글자로** 지키고 있었다 (`npm run signup`). `npm run name` 이 잡았다
+      navigate(afterAuthPath(params.get('to')), { replace: true });
     } catch (err) {
       const res = err.response?.data;
       // **다시 로그인부터 해야 하는 경우를 따로 다룬다.** 15분이 지났거나 쪽지가

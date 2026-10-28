@@ -22,6 +22,11 @@ import { EMAIL_KEY } from '../data/localKeys';
 // 그대로다), **되돌리는 길이 있다는 말만 걷는다.** 한국어는 그 자리에 바로 적는다 —
 // 여기만 사전을 쓰면 **고치는 사람이 두 자리를 봐야 한다.**
 
+// 딱지에 적을 말. **사전을 걷으면서 이 자리를 빠뜨렸다** (2026-10-28) —
+// `t[...]` 꼴로 꺼내 쓰던 넷이 남아서 그 화면이 **흰 화면**이 됐다.
+// 글자(`t.무엇`)만 찾고 **꺾쇠로 꺼내는 꼴**은 안 봤다
+const BADGE = { safe: '안전', warning: '주의', danger: '위험' };
+
 // 역할 거르기. 서버가 쓰는 값은 셋뿐이다 (user · admin · blocked)
 const ROLE_TABS = [
   { key: 'all', label: '전체' },
@@ -550,7 +555,7 @@ export default function SecurityPanel() {
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             JWT 설정
           </span>
-          <StatusBadge status={getAlgoStatus(jwt?.algorithm)} label={t[getAlgoStatus(jwt?.algorithm)]} />
+          <StatusBadge status={getAlgoStatus(jwt?.algorithm)} label={BADGE[getAlgoStatus(jwt?.algorithm)]} />
         </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
           <div>
@@ -572,7 +577,7 @@ export default function SecurityPanel() {
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             Rate Limit 설정
           </span>
-          <StatusBadge status={getRateLimitStatus(rateLimit?.login)} label={t[getRateLimitStatus(rateLimit?.login)]} />
+          <StatusBadge status={getRateLimitStatus(rateLimit?.login)} label={BADGE[getRateLimitStatus(rateLimit?.login)]} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
           {rateLimit && Object.entries(rateLimit).map(([key, val]) => (
@@ -594,7 +599,7 @@ export default function SecurityPanel() {
             <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
               Helmet
             </span>
-            <StatusBadge status={getHelmetStatus(helmet?.enabled)} label={t[getHelmetStatus(helmet?.enabled)]} />
+            <StatusBadge status={getHelmetStatus(helmet?.enabled)} label={BADGE[getHelmetStatus(helmet?.enabled)]} />
           </div>
           <div style={{ fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", color: helmet?.enabled ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
             {helmet?.enabled ? '활성화' : '비활성화'}
@@ -607,7 +612,7 @@ export default function SecurityPanel() {
             <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
               Node.js 버전
             </span>
-            <StatusBadge status={getNodeStatus(nodeVersion)} label={t[getNodeStatus(nodeVersion)]} />
+            <StatusBadge status={getNodeStatus(nodeVersion)} label={BADGE[getNodeStatus(nodeVersion)]} />
           </div>
           <div style={{ fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontWeight: 600 }}>
             {nodeVersion || '-'}
