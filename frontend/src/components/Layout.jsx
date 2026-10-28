@@ -17,7 +17,7 @@ import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
 import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
-import { EMAIL_KEY, PROFILE_PHOTO_KEY } from '../data/localKeys';
+import { EMAIL_KEY, NICKNAME_KEY, PROFILE_PHOTO_KEY } from '../data/localKeys';
 // **사진을 고를 때만 받는다** (2026-09-22). 이미지를 줄이는 코드는 캔버스를 다루는
 // 덩어리라, 사진을 한 번도 안 올리는 사람에게까지 첫 화면에서 받게 할 이유가 없다
 // 모달 둘과 계정 시트는 **열 때 받는다.** 비밀번호를 바꾸거나 계정을 지우는 일은
@@ -399,7 +399,7 @@ export default function Layout() {
     if (!trimmed || savingNick) return;
     setSavingNick(true);
     client.put('/auth/nickname', { nickname: trimmed }).then(() => {
-      saveLS('nickname', trimmed);
+      saveLS(NICKNAME_KEY, trimmed);
       useAuthStore.setState({ nickname: trimmed });
       done?.();
       toast('이름이 바뀌었어요');

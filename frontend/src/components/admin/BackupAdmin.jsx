@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
 import { readLS } from '../../data/safeStorage';
+import { TOKEN_KEY } from '../../data/localKeys';
 
 // 통째로 떠받기 (2026-10-01).
 //
@@ -21,7 +22,7 @@ export default function BackupAdmin() {
     if (busy) return;
     setBusy(true);
     const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = readLS('token');
+    const token = readLS(TOKEN_KEY);
     fetch(`${baseURL}/export/backup`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',

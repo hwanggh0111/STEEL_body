@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { readLS, removeLS, saveLS, readCookies } from '../data/safeStorage';
-import { SESSION_EXPIRED_KEY } from '../data/localKeys';
+import { NICKNAME_KEY, SESSION_EXPIRED_KEY, TOKEN_KEY } from '../data/localKeys';
 // 계정이 막힌 403 을 **읽는 자리**. 여태 아무도 안 읽어서, 정지된 사람은 까닭 없이
 // 되돌아오는 로그인 화면만 봤다 (2026-10-24)
 import { blockOf } from '../data/accountBlock';
@@ -32,7 +32,7 @@ client.interceptors.request.use((config) => {
   const csrf = getCookie('sb_csrf');
   if (csrf) config.headers['X-CSRF-Token'] = csrf;
   // 레거시 호환: localStorage 토큰도 보냄 (마이그레이션 기간)
-  const token = readLS('token');
+  const token = readLS(TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -51,8 +51,8 @@ client.interceptors.request.use((config) => {
  * 한 곳만 틀리면 **안내가 조용히 사라진다** — 그 파일을 둔 까닭이 그것이다.
  */
 function toLogin(told = true) {
-  removeLS('token');
-  removeLS('nickname');
+  removeLS(TOKEN_KEY);
+  removeLS(NICKNAME_KEY);
   if (told) saveLS(SESSION_EXPIRED_KEY, 'true');
   window.location.href = '/login';
 }
@@ -97,7 +97,7 @@ client.interceptors.response.use(
         // **새 토큰을 받아 적는다.** 안 적으면 쿠키가 막힌 브라우저에서 요청 인터셉터가
         // 계속 옛 토큰을 헤더로 보내고, 갱신은 200 인데 다음 요청이 또 401 이 된다.
         // 갱신이 실패한 것이 아니라 실패 횟수도 안 올라가서 고리에서 못 빠져나온다
-        if (data?.token) saveLS('token', data.token);
+        if (data?.token) saveLS(TOKEN_KEY, data.token);
         // 갱신 성공: 카운터 리셋 + 큐 복사 후 초기화
         refreshFailCount = 0;
         isRefreshing = false;

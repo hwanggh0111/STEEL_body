@@ -20,6 +20,7 @@ import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../dat
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
 import { readLS } from '../data/safeStorage';
+import { TOKEN_KEY } from '../data/localKeys';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 import { useToday } from '../data/useToday';
 // 갈래를 주소에 남긴다 (2026-10-06)
@@ -209,7 +210,7 @@ export default function HistoryPage() {
   const handleExportCSV = (type = 'workouts') => {
     const filename = type === 'inbody' ? 'blackiron_inbody.csv' : 'blackiron_workouts.csv';
     const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = readLS('token');
+    const token = readLS(TOKEN_KEY);
     fetch(`${baseURL}/export/${type}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',

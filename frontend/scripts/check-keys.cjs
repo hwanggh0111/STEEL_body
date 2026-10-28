@@ -67,8 +67,12 @@ const codeLines = (src) => {
   });
 };
 
-// 이 앱이 쓰는 접두사들. 접두사가 없는 것(`token` · `nickname`)은 너무 흔해서 안 본다 —
-// 그쪽은 `PER_USER_KEYS` 가 글자로 들고 있고, 바꿀 일이 없는 이름이다
+// 이 앱이 쓰는 접두사들. 접두사가 없는 것(`token` · `nickname`)은 **여기서는** 안
+// 본다 — 그 글자가 열쇠인지 응답의 칸 이름인지(`data.token`) 줄만 보고 가를 수 없다.
+// **대신 아래 「이름이 있는데 글자로 적은 자리」가 본다** (2026-10-28).
+// 10/27 에 이 둘에도 이름을 줬는데(`TOKEN_KEY`·`NICKNAME_KEY`) 이 주석이
+// 「PER_USER_KEYS 가 **글자로** 들고 있다」고 적힌 채로 남아 있었고, 그 사이
+// **`TOKEN_KEY` 를 쓰는 자리가 0** 이었다 — 스물한 자리가 글자를 또 적었다
 const PREFIX = /'((?:steelbody_|ironlog_|shape:|parts:|breath:|gym:)[\w:]*)'/g;
 
 // **옛 기능의 죽은 열쇠를 쓸어내는 목록**은 예외다. 지우려고 적어둔 이름이고,
@@ -141,6 +145,58 @@ yes('사람의 것은 PER_USER_KEYS 가 든다', /PER_USER_KEYS = \[/.test(keysS
 yes('지우는 쪽이 그 목록을 그대로 쓴다',
   /LOGOUT_KEYS = PER_USER_KEYS/.test(fs.readFileSync(path.join(SRC, 'store', 'authStore.js'), 'utf8')),
   '나가는 쪽이 따로 나열하면 한쪽에만 새 줄이 생기는 날이 온다');
+
+// ──────────────────────────────────────────────────────────────
+// **이름을 줬는데 글자로 적은 자리** (2026-10-28)
+// ──────────────────────────────────────────────────────────────
+//
+// 10/27 에 「누구인지를 적어두는 다섯에도 이름을 준다」고 `TOKEN_KEY` ·
+// `NICKNAME_KEY` 를 만들었다. 그런데 **절반만 됐다** —
+//
+//   · `TOKEN_KEY` 를 쓰는 자리가 **0** 이었다 (이름만 만들고 아무도 안 썼다)
+//   · `readLS('token')` 처럼 글자를 또 적은 자리가 **스물하나**
+//   · `AUTO_LOGIN_KEYS` 한 줄에 **이름 셋과 글자 둘이 섞여** 있었다
+//
+// 위의 접두사 검사는 이 둘을 일부러 건너뛰므로 **아무도 안 보고 있었다.**
+// 열쇠로 쓰이는 자리는 **집의 손을 부르는 자리**(`readLS`·`saveLS`·`removeLS`)와
+// **열쇠 목록**뿐이라, 거기서만 글자를 찾으면 `data.token` 같은 칸 이름과 안 섞인다.
+console.log('\n── 이름을 줬는데 글자로 적지 않았나 ──');
+{
+  // localKeys.js 가 내보낸 이름 → 그 값
+  const named = new Map();
+  for (const m of keysSrc.matchAll(/^export const (\w+) = '([^']+)';/gm)) named.set(m[2], m[1]);
+
+  const literal = [];
+  const unused = [];
+  for (const f of walk(SRC)) {
+    if (path.resolve(f) === path.resolve(KEYS_FILE)) continue;
+    const rel = path.relative(SRC, f).replace(/\\/g, '/');
+    codeLines(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      // 집의 손에 글자를 바로 넣는 자리
+      for (const m of line.matchAll(/(?:read|save|remove)LS\(\s*'([^']+)'/g)) {
+        if (named.has(m[1])) literal.push(rel + ':' + (i + 1) + '  ' + m[1] + ' → ' + named.get(m[1]));
+      }
+      // 열쇠 목록 줄에 글자가 섞인 자리 (`const …_KEYS = [ … ]`)
+      if (/_KEYS\s*=\s*\[/.test(line)) {
+        for (const m of line.matchAll(/'([^']+)'/g)) {
+          if (named.has(m[1])) literal.push(rel + ':' + (i + 1) + '  목록에 글자 ' + m[1] + ' → ' + named.get(m[1]));
+        }
+      }
+    });
+  }
+  ok('이름이 있는데 글자로 적은 자리', literal, []);
+
+  // **이름만 만들고 아무도 안 쓰는 것**도 같이 본다 — 그것이 위 상태의 짝이다
+  const all = walk(SRC).filter((f) => path.resolve(f) !== path.resolve(KEYS_FILE))
+    .map((f) => codeLines(fs.readFileSync(f, 'utf8')).join('\n')).join('\n');
+  for (const name of named.values()) {
+    if (!new RegExp('\\b' + name + '\\b').test(all) && !new RegExp('\\b' + name + '\\b').test(
+      codeLines(keysSrc).join('\n').replace(new RegExp("export const " + name + " = '[^']+';"), ''))) {
+      unused.push(name);
+    }
+  }
+  ok('  부르는 자리가 0 인 이름', unused, []);
+}
 
 // ──────────────────────────────────────────────────────────────
 // **집의 손으로 읽고 적는가** (2026-10-27)

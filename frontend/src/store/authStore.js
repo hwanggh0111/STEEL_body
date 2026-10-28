@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { EMAIL_KEY, PER_USER_KEYS, ROLE_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
+import { EMAIL_KEY, NICKNAME_KEY, PER_USER_KEYS, ROLE_KEY, SAVED_NICKNAME_KEY, TOKEN_KEY } from '../data/localKeys';
 import client from '../api/client';
 import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore';
 import { useNoteStore, resetNoteCache } from './noteStore';
@@ -46,17 +46,17 @@ REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 const LOGOUT_KEYS = PER_USER_KEYS;
 
 export const useAuthStore = create((set) => ({
-  token: readLS('token'), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
-  nickname: readLS('nickname'),
+  token: readLS(TOKEN_KEY), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
+  nickname: readLS(NICKNAME_KEY),
   // 인바디 참고 범위에만 쓴다. null 이면 범위를 안 그리고 숫자만 보여준다.
   // 서버가 들고 있고 checkAuth 때 받아온다 — 기기를 바꿔도 다시 안 물어본다
   sex: null,
-  isLoggedIn: !!readLS('token') || hasCsrfCookie(),
+  isLoggedIn: !!readLS(TOKEN_KEY) || hasCsrfCookie(),
 
   login: async (email, password) => {
     const { data } = await client.post('/auth/login', { email, password });
-    if (data.token) saveLS('token', data.token);
-    saveLS('nickname', data.nickname);
+    if (data.token) saveLS(TOKEN_KEY, data.token);
+    saveLS(NICKNAME_KEY, data.nickname);
     if (data.email) saveLS(EMAIL_KEY, data.email);
     if (data.role) saveLS(ROLE_KEY, data.role);
     set({ token: data.token, nickname: data.nickname, isLoggedIn: true });
@@ -83,7 +83,7 @@ export const useAuthStore = create((set) => ({
    */
   socialLoggedIn: ({ nickname, email }) => {
     if (nickname) {
-      saveLS('nickname', nickname);
+      saveLS(NICKNAME_KEY, nickname);
       // **다음에 올 때 인사할 이름도 담는다.** 이메일 로그인은 담는데 소셜만 안 담아서,
       // 소셜로 쓰는 사람은 늘 「처음 온 사람」 차림의 화면을 봤다
       saveLS(SAVED_NICKNAME_KEY, nickname);
@@ -108,8 +108,8 @@ export const useAuthStore = create((set) => ({
   // `code` 는 메일로 받은 여섯 자리다 — 서버가 가입을 받는 자리에서 같이 본다
   register: async (email, password, nickname, username, code) => {
     const { data } = await client.post('/auth/register', { email, password, nickname, username, code });
-    if (data?.token) saveLS('token', data.token);
-    if (data?.nickname) saveLS('nickname', data.nickname);
+    if (data?.token) saveLS(TOKEN_KEY, data.token);
+    if (data?.nickname) saveLS(NICKNAME_KEY, data.nickname);
     if (data?.email) saveLS(EMAIL_KEY, data.email);
     if (data?.role) saveLS(ROLE_KEY, data.role);
     set({ token: data?.token || null, nickname: data?.nickname || nickname, isLoggedIn: true });
@@ -193,7 +193,7 @@ export const useAuthStore = create((set) => ({
   checkAuth: async () => {
     try {
       const { data } = await client.get('/auth/me');
-      saveLS('nickname', data.nickname);
+      saveLS(NICKNAME_KEY, data.nickname);
       // 관리자에서 내려왔으면 **담아둔 것도 지운다.** 안 지우면 옛 값이 그대로 산다
       if (data.role === 'admin') saveLS(ROLE_KEY, data.role);
       else removeLS(ROLE_KEY);

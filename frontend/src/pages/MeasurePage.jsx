@@ -14,6 +14,7 @@ import FlexibilitySection from '../components/measure/FlexibilitySection';
 import ShoulderSection from '../components/measure/ShoulderSection';
 import { dateKey } from '../data/dateKey';
 import { readLS } from '../data/safeStorage';
+import { TOKEN_KEY } from '../data/localKeys';
 
 // 일곱 가지 도구.
 //
@@ -80,7 +81,7 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
   // 브라우저가 있고, 곧바로 revoke 하면 내려받기 전에 주소가 사라져 빈 파일이 된다
   const exportMeasures = () => {
     const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = readLS('token');
+    const token = readLS(TOKEN_KEY);
     fetch(`${baseURL}/export/measures`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
