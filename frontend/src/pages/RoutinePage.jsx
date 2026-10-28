@@ -7,6 +7,7 @@ import { toast } from '../components/Toast';
 import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
+import { MAX_EXERCISES } from '../data/limits';
 
 // 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
 // 조용히 비어 보인다 — 서버는 200 을 주고 화면은 「데이터 없음」을 띄운다.
@@ -563,14 +564,30 @@ export default function RoutinePage() {
               </div>
             );
           })}
+          {/* ── 한도는 **누르기 전에** 말한다 ── (2026-10-28)
+              서버는 쉰 개를 넘으면 거절하는데, 여태 **쉰한 번째 줄까지 만들 수 있었고
+              저장을 누른 다음에야** 「운동은 최대 50개까지 가능해요」가 떴다 —
+              그 자리에서 어느 줄을 지워야 하는지는 아무 말도 없다.
+              수는 `data/limits.js` 한 자리에서 오고, 서버와 어긋나면
+              `npm run twins` 가 FAIL 한다 */}
           <button
             onClick={() => setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, blankRow()] })}
+            disabled={newRoutine.exercises.length >= MAX_EXERCISES}
             style={{
               background: 'none', border: '1px dashed var(--border)', color: 'var(--text-muted)',
-              padding: '8px', width: '100%', cursor: 'pointer', fontSize: 12, borderRadius: 'var(--radius)',
-              marginBottom: 12,
+              padding: '8px', width: '100%', fontSize: 12, borderRadius: 'var(--radius)',
+              marginBottom: newRoutine.exercises.length >= MAX_EXERCISES ? 6 : 12,
+              fontFamily: 'inherit',
+              cursor: newRoutine.exercises.length >= MAX_EXERCISES ? 'default' : 'pointer',
+              opacity: newRoutine.exercises.length >= MAX_EXERCISES ? 0.45 : 1,
             }}
           >+ 운동 추가</button>
+          {newRoutine.exercises.length >= MAX_EXERCISES && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
+              한 루틴에는 운동을 <b style={{ color: 'var(--text-secondary)' }}>{MAX_EXERCISES}개</b>까지
+              담을 수 있어요. 더 넣으려면 루틴을 나눠 주세요.
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button

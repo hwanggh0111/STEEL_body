@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { planState, dayLabel, untilLabel } from '../data/plans';
 import ExerciseFinder from './ExerciseFinder';
+import { MAX_PER_DAY } from '../data/limits';
 
 // 달력에서 날짜를 누르면 나오는 **그날 한 장.**
 //
@@ -51,6 +52,8 @@ export default function DaySheet({
   const state = planState(date, today, list);
   const isPast = date < today;
   const until = untilLabel(date, today);
+  // 하루에 담는 수가 찼나 (서버와 같은 값 — `data/limits.js` 머리글)
+  const full = plans.length >= MAX_PER_DAY;
 
   // 이 날에 한 줄 적는다. **화면을 옮기지 않는다** —
   // 예전에는 여기서 기록 화면으로 날짜를 들고 갔다
@@ -128,10 +131,16 @@ export default function DaySheet({
       )}
 
       {/* ── 할 것 ── */}
+      {/* ── 한도는 **누르기 전에** 말한다 ── (2026-10-28)
+          서버는 하루 열 개를 넘으면 거절하는데, 여태 「+ 담기」가 그대로 열리고
+          **담기를 누른 다음에야** 「하루에 10개까지만 담을 수 있어요」가 떴다.
+          수는 `data/limits.js` 한 자리에서 오고, 서버와 어긋나면
+          `npm run twins` 가 FAIL 한다 */}
       <Section
         label="할 것"
-        action={adding ? { text: '닫기', onClick: () => { setAdding(false); setName(''); } }
-                       : { text: '+ 담기', onClick: () => setAdding(true) }}
+        action={full ? null
+          : adding ? { text: '닫기', onClick: () => { setAdding(false); setName(''); } }
+                   : { text: '+ 담기', onClick: () => setAdding(true) }}
       >
         {plans.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: adding ? 10 : 0 }}>
@@ -164,7 +173,14 @@ export default function DaySheet({
           </div>
         )}
 
-        {adding && (
+        {full && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+            하루에 <b style={{ color: 'var(--text-secondary)' }}>{MAX_PER_DAY}개</b>까지 담을 수 있어요.
+            하나를 빼면 다시 담을 수 있습니다.
+          </div>
+        )}
+
+        {adding && !full && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {/* **내 루틴을 통째로 거는 것이 제일 흔한 쓰임이다** —
                 「월요일 가슴+삼두」를 걸어두면 그날 뭘 할지 다시 안 정해도 된다 */}

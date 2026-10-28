@@ -4,6 +4,14 @@ const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
 
+// 루틴 한 벌에 담을 운동 수.
+//
+// **이름을 준다** (2026-10-28). 여태 `50` 이 두 자리에 글자로 박혀 있었고(만들기 ·
+// 고치기) **화면에는 아무 데도 없었다** — 「+ 운동 추가」를 쉰한 번 누를 수 있고
+// 저장에서야 막혔다. 화면도 같은 이름으로 들게 하고(`data/limits.js`)
+// `npm run twins` 가 양쪽 값을 견준다 — 같은 숫자가 두 곳에 있으면 반드시 어긋난다
+const MAX_EXERCISES = 50;
+
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
   const routines = db.getMyRoutines(req.userId);
@@ -29,8 +37,8 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '운동 목록은 비어있을 수 없어요' });
   }
 
-  if (exercises.length > 50) {
-    return res.status(400).json({ error: '운동은 최대 50개까지 가능해요' });
+  if (exercises.length > MAX_EXERCISES) {
+    return res.status(400).json({ error: `운동은 최대 ${MAX_EXERCISES}개까지 가능해요` });
   }
 
   // 개별 운동 항목 검증
@@ -79,8 +87,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     if (!Array.isArray(exercises) || exercises.length === 0) {
       return res.status(400).json({ error: '운동 목록은 비어있을 수 없어요' });
     }
-    if (exercises.length > 50) {
-      return res.status(400).json({ error: '운동은 최대 50개까지 가능해요' });
+    if (exercises.length > MAX_EXERCISES) {
+      return res.status(400).json({ error: `운동은 최대 ${MAX_EXERCISES}개까지 가능해요` });
     }
     const valid = exercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
     if (valid.length === 0) {
