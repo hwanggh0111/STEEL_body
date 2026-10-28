@@ -86,6 +86,19 @@ const HSTS_MAX_AGE = 31536000;
 
 const BCRYPT_ROUNDS = 12;
 
+// 비밀번호 길이 (2026-10-28).
+//
+// **같은 숫자가 네 곳에 글자로 있었다** — 가입 · 비밀번호 재설정 · 비밀번호 변경
+// 세 자리가 `password.length < 8 || password.length > 100` 을 각각 적고,
+// 거절하는 말도 「8~100자여야 해요」로 **세 번 따로** 적어뒀다. 화면도 자기 몫을
+// 들고 있다(`RegisterPage` 의 `PW_MIN`·`PW_MAX`).
+//
+// 같은 숫자가 두 곳에 있으면 **반드시 어긋난다**(10/22 에 세운 자). 서버 쪽 셋을
+// 여기 한 자리로 모으고, **이름을 화면과 똑같이** 둔다 — 그러면 `npm run twins` 가
+// 양쪽 값을 견준다. 거절하는 말도 이 값으로 짓는다.
+const PW_MIN = 8;
+const PW_MAX = 100;
+
 // 사진을 base64 로 보내기 때문에 넉넉하다. photoLimit 과 짝이다
 const BODY_LIMIT = '3mb';
 
@@ -115,5 +128,6 @@ const PERMISSIONS_POLICY = 'camera=(self), microphone=(self), geolocation=()';
 
 module.exports = {
   RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS,
+  PW_MIN, PW_MAX,
   LOGIN_LOCK, LOGIN_LOCK_DESC, HSTS_MAX_AGE,
 };

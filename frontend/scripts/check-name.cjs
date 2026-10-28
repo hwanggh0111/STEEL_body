@@ -55,8 +55,16 @@ Buffer setImmediate clearImmediate
 undefined NaN Infinity arguments React
 `.trim().split(/\s+/).filter(Boolean));
 
-const SRC = path.join(__dirname, '..', 'src');
+// **양쪽을 다 본다** (2026-10-28). 백엔드에도 ESLint 가 없고, 짐(`esbuild` ·
+// `rollup`)은 여기에만 있다 — 그러니 여기서 두 나무를 같이 훑는다.
+// 처음 훑을 때 백엔드는 **51파일 · 13,268 쓰임에 0건**이었다. 지금 0 이라고
+// 안 보면, 다음에 거기서 같은 일이 나도 아무도 모른다
+const TREES = [
+  { label: '앱', dir: path.join(__dirname, '..', 'src') },
+  { label: '서버', dir: path.join(__dirname, '..', '..', 'backend', 'src') },
+];
 const walk = (d, out = []) => {
+  if (!fs.existsSync(d)) return out;
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const p = path.join(d, e.name);
     if (e.isDirectory()) walk(p, out);
@@ -78,12 +86,16 @@ const namesOf = (node, out) => {
   }
 };
 
+console.log('── 선언 없이 쓰는 이름 ──');
+
+for (const tree of TREES) {
+const SRC = tree.dir;
 const missing = [];
 let files = 0;
 let seen = 0;
 
 for (const f of walk(SRC)) {
-  const rel = path.relative(SRC, f).split(path.sep).join('/');
+  const rel = tree.label + '/' + path.relative(SRC, f).split(path.sep).join('/');
   let js;
   try {
     js = esbuild.transformSync(fs.readFileSync(f, 'utf8'), { loader: 'jsx', format: 'esm' }).code;
@@ -154,12 +166,12 @@ for (const f of walk(SRC)) {
   }
 }
 
-console.log('── 선언 없이 쓰는 이름 ──');
-console.log('     파일 ' + files + '개 · 이름 쓰임 ' + seen + '개');
-ok('없는 이름을 쓰는 자리', [...new Set(missing)], []);
+console.log('     [' + tree.label + '] 파일 ' + files + '개 · 이름 쓰임 ' + seen + '개');
+ok('  없는 이름을 쓰는 자리', [...new Set(missing)], []);
 if (missing.length) {
   console.log('     ↑ 가져오거나 선언한다. **번들러는 이름이 있는지 안 본다** —');
   console.log('       열어봐야 터지고, 터지면 흰 화면이다');
+}
 }
 
 console.log('');

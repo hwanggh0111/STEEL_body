@@ -2,7 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db     = require('../db');
-const { BCRYPT_ROUNDS, LOGIN_LOCK } = require('../config/security');
+const { BCRYPT_ROUNDS, LOGIN_LOCK, PW_MIN, PW_MAX } = require('../config/security');
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
@@ -282,8 +282,10 @@ router.post('/register', async (req, res) => {
   if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(username)) {
     return res.status(400).json({ error: '아이디는 영문+숫자 4~20자만 가능해요' });
   }
-  if (password.length < 8 || password.length > 100) {
-    return res.status(400).json({ error: '비밀번호는 8~100자여야 해요' });
+  // **값은 한 자리에서 온다** (2026-10-28, `config/security.js`) — 이 셈이 세 곳에
+  // 글자로 있었고 거절하는 말도 세 번 따로 적혀 있었다
+  if (password.length < PW_MIN || password.length > PW_MAX) {
+    return res.status(400).json({ error: `비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
   }
   if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
     return res.status(400).json({ error: '비밀번호는 영문+숫자 조합이어야 해요' });
@@ -681,8 +683,8 @@ router.post('/reset-password', async (req, res) => {
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
   }
-  if (newPassword.length < 8 || newPassword.length > 100) {
-    return res.status(400).json({ error: '새 비밀번호는 8~100자여야 해요' });
+  if (newPassword.length < PW_MIN || newPassword.length > PW_MAX) {
+    return res.status(400).json({ error: `새 비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
   }
   if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
     return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
@@ -723,8 +725,8 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
   if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
     return res.status(400).json({ error: '현재 비밀번호와 새 비밀번호를 입력해주세요' });
   }
-  if (newPassword.length < 8 || newPassword.length > 100) {
-    return res.status(400).json({ error: '새 비밀번호는 8~100자여야 해요' });
+  if (newPassword.length < PW_MIN || newPassword.length > PW_MAX) {
+    return res.status(400).json({ error: `새 비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
   }
   if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
     return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
