@@ -31,6 +31,10 @@ const clean = () => {
 clean();
 
 const db = require('../src/db');
+
+// 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+
+require('./_tmpdb.cjs')(TMP);
 const { daysFor, recomputeDays, MAX_DAYS } = require('../src/utils/abusePolicy');
 
 let bad = 0;

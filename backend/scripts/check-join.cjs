@@ -33,6 +33,8 @@ const cookieParser = require('cookie-parser');
 const http = require('http');
 const auth = require('../src/routes/auth');
 const db = require('../src/db');
+// 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+require('./_tmpdb.cjs')(TMP_DB);
 
 let bad = 0;
 const ok = (name, got, want) => {

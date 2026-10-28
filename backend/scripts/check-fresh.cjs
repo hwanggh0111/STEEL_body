@@ -32,6 +32,10 @@ for (const f of [TMP, TMP.replace(/\.json$/, '.photos.json')]) {
 }
 
 const db = require('../src/db');
+
+// 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+
+require('./_tmpdb.cjs')(TMP);
 const jwt = require('jsonwebtoken');
 const express = require('express');
 
@@ -200,6 +204,11 @@ async function run() {
   } finally {
     server.close();
     db.flushNow();
+    // **사진도 지금 쓴다** (2026-10-28). 안 쓴 것을 남겨두면 `db.js` 의
+    // `process.on('exit')` 가 아래에서 지운 `.photos.json` 을 **다시 만든다** —
+    // 그래서 이 파일이 늘 바뀐 채 git 에 남아 있었다. 치우는 쪽이 아니라
+    // **나가는 쪽**이 다시 쓰고 있었다 (본체는 `flushNow` 가 있어 안 되살아났다)
+    db.flushPhotosNow();
     setTimeout(() => {
       for (const f of [TMP, TMP.replace(/\.json$/, '.photos.json')]) {
         if (fs.existsSync(f)) fs.unlinkSync(f);

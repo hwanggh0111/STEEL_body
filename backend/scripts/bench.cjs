@@ -23,6 +23,10 @@ for (const f of [TMP, TMP.replace(/\.json$/, '.photos.json')]) {
 }
 
 const db = require('../src/db');
+
+// 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+
+require('./_tmpdb.cjs')(TMP);
 const rows = require('../src/utils/csvRows');
 
 const PEOPLE = Math.max(1, Number(process.argv[2]) || 1);
@@ -178,6 +182,10 @@ try {
 console.log('');
 console.log('여기 적힌 수는 이 기계에서 이번에 잰 것이다. 다음에 견줄 때는 같은 명령으로 다시 재고,');
 console.log('바꾼 것이 어느 줄을 움직였는지 README 개발 일지에 적는다.');
+
+// 사진도 지금 쓴다 — 안 쓴 것을 남기면 `process.on('exit')` 가 아래에서 지운
+// `.photos.json` 을 다시 만든다 (2026-10-28, `check-fresh` 와 같은 자리)
+db.flushPhotosNow();
 
 for (const f of [TMP, TMP.replace(/\.json$/, '.photos.json')]) {
   if (fs.existsSync(f)) fs.unlinkSync(f);

@@ -99,6 +99,8 @@ console.log('\n── 남의 기기 알림을 끌 수 있었다 (2026-09-04) ─
   }
   process.env.DB_FILE = TMP;
   const db = require('../src/db');
+  // 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+  require('./_tmpdb.cjs')(TMP);
 
   const A = 1;   // 나
   const B = 2;   // 남

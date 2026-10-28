@@ -42,6 +42,15 @@ backend/.check-*.json
 
 # 재는 자리가 쓰는 임시 DB (npm run bench). 끝나면 지우지만 중간에 멎으면 남는다
 backend/scripts/.bench*.json
+# 검사가 쓰는 임시 DB — **이름 꼴이 두 가지다** (2026-10-28).
+# 위의 `backend/.check-*.json` 은 ① 한 칸 아래(`scripts/`)를 안 막고
+# ② `.무엇-check.json` 쪽(일곱)을 안 막았다. 그래서 `.check-fresh.photos.json`
+# 이 한 번 올라가 늘 바뀐 채로 남았다. **남는 것 자체는 `npm run tidy` 가 잡는다** —
+# 여기는 혹 남더라도 git 에 들어가지 않게 두는 두 번째 자리다
+backend/scripts/.check-*.json
+backend/.*-check.json
+backend/.*-check.photos.json
+backend/.boot.json
 backend/scripts/.probe*.json
 backend/scripts/.bench-*.cjs
 

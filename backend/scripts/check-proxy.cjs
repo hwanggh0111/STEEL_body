@@ -68,6 +68,8 @@ for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
 }
 process.env.DB_FILE = TMP;
 const db = require('../src/db');
+// 나가는 길에 임시 DB 를 치운다 — `db.js` 의 exit 손이 되살리는 것까지 (2026-10-28)
+require('./_tmpdb.cjs')(TMP);
 
 guard.manualBlock('10.31.78.209', 60);
 ok('사설 주소는 막아도 안 들어간다', db.listBlocks().some(b => b.ip === '10.31.78.209'), false);
