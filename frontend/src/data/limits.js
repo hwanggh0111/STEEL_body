@@ -63,3 +63,14 @@ export const EXERCISE_NAME_MAX = 100;
  */
 export const REASON_MAX = 60;
 export const BODY_MAX = 2000;
+
+/**
+ * 점검 스케줄 개수 (관리자 화면).
+ *
+ * 사이트 사진은 이미 「12 / 12장 · 지워야 더 걸 수 있어요」로 세어 보여주는데
+ * 점검 쪽은 아무 말이 없었다 — 스물한 개째를 다 적고 저장에서야 막혔다.
+ *
+ *   MAINT_MAX → backend/src/routes/maintenance.js
+ *   (서버 안에 `MAX_ITEMS` 가 둘이라 — 점검 20 · 루틴 진행 50 — 이름을 또렷하게 뒀다)
+ */
+export const MAINT_MAX = 20;

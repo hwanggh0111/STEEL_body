@@ -54,10 +54,22 @@ const ok = (name, got, want) => {
 const inFreshProcess = (file, expr) => {
   const code = 'const d=require(' + JSON.stringify(DB_SRC) + ');console.log(' + expr + ')';
   const out = execFileSync(process.execPath, ['-e', code], {
-    env: { ...process.env, DB_FILE: file, JWT_SECRET: 'x'.repeat(40) },
+    // ── **색을 끄고 부른다** ── (2026-10-28)
+    //
+    // 이 검사는 새 프로세스가 찍은 글자를 **그대로 견준다**(`'2'`). 그런데 자리에
+    // `FORCE_COLOR` 가 켜져 있으면 Node 가 **숫자에 색 코드를 붙인다** —
+    // `\u001b[33m2\u001b[39m` 과 `'2'` 는 다른 글자다. 그러면 멀쩡한 코드를 두고
+    // **검사가 거짓 FAIL** 한다(이 자리에서 두 건이 그렇게 걸렸다).
+    // 10/26 에 세운 자와 같다 — **검사가 자리의 사정에 기대지 않게 둔다.**
+    env: {
+      ...process.env, DB_FILE: file, JWT_SECRET: 'x'.repeat(40),
+      FORCE_COLOR: '0', NO_COLOR: '1',
+    },
     encoding: 'utf-8',
   });
-  return out.trim().split('\n').pop();
+  // 그래도 섞여 오면 걷는다 — 자리마다 색을 켜는 길이 여럿이다
+  // eslint-disable-next-line no-control-regex
+  return out.replace(/\u001b\[[0-9;]*m/g, '').trim().split('\n').pop();
 };
 
 const A = db.createUser('a@t.local', 'x', '가', 'aaaa').lastInsertRowid;

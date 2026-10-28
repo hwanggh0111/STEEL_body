@@ -9,7 +9,7 @@ import { dateKey } from '../../data/dateKey';
 // 줄의 모양을 맞추는 일은 값만 다루는 자리에 있다 (`npm run maint` 로 돌려본다) —
 // 서버는 날짜짜리에 `days` 칸을 안 만드는데 폼은 그 칸이 늘 있다고 보고 그렸다
 import { NEW_FORM, formOf, entryOf, repeats } from '../../data/maintForm';
-import { REASON_MAX } from '../../data/limits';
+import { MAINT_MAX, REASON_MAX } from '../../data/limits';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -283,10 +283,13 @@ export default function MaintAdmin() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div className="section-title" style={{ margin: 0 }}>
           <div className="accent-bar" />
-          점검 스케줄 ({schedules.length}개)
+          {/* **차면 미리 말한다** (2026-10-28) — 사이트 사진 화면이 쓰는 그 꼴 그대로.
+              수는 `data/limits.js` 에서 온다 */}
+          점검 스케줄 ({schedules.length} / {MAINT_MAX}개){schedules.length >= MAINT_MAX ? ' · 지워야 더 걸 수 있어요' : ''}
         </div>
         <button
           onClick={startNew}
+          disabled={schedules.length >= MAINT_MAX}
           style={{
             background: 'var(--accent)', border: 'none', color: 'var(--on-accent)',
             padding: '6px 14px', fontSize: 12, fontWeight: 700,

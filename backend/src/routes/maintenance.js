@@ -15,7 +15,12 @@ const { sanitize } = require('../utils/sanitize');
 // 사라졌다. 기능이 있는 것처럼 보였을 뿐 실제로는 아무 일도 하지 않았다.
 // ─────────────────────────────────────────────────────────────
 
-const MAX_ITEMS = 20;
+// 점검 스케줄 개수.
+//
+// **이름을 또렷하게 둔다** (2026-10-28). 서버 안에 `MAINT_MAX` 가 **둘**이었다 —
+// 여기(점검 20)와 루틴 진행(50). 같은 이름이 다른 칸을 가리키면
+// `npm run twins` 가 거짓 FAIL 을 낸다. 화면도 같은 이름으로 든다
+const MAINT_MAX = 20;
 
 // 점검 사유의 글자 수.
 //
@@ -66,8 +71,8 @@ router.put('/', adminAuth, (req, res) => {
   if (!Array.isArray(raw)) {
     return res.status(400).json({ error: '점검 목록이 올바르지 않아요' });
   }
-  if (raw.length > MAX_ITEMS) {
-    return res.status(400).json({ error: `점검은 최대 ${MAX_ITEMS}개까지예요` });
+  if (raw.length > MAINT_MAX) {
+    return res.status(400).json({ error: `점검은 최대 ${MAINT_MAX}개까지예요` });
   }
   const list = raw.map(clean).filter(Boolean);
   res.json(db.saveMaintenance(list));

@@ -61,13 +61,47 @@ const CAPS = [
     screen: 'src/pages/GymPage.jsx',
     server: '../backend/src/routes/gymSettings.js',
   },
+  // **관리자 화면도 본다** (2026-10-28) — 사이트 사진은 이미 「12 / 12장 · 지워야 더
+  // 걸 수 있어요」로 세어 보여줬는데 **점검 쪽만** 아무 말이 없었다.
+  // 넷 중 하나만 다른 자리는 잊은 자리다
+  {
+    name: 'MAINT_MAX',
+    label: '점검 스케줄 개수',
+    screen: 'src/components/admin/MaintAdmin.jsx',
+    server: '../backend/src/routes/maintenance.js',
+    says: '지워야 더 걸 수 있어요',
+  },
+  {
+    name: 'MAX_COUNT',
+    label: '홈페이지 사진 장수',
+    screen: 'src/components/admin/SitePhotoAdmin.jsx',
+    server: '../backend/src/routes/sitePhotos.js',
+    says: '지워야 더 걸 수 있어요',
+    // 이 수는 **그 화면 하나만** 쓴다 — 여럿이 쓰는 것만 `limits.js` 로 올린다
+    where: 'screen',
+  },
 ];
 
 const limits = read('src/data/limits.js');
 
+
+// **어디에 두는 것이 맞나는 자리마다 다르다** (2026-10-28). 여럿이 쓰는 것은
+// `data/limits.js` 로 올리고, **그 화면 하나만 쓰는 것**은 그 화면에 둔다 —
+// 올려두면 「여럿이 쓰는 것」이라고 거짓말하는 셈이다. 어느 쪽이든 **서버와 이름이
+// 같으면** `npm run twins` 가 값을 견준다. 세 칸이 같은 손을 쓴다
+const holderOf = (c) => {
+  const screen = read(c.screen);
+  const onScreen = c.where === 'screen';
+  const holder = onScreen ? screen : limits;
+  const decl = onScreen ? 'const ' : 'export const ';
+  const lit = (holder.match(new RegExp(decl + c.name + ' = (\\d+);')) || [])[1];
+  return { screen, holder, decl, lit };
+};
+
 console.log('── 한도를 한 자리에 두는가 ──');
 for (const c of CAPS) {
-  ok(c.label + ' 이름이 있다', new RegExp('export const ' + c.name + ' = \\d+;').test(limits), true);
+  const { holder, decl } = holderOf(c);
+  ok(c.label + ' 이름이 있다', new RegExp(decl + c.name + ' = \\d+;').test(holder), true);
 }
 
 console.log('');
@@ -77,7 +111,7 @@ for (const c of CAPS) {
   try { srv = codeOf(fs.readFileSync(path.join(__dirname, '..', c.server), 'utf8')); } catch { /* 없으면 아래에서 FAIL */ }
   ok(c.label + ' 서버가 이름으로 든다', new RegExp('const ' + c.name + ' = \\d+;').test(srv), true);
   // 글자로 박힌 수가 남아 있으면 한쪽만 고쳐지는 날이 온다
-  const lit = (limits.match(new RegExp('export const ' + c.name + ' = (\\d+);')) || [])[1];
+  const { lit } = holderOf(c);
   ok('  그 수를 글자로 또 적지 않는다',
     lit ? new RegExp('> ' + lit + '\\b').test(srv) : null, false);
 }
@@ -85,10 +119,9 @@ for (const c of CAPS) {
 console.log('');
 console.log('── 화면이 누르기 전에 말하는가 ──');
 for (const c of CAPS) {
-  const src = read(c.screen);
+  const { screen: src, lit } = holderOf(c);
   ok(c.label + ' 화면이 그 이름을 쓴다', new RegExp('\\b' + c.name + '\\b').test(src), true);
   // 수를 글자로 적어두면 서버가 바뀌는 날 거짓말이 된다
-  const lit = (limits.match(new RegExp('export const ' + c.name + ' = (\\d+);')) || [])[1];
   ok('  수를 글자로 적지 않는다', lit ? new RegExp("'" + lit + "개|>" + lit + "개").test(src) : null, false);
   // 차면 더 못 하게 막는가. **막는 꼴이 둘이다** — 단추를 끄거나(`disabled`)
   // 그 자리를 아예 안 그린다(`length < MAX_… &&`). 처음에 앞의 것만 보고
@@ -97,9 +130,16 @@ for (const c of CAPS) {
     || /(full \?[\s\S]{0,10}null|!full)/.test(src)
     || new RegExp('\\w+\\.length < ' + c.name).test(src);
   ok('  차면 더 못 담는다', blocks, true);
-  // 왜 안 되는지 적는가 — 막기만 하면 왜 안 눌리는지 모른다
-  // 줄바꿈이 사이에 들어갈 수 있다 — **글자 사이의 빈칸을 보지 않는다**
-  ok('  왜 안 되는지 적는다', /까지\s*담을 수 있어요/.test(src), true);
+  // 왜 안 되는지 적는가 — 막기만 하면 왜 안 눌리는지 모른다.
+  //
+  // **말하는 꼴이 자리마다 다른 것은 글자로 알아볼 수 없다** (10/27 에 세운 자).
+  // 느슨하게 보면 거짓 통과하고 좁게 보면 멀쩡한 자리가 FAIL 한다 — 관리자 화면 둘이
+  // 「지워야 더 걸 수 있어요」라고 적는데 「까지 담을 수 있어요」만 찾아서 FAIL 했다.
+  // 그래서 **자리마다 그 말을 표에 적어두고, 새 자리에서 FAIL** 하게 둔다.
+  // 글자 사이의 빈칸은 안 본다 — 줄바꿈이 사이에 들어갈 수 있다
+  const says = c.says || '까지 담을 수 있어요';
+  ok('  왜 안 되는지 적는다 (「' + says + '」)',
+    new RegExp(says.replace(/ /g, '\\s*')).test(src), true);
 }
 
 console.log('');
