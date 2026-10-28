@@ -42,9 +42,6 @@ import { i as iPart } from '../data/particle';
 //
 // 처음 온 사람에게는 표어와 소셜이 위다 — 소셜은 가입까지 한 번에 끝난다.
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-// 백엔드 URL (OAuth 리다이렉트용)
-const BACKEND_BASE = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL.replace(/\/api$/, '');
 
 // autoLogin 실패 시 정리할 키
 const AUTO_LOGIN_KEYS = [TOKEN_KEY, AUTO_LOGIN_KEY, NICKNAME_KEY, EMAIL_KEY, ROLE_KEY];

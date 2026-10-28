@@ -778,14 +778,3 @@ export default function Layout() {
     </div>
   );
 }
-
-const menuStyle = {
-  padding: '12px 18px',
-  fontSize: 14,
-  color: 'var(--text-secondary)',
-  cursor: 'pointer',
-  transition: 'background 0.15s',
-};
-
-function hIn(e) { e.currentTarget.style.background = 'var(--bg-tertiary)'; }
-function hOut(e) { e.currentTarget.style.background = 'none'; }
