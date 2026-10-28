@@ -557,12 +557,25 @@ export default function SecurityPanel() {
           </span>
           <StatusBadge status={getAlgoStatus(jwt?.algorithm)} label={BADGE[getAlgoStatus(jwt?.algorithm)]} />
         </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
+        <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap', fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>만료시간: </span>
+            {/* **무엇의 만료인지 적는다** (2026-10-28). 「만료시간」 하나만 있어서
+                액세스 토큰 이야기라는 것이 아무 데도 없었다 */}
+            <span style={{ color: 'var(--text-muted)' }}>접속 만료: </span>
             <span style={{ color: getJwtStatus(jwt?.expiry) === 'safe' ? 'var(--success)' : getJwtStatus(jwt?.expiry) === 'warning' ? 'var(--warning)' : 'var(--danger)', fontWeight: 600 }}>
               {jwt?.expiry || '-'}
             </span>
+          </div>
+          {/* ── 서버가 보내는데 화면이 안 읽고 있었다 ── (2026-10-28)
+              `/security/dashboard` 는 `jwt.refreshExpiry` 를 같이 보낸다. 그런데
+              화면은 **접속 만료만** 적었다 — 접속이 15분이라 「안전」으로 보여도
+              **다시 받는 열쇠가 90일이면** 훔친 쪽은 90일을 쓴다. 관리자가
+              판단하는 자리에서 그 절반이 안 보이고 있었다 (10/27 ⑧ 과 같은 모양).
+              **등급은 접속 만료로만 낸다** — 다시 받는 열쇠의 기준(며칠까지 괜찮나)은
+              따로 정할 일이라, 숫자만 사실대로 적는다 */}
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>다시 받기 만료: </span>
+            <span style={{ fontWeight: 600 }}>{jwt?.refreshExpiry || '-'}</span>
           </div>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>알고리즘: </span>

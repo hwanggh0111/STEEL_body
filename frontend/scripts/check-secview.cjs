@@ -132,6 +132,9 @@ yes('defense 를 감싼다', /Object\.entries\(report\.defense \|\| \{\}\)/.test
 // ──────────────────────────────────────────────────────────────
 console.log('\n── 서버가 보내는데 화면이 안 읽는 칸 ──');
 
+// 「보안 현황」 화면 — 아래 `PANEL` 과 같은 것을 먼저 읽는다 (쓰는 자리가 둘이다)
+const PANEL0 = stripComments(read('src', 'components', 'SecurityPanel.jsx'));
+
 const ROUTE = stripComments(fs.readFileSync(
   path.join(__dirname, '..', '..', 'backend', 'src', 'routes', 'security.js'), 'utf8'));
 
@@ -183,6 +186,57 @@ ok('서버가 보내는 칸을 화면이 다 읽는다', unread, []);
 console.log(`     (뭉치 ${Object.keys(groups).length}개 · 칸 ${Object.values(groups).reduce((a, b) => a + b.length, 0)}개`
   + ` · 통째로 그리는 뭉치 ${WHOLE.length}개 · 안 그리기로 정한 칸 ${Object.keys(SKIP).length}개)`);
 Object.entries(SKIP).forEach(([k, why]) => console.log(`     안 그린다: ${k} — ${why}`));
+
+// ──────────────────────────────────────────────────────────────
+// **`/dashboard` 쪽도 같이 본다** (2026-10-28)
+// ──────────────────────────────────────────────────────────────
+//
+// 위의 셈은 `/report` **하나만** 보고 있었다. 그래서 `/dashboard` 가 보내는
+// `jwt.refreshExpiry` 를 **화면이 한 번도 안 읽는 것**을 아무도 몰랐다 —
+// 「보안 현황」은 「만료시간」 한 줄로 **접속 토큰만** 적었다. 접속이 15분이라
+// 「안전」으로 보여도 **다시 받는 열쇠가 90일이면 훔친 쪽은 90일을 쓴다.**
+// 관리자가 판단하는 자리에서 그 절반이 안 보이고 있었다 (10/27 ⑧ 과 같은 모양).
+console.log('');
+console.log('── 보안 현황이 보내는 칸을 화면이 다 읽는가 ──');
+{
+  const dAt = ROUTE.indexOf("router.get('/dashboard'");
+  yes('/dashboard 라우트를 찾았다', dAt >= 0, 'security.js 가 바뀌었다면 이 검사도 고쳐야 한다');
+  const dBody = ROUTE.slice(dAt, ROUTE.indexOf('\n});', dAt));
+  // 뭉치 안의 칸 (`jwt: { expiry, refreshExpiry, algorithm }`)과 맨 위 칸을 같이 모은다
+  const fields = [];
+  let g = null;
+  dBody.split('\n').forEach((line) => {
+    const open = line.match(/^ {4}(\w+): \{\s*$/);
+    if (open) { g = open[1]; return; }
+    if (/^ {4}\},?\s*$/.test(line)) { g = null; return; }
+    const inner = line.match(/^ {6}(\w+):/);
+    if (g && inner) { fields.push(g + '.' + inner[1]); return; }
+    const top = line.match(/^ {4}(\w+):/);
+    if (!g && top) fields.push(top[1]);
+  });
+
+  // **안 그리기로 정한 것은 까닭과 함께 적는다**
+  const DSKIP = {
+    'rateLimit': '뭉치째 `Object.entries` 로 돌려 다 그린다 (칸이 늘어도 따라온다)',
+    'cors': '`cors.origins` 를 그린다 — 뭉치 이름은 화면에 안 적힌다',
+    'helmet': '`helmet.enabled` 로 등급을 낸다',
+    'jwt': '아래 세 칸으로 갈라 그린다',
+    // **점검 보고서가 이미 그린다** — 「다시 받기 7d · 암호 12회」(`SecurityScan`).
+    // 현황은 등급을 내는 자리이고 **라운드 수는 등급에 안 쓴다**(알고리즘으로 낸다).
+    // 같은 값을 두 자리에 두는 것은 이 앱이 하는 일이지만(설정함의 앱 잠금처럼),
+    // 여기 더하면 **등급과 상관없는 숫자가 등급 옆에** 붙는다
+    'bcryptRounds': '보안 점검 화면이 그린다 (「암호 12회」). 등급에는 안 쓰는 값이다',
+  };
+  const miss = [];
+  fields.forEach((f) => {
+    if (DSKIP[f]) return;
+    const leaf = f.split('.').pop();
+    if (!new RegExp('\\b' + leaf + '\\b').test(PANEL0)) miss.push(f);
+  });
+  ok('서버가 보내는 칸을 화면이 다 읽는다', miss, []);
+  console.log('     (칸 ' + fields.length + '개 · 안 그리기로 정한 것 ' + Object.keys(DSKIP).length + '개)');
+  Object.entries(DSKIP).forEach(([k, why]) => console.log('     안 그린다: ' + k + ' — ' + why));
+}
 
 // ──────────────────────────────────────────────────────────────
 // 관리자가 **한 일을 말하는가** (2026-10-27)

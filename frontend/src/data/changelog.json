@@ -2,6 +2,15 @@
   "generated": "2026-10-28",
   "items": [
     {
+      "hash": "80570c0",
+      "date": "2026-10-28",
+      "type": "fix",
+      "label": "고침",
+      "scope": "소셜",
+      "text": "**선언된 적 없는 이름을 쓰는 줄 하나** — 메일 걸음이 끝나는 자리에서 터진다",
+      "detail": "`OauthEmailPage.jsx` 가 메일 걸음을 끝내고 가려던 자리로 보내는 줄에서\n`searchParams.get('to')` 를 쓰고 있었다. **그 화면이 들고 있는 이름은 `params` 다**\n(`const [params] = useSearchParams()`). 그 줄을 밟으면 그 자리에서 터진다 — 흰 화면이다.\n\n인스타 · X 를 10/9 에 접어서 **이 화면에 오는 길이 지금 없다.** 그래서 아무도 안\n밟았고, **검사는 그 줄을 글자로 지키고 있었다** — `npm run signup` 의 「메일을 묻는\n걸음도 같은 자리로」가 `afterAuthPath(searchParams.get('to'))` 를 **찾아서 OK** 를\n내고 있었다. 검사가 틀린 코드를 지킨 자리다. 검사도 같이 고쳤다. …"
+    },
+    {
       "hash": "83d7de6",
       "date": "2026-10-28",
       "type": "fix",
@@ -351,15 +360,6 @@
       "scope": "소셜 로그인",
       "text": "**제공자가 고장났는데 「본인이 그만뒀어요」라고 말했다**",
       "detail": "콜백에 `?error=…` 가 붙어 오면 **무엇이든** 취소로 봤다(`providerDenied` 가\n`return true` 였다). 그런데 제공자가 그 칸으로 보내는 것은 취소만이 아니다 —\n`server_error` · `temporarily_unavailable` · `invalid_scope` · `invalid_client`\n도 같이 온다.\n\n둘이 나쁘다.\n- **본인이 그만두지 않았는데 그만뒀다고 듣는다.** 그 사람이 할 일은 다시 누르는\n  것인데, 그 말이 취소 안내에 묻힌다\n- **운영자는 설정이 틀어진 것을 영영 못 본다.** 열쇠가 잘못됐거나 동의 범위가\n  빠진 것이 전부 「취소한 사람」으로 쌓인다\n\n취소를 뜻하는 글자만 취소로 본다(`access_denied` · `user_denied` …). …"
-    },
-    {
-      "hash": "c6f08aa",
-      "date": "2026-10-24",
-      "type": "fix",
-      "label": "고침",
-      "scope": "자체 보안 검사",
-      "text": "**「DB 파일이 커밋될 수 있다」고 적어놓고 DB 파일은 안 보고 있었다**",
-      "detail": "`.gitignore` 가 없을 때의 까닭에 「.env · **DB 파일**이 커밋될 수 있다」고 적혀\n있는데, 정작 보는 것은 `.env` 한 줄뿐이었다. 그 파일에는 회원 전부의 기록과\n비밀번호 해시가 들어 있고, 한 번 올라가면 지워도 git 역사에 남는다.\n\n이름은 손으로 안 적는다 — `storage.MAIN` · `storage.PHOTOS` 에서 받는다\n(이름을 바꾸는 날 검사만 옛 이름을 보면 그게 더 나쁘다).\n\n지금 상태로는 SAFE 셋이 뜨고, `.gitignore` 에서 그 두 줄을 빼고 돌려보니\n**CRITICAL · 등급 F** 가 떴다 (돌려서 확인했다). …"
     }
   ]
 }
