@@ -169,5 +169,24 @@ if (register) {
   ok('  거기도 「오늘」로 못 박혀 있지 않다', /navigate\('\/home', \{ replace: true \}\)/.test(oauthEmail), false);
 }
 
+console.log('');
+console.log('── 켜진 것을 못 물어봤을 때 지어내지 않나 ──');
+// ── 왜 (2026-10-28) ──
+//
+// `/oauth/providers` 를 못 받으면 화면이 `{ google: true }` 를 **지어냈다.**
+// 서버는 구글 · 네이버 둘을 켜 두므로, 그 순간 **네이버로 가입한 사람은 들어올
+// 길이 사라진다** — 소셜로만 들어온 사람에게는 **비밀번호가 없다.**
+// 이제 **지난번에 서버가 말해준 것**을 적어두고 그것을 쓴다.
+{
+  const social = read('src/components/SocialLoginButtons.jsx');
+  ok('받은 것을 적어둔다', /saveLS\(PROVIDERS_KEY/.test(social), true);
+  ok('  못 받으면 지난번 것을 쓴다', /lastKnown\(\)/.test(social), true);
+  // 지어내기만 남아 있으면 FAIL — 지난번 것을 안 보고 바로 구글로 떨어지는 모양
+  ok('  바로 구글로 떨어지지 않는다',
+    /\.catch\(\(\) => setProviders\(\{ google: true \}\)\)/.test(social), false);
+  // 이름은 한 곳에서 (`npm run keys` 와 같은 선)
+  ok('  열쇠 이름을 글자로 적지 않는다', /'steelbody_oauth_providers'/.test(social), false);
+}
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -1,5 +1,5 @@
 import { useRefreshTick } from '../store/refreshStore';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import client from '../api/client';
 import NavIcon from '../components/NavIcon';
@@ -333,24 +333,47 @@ export default function RoutinePage() {
 
   const parts = PARTS_MAP[type] || PARTS_MAP['머신'];
 
+  // ── 못 받아온 것과 **그 부위에 없는 것**을 가른다 ── (2026-10-28)
+  //
+  // 여태 못 받아오면 `setRoutines({})` 로 **빈 것**으로 만들었다. 그러면 화면은
+  // 「데이터 없음 · 다른 운동 유형이나 부위를 선택해 보세요」라고 한다 — 토스트는
+  // 지나가 버리니 **화면에 남는 말은 그것뿐이고, 다른 부위를 눌러도 똑같이 비어
+  // 있다.** 서버가 쉬는 것을 「그 부위에는 없다」로 바꿔 말한 셈이다.
+  // 10/26 에 다섯 번 밟은 그 모양(「막힌 까닭이 사람에게 안 닿는다」)의 작은 판이다.
+  const [loadErr, setLoadErr] = useState(false);
+
+  // **부르는 자리가 둘이다** — 갈래/유형이 바뀔 때와 「다시 받기」를 누를 때.
+  // 두 벌로 적으면 한쪽만 고쳐지는 날이 온다
+  const fetchPicks = useCallback((kind, { again = false } = {}) => {
+    if (!again && cacheRef.current[kind]) {
+      setRoutines(cacheRef.current[kind]); setLoadErr(false); setLoading(false); return;
+    }
+    setLoading(true);
+    client.get(`/routines/${kind}`)
+      // 부위별로 묶인 객체다. 배열이나 null 이 오면 빈 것으로 친다
+      .then(({ data }) => {
+        const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+        cacheRef.current[kind] = obj;
+        setRoutines(obj);
+        setLoadErr(false);
+      })
+      .catch(() => {
+        // **빈 것으로 만들지 않는다** — 화면이 「없다」와 「못 받았다」를 갈라 말한다
+        setRoutines({});
+        setLoadErr(true);
+        toast('루틴을 불러오지 못했어요', 'error');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   // **추천을 보고 있을 때만 받아온다.** 예전에는 화면에 들어오기만 해도 받았고,
   // 갈래를 왔다 갔다 할 때마다 같은 것을 다시 받았다. 갈래별로 한 번만 받아 들고 있는다
   useEffect(() => {
     if (tab !== 'pick') return;
     setOpenIdx(null);
     setPart(PARTS_MAP[type]?.[0] || '가슴');
-    if (cacheRef.current[type]) { setRoutines(cacheRef.current[type]); setLoading(false); return; }
-    setLoading(true);
-    client.get(`/routines/${type}`)
-      // 부위별로 묶인 객체다. 배열이나 null 이 오면 빈 것으로 친다
-      .then(({ data }) => {
-        const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-        cacheRef.current[type] = obj;
-        setRoutines(obj);
-      })
-      .catch(() => { setRoutines({}); toast('루틴을 불러오지 못했어요', 'error'); })
-      .finally(() => setLoading(false));
-  }, [type, tab]);
+    fetchPicks(type);
+  }, [type, tab, fetchPicks]);
 
   useEffect(() => { setOpenIdx(null); }, [part]);
 
@@ -673,11 +696,26 @@ export default function RoutinePage() {
           <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
           로딩 중...
         </div>
-      ) : exercises.length === 0 ? (
+      ) : loadErr ? (
+        /* **못 받아온 것은 「없는 것」이 아니다** (2026-10-28). 다른 부위를 눌러도
+           똑같이 비어 있으므로, 거기로 보내지 않고 **다시 받는 길**을 준다 */
         <div className="empty-state">
-          <div className="empty-state-title">데이터 없음</div>
-          <div className="empty-state-desc">루틴 데이터가 없어요</div>
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>다른 운동 유형이나 부위를 선택해 보세요</div>
+          <div className="empty-state-desc">추천 루틴을 불러오지 못했어요</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+            신호가 끊겼거나 서버가 잠깐 쉬는 중일 수 있어요. 내 루틴과 메모는 그대로 있습니다.
+          </div>
+          <button
+            className="btn-primary"
+            style={{ marginTop: 14, fontSize: 13 }}
+            onClick={() => fetchPicks(type, { again: true })}
+          >다시 받기</button>
+        </div>
+      ) : exercises.length === 0 ? (
+        /* 받아왔는데 그 부위가 비어 있다. **같은 말을 두 번 하지 않는다** —
+           「데이터 없음 / 루틴 데이터가 없어요」가 나란히 적혀 있던 자리다 */
+        <div className="empty-state">
+          <div className="empty-state-desc">{type} · {part}에는 아직 추천이 없어요</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>위에서 다른 부위를 눌러보세요</div>
         </div>
       ) : (
         exercises.map((ex, idx) => {

@@ -125,6 +125,13 @@ export const PER_USER_KEYS = [
 // 어떻게 쓰는지에 대한 취향이다. 사람이 바뀐다고 다시 정하게 할 이유가 없다.
 export const MAINT_KEY = 'ironlog_maintenance';
 export const MAINT_VERSION_KEY = 'ironlog_maint_version';
+// **마지막으로 받아본 소셜 제공자 목록** (`components/SocialLoginButtons.jsx`, 2026-10-28).
+//
+// 못 물어봤을 때 **구글만 지어내고 있었다.** 그러면 네이버로 가입한 사람은 그
+// 순간 들어올 길이 사라진다 — 소셜로만 들어온 사람에게는 **비밀번호가 없다.**
+// 아무 것도 안 보여주는 것도 답이 아니라서, 지어내는 대신 **지난번에 서버가
+// 말해준 것**을 쓴다. 누가 쓰든 같은 값이라 로그아웃해도 남긴다.
+export const PROVIDERS_KEY = 'steelbody_oauth_providers';
 // 휴식 타이머 취향 여섯 (`store/restTimerStore.js`). 길이 · 소리 · 음색 · 진동 · 볼륨 ·
 // 자동 시작 — 그 기기에서 어떻게 쓰는지에 대한 취향이라 사람이 바뀌어도 남긴다.
 export const REST_KEYS = {

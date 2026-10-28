@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
 import { euro } from '../data/particle';
+import { readLS, saveLS } from '../data/safeStorage';
+import { PROVIDERS_KEY } from '../data/localKeys';
 
 // 소셜 로그인 버튼들. 로그인 화면과 회원가입 화면이 같이 쓴다.
 //
@@ -54,15 +56,35 @@ const OTHERS = [
 // 자리가 그대로 사라졌고, 홈페이지에서 「가입하고 열기 — 「몸 지도」 화면」을 누른
 // 사람이 **소셜로 들어오면 「오늘」로** 갔다. 서버에게 알려주면 서버가 **서명된
 // state 쿠키에 담아뒀다가** 돌아올 때 주소에 실어 보낸다 (`routes/oauth.js`).
+// 지난번에 서버가 말해준 것. 깨져 있으면 없는 것으로 본다
+const lastKnown = () => {
+  try {
+    const got = JSON.parse(readLS(PROVIDERS_KEY) || 'null');
+    if (got && typeof got === 'object' && !Array.isArray(got)) return got;
+  } catch { /* 깨진 것은 없는 것으로 */ }
+  return null;
+};
+
 export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로 계속하기', to }) {
   const [providers, setProviders] = useState(null);
 
   useEffect(() => {
     client.get('/oauth/providers')
       // 어느 것이 켜져 있는지 담긴 객체다. 다른 모양이면 구글만 보여준다
-      .then(({ data }) => setProviders(data && typeof data === 'object' && !Array.isArray(data) ? data : { google: true }))
-      // 못 물어봤으면 구글만 보여준다. 하나도 안 보여주는 것보다 낫다
-      .catch(() => setProviders({ google: true }));
+      .then(({ data }) => {
+        const got = data && typeof data === 'object' && !Array.isArray(data) ? data : { google: true };
+        setProviders(got);
+        // **다음에 못 물어볼 때 쓸 것을 적어둔다** (2026-10-28)
+        saveLS(PROVIDERS_KEY, JSON.stringify(got));
+      })
+      // ── 못 물어봤을 때 **지어내지 않는다** ── (2026-10-28)
+      //
+      // 여태 `{ google: true }` 를 지어냈다. 서버는 구글 · 네이버 둘을 켜 두는데,
+      // 그러면 **네이버로 가입한 사람은 그 순간 들어올 길이 사라진다** —
+      // 소셜로만 들어온 사람에게는 비밀번호가 없다. 지난번에 서버가 말해준 것을
+      // 쓰고, 그것도 없으면(이 기기에서 처음이면) 구글만 — 하나도 안 보여주는
+      // 것보다는 낫다는 그 선은 그대로 둔다
+      .catch(() => setProviders(lastKnown() || { google: true }));
   }, []);
 
   const go = (provider) => {
