@@ -134,10 +134,13 @@ ok('가는 길이 없는데 살아 있는 화면', unreachable, []);
   const storeFiles = [...sources.keys()].filter((f) => f.includes('/store/'));
   ok('스토어 파일을 찾았다', storeFiles.length >= 8, true);
 
-  // **일부러 비워둔 자리**는 뺀다. 까닭이 그 파일에 적혀 있다
-  const ONPURPOSE = {
-    'langStore.js': ['setLang'],   // 한국어 전용 — 영어를 되돌릴 때를 위해 빈 함수로 남겼다
-  };
+  // **일부러 비워둔 자리**는 뺀다. 까닭이 그 파일에 적혀 있다.
+  //
+  // **지금은 빈칸이다** (2026-10-28). `langStore.js` 의 `setLang` 이 여기 있었는데
+  // 그 파일을 걷었다 — 「영어를 되돌릴 때를 위해」 남겨둔 것이었지만 **되돌릴 길이
+  // 실제로 없었다**(사전이 남은 화면이 하나뿐이고 그 하나도 열둘만 썼다).
+  // 비워두는 자리는 **까닭이 그 파일에 적혀 있을 때만** 늘린다
+  const ONPURPOSE = {};
 
   const buried = [];
   for (const f of storeFiles) {

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLangStore } from '../store/langStore';
 import client from '../api/client';
 import { toast } from './Toast';
 import { dayOf } from '../data/dateKey';
@@ -7,76 +6,21 @@ import { confirmDialog } from './ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { EMAIL_KEY } from '../data/localKeys';
 
-const T = {
-  ko: {
-    title: '보안 현황',
-    totalUsers: '전체 유저',
-    todaySignups: '오늘 가입',
-    jwtSettings: 'JWT 설정',
-    expiry: '만료시간',
-    algorithm: '알고리즘',
-    rateLimit: 'Rate Limit 설정',
-    login: '로그인',
-    authCode: '인증코드',
-    helmet: 'Helmet',
-    enabled: '활성화',
-    disabled: '비활성화',
-    cors: 'CORS 허용 도메인',
-    bodyLimit: 'Body 크기 제한',
-    nodeVersion: 'Node.js 버전',
-    safe: '안전',
-    warning: '주의',
-    danger: '위험',
-    userList: '사람 목록',
-    id: 'ID',
-    email: '이메일',
-    nickname: '닉네임',
-    role: '역할',
-    joinDate: '가입일',
-    actions: '관리',
-    block: '차단',
-    unblock: '해제',
-    remove: '삭제',
-    grantAdmin: '관리자 부여',
-    loading: '로딩 중...',
-    error: '데이터를 불러올 수 없습니다.',
-    perWindow: '/ 윈도우',
-  },
-  en: {
-    title: 'SECURITY DASHBOARD',
-    totalUsers: 'Total Users',
-    todaySignups: 'Today Signups',
-    jwtSettings: 'JWT Settings',
-    expiry: 'Expiry',
-    algorithm: 'Algorithm',
-    rateLimit: 'Rate Limit Settings',
-    login: 'Login',
-    authCode: 'Auth Code',
-    helmet: 'Helmet',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
-    cors: 'CORS Allowed Origins',
-    bodyLimit: 'Body Size Limit',
-    nodeVersion: 'Node.js Version',
-    safe: 'Safe',
-    warning: 'Warning',
-    danger: 'Danger',
-    userList: 'USER LIST',
-    id: 'ID',
-    email: 'Email',
-    nickname: 'Nickname',
-    role: 'Role',
-    joinDate: 'Joined',
-    actions: 'Actions',
-    block: 'Block',
-    unblock: 'Unblock',
-    remove: 'Delete',
-    grantAdmin: 'Grant Admin',
-    loading: 'Loading...',
-    error: 'Failed to load data.',
-    perWindow: '/ window',
-  },
-};
+// ── 말 사전을 걷었다 ── (2026-10-28)
+//
+// 여기 `T.ko` / `T.en` 사전이 있었다(서른둘씩). 그리고 `store/langStore.js` 머리글에
+// **「각 컴포넌트의 T.en 사전은 그대로 남겨뒀으므로, 영어를 다시 열려면 lang 을
+// 읽도록 되돌리고 🌐 버튼만 살리면 된다」**고 적혀 있었다.
+//
+// **그 길이 실제로는 없었다.** 사전이 남아 있는 화면은 **앱 전체에서 이것 하나**였고
+// (화면 스물다섯 · 부품 수십), 그 하나에서도 서른둘 중 **열둘만 쓰고 있었다** —
+// 나머지 스물은 화면을 다시 짤 때 **한국어가 글자로 박히면서** 쓰는 자리를 잃었다
+// (「오늘 가입」 · 「사람 목록」 · 「관리자 부여」…). 그러니 그 말대로 되돌려도
+// 이 화면의 **열두 줄만** 영어가 된다.
+//
+// 「없는 것을 있다고 적지 않는다」가 이 앱의 선이다. 앱은 한국어 전용이고(그 판단은
+// 그대로다), **되돌리는 길이 있다는 말만 걷는다.** 한국어는 그 자리에 바로 적는다 —
+// 여기만 사전을 쓰면 **고치는 사람이 두 자리를 봐야 한다.**
 
 // 역할 거르기. 서버가 쓰는 값은 셋뿐이다 (user · admin · blocked)
 const ROLE_TABS = [
@@ -176,8 +120,6 @@ function getNodeStatus(version) {
 }
 
 export default function SecurityPanel() {
-  const { lang } = useLangStore();
-  const t = T[lang] || T.ko;
   const [dashboard, setDashboard] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -337,7 +279,7 @@ export default function SecurityPanel() {
   if (loading) {
     return (
       <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
-        {t.loading}
+        로딩 중...
       </div>
     );
   }
@@ -345,7 +287,7 @@ export default function SecurityPanel() {
   if (error || !dashboard) {
     return (
       <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--danger)' }}>
-        {t.error}
+        데이터를 불러올 수 없습니다.
       </div>
     );
   }
@@ -599,19 +541,19 @@ export default function SecurityPanel() {
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
-            {t.jwtSettings}
+            JWT 설정
           </span>
           <StatusBadge status={getAlgoStatus(jwt?.algorithm)} label={t[getAlgoStatus(jwt?.algorithm)]} />
         </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>{t.expiry}: </span>
+            <span style={{ color: 'var(--text-muted)' }}>만료시간: </span>
             <span style={{ color: getJwtStatus(jwt?.expiry) === 'safe' ? 'var(--success)' : getJwtStatus(jwt?.expiry) === 'warning' ? 'var(--warning)' : 'var(--danger)', fontWeight: 600 }}>
               {jwt?.expiry || '-'}
             </span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-muted)' }}>{t.algorithm}: </span>
+            <span style={{ color: 'var(--text-muted)' }}>알고리즘: </span>
             <span style={{ fontWeight: 600 }}>{jwt?.algorithm || '-'}</span>
           </div>
         </div>
@@ -621,7 +563,7 @@ export default function SecurityPanel() {
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
-            {t.rateLimit}
+            Rate Limit 설정
           </span>
           <StatusBadge status={getRateLimitStatus(rateLimit?.login)} label={t[getRateLimitStatus(rateLimit?.login)]} />
         </div>
@@ -643,12 +585,12 @@ export default function SecurityPanel() {
         <div className="card" style={{ padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
-              {t.helmet}
+              Helmet
             </span>
             <StatusBadge status={getHelmetStatus(helmet?.enabled)} label={t[getHelmetStatus(helmet?.enabled)]} />
           </div>
           <div style={{ fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", color: helmet?.enabled ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-            {helmet?.enabled ? t.enabled : t.disabled}
+            {helmet?.enabled ? '활성화' : '비활성화'}
           </div>
         </div>
 
@@ -656,7 +598,7 @@ export default function SecurityPanel() {
         <div className="card" style={{ padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
-              {t.nodeVersion}
+              Node.js 버전
             </span>
             <StatusBadge status={getNodeStatus(nodeVersion)} label={t[getNodeStatus(nodeVersion)]} />
           </div>
@@ -670,7 +612,7 @@ export default function SecurityPanel() {
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ marginBottom: 6 }}>
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
-            {t.cors}
+            CORS 허용 도메인
           </span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -697,7 +639,7 @@ export default function SecurityPanel() {
       <div className="card" style={{ padding: 14, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
-            {t.bodyLimit}
+            Body 크기 제한
           </span>
           <span style={{ fontSize: 13, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontWeight: 600 }}>
             {bodyLimit || '-'}
