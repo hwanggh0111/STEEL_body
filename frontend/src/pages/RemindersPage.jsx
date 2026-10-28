@@ -154,17 +154,28 @@ export default function RemindersPage() {
   // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
   const refreshTick = useRefreshTick();
 
-  useEffect(() => {
+  // ── 한 번 못 받으면 **영영 막혀 있었다** ── (2026-10-28)
+  //
+  // 못 받으면 `error` 를 세우고, 아래에서 `if (error || !settings)` 로 화면을 통째로
+  // 「불러오지 못함」으로 바꾼다. 그런데 **성공하는 쪽이 그 값을 내려놓지 않았다** —
+  // 거는 자리 1 : 푸는 자리 0. 머리의 새로고침으로 다시 받아 **잘 받아와도** 그
+  // 화면이 그대로여서, 알림 설정은 **앱을 다시 띄워야** 쓸 수 있었다.
+  // 신호가 한 번 끊긴 것 치고는 값이 너무 크다.
+  const load = useCallback(() => {
+    setLoading(true);
     client.get('/reminders')
       .then(({ data }) => {
         setSettings(data.settings);
         setVapid(data.vapidPublicKey);
         setDevices(data.devices || 0);
+        setError('');          // **받아왔으면 그 말을 내려놓는다**
       })
       .catch(() => setError('설정을 불러오지 못했어요'))
       .finally(() => setLoading(false));
+  }, []);
+
   // 다른 기기에서 알림을 켜거나 끄면 여기 「기기 n대」가 바뀐다
-  }, [refreshTick]);
+  useEffect(() => { load(); }, [refreshTick, load]);
 
   // 이 브라우저에 구독이 있는지. **`getRegistration()` 을 쓴다** — `ready` 와 달리
   // 등록이 없으면 곧바로 `undefined` 로 끝난다
@@ -273,8 +284,17 @@ export default function RemindersPage() {
   if (error || !settings) {
     return (
       <div className="empty-state">
-        <div className="empty-state-title">불러오지 못함</div>
-        <div className="empty-state-desc">{error}</div>
+        {/* **다시 받는 길을 준다** (2026-10-28). 여기 떨어지면 나갔다 들어오는
+            수밖에 없었다 — 다른 화면에서 쓰는 「다시 받기」와 같은 모양으로 둔다 */}
+        <div className="empty-state-desc">{error || '알림 설정을 불러오지 못했어요'}</div>
+        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+          신호가 끊겼거나 서버가 잠깐 쉬는 중일 수 있어요. 켜둔 알림은 그대로입니다.
+        </div>
+        <button
+          className="btn-primary"
+          style={{ marginTop: 14, fontSize: 13 }}
+          onClick={load}
+        >다시 받기</button>
       </div>
     );
   }

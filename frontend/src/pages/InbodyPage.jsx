@@ -272,6 +272,11 @@ export default function InbodyPage({ embedded = false }) {
         toast('인바디 기록 저장!');
       }
       resetDate(); setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
+      // **「건강 앱에서 가져왔어요」도 같이 치운다** (2026-10-28). 거는 자리는
+      // 하나(`pullHealth`)인데 **푸는 자리가 0 이었다** — 저장하고 폼을 다시 열면
+      // **빈 칸 위에** 「○○에서 가져왔어요 — 맞는지 보고 저장하세요」가 그대로
+      // 붙어 있었다. 가져온 값은 이미 없는데 그 말만 남는다
+      setHealthFrom('');
       // 적고 나면 접는다 — 방금 적은 것이 「지금」과 흐름에 반영된 것을 봐야지,
       // 빈 폼을 다시 들이밀 자리가 아니다
       setFormOpen(false);
@@ -296,6 +301,8 @@ export default function InbodyPage({ embedded = false }) {
     setWaterL(record.water_l ? String(record.water_l) : '');
     setQuickMode(false);
     setError('');
+    // 지난 줄의 값으로 바뀌었다 — **그 값이 건강 앱에서 온 것처럼 보이면 안 된다**
+    setHealthFrom('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [savedQuickMode, quickMode, holdDate]);
 
@@ -305,6 +312,7 @@ export default function InbodyPage({ embedded = false }) {
     resetDate();   // 오늘로 돌아가고 자정 따라가기를 다시 켠다
     setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
     setError('');
+    setHealthFrom('');   // 칸을 비웠으면 그 말도 비운다
     // 수정 진입 전 quickMode 복원
     if (savedQuickMode !== null) {
       setQuickMode(savedQuickMode);

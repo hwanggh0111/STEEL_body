@@ -326,9 +326,11 @@ for (const [name, file] of [
   ['운동 알림', 'src/pages/RemindersPage.jsx'],
 ]) {
   const src = codeOf(read(file));
-  // 훅을 부르기만 하고 deps 에 안 넣으면 **아무 일도 안 일어난다** — 둘 다 본다
+  // 훅을 부르기만 하고 deps 에 안 넣으면 **아무 일도 안 일어난다** — 둘 다 본다.
+  // **deps 에 혼자 있는 모양만 보지 않는다** (2026-10-28) — `[refreshTick, load]`
+  // 처럼 둘을 넣는 날 FAIL 했다. 보는 것은 **deps 안에 들어 있는가**다
   ok(`${name} 이 새로고침을 듣는다`,
-    /useRefreshTick\(\)/.test(src) && /\[refreshTick\]|refreshTick\]/.test(src), true);
+    /useRefreshTick\(\)/.test(src) && /refreshTick\s*[,\]]/.test(src), true);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
