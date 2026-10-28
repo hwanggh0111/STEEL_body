@@ -44,19 +44,30 @@ const codeOf = (s) => s
 // 「이 값이 서면 화면을 통째로 가린다」는 꼴을 **글자로 찾는다** — 정규식을 이름으로
 // 지어내면 `||` 같은 글자에서 깨진다. `if (그이름` 뒤 300자 안에 `return` 이 있으면
 // **그 값이 화면을 가리는 것**으로 본다 (가림막은 일찍 돌아가는 모양이다)
-const hides = (src, name) => {
+//
+// **`return` 만 보면 안 된다** (2026-10-28). `if (error) setError('');` 같은 줄도
+// 그 뒤 300자 안에 `return` 이 있어서 가입 화면의 **폼 오류**가 걸렸다 —
+// 거기는 길을 막는 자리가 아니다. **`return (` 로 JSX 를 돌려주는 것**만 본다.
+const blockOf = (src, name) => {
   for (const head of ['if (' + name + ')', 'if (' + name + ' ', 'if (!' + name + ' ']) {
     let i = src.indexOf(head);
     while (i >= 0) {
-      if (src.slice(i, i + 300).includes('return')) return true;
+      const near = src.slice(i, i + 400);
+      const r = near.indexOf('return (');
+      if (r >= 0 && near.slice(0, r).indexOf(';') < 0) {
+        // 가림막 한 덩어리를 돌려준다 (`  }` 까지)
+        const end = src.indexOf('\n  }', i);
+        return src.slice(i, end < 0 ? i + 1200 : end);
+      }
       i = src.indexOf(head, i + 1);
     }
   }
-  return false;
+  return null;
 };
 
 console.log('── 못 받았다를 세우고 안 내려놓는 자리 ──');
 const stuck = [];
+const noWay = [];
 let watched = 0;
 for (const f of walk(SRC)) {
   const src = codeOf(fs.readFileSync(f, 'utf8'));
@@ -65,17 +76,23 @@ for (const f of walk(SRC)) {
     const [, name, setter] = m;
     // 못 받았다는 뜻으로 쓰는 값만 본다
     if (!/(err|fail|stuck)/i.test(name)) continue;
-    if (!hides(src, name)) continue;      // 가리지 않으면 길을 막지 않는다
+    const block = blockOf(src, name);
+    if (!block) continue;             // 가리지 않으면 길을 막지 않는다
     watched += 1;
     const sets = [...src.matchAll(new RegExp('\\b' + setter + '\\(([^;\n]*)', 'g'))].map((x) => x[1]);
     const downs = sets.filter((v) => /^\s*(''|false|null)\s*\)/.test(v));
     if (sets.length && downs.length === 0) {
       stuck.push(rel + '  ' + name + ' (세우는 자리 ' + sets.length + ' : 내려놓는 자리 0)');
     }
+    // **다시 읽는 길**이 그 가림막 안에 있는가 (2026-10-28).
+    // 없으면 나갔다 들어오는 수밖에 없다. 관리자 화면 넷 중 **셋은 이미** 들고
+    // 있었고 보안 현황 하나만 없었다 — 넷 중 하나만 다른 자리는 잊은 자리다
+    if (!/onClick=\{/.test(block)) noWay.push(rel + '  ' + name);
   }
 }
 console.log('     화면을 가리는 「못 받았다」 ' + watched + '개');
 ok('안 내려놓는 자리', stuck, []);
+ok('  다시 읽을 길이 없는 가림막', noWay, []);
 
 console.log('');
 console.log('── 막힌 화면에서 다시 받을 길이 있나 ──');

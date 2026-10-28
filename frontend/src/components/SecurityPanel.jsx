@@ -286,8 +286,15 @@ export default function SecurityPanel() {
 
   if (error || !dashboard) {
     return (
-      <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--danger)' }}>
-        데이터를 불러올 수 없습니다.
+      /* **다시 읽는 길을 둔다** (2026-10-28). 여기 떨어지면 나갔다 들어오는 수밖에
+         없었다 — 같은 관리자 화면의 AI 관리자 · 보안 로그 · 제보함 **셋은 이미**
+         「다시 읽기」를 들고 있었고 **이 하나만** 없었다. 넷 중 하나만 다른 자리는
+         잊은 자리다. 그리고 **없어진 게 아니라 못 가져온 것**이라고 적는다 —
+         보안 화면이 비어 보이면 관리자는 서버가 털린 줄 안다 */
+      <div className="card" style={{ padding: 32, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        보안 현황을 불러오지 못했습니다.
+        <br />없어진 게 아니라 못 가져온 것입니다.
+        <button className="btn-secondary" style={{ marginTop: 14 }} onClick={loadData}>다시 읽기</button>
       </div>
     );
   }
