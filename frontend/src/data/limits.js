@@ -17,9 +17,17 @@
 //
 //   MAX_EXERCISES → backend/src/routes/myRoutines.js
 //   MAX_PER_DAY   → backend/src/routes/plans.js
+//   MAX_NOTES     → backend/src/routes/notes.js
+//   MAX_GYMS      → backend/src/routes/gymSettings.js
 
 /** 루틴 한 벌에 담을 운동 수. */
 export const MAX_EXERCISES = 50;
 
 /** 하루에 담을 계획 수. */
 export const MAX_PER_DAY = 10;
+
+/** 루틴 메모(날짜 없는 것) 장수. */
+export const MAX_NOTES = 30;
+
+/** 적어둘 헬스장 수. */
+export const MAX_GYMS = 12;

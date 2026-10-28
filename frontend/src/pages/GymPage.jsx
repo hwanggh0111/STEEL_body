@@ -7,6 +7,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import NavIcon from '../components/NavIcon';
 import { filledSlots, GYM_MAX } from '../data/gymSetting';
 import { eul } from '../data/particle';
+import { MAX_GYMS } from '../data/limits';
 
 // 「기구」 탭.
 //
@@ -253,7 +254,9 @@ export default function GymPage() {
                   </button>
                 );
               })}
-              {!adding && (
+              {/* 한도는 **누르기 전에** 말한다 (2026-10-28). 수는
+                  `data/limits.js` 한 자리에서 온다 (`npm run cap`) */}
+              {!adding && gyms.length < MAX_GYMS && (
                 <button
                   onClick={() => setAdding(true)}
                   style={{
@@ -264,6 +267,13 @@ export default function GymPage() {
                 >+ 다른 곳</button>
               )}
             </div>
+
+            {gyms.length >= MAX_GYMS && (
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
+                헬스장은 <b style={{ color: 'var(--text-secondary)' }}>{MAX_GYMS}곳</b>까지
+                담을 수 있어요. 안 다니는 곳의 세팅을 지우면 또 더할 수 있습니다.
+              </div>
+            )}
 
             {adding && (
               // `.btn-primary` 는 `width: 100%` 다 — flex 줄 안에서는 되돌려야 넘치지 않는다

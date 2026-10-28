@@ -4,6 +4,7 @@ import { toast } from '../../components/Toast';
 import { confirmDialog } from '../../components/ConfirmModal';
 import { dayOf } from '../../data/dateKey';
 import { noteTitle, countExercises, noteToRoutine } from '../../data/routineNote';
+import { MAX_NOTES } from '../../data/limits';
 
 // 루틴 메모장.
 //
@@ -125,12 +126,21 @@ export default function RoutineNotes({ onToRoutine }) {
         {' '}첫 줄은 루틴 이름이 됩니다.
       </p>
 
-      {!writing && openId === null && (
+      {/* 한도는 **누르기 전에** 말한다 (2026-10-28) — 서버는 서른한 장째를
+          거절하는데, 여태 다 적고 저장을 누른 다음에야 그 말을 들었다.
+          수는 `data/limits.js` 한 자리에서 온다 (`npm run cap`) */}
+      {!writing && openId === null && notes.length < MAX_NOTES && (
         <button
           onClick={startNew}
           className="btn-secondary"
           style={{ width: '100%', marginBottom: 14, fontSize: 13 }}
         >+ 메모 적기</button>
+      )}
+      {!writing && openId === null && notes.length >= MAX_NOTES && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 14 }}>
+          메모는 <b style={{ color: 'var(--text-secondary)' }}>{MAX_NOTES}장</b>까지
+          담을 수 있어요. 루틴으로 만든 것이나 안 쓰는 것을 지우면 또 적을 수 있습니다.
+        </div>
       )}
 
       {(writing || openId !== null) && (

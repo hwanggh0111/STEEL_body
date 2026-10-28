@@ -49,6 +49,18 @@ const CAPS = [
     screen: 'src/components/DaySheet.jsx',
     server: '../backend/src/routes/plans.js',
   },
+  {
+    name: 'MAX_NOTES',
+    label: '루틴 메모 장수',
+    screen: 'src/pages/routine/RoutineNotes.jsx',
+    server: '../backend/src/routes/notes.js',
+  },
+  {
+    name: 'MAX_GYMS',
+    label: '적어둘 헬스장',
+    screen: 'src/pages/GymPage.jsx',
+    server: '../backend/src/routes/gymSettings.js',
+  },
 ];
 
 const limits = read('src/data/limits.js');
@@ -78,8 +90,13 @@ for (const c of CAPS) {
   // 수를 글자로 적어두면 서버가 바뀌는 날 거짓말이 된다
   const lit = (limits.match(new RegExp('export const ' + c.name + ' = (\\d+);')) || [])[1];
   ok('  수를 글자로 적지 않는다', lit ? new RegExp("'" + lit + "개|>" + lit + "개").test(src) : null, false);
-  // 차면 더 못 하게 막는가 (단추를 끄거나 그 자리를 안 그린다)
-  ok('  차면 더 못 담는다', /disabled=\{[^}]*(MAX_|full)/.test(src) || /full \?\ s*null/.test(src) || /!full/.test(src), true);
+  // 차면 더 못 하게 막는가. **막는 꼴이 둘이다** — 단추를 끄거나(`disabled`)
+  // 그 자리를 아예 안 그린다(`length < MAX_… &&`). 처음에 앞의 것만 보고
+  // 멀쩡한 두 화면을 FAIL 했다 (2026-10-28)
+  const blocks = new RegExp('disabled=\{[^}]*(' + c.name + '|full)').test(src)
+    || /(full \?[\s\S]{0,10}null|!full)/.test(src)
+    || new RegExp('\\w+\\.length < ' + c.name).test(src);
+  ok('  차면 더 못 담는다', blocks, true);
   // 왜 안 되는지 적는가 — 막기만 하면 왜 안 눌리는지 모른다
   // 줄바꿈이 사이에 들어갈 수 있다 — **글자 사이의 빈칸을 보지 않는다**
   ok('  왜 안 되는지 적는다', /까지\s*담을 수 있어요/.test(src), true);
