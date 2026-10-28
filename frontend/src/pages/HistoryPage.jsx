@@ -587,14 +587,24 @@ export default function HistoryPage() {
           셀 것이 없으면 0 을 셋 늘어놓지 않는다 — 그건 아무것도 안 알려주면서
           「내가 아무것도 안 했다」만 크게 적어두는 짓이다.
           **대신 무엇을 하면 채워지는지 답한다** (누른 갈래는 대답해야 한다) */}
-      {totalWorkouts === 0 && (
+      {/* ── 빈 안내는 이 갈래에 **하나뿐이다** ── (2026-10-28)
+          여태 이 갈래에 `EmptyTab` 이 **둘** 있었다(여기 · 맨 아래 「아직 견줄 것이
+          없어요」). 운동을 안 적은 사람에게 **큰 빈 화면이 나란히 둘** 뜨고
+          「운동 적으러 가기」 단추도 둘이었다 — 바로 위 달력 갈래에 「같은 말을 두 번
+          한다. 한 줄이면 된다」고 적어둔 그 자리다. 셋이 다 빌 때 한 번만 말한다 */}
+      {totalWorkouts === 0 && records.length === 0 && (
         <EmptyTab
           title="아직 셀 것이 없어요"
-          desc="운동한 날 · 적은 횟수 · 인바디 잰 횟수를 여기서 셉니다. 한 세트만 적으면 그날부터 채워져요."
+          desc="운동한 날 · 적은 횟수 · 인바디 잰 횟수를 여기서 셉니다. 종목마다 자기 최고 기록도 쌓이고, 인바디를 두 번 재면 체중 그래프도 그려져요. 한 세트만 적으면 그날부터 채워져요."
           onGo={() => navigate('/train')}
         />
       )}
-      {totalWorkouts > 0 && (
+      {/* ── 셀 것이 **하나라도** 있으면 그린다 ── (2026-10-28)
+          여태 `totalWorkouts > 0` 하나로 막혀 있었다. 그래서 **인바디만 적은
+          사람**에게는 「아직 셀 것이 없어요 — 인바디 잰 횟수를 여기서 셉니다」라고
+          적어놓고 **그 숫자를 안 보여줬고**, 바로 아래에는 체중 그래프가 그려졌다.
+          없다고 말한 자리에 그래프가 있다. **0 인 칸은 여전히 안 그린다** */}
+      {(totalWorkouts > 0 || records.length > 0) && (
         <>
           <div style={{ height: 8 }} />
           <div className="section-title">
@@ -603,11 +613,12 @@ export default function HistoryPage() {
           </div>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${records.length > 0 ? 3 : 2}, 1fr)`,
+            // 그리는 칸만 센다 — 손으로 2·3 을 적으면 칸을 하나 빼는 날 어긋난다
+            gridTemplateColumns: `repeat(${(totalWorkouts > 0 ? 2 : 0) + (records.length > 0 ? 1 : 0)}, 1fr)`,
             gap: 8, marginBottom: 24,
           }}>
-            <StatBox number={totalDays} label="운동일" />
-            <StatBox number={totalWorkouts} label="총 운동" />
+            {totalWorkouts > 0 && <StatBox number={totalDays} label="운동일" />}
+            {totalWorkouts > 0 && <StatBox number={totalWorkouts} label="총 운동" />}
             {/* 인바디를 한 번도 안 적었으면 그 칸도 없다 */}
             {records.length > 0 && <StatBox number={records.length} label="인바디" />}
           </div>
@@ -678,15 +689,8 @@ export default function HistoryPage() {
           </div>
         </>
       )}
-      {/* 최고 기록도 체중 그래프도 없으면 이 갈래는 빈 화면이다 —
-          「없어요」로 끝내지 않고 갈 곳까지 준다 (위 두 갈래와 같은 결) */}
-      {totalWorkouts === 0 && records.length <= 1 && (
-        <EmptyTab
-          title="아직 견줄 것이 없어요"
-          desc="한 세트만 적으면 종목마다 자기 최고 기록이 여기 쌓입니다. 인바디를 두 번 재면 체중 그래프도 같이 그려져요."
-          onGo={() => navigate('/train')}
-        />
-      )}
+      {/* **여기 있던 두 번째 빈 안내를 걷었다** (2026-10-28) — 위의 것과 **같이**
+          떴다(운동 0 · 인바디 0~1). 할 말은 위 한 자리로 모았다 */}
       </>)}
 
     </div>
