@@ -7,7 +7,7 @@ import { toast } from '../components/Toast';
 import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
-import { MAX_EXERCISES } from '../data/limits';
+import { MAX_EXERCISES, ROUTINE_NAME_MAX } from '../data/limits';
 
 // 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
 // 조용히 비어 보인다 — 서버는 200 을 주고 화면은 「데이터 없음」을 띄운다.
@@ -512,6 +512,8 @@ export default function RoutinePage() {
             value={newRoutine.name}
             onChange={(e) => setNewRoutine({ ...newRoutine, name: e.target.value })}
             placeholder="예: 월요일 가슴+삼두"
+            /* **서버가 말없이 자르던 자리** (2026-10-28). 수는 `data/limits.js` 에서 온다 */
+            maxLength={ROUTINE_NAME_MAX}
             style={{ marginBottom: 12 }}
           />
 

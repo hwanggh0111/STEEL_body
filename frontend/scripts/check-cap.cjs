@@ -103,5 +103,50 @@ for (const c of CAPS) {
 }
 
 console.log('');
+console.log('── 글자 수: 화면이 미리 막는가 ──');
+// ── 왜 (2026-10-28) ──
+//
+// 서버는 긴 이름을 **말없이 자른다**(`cleanName(name, 100)`). 그런데 화면에는 아무
+// 제한이 없어서 101자를 치면 저장한 뒤 **잘린 이름**이 된다. 제보함은 「{n}/600」으로
+// **세어 보여주는데** 루틴 이름과 운동 이름은 아무 말도 없었다.
+//
+// 운동 이름은 더 나쁘다 — 잘린 이름은 **사전에 없는 이름**이 되고, 그러면 그 운동은
+// **몸 지도에 영영 안 들어간다**(`RoutinePage` 머리글이 적어둔 그 위험이다).
+//
+// 개수 한도(위)와 달리 **「왜 안 되는지」는 안 묻는다** — 칸에서 글자가 더 안 쳐지는
+// 것은 눈에 보인다. 대신 ①화면이 그 이름으로 막는가 ②서버도 그 이름을 쓰는가를 본다.
+//
+// **이름은 또렷해야 한다** — 처음에 `NAME_MAX`·`EXERCISE_MAX` 로 적었더니 둘 다
+// 이미 쓰이는 이름이었다(앱의 만든 소리 이름 6자 · 서버의 헬스장 세팅 운동 이름 40자).
+// `npm run twins` 가 「다르다 EXERCISE_MAX = 40 / 100」으로 그 자리에서 잡아줬다
+{
+  const LETTERS = [
+    {
+      name: 'ROUTINE_NAME_MAX',
+      label: '루틴 이름 글자 수',
+      screen: 'src/pages/RoutinePage.jsx',
+      server: '../backend/src/routes/myRoutines.js',
+    },
+    {
+      name: 'EXERCISE_NAME_MAX',
+      label: '운동 이름 글자 수',
+      screen: 'src/components/ExerciseNameInput.jsx',
+      server: '../backend/src/routes/workouts.js',
+    },
+  ];
+  for (const c of LETTERS) {
+    ok(c.label + ' 이름이 한 자리에 있다', new RegExp('export const ' + c.name + ' = \\d+;').test(limits), true);
+    let srv = '';
+    try { srv = codeOf(fs.readFileSync(path.join(__dirname, '..', c.server), 'utf8')); } catch { /* 아래에서 FAIL */ }
+    ok('  서버도 그 이름으로 든다', new RegExp('const ' + c.name + ' = \\d+;').test(srv), true);
+    const src = read(c.screen);
+    ok('  화면이 그 이름으로 막는다', new RegExp('maxLength=\{' + c.name + '\}').test(src), true);
+    // 수를 글자로 적어두면 서버가 바뀌는 날 거짓말이 된다
+    const lit = (limits.match(new RegExp('export const ' + c.name + ' = (\\d+);')) || [])[1];
+    ok('  수를 글자로 적지 않는다', lit ? new RegExp('maxLength=\{' + lit + '\}').test(src) : null, false);
+  }
+}
+
+console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

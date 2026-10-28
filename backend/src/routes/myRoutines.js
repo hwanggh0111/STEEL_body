@@ -12,6 +12,13 @@ const { sanitize, cleanName } = require('../utils/sanitize');
 // `npm run twins` 가 양쪽 값을 견준다 — 같은 숫자가 두 곳에 있으면 반드시 어긋난다
 const MAX_EXERCISES = 50;
 
+// 루틴 이름의 글자 수.
+//
+// **이름을 준다** (2026-10-28). 다듬는 자리에 글자 수가 **생글자로** 박혀 있었고
+// (두 자리), 화면에는 아무 제한이 없어서 101자를 치면 **말없이 잘렸다.**
+// 화면도 같은 이름으로 막게 하고(`data/limits.js`) `npm run twins` 가 값을 견준다
+const ROUTINE_NAME_MAX = 100;
+
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
   const routines = db.getMyRoutines(req.userId);
@@ -28,9 +35,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 배열도 `.length` 가 있어서 길이 검사를 통과했다. 공백만 친 것도 통과했다.
   // 둘 다 새니타이즈 뒤에는 빈 문자열이라 **이름 없는 루틴**으로 남았다
-  const safeName = cleanName(name, 100);
+  const safeName = cleanName(name, ROUTINE_NAME_MAX);
   if (!safeName) {
-    return res.status(400).json({ error: '루틴명을 적어주세요 (100자 이하)' });
+    return res.status(400).json({ error: `루틴명을 적어주세요 (${ROUTINE_NAME_MAX}자 이하)` });
   }
 
   if (!Array.isArray(exercises) || exercises.length === 0) {
@@ -76,9 +83,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const fields = {};
 
   if (name !== undefined) {
-    const clean = cleanName(name, 100);
+    const clean = cleanName(name, ROUTINE_NAME_MAX);
     if (!clean) {
-      return res.status(400).json({ error: '루틴명을 적어주세요 (100자 이하)' });
+      return res.status(400).json({ error: `루틴명을 적어주세요 (${ROUTINE_NAME_MAX}자 이하)` });
     }
     fields.name = clean;
   }

@@ -3,6 +3,11 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
+
+// 운동 이름의 글자 수. **이름을 준다** (2026-10-28) — 다듬는 자리 둘에 생글자로
+// 박혀 있었고 화면에는 제한이 없어서 **말없이 잘렸다.** 화면도 같은 이름으로
+// 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
+const EXERCISE_NAME_MAX = 100;
 const { normalizeWeight } = require('../utils/workoutFields');
 const { isRecordDay } = require('../utils/dayRange');
 const { sendFresh } = require('../utils/fresh');
@@ -63,9 +68,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 운동명. 고치는 쪽(PUT)에는 있던 검사가 여기에는 없어서 공백만 친 것도,
   // 문자열이 아닌 것도 그대로 통과해 **이름 없는 기록**이 남았다
-  const safeExercise = cleanName(exercise, 100);
+  const safeExercise = cleanName(exercise, EXERCISE_NAME_MAX);
   if (!safeExercise) {
-    return res.status(400).json({ error: '운동명을 적어주세요 (100자 이하)' });
+    return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });
   }
 
   // 2.5세트는 없다. 화면도 정수로 그린다
@@ -122,9 +127,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 오늘까지)' });
   }
 
-  const safeExercisePut = cleanName(exercise, 100);
+  const safeExercisePut = cleanName(exercise, EXERCISE_NAME_MAX);
   if (!safeExercisePut) {
-    return res.status(400).json({ error: '운동명을 적어주세요 (100자 이하)' });
+    return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });
   }
 
   const numSets = Number(sets);

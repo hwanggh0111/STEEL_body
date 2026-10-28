@@ -31,3 +31,23 @@ export const MAX_NOTES = 30;
 
 /** 적어둘 헬스장 수. */
 export const MAX_GYMS = 12;
+
+/**
+ * 루틴 이름의 글자 수 · 운동 이름의 글자 수.
+ *
+ * **이름을 또렷하게 둔다** (2026-10-28). 처음에 `NAME_MAX`·`EXERCISE_MAX` 로
+ * 적었더니 **둘 다 이미 쓰이는 이름**이었다 — 앱의 `NAME_MAX` 는 **만든 소리 이름
+ * 6자**고, 서버의 `EXERCISE_MAX` 는 **헬스장 세팅의 운동 이름 40자**다.
+ * `npm run twins` 가 그 자리에서 「다르다 EXERCISE_MAX = 40 / 100」으로 잡아줬다 —
+ * **같은 이름이 다른 칸을 가리키면 그 검사가 거짓 FAIL 을 낸다.**
+ *
+ * 둘 다 서버가 **말없이 자르던** 자리다 — 다듬는 자리에 생글자로 박혀 있고
+ * 화면에는 아무 제한이 없어서, 101자를 치면 저장한 뒤 **잘린 이름**이 된다.
+ * 운동 이름은 더 나쁘다: 잘린 이름은 **사전에 없는 이름**이 되고, 그러면 그 운동은
+ * 몸 지도에 영영 안 들어간다(`RoutinePage` 머리글에 적어둔 그 위험이다).
+ *
+ *   ROUTINE_NAME_MAX  → backend/src/routes/myRoutines.js
+ *   EXERCISE_NAME_MAX → backend/src/routes/workouts.js
+ */
+export const ROUTINE_NAME_MAX = 100;
+export const EXERCISE_NAME_MAX = 100;

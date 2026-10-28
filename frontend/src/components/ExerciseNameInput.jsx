@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { searchExercises, partOf } from '../data/exerciseDict';
 import { bodyPartOf } from '../data/bodyPart';
+import { EXERCISE_NAME_MAX } from '../data/limits';
 
 // 운동 이름 칸 — **치는 동안 사전이 거든다** (2026-10-06).
 //
@@ -96,6 +97,10 @@ export default function ExerciseNameInput({
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete="off"
+        /* **서버가 말없이 자르던 자리** (2026-10-28) — 잘린 이름은 사전에 없는
+           이름이 되고, 그러면 그 운동은 몸 지도에 영영 안 들어간다.
+           수는 `data/limits.js` 에서 온다 */
+        maxLength={EXERCISE_NAME_MAX}
         role="combobox"
         aria-expanded={show}
         aria-autocomplete="list"
