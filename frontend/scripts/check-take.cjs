@@ -10,6 +10,7 @@
 // 그래서 값과 글자로 본다.
 const esbuild = require('esbuild');
 const fs = require('fs');
+const path = require('path');
 
 const bundle = (entry, out) => {
   esbuild.buildSync({ entryPoints: [entry], bundle: true, format: 'cjs', outfile: out, platform: 'node' });
@@ -224,9 +225,15 @@ ok('  무거운 두 파일은 안 받는다', /(notices|changelog)\.json/.test(s
 // **「어긋나면 잡히나」**다. 그건 `npm run checkfeed` 가 본다 — 여기서는
 // 그 검사가 `npm run check` 에 **실제로 걸려 있는지**만 지킨다.
 {
-  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
-  ok('  뽑아둔 파일이 낡는 것을 검사가 본다 (npm run check 에 들어 있다)',
-    /check-feed\.cjs/.test(pkg.scripts?.check || ''), true);
+  // **보는 것을 바꿨다** (2026-10-28). 여태 `scripts.check` **줄에 그 글자가 있나**를
+  // 봤는데, `npm run check` 가 **검사를 찾아서 도는 자**로 바뀌면서
+  // (`scripts/run-checks.cjs`) 그 줄에 목록이 없어졌다 — 뜻은 그대로인데 FAIL 했다.
+  // 보는 것은 **그 검사가 도는가**다: 파일이 있고, 돌리는 자가 건너뛰지 않는다
+  const runner = fs.readFileSync(path.join('..', 'scripts', 'run-checks.cjs'), 'utf-8');
+  ok('  돌리는 자가 검사를 찾아서 돈다', /readdirSync\(DIR\)/.test(runner), true);
+  ok('  뽑아둔 파일이 낡는 것을 검사가 본다 (그 검사가 돈다)',
+    fs.existsSync(path.join('scripts', 'check-feed.cjs'))
+    && !new RegExp("'check-feed\.cjs':").test(runner), true);
 }
 // 빈 상자를 먼저 띄웠다가 채우면 그 사이에 아래 상자들이 한 번 밀린다
 ok('  차기 전에는 상자를 안 그린다', /news\.length > 0 && \(/.test(site), true);
