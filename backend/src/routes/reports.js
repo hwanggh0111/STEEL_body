@@ -10,6 +10,14 @@ const { inspect } = require('../utils/profanity');
 const { punish } = require('../utils/abusePolicy');
 const { notifyAdmin } = require('../utils/mailer');
 
+// 제보 본문 · 답장의 글자 수.
+//
+// **이름을 준다** (2026-10-28). 생글자가 두 자리에 있었고, **관리자 답장 칸에는
+// 아무 제한이 없어서 말없이 잘렸다** — 답장은 제보한 사람이 읽는 글이다.
+// (제보 본문 쪽은 화면이 600자로 **세어 보여주며** 먼저 막는다 — 더 좁은 쪽이라 안전하다)
+const BODY_MAX = 2000;
+
+
 // ─────────────────────────────────────────────────────────────
 // 제보함 — 버그 · 문의 · 건의
 //
@@ -180,7 +188,7 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 내용은 없어도 받는다. 화면에서도 막지 않는다.
   // 줄바꿈은 살린다 — 재현 절차를 줄로 나눠 적는 게 제일 읽기 쉽다
-  const cleanBody = typeof body === 'string' ? sanitizeMultiline(body).slice(0, 2000).trim() : '';
+  const cleanBody = typeof body === 'string' ? sanitizeMultiline(body).slice(0, BODY_MAX).trim() : '';
 
   // 욕설 · 비하 판정. 제목과 내용을 같이 본다 — 제목에만 쓰는 사람이 있다.
   //
@@ -247,7 +255,7 @@ router.patch('/:id', adminAuth, (req, res) => {
     if (reply === null || reply === '') {
       fields.reply = null;
     } else if (typeof reply === 'string') {
-      const clean = sanitizeMultiline(reply).slice(0, 2000).trim();
+      const clean = sanitizeMultiline(reply).slice(0, BODY_MAX).trim();
       if (!clean) return res.status(400).json({ error: '답변 내용이 비어 있어요' });
       fields.reply = clean;
     } else {

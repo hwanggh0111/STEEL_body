@@ -17,6 +17,13 @@ const { sanitize } = require('../utils/sanitize');
 
 const MAX_ITEMS = 20;
 
+// 점검 사유의 글자 수.
+//
+// **이름을 준다** (2026-10-28). 생글자로 박혀 있었고 관리자 화면에는 아무 제한이
+// 없어서 **말없이 잘렸다.** 이 글은 **쓰는 사람 모두가 보는 안내문**이라, 잘리면
+// 잘린 문장이 그대로 사람들에게 간다
+const REASON_MAX = 60;
+
 // 화면이 보내는 모양 그대로만 받는다. 모르는 키는 버린다
 function clean(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -31,7 +38,7 @@ function clean(raw) {
     startMin: int(raw.startMin, 0, 59, 0),
     // 하루를 넘기는 점검은 없다. 넘기면 화면이 영원히 잠긴다
     durationMin: int(raw.durationMin, 1, 24 * 60, 60),
-    reason: sanitize(String(raw.reason || '')).slice(0, 60).trim() || '정기 시스템 점검',
+    reason: sanitize(String(raw.reason || '')).slice(0, REASON_MAX).trim() || '정기 시스템 점검',
   };
 
   // 하루짜리 예약이면 날짜, 아니면 요일 반복

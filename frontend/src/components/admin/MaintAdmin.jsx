@@ -9,6 +9,7 @@ import { dateKey } from '../../data/dateKey';
 // 줄의 모양을 맞추는 일은 값만 다루는 자리에 있다 (`npm run maint` 로 돌려본다) —
 // 서버는 날짜짜리에 `days` 칸을 안 만드는데 폼은 그 칸이 늘 있다고 보고 그렸다
 import { NEW_FORM, formOf, entryOf, repeats } from '../../data/maintForm';
+import { REASON_MAX } from '../../data/limits';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -92,7 +93,16 @@ function MaintForm({ kind, onSchedule }) {
 
       <div style={{ marginBottom: 10 }}>
         <label className="label">사유</label>
-        <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={`${kind.label} 사유`} />
+        {/* **서버가 말없이 자르던 자리** (2026-10-28). 이 글은 점검 안내 화면에
+            그대로 떠서 **쓰는 사람 모두가 읽는다** — 잘리면 잘린 문장이 그대로 간다.
+            수는 `data/limits.js` 에서 온다 */}
+        <input
+          className="input"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={REASON_MAX}
+          placeholder={`${kind.label} 사유`}
+        />
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>

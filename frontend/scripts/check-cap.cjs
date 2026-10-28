@@ -133,6 +133,20 @@ console.log('── 글자 수: 화면이 미리 막는가 ──');
       screen: 'src/components/ExerciseNameInput.jsx',
       server: '../backend/src/routes/workouts.js',
     },
+    // **관리자 화면도 본다** — 그 글은 쓰는 사람이 읽는다. 점검 사유는 점검 안내
+    // 화면에 그대로 뜨고, 답장은 제보한 사람이 읽는다
+    {
+      name: 'REASON_MAX',
+      label: '점검 사유 글자 수',
+      screen: 'src/components/admin/MaintAdmin.jsx',
+      server: '../backend/src/routes/maintenance.js',
+    },
+    {
+      name: 'BODY_MAX',
+      label: '제보 답장 글자 수',
+      screen: 'src/components/admin/ReportAdmin.jsx',
+      server: '../backend/src/routes/reports.js',
+    },
   ];
   for (const c of LETTERS) {
     ok(c.label + ' 이름이 한 자리에 있다', new RegExp('export const ' + c.name + ' = \\d+;').test(limits), true);

@@ -3,6 +3,7 @@ import client from '../../api/client';
 import { toast } from '../Toast';
 import NavIcon from '../NavIcon';
 import { dayOf } from '../../data/dateKey';
+import { BODY_MAX } from '../../data/limits';
 
 // ─────────────────────────────────────────────────────────────
 // 제보 관리 — 들어온 버그 · 문의 · 건의를 보고 답을 단다.
@@ -503,14 +504,22 @@ export default function ReportAdmin() {
                     <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 7 }}>
                       답변 {r.reply_at && <span style={{ letterSpacing: 0 }}>· 마지막 {day(r.reply_at)}</span>}
                     </div>
+                    {/* **서버가 말없이 자르던 자리** (2026-10-28) — 답장은 제보한
+                        분이 읽는 글이다. 제보함이 쓰는 쪽을 「{n}/600」으로 세어
+                        보여주는 것과 같은 결로, 여기도 남은 글자를 적는다.
+                        수는 `data/limits.js` 에서 온다 */}
                     <textarea
                       className="input"
                       value={draft}
                       onChange={e => setDraft(e.target.value)}
+                      maxLength={BODY_MAX}
                       rows={4}
                       placeholder="확인한 내용을 그대로 적습니다. 이 글이 보낸 분 화면에 그대로 보입니다."
                       style={{ resize: 'vertical', lineHeight: 1.7, marginBottom: 8 }}
                     />
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginBottom: 8 }}>
+                      {draft.length}/{BODY_MAX}
+                    </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         className="btn-primary"

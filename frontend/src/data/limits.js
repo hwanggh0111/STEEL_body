@@ -51,3 +51,15 @@ export const MAX_GYMS = 12;
  */
 export const ROUTINE_NAME_MAX = 100;
 export const EXERCISE_NAME_MAX = 100;
+
+/**
+ * 점검 사유의 글자 수 · 제보 답장의 글자 수 (관리자 화면).
+ *
+ * 둘 다 서버가 **말없이 자르던** 자리다. 관리자 화면이라도 그 글은 **쓰는 사람이
+ * 읽는다** — 점검 사유는 점검 안내 화면에 그대로 뜨고, 답장은 제보한 사람이 읽는다.
+ *
+ *   REASON_MAX → backend/src/routes/maintenance.js
+ *   BODY_MAX   → backend/src/routes/reports.js
+ */
+export const REASON_MAX = 60;
+export const BODY_MAX = 2000;
