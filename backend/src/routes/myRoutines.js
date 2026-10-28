@@ -42,7 +42,15 @@ router.post('/', auth, spamCheck, (req, res) => {
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
 
   const result = db.createMyRoutine(req.userId, safeName, sanitizedExercises);
-  res.status(201).json({ id: result.lastInsertRowid, message: '루틴 저장 완료!' });
+  // **다듬은 글자를 같이 돌려준다** (2026-10-28). 여기서 이름의 앞뒤·가운데 공백을
+  // 줄이고 `<>` 를 걷어내는데, 번호만 돌려주니 화면은 **사람이 친 날글**을 목록에
+  // 얹었다 — 새로고침하면 글자가 달라진다. 고치기(`PUT`)는 이미 record 를 돌려준다
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    name: result.record.name,
+    exercises: result.record.exercises,
+    message: '루틴 저장 완료!',
+  });
 });
 
 // 고치기 — 루틴에 운동을 더 넣거나 이름을 바꾼다.

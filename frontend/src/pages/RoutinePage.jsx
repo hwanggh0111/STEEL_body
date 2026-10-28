@@ -202,8 +202,17 @@ export default function RoutinePage() {
     setSavingRoutine(true);
     try {
       const { data: saved } = await client.post('/my-routines', routine);
-      // 서버가 정한 id 가 뒤에 와야 한다. routine 을 뒤에 펴면 id 가 덮인다
-      setMyRoutines(prev => [...prev, { ...routine, id: saved.id }]);
+      // **서버가 담은 글자를 그대로 쓴다** (2026-10-28). 여태 내가 보낸 날글을
+      // 얹었는데, 서버는 이름과 운동 이름을 **다듬어서** 담는다(앞뒤·가운데 공백 ·
+      // `<>` 걷기). 「월요일   가슴」이 목록에는 세 칸으로 보이고 새로고침하면
+      // 한 칸이 됐다 — **두 곳이 다른 말을 하는 그 모양이다.**
+      // 서버가 안 돌려주면(옛 판) 보낸 것으로 둔다
+      setMyRoutines(prev => [...prev, {
+        ...routine,
+        name: saved.name ?? routine.name,
+        exercises: saved.exercises ?? routine.exercises,
+        id: saved.id,
+      }]);
       toast('루틴이 저장됐습니다!');
       return true;
     } catch (err) {
@@ -240,7 +249,11 @@ export default function RoutinePage() {
           exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
         };
         const { data: saved } = await client.post('/my-routines', body);
-        made.push({ ...body, id: saved.id });
+        // 서버가 다듬은 글자를 쓴다 (위 `saveMyRoutine` 과 같은 까닭).
+        // **이름은 겹칠 때 여기서 숫자를 붙인 것**이라 `taken` 도 담긴 이름으로 센다
+        const madeName = saved.name ?? name;
+        taken.delete(name); taken.add(madeName);
+        made.push({ ...body, name: madeName, exercises: saved.exercises ?? body.exercises, id: saved.id });
       }
       setMyRoutines(prev => [...prev, ...made]);
       toast(`「${program.name}」 ${made.length}개를 내 루틴에 넣었어요`);
@@ -267,8 +280,14 @@ export default function RoutinePage() {
     if (savingRoutine) return false;
     setSavingRoutine(true);
     try {
-      await client.put(`/my-routines/${id}`, { name: routine.name, exercises: routine.exercises });
-      setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, ...routine } : r)));
+      const { data: saved } = await client.put(`/my-routines/${id}`, { name: routine.name, exercises: routine.exercises });
+      // 서버가 **담은 것을 돌려주는데**(`result.record`) 여태 통째로 버렸다 —
+      // 다듬은 글자가 아니라 내가 보낸 날글이 목록에 남았다
+      setMyRoutines(prev => prev.map(r => (
+        (r.id ?? r._id) === id
+          ? { ...r, ...routine, name: saved?.name ?? routine.name, exercises: saved?.exercises ?? routine.exercises }
+          : r
+      )));
       toast('루틴을 고쳤습니다');
       return true;
     } catch (err) {
@@ -293,8 +312,9 @@ export default function RoutinePage() {
     }
     const next = [...list, exercise];
     try {
-      await client.put(`/my-routines/${id}`, { exercises: next });
-      setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, exercises: next } : r)));
+      const { data: saved } = await client.put(`/my-routines/${id}`, { exercises: next });
+      // 서버가 돌려주는 다듬은 목록을 쓴다 (`updateMyRoutine` 과 같은 까닭)
+      setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, exercises: saved?.exercises ?? next } : r)));
       toast(`"${routine.name}"에 ${eul(exercise.name)} 넣었어요`);
     } catch {
       toast('루틴에 넣지 못했어요', 'error');

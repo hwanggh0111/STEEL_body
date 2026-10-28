@@ -1157,7 +1157,11 @@ const db = {
     const record = { id, user_id: userId, name, exercises, created_at: new Date().toISOString() };
     data.myRoutines.push(record);
     save(data);
-    return { lastInsertRowid: id };
+    // **담은 것을 돌려준다** (2026-10-28). 여태 번호만 줬다 — 이름과 운동 이름은
+    // 라우트가 `cleanName`·`sanitize` 로 **다듬어서** 담는데, 그 다듬은 글자를
+    // 아무도 돌려받지 못해 화면은 자기가 보낸 날글을 목록에 얹었다
+    // (「월요일   가슴」이 「월요일 가슴」으로 담기는데 화면엔 세 칸이 그대로)
+    return { lastInsertRowid: id, record };
   },
   // 루틴에 운동을 더 넣을 때 쓴다. 이름을 바꾸는 데도 같은 자리를 쓴다.
   // 남의 루틴은 못 고친다 — user_id 까지 맞아야 찾는다

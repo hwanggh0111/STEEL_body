@@ -79,5 +79,29 @@ console.log('── 줄 번호가 서버로 새지 않는가 ──');
 // 루틴에 옛 번호가 섞여 들어와 새 줄의 번호와 겹칠 수 있다
 ok('저장하기 전에 uid 를 벗긴다', /\.map\(\(\{ uid, \.\.\.rest \}\) => rest\)/.test(src), true);
 
+console.log('');
+console.log('── 서버가 다듬은 글자를 읽는가 ──');
+// ── 왜 (2026-10-28) ──
+//
+// 서버는 이름과 운동 이름을 **그대로 담지 않는다** — 앞뒤 공백을 떼고, 가운데
+// 겹친 공백을 한 칸으로 줄이고, `<` `>` 를 걷어낸다. 그런데 이 화면은 저장한 뒤
+// **자기가 보낸 날글**을 목록에 얹고 있었다. 「월요일   가슴」이 목록에는 세 칸으로
+// 보이고 **새로고침하면 한 칸**이 됐다 — 같은 것이 두 말을 한다.
+//
+// 운동 기록 쪽은 저장한 뒤 **목록을 다시 받아와서**(`workoutStore.fetchAll`) 이
+// 자리를 안 밟았다. 이 화면은 다시 받지 않으므로 **돌려준 것을 읽어야** 한다.
+// 서버가 진짜로 돌려주는지는 backend 의 `npm run echo` 가 두드려서 본다.
+{
+  // 서버로 보내는 네 자리 — 만들기 · 프로그램 옮기기 · 고치기 · 운동 하나 더
+  const calls = [...src.matchAll(/(?:const \{ data: (\w+) \} = )?await client\.(post|put)\(`?['`]?\/my-routines/g)];
+  ok('서버로 보내는 자리 넷', calls.length, 4);
+  ok('  네 자리가 다 응답을 받는다', calls.filter((m) => !m[1]).map((m) => m[2]), []);
+  // 받은 것을 **목록에 얹을 때** 쓰는가 (`saved.name` · `saved.exercises`)
+  ok('  담긴 이름을 쓴다', (src.match(/saved\??\.name/g) || []).length >= 2, true);
+  ok('  담긴 운동 목록을 쓴다', (src.match(/saved\??\.exercises/g) || []).length >= 4, true);
+  // 날글을 그대로 얹던 옛 모양이 돌아오지 않았나
+  ok('  날글을 그대로 얹지 않는다', /\{ \.\.\.routine, id: saved\.id \}/.test(src), false);
+}
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);
