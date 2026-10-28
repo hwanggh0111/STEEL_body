@@ -10,7 +10,19 @@
 // 문자열에서 처음 나오는 수를 무게로 읽고, 수가 없으면 맨몸으로 친다.
 export function parseWeight(raw) {
   if (raw === null || raw === undefined) return null;
-  const m = String(raw).match(/\d+(?:\.\d+)?/);
+  const text = String(raw);
+  // ── **음수의 부호를 버리지 않는다** ── (2026-10-28)
+  //
+  // 숫자만 뽑고 있어서 `-50` 을 **50 으로 읽었다.** 서버가 음수를 막는 까닭이
+  // 바로 그것이다(`utils/workoutFields.js`) — 「기록에는 -50 이라 뜨는데 볼륨을
+  // 세는 쪽은 앞의 부호를 못 보고 50 으로 센다. 같은 줄의 두 숫자가 서로 다른
+  // 말을 한다.」 **읽는 쪽도 같은 자를 들어야** 그 말이 참이 된다.
+  //
+  // 지금은 두 길이 다 막으니 담긴 값에 음수가 없다. 그런데 10/22 **전에** 파일로
+  // 들어온 줄에는 남아 있을 수 있고, 무게 칸은 자유 입력이라 **치는 동안**에도
+  // 이 손을 지난다. 못 읽는 값은 `null` 이다 — 「맨몸」과 같은 대접이다
+  if (/^\s*-/.test(text)) return null;
+  const m = text.match(/\d+(?:\.\d+)?/);
   if (!m) return null;
   const n = Number(m[0]);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -45,6 +57,19 @@ export const RM_MAX_REPS = 36;
 // **계산기는 그대로 둔다.** 거기는 사람이 직접 묻는 자리라 경고와 함께 답해준다.
 // 앱이 **스스로 매기는 등수**에만 안 믿을 값을 안 쓴다.
 export const RM_TRUST_REPS = 10;
+
+/**
+ * **사람이 드는 무게의 테두리** (2026-10-28).
+ *
+ * 1RM 계산기는 무게·횟수를 자유 입력으로 받는다. `99999kg × 5회` 를 넣으면
+ * 「예상 1RM **112,499kg**」을 40px 숫자로 크게 적고, 그 값을 측정 기록에
+ * 저장까지 할 수 있었다.
+ *
+ * 세상 최고 기록이 500kg 안쪽이다. 그 위는 사람의 몸이 아니라 **적은 값이 틀린
+ * 것**이라, 수를 적지 않고 **다시 보라고 말한다** — FFMI 칸에서 쓴 것과 같은 선이고
+ * (`data/bodyIndex.js`), 이 앱의 「지어내지 않는다」가 그것이다.
+ */
+export const RM_SANE_MAX = 600;
 
 export function estimate1RM(weight, reps) {
   const w = Number(weight);

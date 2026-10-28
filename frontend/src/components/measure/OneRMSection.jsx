@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
-import { estimate1RM, RM_MAX_REPS } from '../../data/personalRecord';
+import { estimate1RM, RM_MAX_REPS, RM_SANE_MAX, RM_TRUST_REPS } from '../../data/personalRecord';
 import { euro } from '../../data/particle';
 
 // 계산 기록도 지울 수 없었다 — 측정 화면에 삭제가 있는데 안 넘겨줬다.
@@ -8,6 +8,8 @@ import { euro } from '../../data/particle';
 export default function OneRMSection({ records, onSave, onDelete }) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
+  // 믿는 구간(10회)을 넘긴 어림인가 — 결과 카드에 그 말을 남긴다
+  const [over, setOver] = useState(false);
   const [result, setResult] = useState(null);
 
   const calc1RM = () => {
@@ -15,10 +17,24 @@ export default function OneRMSection({ records, onSave, onDelete }) {
     const w = Number(weight);
     const r = Number(reps);
     if (r < 1 || r > RM_MAX_REPS) { toast(`횟수는 1~${RM_MAX_REPS} 범위여야 해요`, 'error'); return; }
-    if (r > 10) { toast('10회 초과 시 정확도가 낮아요', 'warning'); }
     // 식은 data/personalRecord.js 한 곳에 있다. 최고 기록 판정도 같은 것을 쓴다
     const orm = estimate1RM(w, r);
     if (orm === null) { toast('계산할 수 없는 값이에요', 'error'); return; }
+    // ── **말이 안 되는 결과에는 수를 적지 않는다** ── (2026-10-28)
+    //
+    // `99999kg × 5회` 를 넣으면 「예상 1RM 112,499kg」을 40px 로 크게 적고,
+    // 그 값을 측정 기록에 **저장까지** 할 수 있었다. 세상 최고가 500kg 안쪽이다 —
+    // 그 위는 사람의 몸이 아니라 적은 값이 틀린 것이다. FFMI 칸과 같은 선이다
+    if (orm > RM_SANE_MAX) {
+      setResult(null);
+      setOver(false);
+      toast(`적은 값을 다시 봐주세요 — ${orm.toLocaleString()}kg 이 나옵니다`, 'error');
+      return;
+    }
+    // **토스트로만 말하지 않는다** (2026-10-28). 10회를 넘기면 토스트 하나를 띄우고
+    // 끝이었는데 **토스트는 지나간다** — 그러고 나서 2,880kg 을 큰 숫자로 적었다.
+    // 믿는 구간을 넘긴 어림이라는 말을 **결과 카드에 남긴다**
+    setOver(r > RM_TRUST_REPS);
     setResult(orm);
   };
 
@@ -38,11 +54,11 @@ export default function OneRMSection({ records, onSave, onDelete }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
           <label className="label">무게 (kg)</label>
-          <input className="input" type="number" placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); }} />
+          <input className="input" type="number" min="0" max={RM_SANE_MAX} placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); setOver(false); }} />
         </div>
         <div style={{ flex: 1 }}>
           <label className="label">횟수</label>
-          <input className="input" type="number" placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); }} />
+          <input className="input" type="number" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
         </div>
       </div>
       <button className="btn-primary" onClick={calc1RM} style={{ marginBottom: 10 }}>계산</button>
@@ -51,6 +67,12 @@ export default function OneRMSection({ records, onSave, onDelete }) {
         <div className="card" style={{ marginBottom: 12, textAlign: 'center', borderColor: 'var(--accent)' }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>예상 1RM</div>
           <div className="stat-number" style={{ fontSize: 40 }}>{result}<span style={{ fontSize: 16, color: 'var(--text-muted)' }}>kg</span></div>
+          {over && (
+            <div style={{ fontSize: 11.5, color: 'var(--warning)', lineHeight: 1.6, marginTop: 2 }}>
+              {RM_TRUST_REPS}회를 넘겨 어림한 값이에요 — <b>실제보다 높게 나옵니다.</b>
+              {' '}견줄 때는 {RM_TRUST_REPS}회 이하로 재는 것이 맞습니다.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
             {['벤치프레스', '스쿼트', '데드리프트', '숄더프레스'].map(ex => (
               <button key={ex} className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }}

@@ -130,7 +130,34 @@ ok('맨몸은 무게로 안 센다', pr.strengthOf({ exercise: '푸시업', weig
   {
     const calc = fs.readFileSync('src/components/measure/OneRMSection.jsx', 'utf-8');
     ok('  계산기 화면도 10회라고 적어둔다', /10회 이하에서 정확/.test(calc), true);
+
+    // ── **토스트로만 말하지 않는다** ── (2026-10-28)
+    //
+    // 10회를 넘기면 토스트 하나(「10회 초과 시 정확도가 낮아요」)를 띄우고 끝이었다.
+    // **토스트는 지나간다** — 그러고 나서 2,880kg 을 40px 숫자로 크게 적었다.
+    // 믿는 구간을 넘긴 어림이라는 말은 **결과 카드에 남아야** 한다
+    ok('  카드에 「어림」을 남긴다', /\{over && \(/.test(calc), true);
+    ok('    칸을 고치면 그 말도 지운다', /setOver\(false\)/.test(calc), true);
+
+    // **말이 안 되는 결과에는 수를 적지 않는다** — `99999kg × 5회` 가
+    // 「예상 1RM 112,499kg」으로 적히고 저장까지 됐다. FFMI 칸과 같은 선이다.
+    // 자는 검사가 들고, 그 수가 코드와 같은지를 따로 본다(원판에서 밟은 함정)
+    const SANE = 600;
+    ok('  말이 되는 상한을 코드가 든다', pr.RM_SANE_MAX, SANE);
+    ok('    그 위는 수를 안 적는다', /orm > RM_SANE_MAX/.test(calc), true);
+    ok('    다시 보라고 말한다', /적은 값을 다시 봐주세요/.test(calc), true);
+    const insane = pr.estimate1RM(99999, 5);
+    ok('    99999kg × 5회가 그 상한을 넘는다', insane > SANE, true);
   }
+
+  // ── **음수의 부호를 버리지 않는다** ── (2026-10-28)
+  //
+  // 무게 글자에서 숫자만 뽑고 있어서 `-50` 을 **50 으로 읽었다.** 서버가 음수를
+  // 막는 까닭이 그것이다 — 「기록에는 -50 이라 뜨는데 볼륨을 세는 쪽은 50 으로
+  // 센다」. **읽는 쪽도 같은 자를 들어야** 그 말이 참이 된다
+  ok('무게: 음수는 못 읽는 값이다', [pr.parseWeight('-50'), pr.parseWeight('- 50')], [null, null]);
+  ok('  멀쩡한 값은 그대로', [pr.parseWeight('80'), pr.parseWeight('80kg'), pr.parseWeight('80.5')], [80, 80, 80.5]);
+  ok('  맨몸은 여전히 null', [pr.parseWeight('맨몸'), pr.parseWeight('')], [null, null]);
 }
 // ── 앞날은 최고 기록이 아니다 ── (2026-09-30)
 //
