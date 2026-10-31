@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import client from '../api/client';
 import { toast } from './Toast';
 import { confirmDialog } from '../components/ConfirmModal';
+import { MAX_ROWS } from '../data/limits';
 
 // 내려받은 파일을 다시 넣는다 (2026-09-18).
 //
@@ -21,7 +22,13 @@ import { confirmDialog } from '../components/ConfirmModal';
 //
 // **크게 안 띄운다.** 평소에는 흐린 한 줄이고, 누르면 파일 고르개가 열린다.
 
+// 파일 크기. 서버는 **글자 수**(`MAX_CHARS`)를 세고 여기는 **바이트**를 센다 —
+// UTF-8 은 한글 한 자가 세 바이트라 바이트가 글자보다 적을 수 없다. 그래서
+// 이 자가 서버보다 느슨해지는 일은 없다 (**이름을 같게 두지 않은 까닭**이다)
 const MAX_BYTES = 2 * 1024 * 1024;
+
+/** 파일의 줄 수. 머리글과 빈 줄은 뺀다 — 서버가 세는 **기록 수**에 가깝게 */
+const rowsIn = (text) => text.split('\n').filter((l) => l.trim()).length - 1;
 
 export default function ImportCsv({ kind, label, onDone, style }) {
   const fileRef = useRef(null);
@@ -40,20 +47,37 @@ export default function ImportCsv({ kind, label, onDone, style }) {
       return;
     }
 
+    // 글자로 읽는다. 한글 엑셀이 붙인 BOM 은 서버가 걷는다.
+    // **확인을 묻기 전에 읽는다** — 몇 줄인지 알고 물어야 한다
+    const csv = await file.text();
+    const rows = rowsIn(csv);
+
+    // ── **줄 수는 누르기 전에 말한다** ── (2026-10-31)
+    //
+    // 여태 **파일 크기만** 봤다. 5년치가 3만 줄 · 1.2MB 쯤이라 **크기는 통과하고
+    // 줄 수에서 걸린다** — 고르고 · 확인하고 · 올리기를 기다린 다음에야
+    // 「한 번에 20,000줄까지」를 들었다.
+    //
+    // **측정은 막지 않는다** — 여러 줄이 한 기록으로 묶여서(날짜 · 종류 · 항목이
+    // 줄마다 하나씩) 파일의 줄 수가 서버가 세는 기록 수보다 훨씬 많다.
+    // 좁게 막으면 **멀쩡한 파일을 되돌릴 수 없게 된다**
+    if (rows > MAX_ROWS && kind !== 'measures') {
+      toast(`한 번에 ${MAX_ROWS.toLocaleString()}줄까지 넣을 수 있어요 — 이 파일은 ${rows.toLocaleString()}줄이에요. 기간을 나눠 넣어주세요`, 'error');
+      return;
+    }
+
     // **무엇을 넣는지 한 번 확인한다.** 파일 이름을 잘못 고르는 일이 실제로 잦다
     // (운동 파일을 인바디 자리에 넣는 것). 넣은 뒤에 지우는 것은 훨씬 번거롭다
     const yes = await confirmDialog(
       `「${file.name}」 을 ${label} 기록으로 넣을까요?
 
-이미 있는 것과 똑같은 줄은 건너뜁니다 — 같은 파일을 두 번 넣어도 늘어나지 않아요.`,
+${rows > 0 ? `파일에 ${rows.toLocaleString()}줄이 적혀 있어요. ` : ''}이미 있는 것과 똑같은 줄은 건너뜁니다 — 같은 파일을 두 번 넣어도 늘어나지 않아요.`,
       { title: `${label} 가져오기`, confirmText: '넣습니다', danger: false },
     );
     if (!yes) return;
 
     setBusy(true);
     try {
-      // 글자로 읽는다. 한글 엑셀이 붙인 BOM 은 서버가 걷는다
-      const csv = await file.text();
       const { data } = await client.post('/import', { kind, csv });
 
       // **무슨 일이 일어났는지 수로 말한다.** 「완료」만 띄우면 넣었는지 건너뛴 것인지
