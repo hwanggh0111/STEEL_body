@@ -135,3 +135,20 @@ export const BLOCK_MIN_MAX = 525600;
  *   MAX_ROWS → backend/src/routes/importData.js
  */
 export const MAX_ROWS = 20000;
+
+/**
+ * 이름(닉네임)의 글자 수 · 계획 한 줄의 글자 수.
+ *
+ * 닉네임은 **화면 둘이 서로 다른 선을 들고 있었다** — 가입은 30 인데 설정의
+ * 「이름 바꾸기」는 20 이었다. **같은 서버 길로 가는 같은 칸**이다.
+ * 가입 때 25자로 지은 사람이 설정에서는 그 이름을 고칠 수 없었다
+ * (지우면 20자 아래로만 다시 쓸 수 있다). **넷 중 하나만 다른 자리는 잊은
+ * 자리다**(10/28 에 세운 자).
+ *
+ * 계획 이름은 서버가 40 으로 다듬는데 화면이 `slice(0, 40)` 로 따로 적고 있었다.
+ *
+ *   NICKNAME_MAX  → backend/src/routes/auth.js
+ *   PLAN_NAME_MAX → backend/src/routes/plans.js
+ */
+export const NICKNAME_MAX = 30;
+export const PLAN_NAME_MAX = 40;

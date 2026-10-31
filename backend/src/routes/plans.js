@@ -15,6 +15,10 @@ const { isPlanDay } = require('../utils/dayRange');
 
 // 한 날에 너무 많이 담지 않게 한다. 달력 칸에 그릴 수 있는 만큼이고,
 // 그보다 많으면 계획이 아니라 목록이다
+// 계획 한 줄의 글자 수. **이름을 준다** (2026-10-31) — 서버는 `40` 을 생글자로
+// 들고 다듬었고, 화면은 `slice(0, 40)` 로 따로 적고 있었다
+const PLAN_NAME_MAX = 40;
+
 const MAX_PER_DAY = 10;
 // **계획은 앞날이 제자리다** — 달력에 담아두는 「할 것」이다.
 // 그래도 테두리는 있다: 2000년 이후, 앞으로 2년까지 (`utils/dayRange.js`).
@@ -41,7 +45,7 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 이름은 다른 자리와 같은 규칙으로 씻는다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이
   // 되는데, 길이만 재고 넘기면 **이름 없는 계획**이 달력에 뜬다
-  const safeName = cleanName(name, 40);
+  const safeName = cleanName(name, PLAN_NAME_MAX);
   if (!safeName) return res.status(400).json({ error: '무엇을 할지 적어주세요' });
 
   const mine = db.getPlans(req.userId);

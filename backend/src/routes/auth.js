@@ -3,6 +3,12 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db     = require('../db');
 const { BCRYPT_ROUNDS, LOGIN_LOCK, PW_MIN, PW_MAX } = require('../config/security');
+
+// 닉네임(이름)의 글자 수. **이름을 준다** (2026-10-31) — `30` 이 두 자리에
+// 생글자로 박혀 있었고(가입 · 이름 바꾸기), **화면 둘이 서로 다른 선을 들고 있었다**:
+// 가입은 30 인데 설정의 「이름 바꾸기」는 20 이었다. 같은 서버 길로 가는 칸이다.
+// 화면도 같은 이름으로 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
+const NICKNAME_MAX = 30;
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
@@ -293,7 +299,7 @@ router.post('/register', async (req, res) => {
   // 새니타이즈까지 끝낸 뒤에 본다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이 되는데,
   // 길이만 재고 넘기면 **이름 없는 계정**이 만들어진다 — 닉네임은 홈 인사부터
   // 관리자 사용자 목록까지 온 앱에 나오는 이름이다
-  const safeNickname = cleanName(nickname, 30);
+  const safeNickname = cleanName(nickname, NICKNAME_MAX);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
@@ -584,7 +590,7 @@ router.put('/sex', require('../middleware/auth'), (req, res) => {
 router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const { nickname } = req.body;
   // 배열이 오면 `.trim()` 이 없어서 여기서 500 이 났다 — 사용자 잘못인데 서버 잘못처럼 답했다
-  const safeNickname = cleanName(nickname, 30);
+  const safeNickname = cleanName(nickname, NICKNAME_MAX);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }

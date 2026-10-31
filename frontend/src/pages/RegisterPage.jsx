@@ -10,6 +10,7 @@ import { saveLS } from '../data/safeStorage';
 // 홈페이지가 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀으니 그 자리로 가야 한다
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 import { SAVED_ID_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
+import { NICKNAME_MAX } from '../data/limits';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -567,7 +568,7 @@ export default function RegisterPage() {
               placeholder="앱에서 쓸 이름"
               value={nickname}
               onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
-              maxLength={30}
+              maxLength={NICKNAME_MAX}
               style={{ marginBottom: 14 }}
             />
 

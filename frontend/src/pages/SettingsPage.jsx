@@ -18,6 +18,7 @@ import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
 import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
+import { NICKNAME_MAX } from '../data/limits';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -750,7 +751,10 @@ export default function SettingsPage() {
                 value={nickDraft}
                 onChange={(e) => setNickDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNick(); }}
-                maxLength={20}
+                /* **가입 화면과 같은 선을 든다** (2026-10-31). 여기만 20 이었다 —
+                   같은 서버 길(`PUT /auth/nickname`)로 가는 같은 칸인데, 가입 때
+                   25자로 지은 사람은 **여기서 그 이름을 고칠 수 없었다** */
+                maxLength={NICKNAME_MAX}
                 autoFocus
                 style={{
                   flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px',

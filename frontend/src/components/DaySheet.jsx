@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { planState, dayLabel, untilLabel } from '../data/plans';
 import ExerciseFinder from './ExerciseFinder';
-import { MAX_PER_DAY } from '../data/limits';
+import { EXERCISE_NAME_MAX, MAX_PER_DAY, PLAN_NAME_MAX, REPS_MAX, SETS_MAX } from '../data/limits';
 
 // 달력에서 날짜를 누르면 나오는 **그날 한 장.**
 //
@@ -61,7 +61,20 @@ export default function DaySheet({
     const nm = ex.trim();
     if (!nm) { setError('무슨 운동인지 적어주세요'); return; }
     if (!sets || !reps) { setError('세트와 횟수를 적어주세요'); return; }
-    if (Number(sets) > 100 || Number(reps) > 1000) { setError('숫자가 너무 큽니다'); return; }
+    // ── **테두리는 한 자리에서 온다** ── (2026-10-31)
+    //
+    // 여태 이 줄이 `100` · `1000` 을 **또 적고** 있었다(서버 둘 · 루틴 · 기록 폼에
+    // 이어 **다섯째 벌**이었다). 그리고 「숫자가 너무 큽니다」로만 말해서
+    // **어디까지 되는지는 안 알려줬다.** 작은 쪽(0 · 음수 · 2.5세트)은 아예 안 보고
+    // 서버에 보내 「1 이상의 정수여야 해요」를 받아왔다
+    const ns = Number(sets);
+    const nr = Number(reps);
+    if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
+      setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
+    }
+    if (ns > SETS_MAX || nr > REPS_MAX) {
+      setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+    }
     setError('');
     try {
       await onAddWorkout?.({
@@ -200,7 +213,7 @@ export default function DaySheet({
               <input
                 className="input"
                 value={name}
-                onChange={(e) => setName(e.target.value.slice(0, 40))}
+                onChange={(e) => setName(e.target.value.slice(0, PLAN_NAME_MAX))}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExercise(); } }}
                 placeholder="운동 하나만 적어도 돼요"
                 style={{ fontSize: 13, padding: '8px 11px' }}
@@ -230,7 +243,12 @@ export default function DaySheet({
             <input
               className="input"
               value={ex}
-              onChange={(e) => setEx(e.target.value.slice(0, 60))}
+              /* **다른 화면과 같은 선을 든다** (2026-10-31). 여기만 60 이었다 —
+                 운동 이름은 서버가 100 까지 받고(`EXERCISE_NAME_MAX`) 「운동」
+                 화면도 100 으로 막는데, 이 칸에서는 61자째가 **말없이 사라졌다.**
+                 잘린 이름은 **사전에 없는 이름**이 되어 그 운동이 몸 지도에 영영
+                 안 들어간다 (10/28 에 적어둔 그 위험이다) */
+              onChange={(e) => setEx(e.target.value.slice(0, EXERCISE_NAME_MAX))}
               placeholder="운동 이름"
               style={{ fontSize: 13, padding: '8px 11px' }}
             />
