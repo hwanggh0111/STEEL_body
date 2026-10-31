@@ -37,8 +37,14 @@ const read = (p) => fs.readFileSync(p, 'utf8');
 
 // ── 1. 자유로 치는 숫자 칸에 테두리가 있는가 ──
 //
-// 사람이 **값을 치는** 화면만 본다. 재는 도구 · 루틴 폼 · 목표 · 인바디 · 휴식 길이.
-// 한 줄로 안 적힌 태그가 많아 **태그 단위**로 자른다
+// 사람이 **값을 치는** 화면만 본다. 재는 도구 · 루틴 폼 · 목표 · 인바디 · 휴식 길이 ·
+// 기록 · 달력. 한 줄로 안 적힌 태그가 많아 **태그 단위**로 자른다.
+//
+// **눈을 `type="number"` 밖으로 넓혔다** (2026-10-31). 숫자를 받으면서 `type` 은
+// `text` 인 칸이 있다 — 폰 자판만 숫자로 부르는 자리다(`inputMode`). 10/31 에
+// 기록 화면의 **세트 칸**이 그렇게 숨어 있었다: 옆의 무게·횟수는 `min`·`max` 를
+// 들었는데 그것만 아무 테두리가 없었고, 이 검사의 눈에도 안 들어왔다.
+// **검사의 눈이 짧으면 그 밖은 아무도 안 본다**(10/28 의 자)
 const 칸있는파일 = [
   'components/measure/BodySizeSection.jsx',
   'components/measure/FitnessTestSection.jsx',
@@ -52,20 +58,42 @@ const 칸있는파일 = [
   'pages/GoalPage.jsx',
   'components/RestTimer.jsx',
   'components/AiAdminPanel.jsx',
+  'pages/TrainPage.jsx',
+  'components/DaySheet.jsx',
+  'components/LockSetup.jsx',
 ];
 
-// **일부러 테두리가 없는 칸**은 여기 까닭과 함께 적는다. 비어 있는 것이 맞는 상태다
-const 테두리없음 = {};
+// **일부러 테두리가 없는 칸**은 여기 **까닭과 함께** 적는다 (`파일:줄`).
+// 조용히 빼지 않는다 — 10/31 에 `check-twins` 의 제외 목록을 세어보니 일곱 중
+// 다섯이 **아무것도 안 빼는 줄**이었다. 그래서 아래도 **안 쓰는 줄은 FAIL 한다**
+const 테두리없음 = {
+  // 자물쇠 번호는 **길이로 정해진 칸**이다(`maxLength`). 크고 작음이 없으니
+  // `min`·`max` 가 뜻이 없다.
+  // **줄 번호는 `<input` 이 **시작하는** 줄이다** — `inputMode` 가 적힌 줄이 아니다
+  // (처음 87·98·107 로 적었더니 바로 아래 「없는 자리」 자가 잡아줬다)
+  'components/LockSetup.jsx:85': 'PIN — maxLength 로 자리수를 정한다 (크고 작음이 없다)',
+  'components/LockSetup.jsx:96': 'PIN 확인 — 같은 까닭',
+  'components/LockSetup.jsx:105': '옛 PIN — 같은 까닭',
+  // 달력의 「이 날에 적기」 칸 셋. 무게는 **글자값**(「맨몸」·「밴드」)도 받는
+  // 자유 입력이고, 세트·횟수는 **저장 전에** `SETS_MAX`·`REPS_MAX` 로 막고
+  // 어디까지 되는지 말한다
+  'components/DaySheet.jsx:270': '무게 — 「맨몸」·「밴드」 같은 글자도 받는 칸이다',
+  'components/DaySheet.jsx:273': '세트 — 저장 전에 SETS_MAX 로 막고 말해준다',
+  'components/DaySheet.jsx:276': '횟수 — 저장 전에 REPS_MAX 로 막고 말해준다',
+};
 
 const 빈칸 = [];
+const 모든칸 = new Set();
 for (const rel of 칸있는파일) {
   const src = read(path.join(FRONT, rel));
   // `<input ... />` 를 태그째 자른다
   for (const m of src.matchAll(/<input[\s\S]*?\/>/g)) {
     const tag = m[0];
-    if (!/type="number"/.test(tag)) continue;
+    // `type="number"` 또는 **자판만 숫자인 칸**(`inputMode`)
+    if (!/type="number"/.test(tag) && !/inputMode="(numeric|decimal)"/.test(tag)) continue;
     const 줄 = src.slice(0, m.index).split('\n').length;
     const 자리 = `${rel}:${줄}`;
+    모든칸.add(자리);
     if (테두리없음[자리]) continue;
     if (!/\bmin=/.test(tag) || !/\bmax=/.test(tag)) 빈칸.push(자리);
   }
@@ -77,13 +105,18 @@ ok('min · max 가 빠진 칸', 빈칸, []);
 let 센칸 = 0;
 for (const rel of 칸있는파일) {
   for (const m of read(path.join(FRONT, rel)).matchAll(/<input[\s\S]*?\/>/g)) {
-    if (/type="number"/.test(m[0])) 센칸 += 1;
+    if (/type="number"/.test(m[0]) || /inputMode="(numeric|decimal)"/.test(m[0])) 센칸 += 1;
   }
 }
 console.log(`   센 칸 ${센칸}개`);
-ok('재고 있는 칸이 있다', 센칸 >= 20, true);
+ok('재고 있는 칸이 있다', 센칸 >= 28, true);
 
 for (const [자리, 왜] of Object.entries(테두리없음)) console.log(`   일부러 뺌: ${자리} — ${왜}`);
+
+// **쓰이지 않는 제외는 걷는다** (`check-twins` 와 같은 자, 10/31).
+// 줄 번호가 밀려 안 맞게 된 줄도 여기서 걸린다 — 그러면 그 칸은 **다시 안 보이는
+// 칸**이 되는데 목록은 「일부러 뺐다」고 말하고 있다
+ok('없는 자리를 가리키는 「일부러 뺌」', Object.keys(테두리없음).filter((자리) => !모든칸.has(자리)), []);
 
 // ── 2. 세트 · 횟수 — 서버와 화면이 같은 수 · 같은 규칙인가 ──
 const back = require('../src/utils/setRange');

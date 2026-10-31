@@ -176,3 +176,17 @@ export const USERNAME_MAX = 20;
  */
 export const PW_MIN = 8;
 export const PW_MAX = 100;
+
+/**
+ * 제보의 제목 · 본문 글자 수 (고객센터).
+ *
+ * **서버보다 좁다** — 서버는 제목 100 · 본문 2000 까지 담는다(`routes/reports.js`).
+ * 좁게 두는 것 자체는 괜찮다: 제보는 짧게 쓰는 것이 읽는 쪽에도 좋다.
+ * **문제는 말 없이 멈추는 것**이었다 — 본문은 「N/600」을 적어두는데 제목은
+ * 세는 것 없이 60자에서 글자가 안 들어갔다. 이제 둘 다 세어 보여준다.
+ *
+ * 그래서 이 둘은 **서버와 짝을 맞추는 수가 아니다** — `npm run twins` 가 견주지
+ * 않도록 서버와 다른 이름으로 둔다(서버는 `BODY_MAX`).
+ */
+export const TITLE_MAX = 60;
+export const REPORT_BODY_MAX = 600;

@@ -1,6 +1,6 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
-import { SETS_MAX } from '../data/limits';
+import { REPS_MAX, SETS_MAX } from '../data/limits';
 import { readLS, saveLS } from '../data/safeStorage';
 import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
@@ -464,7 +464,20 @@ export default function TrainPage() {
     const useWeight = over ? over.weight : weight;
     if (!name) { setError('무슨 운동인지 골라주세요'); return; }
     if (!useSets || !useReps) { setError('세트와 횟수를 적어주세요'); return; }
-    if (Number(useSets) > 100 || Number(useReps) > 1000) { setError('숫자가 너무 큽니다'); return; }
+    // ── **테두리는 한 자리에서 온다** ── (2026-10-31)
+    //
+    // 여태 이 줄이 `100`·`1000` 을 생글자로 들고 「숫자가 너무 큽니다」로만 말했다 —
+    // **어디까지 되는지 안 알려준다.** 그리고 작은 쪽(0 · 음수 · 2.5세트)은 아예
+    // 안 보고 서버에 보내 「1 이상의 정수여야 해요」를 받아왔다.
+    // 달력의 「이 날에 적기」에도 같은 줄이 있었다(같은 날 같이 고쳤다)
+    const ns = Number(useSets);
+    const nr = Number(useReps);
+    if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
+      setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
+    }
+    if (ns > SETS_MAX || nr > REPS_MAX) {
+      setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+    }
 
     setSaving(true);
     setError('');
@@ -1132,12 +1145,16 @@ export default function TrainPage() {
               />
               <div>
                 <label className="label" htmlFor="tr-s">세트</label>
-                <input id="tr-s" className="input" inputMode="numeric" value={sets}
+                {/* **테두리를 건다** (2026-10-31). 칸 셋 중 이것만 ± 가 없어
+                    `NumberStep` 을 안 쓰는데, 그러면서 `min`·`max` 도 안 받고
+                    있었다 — 옆의 무게·횟수는 들고 있다 */}
+                <input id="tr-s" className="input" type="number" inputMode="numeric"
+                  min="1" max={SETS_MAX} value={sets}
                   onChange={(e) => setSets(e.target.value)} style={{ textAlign: 'center' }} />
               </div>
               <NumberStep
                 id="tr-r" label="횟수" value={reps} onChange={setReps}
-                step={1} min={1} max={999} startAt={1} inputMode="numeric"
+                step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
               />
             </div>
 

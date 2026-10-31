@@ -7,6 +7,7 @@ import NavIcon from '../../components/NavIcon';
 import { KINDS, kindOf, SCREENS, FREQ, WORKAROUND } from './reportMeta';
 import ReportList from './ReportList';
 import AskFirst from './AskFirst';
+import { REPORT_BODY_MAX, TITLE_MAX } from '../../data/limits';
 
 // ─────────────────────────────────────────────────────────────
 // 제보함
@@ -243,11 +244,21 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
           <AskFirst />
         ) : (
           <>
-            <label className="label">{k.titleLabel}</label>
+            {/* ── **세는 것을 같이 적는다** ── (2026-10-31)
+                본문 칸은 「N/600」을 적어두고 있는데 **제목은 세는 것 없이
+                60자에서 멈췄다** — 치던 글자가 그냥 안 들어가고 까닭이 없다.
+                서버는 100 까지 받지만 제목은 짧은 것이 맞아서 60 을 지킨다.
+                **좁게 두는 것은 괜찮고, 말 없이 멈추는 것이 아니다** */}
+            <label className="label">
+              {k.titleLabel}
+              <span style={{ float: 'right', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>
+                {title.length}/{TITLE_MAX}
+              </span>
+            </label>
             <input
               className="input"
               value={title}
-              onChange={e => setTitle(e.target.value.slice(0, 60))}
+              onChange={e => setTitle(e.target.value.slice(0, TITLE_MAX))}
               placeholder={k.titleHint}
               style={{ marginBottom: titleHits.length ? 10 : 16 }}
             />
@@ -330,13 +341,13 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             <label className="label">
               {k.bodyLabel}
               <span style={{ float: 'right', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>
-                {body.length}/600
+                {body.length}/{REPORT_BODY_MAX}
               </span>
             </label>
             <textarea
               className="input"
               value={body}
-              onChange={e => setBody(e.target.value.slice(0, 600))}
+              onChange={e => setBody(e.target.value.slice(0, REPORT_BODY_MAX))}
               placeholder={k.bodyHint}
               rows={kind === 'ask' ? 3 : 5}
               style={{ marginBottom: 14, resize: 'vertical', lineHeight: 1.6, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}

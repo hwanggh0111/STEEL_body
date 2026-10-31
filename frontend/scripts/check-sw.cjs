@@ -83,9 +83,28 @@ function loadWorker({ caches, fetchImpl }) {
   };
 
   const src = fs.readFileSync(SRC, 'utf8');
+  // ── **밖의 이름은 손으로 엮여 있다** ── (2026-10-31)
+  //
+  // 아래 다섯(`self`·`caches`·`fetch`·`Response`·`URL`)만 넣어준다. `sw.js` 가
+  // 여섯째 이름을 쓰기 시작하면 이 자리에서 `ReferenceError` 로 **터진다** —
+  // 10/28 에 세운 자가 그것이다: **터진 검사는 아무것도 안 본 것**이고,
+  // 「FAIL 0」이 통과로 읽힌다(그날 그렇게 커밋했다).
+  //
+  // 터지게 두지 않고 **무엇이 모자란지 말하고 FAIL** 한다. 넣어줄 이름을 늘리는
+  // 일은 사람이 정할 일이지만(가짜를 어떻게 세울지가 그때마다 다르다),
+  // **무엇을 정해야 하는지는 검사가 말해줄 수 있다.**
+  const 넣는이름 = ['self', 'caches', 'fetch', 'Response', 'URL'];
   // 빌드가 치환하는 자리 — 검사에서는 그대로 두면 'blackiron-dev' 가 된다
-  const fn = new Function('self', 'caches', 'fetch', 'Response', 'URL', src);
-  fn(self_, caches, fetchImpl, Response, URL);
+  try {
+    const fn = new Function(...넣는이름, src);
+    fn(self_, caches, fetchImpl, Response, URL);
+  } catch (err) {
+    const 모르는이름 = /(\S+) is not defined/.exec(String(err && err.message));
+    ok('sw.js 를 세웠다', 모르는이름
+      ? `「${모르는이름[1]}」 를 안 넣어줬다 — 이 검사에 가짜를 세워야 한다 (넣는이름: ${넣는이름.join(' · ')})`
+      : `세우다 터졌다 — ${String(err && err.message).slice(0, 120)}`, 'ok');
+    return null;
+  }
 
   return {
     listeners,
@@ -130,6 +149,14 @@ const within = (p, ms) => Promise.race([
   new Promise((r) => setTimeout(() => r({ done: false }), ms)),
 ]);
 
+// 워커를 못 세웠으면 **그 뒤를 돌리지 않는다** — 돌리면 `null` 에서 또 터지고,
+// 터진 자리는 「아무것도 안 본 것」이 된다. 위에서 이미 FAIL 로 적었다
+const 멈춤 = () => {
+  console.log('');
+  console.log(bad + '건 실패 — 이 검사가 sw.js 를 세우지 못했습니다. 위 줄의 이름을 넣어주세요.');
+  process.exit(1);
+};
+
 (async () => {
   console.log('── 잠든 서버: 답이 영영 안 와도 화면이 뜨는가 ──');
   {
@@ -139,6 +166,7 @@ const within = (p, ms) => Promise.race([
     const fetchImpl = () => { 불린횟수 += 1; return new Promise(() => {}); };
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     await w.install();                                  // /index.html 을 담아둔다
 
     const { answered } = w.fire(req(ORIGIN + '/home', { mode: 'navigate' }));
@@ -153,6 +181,7 @@ const within = (p, ms) => Promise.race([
     const fetchImpl = async () => mkRes('새 화면');
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     await w.install();
 
     const { answered, waits } = w.fire(req(ORIGIN + '/history', { mode: 'navigate' }));
@@ -180,6 +209,7 @@ const within = (p, ms) => Promise.race([
     };
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     await w.install();
 
     const { answered, waits } = w.fire(req(ORIGIN + '/train', { mode: 'navigate' }));
@@ -194,6 +224,7 @@ const within = (p, ms) => Promise.race([
     const fetchImpl = async () => mkRes('서버가 준 화면');
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     // install 을 안 돌린다 = 담아둔 것이 없는 상태
 
     const { answered } = w.fire(req(ORIGIN + '/home', { mode: 'navigate' }));
@@ -206,6 +237,7 @@ const within = (p, ms) => Promise.race([
     const fetchImpl = async () => { throw new Error('못 닿았다'); };
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     await w.install();
 
     const { answered } = w.fire(req(ORIGIN + '/train', { mode: 'navigate' }));
@@ -215,7 +247,8 @@ const within = (p, ms) => Promise.race([
   {
     const fetchImpl = async () => { throw new Error('못 닿았다'); };
     const caches = makeCaches();
-    const w = loadWorker({ caches, fetchImpl });     // 담아둔 것도 없다
+    const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();     // 담아둔 것도 없다
 
     const { answered } = w.fire(req(ORIGIN + '/home', { mode: 'navigate' }));
     const res = await answered;
@@ -228,6 +261,7 @@ const within = (p, ms) => Promise.race([
     const fetchImpl = async () => { 불린횟수 += 1; return mkRes('받아온 것'); };
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
+    if (!w) 멈춤();
     await w.install();
 
     // 1) API 는 워커가 아예 안 건드린다 — 손대면 로그인·기록이 캐시에 남는다

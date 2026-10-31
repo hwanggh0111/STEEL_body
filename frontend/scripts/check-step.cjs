@@ -37,25 +37,69 @@ const ok = (name, got, want) => {
 const SRC = path.join(__dirname, '..', 'src', 'components', 'NumberStep.jsx');
 const src = fs.readFileSync(SRC, 'utf8');
 
+// ── **떼어내는 조각은 손으로 엮여 있다** ── (2026-10-31)
+//
+// 아래 `grab` 은 `NumberStep.jsx` 에서 함수 **글자**를 찾아 꺼낸다. 이름이 바뀌거나
+// 꼴이 달라지면 **터진다** — 10/28 에 세운 자가 그것이다: **터진 검사는 아무것도
+// 안 본 것**이고, 그때 「FAIL 0」을 통과로 읽는다.
+//
+// 그래서 터지게 두지 않는다. **무엇을 못 찾았는지 말하고 FAIL** 한다 —
+// 조각을 어떻게 떼어낼지는 사람이 정할 일이지만, **무엇을 정해야 하는지는 검사가
+// 말해줄 수 있다.** (`check-sw` 의 「넣어줄 이름」과 같은 손이다)
+const 못찾음 = [];
+
 // `num` · `tidy` · `bump` 세 조각만 꺼낸다
 const grab = (name, kind = 'function') => {
   const at = src.indexOf(`${kind} ${name}(`);
-  if (at < 0) throw new Error(`${name} 를 못 찾았다 — NumberStep.jsx 가 바뀌었다면 이 검사도 고쳐야 한다`);
+  if (at < 0) {
+    못찾음.push(`${name} — NumberStep.jsx 에서 \`${kind} ${name}(\` 를 못 찾았다`);
+    return 'function ' + name + '() { return null; }';   // 그 뒤가 또 터지지 않게
+  }
   let depth = 0;
   for (let i = src.indexOf('{', at); i < src.length; i += 1) {
     if (src[i] === '{') depth += 1;
     else if (src[i] === '}') { depth -= 1; if (depth === 0) return src.slice(at, i + 1); }
   }
-  throw new Error(`${name} 의 끝을 못 찾았다`);
+  못찾음.push(`${name} — 끝(닫는 중괄호)을 못 찾았다`);
+  return 'function ' + name + '() { return null; }';
 };
 
 const bumpAt = src.indexOf('const bump = (dir');
-if (bumpAt < 0) { console.log('FAIL NumberStep.jsx 에 bump 가 없다'); process.exit(1); }
+if (bumpAt < 0) 못찾음.push('bump — NumberStep.jsx 에서 `const bump = (dir` 를 못 찾았다');
 let depth = 0, bumpSrc = '';
-for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
+for (let i = bumpAt < 0 ? src.length : src.indexOf('{', bumpAt); i < src.length; i += 1) {
   if (src[i] === '{') depth += 1;
   else if (src[i] === '}') { depth -= 1; if (depth === 0) { bumpSrc = src.slice(bumpAt, i + 1); break; } }
 }
+
+// **조각은 미리 떼어낸다** (2026-10-31에 고쳤다).
+//
+// 처음에는 `num`·`tidy` 를 아래 `make` 안에서 떼었다. 그러면 못 찾았다는 말이
+// **멈추는 자를 지난 뒤에** 쌓여서 아무도 안 읽는다 — 되돌려 보니 `tidy` 의 이름을
+// 바꿔도 **스물여섯 줄이 다 OK 로 지나갔다**(떼어낸 것이 빈 함수라 셈이 null 인데
+// 그 값을 보는 줄이 없었다). **이 검사가 아무것도 안 보는 꼴**이다.
+const numFn = new Function(`${grab('num')}; return num;`)();
+const tidyFn = new Function(`${grab('tidy')}; return tidy;`)();
+
+/**
+ * 조각을 못 찾았으면 **거기서 멈춘다.**
+ *
+ * 흉내만 내어 계속 돌리면 아래 스물여섯 줄이 **다 OK 로 지나간다** — 떼어낸 것이
+ * 빈 함수이기 때문이다. 그것이 10/28 에 적은 「검사가 아무것도 안 보는」 바로 그 꼴이다.
+ */
+const 못찾았으면멈춘다 = () => {
+  if (못찾음.length === 0) return;
+  ok('떼어낼 조각을 다 찾았다', 못찾음, []);
+  console.log('');
+  console.log(bad + '건 실패 — **이 검사가 떼어내는 조각이 바뀌었습니다.** 위 줄을 보고 검사를 고쳐주세요.');
+  process.exit(1);
+};
+못찾았으면멈춘다();
+
+// **떼어낸 것이 빈 껍데기가 아닌지 한 줄로 못 박는다.** 글자를 찾았다고 셈이
+// 도는 것은 아니다 — 꼴이 바뀌어 다른 함수를 떼어 왔을 수도 있다
+ok('떼어낸 num 이 돈다', numFn('82.5'), 82.5);
+ok('떼어낸 tidy 가 돈다', tidyFn(3.7500000000000004), '3.75');
 
 // ──────────────────────────────────────────────────────────────
 // 세트 칸으로 적을 때 **무게를 지어내지 않는가** (2026-10-27)
@@ -71,7 +115,8 @@ for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
 {
   const src2 = fs.readFileSync(path.join(__dirname, '..', 'src', 'pages', 'TrainPage.jsx'), 'utf8');
   const at = src2.indexOf('export function setsWeight(');
-  if (at < 0) { console.log('FAIL TrainPage 에 setsWeight 가 없다'); process.exit(1); }
+  if (at < 0) 못찾음.push('setsWeight — TrainPage.jsx 에서 `export function setsWeight(` 를 못 찾았다');
+  못찾았으면멈춘다();
   let depth = 0; let body = '';
   // **매개변수의 중괄호부터 세면 안 된다** — 이 함수는 `({ sameForm, … })` 로 받는다.
   // 괄호가 닫힌 **뒤**의 첫 중괄호가 몸통의 시작이다 (처음에 여기서 틀렸다)
@@ -82,7 +127,10 @@ for (let i = src.indexOf('{', bumpAt); i < src.length; i += 1) {
   }
   const mod = { exports: {} };
   // `isBodyweight` 도 같이 떼어 온다 — 그 자가 맨몸을 가린다
-  const iso = src2.match(/const isBodyweight = [^;]+;/)[0];
+  const isoHit = src2.match(/const isBodyweight = [^;]+;/);
+  if (!isoHit) 못찾음.push('isBodyweight — TrainPage.jsx 에서 `const isBodyweight = …;` 를 못 찾았다');
+  못찾았으면멈춘다();
+  const iso = isoHit[0];
   // eslint-disable-next-line no-new-func
   const fn = new Function(`${iso}
 ${body.replace('export function', 'function')}
@@ -112,8 +160,6 @@ const make = ({ value, step = 1, min = 0, max = 9999, startAt }) => {
   // eslint-disable-next-line no-new-func
   const fn = new Function('num', 'tidy', 'value', 'set', 'mine', 'step', 'min', 'max', 'startAt',
     `${bumpSrc}; return bump;`);
-  const numFn = new Function(`${grab('num')}; return num;`)();
-  const tidyFn = new Function(`${grab('tidy')}; return tidy;`)();
   return {
     bump: (dir, isRepeat = false) => {
       const b = fn(numFn, tidyFn, now, set, mine, step, min, max, startAt);
