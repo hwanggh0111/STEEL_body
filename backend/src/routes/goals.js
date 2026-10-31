@@ -40,15 +40,39 @@ const { seoulDay } = require('../utils/seoulDay');
 
 // 주 8회는 없다. 몸이 쉬는 날을 스스로 지우는 목표를 앱이 거들지 않는다
 const MAX_WEEKLY = 7;
-// 사람 체중의 바깥 테두리. 인바디 화면이 쓰는 것과 같은 범위다
+
+// ── **목표로 적는 수**와 **담긴 값**은 테두리가 다르다 ── (2026-10-31)
+//
+// 여태 이 줄들이 「인바디 화면이 받는 범위와 같게 둔다」고 적어두고 있었다.
+// **아니었다** — 인바디는 체중 1~500kg · 골격근량 0~200kg 을 담는데 여기는
+// 20~300 · 5~100 만 받았다. 그리고 그 둘을 **같은 자로 쟀다.**
+//
+// 그래서 이렇게 깨졌다 —
+//
+//   인바디에 체중을 **7**(kg)로 잘못 적어둔 사람 → 목표 화면이 그 값을
+//   **시작값으로 자동으로 실어 보낸다**(`weightStart`, 처음 세울 때 한 번) →
+//   서버가 「시작 체중을 확인해 주세요」로 **저장을 통째로 거절한다** →
+//   그 사람은 **목표를 하나도 세울 수 없다.** 그런데 그 화면에는 체중 칸이 없다.
+//
+// **가르면 둘 다 맞는다** —
+//
+//   · **목표값**(`*Target`)은 사람이 그 화면에서 치는 수다. 목표답게 좁게 둔다 —
+//     체중 목표 7kg · 체지방률 0% 를 앱이 거들 까닭이 없다
+//   · **시작값**(`*Start`)은 **이미 담긴 인바디 값**이다. 담을 수 있던 값을
+//     여기서 거절하면 그 사람은 기능 하나를 통째로 못 쓴다.
+//     그래서 **인바디가 받는 그 범위**로 받는다 (`utils/inbodyRange.js` 한 자리)
 const WEIGHT_MIN = 20;
 const WEIGHT_MAX = 300;
-// 체지방률·골격근량의 바깥 테두리. 인바디 화면이 받는 범위와 같게 둔다 —
-// 거기서 담을 수 없는 수를 목표로는 세울 수 있으면 영영 못 닿는 목표가 된다
 const FAT_MIN = 3;
 const FAT_MAX = 60;
 const MUSCLE_MIN = 5;
 const MUSCLE_MAX = 100;
+
+// 담긴 값을 받는 테두리 — **인바디와 같은 한 자리에서** 온다
+const { RANGE } = require('../utils/inbodyRange');
+const [START_WEIGHT_MIN, START_WEIGHT_MAX] = RANGE.weight;
+const [START_FAT_MIN, START_FAT_MAX] = RANGE.fat_pct;
+const [START_MUSCLE_MIN, START_MUSCLE_MAX] = RANGE.muscle_kg;
 
 const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
@@ -82,7 +106,8 @@ function clean(body) {
   if (body?.weightStart === null) out.weight_start = null;
   else if (body?.weightStart !== undefined) {
     const n = Number(body.weightStart);
-    if (Number.isFinite(n) && n >= WEIGHT_MIN && n <= WEIGHT_MAX) out.weight_start = Math.round(n * 10) / 10;
+    // **인바디가 담은 값을 그대로 받는다** — 목표값보다 넓다 (위 머리글)
+    if (Number.isFinite(n) && n >= START_WEIGHT_MIN && n <= START_WEIGHT_MAX) out.weight_start = Math.round(n * 10) / 10;
     else bad.push('시작 체중을 확인해 주세요');
   }
 
@@ -100,9 +125,10 @@ function clean(body) {
     }
   };
   pair('fatTarget', 'fat_target', FAT_MIN, FAT_MAX, '%', '체지방률 목표');
-  pair('fatStart', 'fat_start', FAT_MIN, FAT_MAX, '%', '시작 체지방률');
   pair('muscleTarget', 'muscle_target', MUSCLE_MIN, MUSCLE_MAX, 'kg', '골격근량 목표');
-  pair('muscleStart', 'muscle_start', MUSCLE_MIN, MUSCLE_MAX, 'kg', '시작 골격근량');
+  // **시작값은 담긴 값이다** — 인바디가 받는 범위로 받는다 (위 머리글)
+  pair('fatStart', 'fat_start', START_FAT_MIN, START_FAT_MAX, '%', '시작 체지방률');
+  pair('muscleStart', 'muscle_start', START_MUSCLE_MIN, START_MUSCLE_MAX, 'kg', '시작 골격근량');
 
   // 언제부터 쫓기 시작했나. 안 주면 서버가 오늘로 적는다 —
   // 사람의 오늘과 서버의 오늘이 다를 수 있어서 화면이 주는 쪽을 먼저 본다

@@ -191,5 +191,34 @@ ok('나이 칸이 테두리를 들었다', heart.includes('min={AGE_MIN}') && he
 ok('안정시가 최대보다 높은 것을 가린다', heart.includes('restTooHigh'), true);
 ok('  그때는 카보넨 식을 안 쓴다', heart.includes('rest && !restTooHigh ? rest : null'), true);
 
+// ── 9. 목표 — 화면이 적는 테두리가 서버가 받는 그 수인가 ──
+//
+// 목표 화면은 `MEASURES` 표 **안에** `min: 20, max: 300` 으로 적어둔다. 객체 안의
+// 숫자라 `npm run twins` 가 못 본다(그 검사는 `const NAME = 수` 만 본다) —
+// 여기서 글자로 떼어 견준다. **목표값과 시작값은 테두리가 다르다**(10/31) —
+// 이것은 **목표값** 쪽이다
+const goals = read(path.join(ROOT, 'backend', 'src', 'routes', 'goals.js'));
+const 서버수 = (name) => {
+  const head = 'const ' + name + ' = ';
+  const i = goals.indexOf(head);
+  return i < 0 ? null : parseInt(goals.slice(i + head.length), 10);
+};
+const goalPage = read(path.join(FRONT, 'pages', 'GoalPage.jsx'));
+const 화면수 = (key) => {
+  const i = goalPage.indexOf("key: '" + key + "'");
+  const 줄 = goalPage.slice(i, goalPage.indexOf('}', i));
+  const m = 줄.match(/min: (-?[0-9.]+), max: (-?[0-9.]+)/);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+};
+ok('목표 체중 테두리', 화면수('weight'), [서버수('WEIGHT_MIN'), 서버수('WEIGHT_MAX')]);
+ok('목표 체지방률 테두리', 화면수('fat'), [서버수('FAT_MIN'), 서버수('FAT_MAX')]);
+ok('목표 골격근량 테두리', 화면수('muscle'), [서버수('MUSCLE_MIN'), 서버수('MUSCLE_MAX')]);
+
+// **시작값은 인바디가 받는 그 범위**여야 한다 — 담긴 값을 여기서 거절하면
+// 그 사람은 목표를 하나도 세울 수 없다
+const { RANGE } = require('../src/utils/inbodyRange');
+ok('시작값은 인바디 범위에서 온다', goals.includes("require('../utils/inbodyRange')"), true);
+ok('  인바디 체중 범위', RANGE.weight, [1, 500]);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

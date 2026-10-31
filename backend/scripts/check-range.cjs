@@ -165,6 +165,27 @@ const call = async (method, p, body) => {
       if (r.data?.id) await call('DELETE', `/measures/${r.data.id}`);
     }
 
+    // ── 목표: **담긴 값이 목표를 못 세우게 막지 않는가** ── (2026-10-31)
+    //
+    // 인바디는 체중 1~500kg 을 담는데 목표 쪽은 20~300 만 받았고, **시작값도
+    // 같은 자로 쟀다.** 목표 화면은 처음 세울 때 그 사람의 최근 인바디 값을
+    // **시작값으로 자동으로 실어 보낸다** — 그래서 체중을 7 로 잘못 적어둔 사람은
+    // 「시작 체중을 확인해 주세요」로 **목표를 하나도 세울 수 없었다.**
+    // 그 화면에는 체중 칸이 없다
+    console.log('');
+    const inb = await call('POST', '/inbody', { date: '2026-10-30', weight: 7, height: 170 });
+    ok('인바디는 체중 7kg 을 담는다', inb.status, 201);
+    const goal = await call('PUT', '/goals', { weeklyTarget: 3, weightTarget: 70, weightStart: 7 });
+    ok('그 값이 시작값으로 와도 목표가 세워진다', goal.status, 200);
+    ok('  주 3회가 담겼다', goal.data?.weeklyTarget, 3);
+    // **목표값은 여전히 좁다** — 목표 7kg 을 앱이 거들 까닭이 없다
+    const low = await call('PUT', '/goals', { weightTarget: 7 });
+    ok('목표 체중 7kg 은 막는다', low.status, 400);
+    ok('  까닭을 말한다', /20~300/.test(String(low.data?.error)), true);
+
+    await call('DELETE', '/goals');
+    if (inb.data?.id) await call('DELETE', `/inbody/${inb.data.id}`);
+
     await call('POST', '/auth/delete', { password: 'check12345' });
   } catch (e) {
     bad += 1;
