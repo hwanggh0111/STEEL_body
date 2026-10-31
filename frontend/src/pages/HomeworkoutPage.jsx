@@ -10,7 +10,7 @@ import { buildPump, programPump, partsOf, toRecords, doneList } from '../data/ho
 import { useBreath, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import {
-  startRecover, recoverTick, endRecover, recoverLine, tryLine,
+  startRecover, recoverTick, endRecover, recoverLine,
   pickRecoverPrev, pushRecover, recoverSummary, summaryLine, RECOVER_MAX,
 } from '../data/breathRecover';
 import PumpBody from '../components/PumpBody';

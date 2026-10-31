@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import client from '../api/client';
-import { toast } from './Toast';
 import NavIcon from './NavIcon';
 
 // ─────────────────────────────────────────────────────────────

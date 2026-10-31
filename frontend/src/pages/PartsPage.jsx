@@ -3,7 +3,7 @@ import SegRow from '../components/SegRow';
 import PumpBody, { MARK_WARNING } from '../components/PumpBody';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
-import { readLS, saveLS } from '../data/safeStorage';
+import { readLS } from '../data/safeStorage';
 import { SORE_KEY } from '../data/localKeys';
 import { keepLocal } from '../data/keepLocal';
 import { MAP_PARTS, buildHeat } from '../data/bodyHeat';

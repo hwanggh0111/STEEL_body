@@ -174,6 +174,40 @@ if (missing.length) {
 }
 }
 
+// ── **안 쓰는 이름을 가져오는 자리** ── (2026-10-31)
+//
+// 위의 반대쪽이다. 선언 없이 쓰는 이름은 **열면 터지지만**, 가져오고 안 쓰는
+// 이름은 아무 일도 안 난다 — 그래서 **아무도 안 본다.** 오늘 둘을 찾았다 —
+// `AccountDeleteModal` 의 `toast`(옛 판에서 알리던 자리)와 홈트의 `tryLine`.
+//
+// 그 자체로는 해롭지 않지만 **읽는 사람을 속인다**: 「여기서 토스트를 띄우는구나」로
+// 읽히고, `tryLine` 은 **「재보기 결과를 이 화면이 말하는구나」**로 읽힌다
+// (실은 `RecoverTry` 가 말한다). 10/28 ⑬ 과 같은 결이다 — 만들고 아무도 안 부르는 것.
+//
+// **번들러는 걷어내 주지만** 코드는 그대로 남는다. 조각 크기가 아니라 **읽는 사람**의 일이다.
+console.log('');
+console.log('── 안 쓰는 이름을 가져오는 자리 ──');
+{
+  const B = '\\b';
+  const 안쓰는것 = [];
+  for (const tree of TREES) {
+    for (const f of walk(tree.dir)) {
+      const src = fs.readFileSync(f, 'utf8');
+      // 가져오는 줄끼리는 서로를 쓰지 않는다 — 몸통만 본다
+      const body = src.replace(/^import[^;]*?from[ ]+'[^']+';$/gm, '');
+      for (const m of src.matchAll(/^import[ ]+[{]([^}]+)[}][ ]+from[ ]+'([^']+)';$/gm)) {
+        for (const raw of m[1].split(',')) {
+          const name = raw.includes(' as ') ? raw.split(' as ')[1].trim() : raw.trim();
+          if (!name) continue;
+          if (!new RegExp(B + name + B).test(body)) {
+            안쓰는것.push(tree.label + '/' + path.relative(tree.dir, f).split(path.sep).join('/') + ' — ' + name);
+          }
+        }
+      }
+    }
+  }
+  ok('가져오고 안 쓰는 이름', 안쓰는것, []);
+}
 console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);
