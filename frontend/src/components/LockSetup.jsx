@@ -37,11 +37,13 @@ export default function LockSetup({ onClose }) {
   const digits = (v) => v.replace(/\D/g, '').slice(0, PIN_LEN);
 
   if (!canLock()) {
-    // **못 거는 자리에서 거는 척하지 않는다.** `crypto.subtle` 은 https 에서만 있다
+    // **못 거는 자리에서 거는 척하지 않는다.** `crypto.subtle` 은 https 에서만 있고,
+    // **사이트 데이터를 막아둔 브라우저는 네 자리를 담아주지 않는다**
+    // (2026-10-31에 보탰다 — 담기지 않으면 「걸었습니다」가 거짓말이 된다)
     return (
       <div style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-        이 브라우저(또는 http 주소)에서는 잠금을 걸 수 없어요.
-        <br />앱이나 https 주소에서 열면 됩니다.
+        이 브라우저에서는 잠금을 걸 수 없어요.
+        <br />https 주소(또는 앱)에서 열고, <b>사이트 데이터 저장</b>이 막혀 있지 않은지 봐주세요.
       </div>
     );
   }

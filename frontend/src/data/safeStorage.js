@@ -24,6 +24,29 @@ export function saveLS(key, value) {
   }
 }
 
+/**
+ * **이 브라우저가 담아주는가** (2026-10-31).
+ *
+ * 쿠키·사이트 데이터를 막아둔 브라우저에서는 쓰는 것도 읽는 것도 던진다.
+ * 「담아두면 좋은 값」은 조용히 잃어도 되지만(검색 기록 · 고른 바 무게),
+ * **담겼다는 것이 기능의 전부인 자리**가 있다 — 앱 잠금이 그렇다.
+ * 거기서는 **걸기 전에 물어봐야 한다.**
+ *
+ * 써보고 · 읽어보고 · 치운다. 앱의 열쇠 접두사를 안 쓴다 —
+ * 남는 값이 아니라 **그 자리에서 치우는 값**이다
+ */
+export function canStore() {
+  const probe = '__probe__';
+  try {
+    localStorage.setItem(probe, '1');
+    const back = localStorage.getItem(probe) === '1';
+    localStorage.removeItem(probe);
+    return back;
+  } catch {
+    return false;
+  }
+}
+
 export function removeLS(key) {
   try {
     localStorage.removeItem(key);

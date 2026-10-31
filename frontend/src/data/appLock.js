@@ -21,7 +21,7 @@
 // 계산은 여기 한 곳에 둔다 — 화면으로는 확인하기 어려운 것들이다(90초를 기다려야 하고,
 // 다섯 번 틀려야 한 번 나온다). `npm run lock` 이 값으로 본다.
 
-import { readLS, saveLS, removeLS } from './safeStorage';
+import { canStore, readLS, saveLS, removeLS } from './safeStorage';
 import { LOCK_KEY_NAME } from './localKeys';
 
 /** 기기에 담는 자리. **사람마다가 아니라 기기마다**라 로그아웃해도 안 지운다 */
@@ -55,7 +55,17 @@ export function isPin(v) {
  * 아예 못 걸게 한다 — 약한 방법으로 대신 걸면 사람은 걸린 줄 알고 폰을 빌려준다.
  */
 export function canLock() {
-  return typeof crypto !== 'undefined' && !!crypto.subtle && typeof TextEncoder !== 'undefined';
+  if (typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') return false;
+  // ── **담아주지 않는 브라우저에서도 못 걸게 한다** ── (2026-10-31)
+  //
+  // 위 머리글이 이미 그 선을 적어두고 있었다 — 「약한 방법으로 대신 걸면 사람은
+  // 걸린 줄 알고 폰을 빌려준다」. 그런데 보는 것은 `crypto` 뿐이었다.
+  //
+  // 사이트 데이터를 막아둔 브라우저에서는 `localStorage` 가 **쓰는 것도 던진다**
+  // (10/27 에 휴식 알림이 같은 자리에서 조용히 사라졌다). 그러면 네 자리를 정하고
+  // 「걸었습니다」를 본 사람의 폰이 **안 걸린 채로** 남는다 — 가리려던 것이 그대로
+  // 보이는데 걸렸다고 믿는다. **이것이 이 기능에서 가장 나쁜 끝이다**
+  return canStore();
 }
 
 export async function hashPin(pin, salt) {
@@ -88,10 +98,23 @@ export const isLockSet = () => !!readLock();
 /** 건다. 이미 걸려 있으면 바꾸는 것이다 (지금 것을 먼저 맞춰야 한다 — 화면이 묻는다) */
 export async function setPin(pin) {
   if (!isPin(pin)) throw new Error(`${PIN_LEN}자리 숫자로 정해주세요`);
-  if (!canLock()) throw new Error('이 브라우저에서는 잠금을 걸 수 없어요');
+  if (!canLock()) throw new Error('이 브라우저에서는 잠금을 걸 수 없어요 (사이트 데이터가 막혀 있어요)');
   const salt = newSalt();
   const hash = await hashPin(pin, salt);
-  saveLS(LOCK_KEY, JSON.stringify({ salt, hash, at: new Date().toISOString() }));
+  // ── **담겼는지 읽어서 확인한다** ── (2026-10-31)
+  //
+  // 여태 `saveLS` 의 답을 **안 보고** `true` 를 돌려줬다. 그 함수는 못 담으면
+  // 터지지 않고 `false` 를 준다(8월에 그렇게 고쳤다) — 그래서 **담기지 않아도
+  // 「걸었습니다」**가 떴다.
+  //
+  // 「걸렸다」의 유일한 증거는 **다시 읽어서 그 값이 있는 것**이다. 자리가 모자라
+  // 반쪽만 들어간 경우도 여기서 걸린다. 못 담았으면 **흔적을 치운다** —
+  // 깨진 값이 남으면 다음에 열 때 「걸려 있다」로 읽혀 **아무 번호도 안 맞는다**
+  const ok = saveLS(LOCK_KEY, JSON.stringify({ salt, hash, at: new Date().toISOString() }));
+  if (!ok || !readLock()) {
+    removeLS(LOCK_KEY);
+    throw new Error('이 기기에 잠금을 담지 못했어요. 브라우저의 사이트 데이터가 막혀 있는지 봐주세요');
+  }
   return true;
 }
 

@@ -80,6 +80,19 @@ ok('  서버로 안 보낸다', /client\.(post|put|get)/.test(setup), false);
 ok('못 거는 자리에서는 거는 척하지 않는다', /export function canLock/.test(setup), true);
 ok('  설정 화면이 그것을 먼저 본다', /canLock\(\)/.test(read('src/components/LockSetup.jsx')), true);
 
+// ── **담아주지 않는 브라우저도 「못 거는 자리」다** ── (2026-10-31)
+//
+// 사이트 데이터를 막아둔 브라우저에서는 `localStorage` 가 **쓰는 것도 던진다**
+// (10/27 에 휴식 알림이 같은 자리에서 조용히 사라졌다). 여태 `canLock` 은
+// `crypto` 만 봤고, `setPin` 은 `saveLS` 의 답을 **안 보고 `true` 를 돌려줬다** —
+// 그래서 담기지 않아도 **「잠금을 걸었어요」**가 떴다. 머리글이 적어둔 그 끝이다:
+// 「약한 방법으로 대신 걸면 사람은 걸린 줄 알고 폰을 빌려준다」
+ok('  담아주는지도 본다', /canStore\(\)/.test(setup), true);
+ok('  담은 뒤 읽어서 확인한다', /!readLock\(\)/.test(setup), true);
+ok('  못 담았으면 흔적을 치운다',
+  setup.includes('removeLS(LOCK_KEY);') && /throw new Error\('이 기기에 잠금을 담지/.test(setup), true);
+
+
 console.log('');
 console.log('── 화면이 제 일을 하는가 ──');
 const overlay = read('src/components/AppLock.jsx');
@@ -147,6 +160,44 @@ ok('  풀면 되돌린다 (안 하면 영영 못 내려간다)', /document\.body
     /checkAuth[\s\S]{0,400}release\(\)/.test(auth), false);
 }
 
+// **끝맺는 자리를 함수로 둔다** — 아래 「담아주지 않는 브라우저」는 async 라서,
+// 그냥 적으면 **그 줄들이 돌기 전에** 「전부 통과」가 찍힌다 (아무것도 안 보고 통과)
+function 끝() {
+  console.log('');
+  if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
+  console.log('전부 통과');
+}
+
 console.log('');
-if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
-console.log('전부 통과');
+console.log('── 담아주지 않는 브라우저 ──');
+//
+// **값으로 본다.** 글자로만 지키면 그 글자가 맞는지는 아무도 안 본다 (10/28 ⑯ 의 자).
+// 사이트 데이터를 막아둔 브라우저를 흉내 내어 `setPin` 이 거절하는지 본다
+(async () => {
+  const store = new Map();
+  let 막힌다 = true;
+  global.localStorage = {
+    setItem: (k, v) => { if (막힌다) throw new Error('blocked'); store.set(k, String(v)); },
+    getItem: (k) => { if (막힌다) throw new Error('blocked'); return store.has(k) ? store.get(k) : null; },
+    removeItem: (k) => { if (!막힌다) store.delete(k); },
+  };
+  global.crypto = require('crypto').webcrypto;
+
+  // 번들을 **다시** 받는다 — 위에서 받은 것은 `localStorage` 가 없던 때의 것이다
+  const l2 = bundle('src/data/appLock.js', '.l2.cjs');
+  ok('담아주지 않으면 못 거는 자리로 본다', l2.canLock(), false);
+  let 말 = '걸렸다고 했다';
+  try { await l2.setPin('1234'); } catch (e) { 말 = String(e.message); }
+  ok('  그래도 걸린다고 하지 않는다', /담지 못했|걸 수 없어요/.test(말), true);
+
+  // 담아주는 브라우저에서는 **걸린다** — 좁게 막아 멀쩡한 자리를 FAIL 하지 않는다
+  막힌다 = false;
+  const l3 = bundle('src/data/appLock.js', '.l3.cjs');
+  ok('담아주면 걸린다', l3.canLock(), true);
+  ok('  걸고 나면 담겨 있다', [await l3.setPin('1234'), l3.isLockSet()], [true, true]);
+  ok('  그 네 자리가 맞는다', await l3.matches('1234'), true);
+  ok('    다른 네 자리는 안 맞는다', await l3.matches('9999'), false);
+
+  끝();
+})();
+

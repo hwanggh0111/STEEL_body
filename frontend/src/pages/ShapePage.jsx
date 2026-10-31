@@ -60,8 +60,19 @@ function loadLog() {
   } catch { /* 없으면 없는 것이다 */ }
   return [];
 }
+/**
+ * 이력을 기기에 담는다. **담지 못하면 그렇다고 말해야 한다** (2026-10-31).
+ *
+ * 여태 돌려주는 값을 안 봤다 — 「저장 못 해도 화면은 돈다」. 이번 판은 그렇다.
+ * 그런데 **이 이력은 기기에만 있다**(체형은 서버에 안 올린다 — 사진을 안 보내는
+ * 화면이다). 담기지 않으면 **다시 열었을 때 「지난 번」이 없다.** 두 번 찍은
+ * 사람이 세 번째에도 「견줄 상대가 없어요」를 본다 — 그런데 아무 말도 없었다.
+ *
+ * 비교 화면이 10/05 에 같은 자리를 고쳤다(「기기에는 다 못 담았어요」).
+ * 거기는 서버에 원본이 있어서 느려지기만 했고, **여기는 그대로 사라진다.**
+ */
 function saveLog(list) {
-  saveLS(SHAPE_LOG_KEY, JSON.stringify(list));   // 저장 못 해도 화면은 돈다
+  return saveLS(SHAPE_LOG_KEY, JSON.stringify(list));
 }
 
 /** 비교 화면이 기기에 둔 전·후 사진. **읽기만 한다** — 체형은 사진을 안 만든다. */
@@ -90,6 +101,8 @@ export default function ShapePage({ embedded = false }) {
 
   const [ratios, setRatios] = useState(null);
   const [log, setLog] = useState(() => loadLog());
+  // 이력을 기기에 담았나. `null` 은 아직 안 재봤다는 뜻이다
+  const [kept, setKept] = useState(null);
   // 견줄 상대. **처음이 둘 이상 쌓였을 때만** 고를 수 있다 (`pickFirst`)
   const [against, setAgainst] = useState('prev');
   const [camOpen, setCamOpen] = useState(false);
@@ -155,7 +168,8 @@ export default function ShapePage({ embedded = false }) {
       const entry = { ...r, date: today, shot };
       const next = pushShape(log, entry);
       setLog(next);
-      saveLog(next);
+      // **못 담았으면 그렇다고 적는다** — 이번 판에는 보이고 다시 열면 없다
+      setKept(saveLog(next));
       setRatios(entry);
       setStage(null);
     } catch {
@@ -315,6 +329,17 @@ export default function ShapePage({ embedded = false }) {
         {error && (
           <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.65 }}>
             {error}
+          </div>
+        )}
+
+        {/* **못 담았으면 그렇다고 적는다** (2026-10-31). 이 이력은 기기에만 있어서
+            담기지 않으면 **다시 열었을 때 「지난 번」이 없다** — 두 번 찍은 사람이
+            세 번째에도 「견줄 상대가 없어요」를 보는데 까닭을 알 길이 없었다 */}
+        {kept === false && (
+          <div style={{ fontSize: 12.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.7 }}>
+            이 기기에 <b>잰 값을 담지 못했어요</b> — 이번 것은 아래에 보이지만,
+            앱을 다시 열면 <b>지난 번과 견줄 수 없습니다.</b>
+            <br />브라우저의 <b>사이트 데이터 저장</b>이 막혀 있는지 봐주세요.
           </div>
         )}
 
