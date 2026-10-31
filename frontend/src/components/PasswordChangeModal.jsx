@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import client from '../api/client';
 import { toast } from './Toast';
+import { passwordError } from '../data/password';
+import { PW_MIN } from '../data/limits';
 
 // ─────────────────────────────────────────────────────────────
 // 비밀번호 변경 — 로그인한 채로 바꾼다.
@@ -13,10 +15,12 @@ import { toast } from './Toast';
 // 그게 맞는 동작이고(비밀번호를 바꾸는 이유가 보통 그거다), 그래서 미리 말해준다.
 // ─────────────────────────────────────────────────────────────
 
-// 서버와 같은 규칙. 여기서 먼저 걸러 되돌아오는 시간을 아낀다
+// 서버와 같은 규칙. 여기서 먼저 걸러 되돌아오는 시간을 아낀다.
+// **규칙은 한 자리에서 온다** (`data/password.js`, 2026-10-31) — 여태 `8`·`100` 과
+// 글자 조합을 여기에 또 적고 있었다. 「지금 쓰는 것과 같다」만 이 화면의 일이다
 function checkNew(pw, current) {
-  if (pw.length < 8 || pw.length > 100) return '새 비밀번호는 8~100자여야 해요';
-  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return '새 비밀번호는 영문+숫자 조합이어야 해요';
+  const bad = passwordError(pw, '새 비밀번호는');
+  if (bad) return bad;
   if (pw === current) return '지금 쓰는 것과 같아요';
   return '';
 }
@@ -96,7 +100,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
             name="new-password"
             autoComplete="new-password"
             className="input" type="password"
-            placeholder="영문 + 숫자, 8자 이상"
+            placeholder={`영문 + 숫자, ${PW_MIN}자 이상`}
             value={next}
             onChange={(e) => { setNext(e.target.value); if (error) setError(''); }}
             style={{ marginBottom: localError ? 4 : 14 }}

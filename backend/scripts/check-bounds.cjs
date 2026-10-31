@@ -260,5 +260,38 @@ const auth = read(path.join(ROOT, 'backend', 'src', 'routes', 'auth.js'));
 ok('서버에 남은 날 정규식', (auth.match(/\{4,20\}/g) || []).length, 0);
 ok('badUsername 을 쓰는 자리 셋', (auth.match(/badUsername\(/g) || []).length - 1, 3);
 
+// ── 12. 비밀번호 — 규칙이 양쪽에 **한 자리씩**인가 ──
+//
+// 10/28 에 서버 셋의 `8~100` 을 묶었는데 **규칙**은 두 줄씩 남아 있었고 **화면
+// 셋**은 아예 안 봤다. 다 같은 수였으니 틀린 데는 없었다 — **틀릴 자리가
+// 여섯이라는 것**이 문제였다. 양쪽 다 한 자리로 묶었는지 글자로 본다
+const pwFront = read(path.join(FRONT, 'data', 'password.js'));
+ok('화면에 남은 날 길이 검사',
+  ['RegisterPage.jsx', 'components/PasswordChangeModal.jsx', 'components/PasswordResetModal.jsx']
+    .map((f) => (f.includes('/') ? f : 'pages/' + f))
+    .filter((f) => /pw\.length|newPw\.length|password\.length/.test(read(path.join(FRONT, f)))), []);
+ok('화면에 남은 날 글자 검사',
+  ['pages/RegisterPage.jsx', 'components/PasswordChangeModal.jsx', 'components/PasswordResetModal.jsx']
+    .filter((f) => read(path.join(FRONT, f)).includes('[A-Za-z]')), []);
+ok('서버에 남은 날 검사', (authText.match(/newPassword\.length|password\.length < PW_MIN/g) || []).length, 0);
+ok('badPassword 를 쓰는 자리 셋', (authText.match(/badPassword\(/g) || []).length - 1, 3);
+
+// 글자 규칙이 양쪽에 같은가 — `[/[A-Za-z]/, /[0-9]/]` 를 떼어 맞춘다
+// **닫는 자리를 `];` 로 찾는다** — 첫 `]` 로 자르면 글자 묶음 안에서 끊겨
+// (`[/[A-Za-z]`) 뒤쪽 `[0-9]` 가 바뀌어도 모른다
+const 글자자 = (src) => {
+  const i = src.indexOf('PW_CHARS = [');
+  if (i < 0) return null;
+  return src.slice(i + 'PW_CHARS = '.length, src.indexOf('];', i) + 1);
+};
+ok('비밀번호 글자 규칙이 양쪽에 같다',
+  [글자자(authText), 글자자(pwFront) === 글자자(authText)], [글자자(pwFront), true]);
+ok('  규칙을 찾았다', (글자자(authText) || '').includes('A-Za-z'), true);
+
+// 수는 `twins` 가 보지만, **화면이 그 이름을 들고 있는지**는 여기서 본다
+const limitsText = read(path.join(FRONT, 'data', 'limits.js'));
+ok('화면 PW_MIN · PW_MAX', [num('PW_MIN'), num('PW_MAX')], [8, 100]);
+ok('  limits 에 적혀 있다', limitsText.includes('export const PW_MIN'), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

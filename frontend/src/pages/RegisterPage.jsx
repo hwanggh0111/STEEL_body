@@ -12,6 +12,10 @@ import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 import { SAVED_ID_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
 import { NICKNAME_MAX, USERNAME_MAX, USERNAME_MIN } from '../data/limits';
 import { usernameHint } from '../data/username';
+// 비밀번호 규칙은 **한 자리에서** 온다 (`data/password.js`, 2026-10-31) —
+// 가입 · 바꾸기 · 찾기가 각자 적고 있었고 **찾기만 영문+숫자를 안 봤다**
+import { isValidPw, pwStrength as strengthOf } from '../data/password';
+import { PW_MAX, PW_MIN } from '../data/limits';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -70,10 +74,7 @@ import { usernameHint } from '../data/username';
 // 상태 수는 이 화면의 문제가 아니었다. 문제는 처음 온 사람이 칸 여섯을 한꺼번에
 // 보면서 **자기가 뭘 해야 끝나는지 모르는 것**이었다.
 
-// 백엔드와 동일한 비밀번호 정책
-const PW_MIN = 8;
-const PW_MAX = 100;
-const isValidPw = (pw) => pw.length >= PW_MIN && pw.length <= PW_MAX && /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
+
 
 /**
  * 메일 앞부분 → 쓸 만한 아이디.
@@ -218,20 +219,8 @@ export default function RegisterPage() {
     }, 600);
   };
 
-  // ── 비밀번호 강도 (백엔드 정책 기준) ──
-  const getPasswordStrength = () => {
-    if (!password) return null;
-    let score = 0;
-    if (password.length >= PW_MIN) score++;
-    if (password.length >= 12) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    if (score <= 1) return { label: '약함', color: 'var(--danger)', pct: 33 };
-    if (score <= 3) return { label: '보통', color: 'var(--warning)', pct: 66 };
-    return { label: '강함', color: 'var(--success)', pct: 100 };
-  };
-  const pwStrength = getPasswordStrength();
+  // 비밀번호 세기 — 규칙과 같은 자리에서 온다 (`data/password.js`)
+  const pwStrength = strengthOf(password);
 
   // ── 아이디 ──
   //
@@ -581,7 +570,7 @@ export default function RegisterPage() {
               autoComplete="username"
               className="input"
               type="text"
-              placeholder="영문+숫자 4~20자"
+              placeholder={`영문+숫자 ${USERNAME_MIN}~${USERNAME_MAX}자`}
               value={username}
               onChange={(e) => updateUsernameHint(e.target.value)}
               style={{

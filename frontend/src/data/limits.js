@@ -164,3 +164,15 @@ export const PLAN_NAME_MAX = 40;
  */
 export const USERNAME_MIN = 4;
 export const USERNAME_MAX = 20;
+
+/**
+ * 비밀번호의 글자 수.
+ *
+ * 10/28 에 **서버** 셋을 `config/security.js` 로 묶었다. 그때 **화면 셋**은
+ * 안 봤다 — 가입은 제 파일에 `PW_MIN`·`PW_MAX` 를 따로 적고, 바꾸기·찾기 모달은
+ * `8`·`100` 을 생글자로 들고 있었다. 규칙(영문+숫자)은 `data/password.js` 한 자리.
+ *
+ *   둘 다 → backend/src/config/security.js
+ */
+export const PW_MIN = 8;
+export const PW_MAX = 100;

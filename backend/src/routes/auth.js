@@ -25,6 +25,24 @@ const USERNAME_MIN = 4;
 const USERNAME_MAX = 20;
 const USERNAME_CHARS = /^[a-zA-Z0-9!@#$%^&*._-]+$/;
 
+// ── 비밀번호 규칙도 **한 자리에서** 온다 ── (2026-10-31)
+//
+// 10/28 에 `8~100` 이라는 **수**를 `config/security.js` 로 묶었다. 그런데 **규칙**은
+// 그대로 세 자리(가입 · 찾기 · 바꾸기)에 두 줄씩 남아 있었고, 화면 쪽은 더 나빴다 —
+// 가입과 바꾸기는 「영문+숫자」를 미리 보는데 **찾기 화면만 길이만 봤다.**
+// 메일로 번호까지 받고 와서 **누른 다음에** 거절당한다.
+//
+// 거절하는 말의 머리만 다르다(「비밀번호는」 · 「새 비밀번호는」) — 그것만 받는다.
+const PW_CHARS = [/[A-Za-z]/, /[0-9]/];
+
+/** 비밀번호가 규칙에 안 맞으면 **왜인지**를 돌려준다. 맞으면 null */
+function badPassword(pw, head = '비밀번호는') {
+  const s = typeof pw === 'string' ? pw : '';
+  if (s.length < PW_MIN || s.length > PW_MAX) return `${head} ${PW_MIN}~${PW_MAX}자여야 해요`;
+  if (!PW_CHARS.every((re) => re.test(s))) return `${head} 영문+숫자 조합이어야 해요`;
+  return null;
+}
+
 /** 아이디가 규칙에 안 맞으면 **왜인지**를 돌려준다. 맞으면 null */
 function badUsername(v) {
   const s = typeof v === 'string' ? v : '';
@@ -310,14 +328,10 @@ router.post('/register', async (req, res) => {
   }
   const badReg = badUsername(username);
   if (badReg) return res.status(400).json({ error: badReg });
-  // **값은 한 자리에서 온다** (2026-10-28, `config/security.js`) — 이 셈이 세 곳에
-  // 글자로 있었고 거절하는 말도 세 번 따로 적혀 있었다
-  if (password.length < PW_MIN || password.length > PW_MAX) {
-    return res.status(400).json({ error: `비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
-  }
-  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-    return res.status(400).json({ error: '비밀번호는 영문+숫자 조합이어야 해요' });
-  }
+  // **값도 규칙도 한 자리에서 온다** (수는 10/28 `config/security.js` · 규칙은
+  // 10/31 `badPassword`) — 셋이 길이와 글자 조합을 각각 두 줄씩 적고 있었다
+  const badPw = badPassword(password);
+  if (badPw) return res.status(400).json({ error: badPw });
   // 새니타이즈까지 끝낸 뒤에 본다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이 되는데,
   // 길이만 재고 넘기면 **이름 없는 계정**이 만들어진다 — 닉네임은 홈 인사부터
   // 관리자 사용자 목록까지 온 앱에 나오는 이름이다
@@ -710,12 +724,8 @@ router.post('/reset-password', async (req, res) => {
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
   }
-  if (newPassword.length < PW_MIN || newPassword.length > PW_MAX) {
-    return res.status(400).json({ error: `새 비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
-  }
-  if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-    return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
-  }
+  const badNew = badPassword(newPassword, '새 비밀번호는');
+  if (badNew) return res.status(400).json({ error: badNew });
 
   const bad = checkCode(email, code);
   if (bad) return res.status(bad.status).json({ error: bad.error });
@@ -752,12 +762,8 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
   if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
     return res.status(400).json({ error: '현재 비밀번호와 새 비밀번호를 입력해주세요' });
   }
-  if (newPassword.length < PW_MIN || newPassword.length > PW_MAX) {
-    return res.status(400).json({ error: `새 비밀번호는 ${PW_MIN}~${PW_MAX}자여야 해요` });
-  }
-  if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-    return res.status(400).json({ error: '새 비밀번호는 영문+숫자 조합이어야 해요' });
-  }
+  const badNew = badPassword(newPassword, '새 비밀번호는');
+  if (badNew) return res.status(400).json({ error: badNew });
   const user = db.findUserById(req.userId);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   const valid = await bcrypt.compare(currentPassword, user.password);

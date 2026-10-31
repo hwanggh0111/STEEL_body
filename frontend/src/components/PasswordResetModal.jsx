@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
+import { passwordError } from '../data/password';
+import { PW_MAX, PW_MIN } from '../data/limits';
 
 // ── 두 가지로 쓴다 ── (`fixedEmail`, 2026-10-02)
 //
@@ -66,8 +68,11 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
     e?.preventDefault();
     setError(''); setInfo('');
     if (!code.trim() || code.length !== 6) { setError('6자리 인증번호를 입력해주세요'); return; }
-    if (newPw.length < 8 || newPw.length > 100) { setError('비밀번호는 8~100자여야 해요'); return; }
-    if (!/[A-Za-z]/.test(newPw) || !/[0-9]/.test(newPw)) { setError('비밀번호는 영문+숫자 조합이어야 해요'); return; }
+    // **규칙은 한 자리에서 온다** (`data/password.js`, 2026-10-31) — 이 화면은
+    // 길이와 글자 조합을 **두 줄로 나눠** 적고 있었고 `8`·`100` 이 생글자였다.
+    // 화면 셋(가입 · 바꾸기 · 찾기)이 같은 규칙을 각자 적고 있던 자리다
+    const badPw = passwordError(newPw);
+    if (badPw) { setError(badPw); return; }
     if (newPw !== newPw2) { setError('새 비밀번호가 일치하지 않아요'); return; }
     setLoading(true);
     try {
@@ -191,9 +196,9 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
                 name="new-password"
                 autoComplete="new-password"
                 className="input" type={showPw ? 'text' : 'password'}
-                placeholder="영문+숫자 8자 이상" value={newPw}
+                placeholder={`영문+숫자 ${PW_MIN}자 이상`} value={newPw}
                 onChange={(e) => { setNewPw(e.target.value); if (error) setError(''); }}
-                maxLength={100}
+                maxLength={PW_MAX}
                 style={{ paddingRight: 40 }}
               />
               <button type="button" onClick={() => setShowPw(!showPw)} aria-label="비밀번호 표시 토글" style={{
@@ -210,7 +215,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
               className="input" type={showPw ? 'text' : 'password'}
               placeholder="다시 입력" value={newPw2}
               onChange={(e) => { setNewPw2(e.target.value); if (error) setError(''); }}
-              maxLength={100}
+              maxLength={PW_MAX}
               style={{ marginBottom: 12 }}
             />
 

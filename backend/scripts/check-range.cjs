@@ -205,6 +205,33 @@ const call = async (method, p, body) => {
     ok('21자는 막는다', (await call('POST', '/auth/check-username', { username: 'a'.repeat(21) })).status, 400);
     ok('멀쩡한 아이디는 통과', (await call('POST', '/auth/check-username', { username: 'good_id-01' })).status, 200);
 
+    // ── 비밀번호: **세 길이 같은 말을 하는가** ── (2026-10-31)
+    //
+    // 가입 · 찾기 · 바꾸기가 길이와 글자 조합을 **각각 두 줄씩** 적고 있었다.
+    // 다 같은 수였으니 틀린 데는 없었지만 **틀릴 자리가 여섯**이었다 —
+    // 10/28 에 서버 셋을 묶으면서 화면 셋을 안 본 그 모양이다
+    console.log('');
+    const shortPw = await call('POST', '/auth/register', {
+      email: `p${Date.now() % 100000}@check.local`, password: 'ab1',
+      nickname: '비번검사', username: `pw${Date.now() % 100000}`, code: '000000',
+    });
+    ok('짧은 비밀번호는 400', shortPw.status, 400);
+    ok('  8~100 을 말한다', /8~100/.test(String(shortPw.data?.error)), true);
+
+    const lettersOnly = await call('PUT', '/auth/password', {
+      currentPassword: 'check12345', newPassword: 'aaaaaaaaaa',
+    });
+    ok('숫자 없는 새 비밀번호는 400', lettersOnly.status, 400);
+    ok('  영문+숫자를 말한다', /영문\+숫자/.test(String(lettersOnly.data?.error)), true);
+    // **말머리가 자리마다 맞아야 한다** — 바꾸기는 「새 비밀번호는」이다
+    ok('  바꾸기는 「새 비밀번호는」으로 말한다', /^새 비밀번호는/.test(String(lettersOnly.data?.error)), true);
+    ok('  가입은 「비밀번호는」으로 말한다', /^비밀번호는/.test(String(shortPw.data?.error)), true);
+    // 찾기도 같은 자를 든다 (번호가 틀려 거절되기 **전에** 비밀번호를 본다)
+    const reset = await call('POST', '/auth/reset-password', {
+      email: 'nobody@check.local', code: '000000', newPassword: 'aaaaaaaaaa',
+    });
+    ok('찾기도 숫자 없는 것을 막는다', [reset.status, /영문\+숫자/.test(String(reset.data?.error))], [400, true]);
+
     await call('DELETE', '/goals');
     if (inb.data?.id) await call('DELETE', `/inbody/${inb.data.id}`);
 
