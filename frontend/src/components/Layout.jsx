@@ -373,8 +373,11 @@ export default function Layout() {
     if (!file) return;
     let photoData;
     try {
-      const { shrinkImage } = await import('../data/shrinkImage');
-      ({ data: photoData } = await shrinkImage(file));
+      const { shrinkImage, PROFILE_EDGE } = await import('../data/shrinkImage');
+      // **프로필은 26px 로 그린다** — 긴 변 256 으로 줄여 올린다 (2026-10-31).
+      // 여태 전·후 사진과 같은 자로 줄여서, 한도(2MB) 안이면 **안 줄였다** —
+      // 300KB 짜리가 기기를 바꿀 때마다 그대로 내려왔다
+      ({ data: photoData } = await shrinkImage(file, { maxEdge: PROFILE_EDGE, always: true }));
     } catch {
       toast('사진을 읽지 못했어요', 'error');
       return;

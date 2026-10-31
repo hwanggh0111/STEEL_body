@@ -304,7 +304,7 @@ export default function SecurityPanel() {
     );
   }
 
-  const { totalUsers, todaySignups, jwt, rateLimit, helmet, cors, bodyLimit, nodeVersion } = dashboard;
+  const { totalUsers, todaySignups, jwt, rateLimit, helmet, cors, bodyLimit, nodeVersion, keepWarm } = dashboard;
 
   // ── 사람 카드 ──
   //
@@ -659,6 +659,43 @@ export default function SecurityPanel() {
           )}
         </div>
       </div>
+
+      {/* ── 깨워두기 ── (2026-10-31)
+          무료 Render 는 15분 조용하면 잠들고 깨는 데 **22초**다. 그걸 막는 자가
+          돌고 있는지 **밖에서 볼 길이 없었다** — `BACKEND_URL` 이 빠지면 조용히
+          멈추고, 그때 처음 여는 사람만 22초를 기다린다. 아무도 모르는 채로.
+          **안 받아온 것과 꺼진 것은 다르다** — 옛 서버는 이 칸을 안 보낸다 */}
+      {keepWarm && (
+        <div className="card" style={{ padding: 14, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+              깨워두기
+            </span>
+            <span style={{
+              fontSize: 13, fontWeight: 600, flexShrink: 0,
+              fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+              color: keepWarm.running ? 'var(--success)' : 'var(--warning)',
+            }}>
+              {keepWarm.running ? `돌고 있어요 · ${keepWarm.everyMin}분마다` : '꺼져 있어요'}
+            </span>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+            {keepWarm.running ? (
+              <>
+                {keepWarm.target}
+                {keepWarm.hours ? ` · ${keepWarm.hours}시 (서울)` : ' · 하루 내내'}
+                <br />15분 조용하면 서버가 잠들고, 깨는 데 22초가 걸립니다 — 그걸 막는 자입니다.
+              </>
+            ) : (
+              <>
+                {keepWarm.why}
+                <br /><b style={{ color: 'var(--text-secondary)' }}>15분 조용하면 서버가 잠듭니다</b> —
+                그 뒤에 처음 여는 사람은 22초를 기다립니다.
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Body Limit */}
       <div className="card" style={{ padding: 14, marginBottom: 20 }}>

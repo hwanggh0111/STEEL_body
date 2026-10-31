@@ -6,6 +6,7 @@ const db = require('../db');
 // 자체 검사가 **DB 파일 이름**을 알아야 한다 — 손으로 적으면 이름을 바꾼 날 어긋난다
 const storage = require('../storage');
 const { seoulDay } = require('../utils/seoulDay');
+const keepWarm = require('../utils/keepWarm');
 const aiGuard = require('../middleware/aiGuard');
 const {
   RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY,
@@ -183,6 +184,27 @@ router.get('/dashboard', adminAuth, (req, res) => {
     cors: { origins: (process.env.FRONTEND_URL || '').split(',').map(o => o.trim()).filter(Boolean) },
     bodyLimit: BODY_LIMIT,
     nodeVersion: process.version,
+    // ── **깨워두기가 돌고 있는가** ── (2026-10-31)
+    //
+    // 무료 Render 는 15분 조용하면 잠들고, 깨는 데 **22초**다(10/15 실측).
+    // 그걸 막는 자가 `utils/keepWarm.js` 인데 **돌고 있는지 밖에서 볼 길이 없었다** —
+    // `BACKEND_URL` 이 빠지거나 `KEEP_WARM=0` 이 되면 조용히 멈추고, 그때 처음
+    // 여는 사람만 22초를 기다린다. 아무도 모르는 채로.
+    //
+    // 오늘 하루 고친 것이 전부 그 모양이었다(**기능이 조용히 없는 것이 된다**).
+    // 그래서 **관리자가 보는 자리에 적는다** — 지금 돌고 있나 · 어디를 두드리나 ·
+    // 몇 분마다 · 시간대를 좁혀뒀나.
+    keepWarm: {
+      running: keepWarm.isRunning(),
+      target: keepWarm.target(),
+      everyMin: Math.round(keepWarm.TICK_MS / 60000),
+      hours: String(process.env.KEEP_WARM_HOURS || '').trim() || null,
+      // 꺼져 있으면 **왜인지** 적는다 — 「꺼짐」만 보면 고칠 데를 모른다
+      why: keepWarm.isRunning() ? null
+        : (process.env.KEEP_WARM === '0' ? 'KEEP_WARM=0 으로 꺼뒀습니다'
+          : !keepWarm.target() ? 'BACKEND_URL 이 없거나 내 컴퓨터 주소입니다'
+            : '아직 안 떴습니다'),
+    },
   });
 });
 

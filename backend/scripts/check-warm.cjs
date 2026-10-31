@@ -95,5 +95,29 @@ ok('두드리는 간격이 15분 미만', warm.TICK_MS < 15 * 60 * 1000, true);
 KEEP.forEach((k) => { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; });
 
 console.log('');
+// ── **밖에서 볼 수 있는가** ── (2026-10-31)
+//
+// 이 자가 돌고 있는지 **아무 데도 안 보였다.** `BACKEND_URL` 이 빠지거나
+// `KEEP_WARM=0` 이 되면 조용히 멈추고, 그 뒤 처음 여는 사람만 22초를 기다린다 —
+// 아무도 모르는 채로. 오늘 하루 고친 것이 전부 그 모양이었다
+// (**기능이 조용히 없는 것이 된다**).
+//
+// 그래서 **관리자가 보는 자리**(보안 현황)에 적는다. 서버가 보내고 화면이 그린다
+console.log('');
+console.log('── 밖에서 볼 수 있는가 ──');
+{
+  const fs2 = require('fs');
+  const path2 = require('path');
+  const route = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'routes', 'security.js'), 'utf8');
+  ok('보안 현황이 깨워두기를 보낸다', /keepWarm: \{/.test(route), true);
+  ok('  돌고 있나', /running: keepWarm\.isRunning\(\)/.test(route), true);
+  ok('  어디를 두드리나', /target: keepWarm\.target\(\)/.test(route), true);
+  // **꺼져 있으면 왜인지 적는다** — 「꺼짐」만 보면 고칠 데를 모른다
+  ok('  꺼진 까닭도 보낸다', /KEEP_WARM=0 으로 꺼뒀습니다/.test(route) && /BACKEND_URL 이 없거나/.test(route), true);
+  const panel = fs2.readFileSync(path2.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'SecurityPanel.jsx'), 'utf8');
+  ok('화면이 그것을 그린다', /keepWarm\.running/.test(panel), true);
+  // **안 받아온 것과 꺼진 것은 다르다** — 옛 서버는 이 칸을 안 보낸다
+  ok('  안 보내면 칸을 안 그린다', /\{keepWarm && \(/.test(panel), true);
+}
 console.log(bad === 0 ? '모두 통과' : bad + '곳 어긋남');
 process.exit(bad === 0 ? 0 : 1);

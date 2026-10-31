@@ -167,7 +167,31 @@ setTimeout(() => {
   for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }
-  console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
+  // ── **프로필은 그리는 크기만큼만 올린다** ── (2026-10-31)
+//
+// 프로필은 화면에 **26px 동그라미 하나**로 그린다(`Layout` 의 `Avatar`). 그런데
+// 줄이는 자가 전·후 사진과 같아서, 한도(2MB) 안이면 **아예 안 줄였다** —
+// 폰에서 고른 300KB 가 그대로 올라가고, **기기를 바꿀 때마다 한 번씩 내려왔다**
+// (`npm run http` 가 `?type=profile` 300KB 를 적는다).
+//
+// 캔버스는 node 에 없으니 **부르는 꼴**을 글자로 지킨다 — 자가 하나뿐이라
+// 그 자리를 안 지나면 바로 보인다
+console.log('');
+console.log('── 프로필 사진은 더 줄이는가 ──');
+{
+  const front = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'src', f), 'utf8');
+  const shrink = front('data/shrinkImage.js');
+  const layout = front('components/Layout.jsx');
+  ok('프로필 자가 한 자리에 있다', /export const PROFILE_EDGE = 256;/.test(shrink), true);
+  ok('  크기를 받는다', /maxEdge = MAX_EDGE, always = false/.test(shrink), true);
+  ok('  `always` 면 한도 안이어도 줄인다', /!always && original\.length <= PHOTO_MAX_BASE64/.test(shrink), true);
+  ok('  줄이려다 커지면 원본을 둔다', /always && out\.length >= original\.length/.test(shrink), true);
+  ok('프로필 올리는 자리가 그 자를 쓴다',
+    /shrinkImage\(file, \{ maxEdge: PROFILE_EDGE, always: true \}\)/.test(layout), true);
+  // 전·후 사진은 **그대로 1280** 이어야 한다 — 몸을 견주는 그림이라 깎으면 안 된다
+  ok('전·후 사진은 안 건드렸다', /shrinkImage\(file\)/.test(front('pages/ComparePage.jsx')), true);
+}
+console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
 }, 700);
 }

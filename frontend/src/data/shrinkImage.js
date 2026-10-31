@@ -18,6 +18,21 @@ import { PHOTO_MAX_BASE64 } from './photoLimit';
 // 부르는 쪽이 여느 때처럼 안내한다.
 
 const MAX_EDGE = 1280;
+
+/**
+ * **프로필 사진은 더 줄인다** (2026-10-31).
+ *
+ * 프로필은 화면에 **26px 동그라미 하나**로 그린다(`Layout` 의 `Avatar`, 쓰는 자리는
+ * 거기 하나다). 그런데 여태 전·후 사진과 **같은 자**로 줄였다 — 한도(2MB) 안에만
+ * 들면 **아예 안 줄인다.** 그래서 폰에서 고른 300KB 짜리가 그대로 올라갔다.
+ *
+ * 그 300KB 는 **기기를 바꿀 때마다 한 번씩 내려오고**(`/photos?type=profile`),
+ * 기기에도 그대로 담긴다. 26px 짜리 그림에 그만큼 쓸 까닭이 없다.
+ *
+ * 256px 로 둔다 — 26px 의 **세 배(78px)보다 넉넉**해서 다음에 더 크게 쓰더라도
+ * 다시 올리지 않아도 된다. 긴 변 256 의 JPEG 은 대개 10~20KB 다.
+ */
+export const PROFILE_EDGE = 256;
 // 한 번에 안 되면 화질을 낮춰 다시 굽는다. 마지막 0.5 는 눈에 띄지만 못 올리는 것보다 낫다
 const QUALITIES = [0.85, 0.7, 0.55];
 
@@ -45,17 +60,19 @@ function loadImage(dataUrl) {
  *   data   — 올릴 data URL
  *   shrunk — 우리가 줄였는지 (화면에서 그렇다고 알려줄 때 쓴다)
  */
-export async function shrinkImage(file) {
+export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } = {}) {
   const original = await readAsDataURL(file);
   if (typeof original !== 'string') throw new Error('read');
 
-  // 이미 넉넉하면 그대로 둔다. 다시 구우면 화질만 손해다
-  if (original.length <= PHOTO_MAX_BASE64) return { data: original, shrunk: false };
+  // 이미 넉넉하면 그대로 둔다. 다시 구우면 화질만 손해다.
+  // **`always` 면 크기와 상관없이 줄인다** — 프로필처럼 **그리는 크기가 정해진**
+  // 자리에서는 「한도 안이니 그대로」가 300KB 를 26px 에 쓰는 일이 된다 (2026-10-31)
+  if (!always && original.length <= PHOTO_MAX_BASE64) return { data: original, shrunk: false };
 
   try {
     const img = await loadImage(original);
     const edge = Math.max(img.naturalWidth, img.naturalHeight);
-    const scale = edge > MAX_EDGE ? MAX_EDGE / edge : 1;
+    const scale = edge > maxEdge ? maxEdge / edge : 1;
 
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -66,7 +83,12 @@ export async function shrinkImage(file) {
 
     for (const q of QUALITIES) {
       const out = canvas.toDataURL('image/jpeg', q);
-      if (out.length <= PHOTO_MAX_BASE64) return { data: out, shrunk: true };
+      if (out.length <= PHOTO_MAX_BASE64) {
+        // **더 커졌으면 원본을 둔다** — 이미 작고 잘 눌린 그림을 다시 구우면
+        // 커지는 일이 있다(작은 PNG → JPEG). 줄이려고 부른 자가 늘리면 안 된다
+        if (always && out.length >= original.length) return { data: original, shrunk: false };
+        return { data: out, shrunk: true };
+      }
     }
     // 세 번을 낮춰도 안 되면 마지막 것을 준다. 부르는 쪽이 한도를 다시 보고 안내한다
     return { data: canvas.toDataURL('image/jpeg', QUALITIES[QUALITIES.length - 1]), shrunk: true };
