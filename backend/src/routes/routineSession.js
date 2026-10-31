@@ -16,6 +16,13 @@ const { sanitize } = require('../utils/sanitize');
 // 하던 것이 흔들리면 안 된다.
 // ─────────────────────────────────────────────────────────────
 
+// 세트 체크의 끝 · 글로 적힌 것(`'4세트'` · `'10~12회'`)에서 숫자를 뽑는 자 —
+// 셋 다 **`utils/setRange.js` 한 자리에서** 온다 (2026-10-31). 여태 이 수를 따로
+// 적고 **주석으로** 「기록 화면의 세트 칸이 100 까지 받는다」고 맞춰 뒀다.
+// 그리고 **루틴을 담는 쪽은 테두리가 없어서** `firstNum('999999')` 가 그대로
+// 진행표에 들어왔다 — 화면은 그 수만큼 세트 단추를 그린다
+const { SETS_MAX, saneSets, saneReps } = require('../utils/setRange');
+
 const STATES = ['todo', 'done', 'skip'];
 const MAX_ITEMS = 50;
 
@@ -23,23 +30,17 @@ const MAX_ITEMS = 50;
 // sets · reps 는 '4세트' · '10~12회' 처럼 글로 적힌 것이 섞여 있다.
 // 화면이 미리 채워 넣을 때 쓰려고 **숫자를 뽑아 같이 담는다** — 못 뽑으면 null 이다
 function toItem(ex) {
-  const firstNum = (v) => {
-    const m = String(v ?? '').match(/\d+/);
-    return m ? Number(m[0]) : null;
-  };
   return {
     name: sanitize(String(ex?.name ?? '')).slice(0, 100).trim(),
-    sets: firstNum(ex?.sets),
-    reps: firstNum(ex?.reps),
+    // **테두리 밖이면 모르는 것으로 둔다** — 막기 전에 담긴 루틴이 있다
+    sets: saneSets(ex?.sets),
+    reps: saneReps(ex?.reps),
     state: 'todo',
     // 세트마다 누른 수 (2026-09-14). 칸이 끝났는지는 여전히 state 가 정한다 —
     // 세트를 다 누르면 화면이 기록을 저장하고, 그 저장이 칸을 done 으로 넘긴다
     setsDone: 0,
   };
 }
-
-// 세트 체크의 끝. 기록 화면의 세트 칸이 100 까지 받는다
-const MAX_SETS = 100;
 
 // 진행표가 없는 것과, 있는데 자리가 어긋난 것은 다른 일이다.
 //
@@ -130,7 +131,7 @@ router.patch('/', auth, (req, res) => {
   // 칸을 넘기지는 않는다. 세트를 다 누르면 화면이 기록을 저장하고, 칸은 그 저장이 넘긴다 —
   // 여기서도 넘기면 기록 없이 「끝난 운동」이 생긴다
   if (state === undefined && setsDone !== undefined) {
-    if (!Number.isInteger(setsDone) || setsDone < 0 || setsDone > MAX_SETS) {
+    if (!Number.isInteger(setsDone) || setsDone < 0 || setsDone > SETS_MAX) {
       return res.status(400).json({ error: '세트 수가 올바르지 않아요' });
     }
     const row = db.setRoutineItemSets(req.userId, index, setsDone);

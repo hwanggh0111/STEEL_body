@@ -4,6 +4,12 @@ const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName } = require('../utils/sanitize');
 
+// 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
+// 여기는 여태 sets · reps 를 **아예 안 봤다** — `{ ...ex }` 로 받은 것을 그대로 담았다.
+// 「999999세트」가 들어가면 그 루틴을 시작한 운동 화면이 세트 단추를 **구십구만 개**
+// 그린다. 글로 적힌 것(`'10~12'`)이 섞여 있어 모양은 안 따지고 **숫자만** 본다
+const { checkSetsReps } = require('../utils/setRange');
+
 // 루틴 한 벌에 담을 운동 수.
 //
 // **이름을 준다** (2026-10-28). 여태 `50` 이 두 자리에 글자로 박혀 있었고(만들기 ·
@@ -54,6 +60,13 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
   }
 
+  // 세트 · 횟수가 테두리 안인가. **첫 줄에서 걸린 것만 말한다** —
+  // 어느 줄인지 알아야 고칠 수 있으니 운동 이름을 같이 적는다
+  for (const ex of validExercises) {
+    const r = checkSetsReps(ex);
+    if (!r.ok) return res.status(400).json({ error: r.why });
+  }
+
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
 
   const result = db.createMyRoutine(req.userId, safeName, sanitizedExercises);
@@ -100,6 +113,10 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     const valid = exercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
     if (valid.length === 0) {
       return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
+    }
+    for (const ex of valid) {
+      const r = checkSetsReps(ex);
+      if (!r.ok) return res.status(400).json({ error: r.why });
     }
     fields.exercises = valid.map(ex => ({ ...ex, name: sanitize(ex.name) }));
   }

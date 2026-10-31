@@ -51,7 +51,9 @@
     "tidy": "node scripts/check-tidy.cjs",
     "echo": "node scripts/check-echo.cjs",
     "http": "node scripts/bench-http.cjs",
-    "twins": "node scripts/check-twins.cjs"
+    "twins": "node scripts/check-twins.cjs",
+    "bounds": "node scripts/check-bounds.cjs",
+    "setrange": "node scripts/check-setrange.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

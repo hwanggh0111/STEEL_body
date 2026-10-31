@@ -1,5 +1,6 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
+import { SETS_MAX } from '../data/limits';
 import { readLS, saveLS } from '../data/safeStorage';
 import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
@@ -56,8 +57,14 @@ const isBodyweight = (v) => v === '맨몸' || v === 'Bodyweight';
 // **누르는 규칙은 하나다** — 빈 칸을 누르면 거기까지 체크, 체크된 칸을 누르면
 // 거기부터 푼다. 세트 사이에는 폰을 대충 누른다. 한 칸 건너 누르거나 잘못 누른 것을
 // 바로 되돌릴 수 있어야 한다. 손가락 자리는 42px 를 지킨다
+// 세트 단추. **그릴 수를 여기서 한 번 더 막는다** (2026-10-31)
+//
+// `planned` 는 지난 기록이나 루틴에 적힌 세트 수다. 둘 다 이제 서버가 100 까지로
+// 막지만(`utils/setRange.js`), **그 전에 담긴 루틴에는 「999999세트」가 있을 수 있다.**
+// `Array.from({ length: 999999 })` 는 단추를 구십구만 개 그린다 — 폰이 멈춘다.
+// 막는 자리가 셋이라 번거롭지만, **멈추는 것은 되돌릴 수가 없다**
 function SetChecks({ done, planned, onTap, disabled }) {
-  const count = planned ? Math.max(planned, done) : done + 1;
+  const count = Math.min(planned ? Math.max(planned, done) : done + 1, SETS_MAX);
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {Array.from({ length: count }, (_, i) => {

@@ -7,7 +7,8 @@ import { toast } from '../components/Toast';
 import { eul } from '../data/particle';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
-import { MAX_EXERCISES, ROUTINE_NAME_MAX } from '../data/limits';
+import { MAX_EXERCISES, REPS_MAX, ROUTINE_NAME_MAX, SETS_MAX } from '../data/limits';
+import { setsRepsError } from '../data/setRange';
 
 // 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
 // 조용히 비어 보인다 — 서버는 200 을 주고 화면은 「데이터 없음」을 띄운다.
@@ -536,8 +537,15 @@ export default function RoutinePage() {
                   onChange={(name) => setEx({ name })}
                   style={{ flex: 2, minWidth: 0 }}
                 />
+                {/* ── **테두리를 건다** ── (2026-10-31)
+                    이 둘만 위아래가 열려 있었다. 서버도 sets · reps 를 아예 안 봐서
+                    「999999세트」가 담겼고, 그 루틴을 시작하면 운동 화면이 세트
+                    단추를 **구십구만 개** 그렸다 — 폰이 멈춘다.
+                    수는 `data/limits.js` 한 자리에서 오고, 서버와 어긋나면
+                    `npm run twins` 가 FAIL 한다 */}
                 <input
                   className="input" placeholder="세트" type="number" inputMode="numeric"
+                  min="1" max={SETS_MAX}
                   aria-label={`${i + 1}번째 운동 세트 수`}
                   value={ex.sets}
                   onChange={(e) => setEx({ sets: e.target.value })}
@@ -545,6 +553,7 @@ export default function RoutinePage() {
                 />
                 <input
                   className="input" placeholder="회" type="number" inputMode="numeric"
+                  min="1" max={REPS_MAX}
                   aria-label={`${i + 1}번째 운동 횟수`}
                   value={ex.reps}
                   onChange={(e) => setEx({ reps: e.target.value })}
@@ -596,6 +605,12 @@ export default function RoutinePage() {
               onClick={async () => {
                 if (!newRoutine.name.trim()) { toast('루틴 이름을 입력하세요'); return; }
                 if (!newRoutine.exercises.some(e => e.name.trim())) { toast('운동을 하나 이상 입력하세요'); return; }
+                // ── **누르기 전에 말한다** ── (2026-10-31)
+                // 칸에 `max` 를 걸어도 **손으로 치면 그 위가 들어간다** — `max` 는
+                // ± 단추와 자판의 숫자판만 막는다. 서버가 거절하는 그 수를 **어느
+                // 줄인지와 함께** 여기서 말한다 (서버 말은 줄을 모른다)
+                const over = setsRepsError(newRoutine.exercises);
+                if (over) { toast(over, 'error'); return; }
                 // **`uid` 는 서버로 안 보낸다** (2026-10-06). 화면이 줄을 짚는 데만
                 // 쓰는 번호다 — 보내면 서버가 그대로 담고, 다음에 받아온 루틴에
                 // 옛 번호가 섞여 들어와 새 줄의 번호와 겹칠 수 있다

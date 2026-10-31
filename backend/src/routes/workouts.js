@@ -9,6 +9,11 @@ const { sanitize, cleanName } = require('../utils/sanitize');
 // 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
 const EXERCISE_NAME_MAX = 100;
 const { normalizeWeight } = require('../utils/workoutFields');
+// 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
+// 여태 아래 두 자리에 `100` · `1000` 이 생글자로 박혀 있었고, `routineSession.js` 는
+// 옆에 `MAX_SETS = 100` 을 따로 적고 **주석으로** 「기록 화면이 100 까지 받는다」고
+// 맞춰 뒀다 — 그리고 **루틴은 아무 테두리도 없었다**
+const { SETS_MAX, REPS_MAX } = require('../utils/setRange');
 const { isRecordDay } = require('../utils/dayRange');
 const { sendFresh } = require('../utils/fresh');
 
@@ -79,8 +84,8 @@ router.post('/', auth, spamCheck, (req, res) => {
   if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
     return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
   }
-  if (numSets > 100 || numReps > 1000) {
-    return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
+  if (numSets > SETS_MAX || numReps > REPS_MAX) {
+    return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
   }
 
   const w = normalizeWeight(weight);
@@ -137,8 +142,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
     return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
   }
-  if (numSets > 100 || numReps > 1000) {
-    return res.status(400).json({ error: '세트는 100 이하, 횟수는 1000 이하여야 해요' });
+  if (numSets > SETS_MAX || numReps > REPS_MAX) {
+    return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
   }
 
   const w = normalizeWeight(weight);

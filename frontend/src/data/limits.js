@@ -92,3 +92,19 @@ export const INBODY_HEIGHT_MAX = 300;
 export const FAT_PCT_MAX = 60;
 export const MUSCLE_KG_MAX = 200;
 export const WATER_L_MAX = 200;
+
+/**
+ * 세트 수 · 횟수.
+ *
+ * 기록 화면은 서버가 「세트는 100 이하, 횟수는 1000 이하여야 해요」로 막는다.
+ * 그런데 **루틴 폼의 세트 · 회 칸에는 테두리가 하나도 없었고 서버도 안 봤다** —
+ * 「999999세트」를 담을 수 있었다. 그 루틴을 시작하면 운동 화면이 세트 단추를
+ * **구십구만 개** 그린다(`SetChecks`) — 폰이 멈춘다.
+ *
+ * 루틴의 세트 · 횟수는 **글자**다(추천 프로그램이 `'10~12'` 로 적는다). 그래서
+ * 서버는 모양을 안 따지고 **적힌 숫자**만 본다.
+ *
+ *   둘 다 → backend/src/utils/setRange.js
+ */
+export const SETS_MAX = 100;
+export const REPS_MAX = 1000;
