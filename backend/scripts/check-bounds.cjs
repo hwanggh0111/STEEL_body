@@ -142,5 +142,54 @@ const train = read(path.join(FRONT, 'pages', 'TrainPage.jsx'));
 const 그리는줄 = train.split('\n').find((l) => l.includes('const count =')) || '';
 ok('SetChecks 가 그릴 수를 SETS_MAX 로 막는다', /Math\.min\(/.test(그리는줄) && 그리는줄.includes('SETS_MAX'), true);
 
+// ── 6. 측정 도구 — 표에 **빠진 칸**이 없는가 ──
+//
+// **검사의 눈이 짧으면 그 밖은 아무도 안 본다** (10/28 의 자). 재는 도구에 항목을
+// 하나 더하면서 표에 안 적으면 그 칸만 **다시 테두리가 없는 칸**이 된다 —
+// 그때 FAIL 한다. 화면이 들고 있는 항목 목록을 읽어 표와 맞춰본다
+const { MEASURE_RANGE, checkMeasure } = require('../src/utils/measureRange');
+
+const 항목목록 = {
+  bodySize: ['components/measure/BodySizeSection.jsx', 'SIZE_FIELDS'],
+  flexibility: ['components/measure/FlexibilitySection.jsx', 'FLEX_FIELDS'],
+  fitness: ['components/measure/FitnessTestSection.jsx', 'FITNESS_TESTS'],
+};
+for (const [type, [rel, name]] of Object.entries(항목목록)) {
+  const src = read(path.join(FRONT, rel));
+  const i = src.indexOf('const ' + name + ' = [');
+  const 글 = src.slice(i, src.indexOf('];', i));
+  const keys = [...글.matchAll(/key: '([a-z_0-9]+)'/g)].map((m) => m[1]);
+  ok(type + ' — 표에 빠진 칸', keys.filter((k) => !MEASURE_RANGE[type][k]), []);
+  ok('  ' + type + ' 항목을 읽었다', keys.length >= 4, true);
+}
+
+// 종류 여섯이 다 표에 있는가 — **받는 종류는 이름표 표가 쥐고 있다**
+const { MEASURE_LABEL } = require('../src/utils/measureLabels');
+ok('테두리 표가 없는 종류', Object.keys(MEASURE_LABEL).filter((t) => !MEASURE_RANGE[t]), []);
+
+// ── 7. 측정 값 — 막을 것을 막고, 멀쩡한 것은 통과하는가 ──
+const 왜 = (type, data) => { const r = checkMeasure(type, data); return r.ok ? null : '거절'; };
+ok('둘레 -95 는 거절', 왜('bodySize', { chest: -95 }), '거절');
+ok('둘레 999999 는 거절', 왜('bodySize', { chest: 999999 }), '거절');
+ok('푸시업 999999 는 거절', 왜('fitness', { pushup: 999999 }), '거절');
+ok('허리둘레 0 은 거절', 왜('shoulder', { shoulder: 45, waist: 0 }), '거절');
+ok('비율 Infinity 는 거절', 왜('shoulder', { ratio: Infinity }), '거절');
+ok('1RM 99999kg 은 거절', 왜('oneRM', { weight: 99999, reps: 5, orm: 112499 }), '거절');
+// **유연성은 음수가 뜻이 있다** — 막으면 재는 사람을 막는다
+ok('유연성 -12cm 는 통과', 왜('flexibility', { sitreach: -12 }), null);
+ok('멀쩡한 둘레는 통과', 왜('bodySize', { chest: 95, waist: 78 }), null);
+ok('빈 칸은 안 본다', 왜('bodySize', { chest: '', waist: null }), null);
+// 수가 아닌 칸(이름 · 랩 목록)으로 막혀서는 안 된다
+ok('스톱워치의 글자 칸은 안 본다', 왜('stopwatch', { time: 5000, formatted: '00:05.0', laps: ['00:02.0'] }), null);
+// **모르는 열쇠를 지어 막지 않는다** — 항목을 더하는 날 저장이 조용히 거절된다
+ok('표에 없는 열쇠는 안 본다', 왜('bodySize', { 새칸: 999999 }), null);
+
+// ── 8. 심박 존 — 음수 어림값과 거꾸로 된 구간을 막는가 ──
+// 저장하지 않는 칸이지만 **그 값으로 화면이 말을 짓는다**
+const heart = read(path.join(FRONT, 'components', 'measure', 'HeartRateSection.jsx'));
+ok('나이 칸이 테두리를 들었다', heart.includes('min={AGE_MIN}') && heart.includes('max={AGE_MAX}'), true);
+ok('안정시가 최대보다 높은 것을 가린다', heart.includes('restTooHigh'), true);
+ok('  그때는 카보넨 식을 안 쓴다', heart.includes('rest && !restTooHigh ? rest : null'), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf, bestOf, diffLabel, sinceLabel, mmss, toSeconds } from '../../data/measureChange';
+import { FITNESS_COUNT_MAX, MEASURE_SEC_MAX } from '../../data/measureRange';
 
 // 체력 테스트.
 //
@@ -18,15 +19,18 @@ import { changeOf, bestOf, diffLabel, sinceLabel, mmss, toSeconds } from '../../
 //
 // 날짜와 지우기는 8/27 에 넣었다. 그 전에는 어제 잰 것을 오늘 적으면 오늘 날짜로
 // 들어갔고, 한 번 잘못 적으면 영영 남았다.
+// **칸마다 테두리를 들고 있다** (2026-10-31). 다섯 칸이 위아래로 열려 있었고
+// 서버도 값의 범위를 안 봤다 — 「푸시업 999999개」가 들어가면 「지난번과 견주면」이
+// 그 수로 말을 짓는다. 초로 재는 것(플랭크)은 개수와 테두리가 다르다
 const FITNESS_TESTS = [
-  { key: 'pushup', label: '푸시업 최대', unit: '개', placeholder: '30', better: 'up' },
-  { key: 'pullup', label: '풀업 최대', unit: '개', placeholder: '10', better: 'up' },
-  { key: 'plank', label: '플랭크 최대', unit: '초', placeholder: '120', better: 'up' },
+  { key: 'pushup', label: '푸시업 최대', unit: '개', placeholder: '30', better: 'up', max: FITNESS_COUNT_MAX },
+  { key: 'pullup', label: '풀업 최대', unit: '개', placeholder: '10', better: 'up', max: FITNESS_COUNT_MAX },
+  { key: 'plank', label: '플랭크 최대', unit: '초', placeholder: '120', better: 'up', max: MEASURE_SEC_MAX },
   // **1km 만 시간이다.** 초로만 받으면 사람이 머리로 나눠야 한다 — 분 · 초로 받는다.
   // 저장은 그대로 초다 (이미 쌓인 기록이 초라서 바꾸면 옛 기록이 이상해진다)
   { key: 'run_1km', label: '1km 달리기', unit: '초', better: 'down', time: true },
-  { key: 'situp', label: '윗몸일으키기 1분', unit: '개', placeholder: '40', better: 'up' },
-  { key: 'squat_max', label: '스쿼트 최대', unit: '개', placeholder: '50', better: 'up' },
+  { key: 'situp', label: '윗몸일으키기 1분', unit: '개', placeholder: '40', better: 'up', max: FITNESS_COUNT_MAX },
+  { key: 'squat_max', label: '스쿼트 최대', unit: '개', placeholder: '50', better: 'up', max: FITNESS_COUNT_MAX },
 ];
 
 /** 그 항목의 값을 사람이 읽는 말로. 1km 만 분:초다 */
@@ -81,7 +85,8 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>초</span>
                 </div>
               ) : (
-                <input className="input" type="number" placeholder={f.placeholder}
+                <input className="input" type="number" min="1" max={f.max}
+                  placeholder={f.placeholder}
                   value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                   style={{ fontSize: 13 }} />
               )}

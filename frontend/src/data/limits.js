@@ -108,3 +108,13 @@ export const WATER_L_MAX = 200;
  */
 export const SETS_MAX = 100;
 export const REPS_MAX = 1000;
+
+/**
+ * 수동 차단의 길이 (분 · 관리자 화면).
+ *
+ * 365일이다. 칸에 `max` 가 없어서 큰 수를 적으면 **누른 다음에야** 거절당했다 —
+ * 이 앱이 거듭 세워온 선이 그 반대다(**누르기 전에 말한다**).
+ *
+ *   BLOCK_MIN_MAX → backend/src/routes/security.js
+ */
+export const BLOCK_MIN_MAX = 525600;

@@ -13,6 +13,12 @@ const { MEASURE_LABEL } = require('../utils/measureLabels');
 const VALID_TYPES = Object.keys(MEASURE_LABEL);
 
 const { sanitizeObj } = require('../utils/sanitize');
+
+// 칸의 테두리는 **한 자리에서** 온다 (`utils/measureRange.js`, 2026-10-31).
+// 여기는 여태 **값의 범위를 아예 안 봤다** — 종류 · 날짜 · 10KB 만 보고 담았다.
+// 그래서 허리둘레 0 에서 나온 `Infinity`(JSON 으로는 `null`)와 푸시업 999999 가
+// 그대로 들어왔고, 그 값으로 화면이 그래프를 그리고 **말을 짓는다**
+const { checkMeasure } = require('../utils/measureRange');
 const { isRecordDay } = require('../utils/dayRange');
 const { sendFresh } = require('../utils/fresh');
 
@@ -45,6 +51,11 @@ router.post('/', auth, spamCheck, (req, res) => {
   if (JSON.stringify(data).length > 10240) {
     return res.status(400).json({ error: '데이터가 너무 커요 (최대 10KB)' });
   }
+
+  // **말이 되는 범위인가** — 사람의 몸에서 나올 수 있는 값까지다.
+  // 그 위는 몸이 아니라 적은 값이 틀린 것이다 (1RM 600kg 에서 그은 그 선)
+  const range = checkMeasure(type, data);
+  if (!range.ok) return res.status(400).json({ error: range.why });
 
   const result = db.createMeasure(req.userId, type, date, sanitizeObj(data));
   res.status(201).json({ id: result.lastInsertRowid, message: '측정 기록 저장 완료!' });

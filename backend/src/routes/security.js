@@ -572,6 +572,12 @@ router.post('/ai-unblock/:ip', adminAuth, (req, res) => {
   }
 });
 
+// 수동 차단의 길이 (분). **이름을 준다** (2026-10-31) — `525600` 이 생글자로
+// 박혀 있었고 **화면 칸에는 `max` 가 없어서**, 관리자가 큰 수를 적으면 누른
+// 다음에야 「차단 시간은 1분~365일 범위여야 해요」를 들었다.
+// 화면도 같은 이름으로 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
+const BLOCK_MIN_MAX = 525600;
+
 // POST /api/security/ai-block - IP 수동 차단
 router.post('/ai-block', adminAuth, (req, res) => {
   const { ip, minutes } = req.body;
@@ -579,7 +585,7 @@ router.post('/ai-block', adminAuth, (req, res) => {
     return res.status(400).json({ error: 'ip와 minutes를 입력해주세요' });
   }
   if (!isValidIP(ip)) return res.status(400).json({ error: '올바른 IP 형식이 아니에요' });
-  if (isNaN(Number(minutes)) || Number(minutes) <= 0 || Number(minutes) > 525600) {
+  if (isNaN(Number(minutes)) || Number(minutes) <= 0 || Number(minutes) > BLOCK_MIN_MAX) {
     return res.status(400).json({ error: '차단 시간은 1분~365일 범위여야 해요' });
   }
   // 사설 주소는 사람이 아니라 프록시다 — 막으면 그 홉을 지나는 사람이 전부 걸린다

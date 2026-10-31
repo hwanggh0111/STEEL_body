@@ -3,6 +3,7 @@ import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
 import ChangeSummary from './ChangeSummary';
+import { FLEX_CM_MAX } from '../../data/measureRange';
 
 const FLEX_FIELDS = [
   { key: 'sitreach', label: '앉아 앞으로 굽히기', unit: 'cm', placeholder: '15', desc: '다리 펴고 앉아서 손끝이 발끝을 넘는 거리' },
@@ -45,7 +46,11 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
         return (
           <div key={f.key} style={{ marginBottom: 8 }}>
             <label className="label">{f.label} ({f.unit})</label>
-            <input className="input" type="number" step="0.1" placeholder={f.placeholder}
+            {/* **테두리를 건다** (2026-10-31). **아래로도 열어 둔다** —
+                손끝이 발끝에 못 닿으면 −10cm 고, 스쿼트 깊이는 0 이 평행이다.
+                음수를 막으면 재는 사람을 막는다 */}
+            <input className="input" type="number" step="0.1"
+              min={-FLEX_CM_MAX} max={FLEX_CM_MAX} placeholder={f.placeholder}
               value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })} />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.6 }}>
               {f.desc}

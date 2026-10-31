@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
+import { BODY_CM_MAX } from '../../data/measureRange';
 
 // 어깨 측정.
 //
@@ -17,6 +18,16 @@ import { useRecordDate } from '../../data/useRecordDate';
 //
 // 재는 도구는 재기만 한다. **숫자와 변화만 보여주고 좋고 나쁨은 매기지 않는다.**
 // 비율이 무엇을 뜻하는지는 한 줄로 적어두되, 어느 값이 좋다고는 말하지 않는다.
+//
+// ── 칸에 테두리가 없었다 ── (2026-10-31에 고쳤다)
+//
+//   · **허리둘레에 0 을 넣으면 「어깨 : 허리 Infinity」**를 적었고 **저장까지** 됐다.
+//     JSON 에 담을 때 `Infinity` 는 `null` 이 되니, 담긴 뒤에는 **왜 빈 칸인지도
+//     알 수 없다** — 되돌릴 길이 없는 값이다
+//   · **음수 둘이면 비율이 양수로 나온다** — 「−45 / −30 = 1.50」. 말이 되는 값처럼
+//     보이는 것이 더 나쁘다. 눈으로는 영영 안 잡힌다
+//
+// 서버도 값의 범위를 안 봤다(10/31 에 `utils/measureRange.js` 로 넣었다).
 
 export default function ShoulderSection({ records, onSave, onDelete }) {
   // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`). 여기가 2026-09-30에
@@ -26,12 +37,23 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
   const [shoulderWidth, setShoulderWidth] = useState('');
   const [waist, setWaist] = useState('');
 
-  const ratio = shoulderWidth && waist ? (Number(shoulderWidth) / Number(waist)).toFixed(2) : null;
+  // **둘 다 테두리 안일 때만 나눈다.** 0 으로 나누면 `Infinity` 고, 음수 둘이면
+  // 양수가 나와 **말이 되는 값처럼 보인다**
+  const sane = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 1 && n <= BODY_CM_MAX ? n : null;
+  };
+  const sw = sane(shoulderWidth);
+  const wa = sane(waist);
+  const ratio = sw && wa ? (sw / wa).toFixed(2) : null;
 
   const handleSave = (e) => {
     e.preventDefault();
     if (!shoulderWidth) { toast('어깨 너비를 입력해주세요'); return; }
-    onSave({ date, shoulder: Number(shoulderWidth), waist: waist ? Number(waist) : null, ratio: ratio ? Number(ratio) : null });
+    // **테두리를 벗어난 값은 담지 않는다** — 서버가 거절하는 그 수를 여기서 말한다
+    if (sw === null) { toast(`어깨 너비는 1~${BODY_CM_MAX}cm 로 적어주세요`, 'error'); return; }
+    if (String(waist).trim() && wa === null) { toast(`허리둘레는 1~${BODY_CM_MAX}cm 로 적어주세요`, 'error'); return; }
+    onSave({ date, shoulder: sw, waist: wa, ratio: ratio ? Number(ratio) : null });
     setShoulderWidth(''); setWaist('');
   };
 
@@ -73,11 +95,13 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <label className="label">어깨 너비 (cm)</label>
-            <input className="input" type="number" step="0.1" placeholder="45" value={shoulderWidth} onChange={(e) => setShoulderWidth(e.target.value)} />
+            <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+              placeholder="45" value={shoulderWidth} onChange={(e) => setShoulderWidth(e.target.value)} />
           </div>
           <div style={{ flex: 1 }}>
             <label className="label">허리둘레 (cm) - 선택</label>
-            <input className="input" type="number" step="0.1" placeholder="30" value={waist} onChange={(e) => setWaist(e.target.value)} />
+            <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+              placeholder="30" value={waist} onChange={(e) => setWaist(e.target.value)} />
           </div>
         </div>
 

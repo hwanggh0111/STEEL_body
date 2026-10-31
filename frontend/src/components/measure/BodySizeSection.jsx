@@ -3,6 +3,7 @@ import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
 import ChangeSummary from './ChangeSummary';
+import { BODY_CM_MAX } from '../../data/measureRange';
 
 const SIZE_FIELDS = [
   { key: 'chest', label: '가슴둘레', unit: 'cm', placeholder: '95' },
@@ -53,7 +54,12 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
           return (
             <div key={f.key}>
               <label className="label">{f.label}</label>
-              <input className="input" type="number" step="0.1" placeholder={f.placeholder}
+              {/* **테두리를 건다** (2026-10-31). 아홉 칸 다 위아래가 열려 있었고
+                  서버도 값의 범위를 안 봤다 — 음수와 999999cm 가 그대로 들어가
+                  「지난번과 견주면」이 그 수로 말을 지었다.
+                  수는 `data/measureRange.js` 한 자리에서 온다 */}
+              <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+                placeholder={f.placeholder}
                 value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                 style={{ fontSize: 13 }} />
               {/* **적는 자리에서 지난 값을 보여준다.** 저장하고 나서야 견줄 수 있으면

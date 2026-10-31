@@ -1,17 +1,21 @@
-// **루틴의 세트 · 횟수가 진짜로 막히는가** (2026-10-31)
+// **테두리가 진짜로 길에 꽂혀 있는가** (2026-10-31)
 //
-//   npm run setrange     (npm run check 에도 들어 있다)
+//   npm run range     (npm run check 가 찾아서 돈다)
 //
 // ── 왜 ──
 //
-// 루틴 폼의 세트 · 회 칸에는 테두리가 하나도 없었고, 서버도 sets · reps 를 **아예
-// 안 봤다** — `{ ...ex }` 로 받은 것을 그대로 담았다. 그래서 「999999세트」가 담겼고,
-// 그 루틴을 시작하면 운동 화면이 세트 단추를 **구십구만 개** 그린다(폰이 멈춘다).
+// `npm run bounds` 는 거절하는 **자**를 떼어내 본다(`utils/setRange.js` ·
+// `utils/measureRange.js`). 그 자가 맞아도 **길에 안 꽂혀 있으면 아무 일도
+// 안 일어난다** — 10/28 에 「검사가 틀린 코드를 글자로 지킬 수 있다」고 적은
+// 그 자리다. 그래서 여기서는 **진짜 서버를 띄워 진짜로 두드린다.**
 //
-// `npm run bounds` 는 거절하는 **자**(`utils/setRange.js`)를 떼어내 본다. 그 자가
-// 맞아도 **길에 안 꽂혀 있으면** 아무 일도 안 일어난다 — 10/28 에 「검사가 틀린
-// 코드를 글자로 지킬 수 있다」고 적은 그 자리다. 그래서 여기서는 **진짜 서버를
-// 띄워 진짜로 두드린다**: 999999 로 만들기 · 고치기 · 글로 적힌 것은 통과.
+// 두 자리를 본다 —
+//
+//   · **루틴의 세트 · 횟수** — 「999999세트」를 담으면 그 루틴을 시작한 운동
+//     화면이 세트 단추를 **구십구만 개** 그린다(폰이 멈춘다)
+//   · **측정 기록의 값** — 서버는 종류 · 날짜 · 10KB 만 보고 담았다. 허리둘레 0 에서
+//     나온 `Infinity`(JSON 으로는 `null`)와 푸시업 999999 가 그대로 들어왔고,
+//     그 값으로 화면이 그래프를 그리고 **말을 짓는다**
 const { spawn } = require('child_process');
 const path = require('path');
 
@@ -50,11 +54,11 @@ const call = async (method, p, body) => {
     PORT: String(PORT),
     NODE_ENV: 'test',
     // 검사 계정이 제 기록을 만들고 지운다. 본 DB 를 안 건드리게 딴 파일을 쓴다
-    DB_FILE: path.join(__dirname, '.check-setrange.json'),
-    PHOTOS_FILE: path.join(__dirname, '.check-setrange.photos.json'),
+    DB_FILE: path.join(__dirname, '.check-range.json'),
+    PHOTOS_FILE: path.join(__dirname, '.check-range.photos.json'),
     RATE_LIMIT_GLOBAL_MAX: '100000',
     // 서른두 자가 넘어야 서버가 뜬다 (`index.js` 가 그 자리에서 멈춘다)
-    JWT_SECRET: 'check-setrange-secret-0123456789-abcdefghijklmnop',
+    JWT_SECRET: 'check-range-secret-0123456789-abcdefghijklmnop',
     // 번호를 응답에 실어 달라고 한다 (`check-shield` 머리글에 까닭이 적혀 있다)
     DEV_ECHO_CODE: '1',
     VAPID_PUBLIC_KEY: '',
@@ -131,6 +135,36 @@ const call = async (method, p, body) => {
 
     await call('DELETE', '/routine-session');
     await call('DELETE', `/my-routines/${id}`);
+
+    // ── 측정 기록의 값 ──
+    console.log('');
+    const m = (type, data) => call('POST', '/measures', { type, date: '2026-10-30', data });
+
+    const neg = await m('bodySize', { chest: -95 });
+    ok('가슴둘레 -95 는 400 으로 막는다', neg.status, 400);
+    ok('  칸 이름을 사람 말로 적는다', /가슴둘레/.test(String(neg.data?.error)), true);
+
+    ok('둘레 999999 도 막는다', (await m('bodySize', { chest: 999999 })).status, 400);
+    ok('푸시업 999999 도 막는다', (await m('fitness', { pushup: 999999 })).status, 400);
+    ok('1RM 99999kg 도 막는다', (await m('oneRM', { exercise: '벤치프레스', weight: 99999, reps: 5, orm: 112499 })).status, 400);
+    // 0 으로 나눈 값. **JSON 을 지나면 `Infinity` 는 `null` 이 된다** —
+    // 그래서 화면이 막는 것이 먼저이고, 서버는 **허리둘레 0** 에서 잡는다
+    ok('허리둘레 0 을 막는다', (await m('shoulder', { shoulder: 45, waist: 0, ratio: null })).status, 400);
+
+    // **멀쩡한 것은 들어가야 한다**
+    const good = await m('bodySize', { chest: 95, waist: 78 });
+    ok('멀쩡한 둘레는 201', good.status, 201);
+    // **유연성은 음수가 뜻이 있다** — 손끝이 발끝에 못 닿으면 -10cm 다
+    const flex = await m('flexibility', { sitreach: -12, squat_depth: 0 });
+    ok('유연성 -12cm 는 들어간다', flex.status, 201);
+    // 스톱워치는 수가 아닌 칸을 같이 보낸다 — 그것으로 막혀서는 안 된다
+    const sw = await m('stopwatch', { time: 5000, formatted: '00:05.0', laps: ['00:02.0'] });
+    ok('스톱워치의 글자 칸은 안 본다', sw.status, 201);
+
+    for (const r of [good, flex, sw]) {
+      if (r.data?.id) await call('DELETE', `/measures/${r.data.id}`);
+    }
+
     await call('POST', '/auth/delete', { password: 'check12345' });
   } catch (e) {
     bad += 1;
@@ -138,7 +172,7 @@ const call = async (method, p, body) => {
   }
 
   stop();
-  for (const f of ['.check-setrange.json', '.check-setrange.photos.json']) {
+  for (const f of ['.check-range.json', '.check-range.photos.json']) {
     try { require('fs').unlinkSync(path.join(__dirname, f)); } catch { /* 없으면 그만 */ }
   }
   console.log('');

@@ -4,6 +4,7 @@ import Emphasis from './Emphasis';
 import NavIcon from './NavIcon';
 import { toast } from './Toast';
 import { stampOf, dayOf } from '../data/dateKey';
+import { BLOCK_MIN_MAX } from '../data/limits';
 
 // 관리자 화면의 「AI 관리자」 — **자동 판정이 어떻게 돌고 있는가**를 보는 자리.
 //
@@ -310,6 +311,8 @@ export default function AiAdminPanel() {
           placeholder="주소 (예: 203.0.113.7)"
           style={{ flex: '1 1 160px', minWidth: 0 }}
         />
+        {/* **테두리를 건다** (2026-10-31) — `max` 가 없어서 큰 수를 적으면
+            누른 다음에야 「1분~365일 범위여야 해요」를 들었다 */}
         <input
           className="input"
           type="number"
@@ -317,6 +320,7 @@ export default function AiAdminPanel() {
           onChange={(e) => setBlockMin(e.target.value)}
           placeholder="분"
           min="1"
+          max={BLOCK_MIN_MAX}
           style={{ width: 90 }}
         />
         <button className="btn-secondary" style={{ width: 'auto' }} type="submit" disabled={busy}>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from '../Toast';
 import { primeAudio, beepDone } from '../../data/alertSound';
 import { alertPrefs } from '../../store/restTimerStore';
+import { MEASURE_SEC_MAX } from '../../data/measureRange';
 
 // 스톱워치 · 타이머.
 //
@@ -11,6 +12,11 @@ import { alertPrefs } from '../../store/restTimerStore';
 //
 // 이제 시작한 시각을 붙들어 두고, 지금 시각과의 차이로 센다.
 // 멈췄다 이어서 하면 그때까지 쌓인 것에 이어붙인다.
+//
+// **타이머의 초 칸에 테두리가 없었다** (2026-10-31에 고쳤다). `Math.max(0, …)` 로
+// 음수를 0 으로 눌렀는데, 0 초 타이머는 **시작하자마자 「타이머 종료!」**를 울린다 —
+// 누른 사람은 제가 뭘 잘못 적었는지 모른다. 위로도 열려 있어서 `1e21` 을 적으면
+// 끝나지 않는 타이머가 된다. **하루까지**로 둔다 (`data/measureRange.js`)
 export default function StopwatchSection({ onSave }) {
   const [mode, setMode] = useState('stopwatch');
   const [running, setRunning] = useState(false);
@@ -68,7 +74,14 @@ export default function StopwatchSection({ onSave }) {
     // 소리는 **사람이 누른 이 순간**에 준비해야 브라우저가 막지 않는다
     primeAudio();
     if (mode === 'timer' && !running && time === 0) {
-      const ms = Math.max(0, Number(timerInput) || 0) * 1000;
+      const sec = Number(timerInput);
+      // **0 초로 눌러서 시작하지 않는다** — 바로 종료음이 울린다.
+      // 무엇이 틀렸는지 그 자리에서 말한다
+      if (!Number.isFinite(sec) || sec < 1 || sec > MEASURE_SEC_MAX) {
+        toast(`시간은 1~${MEASURE_SEC_MAX}초로 적어주세요`, 'error');
+        return;
+      }
+      const ms = sec * 1000;
       baseRef.current = ms;
       setTime(ms);
     }
@@ -107,7 +120,8 @@ export default function StopwatchSection({ onSave }) {
       {mode === 'timer' && !running && time === 0 && (
         <div style={{ marginBottom: 10 }}>
           <label className="label">시간 (초)</label>
-          <input className="input" type="number" value={timerInput} onChange={e => setTimerInput(e.target.value)} placeholder="60" />
+          <input className="input" type="number" min="1" max={MEASURE_SEC_MAX}
+            value={timerInput} onChange={e => setTimerInput(e.target.value)} placeholder="60" />
         </div>
       )}
 

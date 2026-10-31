@@ -237,6 +237,7 @@ function readMeasures(text) {
   }
 
   const bag = new Map();     // `날짜|종류|번호` → { date, type, data }
+  const firstLine = new Map(); // 같은 열쇠 → 그 기록이 **처음 나온 줄 번호**
   // 「번호」가 없는 옛 파일을 위해, 그 자리(날짜|종류)에서 지금 몇 번째를 쌓고 있는지 기억한다
   const runNo = new Map();
   const bad = [];
@@ -292,13 +293,32 @@ function readMeasures(text) {
     }
 
     const id = `${slot}|${no}`;
-    if (!bag.has(id)) bag.set(id, { date, type, data: {} });
+    // **그 줄이 몇째 줄이었는지 기억한다** — 여러 줄이 한 기록으로 묶이므로,
+    // 테두리를 벗어났다고 말할 때 짚을 자리가 없으면 고칠 수가 없다.
+    // 기록 자체에는 안 담는다(저장되는 모양이 달라진다)
+    if (!bag.has(id)) { bag.set(id, { date, type, data: {} }); firstLine.set(id, line); }
     bag.get(id).data[key] = value;
   }
 
-  const out = [...bag.values()].filter((m) => Object.keys(m.data).length > 0);
+  // ── **말이 되는 범위인가** ── (2026-10-31)
+  //
+  // 여태 측정 줄은 **값의 범위를 아예 안 봤다.** 날짜와 종류만 보고 담았다 —
+  // 10/28 에 인바디에서 고친 **「파일로 넣는 길만 다른 테두리를 쓰던」** 그 자리가
+  // 여기에 그대로 남아 있었다. 테두리는 화면·서버와 **같은 한 자리**에서 온다.
+  //
+  // 한 칸이 테두리를 벗어나면 **그 줄만** 빼고 까닭을 적는다 — 파일 전체를
+  // 물리면 멀쩡한 줄까지 사라진다 (인바디 쪽과 같은 결)
+  const { checkMeasure } = require('./measureRange');
+  const out = [];
+  for (const [id, m] of bag) {
+    if (Object.keys(m.data).length === 0) continue;
+    const r = checkMeasure(m.type, m.data);
+    if (!r.ok) { bad.push({ line: firstLine.get(id), why: r.why }); continue; }
+    out.push(m);
+  }
   return { rows: out, bad };
 }
+
 
 /** 이 줄이 이미 있는 것과 같은가 — **다시 넣어도 안 늘어나게** 하는 열쇠 */
 const workoutKey = (w) => [w.date, String(w.exercise).trim(), String(w.weight).trim(), w.sets, w.reps].join('|');
