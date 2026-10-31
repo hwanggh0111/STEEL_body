@@ -1,6 +1,6 @@
 import { memo, Fragment } from 'react';
 import { bodyPartOf } from '../data/bodyPart';
-import { FRONT, BACK, HEAD, VIEWBOX, GOLD, SKIN, SKIN_EDGE } from './bodyShapes';
+import { HEAD, VIEWBOX, GOLD, SKIN, SKIN_EDGE, viewFor } from './bodyShapes';
 
 // 운동 카드의 작은 몸 (2026-10-06).
 //
@@ -39,7 +39,12 @@ const BODY_DIM = 0.55;
  */
 function MiniBody({ exercise, part, size = SIZE }) {
   const p = part || bodyPartOf(exercise);
-  const shapes = p === '등' ? BACK : FRONT;
+  // **앞/뒷모습을 고르는 규칙은 조각 파일이 든다** (`viewFor`, 2026-10-31에 고쳤다).
+  // 여기가 `p === '등' ? BACK : FRONT` 로 **그 규칙을 또 적고 있었다** — 그래서
+  // 조각 파일의 `viewFor` 는 **아무도 안 부르는 함수**로 남아 있었다(10/28 에
+  // 「손 안 댄 자리」로 적어둔 그것이다. 두 벌이 아니라고 봤는데 **두 벌이었다**).
+  // 그 까닭은 거기 적혀 있다 — 「'등'은 뒷모습에만 있고 '가슴'은 앞모습에만 있다」
+  const shapes = viewFor(p);
   const paint = shapes[p] || null;
   const stroke = (BASE_STROKE * 24 / size).toFixed(2);
 

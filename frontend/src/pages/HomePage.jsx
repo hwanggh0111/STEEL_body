@@ -21,6 +21,8 @@ import { buildSummary } from '../data/sessionSummary';
 import { showFinish } from '../components/SessionFinish';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
 import NavIcon from '../components/NavIcon';
+// 몸 그림 조각과 칠은 **한 자리에서** 온다 (2026-10-31) — 여기가 제 것을 들고 있었다
+import { FRONT, HEAD, SKIN, SKIN_EDGE, VIEWBOX, heatPaint } from '../components/bodyShapes';
 
 import { particle } from '../data/particle';
 // 홈.
@@ -123,18 +125,22 @@ function BodyLine({ records, onGo }) {
 // **달아오른 것은 홈이 세어 넘긴다** (2026-10-21). 여기서 세면 「제목을 그릴까」를
 // 홈이 알 수 없다 — 아래 `canFocus` 머리글
 function TodayFocus({ heat, onGo }) {
-
   const cold = heat.coldest;
   const hot = heat.list.filter((p) => p.level > 0).slice(0, 2);
-  // 달아오른 정도 → 칠. 지도와 같은 규칙이다 — 식은 곳은 칠하지 않는다
-  const paint = (lv) => (lv >= 3
-    ? { fill: '#eeb77d', o: 0.72 }
-    : lv === 2 ? { fill: '#d29a5f', o: 0.42 } : { fill: '#d29a5f', o: 0.18 });
-  const P = (part) => {
-    const lv = heat.byPart[part]?.level || 0;
-    return lv > 0 ? paint(lv) : null;
-  };
 
+  // ── **조각과 칠은 `bodyShapes.jsx` 에서 온다** ── (2026-10-31에 고쳤다)
+  //
+  // 여기는 **제 조각과 제 칠을 들고 있었다.** 그 파일 머리글이 적어둔 그대로 됐다 —
+  // 「조각을 복사하면 두 그림이 조용히 달라진다」.
+  //
+  //     칠      몸 지도 0.78 / 0.46 / 0.2   ·   이 카드 0.72 / 0.42 / 0.18
+  //     팔      지도는 네 덩이(위팔 + 팔뚝)  ·   이 카드는 **위팔 둘뿐**
+  //
+  // 10/20 에 **홈페이지 미리보기**의 칠을 이 한 자리로 합쳤는데, **앱의 홈은
+  // 그때 안 봤다.** 그래서 같은 부위가 홈에서 조금 더 흐리게 칠해졌고, 팔이
+  // 달아올라도 **팔뚝은 안 칠해졌다.** 나란히 놓고 보는 사람이 없으니 아무도
+  // 모른다 — 그게 「조용히」다.
+  const parts = Object.keys(FRONT);
   return (
     <div
       className="card clickable"
@@ -144,36 +150,19 @@ function TodayFocus({ heat, onGo }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
       style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16 }}
     >
-      {/* 작은 몸 — 지도와 같은 모양을 줄여 쓴다 */}
-      <svg width="58" height="138" viewBox="0 0 120 240" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-        <g fill="#1c1813" stroke="#2b251c" strokeWidth="0.9">
-          <circle cx="60" cy="17" r="11" /><rect x="54" y="27" width="12" height="8" rx="3" />
-          <ellipse cx="38" cy="45" rx="11.5" ry="9" /><ellipse cx="82" cy="45" rx="11.5" ry="9" />
-          <rect x="44" y="49" width="32" height="24" rx="6" /><rect x="49" y="73" width="22" height="36" rx="5" />
-          <ellipse cx="30" cy="70" rx="7.5" ry="15" /><ellipse cx="90" cy="70" rx="7.5" ry="15" />
-          <ellipse cx="48" cy="142" rx="12.5" ry="31" /><ellipse cx="72" cy="142" rx="12.5" ry="31" />
-          <ellipse cx="46" cy="195" rx="8.5" ry="21" /><ellipse cx="74" cy="195" rx="8.5" ry="21" />
+      {/* 작은 몸 — **지도와 같은 조각**을 줄여 쓴다 */}
+      <svg width="58" height="138" viewBox={VIEWBOX} fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <g fill={SKIN} stroke={SKIN_EDGE} strokeWidth="0.9">
+          {HEAD}
+          {parts.map((part) => <g key={part}>{FRONT[part]}</g>)}
         </g>
-        {P('가슴') && <rect x="44" y="49" width="32" height="24" rx="6" fill={P('가슴').fill} fillOpacity={P('가슴').o} />}
-        {P('어깨') && (
-          <>
-            <ellipse cx="38" cy="45" rx="11.5" ry="9" fill={P('어깨').fill} fillOpacity={P('어깨').o} />
-            <ellipse cx="82" cy="45" rx="11.5" ry="9" fill={P('어깨').fill} fillOpacity={P('어깨').o} />
-          </>
-        )}
-        {P('팔') && (
-          <>
-            <ellipse cx="30" cy="70" rx="7.5" ry="15" fill={P('팔').fill} fillOpacity={P('팔').o} />
-            <ellipse cx="90" cy="70" rx="7.5" ry="15" fill={P('팔').fill} fillOpacity={P('팔').o} />
-          </>
-        )}
-        {P('코어') && <rect x="49" y="73" width="22" height="36" rx="5" fill={P('코어').fill} fillOpacity={P('코어').o} />}
-        {P('하체') && (
-          <>
-            <ellipse cx="48" cy="142" rx="12.5" ry="31" fill={P('하체').fill} fillOpacity={P('하체').o} />
-            <ellipse cx="72" cy="142" rx="12.5" ry="31" fill={P('하체').fill} fillOpacity={P('하체').o} />
-          </>
-        )}
+        {parts.map((part) => {
+          const paint = heatPaint(heat.byPart[part]?.level || 0);
+          if (!paint) return null;
+          return (
+            <g key={`heat-${part}`} fill={paint.fill} fillOpacity={paint.opacity}>{FRONT[part]}</g>
+          );
+        })}
       </svg>
 
       <div style={{ minWidth: 0, flexGrow: 1 }}>

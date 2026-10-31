@@ -357,6 +357,31 @@ console.log('── 달아오른 칠이 한 곳에서 오나 ── (2026-10-20)
   ok('칠을 만드는 손이 조각 파일에 있다', /export function heatPaint\(level\)/.test(shapes), true);
   ok('  몸 지도가 그것을 쓴다', /const fillOf = heatPaint;/.test(map), true);
   ok('  홈페이지 미리보기도 그것을 쓴다', /const paintOf = heatPaint;/.test(preview), true);
+
+  // ── **앱의 홈도 같은 손을 쓴다** ── (2026-10-31에 보탰다)
+  //
+  // 10/20 에 지도와 홈페이지 미리보기를 합칠 때 **앱의 홈은 안 봤다.** 그 카드는
+  // 제 조각과 제 칠을 들고 있었다 —
+  //
+  //     칠   지도 0.78 / 0.46 / 0.2   ·   홈 카드 0.72 / 0.42 / 0.18
+  //     팔   지도는 네 덩이(위팔 + 팔뚝) ·  홈 카드는 **위팔 둘뿐**
+  //
+  // 그래서 같은 부위가 홈에서 조금 더 흐리고, 팔이 달아올라도 **팔뚝은 안
+  // 칠해졌다.** 나란히 놓고 보는 사람이 없으니 아무도 모른다 — 그게 「조용히」다
+  const home = read('src/pages/HomePage.jsx');
+  ok('  앱의 홈도 그 손을 쓴다', /heatPaint\(/.test(home), true);
+  ok('  홈이 조각을 제 손으로 그리지 않는다', /from '\.\.\/components\/bodyShapes'/.test(home), true);
+  ok('  홈에 색을 다시 적지 않았다', /#eeb77d|#d29a5f/.test(codeOf(home)), false);
+  ok('  홈에 숫자를 다시 적지 않았다', /o: 0\.\d+/.test(codeOf(home)), false);
+
+  // **앞/뒷모습을 고르는 규칙도 한 자리다** — 조각 파일의 `viewFor` 가 그 자다.
+  // 운동 카드가 `p === '등' ? BACK : FRONT` 로 **그 규칙을 또 적고 있어서**,
+  // `viewFor` 는 아무도 안 부르는 함수로 남아 있었다 (10/28 에 「손 안 댄 자리」로
+  // 적어둔 그것 — 두 벌이 아니라고 봤는데 두 벌이었다)
+  const mini = read('src/components/MiniBody.jsx');
+  ok('앞/뒷모습을 고르는 손이 조각 파일에 있다', /export function viewFor\(part\)/.test(shapes), true);
+  ok('  운동 카드가 그것을 쓴다', /viewFor\(p\)/.test(mini), true);
+  ok('  그 규칙을 다시 적지 않았다', /'등' \? BACK : FRONT/.test(codeOf(mini)), false);
   // 숫자를 다시 적어두면 그 자리만 옛 색으로 남는다
   ok('  지도에 숫자를 다시 적지 않았다', /opacity: 0\.(78|46|2)\b/.test(codeOf(map)), false);
   ok('  미리보기에도 없다', /opacity: 0\.\d+/.test(codeOf(preview)), false);
