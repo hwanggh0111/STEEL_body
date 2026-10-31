@@ -226,5 +226,32 @@ console.log('\n── 집의 손으로 읽고 적는다 ──');
   ok('바로 만지는 자리', raw, []);
 }
 
+// ── **기기에만 남는 「사람이 적은 값」은 못 담으면 말하는가** ── (2026-10-31)
+//
+// `saveLS` 는 못 담으면 터지지 않고 `false` 를 준다. 그 답을 **안 보는 자리가
+// 여럿이었다.** 담아두면 좋은 값(검색 기록 · 바 무게 · 만든 소리)은 조용히 잃어도
+// 되고 그 자리들은 주석에 그렇게 적어뒀다. 다른 것은 **그 사람이 적은 것이 기기에만
+// 있고 그것이 앱의 말을 바꾸는 자리**다 — 10/27 ⑯ 이 그 꼴이었다
+// (쿠키를 막아둔 브라우저에서 **기능이 조용히 없는 것이 됐다**).
+//
+// 아래 자리는 `keepLocal` 을 지나야 한다(한 판에 한 번 말한다). 새 자리를 넣는
+// 일은 사람이 정할 일이지만, **적어둔 자리가 조용해지면** 그때 FAIL 한다
+console.log('');
+console.log('── 못 담으면 말하는가 ──');
+const 말해야하는자리 = {
+  'pages/PartsPage.jsx': '아픈 곳 — 담기지 않으면 아픈 부위를 또 추천한다',
+  'pages/HomeworkoutPage.jsx': '하던 자리 — 없으면 멈춘 적이 없는 것처럼 보인다',
+};
+const 조용한자리 = [];
+for (const [f, why] of Object.entries(말해야하는자리)) {
+  if (!fs.readFileSync(path.join(SRC, f), 'utf-8').includes('keepLocal(')) 조용한자리.push(`${f} — ${why}`);
+}
+ok('못 담아도 조용한 자리', 조용한자리, []);
+// **잠금과 체형은 제 자리에서 적는다** (토스트가 아니라 화면에 남는 말이다)
+ok('잠금은 담은 뒤 읽어서 확인한다',
+  fs.readFileSync(path.join(SRC, 'data/appLock.js'), 'utf-8').includes('!readLock()'), true);
+ok('체형은 못 담았으면 그 자리에 적는다',
+  fs.readFileSync(path.join(SRC, 'pages/ShapePage.jsx'), 'utf-8').includes('kept === false'), true);
+
 console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 FAIL`);
 process.exit(bad === 0 ? 0 : 1);

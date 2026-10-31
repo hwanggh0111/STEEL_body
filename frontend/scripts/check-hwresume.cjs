@@ -163,7 +163,10 @@ const stops = count(/stopBreath\(\)/g);
 yes(`마이크 거는 자리 ${starts} : 푸는 자리 ${stops}`, starts > 0 && stops >= starts,
   '켜는 자리만 있고 끄는 자리가 모자란다 — 판을 그만둬도 녹음 표시가 남는다');
 
-const writes = count(/saveLS\(HOME_RESUME_KEY/g);
+// **담는 손이 둘이다** (2026-10-31) — `keepLocal` 은 못 담았을 때 한 번 말해주는
+// `saveLS` 다(`data/keepLocal.js`). 여기서 `saveLS` 만 세면, 그 손으로 바꾼 날
+// **담는 자리가 0 으로 보여** 거짓 FAIL 한다 (오늘 그렇게 걸렸다)
+const writes = count(/(?:saveLS|keepLocal)\(HOME_RESUME_KEY/g);
 const clears = count(/removeLS\(HOME_RESUME_KEY/g);
 yes(`담아두는 자리 ${writes} : 지우는 자리 ${clears}`, writes > 0 && clears > 0,
   '담아두기만 하면 끝낸 판이 「멈춘 자리」로 계속 뜬다');

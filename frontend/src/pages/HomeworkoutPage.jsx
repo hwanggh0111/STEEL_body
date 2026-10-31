@@ -22,6 +22,7 @@ import { primeAudio, beepDone } from '../data/alertSound';
 import { useRestTimerStore } from '../store/restTimerStore';
 import { useWakeLock } from '../data/useWakeLock';
 import { i as iPart, eul as eulPart } from '../data/particle';
+import { keepLocal } from '../data/keepLocal';
 
 const PROGRAM_NAMES = Object.keys(PROGRAMS);
 
@@ -619,7 +620,9 @@ export default function HomeworkoutPage() {
     const packed = packResume({
       program: selected, idx, rest, leftMs: left, skipped: skippedRef.current, at: Date.now(),
     });
-    if (packed) saveLS(HOME_RESUME_KEY, JSON.stringify(packed));
+    // **담기지 않으면 한 번 말한다** (2026-10-31) — 이 값이 없으면 다음에 열 때
+    // 「이어가기」가 아예 안 뜨고, 그러면 **멈춘 적이 없는 것과 똑같이 보인다**
+    if (packed) keepLocal(HOME_RESUME_KEY, JSON.stringify(packed), '하던 자리');
   };
   // 1초마다 도는 자리와 같은 까닭으로 ref 로 든다 — 바깥 이벤트가 옛 렌더의 값을
   // 붙잡고 있으면 **앞 판의 자리**를 담아둔다

@@ -5,6 +5,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { readLS, saveLS } from '../data/safeStorage';
 import { SORE_KEY } from '../data/localKeys';
+import { keepLocal } from '../data/keepLocal';
 import { MAP_PARTS, buildHeat } from '../data/bodyHeat';
 import { searchExercises } from '../data/exerciseDict';
 import {
@@ -54,7 +55,11 @@ export default function PartsPage() {
   const rows = useMemo(() => soreList(sore, today), [sore, today]);
   const advice = useMemo(() => restAdvice(sore, heat), [sore, heat]);
 
-  const put = (next) => { setSore(next); saveLS(SORE_KEY, JSON.stringify(next)); };
+  // **담기지 않으면 한 번 말한다** (2026-10-31, `data/keepLocal.js`).
+  // 아픈 곳은 **기기에만** 있고, 그 값으로 이 화면이 **추천을 바꾼다** —
+  // 담기지 않으면 다시 열 때 사라져서 **아픈 부위를 또 권한다.**
+  // 10/27 ⑯ 과 같은 꼴이다(기능이 조용히 없는 것이 됐다)
+  const put = (next) => { setSore(next); keepLocal(SORE_KEY, JSON.stringify(next), '아픈 곳'); };
   const toggle = (part) => put(isSore(sore, part) ? removeSore(sore, part) : addSore(sore, part, today));
 
   const found = useMemo(() => (query.trim().length ? searchExercises(query.trim(), 8) : []), [query]);
