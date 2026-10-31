@@ -31,6 +31,9 @@ export default function DaySheet({
 }) {
   const [adding, setAdding] = useState(false);      // 할 것 담는 칸을 폈나
   const [name, setName] = useState('');
+  // **담는 칸의 까닭은 제 자리에 둔다** — 아래 「이 날에 적기」의 `error` 와 섞으면
+  // 한쪽에서 띄운 말이 다른 칸에 남는다 (두 칸이 같이 열릴 수 있다)
+  const [planError, setPlanError] = useState('');
 
   // **이 날에 바로 적는 칸** (5차 리모델링, 2026-09-04)
   const [writing, setWriting] = useState(false);
@@ -43,7 +46,7 @@ export default function DaySheet({
 
   // 다른 날로 옮기면 쓰던 것을 닫는다 — **다른 날 메모가 이 날에 붙으면 안 된다**
   useEffect(() => {
-    setAdding(false); setName('');
+    setAdding(false); setName(''); setPlanError('');
     setWriting(false); setFinding(false);
     setEx(''); setWeight(''); setSets(''); setReps(''); setError('');
   }, [date]);
@@ -92,9 +95,24 @@ export default function DaySheet({
     }
   };
 
+  // ── **이미 담긴 것은 누르기 전에 말한다** ── (2026-10-31)
+  //
+  // 서버는 같은 날 같은 이름을 두 번 담지 않는다. 그 줄 위에 **「눌린 줄 모르고 또
+  // 누르는 자리다」**라고 적혀 있다 — 맞는 말인데, 그래서 **눌러야 알려줬다.**
+  // 루틴 이름표 넷이 나란히 있고 그중 하나는 이미 담겨 있는데 겉모습이 똑같다.
+  //
+  // **이름으로 본다** — 서버가 보는 것도 이름이다(`safeName`). 다만 서버는 다듬은
+  // 뒤의 이름을 보므로(앞뒤·가운데 공백 · `<>` 걷기) **여기 판단이 늘 같을 수는
+  // 없다.** 그래서 서버 말을 지우지 않는다 — 여기서 막는 것은 **흔한 자리**고,
+  // 어긋나면 그때는 서버가 답한다
+  const 담긴이름 = new Set(plans.map((p) => String(p.name || '').trim()));
+  const 담겼나 = (nm) => 담긴이름.has(String(nm || '').trim());
+
   const addExercise = () => {
     const v = name.trim();
     if (!v) return;
+    if (담겼나(v)) { setPlanError(`「${v}」 는 이 날에 이미 담겨 있어요`); return; }
+    setPlanError('');
     onAddPlan({ date, kind: 'exercise', name: v });
     setName('');
   };
@@ -199,21 +217,27 @@ export default function DaySheet({
                 「월요일 가슴+삼두」를 걸어두면 그날 뭘 할지 다시 안 정해도 된다 */}
             {myRoutines.length > 0 && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {myRoutines.map((r) => (
-                  <button
-                    key={r.id ?? r._id}
-                    disabled={addingPlan}
-                    onClick={() => onAddPlan({ date, kind: 'routine', name: r.name, routineId: r.id ?? r._id })}
-                    style={chip}
-                  >{r.name}</button>
-                ))}
+                {myRoutines.map((r) => {
+                  const 이미 = 담겼나(r.name);
+                  return (
+                    <button
+                      key={r.id ?? r._id}
+                      disabled={addingPlan || 이미}
+                      // **왜 안 눌리는지 말한다** — 흐려만 두면 고장으로 읽는다
+                      title={이미 ? '이 날에 이미 담겨 있어요' : undefined}
+                      aria-label={이미 ? `${r.name} — 이 날에 이미 담겨 있어요` : r.name}
+                      onClick={() => onAddPlan({ date, kind: 'routine', name: r.name, routineId: r.id ?? r._id })}
+                      style={{ ...chip, opacity: 이미 ? 0.4 : 1, cursor: 이미 ? 'default' : 'pointer' }}
+                    >{r.name}{이미 ? ' · 담김' : ''}</button>
+                  );
+                })}
               </div>
             )}
             <div style={{ display: 'flex', gap: 7 }}>
               <input
                 className="input"
                 value={name}
-                onChange={(e) => setName(e.target.value.slice(0, PLAN_NAME_MAX))}
+                onChange={(e) => { setName(e.target.value.slice(0, PLAN_NAME_MAX)); if (planError) setPlanError(''); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExercise(); } }}
                 placeholder="운동 하나만 적어도 돼요"
                 style={{ fontSize: 13, padding: '8px 11px' }}
@@ -224,6 +248,8 @@ export default function DaySheet({
                 style={{ ...chip, flexShrink: 0, opacity: name.trim() ? 1 : 0.5 }}
               >담기</button>
             </div>
+            {/* 담는 칸의 까닭도 **그 자리에** 적는다 — 토스트는 지나간다 */}
+            {planError && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{planError}</div>}
           </div>
         )}
       </Section>

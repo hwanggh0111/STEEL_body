@@ -63,23 +63,36 @@ const 칸있는파일 = [
   'components/LockSetup.jsx',
 ];
 
-// **일부러 테두리가 없는 칸**은 여기 **까닭과 함께** 적는다 (`파일:줄`).
-// 조용히 빼지 않는다 — 10/31 에 `check-twins` 의 제외 목록을 세어보니 일곱 중
-// 다섯이 **아무것도 안 빼는 줄**이었다. 그래서 아래도 **안 쓰는 줄은 FAIL 한다**
+// **일부러 테두리가 없는 칸**은 여기 **까닭과 함께** 적는다.
+//
+// **줄 번호로 짚지 않는다** (2026-10-31에 고쳤다). 처음에 `파일:줄` 로 적었더니
+// **같은 날 내가 그 파일을 고치자마자 셋이 다 어긋났다** — 줄이 밀리면 그 칸은
+// 「일부러 뺐다」가 아니라 **다시 안 보이는 칸**이 되는데, 목록은 뺐다고 말한다.
+// 아래 「없는 자리」 자가 그것을 잡아줬다(그 자를 세운 날 바로 그것에 걸렸다).
+//
+// 그래서 **칸의 이름**(`aria-label`)으로 짚는다 — 사람이 읽는 이름이라 옮겨 다녀도
+// 그대로고, 이름이 바뀌면 그때는 **그 칸을 다시 보자는 뜻**이 맞다.
+// 조용히 빼지 않는다 — 안 쓰는 줄은 FAIL 한다
 const 테두리없음 = {
-  // 자물쇠 번호는 **길이로 정해진 칸**이다(`maxLength`). 크고 작음이 없으니
-  // `min`·`max` 가 뜻이 없다.
-  // **줄 번호는 `<input` 이 **시작하는** 줄이다** — `inputMode` 가 적힌 줄이 아니다
-  // (처음 87·98·107 로 적었더니 바로 아래 「없는 자리」 자가 잡아줬다)
-  'components/LockSetup.jsx:85': 'PIN — maxLength 로 자리수를 정한다 (크고 작음이 없다)',
-  'components/LockSetup.jsx:96': 'PIN 확인 — 같은 까닭',
-  'components/LockSetup.jsx:105': '옛 PIN — 같은 까닭',
+  // 자물쇠 번호는 **길이로 정해진 칸**이다(`digits()` 로 네 자리만 받는다).
+  // 크고 작음이 없으니 `min`·`max` 가 뜻이 없다
+  'components/LockSetup.jsx|지금 네 자리': 'PIN — 네 자리로 정해진 칸이다 (크고 작음이 없다)',
+  // 이 칸은 이름이 **값**으로 들어온다(`aria-label={enabled ? … : …}`) —
+  // 그러면 중괄호 안의 글자가 그대로 이름이 된다
+  "components/LockSetup.jsx|enabled ? '새 네 자리' : '네 자리'": 'PIN — 같은 까닭',
+  'components/LockSetup.jsx|한 번 더': 'PIN 확인 — 같은 까닭',
   // 달력의 「이 날에 적기」 칸 셋. 무게는 **글자값**(「맨몸」·「밴드」)도 받는
   // 자유 입력이고, 세트·횟수는 **저장 전에** `SETS_MAX`·`REPS_MAX` 로 막고
   // 어디까지 되는지 말한다
-  'components/DaySheet.jsx:270': '무게 — 「맨몸」·「밴드」 같은 글자도 받는 칸이다',
-  'components/DaySheet.jsx:273': '세트 — 저장 전에 SETS_MAX 로 막고 말해준다',
-  'components/DaySheet.jsx:276': '횟수 — 저장 전에 REPS_MAX 로 막고 말해준다',
+  'components/DaySheet.jsx|무게 kg': '무게 — 「맨몸」·「밴드」 같은 글자도 받는 칸이다',
+  'components/DaySheet.jsx|세트': '세트 — 저장 전에 SETS_MAX 로 막고 말해준다',
+  'components/DaySheet.jsx|횟수': '횟수 — 저장 전에 REPS_MAX 로 막고 말해준다',
+};
+
+/** 칸을 가리키는 이름 — `파일|aria-label`. 이름이 없으면 `파일:줄` 로 떨어진다 */
+const 이름표 = (rel, tag, 줄) => {
+  const m = /aria-label=(?:"([^"]*)"|\{([^}]*)\})/.exec(tag);
+  return m ? `${rel}|${m[1] !== undefined ? m[1] : m[2]}` : `${rel}:${줄}`;
 };
 
 const 빈칸 = [];
@@ -92,7 +105,7 @@ for (const rel of 칸있는파일) {
     // `type="number"` 또는 **자판만 숫자인 칸**(`inputMode`)
     if (!/type="number"/.test(tag) && !/inputMode="(numeric|decimal)"/.test(tag)) continue;
     const 줄 = src.slice(0, m.index).split('\n').length;
-    const 자리 = `${rel}:${줄}`;
+    const 자리 = 이름표(rel, tag, 줄);
     모든칸.add(자리);
     if (테두리없음[자리]) continue;
     if (!/\bmin=/.test(tag) || !/\bmax=/.test(tag)) 빈칸.push(자리);
@@ -325,6 +338,29 @@ ok('  규칙을 찾았다', (글자자(authText) || '').includes('A-Za-z'), true
 const limitsText = read(path.join(FRONT, 'data', 'limits.js'));
 ok('화면 PW_MIN · PW_MAX', [num('PW_MIN'), num('PW_MAX')], [8, 100]);
 ok('  limits 에 적혀 있다', limitsText.includes('export const PW_MIN'), true);
+
+// ── 13. 날짜의 아래 벽 — 글자라서 `twins` 가 못 본다 ──
+//
+// `twins` 는 **숫자**만 센다. 그래서 `'2000-01-01'` 같은 벽은 양쪽에 따로 적혀도
+// 아무 말이 없다. 10/31 에 보니 **세 자리**에 있었다 — 화면이 한 자리로 묶어둔
+// `MIN_RECORD_DAY` · **운동 화면의 생글자** · 서버의 `FLOOR`.
+// (10/21 에 「칸마다 적지 않는다」고 묶은 자리인데 그 화면만 빠져 있었다)
+const 벽 = (file, name) => {
+  const src = read(file);
+  const i = src.indexOf(name + ' = ');
+  if (i < 0) return null;
+  const m = /'([0-9-]{10})'/.exec(src.slice(i, i + 60));
+  return m ? m[1] : null;
+};
+const 서버벽 = 벽(path.join(ROOT, 'backend', 'src', 'utils', 'dayRange.js'), 'FLOOR');
+const 화면벽 = 벽(path.join(FRONT, 'data', 'useRecordDate.js'), 'MIN_RECORD_DAY');
+ok('기록 날짜의 아래 벽', [서버벽, 화면벽], ['2000-01-01', '2000-01-01']);
+// **칸마다 적지 않는다** — 날짜 칸을 쥔 화면이 그 이름을 들고 있는지 본다
+const 날짜칸 = ['pages/TrainPage.jsx'];
+ok('날짜 칸이 생글자를 안 쓴다',
+  날짜칸.filter((f) => read(path.join(FRONT, f)).includes("min=\"2000-")), []);
+ok('  그 이름을 들고 있다',
+  날짜칸.filter((f) => !read(path.join(FRONT, f)).includes('MIN_RECORD_DAY')), []);
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

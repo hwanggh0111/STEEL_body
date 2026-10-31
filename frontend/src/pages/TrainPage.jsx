@@ -22,6 +22,7 @@ import { buildSummary } from '../data/sessionSummary';
 import { confirmDialog } from '../components/ConfirmModal';
 import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
+import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord } from '../data/personalRecord';
 import { cannotCount } from '../data/repCount';
@@ -1260,8 +1261,12 @@ export default function TrainPage() {
                     max={today}
                     /* **아래 테두리도 있다** — `max` 만 걸면 연도를 직접 칠 수 있어서
                        2026 대신 1026 이 들어간다. 한 번 들어간 줄은 1년 벽 · 달력 ·
-                       이어온 주에 계속 남는다 (서버도 같은 값으로 막는다) */
-                    min="2000-01-01"
+                       이어온 주에 계속 남는다 (서버도 같은 값으로 막는다).
+                       **그 날짜는 한 자리에서 온다** (`data/useRecordDate.js`,
+                       2026-10-31에 고쳤다) — 10/21 에 「칸마다 적지 않는다」고 묶은
+                       자리인데 **이 화면만 제 글자로 적고 있었다.** 이 화면은 그 훅을
+                       안 쓰지만(제 `datePicked` 를 든다) **벽은 같은 데서 와야 한다** */
+                    min={MIN_RECORD_DAY}
                     aria-label="다른 날"
                     onChange={(e) => {
                       // 빈 값으로 오면 무시한다 — 달력을 열었다 닫기만 해도 빈 값이 온다.

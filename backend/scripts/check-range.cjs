@@ -232,6 +232,30 @@ const call = async (method, p, body) => {
     });
     ok('찾기도 숫자 없는 것을 막는다', [reset.status, /영문\+숫자/.test(String(reset.data?.error))], [400, true]);
 
+    // ── 계획: **같은 날 같은 것을 두 번 담지 않는다** ── (2026-10-31)
+    //
+    // 서버는 막는다. 그런데 그 줄 위에 **「눌린 줄 모르고 또 누르는 자리다」**라고
+    // 적어두고 **눌러야 알려줬다** — 달력의 루틴 이름표 넷이 나란히 있고 그중
+    // 하나는 이미 담겨 있는데 겉모습이 똑같았다. 화면이 미리 흐리게 하고,
+    // 서버는 그대로 막는다(두 자가 어긋날 수 있어 서버 말을 지우지 않는다)
+    console.log('');
+    const p1 = await call('POST', '/plans', { date: '2026-11-02', kind: 'exercise', name: '벤치프레스' });
+    ok('계획을 담았다', p1.status, 201);
+    const p2 = await call('POST', '/plans', { date: '2026-11-02', kind: 'exercise', name: '벤치프레스' });
+    ok('같은 날 같은 것은 막는다', p2.status, 400);
+    ok('  까닭을 말한다', /이미 담겨/.test(String(p2.data?.error)), true);
+    // **다듬은 뒤의 이름으로 본다** — 공백만 다른 것은 같은 것이다
+    const p3 = await call('POST', '/plans', { date: '2026-11-02', kind: 'exercise', name: '  벤치프레스  ' });
+    ok('앞뒤 공백만 다른 것도 같은 것으로 본다', p3.status, 400);
+    const p4 = await call('POST', '/plans', { date: '2026-11-03', kind: 'exercise', name: '벤치프레스' });
+    ok('다른 날에는 담긴다', p4.status, 201);
+    for (const r of [p1, p4]) if (r.data?.id) await call('DELETE', `/plans/${r.data.id}`);
+
+    // 화면이 **미리** 흐리게 하는지 (글자로 본다 — 눌러보는 자리가 아니다)
+    const daySheet = require('fs').readFileSync(
+      require('path').join(__dirname, '..', '..', 'frontend', 'src', 'components', 'DaySheet.jsx'), 'utf8');
+    ok('달력이 담긴 것을 미리 가린다', /담겼나\(r\.name\)/.test(daySheet), true);
+
     await call('DELETE', '/goals');
     if (inb.data?.id) await call('DELETE', `/inbody/${inb.data.id}`);
 
