@@ -95,8 +95,32 @@ export const useGymStore = create((set, get) => ({
     return get().settings.find((s) => s.gym === gym && s.exercise === name) || null;
   },
 
+  /**
+   * 세팅 한 줄을 담는다.
+   *
+   * ── **서버가 담은 이름을 쓴다** ── (2026-10-31)
+   *
+   * 헬스장 이름은 사람이 치는 글자고, 「지금 있는 곳」은 **이 기기에만** 있다
+   * (위 머리글). 그런데 세팅을 담을 때는 그 이름이 서버로 가고, 서버는 **다듬어서**
+   * 담는다 — `cleanName` 이 가운데 공백을 줄이고 `<>"'&` 를 걷는다:
+   *
+   *     화면이 든 이름   「강남   점」   (`trim()` 만 했다)
+   *     서버가 담은 이름 「강남 점」
+   *
+   * 그러면 **칩 줄에 같은 곳이 둘로 보이고**(화면이 든 이름 + 서버가 돌려준 이름),
+   * 「여기 세팅」은 `s.gym === gym` 으로 거르니 **방금 적은 세팅이 안 보인다.**
+   * 10/28 에 루틴 이름에서 겪은 그 자리다 — 그때 세운 자가 **「서버가 담은 글자를
+   * 그대로 쓴다」**였다.
+   *
+   * 다듬는 규칙을 화면에 또 적지 않는다 — `sanitize` 는 URL 디코딩까지 하는 긴
+   * 자고, 두 벌로 두면 반드시 어긋난다. **담고 나서 서버가 준 이름으로 맞춘다.**
+   */
   save: async (payload) => {
     const { data } = await client.put('/gym-settings', payload);
+    // 지금 고른 곳으로 담은 것인데 이름이 달라져 왔으면, 그 이름이 맞는 이름이다
+    if (data?.gym && payload?.gym === get().gym && data.gym !== get().gym) {
+      get().setGym(data.gym);
+    }
     await get().fetch(true);
     return data;
   },

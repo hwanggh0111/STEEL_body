@@ -256,6 +256,24 @@ const call = async (method, p, body) => {
       require('path').join(__dirname, '..', '..', 'frontend', 'src', 'components', 'DaySheet.jsx'), 'utf8');
     ok('달력이 담긴 것을 미리 가린다', /담겼나\(r\.name\)/.test(daySheet), true);
 
+    // ── 헬스장: **서버가 담은 이름을 화면이 쓰는가** ── (2026-10-31)
+    //
+    // 「지금 있는 곳」은 이 기기에만 있고 사람이 치는 글자다. 그런데 세팅을 담을 때
+    // 그 이름이 서버로 가고, 서버는 **다듬어서** 담는다(가운데 공백 줄이기 ·
+    // `<>"'&` 걷기). 화면이 날글을 든 채로 있으면 **칩 줄에 같은 곳이 둘로 보이고**
+    // 「여기 세팅」이 빈다 — 10/28 에 루틴 이름에서 겪은 그 자리다
+    console.log('');
+    const gs = await call('PUT', '/gym-settings', { gym: '강남   점', exercise: '랫풀다운', seat: '3' });
+    ok('세팅을 담았다', gs.status, 200);
+    ok('  서버는 다듬은 이름을 돌려준다', gs.data?.gym, '강남 점');
+    const gs2 = await call('PUT', '/gym-settings', { gym: '<집앞>', exercise: '벤치프레스', seat: '2' });
+    ok('  꺾쇠도 걷어서 돌려준다', gs2.data?.gym, '집앞');
+    // **화면이 그 이름을 쓰는가** (글자로 본다 — 스토어를 띄우는 자리가 아니다)
+    const gymStore = require('fs').readFileSync(
+      require('path').join(__dirname, '..', '..', 'frontend', 'src', 'store', 'gymStore.js'), 'utf8');
+    ok('  화면이 돌려받은 이름으로 맞춘다', /data\.gym !== get\(\)\.gym/.test(gymStore), true);
+    await call('DELETE', '/gym-settings', undefined);
+
     await call('DELETE', '/goals');
     if (inb.data?.id) await call('DELETE', `/inbody/${inb.data.id}`);
 
