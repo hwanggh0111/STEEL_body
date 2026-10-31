@@ -183,6 +183,28 @@ const call = async (method, p, body) => {
     ok('목표 체중 7kg 은 막는다', low.status, 400);
     ok('  까닭을 말한다', /20~300/.test(String(low.data?.error)), true);
 
+    // ── 아이디: **세 길이 같은 말을 하는가** ── (2026-10-31)
+    //
+    // 같은 정규식이 중복 확인 · 가입 · 바꾸기에 따로 적혀 있었고 **거절 문구가
+    // 셋 다 달랐다** — 하나는 특수문자를 안 적었다. 중복 확인에서 들은 말과
+    // 가입에서 들은 말이 다르면, 사람은 무엇이 규칙인지 알 수 없다
+    console.log('');
+    const bad아이디 = '한글아이디';
+    const dup = await call('POST', '/auth/check-username', { username: bad아이디 });
+    const regBad = await call('POST', '/auth/register', {
+      email: `x${Date.now() % 100000}@check.local`, password: 'check12345',
+      nickname: '아이디검사', username: bad아이디, code: '000000',
+    });
+    const putBad = await call('PUT', '/auth/username', { username: bad아이디 });
+    ok('셋 다 400 으로 막는다', [dup.status, regBad.status, putBad.status], [400, 400, 400]);
+    ok('  거절하는 말이 셋 다 같다',
+      [dup.data?.error, regBad.data?.error, putBad.data?.error].filter((m, i, a) => a.indexOf(m) === i).length, 1);
+    ok('  어디까지 되는지 말한다', /4~20/.test(String(dup.data?.error)), true);
+    // 짧은 것 · 쓸 수 없는 글자도 같은 자가 본다
+    ok('3자는 막는다', (await call('POST', '/auth/check-username', { username: 'abc' })).status, 400);
+    ok('21자는 막는다', (await call('POST', '/auth/check-username', { username: 'a'.repeat(21) })).status, 400);
+    ok('멀쩡한 아이디는 통과', (await call('POST', '/auth/check-username', { username: 'good_id-01' })).status, 200);
+
     await call('DELETE', '/goals');
     if (inb.data?.id) await call('DELETE', `/inbody/${inb.data.id}`);
 

@@ -10,7 +10,8 @@ import { saveLS } from '../data/safeStorage';
 // 홈페이지가 「가입하고 열기 — 「몸 지도」 화면」이라고 적어뒀으니 그 자리로 가야 한다
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 import { SAVED_ID_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
-import { NICKNAME_MAX } from '../data/limits';
+import { NICKNAME_MAX, USERNAME_MAX, USERNAME_MIN } from '../data/limits';
+import { usernameHint } from '../data/username';
 
 // 가입 — 다시 짰다 (2026-10-06).
 //
@@ -84,7 +85,7 @@ const isValidPw = (pw) => pw.length >= PW_MIN && pw.length <= PW_MAX && /[A-Za-z
 function suggestUsername(email) {
   const head = String(email || '').split('@')[0].toLowerCase();
   const cleaned = head.replace(/[^a-z0-9._-]/g, '');
-  return cleaned.length >= 4 ? cleaned.slice(0, 20) : '';
+  return cleaned.length >= USERNAME_MIN ? cleaned.slice(0, USERNAME_MAX) : '';
 }
 
 export default function RegisterPage() {
@@ -249,9 +250,10 @@ export default function RegisterPage() {
     setUsernameChecking(false);
 
     if (!next) { setUsernameHint(''); return; }
-    if (next.length < 4) { setUsernameHint('4자 이상 입력해주세요'); return; }
-    if (next.length > 20) { setUsernameHint('20자 이하로 입력해주세요'); return; }
-    if (!/^[a-zA-Z0-9!@#$%^&*._-]+$/.test(next)) { setUsernameHint('영문, 숫자, 특수문자(!@#$%^&*._-)만 가능'); return; }
+    // **규칙은 한 자리에서 온다** (`data/username.js`, 2026-10-31) —
+    // 서버 셋 · 화면 둘에 같은 정규식이 따로 적혀 있었다
+    const hint = usernameHint(next);
+    if (hint) { setUsernameHint(hint); return; }
 
     setUsernameHint('');
     usernameCheckTimerRef.current = setTimeout(async () => {

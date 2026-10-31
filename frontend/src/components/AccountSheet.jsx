@@ -3,6 +3,7 @@ import NavIcon from './NavIcon';
 import LockSetup from './LockSetup';
 import { useLockStore } from '../store/lockStore';
 import client from '../api/client';
+import { NICKNAME_MAX } from '../data/limits';
 
 // 내 계정.
 //
@@ -120,7 +121,7 @@ export default function AccountSheet({
                   if (e.key === 'Escape') setEditing(false);
                 }}
                 autoFocus
-                maxLength={30}
+                maxLength={NICKNAME_MAX}
                 style={{ padding: '7px 9px', fontSize: 13 }}
                 placeholder="이름"
                 aria-label="새 이름"

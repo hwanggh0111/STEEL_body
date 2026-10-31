@@ -220,5 +220,45 @@ const { RANGE } = require('../src/utils/inbodyRange');
 ok('시작값은 인바디 범위에서 온다', goals.includes("require('../utils/inbodyRange')"), true);
 ok('  인바디 체중 범위', RANGE.weight, [1, 500]);
 
+// ── 10. 이름 칸 — 화면 넷이 **같은 선**을 드는가 ──
+//
+// 닉네임 칸은 **네 자리**다(가입 · 설정 · 계정 시트 · 소셜 닉네임). 10/31 에
+// 보니 **설정만 20** 이었다 — 서버와 나머지 셋은 30. 가입 때 25자로 지은 사람은
+// 설정에서 그 이름을 고칠 수 없었다. **넷 중 하나만 다른 자리는 잊은 자리다**
+const 닉네임칸 = [
+  'pages/RegisterPage.jsx', 'pages/SettingsPage.jsx',
+  'components/AccountSheet.jsx', 'pages/LoginPage.jsx',
+];
+ok('닉네임 칸 넷이 NICKNAME_MAX 를 든다',
+  닉네임칸.filter((f) => !read(path.join(FRONT, f)).includes('maxLength={NICKNAME_MAX}')), []);
+const authText = read(path.join(ROOT, 'backend', 'src', 'routes', 'auth.js'));
+const auth수 = (name) => {
+  const head = 'const ' + name + ' = ';
+  const i = authText.indexOf(head);
+  return i < 0 ? null : parseInt(authText.slice(i + head.length), 10);
+};
+ok('  서버 NICKNAME_MAX', auth수('NICKNAME_MAX'), 30);
+
+// ── 11. 아이디 — 글자 규칙이 양쪽에 같은가 ──
+//
+// 같은 정규식이 **다섯 자리**(서버 셋 · 화면 둘)에 있었고 서버의 거절 문구는
+// **셋 다 달랐다**. 서버는 `badUsername` 한 자리로, 화면은 `data/username.js`
+// 한 자리로 묶었다. 길이는 `twins` 가, 글자 규칙은 여기서 본다
+const 규칙글자 = (file, name) => {
+  const src = read(file);
+  const i = src.indexOf('const ' + name + ' = /');
+  return i < 0 ? null : src.slice(i + ('const ' + name + ' = ').length, src.indexOf(';', i));
+};
+const 뒤아이디 = 규칙글자(path.join(ROOT, 'backend', 'src', 'routes', 'auth.js'), 'USERNAME_CHARS');
+const 앞아이디 = 규칙글자(path.join(FRONT, 'data', 'username.js'), 'USERNAME_CHARS');
+ok('아이디 글자 규칙이 양쪽에 같다', [뒤아이디, 앞아이디 === 뒤아이디], [앞아이디, true]);
+ok('  규칙을 찾았다', 뒤아이디 !== null && 뒤아이디.includes('a-zA-Z0-9'), true);
+
+// **서버의 셋이 한 자를 쓰는가** — 거절 문구가 자리마다 다르면 중복 확인에서
+// 들은 말과 가입에서 들은 말이 달라진다
+const auth = read(path.join(ROOT, 'backend', 'src', 'routes', 'auth.js'));
+ok('서버에 남은 날 정규식', (auth.match(/\{4,20\}/g) || []).length, 0);
+ok('badUsername 을 쓰는 자리 셋', (auth.match(/badUsername\(/g) || []).length - 1, 3);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

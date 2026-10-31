@@ -9,6 +9,30 @@ const { BCRYPT_ROUNDS, LOGIN_LOCK, PW_MIN, PW_MAX } = require('../config/securit
 // 가입은 30 인데 설정의 「이름 바꾸기」는 20 이었다. 같은 서버 길로 가는 칸이다.
 // 화면도 같은 이름으로 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
 const NICKNAME_MAX = 30;
+
+// ── 아이디 규칙은 **한 자리에서** 온다 ── (2026-10-31)
+//
+// 같은 정규식이 **세 자리**(중복 확인 · 가입 · 바꾸기)에 글자로 박혀 있었고,
+// 거절하는 말은 셋이 **다 달랐다** — 「영문+숫자+특수문자(…) 4~20자만 가능해요」 ·
+// 「아이디는 영문+숫자 4~20자만 가능해요」(특수문자를 안 적었다) ·
+// 「아이디는 영문+숫자+특수문자(…) 4~20자만 가능해요」. 같은 거절인데 **중복
+// 확인에서 들은 말과 가입에서 들은 말이 다르다.**
+//
+// 화면 둘(`RegisterPage` · `SettingsPage`)도 같은 규칙을 또 적고 있었다 —
+// **다섯째 벌**이다. 길이는 `data/limits.js` 가 같은 이름으로 들고
+// (`npm run twins` 가 값을 견준다), 글자 규칙은 `npm run bounds` 가 글자로 견준다.
+const USERNAME_MIN = 4;
+const USERNAME_MAX = 20;
+const USERNAME_CHARS = /^[a-zA-Z0-9!@#$%^&*._-]+$/;
+
+/** 아이디가 규칙에 안 맞으면 **왜인지**를 돌려준다. 맞으면 null */
+function badUsername(v) {
+  const s = typeof v === 'string' ? v : '';
+  if (s.length < USERNAME_MIN || s.length > USERNAME_MAX || !USERNAME_CHARS.test(s)) {
+    return `아이디는 영문+숫자+특수문자(!@#$%^&*._-) ${USERNAME_MIN}~${USERNAME_MAX}자만 가능해요`;
+  }
+  return null;
+}
 const { addLog } = require('./security');
 const { recordLoginFailure } = require('../middleware/aiGuard');
 
@@ -248,9 +272,8 @@ router.post('/check-email', (req, res) => {
 router.post('/check-username', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: '아이디를 입력해주세요' });
-  if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(username)) {
-    return res.status(400).json({ error: '영문+숫자+특수문자(!@#$%^&*._-) 4~20자만 가능해요' });
-  }
+  const badName = badUsername(username);
+  if (badName) return res.status(400).json({ error: badName });
   const exists = db.findUserByUsername(username);
   if (exists) return res.json({ available: false, message: '이미 사용 중인 아이디에요' });
   res.json({ available: true, message: '사용 가능한 아이디에요' });
@@ -285,9 +308,8 @@ router.post('/register', async (req, res) => {
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일 형식이 아니에요' });
   }
-  if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(username)) {
-    return res.status(400).json({ error: '아이디는 영문+숫자 4~20자만 가능해요' });
-  }
+  const badReg = badUsername(username);
+  if (badReg) return res.status(400).json({ error: badReg });
   // **값은 한 자리에서 온다** (2026-10-28, `config/security.js`) — 이 셈이 세 곳에
   // 글자로 있었고 거절하는 말도 세 번 따로 적혀 있었다
   if (password.length < PW_MIN || password.length > PW_MAX) {
@@ -640,10 +662,9 @@ function usernameCooldown(changedAt, now = Date.now()) {
 router.put('/username', require('../middleware/auth'), (req, res) => {
   const { username } = req.body;
   const typed = typeof username === 'string' ? username.trim() : '';
-  // 가입과 **같은 규칙**을 쓴다. 여기만 느슨하면 가입에서 막히는 아이디가 바꾸기로는 들어온다
-  if (!/^[a-zA-Z0-9!@#$%^&*._-]{4,20}$/.test(typed)) {
-    return res.status(400).json({ error: '아이디는 영문+숫자+특수문자(!@#$%^&*._-) 4~20자만 가능해요' });
-  }
+  // 가입과 **같은 자**를 쓴다. 여기만 느슨하면 가입에서 막히는 아이디가 바꾸기로는 들어온다
+  const badPut = badUsername(typed);
+  if (badPut) return res.status(400).json({ error: badPut });
 
   const user = db.findUserById(req.userId);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });

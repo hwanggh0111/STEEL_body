@@ -14,6 +14,7 @@ import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 // 쪽지 이름은 한 곳에서 가져온다 — 글자로 적으면 한쪽만 틀려도 안내가 조용히 사라진다
 import { AUTO_LOGIN_KEY, EMAIL_KEY, NICKNAME_KEY, ROLE_KEY, SAVED_ID_KEY, SAVED_NICKNAME_KEY, SESSION_EXPIRED_KEY, TOKEN_KEY } from '../data/localKeys';
 import { i as iPart } from '../data/particle';
+import { NICKNAME_MAX } from '../data/limits';
 
 // 로그인 — 다시 짰다 (2026-10-06).
 //
@@ -263,7 +264,7 @@ function oauthErrorText(code) {
             onChange={(e) => { setOauthNick(e.target.value); setNickError(''); }}
             onKeyDown={(e) => e.key === 'Enter' && saveOauthNick()}
             placeholder="사용할 닉네임"
-            maxLength={30}
+            maxLength={NICKNAME_MAX}
             autoFocus
             style={{ textAlign: 'center', fontSize: 18, marginBottom: 8 }}
           />

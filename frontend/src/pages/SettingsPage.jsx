@@ -18,7 +18,8 @@ import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
 import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
-import { NICKNAME_MAX } from '../data/limits';
+import { NICKNAME_MAX, USERNAME_MAX } from '../data/limits';
+import { usernameHint } from '../data/username';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -410,12 +411,9 @@ export default function SettingsPage() {
     if (idTimer.current) clearTimeout(idTimer.current);
 
     if (!next) return;
-    if (next.length < 4) { setIdMsg({ ok: false, text: '4자 이상 입력해주세요' }); return; }
-    if (next.length > 20) { setIdMsg({ ok: false, text: '20자 이하로 입력해주세요' }); return; }
-    if (!/^[a-zA-Z0-9!@#$%^&*._-]+$/.test(next)) {
-      setIdMsg({ ok: false, text: '영문, 숫자, 특수문자(!@#$%^&*._-)만 가능' });
-      return;
-    }
+    // **규칙은 한 자리에서 온다** (`data/username.js`, 2026-10-31)
+    const hint = usernameHint(next);
+    if (hint) { setIdMsg({ ok: false, text: hint }); return; }
     if (next === String(acct.username || '').toLowerCase()) {
       setIdMsg({ ok: false, text: '지금 쓰는 아이디예요' });
       return;
@@ -803,10 +801,10 @@ export default function SettingsPage() {
                     value={idDraft}
                     onChange={(e) => typeId(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveId(); }}
-                    maxLength={20}
+                    maxLength={USERNAME_MAX}
                     autoFocus
                     autoComplete="username"
-                    placeholder="영문+숫자 4~20자"
+                    placeholder={`영문+숫자 4~${USERNAME_MAX}자`}
                     style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 6, color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
                       borderColor: idDraft
                         ? (idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)') : 'var(--border-hover)')

@@ -152,3 +152,15 @@ export const MAX_ROWS = 20000;
  */
 export const NICKNAME_MAX = 30;
 export const PLAN_NAME_MAX = 40;
+
+/**
+ * 아이디의 글자 수.
+ *
+ * 글자 규칙까지 합쳐 **다섯 자리**에 적혀 있었다 — 서버 셋(중복 확인 · 가입 ·
+ * 바꾸기)과 화면 둘. 서버는 `badUsername` 한 자리로, 화면은 `data/username.js`
+ * 한 자리로 묶었다.
+ *
+ *   둘 다 → backend/src/routes/auth.js
+ */
+export const USERNAME_MIN = 4;
+export const USERNAME_MAX = 20;
