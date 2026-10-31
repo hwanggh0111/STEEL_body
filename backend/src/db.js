@@ -887,7 +887,9 @@ const db = {
       // 걸러내는 조건이 같으므로(`user_id` · `client_key`) 답은 한 줄도 다르지 않다
       const mine = rowsOf('workouts', userId);
       const existing = mine.find(w => w.client_key === clientKey);
-      if (existing) return { lastInsertRowid: existing.id, deduped: true };
+      // **담은 줄을 같이 돌려준다** (2026-10-31) — 화면이 그것을 제자리에 꽂고
+      // **목록 전체를 다시 받지 않는다**(5년치가 4.15MB 다. 아래 `createWorkout` 머리글)
+      if (existing) return { lastInsertRowid: existing.id, deduped: true, record: existing };
     }
     const id = nextId('workouts');
     const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
@@ -897,7 +899,15 @@ const db = {
     data.workouts.push(workout);
     afterRowChange('workouts', userId, { added: workout });
     save(data);
-    return { lastInsertRowid: id };
+    // ── **담은 줄을 돌려준다** ── (2026-10-31)
+    //
+    // 여태 번호만 줬다. 그래서 화면은 적은 뒤 **목록을 통째로 다시 받았다** —
+    // 5년치면 **4.15MB(gzip 210KB)** 고, 세트 하나를 적을 때마다 그 왕복이 일어난다
+    // (`npm run http` 가 그 수를 적는다). 헬스장에서 LTE 로 쓰는 앱이다.
+    //
+    // 줄을 돌려주면 화면이 그것을 제자리에 꽂는다. **보낸 날글이 아니라 담은 줄**을
+    // 쓰는 것이 또 중요하다 — 서버는 이름을 다듬어 담는다(10/28 ③ · 10/31 ㊷).
+    return { lastInsertRowid: id, record: workout };
   },
   deleteWorkout(id, userId) {
     const data = load();

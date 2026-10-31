@@ -26,8 +26,41 @@ const { sendFresh } = require('../utils/fresh');
 // 옮길 때마다 이 길을 다시 부르는데(30초 지나면) 5년치면 몸통이 4MB 다 —
 // 그 네 번 중 세 번은 바뀐 것이 없다. 그때는 304 한 줄이고, **줄을 모으지도
 // 글자로 만들지도 않는다**(`build` 를 안 부른다)
+// ── **읽지도 않는 칸을 보내지 않는다** ── (2026-10-31)
+//
+// 줄마다 `user_id` 와 `client_key` 가 같이 나갔다. 둘 다 **앱이 한 군데서도 안 읽는다** —
+//
+//   user_id     물어본 그 사람이다 (늘 같은 수다)
+//   client_key  지하에서 적어 세운 줄을 두 번 안 넣으려고 두는 표 — 서버만 본다
+//
+// ── **`created_at` 은 보낸다** (깎으려다 되돌렸다) ──
+//
+// 처음에 이것까지 뺐다 — 「차례를 매기는 데만 쓴다」고 봤기 때문이다. **아니었다.**
+// `data/pace.js` 가 **기록을 남긴 시각으로 운동 속도를 잰다**(오늘 결산의 「보통
+// 이만큼 쉰다」 · 「제일 길게 쉰 것」). 뺐으면 그 기능이 **조용히 없는 것**이 됐다 —
+// 오늘 하루 그 모양을 다섯 번 고쳤는데 그걸 내 손으로 또 만들 뻔했다.
+// 그래서 **깎기 전에 「누가 읽는가」를 값으로 본다** (`npm run thin`).
+//
+// 5년치에서 재보면 원본 **3.95MB → 3.47MB**, 보낸 바이트도 조금 줄어든다.
+// 바이트보다 **폰에서 그것을 푸는 값**이 크다 — 그 `JSON.parse` 가 화면이 뜨는
+// 길 위에 있다.
+//
+// **고르는 자리는 한 곳이다** — 적는 길(`POST`·`PUT`)이 돌려주는 줄도 이것을 지난다.
+// 모양이 갈라지면 화면이 섞어 쓰다 어긋난다(저장한 줄만 칸이 더 있게 된다).
+const slim = (w) => {
+  const o = {
+    id: w.id, date: w.date, exercise: w.exercise, weight: w.weight, sets: w.sets, reps: w.reps,
+    // **속도를 재는 자가 읽는다** (`data/pace.js`) — 빼면 「보통 이만큼 쉰다」가 사라진다
+    created_at: w.created_at,
+  };
+  // 있을 때만 — 없으면 칸을 안 만든다 (옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다)
+  if (w.link) o.link = w.link;
+  if (w.updated_at) o.updated_at = w.updated_at;
+  return o;
+};
+
 router.get('/', auth, (req, res) => {
-  sendFresh(req, res, db.dataTag('workouts', req.userId), () => db.getWorkouts(req.userId));
+  sendFresh(req, res, db.dataTag('workouts', req.userId), () => db.getWorkouts(req.userId).map(slim));
 });
 
 // 날짜별 조회는 **없다** (2026-09-19 에 걷었다).
@@ -101,7 +134,14 @@ router.post('/', auth, spamCheck, (req, res) => {
   const safeLink = link === 'super' || link === 'drop' ? link : null;
 
   const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink);
-  res.status(201).json({ id: result.lastInsertRowid, message: '운동 기록 저장 완료!' });
+  // **담은 줄을 같이 보낸다** (2026-10-31) — 화면이 그것을 제자리에 꽂고 목록
+  // 전체를 다시 받지 않는다. `GET /workouts` 가 주는 줄과 **같은 모양**이어야 한다
+  // (화면이 둘을 섞어 쓴다) — 그래서 다듬거나 고르지 않고 그대로 보낸다
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    workout: result.record ? slim(result.record) : null,
+    message: '운동 기록 저장 완료!',
+  });
 });
 
 // 수정
@@ -160,7 +200,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   if (result.changes === 0) {
     return res.status(404).json({ error: '기록을 찾을 수 없어요' });
   }
-  res.json({ id, message: '운동 기록 수정 완료!' });
+  res.json({ id, workout: result.workout ? slim(result.workout) : null, message: '운동 기록 수정 완료!' });
 });
 
 // 삭제

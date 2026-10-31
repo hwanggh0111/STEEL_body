@@ -35,6 +35,43 @@ function groupByDate(list) {
   }, {});
 }
 
+// ── **적은 뒤 전부 다시 받지 않는다** ── (2026-10-31)
+//
+// 여태 한 줄을 적고 나면 `fetchAll(true)` 로 **목록을 통째로** 다시 받았다.
+// 5년치면 **4.15MB(gzip 210KB)** 고(`npm run http`), 그 왕복이 **세트를 적을
+// 때마다** 일어난다 — 헬스장에서 LTE 로 쓰는 앱이다. 적고 기다리는 그 몇 초가
+// 이 앱에서 가장 자주 겪는 느림이었다.
+//
+// 이제 서버가 **담은 줄을 돌려주고**(`POST /workouts` 의 `workout`) 화면이 그것을
+// 제자리에 꽂는다. 받는 바이트가 **210KB → 0.2KB** 가 된다.
+//
+// **차례를 서버와 같게 꽂아야 한다.** 서버의 색인은 `날짜 내림 · 적은 때 내림 ·
+// 번호 오름`으로 든다(`db.js` 의 `ROW_CMP`) — 날짜별로 묶은 뒤 그 날 안에서는
+// **방금 적은 것이 맨 위**다. 그래서 그 날 묶음의 **앞에** 꽂는다.
+// 틀린 차례를 들면 슈퍼세트·드롭세트 묶음이 어긋나 보인다 —
+// `npm run order` 가 **진짜 서버가 주는 차례와 값으로 맞춰본다.**
+//
+// **고치기는 그대로 다시 받는다.** 날짜를 바꾸면 그 줄이 **적은 때**로 그 날 안의
+// 어디쯤에 꽂히는데, 그 자를 화면에 또 적으면 두 벌이 된다. 고치기는 세트를 적는
+// 일만큼 자주 하지 않는다 — **싼 쪽을 고르지 않고 맞는 쪽을 고른다.**
+const putRow = (server, row) => {
+  if (!row || !row.date) return server;
+  const next = { ...server };
+  const day = (next[row.date] || []).filter((w) => w.id !== row.id);
+  next[row.date] = [row, ...day];
+  return next;
+};
+
+/** 번호로 한 줄을 뺀다. 차례를 안 건드리니 꽂는 쪽보다 쉽다 */
+const dropRow = (server, id) => {
+  const next = {};
+  for (const [date, items] of Object.entries(server)) {
+    const kept = items.filter((w) => w.id !== id);
+    if (kept.length > 0) next[date] = kept;
+  }
+  return next;
+};
+
 // ── 담는 자리는 **한 곳**이다 ── (2026-10-24)
 //
 // `localStorage` 가 찼거나 막혀 있으면 담기가 실패하고, 그러면 이 줄은 **램에만**
@@ -154,7 +191,16 @@ export const useWorkoutStore = create((set, get) => ({
   addWorkout: async (workout, { refetch = true } = {}) => {
     try {
       const { data } = await client.post('/workouts', workout);
-      if (refetch) await get().fetchAll(true).catch(() => {});
+      // **줄이 왔으면 꽂고 끝낸다** (2026-10-31, 위 `putRow` 머리글).
+      // 안 왔으면(옛 서버) 여태처럼 통째로 받는다 — 배포가 엇갈리는 동안도 돌아야 한다
+      if (data?.workout?.date) {
+        const nextServer = putRow(get().server, data.workout);
+        get().apply(nextServer, null);
+        saveCache(nextServer);
+        fetchedAt = Date.now();
+      } else if (refetch) {
+        await get().fetchAll(true).catch(() => {});
+      }
       return data;
     } catch (err) {
       // 서버가 「그렇게는 안 받는다」고 답한 것은 다시 보내도 마찬가지다. 그대로 알린다
@@ -193,20 +239,22 @@ export const useWorkoutStore = create((set, get) => ({
       get().apply(null, queue);
       return;
     }
-    // 낙관적 업데이트: 먼저 UI에서 제거
+    // 낙관적 업데이트: 먼저 UI에서 제거 (**빼는 자는 위 `dropRow` 한 자리다**)
     const prevServer = get().server;
-    const updated = {};
-    for (const [date, items] of Object.entries(prevServer)) {
-      const filtered = items.filter(w => w.id !== id);
-      if (filtered.length > 0) updated[date] = filtered;
-    }
+    const updated = dropRow(prevServer, id);
     get().apply(updated, null);
     try {
       await client.delete(`/workouts/${id}`);
       saveCache(updated);
-      // 지운 것은 화면에서 이미 뺐다. 다시 받을 필요는 없지만, 다음 요청이
-      // 옛 것을 그대로 쓰지 않도록 「새로 받아야 함」으로 표시해 둔다
-      fetchedAt = 0;
+      // ── **다시 받으라고 적어두지 않는다** ── (2026-10-31)
+      //
+      // 여태 `fetchedAt = 0` 으로 두어, **다음에 화면이 뜰 때 목록을 통째로**
+      // 받았다(5년치 4.15MB). 그런데 서버가 「지웠다」고 답한 뒤의 화면 상태는
+      // **서버와 같다** — 지운 줄 하나만 빠진 것이다. 다시 받을 까닭이 없다.
+      //
+      // 다른 기기에서 바뀐 것은 최대 `FRESH_MS`(30초) 늦게 보인다 — 이 파일
+      // 머리글이 적어둔 그 선이고, 적는 쪽도 같은 선을 쓴다
+      fetchedAt = Date.now();
     } catch (err) {
       // 실패 시 롤백
       get().apply(prevServer, null);

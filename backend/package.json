@@ -53,7 +53,8 @@
     "http": "node scripts/bench-http.cjs",
     "twins": "node scripts/check-twins.cjs",
     "bounds": "node scripts/check-bounds.cjs",
-    "range": "node scripts/check-range.cjs"
+    "range": "node scripts/check-range.cjs",
+    "order": "node scripts/check-order.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

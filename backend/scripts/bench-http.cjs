@@ -93,6 +93,42 @@ function get(p, headers = {}) {
   });
 }
 
+/** 적는 길도 재야 한다 — `get` 과 같은 자로 둔다 (2026-10-31) */
+function req(method, p, bodyObj, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const payload = bodyObj === undefined ? null : Buffer.from(JSON.stringify(bodyObj));
+    const t0 = process.hrtime.bigint();
+    const r = http.request({
+      port: server.address().port,
+      path: p,
+      method,
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Accept-Encoding': 'gzip',
+        ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {}),
+        ...headers,
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks);
+        const body = res.headers['content-encoding'] === 'gzip' && raw.length ? zlib.gunzipSync(raw) : raw;
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          wire: raw.length,
+          body: body.toString(),
+          ms: Number(process.hrtime.bigint() - t0) / 1e6,
+        });
+      });
+    });
+    r.on('error', reject);
+    if (payload) r.write(payload);
+    r.end();
+  });
+}
+
 const kb = (n) => (n / 1024).toFixed(1);
 
 async function run() {
@@ -114,11 +150,22 @@ async function run() {
       say('  걸린 시간', again.ms, 'ms');
     }
 
-    // 하나 적은 뒤에는 **새로 받아야 한다**
-    db.createWorkout(me.id, '2026-10-24', '벤치프레스', '100', 5, 5);
+    // ── **세트 하나를 적는 값** ── (2026-10-31)
+    //
+    // 이 앱에서 **가장 자주 겪는 왕복**이다. 여태 적은 뒤 목록을 통째로 다시 받았다 —
+    // 아래 두 수가 그 차이다. 적는 길(`POST`)이 **담은 줄을 돌려주므로** 화면은
+    // 그것을 꽂고 끝낸다 (`store/workoutStore.js` 의 `putRow`,
+    // 차례는 `npm run order` 가 값으로 지킨다)
+    const post = await req('POST', '/api/workouts', {
+      date: '2026-10-24', exercise: '벤치프레스', weight: '100', sets: 5, reps: 5,
+    });
+    say('POST /workouts — 보낸 바이트(gzip)', Number(kb(post.wire)), 'KB');
+    say('  담은 줄을 돌려준다', post.body && post.body.includes('"workout"') ? '그렇다' : '아니다');
+    say('  걸린 시간', post.ms, 'ms');
     if (w.headers.etag) {
       const after = await get('/api/workouts', { 'If-None-Match': w.headers.etag });
-      say('하나 적은 뒤 (같은 ETag 로)', after.status === 200 ? '200 (새로 받음)' : String(after.status));
+      say('여태: 적은 뒤 통째로 다시 받으면', after.status === 200 ? Number(kb(after.wire)) + 'KB (200)' : String(after.status));
+      say('  걸린 시간', after.ms, 'ms');
     }
 
     const ib = await get('/api/inbody');
