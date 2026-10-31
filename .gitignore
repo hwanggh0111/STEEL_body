@@ -53,6 +53,16 @@ backend/.*-check.photos.json
 backend/.boot.json
 backend/scripts/.probe*.json
 backend/scripts/.bench-*.cjs
+# ── **이름 꼴을 더 세지 않는다** ── (2026-10-31)
+#
+# 위 셋(`.check-*` · `.bench*` · `.probe*`)은 **이름이 맞을 때만** 막는다. 오늘
+# 한 번 재보려고 `.x.json` 을 만들었더니 **그 셋에 안 걸려 커밋에 끼어 올라갔다** —
+# 10/28 ① 이 그 자리였고(「gitignore 가 이름 꼴 반만 막고 있었다」) 그날 꼴을
+# 둘로 늘렸는데, **셋째 꼴을 내가 또 만들었다.**
+#
+# `backend/scripts/` 아래에 **올려야 할 `.json` 은 하나도 없다**(git 에 든 것이 0 이다 —
+# 검사도 그것을 지킨다). 그러니 이름을 세지 말고 **통째로 막는다.**
+backend/scripts/*.json
 
 # 통째로 떠둔 백업 (npm run backup). **사람들의 기록 전부가 들어 있다** —
 # 본체가 gitignore 인 것과 같은 까닭으로 여기도 절대 올리지 않는다

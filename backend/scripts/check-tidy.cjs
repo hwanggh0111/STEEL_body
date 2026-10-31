@@ -80,5 +80,30 @@ if (tracked !== null) {
 }
 
 console.log('');
+// ── **`backend/scripts/` 아래의 `.json` 은 전부 임시다** ── (2026-10-31)
+//
+// 위 `TEMP` 는 **이름 꼴**로 센다(`check`·`bench`·`probe`·`boot`). 오늘 한 번
+// 재보려고 `.x.json` 을 만들었더니 **그 꼴에 안 걸려 커밋에 끼어 올라갔다** —
+// 10/28 ① 이 바로 그 자리였고(「gitignore 가 이름 꼴 반만 막고 있었다」) 그날 꼴을
+// 둘로 늘렸는데, **셋째 꼴을 내가 또 만들었다. 이름을 세는 자는 또 새는 자다.**
+//
+// 그래서 그 칸만은 **이름을 안 센다** — 올려야 할 `.json` 이 하나도 없는 자리다
+// (검사·재는 자가 쓰고 지우는 것뿐이다). 남은 것도, git 에 든 것도 FAIL 한다
+console.log('');
+console.log('── backend/scripts 아래의 json (전부 임시다) ──');
+{
+  const dir = path.join(ROOT, 'backend', 'scripts');
+  const 남은것 = fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => n.endsWith('.json')) : [];
+  ok('남아 있는 json 이 없다', 남은것, []);
+  let 든것 = [];
+  try {
+    const out = execFileSync('git', ['ls-files', 'backend/scripts'], { cwd: ROOT, encoding: 'utf8' });
+    든것 = out.split(String.fromCharCode(10)).map((l) => l.trim()).filter((l) => l.endsWith('.json'));
+  } catch { 든것 = []; }
+  ok('git 이 들고 있는 json 이 없다', 든것, []);
+  if (든것.length) {
+    console.log('     ↑ `git rm --cached <파일>` 로 먼저 뺀다 — **이미 들고 있는 파일은 gitignore 로 안 막힌다**');
+  }
+}
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);
