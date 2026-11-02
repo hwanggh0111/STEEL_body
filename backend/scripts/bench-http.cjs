@@ -53,6 +53,31 @@ for (let d = 0; d < YEARS * 365; d++) {
   }
 }
 for (const t of ['profile', 'before', 'after']) db.savePhoto(me.id, t, IMG);
+
+// ── 다른 표도 **5년치로** 채운다 ── (2026-11-02)
+//
+// 운동만 많고 나머지가 비어 있으면 「이 길은 작다」는 틀린 답이 나온다.
+// 주 한 번씩 적는 사람으로 센다 — 인바디 · 측정 · 달력 메모는 그 쯤이다
+const WEEKS = YEARS * 52;
+for (let k = 0; k < WEEKS; k++) {
+  const day = new Date(2021, 0, 1 + k * 7).toISOString().slice(0, 10);
+  db.createInbody(me.id, day, 175, 72 + (k % 5), 15 + (k % 4), 33, 44, 23.5);
+  // 재는 도구는 여러 가지다 — 둘레 한 벌이 한 줄이다
+  db.createMeasure(me.id, 'size', day, { chest: 100, waist: 80, hip: 95, arm: 35, thigh: 55, calf: 38, shoulder: 120 });
+  // 달력의 그날 메모 (하루 한 장)
+  db.createNote(me.id, '어깨가 좀 안 좋았다. 다음 주에 무게를 5kg 올려본다.', day);
+}
+// 루틴 메모장은 서른 장까지다 (`routes/notes.js` 의 MAX_NOTES)
+for (let k = 0; k < 30; k++) db.createNote(me.id, '월요일 가슴 — 벤치 5x5 · 인클라인 4x10 · 펙덱 3x15');
+// 앞날 계획 (2년까지 담을 수 있다)
+for (let k = 0; k < 60; k++) {
+  const day = new Date(2026, 10, 2 + k).toISOString().slice(0, 10);
+  db.createPlan(me.id, { date: day, kind: 'exercise', name: '벤치프레스' });
+}
+// 내 루틴 — 열다섯 벌 · 한 벌에 열두 운동
+for (let k = 0; k < 15; k++) {
+  db.createMyRoutine(me.id, '분할 ' + (k + 1), NAMES.concat(NAMES).slice(0, 12).map((n) => ({ name: n, sets: 5, reps: 8 })));
+}
 const rows = db.getWorkouts(me.id).length;
 
 // ── 앱을 띄운다 (진짜 라우트 · 진짜 미들웨어 몇 개) ──
@@ -64,6 +89,17 @@ app.use(compression({ threshold: 1024, level: 5 }));
 app.use('/api/workouts', require('../src/routes/workouts'));
 app.use('/api/inbody', require('../src/routes/inbody'));
 app.use('/api/photos', require('../src/routes/photos'));
+// ── **앱이 부르는 길을 다 꽂는다** ── (2026-11-02)
+//
+// 여태 셋만 재고 있었다(운동 · 인바디 · 사진). 그런데 앱을 한 번 열면 **열 길**을
+// 지난다 — 재지 않은 길은 **아무도 안 본다**(「검사의 눈이 짧으면 그 밖은 아무도
+// 안 본다」, 10/28). 아래 길들은 화면을 옮길 때마다 다시 불린다
+app.use('/api/measures', require('../src/routes/measures'));
+app.use('/api/notes', require('../src/routes/notes'));
+app.use('/api/plans', require('../src/routes/plans'));
+app.use('/api/my-routines', require('../src/routes/myRoutines'));
+app.use('/api/goals', require('../src/routes/goals'));
+app.use('/api/routines', require('../src/routes/routines'));
 const server = app.listen(0, run);
 
 const token = jwt.sign({ userId: me.id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '15m' });
@@ -179,12 +215,52 @@ async function run() {
       say('  다시 받기', p3b.status === 304 ? '304 (안 보냄)' : String(p3b.status));
       say('    걸린 시간', p3b.ms, 'ms');
     }
+    // **비교 화면은 전·후 둘만 받는다** (2026-11-02)
+    const p2 = await get('/api/photos?type=before,after');
+    say('  ?type=before,after (비교 화면)', Number(kb(p2.body.length)), 'KB');
+    const p2b = p2.headers.etag ? await get('/api/photos?type=after,before', { 'If-None-Match': p2.headers.etag }) : null;
+    if (p2b) say('    차례를 바꿔 물어도 같은 것', p2b.status === 304 ? '304 (안 보냄)' : String(p2b.status) + ' ← 두 번 받는다');
     const p1 = await get('/api/photos?type=profile');
     say('  ?type=profile (한 장)', Number(kb(p1.body.length)), 'KB');
     // **한 장만 받아둔 딱지로 셋을 달라고 하면 새로 받아야 한다** (몸통이 다르다)
     if (p1.headers.etag) {
       const mix = await get('/api/photos', { 'If-None-Match': p1.headers.etag });
       say('  한 장 딱지로 셋을 받으면', mix.status === 200 ? '200 (새로 받음)' : String(mix.status) + ' ← 틀렸다');
+    }
+
+    // ── **남은 길들** ── (2026-11-02)
+    //
+    // 화면을 옮길 때마다 다시 불린다 — **바뀐 것이 없으면 다시 안 보내야 한다**
+    // (`utils/fresh.js`). 딱지가 없는 길은 **매번 몸통을 다 만들어 보낸다.**
+    console.log('');
+    console.log('── 화면을 옮길 때마다 다시 부르는 길 ──');
+    for (const [label, p] of [
+      ['GET /measures', '/api/measures'],
+      ['GET /notes (루틴 메모)', '/api/notes'],
+      ['GET /notes?month= (달력 한 달)', '/api/notes?month=2024-03'],
+      ['GET /plans', '/api/plans'],
+      ['GET /my-routines', '/api/my-routines'],
+      ['GET /goals', '/api/goals'],
+      ['GET /routines/머신 (사전)', '/api/routines/' + encodeURIComponent('머신')],
+      ['GET /routines/맨몸', '/api/routines/' + encodeURIComponent('맨몸')],
+      ['GET /routines/홈트', '/api/routines/' + encodeURIComponent('홈트')],
+      ['GET /routines/기능성', '/api/routines/' + encodeURIComponent('기능성')],
+      ['GET /routines/programs', '/api/routines/programs'],
+    ]) {
+      await get(p);                       // 첫 번은 버린다 (위와 같은 자)
+      const r = await get(p);
+      say(label, Number(kb(r.body.length)), 'KB');
+      say('  보낸 바이트(gzip)', Number(kb(r.wire)), 'KB');
+      say('  걸린 시간', r.ms, 'ms');
+      // **딱지가 있나 · 그 딱지로 304 가 오나** (둘은 다른 질문이다)
+      if (!r.headers.etag) {
+        say('  다시 받기', '딱지 없음 — 매번 다 보낸다 ←');
+      } else {
+        const again = await get(p, { 'If-None-Match': r.headers.etag });
+        say('  다시 받기', again.status === 304
+          ? '304 (안 보냄)'
+          : again.status + ' · ' + kb(again.wire) + 'KB ← 딱지가 있는데 또 보낸다');
+      }
     }
 
     console.log('');
