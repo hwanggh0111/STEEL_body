@@ -47,6 +47,30 @@ const { sendFresh } = require('../utils/fresh');
 //
 // **고르는 자리는 한 곳이다** — 적는 길(`POST`·`PUT`)이 돌려주는 줄도 이것을 지난다.
 // 모양이 갈라지면 화면이 섞어 쓰다 어긋난다(저장한 줄만 칸이 더 있게 된다).
+//
+// ── **적는 길이 새 딱지를 같이 준다** ── (2026-11-02)
+//
+// 10/31 에 「적은 뒤 통째로 다시 받는 것」을 걷었다. 그런데 **그 다음 번 받기**가
+// 그대로 남아 있었다 —
+//
+//   세트를 적는다 → 화면은 담은 줄을 꽂는다(0.2KB) → **30초 뒤 화면을 옮기면**
+//   `GET /workouts` 를 다시 부른다 → 브라우저가 들고 있는 딱지는 **적기 전의 것**이고
+//   서버 딱지는 올라가 있다(`bumpVer`) → **200 · 209KB를 통째로 다시 받는다**
+//
+// 헬스장에서 한 판에 스무 세트면 그 왕복이 스무 번이다. 화면은 **이미 서버와 같은
+// 목록을 들고 있는데**(그 차례까지 `npm run order` 가 값으로 지킨다) 브라우저에게
+// 그 사실을 말할 길이 없었을 뿐이다.
+//
+// 그래서 적는 길이 **그 뒤의 딱지**를 같이 준다. 화면은 그것을 들고 다음에
+// `If-None-Match` 로 물어본다 → **304 · 0바이트**(`store/workoutStore.js`).
+//
+// **적기와 지우기만 준다.** 고치기는 그 줄이 그 날 안에서 자리를 옮길 수 있어서
+// 화면이 목록을 다시 받아야 한다 — 거기에 딱지를 주면 **고친 것이 안 보인다**
+// (까닭은 `PUT` 자리에 적어뒀다).
+//
+// **틀린 딱지를 들면 바뀐 것이 안 보이게 된다.** 그래서 두 가지를 지킨다 —
+// 화면은 **제 목록이 비어 있지 않을 때만** 딱지를 보내고, 꽂는 차례가 서버와 같은지는
+// `npm run order` 가, 딱지가 진짜로 304 를 받아오는지는 `npm run tag` 가 값으로 본다.
 const slim = (w) => {
   const o = {
     id: w.id, date: w.date, exercise: w.exercise, weight: w.weight, sets: w.sets, reps: w.reps,
@@ -140,6 +164,8 @@ router.post('/', auth, spamCheck, (req, res) => {
   res.status(201).json({
     id: result.lastInsertRowid,
     workout: result.record ? slim(result.record) : null,
+    // **새 딱지도 같이 보낸다** (2026-11-02, 위 머리글)
+    tag: db.dataTag('workouts', req.userId),
     message: '운동 기록 저장 완료!',
   });
 });
@@ -200,7 +226,16 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   if (result.changes === 0) {
     return res.status(404).json({ error: '기록을 찾을 수 없어요' });
   }
-  res.json({ id, workout: result.workout ? slim(result.workout) : null, message: '운동 기록 수정 완료!' });
+  // **고치기는 딱지를 안 준다** (2026-11-02). 날짜를 바꾸면 그 줄이 **적은 때**로
+  // 그 날 안의 어디쯤에 꽂히는데, 화면은 그 자를 들고 있지 않아서 고치기는 목록을
+  // 통째로 다시 받는다(10/31 에 정한 것 — 싼 쪽이 아니라 맞는 쪽). 그런데 딱지를
+  // 주면 화면이 **그것을 들고 물어보다 304 를 받고**, 고친 것이 영영 안 보인다.
+  // **읽을 수 없는 칸은 보내지 않는다** — 보내 두면 다음 사람이 그것을 쓴다
+  res.json({
+    id,
+    workout: result.workout ? slim(result.workout) : null,
+    message: '운동 기록 수정 완료!',
+  });
 });
 
 // 삭제
@@ -210,7 +245,7 @@ router.delete('/:id', auth, (req, res) => {
   if (result.changes === 0) {
     return res.status(404).json({ error: '기록을 찾을 수 없어요' });
   }
-  res.json({ message: '삭제 완료!' });
+  res.json({ tag: db.dataTag('workouts', req.userId), message: '삭제 완료!' });
 });
 
 module.exports = router;

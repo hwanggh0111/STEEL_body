@@ -54,7 +54,8 @@
     "twins": "node scripts/check-twins.cjs",
     "bounds": "node scripts/check-bounds.cjs",
     "range": "node scripts/check-range.cjs",
-    "order": "node scripts/check-order.cjs"
+    "order": "node scripts/check-order.cjs",
+    "tag": "node scripts/check-tag.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

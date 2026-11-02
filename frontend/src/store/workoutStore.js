@@ -19,10 +19,39 @@ const FRESH_MS = 30000;
 let inflight = null;
 let fetchedAt = 0;
 
+// ── **적은 뒤에도 「안 바뀌었다」를 받을 수 있다** ── (2026-11-02)
+//
+// 서버는 바뀐 것이 없으면 304 로 답한다(`utils/fresh.js`, 10/24). 그 길은 브라우저가
+// **제가 들고 있는 딱지**로 물어봐서 열린다. 그런데 우리가 한 줄을 적으면 —
+//
+//   서버 딱지는 올라가고(`bumpVer`) 브라우저 딱지는 **적기 전의 것**이다
+//   → 30초 뒤 화면을 옮겨 목록을 다시 부르면 **200 · 209KB(5년치)** 를 통째로 받는다
+//
+// 그런데 그때 우리가 들고 있는 목록은 **이미 서버와 같다** — 담은 줄을 제자리에
+// 꽂았고(`putRow`), 그 차례가 서버와 같은지는 `npm run order` 가 값으로 지킨다.
+// 모자랐던 것은 **그 사실을 말할 길**이었다.
+//
+// 이제 적는 길이 **그 뒤의 딱지**를 같이 준다(`routes/workouts.js`). 그것을 들고
+// 다음에 `If-None-Match` 로 물어보면 **304 · 0바이트**다. 헬스장에서 한 판에 스무
+// 세트면 그 왕복이 스무 번이었다.
+//
+// **틀린 딱지는 「바뀐 것이 안 보인다」가 된다.** 그래서 —
+//   · **목록이 비어 있으면 딱지를 안 보낸다** (304 를 받아도 그릴 것이 없다)
+//   · 딱지를 못 받았으면(옛 서버) **비운다** — 없는 것이 틀린 것보다 낫다
+//   · 받은 몸통으로 바꿀 때는 **그 응답의 딱지**로 바꿔 적는다
+// `npm run tag` 가 진짜 서버로 이 셋을 값으로 본다
+let serverTag = '';
+
+/** 적는 길이 돌려준 딱지를 받아 적는다. 없으면 비운다 (틀린 딱지를 들고 있지 않는다) */
+const keepTag = (tag) => { serverTag = typeof tag === 'string' && tag ? tag : ''; };
+
 // 로그아웃할 때 authStore 가 부른다. 안 비우면 다음 사람이 앞 사람 것을 잠깐 본다
 export function resetCache() {
   inflight = null;
   fetchedAt = 0;
+  // 딱지도 비운다. 사람이 딱지 안에 있어서(`db.dataTag`) 남아도 304 가 되지는
+  // 않지만, **다음 사람 자리에 앞 사람 것을 남기지 않는다**
+  serverTag = '';
 }
 
 // 서버가 준 목록을 날짜별로 묶는다
@@ -139,12 +168,27 @@ export const useWorkoutStore = create((set, get) => ({
     set({ loading: true });
     inflight = (async () => {
       try {
-        const { data } = await client.get('/workouts');
+        // **들고 있는 것이 있을 때만 딱지를 보낸다** (위 머리글)
+        const hasRows = Object.keys(get().server).length > 0;
+        const { status, data, headers } = await client.get('/workouts', {
+          headers: serverTag && hasRows ? { 'If-None-Match': serverTag } : undefined,
+          // 304 는 잘못이 아니라 **답**이다. 기본값(2xx만 성공)으로 두면 axios 가
+          // 던지고, 아래 catch 가 「못 받아왔다」로 읽는다
+          validateStatus: (code) => code === 304 || (code >= 200 && code < 300),
+        });
+        if (status === 304) {
+          // 바뀐 것이 없다 — 들고 있는 것이 그대로 맞다. 몸통도 안 왔다
+          set({ loading: false, online: true });
+          fetchedAt = Date.now();
+          return;
+        }
         // 배열이 아니면 빈 것으로 친다. 아래 reduce 가 터지면 catch 로 빠지면서
         // 화면은 아무 말 없이 옛 목록을 그대로 들고 있는다
         const grouped = groupByDate(data);
         get().apply(grouped, null);
         saveCache(grouped);
+        // **이 몸통의 딱지**로 바꿔 적는다 (같은 주소면 브라우저가 읽을 수 있다)
+        keepTag(headers?.etag || headers?.ETag);
         set({ loading: false, online: true });
         fetchedAt = Date.now();
       } catch (err) {
@@ -197,6 +241,8 @@ export const useWorkoutStore = create((set, get) => ({
         const nextServer = putRow(get().server, data.workout);
         get().apply(nextServer, null);
         saveCache(nextServer);
+        // **적은 뒤의 딱지**를 들고 있는다 — 다음 받기가 304 가 된다 (위 머리글)
+        keepTag(data.tag);
         fetchedAt = Date.now();
       } else if (refetch) {
         await get().fetchAll(true).catch(() => {});
@@ -244,8 +290,10 @@ export const useWorkoutStore = create((set, get) => ({
     const updated = dropRow(prevServer, id);
     get().apply(updated, null);
     try {
-      await client.delete(`/workouts/${id}`);
+      const { data } = await client.delete(`/workouts/${id}`);
       saveCache(updated);
+      // 지운 뒤의 딱지. **빼는 것은 차례를 안 건드리니** 꽂는 쪽보다 확실하다
+      keepTag(data?.tag);
       // ── **다시 받으라고 적어두지 않는다** ── (2026-10-31)
       //
       // 여태 `fetchedAt = 0` 으로 두어, **다음에 화면이 뜰 때 목록을 통째로**
