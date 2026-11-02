@@ -16,11 +16,34 @@ const { sendFresh } = require('../utils/fresh');
 // 예전처럼 전부 준다 — 비교 화면은 셋이 다 필요하고, 옛 화면이 깨지면 안 된다.
 const PHOTO_TYPES = ['profile', 'before', 'after'];
 
-router.get('/', auth, (req, res) => {
-  const want = req.query.type;
+// ── **둘만 달라고 할 수도 있다** ── (2026-11-02)
+//
+// 비교 화면은 **전·후 두 장**을 쓴다. 그런데 `/photos` 를 그냥 불러 **셋을 다**
+// 받고 있었다 — 프로필은 받아서 **버린다**. 재보니 900KB 중 **300KB** 가 그것이다
+// (`npm run http`). 10/05 에 껍데기 쪽은 `?type=profile` 로 고쳤는데 이 화면은
+// 그 자리에 없었다.
+//
+// 그래서 **쉼표로 여럿**을 받는다(`?type=before,after`). 아는 이름만 남기고,
+// **차례를 맞춰** 딱지를 짓는다 — `before,after` 와 `after,before` 는 같은 몸통이라
+// 딱지도 같아야 한다(안 그러면 같은 것을 두 번 받는다).
+//
+// **딱지 안에 쉼표를 넣지 않는다.** `If-None-Match` 는 **쉼표로 여러 딱지를 싣는
+// 자리**라(`utils/fresh.js` 의 `matches` 가 쉼표로 쪼갠다) 딱지에 쉼표가 있으면
+// 그것이 두 조각으로 갈려 **영영 안 맞는다** — 처음에 `before,after` 로 지었다가
+// `npm run http` 가 「차례를 바꿔 물어도 200」으로 잡아냈다. 그래서 `+` 로 잇는다.
+const pickTypes = (want) => {
+  if (typeof want !== 'string' || !want) return null;
+  const asked = want.split(',').map((v) => v.trim()).filter(Boolean);
   // **아는 칸 이름일 때만 거른다.** 오타(`?type=profil`)에 빈 배열을 주면
   // 화면은 「사진이 없다」로 읽고 있던 사진을 지운다 — 조용히 틀리는 자리다
-  const only = typeof want === 'string' && PHOTO_TYPES.includes(want) ? want : null;
+  const known = PHOTO_TYPES.filter((t) => asked.includes(t));
+  // 하나도 못 알아들었으면 **전부 준다** (옛 길과 같은 답)
+  if (known.length === 0 || known.length === PHOTO_TYPES.length) return null;
+  return known;
+};
+
+router.get('/', auth, (req, res) => {
+  const only = pickTypes(req.query.type);
   // **바뀐 것이 없으면 다시 안 보낸다** (2026-10-24). 여기가 제일 무겁다 —
   // 셋을 통째로 주면 **6MB** 까지 간다(사람 사진은 base64 다). 껍데기는 앱을 열 때마다
   // 아바타 한 장 때문에 이 길을 부른다.
@@ -28,10 +51,10 @@ router.get('/', auth, (req, res) => {
   // **딱지에 어느 칸인지도 넣는다** — `?type=profile` 과 셋을 다 주는 길은 **다른
   // 몸통**이다. 같은 딱지를 주면 한 장만 받아둔 브라우저가 셋을 다 받은 것으로 알고
   // 비교 화면에 전·후 사진을 못 그린다
-  const tag = db.dataTag('photos', req.userId, only || '');
+  const tag = db.dataTag('photos', req.userId, only ? only.join('+') : '');
   sendFresh(req, res, tag, () => {
     const photos = db.getPhotos(req.userId);
-    return only ? photos.filter((p) => p.type === only) : photos;
+    return only ? photos.filter((p) => only.includes(p.type)) : photos;
   });
 });
 

@@ -307,7 +307,10 @@ export default function ComparePage({ embedded = false }) {
     // 보이는 것은 몸 사진에서 특히 나쁘다.
     //
     // 못 불러왔을 때(catch)만 있던 것을 지킨다 — 인터넷이 끊긴 것과 지운 것은 다르다
-    client.get('/photos').then(({ data }) => {
+    // **전·후 두 장만 받는다** (2026-11-02). 여태 셋을 다 받아 프로필을 버렸다 —
+    // 재보니 900KB 중 **300KB** 가 그것이다(`npm run http`). 10/05 에 껍데기는
+    // `?type=profile` 로 고쳤는데 이 화면이 그 자리에 없었다
+    client.get('/photos', { params: { type: 'before,after' } }).then(({ data }) => {
       if (!Array.isArray(data)) return;
       const before = data.find(p => p.type === 'before');
       const after = data.find(p => p.type === 'after');

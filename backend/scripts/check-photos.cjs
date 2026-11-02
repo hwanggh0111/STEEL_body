@@ -82,10 +82,19 @@ ok('껍데기는 프로필 한 장만 받는다',
 const routeSrc = fs.readFileSync('src/routes/photos.js', 'utf-8');
 ok('  서버가 type 을 거른다', /req\.query\.type/.test(routeSrc), true);
 // 오타(`?type=profil`)에 빈 배열을 주면 화면이 「사진 없음」으로 읽고 있던 것을 지운다
-ok('  아는 칸 이름일 때만 거른다', /PHOTO_TYPES\.includes\(want\)/.test(routeSrc), true);
-// 비교 화면은 셋이 다 필요하다 — 아무것도 안 주면 전부 와야 한다
+ok('  아는 칸 이름일 때만 거른다', /PHOTO_TYPES\.filter\(\(t\) => asked\.includes\(t\)\)/.test(routeSrc), true);
+// ── **비교 화면은 전·후 둘만 받는다** ── (2026-11-02)
+//
+// 여태 셋을 다 받아 **프로필을 받아서 버렸다** — 900KB 중 300KB 다(`npm run http`).
+// 10/05 에 껍데기만 고치고 이 화면은 그 자리에 없었다.
+// **내려받기(챔겨 나가기)는 셋이 다 맞다** — 그것도 내 사진이다(`data/photoFile.js`)
 const compareSrc = fs.readFileSync('../frontend/src/pages/ComparePage.jsx', 'utf-8');
-ok('  비교 화면은 그대로 전부 받는다', /client\.get\('\/photos'\)/.test(compareSrc), true);
+ok('  비교 화면은 전·후 둘만 받는다',
+  /client\.get\('\/photos',\s*\{\s*params:\s*\{\s*type:\s*'before,after'\s*\}/.test(compareSrc), true);
+ok('  내려받기는 셋을 다 받는다', /await client\.get\('\/photos'\)/.test(compareSrc), true);
+// **쉼표를 딱지에 넣지 않는다** — `If-None-Match` 가 쉼표로 쪼개져 영영 안 맞는다
+// (`npm run tag` 가 진짜 서버로 값으로 본다. 여기서는 그 자리를 글자로 못 박는다)
+ok('  딱지는 쉼표로 잇지 않는다', /only\.join\('\+'\)/.test(routeSrc), true);
 
 
 console.log('');
