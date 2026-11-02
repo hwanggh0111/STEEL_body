@@ -247,6 +247,22 @@ export default function AiAdminPanel() {
         <Num label="들어온 요청" value={stats.totalRequests} />
         <Num label="되돌려 보낸 요청" value={stats.totalBlocks} color="var(--danger)" />
       </div>
+
+      {/* ── 지금 지켜보는 것 ── (2026-11-02)
+
+          서버가 이 셋을 세서 보내는데 **화면이 한 자리도 안 그리고 있었다.**
+          「막혔다 · 정지됐다」는 **끝난 일**이고, 이쪽은 **지금 세는 중인 것**이다 —
+          0 이면 조용하고, 갑자기 커지면 무슨 일이 일어나는 중이다.
+          (10/28 에 세운 자 — 서버가 주는데 화면이 안 읽는 칸을 찾는다) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 6 }}>
+        <Num label="요청을 세는 주소" value={stats.requestTracking} />
+        <Num label="로그인 실패를 세는 것" value={stats.loginFailureTracking} color="var(--warning)" />
+        <Num label="도배를 세는 사람" value={stats.spamTracking} color="var(--warning)" />
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 18 }}>
+        <b style={{ color: 'var(--text-secondary)' }}>지금 지켜보고 있는 수</b>입니다 — 막힌 수가 아닙니다.
+        조용해지면 스스로 0 으로 돌아갑니다.
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
         {[
           // 「경고」 칸은 2026-10-22 에 걷었다 — **그 값은 늘 0 이었다.**

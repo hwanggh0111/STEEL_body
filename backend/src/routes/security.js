@@ -509,11 +509,21 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
       blocks: db.listBlocks().length,
       loginLocks: db.listLoginLocks().length,
     },
+    // ── **보내는 칸은 화면이 읽는 칸이다** ── (2026-11-02)
+    //
+    // 여기 일곱을 보내는데 화면은 **둘만** 그리고 있었다. 그중 둘은 보낼 까닭도
+    // 없었다 —
+    //
+    //   totalWarnings  `threats.level2` 와 **같은 값**이다 (화면의 「잠금」 칸이 그것이다)
+    //   activeLocks    램에 든 막은 주소 수다. 화면은 **파일 쪽**(`shield.blocks`)을
+    //                  그린다 — 재시작해도 남는 그것이 맞다. 둘을 같이 그리면
+    //                  관리자가 **어느 쪽이 맞는지 헷갈린다**(그 자가 화면에 적혀 있다)
+    //
+    // 남은 셋(`…Tracking`)은 **지금 지켜보고 있는 수**다 — 이제 화면이 그린다
+    // (`components/AiAdminPanel.jsx` 의 「지금 지켜보는 것」)
     stats: {
       totalRequests: stats.totalRequests,
       totalBlocks: stats.blockedRequests,
-      totalWarnings: stats.threats.level2,
-      activeLocks: stats.activeLocks,
       requestTracking: stats.requestTracking,
       loginFailureTracking: stats.loginFailureTracking,
       spamTracking: stats.spamTracking,
