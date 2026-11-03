@@ -200,6 +200,18 @@ const call = async (method, p, body, headers = {}) => {
     // **꽂았으면 다시 받지 않는다.** 옛 서버(줄을 안 주는)일 때만 통째로 받는다
     ok('  꽂았으면 통째로 다시 안 받는다', /sent > 0 && missing/.test(flush), true);
     ok('    옛 서버면 통째로 받는다 (missing)', /missing = true/.test(flush), true);
+    // **담는 것은 고리 밖에서 한 번** — `saveCache` 는 90일치를 통째로 글자로 만들어
+    // 동기로 담는다. 줄 스물이면 스무 번이 되고, 그 멈춤은 신호가 돌아온 그때 온다
+    //
+    // **주석을 걷고 센다.** 처음에 그냥 셌더니 이 자리에 적어둔 **까닭의 글자**에
+    // 걸려 FAIL 했다 — 글자를 세는 자의 한계고, 오늘 `npm run fields` 쪽에서도
+    // 같은 것을 봤다 (일지 11/03)
+    const noComment = (t) => t.split(String.fromCharCode(10))
+      .filter((l) => !l.trimStart().startsWith('//') && !l.trimStart().startsWith('*'))
+      .join(String.fromCharCode(10));
+    const loop = noComment(flush.slice(flush.indexOf('for (const item of queue)'), flush.indexOf('} finally {')));
+    ok('  줄마다 통째로 담지 않는다 (saveCache 가 고리 안에 없다)', /saveCache/.test(loop), false);
+    ok('    올린 뒤 한 번은 담는다', /saveCache\(get\(\)\.server\)/.test(flush), true);
 
     await call('POST', '/auth/delete', { password: 'check12345' });
   } catch (e) {

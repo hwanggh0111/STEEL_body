@@ -345,9 +345,11 @@ export const useWorkoutStore = create((set, get) => ({
           // 꽂는 자(`putRow`)와 딱지 적는 자(`keepTag`)는 적는 길과 **같은 것**을
           // 쓴다 — 차례는 `npm run order`, 딱지는 `npm run tag` 가 값으로 지킨다
           if (data?.workout?.date) {
-            const nextServer = putRow(get().server, data.workout);
-            get().apply(nextServer, null);
-            saveCache(nextServer);
+            get().apply(putRow(get().server, data.workout), null);
+            // **담는 것은 고리 밖에서 한 번** — `saveCache` 는 90일치를 통째로 글자로
+            // 만들어 `localStorage` 에 넣는다(동기다). 지하에서 쌓인 줄이 스물이면
+            // 그것을 **스무 번** 하게 되고, 그 멈춤은 신호가 돌아온 바로 그때 온다.
+            // 줄 자체는 줄마다 담는다(`keepQueue`) — **잃으면 안 되는 것은 그쪽**이다
             keepTag(data.tag);
           } else {
             // 옛 서버(줄을 안 돌려준다) — 아래에서 통째로 받아 맞춘다.
@@ -396,6 +398,8 @@ export const useWorkoutStore = create((set, get) => ({
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});
     } else if (sent > 0) {
+      // 꽂은 것을 **한 번에** 담는다 (위 머리글)
+      saveCache(get().server);
       fetchedAt = Date.now();
     }
     return { sent, failed, stopped, blocked, tooFastMs };
