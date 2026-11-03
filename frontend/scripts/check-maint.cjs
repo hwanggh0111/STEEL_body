@@ -50,13 +50,32 @@ const serverClean = (() => {
   const outer = {};
   for (const m of src.matchAll(/^const ([A-Z][A-Z0-9_]*) = (\d+);$/gm)) outer[m[1]] = Number(m[2]);
   const names = Object.keys(outer);
-  return new Function('sanitize', ...names, body + '; return clean;')(
-    (x) => x, ...names.map((n) => outer[n]),
+  // **밖의 함수도 같이 넘긴다** (2026-11-03). 11/03 에 점검 예약 날짜를 공용 날짜
+  // 자로 바꾸자(`isPlanDay`) 이 조각이 또 `ReferenceError` 로 죽었다 — 10/28 에
+  // 상수로 겪은 그 자리의 두 번째 모양이다. **가짜를 끼우지 않는다**: 진짜 자를
+  // 그대로 넘겨야 「2026-02-30 짜리 점검은 날짜로 안 받는다」를 여기서 볼 수 있다
+  const { isPlanDay } = require('../../backend/src/utils/dayRange');
+  return new Function('sanitize', 'isPlanDay', ...names, body + '; return clean;')(
+    (x) => x, isPlanDay, ...names.map((n) => outer[n]),
   );
 })();
 
 const DATED = serverClean({ date: '2026-10-25', startHour: 3, startMin: 0, durationMin: 60, reason: '긴급 점검', type: 'emergency', days: [] });
 const WEEKLY = serverClean({ startHour: 4, startMin: 0, durationMin: 60, reason: '정기 점검', days: [1, 3, 5] });
+
+// **없는 날짜 · 먼 미래는 날짜짜리 점검으로 안 받는다** (2026-11-03).
+// 모양만 보던 탓에 담기긴 했는데 **영영 안 돌았다** — 화면은 `runsOn` 으로 그 날짜와
+// 오늘을 견주고, 오지 않는 날이면 아무 일도 일어나지 않는다. 관리자는 기다린다.
+// 날짜로 못 받은 것은 **요일 반복**으로 떨어진다(`days`) — 그 모양이 되는지까지 본다
+console.log('── 예약 날짜의 테두리 ──');
+for (const [왜, 날] of [['없는 날', '2026-02-30'], ['9999년', '9999-01-01'], ['1026년', '1026-05-05']]) {
+  const r = serverClean({ date: 날, startHour: 3, startMin: 0, durationMin: 60, reason: '점검' });
+  ok(`${왜}(${날})은 날짜짜리로 안 받는다`, 'date' in r, false);
+  ok('  요일 반복으로 떨어진다', Array.isArray(r.days), true);
+}
+const 내일 = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+ok(`내일(${내일})은 받는다 (예약은 앞날이 제자리다)`,
+  serverClean({ date: 내일, startHour: 3, startMin: 0, durationMin: 60, reason: '점검' }).date, 내일);
 
 console.log('── 서버가 돌려주는 모양 ──');
 ok('날짜짜리에는 요일 칸이 없다 (이것이 화면을 터뜨렸다)', 'days' in DATED, false);

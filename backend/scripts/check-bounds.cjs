@@ -401,5 +401,43 @@ ok('날짜 칸이 생글자를 안 쓴다',
 ok('  그 이름을 들고 있다',
   날짜칸.filter((f) => !read(path.join(FRONT, f)).includes('MIN_RECORD_DAY')), []);
 
+// ── 14. **날짜 자를 라우트마다 따로 들지 않는다** ── (2026-11-03)
+//
+// 사용자 자리에 앉아 한 바퀴 돌다가 **메모가 2099-01-01 을 받는 것**을 봤다.
+// 운동 · 인바디 · 측정 · 계획은 9/18 에 `utils/dayRange.js` 로 묶였는데 셋이 빠져
+// 있었다 — 메모 · 목표의 「쫓기 시작한 날」 · **점검 예약 날짜**.
+//
+//   메모   달력은 앞날 칸을 막지 않는다(「내일 스쿼트」는 제자리다) → `isPlanDay`
+//   목표   쫓기 시작한 날은 **과거**다 → `isRecordDay`
+//   점검   예약이라 앞날이 제자리다 → `isPlanDay`.
+//          모양만 보던 탓에 2026-02-30 짜리 점검이 담기면 **영영 안 돌았다** —
+//          관리자는 예약했다고 믿고 기다린다(조용히 실패하는 자리)
+//
+// **이 검사는 자를 센다, 값을 세지 않는다.** 라우트가 날짜 모양을 **제 손으로**
+// 적으면 FAIL 한다 — 다음에 길을 하나 더 내는 날 또 빠지지 않게.
+const 라우트 = path.join(ROOT, 'backend', 'src', 'routes');
+const 날짜쓰는길 = ['workouts.js', 'inbody.js', 'measures.js', 'plans.js', 'notes.js', 'goals.js', 'maintenance.js'];
+ok('날짜를 받는 길이 다 공용 자를 쓴다',
+  날짜쓰는길.filter((f) => !read(path.join(라우트, f)).includes("require('../utils/dayRange')")), []);
+// 제 손으로 적은 날짜 모양이 남아 있나. **운동만 둔다** — 거기 둘은 「모양」과
+// 「달력에 있는 날」을 따로 말해주려고 일부러 둔 줄이고, 그 뒤에 공용 자도 본다
+const 제손으로 = [];
+for (const f of 날짜쓰는길) {
+  if (f === 'workouts.js') continue;
+  const src = read(path.join(라우트, f))
+    .split(String.fromCharCode(10)).filter((l) => !l.trimStart().startsWith('//')).join(String.fromCharCode(10));
+  // 달 검사(`{4}-?{2}$`)는 날짜 자가 아니다 — **세 토막**짜리만 센다
+  if (src.includes('{4}-') && src.includes('{2}-')) 제손으로.push(f);
+}
+ok('  날짜 모양을 라우트가 따로 안 적는다', 제손으로, []);
+// 그 자가 무엇을 막는가 — **값으로 본다** (자를 재는 대상에서 가져오지 않는다)
+const dr = require('../src/utils/dayRange');
+const 내일 = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+const 모레 = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+ok('기록은 내일까지 (시차 하루)', [dr.isRecordDay(내일), dr.isRecordDay(모레)], [true, false]);
+ok('계획은 앞으로 2년까지', [dr.isPlanDay(모레), dr.isPlanDay('2099-01-01')], [true, false]);
+ok('없는 날은 둘 다 막는다', [dr.isRecordDay('2026-02-30'), dr.isPlanDay('2026-02-30')], [false, false]);
+ok('1026년도 둘 다 막는다', [dr.isRecordDay('1026-05-05'), dr.isPlanDay('1026-05-05')], [false, false]);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

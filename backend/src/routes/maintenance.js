@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const adminAuth = require('../middleware/adminAuth');
 const db = require('../db');
+const { isPlanDay } = require('../utils/dayRange');
 const { sanitize } = require('../utils/sanitize');
 
 // ─────────────────────────────────────────────────────────────
@@ -46,8 +47,13 @@ function clean(raw) {
     reason: sanitize(String(raw.reason || '')).slice(0, REASON_MAX).trim() || '정기 시스템 점검',
   };
 
-  // 하루짜리 예약이면 날짜, 아니면 요일 반복
-  if (typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date)) {
+  // 하루짜리 예약이면 날짜, 아니면 요일 반복.
+  //
+  // **모양만 보고 있었다** (2026-11-03) — `2026-02-30`(없는 날)도 `9999-01-01`도
+  // 그대로 담겼다. 그러면 그 점검은 **영영 안 돈다**: 화면은 `runsOn` 으로 그 날짜와
+  // 오늘을 견주는데 오지 않는 날이다. 관리자는 「예약했다」고 믿고 기다린다 —
+  // 조용히 실패하는 자리다. 예약이라 **앞날이 제자리**이므로 계획과 같은 자를 쓴다
+  if (isPlanDay(raw.date)) {
     out.date = raw.date;
   } else if (Array.isArray(raw.days)) {
     out.days = [...new Set(raw.days.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))];

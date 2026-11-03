@@ -74,7 +74,10 @@ const [START_WEIGHT_MIN, START_WEIGHT_MAX] = RANGE.weight;
 const [START_FAT_MIN, START_FAT_MAX] = RANGE.fat_pct;
 const [START_MUSCLE_MIN, START_MUSCLE_MAX] = RANGE.muscle_kg;
 
-const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+// 날짜 자는 **한 자리에서** 온다 (`utils/dayRange.js`, 2026-11-03). 여기 있던
+// `isDate` 는 모양만 봐서 `2099-01-01` 도 `2026-02-30` 도 받았다 — 쫓기 시작한
+// 날이 2099년이면 「이어온 주」가 영영 0 이다. **쫓기 시작한 날은 과거다**
+const { isRecordDay } = require('../utils/dayRange');
 
 // 받은 값을 다듬는다. **버린 것이 있으면 무엇을 버렸는지 같이 돌려준다** —
 // 알림 설정에서 배운 것이다. 조용히 버리면 사람은 저장된 줄 알고 화면을 나간다.
@@ -132,7 +135,7 @@ function clean(body) {
 
   // 언제부터 쫓기 시작했나. 안 주면 서버가 오늘로 적는다 —
   // 사람의 오늘과 서버의 오늘이 다를 수 있어서 화면이 주는 쪽을 먼저 본다
-  if (isDate(body?.startedAt)) out.started_at = body.startedAt;
+  if (isRecordDay(body?.startedAt)) out.started_at = body.startedAt;
   else if (body?.startedAt !== undefined) bad.push('날짜를 YYYY-MM-DD 로 주세요');
 
   return { out, bad };

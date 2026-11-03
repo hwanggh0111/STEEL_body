@@ -3,6 +3,18 @@ const auth = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
 const { sanitizeMultiline } = require('../utils/sanitize');
+// ── **메모만 날짜 테두리가 없었다** ── (2026-11-03)
+//
+// 모양만 보고 있었다(`/^\d{4}-\d{2}-\d{2}$/`) — 그래서 `2099-01-01` · `1026-05-05`
+// 짜리 메모가 그대로 들어왔다. 운동 · 인바디 · 측정 · 계획은 이미 이 자를 본다
+// (`utils/dayRange.js`, 2026-09-18). 메모는 **네 번째로 제 날짜 검사를 들고 있었다.**
+//
+// **계획과 같은 테두리를 쓴다**(`isPlanDay` — 2000년부터 앞으로 2년). 달력은 앞날
+// 칸을 막지 않고, 「내일 스쿼트」 같은 메모는 제자리다 — 기록 쪽 자(`isRecordDay`,
+// 앞으로 하루)를 씌우면 **있던 기능이 사라진다.**
+//
+// **읽는 쪽은 넓게 둔다** — 이 선이 생기기 전에 적힌 메모를 못 읽게 되면 안 된다
+const { isRealDate, isPlanDay } = require('../utils/dayRange');
 
 // 메모. 두 가지로 쓴다 — **날짜가 붙느냐**로 갈린다.
 //
@@ -20,8 +32,6 @@ const { sanitizeMultiline } = require('../utils/sanitize');
 const MAX_NOTES = 30;     // 루틴 메모(날짜 없는 것) 장수
 const MAX_LEN = 2000;     // 한 장의 길이
 
-const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
-  && !Number.isNaN(new Date(v + 'T00:00:00Z').getTime());
 const isMonth = (v) => typeof v === 'string' && /^\d{4}-\d{2}$/.test(v);
 
 // 적은 것을 받는다. **글자만 본다** — 이 앱의 다른 자리와 같은 규칙으로 씻는다
@@ -42,7 +52,7 @@ router.get('/', auth, (req, res) => {
   const { month, date } = req.query;
 
   if (date !== undefined) {
-    if (!isDate(date)) return res.status(400).json({ error: '날짜를 YYYY-MM-DD 로 주세요' });
+    if (!isRealDate(date)) return res.status(400).json({ error: '날짜를 YYYY-MM-DD 로 주세요' });
     return res.json(all.filter(n => n.date === date));
   }
   if (month !== undefined) {
@@ -59,7 +69,7 @@ router.post('/', auth, spamCheck, (req, res) => {
   if (!body) return res.status(400).json({ error: '메모 내용을 적어주세요' });
 
   if (date !== undefined && date !== null && date !== '') {
-    if (!isDate(date)) return res.status(400).json({ error: '날짜를 YYYY-MM-DD 로 주세요' });
+    if (!isPlanDay(date)) return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 앞으로 2년까지)' });
     // **하루 한 장.** 이미 있으면 새로 만들지 않고 고친다 — 화면이 「적기」와 「고치기」를
     // 가리지 않아도 되고, 연타로 두 장이 생기지도 않는다
     const exist = db.getNotes(req.userId).find(n => n.date === date);
