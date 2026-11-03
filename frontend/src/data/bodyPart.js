@@ -230,6 +230,24 @@ export function bodyPartOf(exercise) {
       if (words.some((w) => n.includes(w))) { found = part; break; }
     }
   }
+  // ── **마지막 받침: 이름에 부위가 적혀 있나** ── (2026-11-03)
+  //
+  // 사람은 자세히 안 적고 **「가슴운동」 · 「등운동」 · 「하체 운동」**으로 적기도
+  // 한다. 여태 그 여섯이 다 **「기타」**였다 — 적은 사람은 가슴을 했는데 몸 지도는
+  // 모른다.
+  //
+  // **제일 뒤에 둔다.** 「등」 · 「팔」은 한 글자라 다른 이름 안에 쉽게 들어간다 —
+  // 「팔꿈치 푸시업」이 가슴이 아니라 팔이 되면 안 된다. 앞의 자들(적어둔 것 ·
+  // 사전 · 겹침표 · 품은 꼴 · 낱말)이 **다 못 찾았을 때만** 본다. 그러면 「기타」로
+  // 떨어질 이름만 걸리므로 잃을 것이 없다.
+  //
+  // 「전신 · 유산소」는 여기서 보지 않는다 — 지도의 여섯 부위가 아니다(이 파일의 첫 규칙)
+  if (found === null) {
+    for (const part of PARTS) {
+      if (part === '기타') continue;
+      if (n.includes(norm(part))) { found = part; break; }
+    }
+  }
 
   const answer = found ?? '기타';
   if (_cache.size >= CACHE_MAX) _cache.clear();
