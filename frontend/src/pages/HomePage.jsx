@@ -17,6 +17,19 @@ import { dateKey } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildHeat } from '../data/bodyHeat';
+// ── **아픈 곳을 홈도 안다** ── (2026-11-03)
+//
+// 「서랍 → 부위」에서 아픈 곳을 적어두면 그 화면은 그 말을 제대로 쓴다
+// (「가슴 · 등을 권해요 · **어깨는 빼뒀어요**」 — `sorePart.restAdvice`).
+// 그런데 **홈은 그 말을 몰라서** 아픈 어깨를 「12일째 식어 있습니다」로 **권했다.**
+// 사람이 적어둔 것을 앱이 안 듣고 있던 자리다.
+//
+// **권하는 자를 새로 만들지 않는다** — 그 화면이 쓰는 것을 그대로 부른다.
+// 아픈 곳을 빼고 **식은 차례는 몸 지도와 같은 것**을 쓰고, **뺀 것을 같이 돌려준다**
+// (「왜 어깨가 안 보이는지 화면이 말해야 한다」 — 그 자리에 그렇게 적혀 있다).
+import { cleanSore, restAdvice } from '../data/sorePart';
+import { SORE_KEY } from '../data/localKeys';
+import { readLS } from '../data/safeStorage';
 import { buildSummary } from '../data/sessionSummary';
 import { showFinish } from '../components/SessionFinish';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
@@ -124,8 +137,7 @@ function BodyLine({ records, onGo }) {
 // 안 된다. 식은 자리를 눈으로 짚어주는 것이 이 앱이 하는 말이다.
 // **달아오른 것은 홈이 세어 넘긴다** (2026-10-21). 여기서 세면 「제목을 그릴까」를
 // 홈이 알 수 없다 — 아래 `canFocus` 머리글
-function TodayFocus({ heat, onGo }) {
-  const cold = heat.coldest;
+function TodayFocus({ heat, cold, skipped = [], onGo }) {
   const hot = heat.list.filter((p) => p.level > 0).slice(0, 2);
 
   // ── **조각과 칠은 `bodyShapes.jsx` 에서 온다** ── (2026-10-31에 고쳤다)
@@ -178,6 +190,13 @@ function TodayFocus({ heat, onGo }) {
         {hot.length > 0 && (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
             {hot.map((p) => `${p.part} ${p.days === 0 ? '오늘' : `${p.days}일 전`}`).join(' · ')}
+          </div>
+        )}
+        {/* **뺀 것을 말한다** (2026-11-03). 말 없이 빼면 「어깨가 왜 안 뜨지」가 된다 —
+            아픈 곳은 사람이 적어둔 것이고, 나았으면 지우는 것도 사람이 한다 */}
+        {skipped.length > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--warning)', marginTop: 8 }}>
+            {skipped.join(' · ')}{particle(skipped[skipped.length - 1], '은', '는')} 빼뒀어요 — 아프다고 적어두셨습니다
           </div>
         )}
         <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 10 }}>몸 지도 펼치기 ›</div>
@@ -276,7 +295,16 @@ export default function HomePage() {
   // 「오늘 할 곳」이 쓰는 값. **여기서 세는 까닭**은 제목을 그릴지도 이것으로 갈려서다 —
   // 카드 안에서 세면 홈은 그릴지 말지를 모른 채 제목부터 그린다 (2026-10-21)
   const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
-  const canFocus = heat.any && !!heat.coldest;
+  // 아픈 곳은 **그 기기에만** 담긴다(「부위」 화면이 적어둔 그 자리를 읽는다).
+  // 못 읽으면 빈 목록으로 본다 — 홈이 그 때문에 안 뜨면 안 된다
+  const sore = useMemo(() => {
+    try { return cleanSore(JSON.parse(readLS(SORE_KEY) || 'null')); } catch { return []; }
+  }, [refreshTick]);
+  // **아픈 곳을 뺀 것 중 가장 식은 곳.** 여섯이 다 아프면 `picks` 가 비는데,
+  // 그때는 여태처럼 가장 식은 곳을 그린다 — 권할 곳이 없다고 홈을 비우지 않는다
+  const advice = useMemo(() => restAdvice(sore, heat, 1), [sore, heat]);
+  const focusPart = advice.picks[0] ? heat.byPart[advice.picks[0]] : heat.coldest;
+  const canFocus = heat.any && !!focusPart;
 
   const loading = wLoading || iLoading;
 
@@ -343,7 +371,7 @@ export default function HomePage() {
               바로 위의 목표 카드는 **이미 이렇게 돼 있었다**(`hasGoal` 로 제목까지
               같이 가린다). 둘 중 하나만 달랐다. */}
           {canFocus && <SectionTitle id="home-focus">오늘 할 곳</SectionTitle>}
-          {canFocus && <TodayFocus heat={heat} onGo={() => navigate('/map')} />}
+          {canFocus && <TodayFocus heat={heat} cold={focusPart} skipped={advice.skipped} onGo={() => navigate('/map')} />}
 
           <SectionTitle id="home-today">오늘</SectionTitle>
           <TodayCard
