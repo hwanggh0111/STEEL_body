@@ -14,6 +14,7 @@ import YearWall from '../components/YearWall';
 import SegRow from '../components/SegRow';
 // 종목별 최고 기록 — 2026-09-19 에 옛 기록 화면에서 이리로 옮겼다 (아래 「통계」 갈래)
 import BestRecords from '../components/BestRecords';
+import LiftTrend from '../components/LiftTrend';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -676,6 +677,16 @@ export default function HistoryPage() {
           「기록 → 통계」가 제 자리다. 되짚는 자리이고, 여기 있던 것은 체중 그래프
           하나뿐이라 **인바디를 안 적은 사람에게는 이 갈래가 통째로 비어 있었다.** */}
       <BestRecords workouts={workouts} />
+
+      {/* ── **늘어온 길** ── (2026-11-03)
+          바로 위 표는 **숫자 하나**다(최고 기록 92.5kg). 이 앱 홈페이지의 첫 줄이
+          「무게는 늘었는데 **무엇이** 늘었는지는 아무도 안 알려준다」인데, 그 말의
+          운동 쪽 짝이 비어 있었다 — **그 92.5kg 이 어떻게 거기까지 왔는지**를 보는
+          자리가 없었다. 인바디는 그것을 이미 한다(체중 · 체지방 추이).
+
+          **최고 기록 바로 아래**에 둔다 — 같은 물음의 두 쪽이다(얼마나 / 어떻게).
+          그릴 운동이 없으면 아무것도 안 그린다(`LiftTrend` 가 `null` 을 준다) */}
+      <LiftTrend workouts={workouts} today={today} />
 
       {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
       {records.length > 1 && (

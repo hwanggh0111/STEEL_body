@@ -27,6 +27,7 @@ const bundle = (entry, out) => {
 const weekly = bundle('src/data/weeklyReport.js', '.t1.cjs');
 const ranges = bundle('src/data/bodyRanges.js', '.t2.cjs');
 const pr = bundle('src/data/personalRecord.js', '.t3.cjs');
+const lift = bundle('src/data/liftTrend.js', '.t3b.cjs');
 const change = bundle('src/data/bodyChange.js', '.t4.cjs');
 const part = bundle('src/data/bodyPart.js', '.t5.cjs');
 const faq = bundle('src/pages/support/faq.js', '.t6.cjs');
@@ -2143,5 +2144,64 @@ const remPage = fs.readFileSync('src/pages/RemindersPage.jsx', 'utf-8');
 ok('알림을 받을 수 있나는 한 벌이다', /pushSupport/.test(remPage) && /pushSupport/.test(set), true);
 ok('  화면에서 다시 적지 않는다',
   [remPage, set].filter((f) => /'PushManager' in window/.test(f)).length, 0);
+// ── **한 운동이 늘어온 길** ── (2026-11-03)
+//
+// 통계가 보여주던 것은 **숫자 하나**였다(최고 기록 92.5kg). 이 앱 홈페이지의 첫 줄이
+// 「무게는 늘었는데 **무엇이** 늘었는지는 아무도 안 알려준다」인데 그 말의 운동 쪽
+// 짝이 비어 있었다. 화면으로는 확인할 수 없는 계산이라(반년치 기록이 있어야 선이
+// 한 번 뜬다) 여기서 값으로 본다.
+//
+// 보는 것 —
+//   · **그 날 실제로 든 가장 무거운 무게.** 1RM 으로 환산하지 않는다(지어내지 않는다)
+//   · **안 한 날은 점이 없다** (0 을 넣으면 0kg 을 든 것이 된다)
+//   · **맨몸 운동은 고를 수 없다** — 무게가 없으니 그릴 값이 없다
+//   · 앞날 기록은 안 센다 · 점이 하나면 선이 아니다
+//   · 꺾였으면 **꺾인 그대로** 적는다 (그래프와 글이 다른 말을 하면 글을 안 믿는다)
+console.log('');
+console.log('── 늘어온 길 (data/liftTrend.js) ──');
+{
+  const W = (date, exercise, weight, o = {}) => ({ id: Math.random(), date, exercise, weight, sets: 3, reps: 5, ...o });
+  const 기록 = {
+    '2026-05-02': [W('2026-05-02', '벤치프레스', '70')],
+    '2026-08-01': [W('2026-08-01', '벤치프레스', '80'), W('2026-08-01', '벤치프레스', '85')],
+    '2026-10-20': [W('2026-10-20', '벤치프레스', '90'), W('2026-10-20', '푸시업', '맨몸')],
+    '2026-11-01': [W('2026-11-01', '벤치프레스', '92.5'), W('2026-11-01', '스쿼트', '140')],
+    '2026-12-25': [W('2026-12-25', '벤치프레스', '200')],
+  };
+  const 오늘 = '2026-11-03';
+  ok('무게로 든 운동만 고를 수 있다 (맨몸은 선이 없다)', lift.liftNames(기록, 오늘), ['벤치프레스']);
+  ok('  날이 하나뿐인 것도 빠진다 (스쿼트)', lift.liftNames(기록, 오늘).includes('스쿼트'), false);
+  const 여섯달 = lift.trendOf(기록, '벤치프레스', { today: 오늘, days: 183 });
+  // **같은 날 두 세트면 무거운 쪽**이다 (80 · 85 → 85). 처음에 자에 80 을 적어
+  // FAIL 이 났다 — 자가 틀렸고 계산이 맞았다
+  ok('그 날의 가장 무거운 무게를 쓴다 (80·85 → 85)',
+    여섯달.map((p) => p.kg), [85, 90, 92.5]);
+  ok('  날짜 오름차순이다', 여섯달.map((p) => p.date), ['2026-08-01', '2026-10-20', '2026-11-01']);
+  ok('  **앞날 기록은 안 센다** (12/25 의 200kg)', 여섯달.some((p) => p.kg === 200), false);
+  ok('  **안 한 날은 점이 없다** (0 을 넣지 않는다)', 여섯달.length, 3);
+  const 삼개월 = lift.trendOf(기록, '벤치프레스', { today: 오늘, days: 92 });
+  ok('기간을 좁히면 그 안의 것만', 삼개월.map((p) => p.kg), [90, 92.5]);
+  const 일년 = lift.trendOf(기록, '벤치프레스', { today: 오늘, days: 366 });
+  ok('  넓히면 5월 것도 들어온다', 일년.length, 4);
+  ok('없는 운동은 빈 선', lift.trendOf(기록, '없는운동', { today: 오늘, days: 183 }), []);
+  ok('맨몸만 한 운동도 빈 선', lift.trendOf(기록, '푸시업', { today: 오늘, days: 183 }), []);
+  // 한 줄로 읽어주는 말
+  ok('늘었으면 + 를 붙인다', lift.trendLine(여섯달, '6개월').text, '6개월 안 85kg → 92.5kg · +7.5');
+  ok('  **꺾였으면 꺾인 그대로**',
+    lift.trendLine([{ date: 'a', kg: 100 }, { date: 'b', kg: 95 }], '3개월').text, '3개월 안 100kg → 95kg · -5');
+  ok('  그대로면 그대로라고 한다',
+    lift.trendLine([{ date: 'a', kg: 100 }, { date: 'b', kg: 100 }], '3개월').text, '3개월 안 100kg → 100kg · 그대로');
+  ok('  점이 하나면 선이 아니다', lift.trendLine([{ date: 'a', kg: 100 }], '3개월'), null);
+  ok('가장 무거웠던 날을 짚는다', lift.peakOf(여섯달).kg, 92.5);
+  ok('  빈 선에는 짚을 것이 없다', lift.peakOf([]), null);
+  // **화면이 그 계산을 쓰는가** (글자로 본다 — 스토어를 띄우는 자리가 아니다)
+  const 화면 = fs.readFileSync('src/components/LiftTrend.jsx', 'utf-8');
+  ok('화면이 그 자를 쓴다 (제 손으로 다시 안 센다)',
+    /from '\.\.\/data\/liftTrend'/.test(화면), true);
+  ok('  고를 운동이 없으면 아무것도 안 그린다', /names\.length === 0\) return null/.test(화면), true);
+  ok('통계 갈래가 최고 기록 **아래**에 붙인다',
+    /<BestRecords[^>]*\/>[\s\S]{0,1200}?<LiftTrend/.test(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8')), true);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
