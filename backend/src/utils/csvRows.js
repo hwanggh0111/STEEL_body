@@ -20,6 +20,33 @@ const { isRecordDay } = require('./dayRange');
 // 내보낼 때 엑셀 때문에 붙인 작은따옴표를 뗀다 — 규칙은 그쪽 한 곳에 있다
 const { unguardCell } = require('./csv');
 
+// ── **엑셀에서 한 번 열면 한 줄도 안 들어왔다** ── (2026-11-03)
+//
+// 사용자 자리에 앉아 「기기를 바꾼 사람」을 걸어보다 걸렸다. 내보낸 파일을
+// **엑셀에서 열었다 저장하면 엑셀이 날짜 꼴을 바꿔 쓴다** —
+//
+//   2026-11-03  →  `2026. 11. 3`  ·  `2026.11.03`  ·  `2026/11/03`
+//
+// 그러면 **모든 줄이 「날짜가 이상해요」로 거절된다.** 5년치면 3만 줄이 다 거절이고,
+// 사람은 **제 기록을 되돌릴 수가 없다** — 내보내기를 둔 까닭이 바로 그 길인데
+// (이 파일 머리글: 「챙겨 나갈 수는 있는데 들고 들어올 수는 없다는 반쪽이다」)
+// 그 길이 **엑셀을 한 번 거치면 막힌다.** 파일을 열어 눈으로 확인하는 것은
+// 사람이 당연히 하는 일이다.
+//
+// **연-월-일 순서가 분명한 꼴만 받는다.** 첫 토막이 네 자리면 그것이 연도다.
+// `11/3/2026` 과 `3/11/2026` 은 **안 받는다** — 나라마다 월·일 순서가 달라
+// 어느 쪽인지 알 수 없고, **조용히 틀린 날에 넣는 것이 거절보다 나쁘다.**
+// `26-11-03` 도 안 받는다(1926년인지 2026년인지 알 수 없다).
+//
+// 못 읽으면 **받은 글자를 그대로 돌려준다** — 그 값으로 「이상해요」를 말해야 한다.
+const DAY_SHAPE = /^(\d{4})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})\s*\.?$/;
+function normalizeDay(raw) {
+  const s = String(raw ?? '').trim();
+  const m = DAY_SHAPE.exec(s);
+  if (!m) return s;
+  return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+}
+
 /**
  * CSV 한 장을 줄과 칸으로 쪼갠다.
  *
@@ -110,7 +137,8 @@ function readWorkouts(text) {
   for (let r = 1; r < rows.length; r++) {
     const line = r + 1;                     // 사람이 보는 줄 수 (머리글이 1줄)
     const cells = rows[r];
-    const date = cells[iDate] || '';
+    // **엑셀이 바꿔 쓴 날짜를 되읽는다** (위 `normalizeDay` 머리글)
+    const date = normalizeDay(cells[iDate] || '');
     // **저장하는 쪽과 같은 자로** 다듬는다 (2026-10-22).
     // 여태 여기서는 「비었나」만 봤고, 가져오는 라우트가 뒤에서 `cleanName` 을 불러
     // **`null` 이 되면 그대로 넣었다** — `<<<>>>` 처럼 새니타이즈하면 아무것도 안
@@ -124,7 +152,10 @@ function readWorkouts(text) {
     // 주는데 파일로는 `-50` 이 그대로 들어왔다. 볼륨을 세는 쪽이 부호를 못 본다
     const w = normalizeWeight(iWeight >= 0 ? cells[iWeight] : '');
 
-    if (!isRecordDay(date)) { bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'})` }); continue; }
+    if (!isRecordDay(date)) {
+      bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'}) — 2026-11-03 처럼 적어주세요` });
+      continue;
+    }
     if (!exercise) { bad.push({ line, why: '운동명이 비어 있어요' }); continue; }
     if (!w.ok) { bad.push({ line, why: w.why }); continue; }
     if (!Number.isInteger(sets) || !Number.isInteger(reps) || sets < 1 || reps < 1) {
@@ -196,8 +227,12 @@ function readInbody(text) {
   for (let r = 1; r < rows.length; r++) {
     const line = r + 1;
     const cells = rows[r];
-    const date = cells[iDate] || '';
-    if (!isRecordDay(date)) { bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'})` }); continue; }
+    // **엑셀이 바꿔 쓴 날짜를 되읽는다** (위 `normalizeDay` 머리글)
+    const date = normalizeDay(cells[iDate] || '');
+    if (!isRecordDay(date)) {
+      bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'}) — 2026-11-03 처럼 적어주세요` });
+      continue;
+    }
 
     const before = bad.length;
     const weight = pick(cells, iW, 'weight', bad, line);
@@ -244,12 +279,16 @@ function readMeasures(text) {
   for (let r = 1; r < rows.length; r++) {
     const line = r + 1;
     const cells = rows[r];
-    const date = cells[iDate] || '';
+    // **엑셀이 바꿔 쓴 날짜를 되읽는다** (위 `normalizeDay` 머리글)
+    const date = normalizeDay(cells[iDate] || '');
     const label = cells[iType] || '';
     const field = cells[iField] || '';
     const raw = cells[iValue] || '';
 
-    if (!isRecordDay(date)) { bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'})` }); continue; }
+    if (!isRecordDay(date)) {
+      bad.push({ line, why: `날짜가 이상해요 (${date || '빈 칸'}) — 2026-11-03 처럼 적어주세요` });
+      continue;
+    }
     // **모르는 종류는 지어내지 않는다.** 이름표에 없으면 그 줄만 건너뛴다
     const type = MEASURE_TYPE_OF[label] || (Object.values(MEASURE_TYPE_OF).includes(label) ? label : null);
     if (!type) { bad.push({ line, why: `모르는 종류예요 (${label || '빈 칸'})` }); continue; }
