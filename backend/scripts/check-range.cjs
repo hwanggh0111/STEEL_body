@@ -266,8 +266,13 @@ const call = async (method, p, body) => {
     const gs = await call('PUT', '/gym-settings', { gym: '강남   점', exercise: '랫풀다운', seat: '3' });
     ok('세팅을 담았다', gs.status, 200);
     ok('  서버는 다듬은 이름을 돌려준다', gs.data?.gym, '강남 점');
-    const gs2 = await call('PUT', '/gym-settings', { gym: '<집앞>', exercise: '벤치프레스', seat: '2' });
-    ok('  꺾쇠도 걷어서 돌려준다', gs2.data?.gym, '집앞');
+    // **태그만 걷는다** (2026-11-03). 여태 꺾쇠를 글자째 지웠는데, 그것이 사람이
+    // 적은 글을 조용히 다른 뜻으로 바꾸고 있었다(「무게 60>65」 → 「무게 6065」).
+    // 이제 태그 꼴만 걷고 홀로 쓰인 꺾쇠는 남긴다
+    const gs2 = await call('PUT', '/gym-settings', { gym: '<b>집앞</b>', exercise: '벤치프레스', seat: '2' });
+    ok('  태그는 걷어서 돌려준다', gs2.data?.gym, '집앞');
+    const gs3 = await call('PUT', '/gym-settings', { gym: '집앞 <2층>', exercise: '스쿼트', seat: '1' });
+    ok('  사람이 적은 꺾쇠는 남긴다', gs3.data?.gym, '집앞 <2층>');
     // **화면이 그 이름을 쓰는가** (글자로 본다 — 스토어를 띄우는 자리가 아니다)
     const gymStore = require('fs').readFileSync(
       require('path').join(__dirname, '..', '..', 'frontend', 'src', 'store', 'gymStore.js'), 'utf8');

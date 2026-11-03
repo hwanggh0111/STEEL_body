@@ -5,7 +5,7 @@
 // ── 왜 ──
 //
 // 서버는 사람이 적은 글자를 **그대로 담지 않는다** — 이름의 앞뒤 공백을 떼고,
-// 가운데 겹친 공백을 한 칸으로 줄이고, `<` `>` 를 걷어낸다(`cleanName`·`sanitize`).
+// 가운데 겹친 공백을 한 칸으로 줄이고, **태그 꼴**을 걷어낸다(`cleanName`·`sanitize`).
 // 그런데 「내 루틴」을 만드는 자리는 **번호만** 돌려줬다. 받은 화면은 돌려줄 글자가
 // 없으니 **자기가 보낸 날글**을 목록에 얹었다 —
 //
@@ -46,11 +46,15 @@ const ok = (name, got, want) => {
 // 지저분하게 적어본다 — 앞뒤 공백 · 가운데 겹공백 · 꺾쇠
 const MESSY_NAME = '  월요일   가슴 ';
 const MESSY_EX = ' 벤치 <b>프레스</b> ';
+// 메모는 날짜마다 한 장이라 글을 바꿀 때마다 날짜도 바꾼다 (같은 날이면 고쳐진다)
+const 오늘 = new Date().toISOString().slice(0, 10);
 
 const app = express();
 app.use(express.json());
 app.use('/api/my-routines', require('../src/routes/myRoutines'));
 app.use('/api/plans', require('../src/routes/plans'));
+// 메모는 **사람이 글을 길게 적는 자리**다 — 꺾쇠·따옴표·&가 뜻을 지는 곳이다
+app.use('/api/notes', require('../src/routes/notes'));
 
 db.createUser('echo@test.local', 'x', '나', 'echoman');
 const me = db.findUserByEmail('echo@test.local');
@@ -98,6 +102,42 @@ async function run() {
       const plans = (await fetch(base + '/plans', { headers: H }).then((r) => r.json()));
       const keptPlan = plans.find((p) => p.id === plan.body.id);
       ok('  돌려준 이름 = 담긴 이름', plan.body.name, keptPlan && keptPlan.name);
+    }
+
+    // ── **사람이 적은 글이 조용히 바뀌고 있었다** ── (2026-11-03)
+    //
+    // 새니타이즈가 `[<>"'&`]` 를 **글자째 지웠다.** 자르는 것보다 나쁘다 —
+    // **뜻이 바뀐다**:
+    //
+    //   「무게 60>65」      → 「무게 6065」    숫자가 붙어 기록이 사라진다
+    //   「벤치 60 -> 65」   → 「벤치 60 - 65」 올린 것이 뺄셈으로 보인다
+    //   「허리 각도 < 45도」 → 「허리 각도 45도」 **반대로 읽힌다**
+    //   「벤치 & 스쿼트」    → 「벤치 스쿼트」
+    //
+    // 그 값이 HTML 로 들어가는 자리는 **하나도 없다**(화면에 `dangerouslySetInnerHTML`
+    // 이 없고, 메일은 이미 이스케이프하고, CSV 는 따옴표를 `""` 로 감싼다).
+    // 그래서 **태그 꼴만** 걷는다. 양쪽을 다 본다 — 사람 글은 남고, 태그는 지워진다
+    console.log('');
+    console.log('── 사람이 적은 글이 그대로 남는가 ──');
+    for (const 글 of ['무게 60>65', '벤치 60 -> 65 올렸다', '허리 각도 < 45도 유지',
+                      '벤치 & 스쿼트', "don't stop", '"빅3" 날', '1<2<3']) {
+      const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
+      ok(`  ${JSON.stringify(글)}`, r.body?.body, 글);
+    }
+    console.log('── 태그는 걷는가 ──');
+    for (const [글, 남을것] of [['<b>어깨</b> 아픔', '어깨 아픔'],
+                               ['<script>alert(1)</script>끝', '1)끝'],
+                               ['<img src=x onerror=alert(1)>메모', '메모'],
+                               ['<b>x</b>', 'x']]) {
+      const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
+      ok(`  ${JSON.stringify(글)}`, r.body?.body, 남을것);
+      ok('    태그 꼴이 안 남는다', /<\s*[/!?a-zA-Z]/.test(String(r.body?.body || '')), false);
+    }
+    // **글이 통째로 태그면 안 담는다** — 걷고 나면 남는 글자가 없다.
+    // 겹쳐 쓴 꼴(`<<script>…`)도 고리를 돌려 다 걷으므로 여기로 떨어진다
+    for (const 글 of ['<<script>alert(1)</script>', '<b></b>', '<div><span></span></div>']) {
+      const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
+      ok(`  ${JSON.stringify(글)} 는 거절`, [r.status, r.body?.error], [400, '메모 내용을 적어주세요']);
     }
   } catch (err) {
     bad += 1;

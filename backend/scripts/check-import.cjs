@@ -257,7 +257,7 @@ console.log('── 손으로 적는 길과 **같은 자**를 쓰는가 ── (
 //
 //   손으로   '-50' → 400 「무게 값이 올바르지 않아요」
 //   파일로   '-50' → **그대로 저장**  (볼륨을 세는 쪽은 부호를 못 본다)
-//   파일로   '<<<>>>' → 새니타이즈하면 빈 이름인데 **이름 없이 저장**
+//   파일로   '<b></b>' → 새니타이즈하면 빈 이름인데 **이름 없이 저장**
 //
 // 이제 둘이 `utils/workoutFields.js` 하나를 쓴다.
 {
@@ -271,9 +271,22 @@ console.log('── 손으로 적는 길과 **같은 자**를 쓰는가 ── (
   ok('  몇째 줄이 왜인지 말한다', neg.bad[0] && neg.bad[0].why, '무게는 음수일 수 없어요');
   ok('  줄 수도 말한다', neg.bad[0] && neg.bad[0].line, 2);
 
-  const blank = read(`${TODAY},<<<>>>,60,3,10`);
-  ok('새니타이즈하면 빈 이름도 안 들어온다', blank.rows.length, 0);
-  ok('  이름이 비었다고 말한다', blank.bad[0] && blank.bad[0].why, '운동명이 비어 있어요');
+  // ── **지키려던 것은 「이름 없는 기록」이다** ── (2026-11-03 에 자를 고쳤다)
+  //
+  // 여태 이 자리는 `'<<<>>>'` 로 봤다 — 새니타이즈가 꺾쇠를 **글자째 지워서** 빈
+  // 이름이 되던 값이다. 그런데 그 「글자째 지우기」가 **사람이 적은 글을 조용히
+  // 다른 뜻으로** 바꾸고 있었다(메모 「무게 60>65」 → 「무게 6065」). 11/03 에
+  // **태그 꼴만** 지우도록 고쳤고, 그래서 `'<<<>>>'` 는 이제 **그대로 남는다** —
+  // 사람이 그 글자를 적었으면 그것이 이름이다(말없이 바꾸지 않는다).
+  //
+  // **막아야 하는 것은 그대로 막는다**: 태그만 적어서 **남는 글자가 없는** 이름.
+  const onlyTag = read(`${TODAY},<b></b>,60,3,10`);
+  ok('태그만 적은 이름은 안 들어온다', onlyTag.rows.length, 0);
+  ok('  이름이 비었다고 말한다', onlyTag.bad[0] && onlyTag.bad[0].why, '운동명이 비어 있어요');
+  const tagged = read(`${TODAY},<b>벤치프레스</b>,60,3,10`);
+  ok('태그는 걷고 남은 글자로 이름을 짓는다', tagged.rows[0] && tagged.rows[0].exercise, '벤치프레스');
+  const 꺾쇠 = read(`${TODAY},"벤치 60>65",60,3,10`);
+  ok('사람이 적은 꺾쇠는 남는다 (뜻이 바뀌면 안 된다)', 꺾쇠.rows[0] && 꺾쇠.rows[0].exercise, '벤치 60>65');
 
   // 멀쩡한 줄은 그대로 들어온다 (막는 것만 막는다)
   const good = read(`${TODAY},데드리프트, 100kg ,5,5`);
@@ -296,7 +309,9 @@ console.log('── 손으로 적는 길과 **같은 자**를 쓰는가 ── (
   ok('  빈 칸은 맨몸', fields.normalizeWeight('').value, '맨몸');
   ok('  숫자로 와도 받는다', fields.normalizeWeight(60).value, '60');
   ok('  객체는 못 받는다', fields.normalizeWeight({}).ok, false);
-  ok('자: 빈 이름은 null', fields.cleanExerciseName('<<<>>>'), null);
+  ok('자: 태그만 적으면 null', fields.cleanExerciseName('<b></b>'), null);
+  ok('  태그를 걷고 남은 글자로', fields.cleanExerciseName('<b>벤치</b>'), '벤치');
+  ok('  사람이 적은 꺾쇠는 남긴다', fields.cleanExerciseName('벤치 60>65'), '벤치 60>65');
   ok('  긴 이름은 null (100자 넘음)', fields.cleanExerciseName('가'.repeat(101)), null);
 }
 console.log('');
