@@ -1,6 +1,6 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
-import { REPS_MAX, SETS_MAX } from '../data/limits';
+import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 import { readLS, saveLS } from '../data/safeStorage';
 import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
@@ -1142,7 +1142,7 @@ export default function TrainPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1.35fr)', gap: 8, marginBottom: 10 }}>
               <NumberStep
                 id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
-                step={2.5} min={0} max={999} startAt={2.5} placeholder="맨몸" inputMode="decimal"
+                step={2.5} min={0} max={WEIGHT_KG_MAX} startAt={2.5} placeholder="맨몸" inputMode="decimal"
               />
               <div>
                 <label className="label" htmlFor="tr-s">세트</label>

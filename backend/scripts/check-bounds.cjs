@@ -150,6 +150,45 @@ const num = (name) => {
 ok('화면 SETS_MAX', num('SETS_MAX'), back.SETS_MAX);
 ok('화면 REPS_MAX', num('REPS_MAX'), back.REPS_MAX);
 
+// ── 2-1. **무게 — 서버에 테두리가 아예 없었다** ── (2026-11-03)
+//
+// 세트·횟수는 10/31 에 한 자리로 묶었는데 **무게는 그때 안 봤다.** 서버는 글자
+// 수(30)와 음수만 보고 `999999` 를 그대로 넣었고, 화면만 `max={999}` 를 **생글자**
+// 로 들고 있었다. 들어가면 결산이 「2999만 kg」, 최고 기록이 999999kg 으로 박히고
+// (그 뒤로 어떤 기록도 못 넘는다) 원판이 「999479kg 모자람」을 적는다.
+//
+// 무게 칸은 자유 입력이라(「맨몸」·「밴드」·「20kg 양쪽」) **숫자가 읽힐 때만** 본다
+const wf = require('../src/utils/workoutFields');
+ok('서버 WEIGHT_KG_MAX', wf.WEIGHT_KG_MAX, 999);
+ok('화면 WEIGHT_KG_MAX', num('WEIGHT_KG_MAX'), wf.WEIGHT_KG_MAX);
+const 무게 = (v) => { const r = wf.normalizeWeight(v); return r.ok ? r.value : '거절'; };
+ok('999kg 은 받는다', 무게('999'), '999');
+ok('1000kg 은 거절', 무게('1000'), '거절');
+ok('999999kg 은 거절', 무게('999999'), '거절');
+ok('쉼표를 쓴 1,000 도 거절', 무게('1,000'), '거절');
+ok('글자값은 그대로 받는다 (무게가 아니다)', [무게('맨몸'), 무게('밴드')], ['맨몸', '밴드']);
+ok('「20kg 양쪽」은 20 으로 읽는다', 무게('20kg 양쪽'), '20kg 양쪽');
+ok('빈 칸은 맨몸이다', 무게(''), '맨몸');
+ok('음수는 그대로 거절', 무게('-50'), '거절');
+// **화면이 생글자를 안 쓴다** — 날짜 벽에서 세운 자와 같은 선이다
+ok('기록 화면이 무게 상한을 생글자로 안 쓴다',
+  read(path.join(FRONT, 'pages', 'TrainPage.jsx')).includes('max={999}'), false);
+
+// ── 2-2. **인바디는 날짜를 말없이 바꿔 적고 있었다** ── (2026-11-03)
+//
+// 거절하지 않는 것은 일부러 정한 것이다(`routes/inbody.js` 에 까닭이 있다 — 날짜가
+// 곁다리라 오늘로 둔다). 그런데 **아무 말도 안 했다**: 연도를 1026 으로 잘못 치면
+// 「인바디 기록 저장!」이 뜨고 줄은 오늘로 들어간다. 운동 기록은 같은 값을
+// 「그 날짜에는 적을 수 없어요」로 말해준다.
+// 이제 **바꿔 적었으면 그 사실을 돌려주고**(`dateFixed` · `dateKept`) 화면이 말한다
+const inb = read(path.join(ROOT, 'backend', 'src', 'routes', 'inbody.js'));
+ok('적은 날짜를 돌려준다', /date: used/.test(inb), true);
+ok('  바꿔 적었으면 말해준다 (dateFixed)', /dateFixed: true/.test(inb), true);
+ok('  고치기에서 안 바꿨으면 그것도 (dateKept)', /dateKept: true/.test(inb), true);
+const inbScreen = read(path.join(FRONT, 'pages', 'InbodyPage.jsx'));
+ok('화면이 그 말을 사람에게 전한다',
+  [/dateFixed/.test(inbScreen), /dateKept/.test(inbScreen)], [true, true]);
+
 // 뽑는 규칙. **두 벌인 것을 알고 두는 자리**라 글자로 견준다 —
 // `firstNum` 이 쓰는 정규식을 양쪽에서 떼어내 **서로** 맞춰본다.
 // 여기서는 제 수를 들 수가 없다(둘 중 어느 쪽이 맞다고 할 근거가 없다) —

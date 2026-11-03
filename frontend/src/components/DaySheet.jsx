@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { planState, dayLabel, untilLabel } from '../data/plans';
 import ExerciseFinder from './ExerciseFinder';
-import { EXERCISE_NAME_MAX, MAX_PER_DAY, PLAN_NAME_MAX, REPS_MAX, SETS_MAX } from '../data/limits';
+import { EXERCISE_NAME_MAX, MAX_PER_DAY, PLAN_NAME_MAX, REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 
 // 달력에서 날짜를 누르면 나오는 **그날 한 장.**
 //
@@ -77,6 +77,16 @@ export default function DaySheet({
     }
     if (ns > SETS_MAX || nr > REPS_MAX) {
       setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+    }
+    // ── **무게는 저장 전에 안 보고 있었다** ── (2026-11-03)
+    //
+    // 이 칸은 글자값도 받으니(「맨몸」·「밴드」) `max` 를 걸 수 없다 — 그래서
+    // 세트·횟수처럼 **저장 전에 보고 어디까지 되는지 말한다.** 서버도 같은 선을
+    // 본다(`utils/workoutFields.js` 의 `WEIGHT_KG_MAX`) — 여기서 안 보면
+    // 눌러본 다음에야 그 말을 듣는다
+    const kg = /\d+(?:\.\d+)?/.exec(String(weight).replace(/[,\s]/g, ''));
+    if (kg && Number(kg[0]) > WEIGHT_KG_MAX) {
+      setError(`무게는 ${WEIGHT_KG_MAX}kg 이하로 적어주세요`); return;
     }
     setError('');
     try {

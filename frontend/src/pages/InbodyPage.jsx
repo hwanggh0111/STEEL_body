@@ -275,9 +275,17 @@ export default function InbodyPage({ embedded = false }) {
         muscle_kg: muscleKg ? Number(muscleKg) : null,
         water_l: waterL ? Number(waterL) : null,
       };
+      // ── **서버가 날짜를 바꿔 적으면 그 말을 전한다** ── (2026-11-03)
+      //
+      // 날짜 칸은 `max` 를 걸어도 **연도를 직접 칠 수 있다**(2026 대신 1026 —
+      // `useRecordDate` 머리글에 적어둔 그 일이다). 그러면 서버는 거절하지 않고
+      // **오늘로 적는데**(`routes/inbody.js`, 까닭이 거기 있다) 화면은 여태
+      // 「인바디 기록 저장!」만 띄웠다. 사람은 1026년에 적은 줄 알고,
+      // 체중 그래프에서 그 점을 못 찾는다
       if (editingId) {
-        await updateRecord(editingId, payload);
-        toast('인바디 기록 수정 완료!');
+        const r = await updateRecord(editingId, payload);
+        if (r?.dateKept) toast(`날짜 ${date} 는 적을 수 없어 날짜는 그대로 뒀어요`, 'error');
+        else toast('인바디 기록 수정 완료!');
         setEditingId(null);
         // 수정 진입 전 quickMode 복원
         if (savedQuickMode !== null) {
@@ -285,8 +293,9 @@ export default function InbodyPage({ embedded = false }) {
           setSavedQuickMode(null);
         }
       } else {
-        await addRecord(payload);
-        toast('인바디 기록 저장!');
+        const r = await addRecord(payload);
+        if (r?.dateFixed) toast(`날짜 ${date} 는 적을 수 없어 ${r.date} 로 적었어요`, 'error');
+        else toast('인바디 기록 저장!');
       }
       resetDate(); setHeight(''); setWeight(''); setFatPct(''); setMuscleKg(''); setWaterL('');
       // **「건강 앱에서 가져왔어요」도 같이 치운다** (2026-10-28). 거는 자리는

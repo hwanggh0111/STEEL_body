@@ -112,20 +112,36 @@ export function sinceLabel(days) {
 // 사람은 스톱워치를 「5분 12초」로 읽지 312로 읽지 않는다 — 적을 때도 볼 때도
 // 머리로 나눠야 했다. **저장은 그대로 초로 한다**(이미 쌓인 기록이 초다).
 
-/** 312 → '5:12'. 못 읽으면 빈 문자열 */
+/**
+ * 312 → '5:12'. 못 읽으면 빈 문자열.
+ *
+ * ── **「0:60」이 적히고 있었다** ── (2026-11-03)
+ *
+ * 분과 초를 **따로** 계산하면서 초만 반올림했다 — `59.9` 초면 분은 `0`,
+ * 초는 `Math.round(59.9)` = `60` 이라 **「0:60」**이다. `119.6` 초는 「1:60」.
+ * 시계에 없는 글자를 적어놓은 것이다.
+ *
+ * **반올림을 먼저 한 번 하고 그 수를 쪼갠다.** 그러면 59.9 는 60 초가 되고
+ * 「1:00」으로 적힌다.
+ */
 export function mmss(seconds) {
   const n = num(seconds);
   if (n === null || n < 0) return '';
-  const m = Math.floor(n / 60);
-  const s = Math.round(n % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const t = Math.round(n);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-/** 분 · 초 두 칸 → 초. 둘 다 비어 있으면 `null` (안 적은 것이다) */
+/**
+ * 분 · 초 두 칸 → 초. 둘 다 비어 있으면 `null` (안 적은 것이다).
+ *
+ * **초는 정수로 담는다** (2026-11-03). 칸이 `type="number"` 지만 브라우저는
+ * `59.9` 를 그대로 받아주고, 그 값이 기록에 들어가면 위 `mmss` 가 그려야 할
+ * 것이 생긴다. 1km 달리기를 0.1초까지 적을 일은 없다
+ */
 export function toSeconds(min, sec) {
   const m = String(min ?? '').trim();
   const s = String(sec ?? '').trim();
   if (!m && !s) return null;
-  const total = (Number(m) || 0) * 60 + (Number(s) || 0);
+  const total = Math.round((Number(m) || 0) * 60 + (Number(s) || 0));
   return Number.isFinite(total) && total > 0 ? total : null;
 }
