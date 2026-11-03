@@ -11,6 +11,7 @@
 const {
   decide, messageOf, localDateOf, localTimeOf, localDayOf, daysBetween, STREAK_GAP,
   DEFAULTS, withDefaults,
+  SEND_WINDOW_MIN, sinceTime,
 } = require('../src/utils/reminderSchedule');
 
 let bad = 0;
@@ -41,6 +42,34 @@ const base = { enabled: true, time: '19:00', tzOffset: KST, days: [4], streakGua
 console.log('\n── 정한 요일 ──');
 ok('그 요일 그 시각이면 보낸다', decide(base, at(SEVEN_PM), '2026-08-20').send, true);
 ok('시각이 다르면 안 보낸다', decide(base, at('2026-08-27T09:00:00Z'), '2026-08-20').reason, 'not-time');
+
+// ── **그 1분을 놓치면 그날은 안 갔다** ── (2026-11-03)
+//
+// 여태 분까지 정확히 맞아야 보냈다. 그 문이 **조용히 닫히는 날**이 있다 —
+// 배포할 때마다 서버가 다시 뜨고, 무료 판은 깨워두는 자가 한 번 못 닿으면 잠든다.
+// 안 간 것은 **아무도 모른다**(사람은 「켰는데 안 온다」로만 겪는다).
+// 그래서 **정한 시각 뒤 30분 안**이면 보낸다 — 「몇 시간 뒤」는 여전히 안 보낸다
+console.log('');
+console.log('── 늦어도 30분 안이면 보낸다 ──');
+ok('창이 30분이다', SEND_WINDOW_MIN, 30);
+const 서울 = (hhmm) => {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  return Date.UTC(2026, 7, 27, h - 9, m);   // 8/27(목) 서울 시각 → UTC
+};
+for (const [때, 보내나] of [['18:59', false], ['19:00', true], ['19:01', true],
+                            ['19:15', true], ['19:29', true], ['19:30', false], ['20:00', false]]) {
+  ok(`  서울 ${때}`, decide(base, 서울(때), '2026-08-20').send, 보내나);
+}
+ok('  시각 전은 아직 아니다 (음수)', sinceTime('18:30', '19:00'), -30);
+ok('  못 읽는 값은 null', [sinceTime('', '19:00'), sinceTime('19:00', 'x')], [null, null]);
+// **같은 날 두 번 가지 않는다** — 창이 넓어졌어도 이 자가 막는다
+ok('  창 안이어도 이미 보냈으면 안 보낸다',
+  decide({ ...base, last_sent_date: '2026-08-27' }, 서울('19:15'), '2026-08-20').reason, 'already');
+// **자정을 넘기지 않는다** — 23:50 의 창은 00:20 까지 열리지 않는다(날이 바뀐다)
+const 자정 = { ...base, time: '23:50', days: [4, 5] };
+ok('  23:50 에 23:55 는 보낸다', decide(자정, 서울('23:55'), '2026-08-20').send, true);
+ok('  날이 바뀐 00:10 은 안 보낸다',
+  decide(자정, Date.UTC(2026, 7, 27, 15, 10), '2026-08-20').reason, 'not-time');
 ok('요일이 다르면 안 보낸다', decide(base, at('2026-08-28T10:00:00Z'), '2026-08-20').reason, 'not-a-day');
 ok('꺼져 있으면 안 보낸다', decide({ ...base, enabled: false }, at(SEVEN_PM), null).reason, 'off');
 ok('오늘 이미 운동했으면 안 보낸다', decide(base, at(SEVEN_PM), '2026-08-27').reason, 'done-today');
@@ -231,7 +260,17 @@ console.log('\n── 「켜기」만 누른 사람에게도 가는가 ── (2
     const t = Date.UTC(2026, 9, 21, 0, m, 0);
     if (decide(row, t, '2026-10-10').send) minutesThatSend.push(m);
   }
-  ok('켜기만 누른 줄에도 하루 한 번 간다', minutesThatSend.length, 1);
+  // **창이 생겨 「가는 분」이 30이 됐다** (2026-11-03). 지키려던 뜻은 그대로다 —
+  // 「0 이 아니다」(켜기만 누른 줄에도 간다)와 「**하루 한 번만** 간다」.
+  // 하루 한 번은 분의 수가 아니라 `last_sent_date` 가 지킨다 — 그것까지 본다
+  ok('켜기만 누른 줄에도 간다 (0분이 아니다)', minutesThatSend.length > 0, true);
+  ok('  가는 분이 창만큼이다', minutesThatSend.length, SEND_WINDOW_MIN);
+  ok('  그 분들이 잇닿아 있다 (창 하나다)',
+    minutesThatSend[minutesThatSend.length - 1] - minutesThatSend[0], SEND_WINDOW_MIN - 1);
+  // **보낸 뒤에는 그날 안 간다** — 창 안의 모든 분을 다시 돌려본다
+  const 보낸뒤 = { ...row, last_sent_date: '2026-10-21' };
+  ok('  보낸 뒤에는 창 안에서도 안 간다',
+    minutesThatSend.filter((m) => decide(보낸뒤, Date.UTC(2026, 9, 21, 0, m, 0), '2026-10-10').send), []);
   // 600분 = 10:00Z = 서울 19:00 (기본 시각)
   ok('  그 시각이 기본값과 같다', localTimeOf(Date.UTC(2026, 9, 21, 0, minutesThatSend[0], 0), -540), DEFAULTS.time);
 

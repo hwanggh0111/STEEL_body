@@ -92,6 +92,26 @@ function withDefaults(row) {
  * @returns { send, reason, localDate, gap }
  *          reason 은 'scheduled'(정한 요일) 또는 'streak'(오래 쉼)
  */
+/**
+ * 정한 시각이 지난 뒤 **몇 분까지** 보낼까 (2026-11-03).
+ *
+ * 30분이다. 1분을 놓친 것은 흡수하고, 「몇 시간 뒤」는 여전히 안 보낸다.
+ * 자정은 넘기지 않는다 (아래 `decide` 머리글).
+ */
+const SEND_WINDOW_MIN = 30;
+
+/** `'19:25'` 와 `'19:00'` → 25. 못 읽으면 `null`. 음수면 아직 그 시각 전이다 */
+function sinceTime(nowHHMM, targetHHMM) {
+  const toMin = (v) => {
+    const m = /^(\d{2}):(\d{2})$/.exec(String(v || ''));
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const a = toMin(nowHHMM);
+  const b = toMin(targetHHMM);
+  if (a === null || b === null) return null;
+  return a - b;
+}
+
 function decide(rawReminder, nowMs, lastWorkoutDate) {
   // **빈 칸은 기본값으로 본다.** 안 그러면 「켜기」만 누른 사람에게 한 통도 안 간다
   const reminder = withDefaults(rawReminder);
@@ -103,9 +123,27 @@ function decide(rawReminder, nowMs, lastWorkoutDate) {
   // 같은 날 두 번 보내지 않는다
   if (reminder.last_sent_date === localDate) return no('already');
 
-  // 1분마다 보므로 분까지 맞아야 한다. 서버가 한 번 못 돌면 그날은 건너뛴다 —
-  // 몇 시간 늦게 「오늘 운동하는 날이에요」가 오는 것보다 안 오는 게 낫다
-  if (localTimeOf(nowMs, reminder.tzOffset) !== reminder.time) return no('not-time');
+  // ── **그 1분을 놓치면 그날은 안 갔다** ── (2026-11-03 에 창을 뒀다)
+  //
+  // 여태 **분까지 정확히** 맞아야 보냈다. 거기 적어둔 까닭은 맞다 —
+  // 「몇 시간 늦게 「오늘 운동하는 날이에요」가 오는 것보다 안 오는 게 낫다」.
+  // 그런데 그 좁은 문이 **조용히 닫히는 날**이 있다:
+  //
+  //   · 무료 판은 깨워두는 자가 14분마다 두드려 깨어 있는다(`utils/keepWarm.js`).
+  //     그 두드림이 한 번 실패하거나 `KEEP_WARM_HOURS` 로 좁혀둔 시간대면 잠든다
+  //   · **배포할 때마다 서버가 다시 뜬다.** 그 분에 걸린 사람은 그날 못 받는다
+  //   · 고리가 한 번 밀리면(가비지 수집 · 긴 tick) 그 분을 지나친다
+  //
+  // 안 간 것은 **아무도 모른다** — 사람은 「알림을 켰는데 안 온다」로만 겪는다.
+  // 그래서 **창을 둔다**: 정한 시각 **뒤 30분 안**이면 보낸다. 적어둔 뜻은 그대로다
+  // (「몇 시간 뒤」는 여전히 안 보낸다). 같은 날 두 번 가는 일은 위의
+  // `last_sent_date` 가 이미 막는다.
+  //
+  // **자정을 넘기지 않는다.** 23:50 에 창을 열면 00:20 은 **다음 날**이고(`localDate`
+  // 가 바뀐다) 그 날의 요일·기록을 봐야 맞다. 그 사람은 그날 못 받는다 — 드물고,
+  // 날이 바뀐 뒤에 「오늘 운동하는 날이에요」를 보내는 것은 틀린 말이다
+  const late = sinceTime(localTimeOf(nowMs, reminder.tzOffset), reminder.time);
+  if (late === null || late < 0 || late >= SEND_WINDOW_MIN) return no('not-time');
 
   const day = localDayOf(nowMs, reminder.tzOffset);
   const days = Array.isArray(reminder.days) ? reminder.days : [];
@@ -173,6 +211,7 @@ function messageOf(reason, gap, cold) {
 
 module.exports = {
   decide, messageOf, DEFAULTS, withDefaults,
+  SEND_WINDOW_MIN, sinceTime,
   localDateOf, localTimeOf, localDayOf, daysBetween,
   STREAK_GAP,
 };

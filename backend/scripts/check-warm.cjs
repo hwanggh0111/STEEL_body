@@ -119,5 +119,24 @@ console.log('── 밖에서 볼 수 있는가 ──');
   // **안 받아온 것과 꺼진 것은 다르다** — 옛 서버는 이 칸을 안 보낸다
   ok('  안 보내면 칸을 안 그린다', /\{keepWarm && \(/.test(panel), true);
 }
+// ── **좁혀두면 그 시간대 알림이 안 간다** ── (2026-11-03)
+//
+// 이 값은 월 750시간을 아끼려고 두는 손잡이인데, **운동 알림은 서버가 깨어 있어야
+// 나간다** — 잠든 시간대에 알림을 켠 사람은 한 통도 못 받는다. 그 이어짐이
+// **아무 데도 안 적혀 있었다.** 좁히는 사람은 「돈 아끼는 손잡이」로만 본다.
+// 뜰 때 한 줄로 말하게 했고, 그 줄이 사라지지 않게 여기서 지킨다
+{
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'src', 'utils', 'keepWarm.js'), 'utf8');
+  ok('좁혀두면 알림이 안 간다고 말해준다', /운동 알림이 안 나간다/.test(src), true);
+  ok('  그 말은 좁혀뒀을 때만 한다', /if \(process\.env\.KEEP_WARM_HOURS\) \{/.test(src), true);
+  // 자기들끼리 말이 맞아야 한다 — 알림은 1분마다 보고, 깨우기는 14분마다 두드린다
+  const warm = require('../src/utils/keepWarm');
+  const runner = require('../src/utils/reminderRunner');
+  ok('깨우기(14분)가 알림(1분)보다 드물다', warm.TICK_MS > runner.TICK_MS, true);
+  ok('  그래서 알림에 창이 있어야 한다',
+    require('../src/utils/reminderSchedule').SEND_WINDOW_MIN >= 15, true);
+}
+
 console.log(bad === 0 ? '모두 통과' : bad + '곳 어긋남');
 process.exit(bad === 0 ? 0 : 1);
