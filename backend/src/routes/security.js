@@ -14,6 +14,8 @@ const {
 } = require('../config/security');
 // CSP 도 **지금 나가는 것**을 읽어 적는다 — 손으로 적어두면 바꾼 날 화면만 옛말을 한다
 const { DIRECTIVES } = require('../csp');
+// 쿠키에 **진짜 심기는 깃발**을 읽어 적는다 (아래 `cookieFlags` 에 까닭을 적어뒀다)
+const { ACCESS_COOKIE_OPTS } = require('../utils/tokens');
 const CSP_SUMMARY = ['script-src', 'connect-src']
   .map((k) => `${k} ${(DIRECTIVES[k] || []).join(' ')}`).join(' · ');
 
@@ -824,7 +826,18 @@ router.get('/report', adminAuth, (req, res) => {
     server: {
       nodeVersion: process.version,
       uptime: Math.floor(process.uptime()),
-      memory: process.memoryUsage(),
+      // ── **다섯 숫자를 보내면서 화면은 한 자리도 안 그렸다** ── (2026-11-03)
+      //
+      // `process.memoryUsage()` 를 통째로 보내고 있었다 — `rss` · `heapTotal` ·
+      // `heapUsed` · `external` · `arrayBuffers`, 바이트 단위 다섯 개. 화면은
+      // 그중 아무것도 안 읽었다. 무료 판은 램이 제일 먼저 터지는 자리고
+      // (`npm start` 가 heap 을 256MB 로 묶어둔다), 관리자가 봐야 하는 숫자다.
+      // **헬스체크와 같은 모양으로 보낸다**(`/api/health`) — MB 로 둘. 두 길이
+      // 같은 값을 다른 모양으로 말하면 어느 쪽이 맞는지 알 수 없다
+      memory: {
+        rss: Math.round(process.memoryUsage().rss / 1048576),
+        heap: Math.round(process.memoryUsage().heapUsed / 1048576),
+      },
       env: process.env.NODE_ENV || 'development',
     },
     // ── 적어둔 값이 아니라 **지금 쓰는 값**을 보낸다 ── (2026-10-21)
@@ -838,8 +851,16 @@ router.get('/report', adminAuth, (req, res) => {
       accessTokenExpiry: JWT.accessExpiry,
       refreshTokenExpiry: Math.round(JWT.refreshMs / 86400000) + 'd',
       bcryptRounds: BCRYPT_ROUNDS,
-      csrfProtection: 'double-submit cookie',
-      cookieFlags: 'httpOnly + secure(prod) + sameSite',
+      // `csrfProtection: 'double-submit cookie'` 가 여기 있었는데, 바로 아래
+      // `defense` 가 **같은 말을 같이 보내고** 있었다(`'Double-submit cookie'`).
+      // 화면이 그리는 쪽은 `defense` 다 — 이쪽은 아무도 안 읽었다. 하나만 남긴다
+      //
+      // **쿠키 깃발도 손으로 적어둔 글자였다** — 「httpOnly + secure(prod) +
+      // sameSite」. 10/21 에 이 뭉치에서 걷어낸 것과 같은 종류다. 더구나 이 값은
+      // 개발이냐 배포냐로 **진짜 달라지는** 값이라, 적어둔 글자는 「배포본에서
+      // secure 가 정말 켜져 있나」라는 물음에 답을 못 한다. 지금 심는 것을 읽는다
+      cookieFlags: `httpOnly · secure ${ACCESS_COOKIE_OPTS.secure ? '켜짐' : '꺼짐'}`
+        + ` · sameSite ${ACCESS_COOKIE_OPTS.sameSite}`,
     },
     users: {
       total: users.length,

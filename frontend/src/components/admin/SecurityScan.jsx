@@ -59,6 +59,7 @@ export default function SecurityScan() {
   const usr = report?.users || {};
   const thr = report?.threats || {};
   const aut = report?.auth || {};
+  const mem = srv.memory || {};
   /** 숫자가 안 왔으면 `-`. **0 과 「안 왔다」는 다른 말이다** */
   const n = (v) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : '-');
 
@@ -156,6 +157,12 @@ export default function SecurityScan() {
               <div style={{ fontSize: 11, color: srv.env === 'production' ? 'var(--text-muted)' : 'var(--warning)' }}>
                 {srv.env === 'production' ? '운영' : `개발 (${srv.env || '모름'})`} · 뜬 지 {n(Math.floor((Number(srv.uptime) || 0) / 60))}분
               </div>
+              {/* **램을 다섯 숫자로 보내는데 한 자리도 안 그리고 있었다** (2026-11-03).
+                  무료 판에서 제일 먼저 터지는 자리고, heap 은 256MB 로 묶여 있다 —
+                  200 을 넘으면 노랗게, 240 을 넘으면 붉게 적는다 */}
+              <div style={{ fontSize: 11, color: Number(mem.heap) >= 240 ? 'var(--danger)' : Number(mem.heap) >= 200 ? 'var(--warning)' : 'var(--text-muted)' }}>
+                램 {n(mem.rss)}MB · heap {n(mem.heap)}/256MB
+              </div>
             </div>
             <div className="card" style={{ padding: 12 }}>
               <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>사용자</div>
@@ -179,6 +186,12 @@ export default function SecurityScan() {
               <div style={{ fontSize: 13 }}>{aut.jwtAlgorithm || '-'} · {aut.accessTokenExpiry || '-'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 다시 받기 {aut.refreshTokenExpiry || '-'} · 암호 {n(aut.bcryptRounds)}회
+              </div>
+              {/* **보내는데 안 읽고 있었다** (2026-11-03). 더구나 서버 쪽은 손으로
+                  적어둔 글자였다 — 이제 **지금 심는 깃발**을 그대로 받아 적는다.
+                  배포본에서 `secure 꺼짐` 이 보이면 그 자리가 고장난 것이다 */}
+              <div style={{ fontSize: 11, color: /꺼짐/.test(String(aut.cookieFlags || '')) ? 'var(--danger)' : 'var(--text-muted)' }}>
+                쿠키 {aut.cookieFlags || '-'}
               </div>
             </div>
             {/* ── **지금 걸려 있는 것** ── (2026-10-27)
