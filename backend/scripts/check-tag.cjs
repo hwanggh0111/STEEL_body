@@ -174,6 +174,33 @@ const call = async (method, p, body, headers = {}) => {
     const upd = store.slice(store.indexOf('updateWorkout: async'), store.indexOf('deleteWorkout: async'));
     ok('  고치기는 딱지를 안 받는다', /keepTag/.test(upd), false);
 
+    // ── **지하에서 쌓인 줄을 올리는 길** ── (2026-11-03)
+    //
+    // 적는 길은 11/02 에 고쳤는데 `flushQueue` 만 올린 줄의 답을 **버리고** 통째로
+    // 다시 받고 있었다(5년치 209KB). 지하에서 한 판을 다 적으면 줄이 스물이다.
+    // 올리는 길은 `clientKey` 를 달고 오므로 **그 길로도 줄과 딱지가 와야 한다** —
+    // 다시 보내도(답이 끊겼을 때) 서버는 한 번만 만들고 그 줄을 그대로 돌려준다
+    const qkey = 'local-' + Date.now();
+    const q1 = await call('POST', '/workouts', {
+      date: DAY, exercise: '줄에 선 것', weight: '60', sets: 3, reps: 10, clientKey: qkey,
+    });
+    ok('줄에서 올린 것도 담은 줄을 돌려준다', q1.data?.workout?.date, DAY);
+    ok('  딱지도 같이 온다', typeof q1.data?.tag === 'string' && q1.data.tag.length > 0, true);
+    const q2 = await call('POST', '/workouts', {
+      date: DAY, exercise: '줄에 선 것', weight: '60', sets: 3, reps: 10, clientKey: qkey,
+    });
+    ok('  다시 보내도 한 줄이다 (같은 번호)', q2.data?.id, q1.data?.id);
+    ok('  그때도 줄을 돌려준다 (안 오면 통째로 받게 된다)', q2.data?.workout?.date, DAY);
+    const after = await call('GET', '/workouts', undefined, { 'If-None-Match': q2.data?.tag });
+    ok('  그 딱지로 물어보면 304 · 0바이트', after.status, 304);
+
+    const flush = store.slice(store.indexOf('flushQueue: async'), store.indexOf('retryFailed: async'));
+    ok('  올린 줄을 제자리에 꽂는다 (putRow)', /putRow\(get\(\)\.server, data\.workout\)/.test(flush), true);
+    ok('  그 딱지를 받아 적는다', /keepTag\(data\.tag\)/.test(flush), true);
+    // **꽂았으면 다시 받지 않는다.** 옛 서버(줄을 안 주는)일 때만 통째로 받는다
+    ok('  꽂았으면 통째로 다시 안 받는다', /sent > 0 && missing/.test(flush), true);
+    ok('    옛 서버면 통째로 받는다 (missing)', /missing = true/.test(flush), true);
+
     await call('POST', '/auth/delete', { password: 'check12345' });
   } catch (e) {
     bad += 1;

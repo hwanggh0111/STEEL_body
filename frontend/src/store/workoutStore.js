@@ -327,11 +327,33 @@ export const useWorkoutStore = create((set, get) => ({
     let stopped = false;
     let blocked = false;
     let tooFastMs = 0;
+    // 한 줄이라도 **서버가 담은 줄을 안 돌려줬으면** 통째로 받아 맞춘다 (아래)
+    let missing = false;
     try {
       for (const item of queue) {
         try {
           // 줄의 로컬 id 를 같이 보낸다 — 올리다 답이 끊겨 다시 보내도 서버가 한 번만 만든다
-          await client.post('/workouts', { ...item.payload, clientKey: item.id });
+          const { data } = await client.post('/workouts', { ...item.payload, clientKey: item.id });
+          // ── **올린 줄의 답을 버리고 있었다** ── (2026-11-03)
+          //
+          // 적는 길은 10/31 에 「담은 줄을 받아 제자리에 꽂는다」로 고쳤는데
+          // (`addWorkout`), **지하에서 쌓인 줄을 올리는 이 길만** 그 답을 버리고
+          // 아래에서 `fetchAll(true)` 로 **통째로** 다시 받고 있었다 — 5년치면
+          // 209KB 다. 지하에서 한 판을 다 적고 올라오면 줄이 스물일 수 있는데,
+          // 그 끝에 통째 한 번을 또 치르는 셈이었다.
+          //
+          // 꽂는 자(`putRow`)와 딱지 적는 자(`keepTag`)는 적는 길과 **같은 것**을
+          // 쓴다 — 차례는 `npm run order`, 딱지는 `npm run tag` 가 값으로 지킨다
+          if (data?.workout?.date) {
+            const nextServer = putRow(get().server, data.workout);
+            get().apply(nextServer, null);
+            saveCache(nextServer);
+            keepTag(data.tag);
+          } else {
+            // 옛 서버(줄을 안 돌려준다) — 아래에서 통째로 받아 맞춘다.
+            // 배포가 엇갈리는 동안도 돌아야 한다
+            missing = true;
+          }
           const next = dropFromQueue(get().queue, item.id);
           keepQueue(set, next);
           get().apply(null, next);
@@ -367,9 +389,14 @@ export const useWorkoutStore = create((set, get) => ({
     } finally {
       set({ flushing: false });
     }
-    if (sent > 0) {
+    // **꽂을 수 있었으면 다시 받지 않는다** (위 머리글). 지운 뒤에 그렇게 한 것과
+    // 같은 결이다 — 올린 뒤의 화면 상태는 **서버와 같다**.
+    // 다른 기기에서 바뀐 것은 최대 `FRESH_MS`(30초) 늦게 보인다
+    if (sent > 0 && missing) {
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});
+    } else if (sent > 0) {
+      fetchedAt = Date.now();
     }
     return { sent, failed, stopped, blocked, tooFastMs };
   },
