@@ -38,7 +38,9 @@ export function buildTable(dict = EXERCISE_DICT) {
   const table = {};
   for (const e of dict) {
     const part = MAP_PARTS.includes(e.part) ? e.part : '기타';
-    for (const name of [e.ko, e.en]) {
+    // **별명도 같이 적는다** (2026-11-03) — 사전 머리글의 `alias` 칸이다.
+    // 「벤프」·「턱걸이」로 적힌 기록이 몸 지도에 안 들어가던 자리다
+    for (const name of [e.ko, e.en, ...(e.alias || [])]) {
       const k = norm(name);
       // **먼저 적힌 것이 이긴다.** 「사이드레이즈」와 「레터럴 레이즈」는 영어 이름이
       // 같다(lateral raise) — 뒤엣것이 앞엣것을 덮으면 안 된다
@@ -67,7 +69,8 @@ export function buildGear(dict = EXERCISE_DICT) {
     // **안 적은 것은 적지 않는다.** 「모름」은 사람이 고른 바를 그대로 쓴다는 뜻이고,
     // 여기에 'unknown' 을 적어두면 그 뜻이 「사전이 모른다」로 바뀐다
     if (e.gear !== 'bar' && e.gear !== 'none') continue;
-    for (const name of [e.ko, e.en]) {
+    // 별명도 같이 (위와 같은 까닭) — 「벤프」로 적어도 원판 안내가 나와야 한다
+    for (const name of [e.ko, e.en, ...(e.alias || [])]) {
       const k = norm(name);
       if (k && !(k in table)) table[k] = e.gear;
     }

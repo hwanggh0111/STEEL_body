@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+// 칸에 붙어 오는 공백을 떼어낸다 (`data/typedField.js`) — 서버는 다듬어 찾지만
+// **저장된 아이디**에 공백이 남고, 가입 화면과 다른 규칙을 들면 또 어긋난다
+import { cleanEmailField } from '../data/typedField';
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { toast } from '../components/Toast';
@@ -423,7 +426,7 @@ function oauthErrorText(code) {
                 type="text"
                 placeholder="아이디 또는 이메일"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+                onChange={(e) => { setEmail(cleanEmailField(e.target.value)); if (error) setError(''); }}
                 style={{ marginBottom: 2 }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>

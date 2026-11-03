@@ -31,6 +31,31 @@
 // 「전신 · 유산소」는 지도의 여섯 부위에 없다. 지도는 그것을 **「기타」로 둔다** —
 // 버피를 복근 세트로 세면 하지 않은 운동을 했다고 말하는 것이다.
 
+// ── **별명(`alias`)을 적는다** ── (2026-11-03)
+//
+// 사용자 자리에 앉아 헬스장에서 **실제로 적는 이름**을 넣어보다 걸렸다 —
+//
+//   벤프 · 푸쉬업 · 턱걸이 · 사레레 · 스쿳 · 팔굽혀펴기 · 윗몸일으키기
+//
+// 일곱 다 **「기타」로 떨어졌다.** 그러면 그 운동은 **몸 지도에 영영 안 달아오르고**
+// (이 앱이 「이어가는 이유」로 내세운 그 화면이다) 주간 요약의 부위가 비고, 홈은
+// 「등 · 아직 한 번도 안 했습니다」를 계속 띄운다. **검색에서도 안 나온다** —
+// 「턱걸이」를 치면 풀업이 안 뜨고, 그러면 사람은 제 손으로 이름을 적는다.
+//
+// 이름 규칙이 못 따라가는 자리다(9/29 에 부위를, 10/26 에 기구를 사전으로 옮긴 그
+// 까닭과 같다): 「벤프」는 어느 열쇠의 조각도 아니고, 「턱걸이」는 순우리말이라
+// 영어·한글 이름 어디에도 안 걸린다.
+//
+// **별명은 이름이 아니다.** 목록·검색 결과에 보이는 이름은 `ko` 하나고, 별명은
+// **찾는 열쇠**로만 쓴다. 뽑는 자(`gen-parts.mjs`)가 부위·기구 표에 같이 적고
+// (서버 판까지 한 곳에서 나온다), 검색은 `ko` 와 같은 점수로 본다.
+//
+// 넣는 기준 —
+//   · 사람이 **그 이름으로 적는다** (벤프 · 사레레)
+//   · 표기만 다르다 (푸쉬업)
+//   · 순우리말 (턱걸이 · 팔굽혀펴기 · 윗몸일으키기)
+// 애매한 것은 안 넣는다. 「친업」처럼 **다른 운동**인 것은 별명이 아니다
+
 // **확장자를 적는다** — 이 파일은 화면만 쓰는 것이 아니라 빌드 스크립트
 // (`gen-parts.mjs`)가 **노드로 그대로 불러온다.** 노드 ESM 은 확장자를 생략하면
 // 못 찾는다(`ERR_MODULE_NOT_FOUND`). 비테는 둘 다 받는다
@@ -38,7 +63,7 @@ import { PARTS } from './partNames.js';
 
 export const EXERCISE_DICT = [
   // ─── 벤치프레스 종류 ───
-  { ko: '벤치프레스', en: 'bench press', group: '벤치프레스', part: '가슴', gear: 'bar', desc: '평평한 벤치에서 바벨을 밀어올림. 가슴 중앙부 전체 자극' },
+  { ko: '벤치프레스', en: 'bench press', alias: ['벤프'], group: '벤치프레스', part: '가슴', gear: 'bar', desc: '평평한 벤치에서 바벨을 밀어올림. 가슴 중앙부 전체 자극' },
   { ko: '인클라인 벤치프레스', en: 'incline bench press', group: '벤치프레스', part: '가슴', gear: 'bar', desc: '벤치를 30~45도 올려서 수행. 가슴 상부(쇄골부) 집중' },
   { ko: '디클라인 벤치프레스', en: 'decline bench press', group: '벤치프레스', part: '가슴', gear: 'bar', desc: '벤치를 15~30도 내려서 수행. 가슴 하부 집중' },
   { ko: '클로즈그립 벤치프레스', en: 'close grip bench press', group: '벤치프레스', part: '팔', gear: 'bar', desc: '손 간격을 좁게 잡고 수행. 삼두근 + 가슴 안쪽 집중' },
@@ -48,7 +73,7 @@ export const EXERCISE_DICT = [
   { ko: '플로어프레스', en: 'floor press', group: '벤치프레스', part: '가슴', gear: 'none', desc: '바닥에 누워서 수행. 어깨 부담 적고 삼두 자극 강함' },
 
   // ─── 스쿼트 종류 ───
-  { ko: '스쿼트', en: 'squat', group: '스쿼트', part: '하체', gear: 'bar', desc: '바벨을 등에 메고 앉았다 일어남. 하체 운동의 왕' },
+  { ko: '스쿼트', en: 'squat', alias: ['스쿳'], group: '스쿼트', part: '하체', gear: 'bar', desc: '바벨을 등에 메고 앉았다 일어남. 하체 운동의 왕' },
   { ko: '프론트 스쿼트', en: 'front squat', group: '스쿼트', part: '하체', gear: 'bar', desc: '바벨을 앞쪽(쇄골)에 올림. 대퇴사두근 + 코어 집중' },
   { ko: '핵스쿼트', en: 'hack squat', group: '스쿼트', part: '하체', gear: 'none', desc: '머신 사용. 등 부담 없이 대퇴사두근 집중' },
   { ko: '고블릿 스쿼트', en: 'goblet squat', group: '스쿼트', part: '하체', gear: 'none', desc: '덤벨/케틀벨을 가슴 앞에 들고 수행. 초보자 입문용' },
@@ -67,7 +92,7 @@ export const EXERCISE_DICT = [
   { ko: '디피셋 데드리프트', en: 'deficit deadlift', group: '데드리프트', part: '등', gear: 'bar', desc: '발판 위에 서서 수행. 가동범위 늘려 바닥 초반 힘 강화' },
 
   // ─── 프레스 종류 ───
-  { ko: '숄더프레스', en: 'shoulder press', group: '프레스', part: '어깨', desc: '어깨 위로 밀어올림. 전면삼각근 + 삼두근' },
+  { ko: '숄더프레스', en: 'shoulder press', alias: ['숄프'], group: '프레스', part: '어깨', desc: '어깨 위로 밀어올림. 전면삼각근 + 삼두근' },
   { ko: '오버헤드프레스', en: 'overhead press', group: '프레스', part: '어깨', gear: 'bar', desc: '서서 바벨을 머리 위로. 어깨 전체 + 코어 안정화' },
   { ko: '밀리터리프레스', en: 'military press', group: '프레스', part: '어깨', gear: 'bar', desc: '발 모으고 서서 수행. 오버헤드프레스의 엄격한 버전' },
   { ko: '아놀드프레스', en: 'arnold press', group: '프레스', part: '어깨', gear: 'none', desc: '덤벨을 회전시키며 올림. 삼각근 전체(전면+측면) 자극' },
@@ -96,7 +121,7 @@ export const EXERCISE_DICT = [
   { ko: '케이블 컬', en: 'cable curl', group: '컬', part: '팔', gear: 'none', desc: '케이블 사용. 전 구간 일정한 텐션 유지' },
 
   // ─── 푸시업 종류 ───
-  { ko: '푸시업', en: 'push up', group: '푸시업', part: '가슴', gear: 'none', desc: '기본 맨몸 가슴 운동. 가슴 + 삼두 + 전면삼각근' },
+  { ko: '푸시업', en: 'push up', alias: ['푸쉬업', '팔굽혀펴기'], group: '푸시업', part: '가슴', gear: 'none', desc: '기본 맨몸 가슴 운동. 가슴 + 삼두 + 전면삼각근' },
   { ko: '와이드 푸시업', en: 'wide push up', group: '푸시업', part: '가슴', gear: 'none', desc: '손 넓게. 가슴 바깥쪽 자극 강화' },
   { ko: '다이아몬드 푸시업', en: 'diamond push up', group: '푸시업', part: '팔', gear: 'none', desc: '손 모아 다이아몬드. 삼두 + 가슴 안쪽' },
   { ko: '인클라인 푸시업', en: 'incline push up', group: '푸시업', part: '가슴', gear: 'none', desc: '높은 곳에 손. 난이도 낮아 초보자용' },
@@ -105,21 +130,21 @@ export const EXERCISE_DICT = [
   { ko: '핸드스탠드 푸시업', en: 'handstand push up', group: '푸시업', part: '어깨', gear: 'none', desc: '물구나무 서서 수행. 맨몸 최강 어깨 운동' },
 
   // ─── 기타 개별 운동 ───
-  { ko: '풀업', en: 'pull up', group: '풀업', part: '등', gear: 'none', desc: '오버그립으로 바 매달려 당기기. 등 운동의 왕' },
+  { ko: '풀업', en: 'pull up', alias: ['턱걸이'], group: '풀업', part: '등', gear: 'none', desc: '오버그립으로 바 매달려 당기기. 등 운동의 왕' },
   { ko: '친업', en: 'chin up', group: '풀업', part: '등', gear: 'none', desc: '언더그립. 이두 + 등 동시 자극. 풀업보다 쉬움' },
   { ko: '런지', en: 'lunge', group: '런지', part: '하체', gear: 'none', desc: '한 발 앞으로 내딛기. 대퇴사두 + 둔근' },
   { ko: '워킹런지', en: 'walking lunge', group: '런지', part: '하체', gear: 'none', desc: '걸으면서 런지. 유산소 + 하체 동시' },
   { ko: '리버스런지', en: 'reverse lunge', group: '런지', part: '하체', gear: 'none', desc: '뒤로 내딛기. 무릎 부담 적음' },
   { ko: '플랭크', en: 'plank', group: '코어', part: '코어', gear: 'none', desc: '엎드려 버티기. 코어 안정화 기본' },
   { ko: '사이드 플랭크', en: 'side plank', group: '코어', part: '코어', gear: 'none', desc: '옆으로 버티기. 복사근 + 코어' },
-  { ko: '크런치', en: 'crunch', group: '코어', part: '코어', gear: 'none', desc: '윗몸일으키기. 복직근 상부 집중' },
+  { ko: '크런치', en: 'crunch', alias: ['윗몸일으키기'], group: '코어', part: '코어', gear: 'none', desc: '윗몸일으키기. 복직근 상부 집중' },
   { ko: '바이시클 크런치', en: 'bicycle crunch', group: '코어', part: '코어', gear: 'none', desc: '좌우 비틀기. 복사근 + 복직근 동시' },
   { ko: '레그레이즈', en: 'leg raise', group: '코어', part: '코어', gear: 'none', desc: '누워서 다리 들기. 복직근 하부 집중' },
   { ko: '행잉 레그레이즈', en: 'hanging leg raise', group: '코어', part: '코어', gear: 'none', desc: '매달려서 다리 들기. 복근 전체 + 그립' },
   { ko: '버피', en: 'burpee', group: '유산소', part: '전신 · 유산소', gear: 'none', desc: '전신 유산소 운동. 스쿼트+푸시업+점프 결합' },
   { ko: '딥스', en: 'dips', group: '딥스', part: '팔', gear: 'none', desc: '평행봉에서 밀기. 삼두 + 가슴 하부' },
   { ko: '랫풀다운', en: 'lat pulldown', group: '풀다운', part: '등', gear: 'none', desc: '케이블로 바 당기기. 광배근 집중' },
-  { ko: '레그프레스', en: 'leg press', group: '하체머신', part: '하체', gear: 'none', desc: '머신으로 다리 밀기. 대퇴사두 + 둔근' },
+  { ko: '레그프레스', en: 'leg press', alias: ['렉프레스'], group: '하체머신', part: '하체', gear: 'none', desc: '머신으로 다리 밀기. 대퇴사두 + 둔근' },
   { ko: '레그컬', en: 'leg curl', group: '하체머신', part: '하체', gear: 'none', desc: '머신으로 다리 굽히기. 햄스트링 고립' },
   { ko: '레그 익스텐션', en: 'leg extension', group: '하체머신', part: '하체', gear: 'none', desc: '머신으로 다리 펴기. 대퇴사두근 고립' },
   { ko: '케이블 크로스오버', en: 'cable crossover', group: '케이블', part: '가슴', gear: 'none', desc: '케이블 교차. 가슴 안쪽 수축' },
@@ -130,7 +155,7 @@ export const EXERCISE_DICT = [
   { ko: '트라이셉 푸시다운', en: 'tricep pushdown', group: '삼두', part: '팔', gear: 'none', desc: '케이블 아래로 밀기. 삼두근 기본 운동' },
   { ko: '트라이셉 익스텐션', en: 'tricep extension', group: '삼두', part: '팔', desc: '머리 뒤에서 펴기. 삼두 장두 스트레칭' },
   { ko: '스컬크러셔', en: 'skull crusher', group: '삼두', part: '팔', desc: '누워서 이마 쪽으로 내림. 삼두 전체 자극' },
-  { ko: '레터럴 레이즈', en: 'lateral raise', group: '레이즈', part: '어깨', gear: 'none', desc: '옆으로 들기. 측면삼각근 고립' },
+  { ko: '레터럴 레이즈', en: 'lateral raise', alias: ['사레레', '사이드레터럴레이즈'], group: '레이즈', part: '어깨', gear: 'none', desc: '옆으로 들기. 측면삼각근 고립' },
   { ko: '사이드레이즈', en: 'lateral raise', group: '레이즈', part: '어깨', gear: 'none', desc: '레터럴 레이즈와 동일. 어깨 옆면' },
   { ko: '프론트레이즈', en: 'front raise', group: '레이즈', part: '어깨', gear: 'none', desc: '앞으로 들기. 전면삼각근 고립' },
   { ko: '리어델트 플라이', en: 'rear delt fly', group: '레이즈', part: '어깨', gear: 'none', desc: '뒤로 벌리기. 후면삼각근 고립' },
@@ -441,10 +466,14 @@ export function searchExercises(query, limit = 30) {
     .map(e => {
       const ko = norm(e.ko);
       const en = norm(e.en);
+      // **별명도 이름처럼 본다** (2026-11-03, 위 `alias` 머리글). 「턱걸이」를 치면
+      // 풀업이 나와야 한다 — 안 나오면 사람은 제 손으로 이름을 적고, 그 이름은
+      // 사전에 없으니 몸 지도에 안 들어간다
+      const als = (e.alias || []).map(norm);
       let score = 0;
-      if (ko === q || en === q) score = 100;
-      else if (ko.startsWith(q) || en.startsWith(q)) score = 60;
-      else if (ko.includes(q) || en.includes(q)) score = 40;
+      if (ko === q || en === q || als.includes(q)) score = 100;
+      else if (ko.startsWith(q) || en.startsWith(q) || als.some((a) => a.startsWith(q))) score = 60;
+      else if (ko.includes(q) || en.includes(q) || als.some((a) => a.includes(q))) score = 40;
       // **초성은 공백을 지우고 견준다** (2026-10-22).
       //
       // 친 말(`q`)은 `norm` 이 공백을 지운 뒤 들어온다. 그런데 사전 쪽은 이름을

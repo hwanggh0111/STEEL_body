@@ -191,5 +191,35 @@ console.log('── 켜진 것을 못 물어봤을 때 지어내지 않나 ─�
   ok('  열쇠 이름을 글자로 적지 않는다', /'steelbody_oauth_providers'/.test(social), false);
 }
 
+// ── **붙어 오는 공백에 가입이 막혔다** ── (2026-11-03)
+//
+// 사용자 자리에서 가입을 해보다 걸렸다. 이메일 칸에 ` kim@a.com ` 을 붙여넣으면
+// 화면의 형식 자가 `[^\s@]` 라 **「올바른 이메일 형식이 아니에요」**, 아이디 칸에
+// ` kim12 ` 면 **「영문, 숫자, 특수문자만 가능」**이다 — 눈에는 멀쩡한 값이고
+// 사람은 보이지 않는 글자를 의심할 수 없다. 폰에서 붙여넣으면 흔히 섞여 온다.
+//
+// **서버는 이미 다듬어 찾는다**(`emailKey` · `usernameKey` · `loginKeyOf` 가
+// `trim().toLowerCase()`) — 그래서 로그인은 공백이 붙어도 들어간다. 막히는 자리는
+// **들어오는 문 하나**, 화면이 제 손으로 보는 형식 검사였다.
+//
+// 다듬는 자를 한 자리에 뒀다(`data/typedField.js`). **쓰는 데 셋을 다 본다** —
+// 한쪽만 고치면 또 어긋난다(이 앱이 거듭 당한 모양이다)
+const tf = bundle('src/data/typedField.js', '.tf.cjs');
+ok('메일 칸 — 앞뒤 공백을 뗀다', tf.cleanEmailField('  kim@a.com  '), 'kim@a.com');
+ok('  안쪽 줄바꿈·탭도 뗀다 (붙여넣기)', tf.cleanEmailField('kim@a.com' + String.fromCharCode(10) + ' '), 'kim@a.com');
+ok('  소문자로 맞춘다 (서버가 찾는 그 모양)', tf.cleanEmailField(' KIM@A.com '), 'kim@a.com');
+ok('아이디 칸 — 공백을 뗀다', tf.cleanIdField('  kim12  '), 'kim12');
+ok('이름 칸 — **안쪽 공백은 남긴다** (「근호 아빠」)', tf.cleanNameField('  근호 아빠  '), '근호 아빠');
+ok('빈 값은 빈 값이다', [tf.cleanEmailField(null), tf.cleanIdField(undefined), tf.cleanNameField('')], ['', '', '']);
+// 그 자를 **쓰는 데 셋**
+for (const [화면, 이름] of [['src/pages/RegisterPage.jsx', 'cleanEmailField'],
+                           ['src/pages/LoginPage.jsx', 'cleanEmailField'],
+                           ['src/pages/SettingsPage.jsx', 'cleanIdField']]) {
+  ok(`${화면} 가 그 자를 쓴다`, read(화면).includes(이름), true);
+}
+// 가입 화면이 **제 손으로 소문자만** 낮추던 자리가 남아 있나
+ok('가입 화면이 아이디를 제 손으로 안 다듬는다',
+  read('src/pages/RegisterPage.jsx').includes("val.toLowerCase()"), false);
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -11,6 +11,7 @@ import { saveLS } from '../data/safeStorage';
 import { afterAuthPath, safeBackTo } from '../data/afterAuth';
 import { SAVED_ID_KEY, SAVED_NICKNAME_KEY } from '../data/localKeys';
 import { NICKNAME_MAX, USERNAME_MAX, USERNAME_MIN } from '../data/limits';
+import { cleanEmailField, cleanIdField, cleanNameField } from '../data/typedField';
 import { usernameHint } from '../data/username';
 // 비밀번호 규칙은 **한 자리에서** 온다 (`data/password.js`, 2026-10-31) —
 // 가입 · 바꾸기 · 찾기가 각자 적고 있었고 **찾기만 영문+숫자를 안 봤다**
@@ -189,7 +190,11 @@ export default function RegisterPage() {
   }, []);
 
   // ── 이메일: 형식 검증 + 중복 확인 (debounced) ──
-  const validateEmail = (val) => {
+  const validateEmail = (raw) => {
+    // **칸에서 공백을 떼어낸다** (2026-11-03, `data/typedField.js` 에 까닭이 있다).
+    // 아래 형식 자가 `[^\s@]` 라, ` kim@a.com ` 을 붙여넣으면 눈에는 멀쩡한 주소를
+    // 보면서 「올바른 이메일 형식이 아니에요」를 듣는다 — 보이지 않는 글자다
+    const val = cleanEmailField(raw);
     setEmail(val);
     setEmailOk(false);
     setEmailError('');
@@ -230,7 +235,9 @@ export default function RegisterPage() {
   //
   // 안내로 메울 것이 아니라 이메일과 같게 만든다 — 치면 알아서 확인한다.
   const updateUsernameHint = (val) => {
-    const next = val.toLowerCase();
+    // 소문자로만 낮추고 **공백은 그대로 들고 있었다** — ` kim12 ` 를 붙여넣으면
+    // 「영문, 숫자, 특수문자만 가능」이 뜬다. 아이디에 공백은 쓸 수 없는 글자다
+    const next = cleanIdField(val);
     setUsername(next);
     setUsernameOk(false);
     setUsernameMsg('');
@@ -322,7 +329,10 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(email, password, nickname, username, code.trim());
+      // **다듬은 값으로 보낸다** — 여태 `code` 만 다듬었다. 칸에서 떼어내게
+      // 했으니 보통은 같은 값이지만, 자동완성이 칸을 직접 채우는 길도 있다
+      await register(cleanEmailField(email), password, cleanNameField(nickname),
+        cleanIdField(username), code.trim());
       saveLS(SAVED_NICKNAME_KEY, nickname);
       saveLS(SAVED_ID_KEY, email);
       toast('회원가입 완료! 자동 로그인됐어요');

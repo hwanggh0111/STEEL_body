@@ -20,6 +20,7 @@ import { removeLS, readLS, saveLS } from '../data/safeStorage';
 import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
 import { NICKNAME_MAX, USERNAME_MAX } from '../data/limits';
 import { usernameHint } from '../data/username';
+import { cleanIdField } from '../data/typedField';
 import { nextSavedId } from '../data/savedId';
 import pkg from '../../package.json';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
@@ -404,7 +405,8 @@ export default function SettingsPage() {
   // **지금 쓰는 아이디는 「이미 사용 중」이 아니다.** 내 것을 내가 치는 것이라,
   // 그대로 물어보면 중복이라고 답한다 — 먼저 걸러낸다.
   const typeId = (raw) => {
-    const next = String(raw || '').toLowerCase();
+    // 가입 화면과 **같은 자**를 쓴다 (`data/typedField.js`) — 공백까지 떼어낸다
+    const next = cleanIdField(raw);
     setIdDraft(next);
     setIdMsg(null);
     setIdChecking(false);
