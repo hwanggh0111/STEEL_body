@@ -15,8 +15,12 @@ const SKIN = '#1c1813';
 const GHOST = '#5a5348';
 
 /** 총 길이를 고정해두고 비율로 나눈다 — **키를 모르기 때문이다.** */
-const BODY = 148;
+export const BODY = 148;
 const HIP_W = 21;
+
+/** 머리 반지름과 몸이 시작하는 높이. 틀을 재는 자(`frameOf`)도 이 값을 쓴다 */
+export const HEAD_R = 13;
+export const TOP = HEAD_R * 2 + 4;
 
 /**
  * 비율 → 그릴 자리.
@@ -25,7 +29,7 @@ const HIP_W = 21;
  * (`ghost`) 화면이 「여기는 못 쟀어요」를 적는다. 없는 것을 그럴듯하게 채우면
  * 무엇을 실제로 쟀는지 구별할 수 없게 된다.
  */
-function layout(r) {
+export function layout(r) {
   const tl = r?.torsoLeg;
   const sh = r?.shoulderHip;
 
@@ -56,15 +60,35 @@ function layout(r) {
  * @param ratios  `buildRatios` 가 준 것
  * @param compare 지난 번 것 (있으면 뒤에 흐린 선으로 겹친다)
  */
+/**
+ * 그릴 틀 — 폭과 아래 끝. **그림 밖으로 나가는 것이 없어야 한다.**
+ *
+ * ── 팔이 잘렸다 ── (2026-11-04, 자를 대보다 잡았다)
+ *
+ * 아래 끝을 **발까지**로만 쟀다. 그런데 팔 길이는 잰 값(`armLeg`)을 쓰므로
+ * **발보다 길게 나올 수 있다** — 다리가 짧게 찍힌 사진에서 그렇다. 그러면 손이
+ * 그림 밖으로 나가 **잘린 채로** 보이고, 사람은 제 팔이 짧게 그려진 줄 안다.
+ * 그려야 하는 것 중 가장 아래를 아래 끝으로 둔다 — 틀이 늘고, 그림이 조금 작아진다
+ * (잘리는 것보다 낫다).
+ *
+ * 화면 없이 값으로 볼 수 있게 떼어 뒀다 — `LineChart` 의 `hoverText` 와 같은 결이다.
+ */
+export function frameOf(L, C = null) {
+  const low = (S) => (S ? Math.max(TOP + S.torso + S.leg, TOP + S.arm) : 0);
+  return {
+    width: Math.max(L.shoulderW, C?.shoulderW || 0) + 26,
+    bottom: Math.max(low(L), low(C)),
+  };
+}
+
 export default function ShapeSilhouette({ ratios, compare = null, height = 260 }) {
   const L = layout(ratios);
   const C = compare ? layout(compare) : null;
 
   // 좌표계: 가운데가 0, 머리 꼭대기가 0 아래로 내려간다
-  const headR = 13;
-  const top = headR * 2 + 4;
+  const headR = HEAD_R;
+  const top = TOP;
   const hipY = top + L.torso;
-  const footY = hipY + L.leg;
 
   const body = (S, opts) => {
     const t = (S.shoulderTilt * Math.PI) / 180;
@@ -97,11 +121,10 @@ export default function ShapeSilhouette({ ratios, compare = null, height = 260 }
     );
   };
 
-  const W = Math.max(L.shoulderW, C?.shoulderW || 0) + 26;
-  // **둘 중 긴 쪽에 맞춘다.** 지금 것만 재면 지난 번이 더 길 때 발이 잘린다 —
+// **둘 중 긴 쪽에 맞춘다.** 지금 것만 재면 지난 번이 더 길 때 발이 잘린다 —
   // 상체:다리가 달라지면 둘의 전체 길이도 달라진다(총 길이는 고정이지만
-  // 머리와 기울기가 얹혀서 아래 끝이 어긋난다)
-  const bottom = Math.max(footY, C ? top + C.torso + C.leg : 0);
+  // 머리와 기울기가 얹혀서 아래 끝이 어긋난다). **팔도 같이 센다**(`frameOf`)
+  const { width: W, bottom } = frameOf(L, C);
 
   return (
     <svg

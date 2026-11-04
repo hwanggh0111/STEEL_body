@@ -374,5 +374,52 @@ ok('그래도 단정 자체는 막지 않는다', m7.verdict, 'sure');
 const m8 = shape.mergeShape(base, narrow, wide);
 ok('날짜가 없으면 기간을 안 적는다', m8.lines.some((l) => l.text.includes('일 만이에요')), false);
 
+// ─────────────────────────────────────────────────────────────
+// **실루엣 — 그린 것이 그림 밖으로 나가지 않는가** (2026-11-04)
+// ─────────────────────────────────────────────────────────────
+//
+// 위 뭉치들은 **잰 값**을 본다. 여기는 그 값으로 **그릴 자리**를 잡는 셈이다
+// (`components/ShapeSilhouette.jsx` 의 `layout`·`frameOf`). 화면 없이 값으로 볼 수
+// 있게 그 둘만 내보내 뒀다 — `LineChart` 의 `hoverText` 와 같은 결이다.
+//
+// 그림은 **눈으로 봐도 멀쩡해 보인다** — 잘린 팔은 「팔이 짧은 사람」으로 읽힌다.
+const SIL = bundle('src/components/ShapeSilhouette.jsx', '.sil.cjs');
+
+console.log('');
+console.log('── 실루엣: 잰 것만 그린다 ──');
+const silFull = SIL.layout({ torsoLeg: 0.75, shoulderHip: 1.4, armLeg: 0.9, shoulderTilt: 0, hipTilt: 0 });
+ok('총 길이는 고정이다 (키를 모른다)', silFull.torso + silFull.leg, SIL.BODY);
+ok('  어깨는 골반 × 비율이다', silFull.shoulderW, Math.round(silFull.hipW * 1.4));
+ok('  팔은 잰 값을 쓴다', silFull.arm, Math.round(silFull.leg * 0.9));
+const silNone = SIL.layout({});
+ok('못 쟀으면 흐리게 표시한다', [silNone.ghostTorso, silNone.ghostShoulder], [true, true]);
+ok('  그래도 길이는 잡는다 (그림이 사라지지 않는다)', silNone.torso + silNone.leg, SIL.BODY);
+ok('  팔은 몸통에 붙여 그린다', silNone.arm, Math.round(silNone.torso * 0.95));
+ok('기록이 없어도 안 터진다', SIL.layout(null).ghostTorso, true);
+
+console.log('');
+console.log('── 실루엣: 기울기 ──');
+ok('3도 아래는 안 기울인다', SIL.layout({ shoulderTilt: 2.9, hipTilt: 2.9 }).shoulderTilt, 0);
+ok('  3도부터 기울인다', SIL.layout({ shoulderTilt: 3 }).shoulderTilt, 3);
+ok('  12도에서 멈춘다 (그림이 넘어진다)', SIL.layout({ shoulderTilt: 40 }).shoulderTilt, 12);
+ok('  골반도 같은 선이다', [SIL.layout({ hipTilt: 2.9 }).hipTilt, SIL.layout({ hipTilt: 40 }).hipTilt], [0, 12]);
+
+console.log('');
+console.log('── 실루엣: 그림 밖으로 나가는 것이 없는가 ──');
+const longArm = SIL.layout({ torsoLeg: 0.75, shoulderHip: 1.3, armLeg: 2.2 });
+const fr = SIL.frameOf(longArm);
+ok('팔이 발보다 길다 (그렇게 잴 수 있다)', longArm.arm > longArm.torso + longArm.leg, true);
+ok('**아래 끝이 팔까지 센다**', fr.bottom >= SIL.TOP + longArm.arm, true);
+const silNormal = SIL.layout({ torsoLeg: 0.75, shoulderHip: 1.4, armLeg: 0.9 });
+ok('  보통은 발이 아래 끝이다', SIL.frameOf(silNormal).bottom, SIL.TOP + silNormal.torso + silNormal.leg);
+const shortNow = SIL.layout({ torsoLeg: 3, shoulderHip: 1.1, armLeg: 0.5 });
+const longPrev = SIL.layout({ torsoLeg: 0.75, shoulderHip: 2.4, armLeg: 0.9 });
+const two = SIL.frameOf(shortNow, longPrev);
+ok('둘 중 넓은 쪽에 맞춘다', two.width, longPrev.shoulderW + 26);
+ok('  둘 중 긴 쪽에 맞춘다', two.bottom,
+  Math.max(SIL.TOP + shortNow.torso + shortNow.leg, SIL.TOP + longPrev.torso + longPrev.leg));
+const silWide = SIL.layout({ shoulderHip: 5 });
+ok('어깨가 넓게 잡혀도 폭이 따라 늘어난다', SIL.frameOf(silWide).width, silWide.shoulderW + 26);
+
 console.log(bad === 0 ? '\n모두 통과' : '\n' + bad + '건 어긋남');
 process.exit(bad === 0 ? 0 : 1);
