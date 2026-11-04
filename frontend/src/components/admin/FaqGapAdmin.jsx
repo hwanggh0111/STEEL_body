@@ -45,8 +45,9 @@ export default function FaqGapAdmin() {
       await client.delete(`/faq-gaps/${row.id}`);
       setRows(prev => prev.filter(r => r.id !== row.id));
       toast('지웠어요');
-    } catch {
-      toast('지우지 못했어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '지우지 못했어요', 'error');
     }
   };
 

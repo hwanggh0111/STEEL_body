@@ -229,6 +229,36 @@ const codeOf = (s) => s
     // 서버가 「그렇게는 안 받는다」고 답한 것은 그 말을 그대로 전한다 (어제 세운 선)
     ok('  서버가 한 말을 그대로 전한다', /err\.response\?\.data\?\.error \|\| '저장에 실패했어요'/.test(measure), true);
 
+    // ─────────────────────────────────────────────────────────────
+    // **서버가 적어 보낸 까닭을 버리지 않는가**
+    // ─────────────────────────────────────────────────────────────
+    console.log('');
+    console.log('── 왜 안 되는지 말해주는가 ──');
+    // 서버는 쓰는 길마다 **까닭**을 적어 보낸다 — 「세트는 1~100 범위여야 해요
+    // (벤치프레스: 999999)」 · 「이 서버는 아직 알림을 보낼 수 없어요 (키 설정 전)」.
+    // 그 말을 「못 했어요」로 덮으면 사람은 무엇을 고쳐야 하는지 모른 채 다시 누른다.
+    //
+    // 11/04 에 **열한 자리**가 그러고 있었다 — 그중 둘은 **같은 파일의 바로 옆 함수가
+    // 그 말을 쓰고 있었다**(`RoutinePage` · `RemindersPage`). 한 벌만 고치면 갈린다
+    const dropped = [];
+    for (const p of walk('src')) {
+      const src = codeOf(fs.readFileSync(p, 'utf-8'));
+      const re = /try \{([\s\S]*?)\n(\s*)\} catch(?: \(([A-Za-z_]+)\))? \{([\s\S]*?)\n\2\}/g;
+      let m;
+      while ((m = re.exec(src))) {
+        const body = m[1];
+        const caught = m[4];
+        // 쓰는 길만 본다 — 읽기가 실패한 것은 사람이 고칠 것이 없다
+        if (!/await client\.(post|put|patch|delete)\(/.test(body)) continue;
+        // 서버 말을 쓰고 있으면 됐다
+        if (/response\?\.data|response\.data/.test(caught)) continue;
+        // 사람에게 아무 말도 안 하는 자리는 다른 일이다 (조용히 넘기는 것이 맞는 자리가 있다)
+        if (!/toast\(|setError\(/.test(caught)) continue;
+        dropped.push(p.replace('src/', '') + ':' + src.slice(0, m.index).split('\n').length);
+      }
+    }
+    ok('서버가 한 말을 버리는 자리가 없다', dropped, []);
+
     console.log('');
     if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
     console.log('다 통과');

@@ -233,7 +233,16 @@ export default function RemindersPage() {
       setThisDevice(true);
       toast('이 기기에 알림을 켰어요');
     } catch (err) {
-      toast('알림을 켜지 못했어요', 'error');
+      // ── **서버가 까닭을 적어 보내는데 버리고 있었다** ── (2026-11-04)
+      //
+      // 이 길의 답에는 「이 서버는 아직 알림을 보낼 수 없어요 (키 설정 전)」 ·
+      // 「구독 주소가 올바르지 않아요」처럼 **무엇이 막는지**가 적혀 있다. 그것을
+      // 「알림을 켜지 못했어요」로 덮으면 사람은 제 폰을 의심하며 계속 다시 누른다.
+      // **바로 위 `patch` 는 그 말을 쓰고 있었다** — 한 파일 안에서 갈렸다.
+      //
+      // 서버가 아니라 **브라우저가** 던진 것(권한 · 구독 만들기)은 답이 없으니
+      // 여태 쓰던 말로 간다
+      toast(err.response?.data?.error || '알림을 켜지 못했어요', 'error');
     } finally {
       setBusy(false);
     }
@@ -259,8 +268,9 @@ export default function RemindersPage() {
       setDevices(data.devices);
       setThisDevice(false);
       toast('이 기기의 알림을 껐어요');
-    } catch {
-      toast('끄지 못했어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '끄지 못했어요', 'error');
     } finally {
       setBusy(false);
     }

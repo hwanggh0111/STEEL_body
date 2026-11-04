@@ -72,8 +72,9 @@ export default function SitePhotoAdmin() {
       // 모양이 다른 것이 들어가면 아래 map 에서 화면이 통째로 죽는다
       const next = Array.isArray(data?.photos) ? data.photos : null;
       if (next) setPhotos(next);
-    } catch {
-      toast('순서를 못 바꿨어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '순서를 못 바꿨어요', 'error');
     } finally {
       setBusy(false);
     }
@@ -87,8 +88,9 @@ export default function SitePhotoAdmin() {
       setPhotos((prev) => prev.map((p) => (p.id === editing.id ? data.photo : p)));
       setEditing(null);
       toast('설명을 바꿨어요');
-    } catch {
-      toast('설명을 못 바꿨어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '설명을 못 바꿨어요', 'error');
     } finally {
       setBusy(false);
     }
@@ -105,8 +107,9 @@ export default function SitePhotoAdmin() {
       await client.delete(`/site-photos/${id}`);
       setPhotos((prev) => prev.filter((p) => p.id !== id));
       toast('내렸어요');
-    } catch {
-      toast('못 내렸어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '못 내렸어요', 'error');
     } finally {
       setBusy(false);
     }

@@ -318,8 +318,15 @@ export default function RoutinePage() {
       // 서버가 돌려주는 다듬은 목록을 쓴다 (`updateMyRoutine` 과 같은 까닭)
       setMyRoutines(prev => prev.map(r => ((r.id ?? r._id) === id ? { ...r, exercises: saved?.exercises ?? next } : r)));
       toast(`"${routine.name}"에 ${eul(exercise.name)} 넣었어요`);
-    } catch {
-      toast('루틴에 넣지 못했어요', 'error');
+    } catch (err) {
+      // ── **서버가 까닭을 적어 보내는데 버리고 있었다** ── (2026-11-04)
+      //
+      // 10/31 에 세트·횟수 테두리를 세우면서 **왜 안 되는지까지** 적어 보냈다
+      // (`세트는 1~100 범위여야 해요 (벤치프레스: 999999)`). 그 말이 필요한 자리가
+      // 바로 여기인데 「루틴에 넣지 못했어요」로 덮고 있었다 — 사람은 무엇을 고쳐야
+      // 하는지 모른 채 같은 것을 다시 누른다.
+      // **바로 위 `updateMyRoutine` 은 그 말을 쓰고 있었다** — 한 파일 안에서 갈렸다
+      toast(err.response?.data?.error || '루틴에 넣지 못했어요', 'error');
     }
   };
 
@@ -328,8 +335,8 @@ export default function RoutinePage() {
       await client.delete(`/my-routines/${id}`);
       setMyRoutines(prev => prev.filter(r => (r._id || r.id) !== id));
       toast('루틴을 지웠어요');
-    } catch {
-      toast('루틴 삭제에 실패했어요', 'error');
+    } catch (err) {
+      toast(err.response?.data?.error || '루틴 삭제에 실패했어요', 'error');
     }
   };
 

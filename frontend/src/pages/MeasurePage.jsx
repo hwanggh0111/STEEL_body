@@ -154,8 +154,9 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
       await client.delete(`/measures/${id}`);
       setMeasures(prev => prev.filter(m => m.id !== Number(id)));
       toast('삭제 완료!');
-    } catch {
-      toast('삭제에 실패했어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
+      toast(err.response?.data?.error || '삭제에 실패했어요', 'error');
     }
   };
 
