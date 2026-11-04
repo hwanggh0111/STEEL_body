@@ -1,4 +1,5 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
+import { isOfflineError } from '../data/offline';
 import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 import { readLS, saveLS } from '../data/safeStorage';
@@ -638,9 +639,22 @@ export default function TrainPage() {
     if (next > before) primeAudio();
     try {
       await checkSet(idx, next);
-    } catch {
-      toast('체크하지 못했어요. 다시 눌러주세요', 'error');
-      return;
+    } catch (err) {
+      // ── **지하에서 기록이 하나도 안 적혔다** ── (2026-11-04)
+      //
+      // 여기서 돌아서면 아래 `saveRoutineSets` 까지 **안 간다.** 그런데 마지막 세트를
+      // 체크하는 그 누름이 **기록을 저장하는 길**이다 — 즉 신호가 없으면 루틴으로
+      // 운동한 사람의 기록이 **한 줄도 안 적혔다.** 지하에 대비해 만들어 둔 줄
+      // (`workoutStore` 의 `queue`)이 있는데, 진행표 한 번 때문에 그 길을 못 갔다.
+      //
+      // 진행표는 서버에 있는 것이라 못 올린 것이 맞다. **기록은 다르다** —
+      // 그쪽은 이 기기에 적어두고 신호가 오면 올라간다. 그래서 **멈추지 않는다**.
+      // 서버가 「안 된다」고 말한 것(400·409)은 다시 눌러야 하니 여태처럼 멈춘다
+      if (!isOfflineError(err)) {
+        toast('체크하지 못했어요. 다시 눌러주세요', 'error');
+        return;
+      }
+      toast('신호가 없어 진행표는 못 올렸어요 — 기록은 이 기기에 적어둡니다', 'error');
     }
 
     // 폼이 이 운동을 적고 있으면 세트 칸도 맞춰둔다 — 폼으로 저장해도 한 세트 수만큼 들어가게
@@ -688,8 +702,14 @@ export default function TrainPage() {
         // 제일 조용했다. 기록은 이 위에서 이미 저장됐으므로 스토어에서 바로 꺼낸다
         if (finishCard) showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
       }
-    } catch {
-      /* 진행표만 못 넘겼다 */
+    } catch (err) {
+      // 진행표만 못 넘겼다. 기록은 위에서 이미 저장됐다 —
+      // **다만 신호가 없을 때는 말해준다** (2026-11-04). 조용히 두면 칸이 안 넘어간
+      // 채로 화면이 **그 운동을 계속 묻고**, 사람은 저장이 안 된 줄 안다(안 됐다고
+      // 믿고 또 적는다). 지하에서 여덟 칸짜리 루틴을 돌면 끝까지 1/8 이다
+      if (isOfflineError(err)) {
+        toast('신호가 없어 진행표는 안 넘어갔어요 — 기록은 적혔습니다', 'error');
+      }
     }
   };
 

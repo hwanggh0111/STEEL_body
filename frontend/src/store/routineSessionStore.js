@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import client from '../api/client';
 import { sessionEpoch, isSameSession } from './session';
+import { isOfflineError } from '../data/offline';
 
 // 진행 중인 루틴.
 //
@@ -93,6 +94,16 @@ export const useRoutineSessionStore = create((set, get) => ({
       if (!isSameSession(mine)) throw err;
       if (err?.response?.status === 409 && fresh && 'session' in fresh) {
         set({ session: asSession(fresh.session), loaded: true });
+      } else if (isOfflineError(err)) {
+        // ── **지하에서는 되돌리지 않는다** ── (2026-11-04)
+        //
+        // 헬스장은 지하가 많다(이 앱이 거듭 적어둔 말이다). 신호가 없을 때 눌린 것을
+        // 되돌리면 **사람이 한 세트가 화면에서 사라진다** — 다시 눌러도 또 사라진다.
+        // 서버가 「안 된다」고 말한 것(400·409)과 **답을 못 받은 것**은 다르다.
+        //
+        // 담아두지는 않는다 — 다음에 서버 답이 오면 **서버가 진실이다**(이 파일의
+        // 다른 자리와 같은 선). 그 사이의 화면은 사람이 한 그대로를 보여준다.
+        // **잃으면 안 되는 것은 기록**이고, 그쪽은 `workoutStore` 의 줄이 지킨다
       } else if (seq === checkSeq) {
         set({ session: prev });
       }

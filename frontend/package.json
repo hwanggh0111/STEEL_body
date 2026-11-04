@@ -84,7 +84,8 @@
     "wall": "node scripts/gen-wall.mjs",
     "rest": "node scripts/check-rest.cjs",
     "handoff": "node scripts/check-handoff.cjs",
-    "ask": "node scripts/check-ask.cjs"
+    "ask": "node scripts/check-ask.cjs",
+    "basement": "node scripts/check-basement.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
