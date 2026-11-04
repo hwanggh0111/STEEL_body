@@ -12,7 +12,7 @@ import { toast } from '../components/Toast';
 import { useRecordDate } from '../data/useRecordDate';
 import { scaleFor, positionOn } from '../data/bodyRanges';
 import { daysBetween } from '../data/personalRecord';
-import { CHART } from '../data/chartColors';
+import { compositionOf } from '../data/composition';
 import { healthReady, askHealth, latestBody, openHealthSettings } from '../data/healthLink';
 import { FAT_PCT_MAX, INBODY_HEIGHT_MAX, INBODY_WEIGHT_MAX, MUSCLE_KG_MAX, WATER_L_MAX } from '../data/limits';
 
@@ -40,21 +40,12 @@ function ChartLoading({ height }) {
 const LIST_SHOWN = 5;
 
 // ── 체성분 비율 파이차트 (컴포넌트 외부 — 매 렌더 재생성 방지) ──
-function getCompositionData(record) {
-  if (!record || !record.weight) return null;
-  const fatKg = record.fat_pct ? (record.weight * record.fat_pct / 100) : null;
-  const muscleKg = record.muscle_kg || null;
-  const waterKg = record.water_l || null;
-  if (!fatKg && !muscleKg) return null;
-  const parts = [];
-  if (muscleKg) parts.push({ name: '골격근', value: Number(muscleKg.toFixed(1)), color: CHART.muscle });
-  if (fatKg) parts.push({ name: '체지방', value: Number(fatKg.toFixed(1)), color: CHART.fat });
-  if (waterKg) parts.push({ name: '체수분', value: Number(waterKg.toFixed(1)), color: CHART.water });
-  const known = parts.reduce((s, p) => s + p.value, 0);
-  const etc = record.weight - known;
-  if (etc > 0) parts.push({ name: '기타(뼈·장기)', value: Number(etc.toFixed(1)), color: CHART.muted });
-  return parts;
-}
+// 체성분 쪼개는 셈은 **`data/composition.js` 한 자리**에 있다 (2026-11-04).
+//
+// 여기 있던 때는 **체수분을 조각으로 넣고 있었다** — 골격근 안에 이미 들어 있는
+// 물이라 이중 계산이고, 그래서 조각 합이 체중을 넘고(앱 예시로 85.7 vs 73)
+// 「기타(뼈·장기)」가 영영 안 나오고 범례의 체지방률이 적어 넣은 값과 달랐다.
+// 화면 파일 안의 계산에는 자를 댈 수 없어서 떼어냈다 — `npm run composition`
 
 // `embedded` 는 **「몸」 화면 안에 들어가 있다**는 뜻이다 (5차 리모델링, 2026-09-04).
 // 그때는 제목도 갈래 고르개도 「몸」이 들고 있으니 여기서 또 그리지 않는다 —
@@ -368,7 +359,7 @@ export default function InbodyPage({ embedded = false }) {
 
   const latestRecord = records.length > 0 ? records[0] : null;
 
-  const compositionData = useMemo(() => getCompositionData(latestRecord), [latestRecord]);
+  const composition = useMemo(() => compositionOf(latestRecord), [latestRecord]);
 
   // 지난 기록에서 얼마나 움직였나. 하나뿐이면 견줄 것이 없다
   const sinceLast = useMemo(() => {
@@ -619,7 +610,7 @@ export default function InbodyPage({ embedded = false }) {
       )}
 
       {/* ── 체성분 비율 ── */}
-      {compositionData && (
+      {composition && (
         <>
           <div className="section-title">
             <div className="accent-bar" />
@@ -627,7 +618,7 @@ export default function InbodyPage({ embedded = false }) {
           </div>
           <div className="card" style={{ marginBottom: 20, padding: 12 }}>
             <Suspense fallback={<ChartLoading height={280} />}>
-              <CompositionChart data={compositionData} total={latestRecord?.weight} />
+              <CompositionChart composition={composition} />
             </Suspense>
           </div>
         </>

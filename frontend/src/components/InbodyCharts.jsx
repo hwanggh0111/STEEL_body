@@ -9,9 +9,16 @@ import Donut from './charts/Donut';
 // 그리는 것은 `components/charts/` 에 있다.
 
 // 체성분 비율 — 도넛 + 범례
-export function CompositionChart({ data, total }) {
-  const parts = Array.isArray(data) ? data : [];
-  const sum = parts.reduce((s, p) => s + (p?.value || 0), 0);
+//
+// **셈은 `data/composition.js` 가 한다** (2026-11-04). 여기는 그리기만 한다 —
+// 왜 체수분이 조각이 아닌지(골격근 안에 이미 들어 있다) · 왜 퍼센트가 체중 기준인지
+// (사람이 적어 넣은 체지방률과 같아야 한다)를 그 파일에 적어뒀다.
+// `npm run composition` 이 그 셈을 값으로 본다.
+export function CompositionChart({ composition }) {
+  const parts = Array.isArray(composition?.parts) ? composition.parts : [];
+  const total = composition?.total ?? null;
+  const water = composition?.water ?? null;
+  const over = composition?.over ?? 0;
   return (
     <>
       <Donut data={parts} total={total} height={260} />
@@ -20,11 +27,24 @@ export function CompositionChart({ data, total }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: entry.color }} />
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {entry.name} {entry.value}kg{sum ? ` (${(entry.value / sum * 100).toFixed(1)}%)` : ''}
+              {entry.name} {entry.value}kg{entry.pct != null ? ` (${entry.pct}%)` : ''}
             </span>
           </div>
         ))}
       </div>
+      {/* **체수분은 조각에서 뺐다고 말한다.** 숨기는 것이 아니라, 겹치는 것을
+          겹친다고 적는다 — 근육의 70%쯤이 물이라 조각으로 또 넣으면 이중 계산이다 */}
+      {water != null && (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>
+          체수분 {water}L 은 골격근·체지방 안에 들어 있어서 이 그림에서는 뺐어요
+        </div>
+      )}
+      {/* 골격근 + 체지방이 체중을 넘었다 — 조용히 기타만 빼면 「내 뼈는 0kg 인가」가 된다 */}
+      {over > 0 && (
+        <div style={{ fontSize: 11, color: 'var(--danger)', textAlign: 'center', marginTop: 6, lineHeight: 1.6 }}>
+          골격근과 체지방을 더하면 체중보다 {over}kg 많아요 — 적은 값을 한 번 봐주세요
+        </div>
+      )}
     </>
   );
 }
