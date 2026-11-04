@@ -379,6 +379,71 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
       ok(`${f} — 세대를 받아 둔다`, /const mine = sessionEpoch\(\)/.test(src), true);
       ok(`  ${f} — 꽂기 전에 본다`, /isSameSession\(mine\)/.test(src), true);
     }
+    // ── 화면이 **기기에 담는** 자리도 같다 ── (2026-11-04)
+    //
+    // 저장소만 막으면 반쪽이다. 화면이 직접 `client` 를 부르고 그 답을
+    // `localStorage` 에 담는 자리가 둘 있었다 — 머리의 **프로필 사진**과 견주기의
+    // **전·후 몸 사진**. 둘 다 `PER_USER_KEYS`(로그아웃이 지우는 목록)에 들어 있는
+    // 자리라, 받는 중에 나가면 **지운 자리에 앞 사람 사진이 다시 적힌다.**
+    //
+    // 화면이 들고 있는 값(`setState`)은 괜찮다 — 나가면 그 화면이 사라진다.
+    // **기기에 담는 것만** 남는다. 그래서 「담는 화면」을 통째로 쓸어 본다
+    console.log('');
+    console.log('── 화면이 기기에 담는 자리 ──');
+    const screens = [
+      ['src/components/Layout.jsx', '머리의 프로필 사진'],
+      ['src/pages/ComparePage.jsx', '견주기의 전·후 몸 사진'],
+    ];
+    for (const [file, what] of screens) {
+      const src = fs.readFileSync(file, 'utf-8');
+      ok(`${what} — 세대를 받아 둔다`, /const mine = sessionEpoch\(\)/.test(src), true);
+      ok(`  ${what} — 담기 전에 본다`, /isSameSession\(mine\)/.test(src), true);
+    }
+    // ── **빠진 자리를 찾아낸다** ──
+    //
+    // `client` 를 부르면서 **사람에 딸린 열쇠**(`PER_USER_KEYS`)에 담는 화면이
+    // 또 생기면 여기 걸린다. 목록은 `localKeys.js` 에서 **그 배열 안만** 읽는다 —
+    // 처음에 파일 끝까지 읽었더니 `MAINT_KEY`·`PROVIDERS_KEY`(기기의 것, 배열 뒤에
+    // 적혀 있다)까지 집어 와서 **멀쩡한 화면 둘을 걸었다.** 자가 넓으면 거짓을 말한다
+    const perUser = fs.readFileSync('src/data/localKeys.js', 'utf-8');
+    const from = perUser.indexOf('export const PER_USER_KEYS');
+    const userKeys = (perUser.slice(from, perUser.indexOf('];', from))
+      .match(/[A-Z][A-Z0-9_]*_KEY/g) || []);
+
+    // **일부러 안 보는 것은 까닭과 함께 적는다** (`scripts/run-checks.cjs` 와 같은 결).
+    //
+    // 아래 넷은 담는 자리가 **사람이 누른 그 자리**다 — 받아온 답이 늦게 내려앉는
+    // 길이 아니라, 누르고 답을 받아 바로 담는다. 들어오는 길(로그인·가입)은 **담는
+    // 그 사람이 방금 들어온 사람**이고(세대는 `login` 이 이미 올렸다), 고객센터의
+    // 「새 답변 본 시각」은 **스토어 값을 보고** 담으므로 저장소 쪽 자가 이미 지킨다
+    const EXEMPT = {
+      'pages/LoginPage.jsx': '들어오는 길 — 담는 사람이 방금 들어온 그 사람이다',
+      'pages/RegisterPage.jsx': '가입하는 길 — 위와 같다',
+      'pages/SettingsPage.jsx': '사람이 이메일을 고친 그 자리에서 담는다',
+      'pages/support/SupportPage.jsx': '스토어의 `latestReplyAt()` 을 보고 담는다 — 저장소 쪽 자가 지킨다',
+    };
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = dir + '/' + e.name;
+      return e.isDirectory() ? walk(p) : (/\.jsx?$/.test(e.name) ? [p] : []);
+    });
+    const missing = [];
+    for (const p of walk('src/pages').concat(walk('src/components'))) {
+      const src = fs.readFileSync(p, 'utf-8');
+      if (!/client\.(get|post|put|patch|delete)\(/.test(src)) continue;
+      // 담는 자리가 있나 — 그 열쇠가 **사람에 딸린 것**일 때만 본다
+      const saves = [...src.matchAll(/saveLS\(\s*([A-Za-z0-9_]+)/g)].map((m) => m[1]);
+      const hits = saves.filter((k) => userKeys.includes(k) || userKeys.includes(k.replace(/^LS_/, '')));
+      if (hits.length === 0) continue;
+      const name = p.replace('src/', '');
+      if (EXEMPT[name]) continue;
+      if (!/isSameSession\(/.test(src)) missing.push(name + ' → ' + hits.join(','));
+    }
+    ok('담는 화면 중 자가 없는 곳이 없다', missing, []);
+    // 면제한 것이 **아직 있는 파일인지** 본다 — 이름이 바뀌면 그 면제가 조용히 비어
+    // 돌고, 그 화면은 아무도 안 보는 채로 남는다 (10/28 에 겪은 「빈 자」의 모양)
+    ok('  면제한 넷이 다 있는 파일이다',
+      Object.keys(EXEMPT).filter((n) => !fs.existsSync('src/' + n)), []);
+
     // `noteStore` 는 **달로** 같은 일을 이미 막고 있다 (「어느 달의 답인지 보고 아니면
     // 버린다」 + `resetNoteCache` 가 그 달을 비운다). 자를 두 벌 두지 않고 그것을 지킨다
     const note = fs.readFileSync('src/store/noteStore.js', 'utf-8');

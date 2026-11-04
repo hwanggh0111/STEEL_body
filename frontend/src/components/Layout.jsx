@@ -35,6 +35,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { useNoteStore } from '../store/noteStore';
 import { useRefreshStore } from '../store/refreshStore';
+import { sessionEpoch, isSameSession } from '../store/session';
 import NavIcon from './NavIcon';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
@@ -333,7 +334,15 @@ export default function Layout() {
     // **프로필 한 장만 받는다** (2026-10-05).
     // 예전에는 `/photos` 를 그냥 불러 **세 장을 base64 로 통째로**(최대 6MB) 받았다 —
     // 여기서 쓰는 것은 머리에 그릴 32px 아바타 하나다. 폰에서 열 때마다 그랬다
+    // ── 받는 중에 나갔으면 **담지 않는다** ── (2026-11-04)
+    //
+    // 이 답은 `PROFILE_KEY` 로 **기기에 담긴다.** 로그아웃은 그 자리를 지우는데
+    // (`PER_USER_KEYS`), 받는 중에 나가면 **지운 자리에 앞 사람 얼굴이 다시 적힌다** —
+    // 다음에 로그인한 사람 머리에 앞 사람 아바타가 뜬다(자기 것을 받아올 때까지).
+    // 저장소에서 고친 것과 같은 모양이다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     client.get('/photos', { params: { type: 'profile' } }).then(({ data }) => {
+      if (!isSameSession(mine)) return;
       const list = Array.isArray(data) ? data : [];
       const profile = list.find(p => p.type === 'profile');
       setProfilePhoto(profile ? profile.data : '');

@@ -17,6 +17,7 @@ import { orderPick, daysBetween, spanLabel, changes, diffLabel } from '../data/c
 import { downloadable, dataUrlToBlob } from '../data/photoFile';
 import { toFiles, shareFiles, shareSheetLikely } from '../data/sharePhotos';
 import { mergeBeforeAfter } from '../data/mergeShots';
+import { sessionEpoch, isSameSession } from '../store/session';
 
 // ─────────────────────────────────────────────────────────────
 // 비교 — 2026-09-02 에 다시 짰다.
@@ -310,7 +311,14 @@ export default function ComparePage({ embedded = false }) {
     // **전·후 두 장만 받는다** (2026-11-02). 여태 셋을 다 받아 프로필을 버렸다 —
     // 재보니 900KB 중 **300KB** 가 그것이다(`npm run http`). 10/05 에 껍데기는
     // `?type=profile` 로 고쳤는데 이 화면이 그 자리에 없었다
+    // ── 받는 중에 나갔으면 **담지 않는다** ── (2026-11-04)
+    //
+    // 아래 `savePhotos` 가 **기기에 담는다**(`COMPARE_PHOTOS_KEY`). 로그아웃이 지운
+    // 그 자리에 **앞 사람 몸 사진**이 다시 적히고, 다음 사람이 이 화면을 열면
+    // 서버 답이 오기 전까지 그것이 떠 있다. 몸 사진이라 특히 나쁘다
+    const mine = sessionEpoch();
     client.get('/photos', { params: { type: 'before,after' } }).then(({ data }) => {
+      if (!isSameSession(mine)) return;
       if (!Array.isArray(data)) return;
       const before = data.find(p => p.type === 'before');
       const after = data.find(p => p.type === 'after');
