@@ -4,7 +4,7 @@ import { sessionEpoch, isSameSession } from './session';
 import { isOfflineError } from '../data/offline';
 import {
   queueSets, queueState, dropIndex, markSessionFailed, pendingIndexes, pendingCount,
-  applyQueue, readSessionQueue, saveSessionQueue, clearSessionQueue,
+  applyQueue, trimQueue, readSessionQueue, saveSessionQueue, clearSessionQueue,
 } from '../data/offlineSession';
 
 // 진행 중인 루틴.
@@ -52,7 +52,11 @@ export const useRoutineSessionStore = create((set, get) => ({
   /** 서버 것과 줄을 한 자리에서 맞춘다. **담는 일도 여기서 한 번만** 한다 */
   apply: (server, queue, { keep = false } = {}) => {
     const nextServer = server === undefined ? get().server : server;
-    const nextQueue = queue === undefined ? get().queue : queue;
+    // **진행표에 없는 칸은 걷어낸다** — 없는 칸을 「올릴 것」으로 세면 사람이
+    // 무엇을 올리려는지 알 수 없다 (까닭은 `offlineSession.trimQueue`)
+    const nextQueue = nextServer
+      ? trimQueue(queue === undefined ? get().queue : queue, nextServer.items?.length)
+      : (queue === undefined ? get().queue : queue);
     let kept = true;
     if (!keep) kept = saveSessionQueue(nextQueue, nextServer?.startedAt);
     set({

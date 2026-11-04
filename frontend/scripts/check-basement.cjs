@@ -260,6 +260,37 @@ const codeOf = (s) => s
     ok('  깨진 줄이 와도 안 터진다', Object.keys(sq.queueSets(null, 0, 1)), ['0']);
 
     console.log('');
+    console.log('── 얹을 자리가 없는 누름 ──');
+    // 담아둔 줄에 칸 번호 5 가 남아 있는데 지금 진행표가 두 칸이면 — 화면에는 그 칸이
+    // **없는데** 「올릴 것 1」이 뜨고, 올리면 서버가 「잘못된 자리예요」로 돌려보낸다
+    const TWO = {
+      routineId: 1, startedAt: '2026-11-04T10:00:00.000Z',
+      items: [{ name: 'A', state: 'todo', setsDone: 0 }, { name: 'B', state: 'todo', setsDone: 0 }],
+      done: 0, completed: 0, skipped: 0, current: 0, total: 2,
+    };
+    const far = sq.queueState(sq.queueSets({}, 5, 3), 5, 'done');
+    ok('진행표 밖의 칸은 걷어낸다', Object.keys(sq.trimQueue(far, 2)), []);
+    ok('  안쪽 칸은 남긴다', Object.keys(sq.trimQueue(sq.queueSets(far, 1, 2), 2)), ['1']);
+    ok('  칸 수를 모르면 그대로 둔다', Object.keys(sq.trimQueue(far, null)), ['5']);
+    // 스토어가 그 자를 쓴다 — 서버 진행표를 받을 때 맞춘다
+    ls.clear();
+    S().reset();
+    smod.useRoutineSessionStore.setState({ server: TWO, session: TWO, queue: far, loaded: true });
+    S().apply(TWO, far);
+    ok('스토어도 받을 때 걷어낸다', [Object.keys(S().queue).length, S().session.items.length], [0, 2]);
+
+    console.log('');
+    console.log('── 진행표가 없으면 담지 않는다 ──');
+    // 어느 진행표의 것도 아닌 누름이 **다음 진행표에 얹히면** 하지도 않은 운동이
+    // 끝난 것이 된다. 여태 둘 다 비면 `'' === ''` 로 같다고 보고 살려줬다
+    ls.clear();
+    ok('진행표가 없으면 담지 않는다',
+      [sq.saveSessionQueue(sq.queueSets({}, 0, 2), undefined), [...ls.keys()].length], [true, 0]);
+    sq.saveSessionQueue(sq.queueSets({}, 0, 2), '2026-11-04T10:00:00.000Z');
+    ok('  진행표 없이 읽으면 빈 줄이다', sq.readSessionQueue(undefined), {});
+    ok('  그 진행표로 읽으면 그대로다', Object.keys(sq.readSessionQueue('2026-11-04T10:00:00.000Z')), ['0']);
+
+    console.log('');
     console.log('── 줄을 화면에 얹는다 ──');
     const SESSION = {
       routineId: 7,

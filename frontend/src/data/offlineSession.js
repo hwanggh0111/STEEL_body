@@ -89,6 +89,29 @@ export function markSessionFailed(queue, index, reason) {
   return { ...q, [i]: { ...q[i], failed: true, error: reason || null } };
 }
 
+/**
+ * **진행표에 없는 칸은 줄에서 걷어낸다** (2026-11-04, 붙인 그 자리에서 잡았다).
+ *
+ * 담아둔 줄에 칸 번호 5 가 남아 있는데 지금 진행표가 두 칸이면 — 화면에는 그 칸이
+ * **없는데** 「올릴 것 1」이 떠 있고, 올리면 서버가 「잘못된 자리예요」로 돌려보낸다.
+ * 사람은 무엇을 올리려는지 알 수 없다. 얹을 자리가 없는 누름은 **버린다.**
+ */
+export function trimQueue(queue, total) {
+  const q = asQueue(queue);
+  // ★ **칸 수를 모르면 그대로 둔다.** `Number(null)` 은 **0** 이라, 그냥 `Number` 로
+  // 바꿨더니 `trimQueue(줄, null)` 이 **줄을 통째로 지웠다**(0 칸짜리 진행표로 읽는다).
+  // 줄을 지우는 잘못은 되돌릴 수가 없다 — 비어 있는 것부터 가른다 (자가 잡아줬다)
+  if (total === null || total === undefined) return q;
+  const n = Number(total);
+  if (!Number.isInteger(n) || n < 0) return q;
+  const out = {};
+  for (const [k, v] of Object.entries(q)) {
+    const i = Number(k);
+    if (Number.isInteger(i) && i >= 0 && i < n) out[k] = v;
+  }
+  return out;
+}
+
 /** 올릴 수 있는 칸들 — 자리 번호 차례로. 표시된 것은 뺀다(사람이 누를 때까지) */
 export function pendingIndexes(queue) {
   return Object.entries(asQueue(queue))
@@ -145,6 +168,10 @@ export function applyQueue(session, queue) {
  * 어느 진행표의 것인지를 같이 담고, 다르면 버린다.
  */
 export function keepFor(stored, startedAt) {
+  // **진행표가 없으면 얹을 자리가 없다** (2026-11-04). 여태 둘 다 비면 `'' === ''` 로
+  // 같다고 보고 그 줄을 살려줬다 — 어느 진행표의 것도 아닌 누름이 다음 진행표에
+  // 얹힐 수 있다. 담는 쪽(`saveSessionQueue`)도 같이 막는다
+  if (!startedAt) return {};
   const box = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
   if (asKey(box.for) !== asKey(startedAt)) return {};
   return asQueue(box.queue);
@@ -174,6 +201,8 @@ export function readSessionQueue(startedAt) {
  */
 export function saveSessionQueue(queue, startedAt) {
   const q = asQueue(queue);
+  // 어느 진행표의 것인지 모르면 담지 않는다 (위 `keepFor` 와 같은 까닭)
+  if (!startedAt) return removeLS(SESSION_QUEUE_KEY);
   if (Object.keys(q).length === 0) return removeLS(SESSION_QUEUE_KEY);
   const text = JSON.stringify({ for: asKey(startedAt), queue: q });
   if (saveLS(SESSION_QUEUE_KEY, text)) return true;

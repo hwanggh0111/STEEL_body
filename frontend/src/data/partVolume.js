@@ -42,33 +42,54 @@ export { MAP_PARTS };
 /** 선을 그리려면 **점이 둘**은 있어야 한다 — `liftTrend` 와 같은 선 */
 export { MIN_POINTS, SPANS } from './liftTrend';
 
-/** 'YYYY-MM-DD' → Date. **한낮으로 만든다** (`goal.js` 와 같은 까닭 — 서머타임) */
-function at(key) {
-  const [y, m, d] = String(key).split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0);
+/**
+ * 'YYYY-MM-DD' → Date. **안 되는 날짜는 null 이다.**
+ *
+ * ── 왜 이렇게 꼼꼼한가 ── (2026-11-04, 붙인 그 자리에서 잡았다)
+ *
+ * `new Date` 는 **이상한 값을 멀쩡한 날짜로 만든다** —
+ *
+ *     ''            → `Number('')` 가 0 이라 `new Date(0, -1, 1)` = **1899-12-01**
+ *     '2026-13-45'  → 13월 45일이 **2027-02-14** 로 넘어간다
+ *
+ * 둘 다 `Number.isNaN` 으로는 안 걸린다(멀쩡한 Date 다). 그대로 두면 **선 맨 앞에
+ * 1900년 점**이 찍히고, 주 이름에 「1월 1일 주」가 적힌다.
+ *
+ * 그래서 **꼴을 보고**(정규식) **되돌려 맞춰본다**(만든 Date 의 연·월·일이 적힌
+ * 것과 같은가). 날짜를 만드는 자리가 둘(주 묶기 · 주 이름)이라 **한 자리에 둔다** —
+ * 처음에 주 묶기만 고치고 주 이름을 빠뜨려서, 거기만 1900년이 남아 있었다.
+ *
+ * **한낮으로 만든다** (`goal.js` 와 같은 까닭 — 서머타임이 있는 곳에서 하루가 밀린다)
+ */
+function dayOrNull(key) {
+  const s = String(key || '');
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(y, mo - 1, d, 12, 0, 0, 0);
+  if (Number.isNaN(date.getTime())) return null;
+  // 넘어간 날짜를 걸러낸다 — 13월 45일은 2월 14일이 되어 돌아온다
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
+  return date;
 }
-
-/** 'YYYY-MM-DD' 꼴인가. **이것부터 보지 않으면** 빈 글자가 1900년이 된다 —
- *  `''.split('-')` 는 `['']` 이고 `Number('')` 는 0 이라, `new Date(0, -1, 1)` 이
- *  멀쩡한 날짜로 나온다(NaN 이 아니다). 그 주가 선 맨 앞에 점으로 찍힌다 */
-const isDayKey = (v) => /^\d{4}-\d{2}-\d{2}/.test(String(v || ''));
 
 /** 그 날이 든 주의 **월요일 날짜 열쇠**. 묶는 열쇠가 이것이다 */
 export function weekOf(date) {
-  if (!isDayKey(date)) return null;
-  const d = at(date);
-  if (Number.isNaN(d.getTime())) return null;
-  return dateKey(mondayOf(d));
+  const d = dayOrNull(date);
+  return d ? dateKey(mondayOf(d)) : null;
 }
 
 /** 창 안에 온전히 들어오는 **첫 월요일**. 반쪽 주를 빼는 자리다 */
 function firstFullWeek(today, days) {
-  const startKey = dateKey(new Date(at(today).getTime() - days * 86400000));
+  const base = dayOrNull(today);
+  if (!base) return null;
+  const startKey = dateKey(new Date(base.getTime() - days * 86400000));
   const monday = weekOf(startKey);
   if (!monday) return null;
   if (monday >= startKey) return monday;          // 창이 월요일에 딱 걸렸다
-  const next = new Date(at(monday).getTime() + 7 * 86400000);
-  return dateKey(next);
+  const m = dayOrNull(monday);
+  if (!m) return null;
+  return dateKey(new Date(m.getTime() + 7 * 86400000));
 }
 
 /** 한 줄의 볼륨 (kg). 무게가 없으면 null — **셀 수 없는 것은 안 센다** */
@@ -90,10 +111,18 @@ export function volumeOf(record) {
  */
 export function volumeParts(workouts, today = null) {
   const weeks = new Map();        // 부위 → Set(주)
+  // ── **이번 주는 세지 않는다** ── (2026-11-04, 붙인 그 자리에서 잡았다)
+  //
+  // 선은 이번 주를 빼고 그리는데(아래 `volumeTrend`) 칩은 넣어 세고 있었다. 그래서
+  // 「지난 주 + 이번 주」만 한 부위는 **칩이 뜨고 선은 안 그려지고**, 화면은
+  // 「기간을 넓혀보세요」라고 말했다 — **넓혀도 안 나온다.** 거짓말이 된다.
+  // 선이 그릴 수 있는 것과 칩에 뜨는 것은 **같은 셈**이어야 한다
+  const thisWeek = today ? weekOf(today) : null;
   for (const [date, list] of Object.entries(workouts || {})) {
     if (today && date > today) continue;          // 앞날은 아직 한 것이 아니다
     const wk = weekOf(date);
     if (!wk) continue;
+    if (thisWeek && wk === thisWeek) continue;    // 안 끝난 주는 선의 점이 아니다
     for (const r of list || []) {
       if (volumeOf(r) === null) continue;         // 맨몸 · 유산소는 선이 없다
       const part = bodyPartOf(r?.exercise);
@@ -173,7 +202,15 @@ export function volumeLine(rows, spanLabel) {
   if (!first.kg) return { text: head, pct: null, dir: 0 };
   const pct = Math.round(((last.kg - first.kg) / first.kg) * 100);
   if (pct === 0) return { text: `${head} · 그대로`, pct: 0, dir: 0 };
-  return { text: `${head} · ${pct > 0 ? '+' : ''}${pct}%`, pct, dir: pct > 0 ? 1 : -1 };
+  // ── **크게 늘면 배로 말한다** ── (2026-11-04, 붙인 그 자리에서 잡았다)
+  //
+  // 처음 주가 가벼울 수 있다(한 세트만 한 주). 그러면 「+9900%」가 나오는데, 맞는
+  // 수인데도 **고장처럼 읽힌다** — 사람이 읽는 수는 세 자리까지다.
+  // 세 배가 넘으면 「21배」로 적는다. 숫자를 바꾼 것이 아니라 **말을 바꾼 것**이다
+  const word = pct >= 300
+    ? `${Math.round((last.kg / first.kg) * 10) / 10}배`
+    : `${pct > 0 ? '+' : ''}${pct}%`;
+  return { text: `${head} · ${word}`, pct, dir: pct > 0 ? 1 : -1 };
 }
 
 /** 가장 많이 들인 주. 점을 하나 찍어 짚어준다 (없으면 null) */
@@ -185,9 +222,15 @@ export function volumePeak(rows) {
   return best;
 }
 
-/** '2026-11-03' → '11월 3일 주'. 선 아래에 적는 말이다 */
+/**
+ * '2026-11-03' → '11월 3일 주'. 선 아래와 x축에 적는 말이다.
+ *
+ * **날짜를 보는 자는 `dayOrNull` 하나다** — 처음에 주 묶기(`weekOf`)만 꼴을 보게
+ * 고치고 **여기를 빠뜨려서**, 빈 글자가 「1월 1일 주」로 적히고 있었다.
+ * 쌍둥이를 같이 고치지 않으면 한쪽에 그대로 남는다 (이 앱이 거듭 당하는 모양이다)
+ */
 export function weekLabel(week) {
-  const d = at(week);
-  if (Number.isNaN(d.getTime())) return '';
+  const d = dayOrNull(week);
+  if (!d) return '';
   return `${d.getMonth() + 1}월 ${d.getDate()}일 주`;
 }
