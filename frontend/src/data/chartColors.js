@@ -11,6 +11,9 @@ export const CHART = {
   accent: '#eeb77d',   // --accent      체중 · 지금 값
   muscle: '#7fb069',   // --success     골격근
   fat:    '#d96a5c',   // --danger      체지방
+  // **체수분 색은 남겨둔다** — 체성분 도넛에서 체수분을 뺀 뒤(2026-11-04)
+  // 쓰는 데가 없지만, 이 표는 **그래프 색과 CSS 토큰의 짝**이고 `npm run data` 가
+  // 그 짝을 지킨다(걷어봤더니 그 자가 잡았다). 비교 그림이 체수분 축을 쓴다
   water:  '#7fa8d9',   // --info        체수분
   muted:  '#7a7160',   // --text-muted  축 글씨 · 기타 · 지난 값
   text2:  '#aaa28e',   // --text-secondary  범례 · 항목 이름
