@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
+import { isOfflineError } from '../data/offline';
 import { confirmDialog } from '../components/ConfirmModal';
 import BodySizeSection from '../components/measure/BodySizeSection';
 import OneRMSection from '../components/measure/OneRMSection';
@@ -110,13 +111,37 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
     try {
       const date = data.date || dateKey();
       const payload = { type, date, data };
-      await client.post('/measures', payload);
-      const { data: refreshed } = await client.get('/measures');
-      // 위의 첫 로드와 같은 이유로 지킨다
-      setMeasures(Array.isArray(refreshed) ? refreshed : []);
-      toast('저장 완료!');
-    } catch {
-      toast('저장에 실패했어요', 'error');
+
+      // ── **담는 일과 다시 받는 일을 가른다** ── (2026-11-04)
+      //
+      // 여태 둘을 한 `try` 에 넣고, 어느 쪽이 터져도 **「저장에 실패했어요」**라고
+      // 했다. 그런데 담기는 이미 끝난 뒤에 받기가 끊기면 **그 말이 거짓이다** —
+      // 그 말을 들은 사람은 **같은 둘레를 다시 적고**, 측정 기록이 두 벌 쌓인다.
+      //
+      // 홈트에서 이미 배운 자리다(`HomeworkoutPage`: 「'못 올렸다'가 사실이 아니었던
+      // 것이다 … 그 말을 듣고 직접 적으면 앞의 둘이 두 번 쌓인다」). **그 교훈이
+      // 이 길에는 안 닿아 있었다.**
+      try {
+        await client.post('/measures', payload);
+      } catch (err) {
+        // 서버가 「그렇게는 안 받는다」고 답했으면 **그 말을 그대로** 전한다.
+        // 신호가 없는 것은 다시 눌러야 하는 일이라 그렇게 적는다 (측정은 줄이 없다 —
+        // 적은 값은 칸에 그대로 있으니 신호가 오면 그 자리에서 다시 누르면 된다)
+        toast(isOfflineError(err)
+          ? '신호가 없어 저장하지 못했어요 — 적은 값은 그대로 있어요. 신호가 오면 다시 눌러주세요'
+          : (err.response?.data?.error || '저장에 실패했어요'), 'error');
+        return;
+      }
+
+      try {
+        const { data: refreshed } = await client.get('/measures');
+        // 위의 첫 로드와 같은 이유로 지킨다
+        setMeasures(Array.isArray(refreshed) ? refreshed : []);
+        toast('저장 완료!');
+      } catch {
+        // **담긴 것은 담겼다.** 목록만 못 맞췄다고 말한다
+        toast('저장했어요 — 목록은 못 받아왔어요. 새로고침하면 보입니다');
+      }
     } finally {
       setSaving(false);
     }

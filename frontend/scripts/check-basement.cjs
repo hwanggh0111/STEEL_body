@@ -192,6 +192,43 @@ const codeOf = (s) => s
     ok('  되돌리기는 그 뒤에 있다',
       store.indexOf('isOfflineError(err)') < store.indexOf('set({ session: prev })'), true);
 
+    // ─────────────────────────────────────────────────────────────
+    // **담은 뒤에 또 받는 자리** — 거기서 「저장 실패」를 말하면 거짓이 된다
+    // ─────────────────────────────────────────────────────────────
+    console.log('');
+    console.log('── 담는 일과 받는 일을 가르는가 ──');
+    // 담기는 끝났는데 받기가 끊기면 「저장에 실패했어요」가 **거짓이다** — 그 말을
+    // 들은 사람은 같은 것을 다시 적고, 기록이 **두 벌** 쌓인다. 홈트에서 이미 배운
+    // 자리인데(`HomeworkoutPage` 머리글) 측정 길에는 안 닿아 있었다.
+    //
+    // 한 `try` 안에서 **쓰기 뒤에 읽기**가 또 오는 자리를 통째로 쓴다
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = dir + '/' + e.name;
+      return e.isDirectory() ? walk(p) : (/\.jsx?$/.test(e.name) ? [p] : []);
+    });
+    const mixed = [];
+    for (const p of walk('src')) {
+      const src = codeOf(fs.readFileSync(p, 'utf-8'));
+      const re = /try \{([\s\S]*?)\n\s*\} catch/g;
+      let m;
+      while ((m = re.exec(src))) {
+        const body = m[1];
+        const w = body.search(/await client\.(post|put|patch|delete)\(/);
+        const g = body.search(/await client\.get\(/);
+        if (w >= 0 && g > w) {
+          mixed.push(p.replace('src/', '') + ':' + src.slice(0, m.index).split('\n').length);
+        }
+      }
+    }
+    ok('한 뭉치에서 담고 또 받는 자리가 없다', mixed, []);
+
+    const measure = codeOf(fs.readFileSync('src/pages/MeasurePage.jsx', 'utf-8'));
+    // 담기가 끝난 뒤의 말은 **「저장했다」**여야 한다
+    ok('측정: 목록을 못 받아도 저장했다고 말한다', /저장했어요 — 목록은 못 받아왔어요/.test(measure), true);
+    ok('  신호가 없으면 그렇게 말한다', /신호가 없어 저장하지 못했어요/.test(measure), true);
+    // 서버가 「그렇게는 안 받는다」고 답한 것은 그 말을 그대로 전한다 (어제 세운 선)
+    ok('  서버가 한 말을 그대로 전한다', /err\.response\?\.data\?\.error \|\| '저장에 실패했어요'/.test(measure), true);
+
     console.log('');
     if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
     console.log('다 통과');
