@@ -49,7 +49,18 @@ export default function ImportCsv({ kind, label, onDone, style }) {
 
     // 글자로 읽는다. 한글 엑셀이 붙인 BOM 은 서버가 걷는다.
     // **확인을 묻기 전에 읽는다** — 몇 줄인지 알고 물어야 한다
-    const csv = await file.text();
+    //
+    // **못 읽으면 말해준다** (2026-11-04). 여태 감싸지 않아서, 읽기가 실패하면
+    // 이 함수가 그 자리에서 터지고 **화면은 아무 말도 안 했다** — 누른 사람에게는
+    // 단추가 먹지 않는 것으로 보인다. 폰에서 클라우드 드라이브에 있는 파일을 고르면
+    // 실제로 나는 일이다(고른 뒤에 받아오다 끊긴다)
+    let csv;
+    try {
+      csv = await file.text();
+    } catch {
+      toast('파일을 읽지 못했어요. 폰에 내려받은 뒤 다시 골라주세요', 'error');
+      return;
+    }
     const rows = rowsIn(csv);
 
     // ── **줄 수는 누르기 전에 말한다** ── (2026-10-31)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { enterChoice, focusKind } from '../data/askKeys';
 
 let _showConfirm = null;
 const _pendingQueue = [];
@@ -41,7 +42,15 @@ export default function ConfirmModalHost() {
   }, []);
 
   const close = useCallback((result) => {
-    if (state) state.resolve(result);
+    if (!state) return;
+    // **한 번 닫은 것을 또 닫지 않는다** (2026-11-04).
+    //
+    // 두 번 닫히면 줄에서 **하나를 더 꺼내 버리고**, 꺼내진 그 물음은 영영 안 풀린다 —
+    // 그것을 기다리던 `await` 가 그 자리에서 멎는다. 이 파일이 막으려고 쓴 그 일이다.
+    // Enter 는 실제로 두 번 들어올 수 있었다(브라우저가 단추를 누르고 + 우리가 닫고)
+    if (state.done) return;
+    state.done = true;
+    state.resolve(result);
     // 다음 큐 항목 처리
     if (_pendingQueue.length > 0) {
       setState(_pendingQueue.shift());
@@ -54,7 +63,18 @@ export default function ConfirmModalHost() {
     if (!state) return;
     const onKey = (e) => {
       if (e.key === 'Escape') close(false);
-      else if (e.key === 'Enter') close(true);
+      else if (e.key === 'Enter') {
+        // ── **Enter 가 지우고 있었다** ── (2026-11-04)
+        //
+        // 위험한 물음이면 「취소」에 포커스를 주는데(아래 effect — 「실수 방지」),
+        // 여기서는 포커스를 안 보고 `close(true)` 였다. 가리려고 둔 포커스가 아무
+        // 일도 안 했다. 판단은 `data/askKeys.js` 에 두고 값으로 본다
+        const where = focusKind(document.activeElement, confirmBtnRef.current, cancelBtnRef.current);
+        const what = enterChoice(where, state.options.danger !== false);
+        // 'browser' — 포커스가 우리 단추에 있다. 브라우저가 그것을 누른다(우리는 비킨다)
+        if (what === 'confirm') close(true);
+        else if (what === 'cancel') close(false);
+      }
       else if (e.key === 'Tab') {
         // 단순 포커스 트랩: 확인/취소 두 버튼 사이만 순환
         e.preventDefault();

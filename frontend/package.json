@@ -83,7 +83,8 @@
     "serif": "node scripts/gen-serif.mjs",
     "wall": "node scripts/gen-wall.mjs",
     "rest": "node scripts/check-rest.cjs",
-    "handoff": "node scripts/check-handoff.cjs"
+    "handoff": "node scripts/check-handoff.cjs",
+    "ask": "node scripts/check-ask.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
