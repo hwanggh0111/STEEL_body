@@ -5,6 +5,7 @@ import { useWorkoutStore, resetCache as resetWorkoutCache } from './workoutStore
 import { useNoteStore, resetNoteCache } from './noteStore';
 import { useInbodyStore, resetCache as resetInbodyCache } from './inbodyStore';
 import { resetPose, resetPoseVideo } from '../data/poseModel';
+import { newSession } from './session';
 import { useRoutineSessionStore } from './routineSessionStore';
 import { useReportStore } from './reportStore';
 import { useGoalStore } from './goalStore';
@@ -54,6 +55,9 @@ export const useAuthStore = create((set) => ({
   isLoggedIn: !!readLS(TOKEN_KEY) || hasCsrfCookie(),
 
   login: async (email, password) => {
+    // 나가기를 거치지 않고 바로 들어오는 길도 있다(쿠키가 만료된 뒤 로그인 화면).
+    // 그때 날아가 있는 앞 사람의 답도 같이 버린다
+    newSession();
     const { data } = await client.post('/auth/login', { email, password });
     if (data.token) saveLS(TOKEN_KEY, data.token);
     saveLS(NICKNAME_KEY, data.nickname);
@@ -154,6 +158,13 @@ export const useAuthStore = create((set) => ({
   },
 
   logout: async () => {
+    // ── **누른 그 순간부터 앞 사람 것이다** ── (2026-11-04)
+    //
+    // 아래 `reset()` 들을 공들여 적어뒀는데 **그 뒤에 다시 채워졌다** — 목록을
+    // 받는 중에 나가면, 비우기가 먼저 끝나고 날아가 있던 답이 그 뒤에 내려앉는다.
+    // 서버에 묻는 이 한 줄이 기다리는 동안이 특히 넓다.
+    // 세대를 먼저 올려 **날아가 있는 답을 전부 앞 사람 것으로 만든다** (`store/session.js`)
+    newSession();
     try {
       await client.post('/auth/logout');
     } catch {}

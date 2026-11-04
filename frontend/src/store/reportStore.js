@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 
 // 내 제보 목록.
 //
@@ -19,10 +20,14 @@ export const useReportStore = create((set, get) => ({
 
   fetchAll: () => {
     if (inflight) return inflight;
+    // 기다리기 전에 **지금 사람**을 받아 둔다. 아래 `reset` 은 날아가 있는 요청을
+    // 끊지 못하므로, 비운 뒤에 이 답이 내려앉으면 **다음 사람이 앞 사람의 제보를
+    // 본다** — 이 파일이 `reset` 에 적어둔 바로 그 일이다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     inflight = client.get('/reports')
-      .then(({ data }) => set({ items: Array.isArray(data) ? data : [], failed: false }))
-      .catch(() => set({ failed: true }))
-      .finally(() => { inflight = null; set({ loading: false }); });
+      .then(({ data }) => { if (isSameSession(mine)) set({ items: Array.isArray(data) ? data : [], failed: false }); })
+      .catch(() => { if (isSameSession(mine)) set({ failed: true }); })
+      .finally(() => { inflight = null; if (isSameSession(mine)) set({ loading: false }); });
     return inflight;
   },
 

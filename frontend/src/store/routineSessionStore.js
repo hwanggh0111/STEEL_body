@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 
 // 진행 중인 루틴.
 //
@@ -27,26 +28,35 @@ export const useRoutineSessionStore = create((set, get) => ({
     if (get().loading) return;
     if (get().loaded && !force) return;
     set({ loading: true });
+    // 기다리기 전에 **지금 사람**을 받아 둔다 — 아래 `reset` 은 날아가 있는 요청을
+    // 끊지 못한다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     try {
       const { data } = await client.get('/routine-session');
+      if (!isSameSession(mine)) return;
       set({ session: asSession(data?.session), loaded: true, loading: false });
     } catch {
+      if (!isSameSession(mine)) return;
       // 못 불러와도 기록 화면은 그대로 써야 한다. 진행표만 안 보인다
       set({ loaded: true, loading: false });
     }
   },
 
   start: async (routineId) => {
+    const mine = sessionEpoch();
     const { data } = await client.post('/routine-session', { routineId });
     const next = asSession(data?.session);
+    if (!isSameSession(mine)) return null;
     set({ session: next, loaded: true });
     return next;
   },
 
   // 한 칸을 끝냈거나 건너뛴다. 마지막 칸이면 서버가 진행표를 지우고 finished 를 준다
   mark: async (index, state) => {
+    const mine = sessionEpoch();
     try {
       const { data } = await client.patch('/routine-session', { index, state });
+      if (!isSameSession(mine)) return data;
       set({ session: asSession(data?.session), loaded: true });
       return data;
     } catch (err) {
@@ -54,7 +64,7 @@ export const useRoutineSessionStore = create((set, get) => ({
       // 서버가 지금 진행표를 같이 준다 — 그걸로 갈아끼우지 않으면 화면은 죽은 진행표를
       // 계속 붙들고, 누를 때마다 조용히 실패한다
       const fresh = err?.response?.data;
-      if (err?.response?.status === 409 && fresh && 'session' in fresh) {
+      if (isSameSession(mine) && err?.response?.status === 409 && fresh && 'session' in fresh) {
         set({ session: asSession(fresh.session), loaded: true });
       }
       throw err;
@@ -68,19 +78,22 @@ export const useRoutineSessionStore = create((set, get) => ({
   // 빨리 연달아 누르면 답이 순서를 바꿔 올 수 있다 — **마지막으로 누른 것의 답만** 쓴다
   checkSet: async (index, setsDone) => {
     const prev = get().session;
+    const mine = sessionEpoch();
     if (prev?.items?.[index]) {
       const items = prev.items.map((it, i) => (i === index ? { ...it, setsDone } : it));
       set({ session: { ...prev, items } });
     }
-    const mine = ++checkSeq;
+    const seq = ++checkSeq;
     try {
       const { data } = await client.patch('/routine-session', { index, setsDone });
-      if (mine === checkSeq) set({ session: asSession(data?.session), loaded: true });
+      if (seq === checkSeq && isSameSession(mine)) set({ session: asSession(data?.session), loaded: true });
     } catch (err) {
       const fresh = err?.response?.data;
+      // 나간 뒤에는 되돌리지도 않는다 — 되돌릴 자리가 다음 사람 화면이다
+      if (!isSameSession(mine)) throw err;
       if (err?.response?.status === 409 && fresh && 'session' in fresh) {
         set({ session: asSession(fresh.session), loaded: true });
-      } else if (mine === checkSeq) {
+      } else if (seq === checkSeq) {
         set({ session: prev });
       }
       throw err;
@@ -88,7 +101,9 @@ export const useRoutineSessionStore = create((set, get) => ({
   },
 
   stop: async () => {
+    const mine = sessionEpoch();
     await client.delete('/routine-session');
+    if (!isSameSession(mine)) return;
     set({ session: null, loaded: true });
   },
 

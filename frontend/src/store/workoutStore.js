@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 import {
   isOfflineError, isOnline, makeQueued, isLocalId, mergeQueue,
   dropFromQueue, markFailed, clearFailedMark, editInQueue,
@@ -166,6 +167,13 @@ export const useWorkoutStore = create((set, get) => ({
     }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
     set({ loading: true });
+    // ── 기다리기 전에 **지금 사람**을 받아 둔다 ── (2026-11-04)
+    //
+    // 이 길은 받은 것을 `saveCache` 로 **기기에까지 담는다.** 목록을 받는 중에
+    // 「나가기」를 누르면 로그아웃이 지운 그 자리에 **앞 사람 5년치가 다시 적히고**,
+    // 다음 사람이 앱을 켜면 `hydrate()` 가 그것을 먼저 그린다 — 잠깐이 아니라 남는다.
+    // 까닭은 `store/session.js`
+    const mine = sessionEpoch();
     inflight = (async () => {
       try {
         // **들고 있는 것이 있을 때만 딱지를 보낸다** (위 머리글)
@@ -176,6 +184,7 @@ export const useWorkoutStore = create((set, get) => ({
           // 던지고, 아래 catch 가 「못 받아왔다」로 읽는다
           validateStatus: (code) => code === 304 || (code >= 200 && code < 300),
         });
+        if (!isSameSession(mine)) return;
         if (status === 304) {
           // 바뀐 것이 없다 — 들고 있는 것이 그대로 맞다. 몸통도 안 왔다
           set({ loading: false, online: true });
@@ -192,6 +201,7 @@ export const useWorkoutStore = create((set, get) => ({
         set({ loading: false, online: true });
         fetchedAt = Date.now();
       } catch (err) {
+        if (!isSameSession(mine)) return;
         // **못 받아온 것과 없는 것은 다르다.** 신호가 없어 못 받았으면
         // 마지막으로 담아둔 것으로 그린다 — 지하에서도 지난 기록은 보여야 한다
         if (isOfflineError(err)) {
@@ -233,8 +243,11 @@ export const useWorkoutStore = create((set, get) => ({
    * 혼자 쓰는 자리에서는 끄지 않는다 — 기본값이 켜져 있는 까닭이다.
    */
   addWorkout: async (workout, { refetch = true } = {}) => {
+    const mine = sessionEpoch();
     try {
       const { data } = await client.post('/workouts', workout);
+      // 적고 나가는 그 틈에도 꽂지 않는다 (까닭은 `store/session.js`)
+      if (!isSameSession(mine)) return data;
       // **줄이 왔으면 꽂고 끝낸다** (2026-10-31, 위 `putRow` 머리글).
       // 안 왔으면(옛 서버) 여태처럼 통째로 받는다 — 배포가 엇갈리는 동안도 돌아야 한다
       if (data?.workout?.date) {
@@ -251,6 +264,8 @@ export const useWorkoutStore = create((set, get) => ({
     } catch (err) {
       // 서버가 「그렇게는 안 받는다」고 답한 것은 다시 보내도 마찬가지다. 그대로 알린다
       if (!isOfflineError(err)) throw err;
+      // 나간 뒤에는 줄에도 안 세운다 — 그 줄은 다음 사람 기기에 남는다
+      if (!isSameSession(mine)) throw err;
       const item = makeQueued(workout);
       const queue = [...get().queue, item];
       // **담겼는지 본다** (2026-10-24). `localStorage` 가 찼거나 막혀 있으면
@@ -288,9 +303,11 @@ export const useWorkoutStore = create((set, get) => ({
     // 낙관적 업데이트: 먼저 UI에서 제거 (**빼는 자는 위 `dropRow` 한 자리다**)
     const prevServer = get().server;
     const updated = dropRow(prevServer, id);
+    const mine = sessionEpoch();
     get().apply(updated, null);
     try {
       const { data } = await client.delete(`/workouts/${id}`);
+      if (!isSameSession(mine)) return;
       saveCache(updated);
       // 지운 뒤의 딱지. **빼는 것은 차례를 안 건드리니** 꽂는 쪽보다 확실하다
       keepTag(data?.tag);
@@ -304,7 +321,9 @@ export const useWorkoutStore = create((set, get) => ({
       // 머리글이 적어둔 그 선이고, 적는 쪽도 같은 선을 쓴다
       fetchedAt = Date.now();
     } catch (err) {
-      // 실패 시 롤백
+      // 실패 시 롤백. **나간 뒤에는 되돌리지 않는다** — 되돌릴 자리가
+      // 다음 사람 화면이고, 지운 줄이 그 화면에 되살아난다
+      if (!isSameSession(mine)) throw new Error('삭제 실패');
       get().apply(prevServer, null);
       throw new Error('삭제 실패');
     }
@@ -329,8 +348,12 @@ export const useWorkoutStore = create((set, get) => ({
     let tooFastMs = 0;
     // 한 줄이라도 **서버가 담은 줄을 안 돌려줬으면** 통째로 받아 맞춘다 (아래)
     let missing = false;
+    const mine = sessionEpoch();
     try {
       for (const item of queue) {
+        // **나갔으면 거기서 멈춘다.** 쿠키가 이미 없어 올려도 401 이고,
+        // 꽂으면 다음 사람 화면에 앞 사람 세트가 뜬다 (까닭은 `store/session.js`)
+        if (!isSameSession(mine)) { stopped = true; break; }
         try {
           // 줄의 로컬 id 를 같이 보낸다 — 올리다 답이 끊겨 다시 보내도 서버가 한 번만 만든다
           const { data } = await client.post('/workouts', { ...item.payload, clientKey: item.id });
@@ -394,6 +417,8 @@ export const useWorkoutStore = create((set, get) => ({
     // **꽂을 수 있었으면 다시 받지 않는다** (위 머리글). 지운 뒤에 그렇게 한 것과
     // 같은 결이다 — 올린 뒤의 화면 상태는 **서버와 같다**.
     // 다른 기기에서 바뀐 것은 최대 `FRESH_MS`(30초) 늦게 보인다
+    if (!isSameSession(mine)) return { sent, failed, stopped, blocked, tooFastMs };
+    if (!isSameSession(mine)) return { sent, failed, stopped, blocked, tooFastMs };
     if (sent > 0 && missing) {
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});

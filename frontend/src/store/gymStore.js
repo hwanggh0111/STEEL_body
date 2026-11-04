@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 import { readLS, saveLS } from '../data/safeStorage';
 import { GYM_KEY } from '../data/localKeys';
 
@@ -63,9 +64,13 @@ export const useGymStore = create((set, get) => ({
     }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
     set({ loading: true, failed: false });
+    // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     inflight = (async () => {
       try {
         const { data } = await client.get('/gym-settings');
+        // 기다리는 동안 나갔으면 이 답은 앞 사람 것이다 — 꽂지 않는다
+        if (!isSameSession(mine)) return;
         set({
           gyms: Array.isArray(data?.gyms) ? data.gyms : [],
           settings: Array.isArray(data?.settings) ? data.settings : [],
@@ -75,6 +80,7 @@ export const useGymStore = create((set, get) => ({
         });
         fetchedAt = Date.now();
       } catch {
+        if (!isSameSession(mine)) return;
         // 못 받아와도 화면은 그대로 돈다 — 세팅은 운동 화면의 곁다리다.
         // **loaded 는 안 켠다** — 못 받아온 것을 「세팅이 없다」로 읽으면
         // 적어둔 사람에게 「적어둘까요?」가 뜬다.

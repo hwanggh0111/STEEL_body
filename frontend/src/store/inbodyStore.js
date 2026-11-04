@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 
 // 화면마다 mount 될 때 목록을 받는다 — 홈 · 기록 · 히스토리 · 인바디 · 비교 · 검색.
 // 그대로 두면 화면을 옮길 때마다 통째로 다시 받는다. 두 가지로 막는다.
@@ -52,14 +53,19 @@ export const useInbodyStore = create((set, get) => ({
     }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
     set({ loading: true });
+    // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     inflight = (async () => {
       try {
         const { data } = await client.get('/inbody');
+        // 기다리는 동안 나갔으면 이 답은 앞 사람 것이다 — 몸무게·체지방이 남에게 보인다
+        if (!isSameSession(mine)) return;
         // 서버는 배열을 준다. 다른 모양이 오면 빈 것으로 친다 —
         // records 는 세 화면이 그대로 map 으로 돌린다
         set({ records: Array.isArray(data) ? data : [], loading: false, failed: false });
         fetchedAt = Date.now();
       } catch {
+        if (!isSameSession(mine)) return;
         // **빈 목록으로 덮지 않는다.** 전에 받아둔 것이 있으면 그것을 그대로 보여주고,
         // 못 받아왔다는 것만 따로 말한다 — 있던 줄이 사라지는 것보다 조금 묵은
         // 줄이 낫다
@@ -85,11 +91,15 @@ export const useInbodyStore = create((set, get) => ({
 
   deleteRecord: async (id) => {
     const prev = get().records;
+    const mine = sessionEpoch();
     set({ records: prev.filter(r => r.id !== id) });
     try {
       await client.delete(`/inbody/${id}`);
       fetchedAt = 0;   // 다음 요청은 새로 받는다
     } catch {
+      // **되돌리기도 그 사람 자리에서만 한다** — 나간 뒤에 되돌리면
+      // 지운 줄이 다음 사람 화면에 되살아난다
+      if (!isSameSession(mine)) throw new Error('삭제 실패');
       set({ records: prev });
       throw new Error('삭제 실패');
     }

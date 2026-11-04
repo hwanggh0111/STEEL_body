@@ -82,7 +82,8 @@
     "setplan": "node scripts/check-setplan.cjs",
     "serif": "node scripts/gen-serif.mjs",
     "wall": "node scripts/gen-wall.mjs",
-    "rest": "node scripts/check-rest.cjs"
+    "rest": "node scripts/check-rest.cjs",
+    "handoff": "node scripts/check-handoff.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

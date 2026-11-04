@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import client from '../api/client';
+import { sessionEpoch, isSameSession } from './session';
 
 // 목표.
 //
@@ -44,15 +45,20 @@ export const useGoalStore = create((set, get) => ({
     }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
     set({ loading: true });
+    // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
+    const mine = sessionEpoch();
     inflight = (async () => {
       try {
         const { data } = await client.get('/goals');
+        // 기다리는 동안 나갔으면 이 답은 앞 사람 것이다 — 체중 목표가 남에게 보인다
+        if (!isSameSession(mine)) return;
         // 서버는 목표 하나 또는 null 을 준다. 배열이나 딴 것이 오면 없는 것으로 친다 —
         // 화면이 `goal.weeklyTarget` 을 바로 읽는다
         const row = data && typeof data === 'object' && !Array.isArray(data) ? data : null;
         set({ goal: row, loaded: true, loading: false });
         fetchedAt = Date.now();
       } catch {
+        if (!isSameSession(mine)) return;
         // 못 받아와도 화면은 그대로 돈다 — 목표는 홈의 곁다리다.
         // **loaded 는 안 켠다** — 못 받아온 것을 「목표가 없다」로 읽으면
         // 목표를 세워둔 사람에게 「목표를 세워보세요」가 뜬다
@@ -66,7 +72,9 @@ export const useGoalStore = create((set, get) => ({
 
   /** 세우거나 고친다. 서버가 돌려준 것을 그대로 들고 있는다 (다듬은 뒤의 값이다) */
   save: async (patch) => {
+    const mine = sessionEpoch();
     const { data } = await client.put('/goals', patch);
+    if (!isSameSession(mine)) return null;
     const row = data && typeof data === 'object' && !Array.isArray(data) ? data : null;
     set({ goal: row, loaded: true });
     fetchedAt = Date.now();
@@ -75,7 +83,9 @@ export const useGoalStore = create((set, get) => ({
 
   /** 접는다. */
   clear: async () => {
+    const mine = sessionEpoch();
     await client.delete('/goals');
+    if (!isSameSession(mine)) return;
     set({ goal: null, loaded: true });
     fetchedAt = Date.now();
   },
