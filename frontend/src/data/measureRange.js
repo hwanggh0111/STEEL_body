@@ -21,7 +21,15 @@ export const FITNESS_COUNT_MAX = 10000;
 /** 초로 재는 것 (플랭크 · 1km · 타이머). 하루. */
 export const MEASURE_SEC_MAX = 86400;
 
-/** 스톱워치가 남기는 밀리초. 하루. */
+/**
+ * 스톱워치가 남기는 밀리초. 하루.
+ *
+ * **화면 폼은 이것을 안 읽는다** — 그 값은 사람이 치는 것이 아니라 타이머에서
+ * 온다(하루를 넘길 수가 없다). 그래도 **걷지 않는다**: 서버에 같은 이름의 짝이
+ * 있고(`backend/src/utils/measureRange.js`) `npm run twins` 가 **그 둘이 같은
+ * 수인지** 견준다. 한쪽을 걷으면 그 견주기가 **조용히 사라진다** —
+ * 「짝 맞추기」로 남겨두는 값이다 (`npm run alive` 의 면제 목록에도 적혀 있다).
+ */
 export const MEASURE_MS_MAX = 86400000;
 
 /**

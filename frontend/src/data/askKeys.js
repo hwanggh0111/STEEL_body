@@ -47,11 +47,13 @@ export function focusKind(active, confirmEl, cancelEl) {
   return null;
 }
 
-/**
- * Escape 는 늘 취소다 — 위험하든 아니든.
- *
- * 따로 적어두는 까닭: 「알겠습니다」처럼 **단추가 하나뿐인 것처럼 쓰는 물음**도
- * 있는데(가져오기에서 못 넣은 줄을 알릴 때), 그때도 Escape 로 닫혀야 한다.
- * 닫히는 것이 곧 「아니오」라서 아무 일도 안 일어난다
- */
-export const ESCAPE_IS_CANCEL = true;
+// ── Escape 는 늘 취소다 — 위험하든 아니든 ──
+//
+// 「알겠습니다」처럼 **단추가 하나뿐인 것처럼 쓰는 물음**도 있는데(가져오기에서 못
+// 넣은 줄을 알릴 때), 그때도 Escape 로 닫혀야 한다. 닫히는 것이 곧 「아니오」라서
+// 아무 일도 안 일어난다.
+//
+// **값으로 두지 않는다** (2026-11-04). 처음엔 `ESCAPE_IS_CANCEL = true` 를 내보냈는데
+// **아무도 안 읽었다** — 규칙은 `ConfirmModal` 의 `close(false)` 한 줄에 있고,
+// 그것을 `npm run ask` 가 지킨다. 안 읽는 값을 두면 「여기서 가른다」고 믿게 된다
+// (9/30 에 `PHOTO_MAX_FILE` 을 걷은 그 까닭이다).
