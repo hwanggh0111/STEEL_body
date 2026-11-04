@@ -15,6 +15,7 @@ import SegRow from '../components/SegRow';
 // 종목별 최고 기록 — 2026-09-19 에 옛 기록 화면에서 이리로 옮겼다 (아래 「통계」 갈래)
 import BestRecords from '../components/BestRecords';
 import LiftTrend from '../components/LiftTrend';
+import PartTrend from '../components/PartTrend';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -688,6 +689,17 @@ export default function HistoryPage() {
           **최고 기록 바로 아래**에 둔다 — 같은 물음의 두 쪽이다(얼마나 / 어떻게).
           그릴 운동이 없으면 아무것도 안 그린다(`LiftTrend` 가 `null` 을 준다) */}
       <LiftTrend workouts={workouts} today={today} />
+
+      {/* ── 한 **부위**가 늘어온 길 ── (2026-11-04, 시안의 E안)
+          //
+          바로 위 선은 **운동 하나**를 본다. 그래서 두 가지를 못 본다 —
+          기구를 바꾸면 **선이 끊긴 것처럼** 보이고, 벤치는 올랐는데 **가슴을 덜
+          하게 된 것**인지 모른다. 여기는 그 부위에 **주마다 들인 총량**이라
+          기구를 바꿔도 이어진다.
+
+          **운동 쪽 선 바로 아래**에 둔다 — 좁은 것에서 넓은 것으로 읽힌다
+          (한 운동 → 그 부위). 그릴 부위가 없으면 아무것도 안 그린다 */}
+      <PartTrend workouts={workouts} today={today} />
 
       {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
       {records.length > 1 && (

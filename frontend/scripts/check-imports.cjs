@@ -127,6 +127,20 @@ for (const file of files) {
   // 여기서는 「만들었나」만 보므로 주석 속 `const` 를 세어도 해롭지 않다 —
   // 놓치는 쪽으로 틀리지, **없는 것을 있다고 하지 않는다.**
   for (const m of raw.matchAll(/\b(?:const|let|var|function|class)\s+([A-Z][A-Z0-9_]*)/g)) declared.add(m[1]);
+  // **넘겨주는 줄은 쓰는 줄이 아니다** (2026-11-04).
+  //
+  //     export { MIN_POINTS, SPANS } from './liftTrend';
+  //
+  // 이 줄은 그 이름을 **이 파일에 들이지 않는다** — 받아서 그대로 내보낸다
+  // (`data/partVolume.js` 가 어제 붙인 기간 칩을 두 벌로 두지 않으려고 이렇게 썼다).
+  // 그런데 이 자는 아래에서 **대문자 이름이 쓰였다**고 읽고 「안 가져왔다」고 말했다.
+  // 자가 모르는 모양이었을 뿐이라, 자를 고친다
+  for (const m of raw.matchAll(/export\s*\{([^}]*)\}\s*from/g)) {
+    for (const part of m[1].split(',')) {
+      const name = part.trim().split(/\s+as\s+/)[0].trim();
+      if (name) declared.add(name);
+    }
+  }
   for (const m of code.matchAll(/(?<![\w$.'"])([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\s*(?![\w$:])/g)) {
     const name = m[1];
     if (!imported.has(name) && !declared.has(name)) missingConst.push(`${rel(file)} — ${name}`);

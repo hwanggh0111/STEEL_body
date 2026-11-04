@@ -85,7 +85,8 @@
     "rest": "node scripts/check-rest.cjs",
     "handoff": "node scripts/check-handoff.cjs",
     "ask": "node scripts/check-ask.cjs",
-    "basement": "node scripts/check-basement.cjs"
+    "basement": "node scripts/check-basement.cjs",
+    "volume": "node scripts/check-volume.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
