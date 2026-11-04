@@ -35,6 +35,7 @@ import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { useNoteStore } from '../store/noteStore';
 import { useRefreshStore } from '../store/refreshStore';
+import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { sessionEpoch, isSameSession } from '../store/session';
 import NavIcon from './NavIcon';
 
@@ -285,6 +286,11 @@ export default function Layout() {
       const note = await useNoteStore.getState().flushQueue();
       if (note.sent > 0) toast.success(`적어둔 메모 ${note.sent}개를 올렸어요`);
       if (note.failed > 0) toast('서버가 받지 않은 메모가 있어요. 위쪽에서 확인해주세요', 'error');
+      // **진행표도 같은 자리에서 올린다** (2026-11-04, D안). 지하에서 누른 세트 체크와
+      // 칸 넘김이 담겨 있다 — 올라가면 조용히 지나간다(진행 막대가 이미 그만큼이다).
+      // 기록처럼 「올렸어요」를 또 띄우지 않는다: 같은 한 판에서 토스트가 셋이 된다
+      const ses = await useRoutineSessionStore.getState().flush();
+      if (ses.failed > 0) toast('서버가 받지 않은 진행표가 있어요', 'error');
     };
     send();
     const onOnline = () => {

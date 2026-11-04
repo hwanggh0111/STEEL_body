@@ -58,6 +58,11 @@ export const WORKOUT_QUEUE_KEY = 'ironlog_workout_queue';
 // 한 번은 안 되는 앱을 쓰게 된다.
 export const NOTE_CACHE_KEY = 'ironlog_day_notes_cache';
 export const NOTE_QUEUE_KEY = 'ironlog_day_note_queue';
+// **진행 중인 루틴도 지하에서 이어진다** (2026-11-04, `data/offlineSession.js`).
+// 사본은 없다 — 진행표는 서버가 들고 있고 받아오면 되는 것이라, 담을 값은
+// **못 올린 누름**뿐이다(세트 체크 · 칸 넘김). 그것은 사람이 손으로 누른 것이다.
+// 줄 하나에 어느 진행표의 것인지를 같이 담는다(루틴을 새로 시작하면 버린다)
+export const SESSION_QUEUE_KEY = 'ironlog_routine_session_queue';
 // 체형에서 **지난 번 사진으로 잰 비율** (2026-09-22). 사진이 아니라 숫자 몇 개지만
 // **그 사람의 몸**이다 — 안 지우면 다음에 로그인한 사람이 앞 사람 실루엣을
 // 점선으로 겹쳐 보게 된다. 위에 적힌 「몸 사진 두 개」와 똑같은 자리다.
@@ -110,6 +115,7 @@ export const PER_USER_KEYS = [
   WORKOUT_QUEUE_KEY,
   NOTE_CACHE_KEY,
   NOTE_QUEUE_KEY,
+  SESSION_QUEUE_KEY,
   SHAPE_RATIOS_KEY,
   SHAPE_LOG_KEY,
   GYM_KEY,

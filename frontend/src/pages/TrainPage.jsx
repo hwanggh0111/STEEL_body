@@ -1,5 +1,4 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
-import { isOfflineError } from '../data/offline';
 import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 import { readLS, saveLS } from '../data/safeStorage';
@@ -638,23 +637,22 @@ export default function TrainPage() {
     // 소리는 사람이 누른 이 순간에 준비해야 브라우저가 막지 않는다
     if (next > before) primeAudio();
     try {
-      await checkSet(idx, next);
-    } catch (err) {
       // ── **지하에서 기록이 하나도 안 적혔다** ── (2026-11-04)
       //
       // 여기서 돌아서면 아래 `saveRoutineSets` 까지 **안 간다.** 그런데 마지막 세트를
       // 체크하는 그 누름이 **기록을 저장하는 길**이다 — 즉 신호가 없으면 루틴으로
-      // 운동한 사람의 기록이 **한 줄도 안 적혔다.** 지하에 대비해 만들어 둔 줄
-      // (`workoutStore` 의 `queue`)이 있는데, 진행표 한 번 때문에 그 길을 못 갔다.
+      // 운동한 사람의 기록이 **한 줄도 안 적혔다.**
       //
-      // 진행표는 서버에 있는 것이라 못 올린 것이 맞다. **기록은 다르다** —
-      // 그쪽은 이 기기에 적어두고 신호가 오면 올라간다. 그래서 **멈추지 않는다**.
-      // 서버가 「안 된다」고 말한 것(400·409)은 다시 눌러야 하니 여태처럼 멈춘다
-      if (!isOfflineError(err)) {
-        toast('체크하지 못했어요. 다시 눌러주세요', 'error');
-        return;
+      // 이제 스토어가 못 올린 누름을 **줄에 세우고**(`data/offlineSession.js`) 신호가
+      // 오면 올린다. 그래서 신호가 없어도 멈추지 않는다 — 담지 못한 때만 말한다
+      const res = await checkSet(idx, next);
+      if (res?.unsaved) {
+        toast('신호도 없고 이 기기에도 담지 못했어요 — 앱을 닫으면 체크가 사라집니다', 'error');
       }
-      toast('신호가 없어 진행표는 못 올렸어요 — 기록은 이 기기에 적어둡니다', 'error');
+    } catch (err) {
+      // 서버가 「안 된다」고 말한 것(400·409)은 다시 눌러야 한다
+      toast(err.response?.data?.error || '체크하지 못했어요. 다시 눌러주세요', 'error');
+      return;
     }
 
     // 폼이 이 운동을 적고 있으면 세트 칸도 맞춰둔다 — 폼으로 저장해도 한 세트 수만큼 들어가게
@@ -696,6 +694,9 @@ export default function TrainPage() {
     if (savedExercise != null && item.name.trim() !== String(savedExercise).trim()) return;
     try {
       const res = await markItem(s.current, state);
+      if (res?.unsaved) {
+        toast('신호도 없고 이 기기에도 담지 못했어요 — 앱을 닫으면 진행표가 되돌아갑니다', 'error');
+      }
       if (res?.finished) {
         // **마친 자리에서 하루치를 한 장으로 보여준다** (2026-09-16).
         // 여태 토스트 한 줄이 4초 지나가고 끝이었다 — 하루 중 제일 뿌듯한 순간이
@@ -703,12 +704,14 @@ export default function TrainPage() {
         if (finishCard) showFinish(buildSummary(useWorkoutStore.getState().workouts, today, res.name));
       }
     } catch (err) {
-      // 진행표만 못 넘겼다. 기록은 위에서 이미 저장됐다 —
-      // **다만 신호가 없을 때는 말해준다** (2026-11-04). 조용히 두면 칸이 안 넘어간
-      // 채로 화면이 **그 운동을 계속 묻고**, 사람은 저장이 안 된 줄 안다(안 됐다고
-      // 믿고 또 적는다). 지하에서 여덟 칸짜리 루틴을 돌면 끝까지 1/8 이다
-      if (isOfflineError(err)) {
-        toast('신호가 없어 진행표는 안 넘어갔어요 — 기록은 적혔습니다', 'error');
+      // 진행표만 못 넘겼다. 기록은 위에서 이미 저장됐다 — 진행표가 한 칸 안 넘어간
+      // 것 때문에 「저장 실패」라고 하면 거짓말이다.
+      //
+      // **신호가 없는 것은 이제 여기로 안 온다** (2026-11-04, D안) — 스토어가 줄에
+      // 세우고 칸을 넘겨준다. 여기 오는 것은 서버가 거절한 것(409 — 다른 기기가
+      // 다른 루틴을 시작했다)과 담지 못한 것뿐이다
+      if (err?.response?.status === 409) {
+        toast('다른 기기에서 다른 루틴을 시작했어요 — 진행표를 새로 불러왔습니다', 'error');
       }
     }
   };
