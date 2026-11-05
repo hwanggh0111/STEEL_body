@@ -354,5 +354,42 @@ ok('목표 카드는 「목표 N주 연속」이라고 적는다', /목표 \{str
 ok('목표 화면도 목표라고 적는다',
   /목표를 채운 주/.test(fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8')), true);
 
+console.log('');
+console.log('── ★★ 앞날 기록으로 미리 채워지지 않는가 ──');
+// ── 무엇이 틀렸었나 ── (2026-11-05)
+//
+// 서버는 기록 날짜를 **하루 넉넉하게** 받는다 — 시차와 자정 무렵을 위해 일부러
+// 그렇게 뒀다(`backend/src/utils/dayRange.js`: 「위쪽 테두리는 하루 넉넉하게 준다」).
+// 그래서 **내일 날짜 줄이 실제로 들어온다.**
+//
+// 몸 지도(`bodyHeat`) · 체형(`shapeRead`) · 최고 기록(`personalRecord`) · 서버의
+// 부위 계산은 전부 `date > today` 를 건너뛴다 — 9/30 에 최고 기록에서 똑같이
+// 빠뜨렸던 자리고, 그때 그 파일 머리글에 **「여기만 빠져 있었다」**고 적어뒀다.
+// 그런데 **목표 · 이번 주 요약 · 달 요약 셋에는 그 줄이 없었다.**
+//
+// 그러면 아직 하지도 않은 운동으로 **목표가 미리 채워진다**: 목요일에 토요일 줄을
+// 적어두면 「주 3회 중 **2회** 했어요 · 1회 남았어요」(한 번 했는데).
+{
+  const day = (d) => ({ date: d, exercise: '벤치프레스', weight: '80', sets: 4, reps: 8 });
+  const TODAY = '2026-11-05';                       // 목요일
+  const wk = { '2026-11-03': [day('2026-11-03')], '2026-11-07': [day('2026-11-07')] };
+  const goal = { weeklyTarget: 3, startedAt: '2026-10-01' };
+
+  const wp = g.weekProgress(wk, goal, TODAY);
+  ok('**목표가 앞날 줄로 미리 안 채워진다**', [wp.done, wp.left], [1, 2]);
+  ok('  지난 주 목록도 그렇다', g.weekHistory(wk, goal, TODAY).slice(-1)[0].done, 1);
+
+  const weekly = bundle('src/data/weeklyReport.js', '.wkfuture.cjs');
+  const r = weekly.buildWeekly(wk, new Date(TODAY + 'T12:00:00'));
+  ok('**이번 주 요약도 앞날을 안 센다**', [r.daysDone, r.volume.kg], [1, 2560]);
+  // 달력 줄은 **적힌 그대로** 둔다 — 그 날에 줄이 있는 것은 참이다
+  ok('  달력 줄은 적힌 그대로다', r.days.filter((d) => d.done).length, 2);
+
+  const mg = bundle('src/data/monthGrid.js', '.mgfuture.cjs');
+  ok('**달 요약도 앞날을 안 센다**',
+    (() => { const m = mg.monthSummary(wk, 2026, 11, TODAY); return [m.days, m.count]; })(), [1, 1]);
+  ok('  날을 안 넘기면 여태처럼 다 센다', mg.monthSummary(wk, 2026, 11).days, 2);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

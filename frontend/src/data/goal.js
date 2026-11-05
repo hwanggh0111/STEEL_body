@@ -33,8 +33,18 @@ function at(key) {
 const listOf = (workouts, key) => (workouts?.[key] || []);
 
 /** 그 주에 운동한 날 수. */
-function doneIn(workouts, keys) {
-  return keys.filter(k => listOf(workouts, k).length > 0).length;
+// ── **앞날은 안 센다** ── (2026-11-05)
+//
+// 서버는 기록 날짜를 **하루 넉넉하게** 받는다 — 시차와 자정 무렵을 위해 일부러
+// 그렇게 뒀다(`utils/dayRange.js`). 그래서 **내일 날짜 줄이 실제로 들어온다.**
+// 몸 지도 · 체형 · 최고 기록 · 서버의 부위 계산은 전부 `date > today` 를 건너뛰는데
+// **이 파일에는 그 줄이 없었다.**
+//
+// 그러면 **아직 하지도 않은 운동으로 목표가 미리 채워진다** — 목요일에 토요일 줄을
+// 적어두면 「주 3회 중 **2회** 했어요 · 1회 남았어요」가 된다(한 번 했는데).
+// 목표는 **지킨 것을 세는 수**라 미리 채워지면 뜻이 없다.
+function doneIn(workouts, keys, today) {
+  return keys.filter(k => (!today || k <= today) && listOf(workouts, k).length > 0).length;
 }
 
 function weekBack(monday, n) {
@@ -75,7 +85,7 @@ export function weekProgress(workouts, goal, today = dateKey()) {
   if (!target) return null;
 
   const keys = weekKeys(mondayOf(at(today)));
-  const done = doneIn(workouts, keys);
+  const done = doneIn(workouts, keys, today);
   const idx = keys.indexOf(today);
 
   // 오늘을 **넣어서** 센다 — 오늘 아직 안 했어도 오늘 하면 되기 때문이다.
@@ -128,7 +138,7 @@ export function weekHistory(workouts, goal, today = dateKey(), n = 5) {
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
     const monday = weekBack(thisMonday, i);
-    const done = doneIn(workouts, weekKeys(monday));
+    const done = doneIn(workouts, weekKeys(monday), today);
     const before = startMonday ? monday < startMonday : false;
     out.push({
       monday: dateKey(monday),
@@ -157,7 +167,9 @@ export function weekStreak(workouts, goal, today = dateKey()) {
   const target = goal?.weeklyTarget;
   if (!target) return null;
 
-  const dates = Object.keys(workouts || {}).filter(k => listOf(workouts, k).length > 0).sort();
+  const dates = Object.keys(workouts || {})
+    .filter(k => k <= today && listOf(workouts, k).length > 0)
+    .sort();
   if (dates.length === 0) return { current: 0, best: 0, weeks: 0 };
 
   const thisMonday = mondayOf(at(today));
@@ -181,7 +193,7 @@ export function weekStreak(workouts, goal, today = dateKey()) {
     Math.round((thisMonday - firstMonday) / (7 * 24 * 3600 * 1000)) + 1);
   const met = [];
   for (let i = span - 1; i >= 0; i--) {
-    met.push(doneIn(workouts, weekKeys(weekBack(thisMonday, i))) >= target);
+    met.push(doneIn(workouts, weekKeys(weekBack(thisMonday, i)), today) >= target);
   }
 
   // 지금 이어오는 것 — 뒤에서부터. 이번 주가 아직이면 한 칸 건너뛴다

@@ -298,7 +298,9 @@ export default function HistoryPage() {
     setSelectedDate(date);
   }, [location.state?.date]);
 
-  const summary = useMemo(() => monthSummary(workouts, ym.year, ym.month), [workouts, ym]);
+  // **오늘**을 같이 넘긴다 — 앞날 줄(시차로 하루 넉넉하게 받는다)을 세면
+  // 「이 달에 N일 나오셨어요」가 아직 안 한 날을 센다 (2026-11-05)
+  const summary = useMemo(() => monthSummary(workouts, ym.year, ym.month, today), [workouts, ym, today]);
   // 기록이 있는 달만 안다. 텅 빈 달을 화살표로 계속 넘기지 않게 「기록이 있는 달로」를 준다
   const monthsWith = useMemo(() => monthsWithRecords(workouts), [workouts]);
   const thisYm = `${ym.year}-${String(ym.month).padStart(2, '0')}`;

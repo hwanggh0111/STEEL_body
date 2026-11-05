@@ -57,10 +57,16 @@ export function partOfDay(list) {
  *
  * 볼륨은 무게를 적은 것만 센다 — 맨몸은 체중을 모른다 (이번 주 요약과 같은 이유).
  */
-export function monthSummary(workouts, year, month) {
+// **앞날은 안 센다** (2026-11-05) — 서버는 날짜를 하루 넉넉하게 받으므로
+// (시차 · 자정 무렵, `utils/dayRange.js`) **내일 날짜 줄이 실제로 들어온다.**
+// 그러면 「이 달에 3일 나오셨어요」가 **아직 안 한 날을 세어** 말하게 된다.
+// 달력의 점은 적힌 그대로 둔다(그 날에 줄이 있는 것은 참이다) — **세는 수만**
+// 오늘까지다. `today` 를 안 넘기면 여태처럼 다 센다
+export function monthSummary(workouts, year, month, today = null) {
   const prefix = `${year}-${String(month).padStart(2, '0')}-`;
   const entries = Object.entries(workouts || {})
-    .filter(([key, list]) => key.startsWith(prefix) && list && list.length > 0);
+    .filter(([key, list]) => key.startsWith(prefix) && list && list.length > 0
+      && (!today || key <= today));
 
   let sets = 0;
   let kg = 0;

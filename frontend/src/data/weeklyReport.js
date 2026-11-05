@@ -37,14 +37,27 @@ function weekAgo(monday, n) {
 
 const listOf = (workouts, key) => (workouts?.[key] || []);
 
-/** 한 주의 기록을 한 줄로 편다. */
-function flatWeek(workouts, keys) {
-  return keys.flatMap(k => listOf(workouts, k));
+// ── **앞날은 안 센다** ── (2026-11-05)
+//
+// 서버는 기록 날짜를 **하루 넉넉하게** 받는다 — 시차와 자정 무렵을 위해 일부러
+// 그렇게 뒀다(`utils/dayRange.js`). 그래서 **내일 날짜 줄이 실제로 들어온다.**
+//
+// 몸 지도(`bodyHeat`) · 체형(`shapeRead`) · 최고 기록(`personalRecord`) · 서버의
+// 부위 계산은 전부 `date > today` 를 건너뛰는데 **이 파일과 달 요약 · 목표에만
+// 그 줄이 없었다** — 9/30 에 최고 기록에서 똑같이 빠뜨렸던 자리다.
+//
+// 그러면 **아직 하지도 않은 운동이 이번 주에 들어간다**: 목요일에 「운동한 날 4일」
+// 이라고 적히고(토요일 줄이 들어 있다) 볼륨도 미리 더해진다.
+const upto = (keys, today) => (today ? keys.filter((k) => k <= today) : keys);
+
+/** 한 주의 기록을 한 줄로 편다. **앞날은 뺀다.** */
+function flatWeek(workouts, keys, today) {
+  return upto(keys, today).flatMap(k => listOf(workouts, k));
 }
 
-/** 운동한 날 수. */
-function doneDays(workouts, keys) {
-  return keys.filter(k => listOf(workouts, k).length > 0).length;
+/** 운동한 날 수. **앞날은 뺀다.** */
+function doneDays(workouts, keys, today) {
+  return upto(keys, today).filter(k => listOf(workouts, k).length > 0).length;
 }
 
 /**
@@ -73,10 +86,12 @@ export function volumeOf(records) {
  * 한 주씩 거슬러 가며 7일을 다시 만들어 보면, 기록이 없는 사람도 5년치(260주 × 7일)를
  * 헛돈다. 운동한 날을 **주 단위로 한 번 접어두고** 이어지는 만큼만 센다.
  */
-function streakWeeks(workouts, monday) {
+function streakWeeks(workouts, monday, today) {
   const weeks = new Set();
   Object.entries(workouts || {}).forEach(([key, list]) => {
     if (!list || list.length === 0) return;
+    // 앞날 줄로 주를 세우지 않는다 — 내일 것을 적어두면 **이어온 주가 하나 늘어난다**
+    if (today && key > today) return;
     const d = new Date(`${key}T00:00:00`);
     if (Number.isNaN(d.getTime())) return;
     weeks.add(dateKey(mondayOf(d)));
@@ -143,11 +158,14 @@ export function buildWeekly(workouts, ref = new Date()) {
   const keys = weekKeys(monday);
   const prevKeys = weekKeys(weekAgo(monday, 1));
 
-  const records = flatWeek(workouts, keys);
-  const prevRecords = flatWeek(workouts, prevKeys);
+  // **오늘**이 기준이다 — 이 뒤로는 아직 한 것이 아니다 (위 `upto` 머리글)
+  const today = dateKey(ref);
 
-  const daysDone = doneDays(workouts, keys);
-  const prevDays = doneDays(workouts, prevKeys);
+  const records = flatWeek(workouts, keys, today);
+  const prevRecords = flatWeek(workouts, prevKeys, today);
+
+  const daysDone = doneDays(workouts, keys, today);
+  const prevDays = doneDays(workouts, prevKeys, today);
   const parts = partDistribution(records);
   const prevParts = partDistribution(prevRecords);
   // 이번 주 유산소 (2026-11-05) — **볼륨에 들 수 없는 것**이다. 유산소만 한 주에
@@ -160,6 +178,8 @@ export function buildWeekly(workouts, ref = new Date()) {
   }, { count: 0, minutes: 0, km: 0 });
 
   const days = keys.map(key => {
+    // 달력 줄은 **적힌 그대로** 보여준다(앞날에 적어둔 것도 그 자리에 있다) —
+    // 세는 수만 오늘까지다
     const list = listOf(workouts, key);
     const top = partDistribution(list)[0];
     return { key, done: list.length > 0, part: top?.part || null };
@@ -168,7 +188,7 @@ export function buildWeekly(workouts, ref = new Date()) {
   // 지난 네 주 (이번 주가 맨 오른쪽)
   const last4 = [3, 2, 1, 0].map(i => {
     const m = weekAgo(monday, i);
-    return { from: dateKey(m), days: doneDays(workouts, weekKeys(m)), current: i === 0 };
+    return { from: dateKey(m), days: doneDays(workouts, weekKeys(m), today), current: i === 0 };
   });
 
   return {
@@ -179,7 +199,7 @@ export function buildWeekly(workouts, ref = new Date()) {
     daysDone,
     prevDays,
     volume: volumeOf(records),
-    streak: streakWeeks(workouts, monday),
+    streak: streakWeeks(workouts, monday, today),
     parts,
     last4,
     notes: notesOf({ prevDays, parts, prevParts, daysDone }),
