@@ -78,13 +78,16 @@ const at = (r) => {
  *   body     맨몸 판인가
  *   spanMs   첫 줄 ~ 마지막 줄 (줄이 둘 이상이고 시각을 읽을 수 있을 때만)
  *   skipped  대표 줄을 못 잡았다 (드롭 줄만 있는 날) — 셈에서 뺀다
+ *
+ * `before` 를 주면 **그 날과 그 뒤는 뺀다.** 「지난 판」과 「다음 한 걸음」이 그것을
+ * 쓴다 — 아래 두 함수의 머리글에 까닭을 적어뒀다.
  */
-export function sessionsOf(workouts, exercise, today = null, { max = MAX_SESSIONS } = {}) {
+export function sessionsOf(workouts, exercise, today = null, { max = MAX_SESSIONS, before = null } = {}) {
   const name = String(exercise ?? '').trim();
   if (!name) return [];
   const dates = Object.keys(workouts || {})
     // **앞날은 아직 한 것이 아니다** — 달력에서 앞날에 적을 수 있다 (`bodyHeat` 와 같은 자)
-    .filter((d) => d && (!today || d <= today))
+    .filter((d) => d && (!today || d <= today) && (!before || d < before))
     .sort()
     .reverse();
 
@@ -164,9 +167,22 @@ export function stepOf(sessions) {
  *   step    올린 칸 (`kind === 'up'` 일 때만)
  *   target  'retry' 에서 노렸던 횟수
  *   capped  테두리에 걸려 더 못 올렸다
+ *
+ * ── **적고 있는 날은 셈에서 뺀다** ── (2026-11-05, 붙인 자리에서 잡았다)
+ *
+ * `writing` 은 지금 적고 있는 날짜다(대개 오늘, 지난 날짜에 적을 때는 그 날).
+ * 그 날을 섞어 세면 **오늘 한 세트를 적자마자** 「80kg 8회를 3판 채웠어요 —
+ * 올려볼 자리예요」가 뜬다 —
+ *
+ *   · **오늘은 아직 안 끝났다.** 한 세트만 하고 멈출 수도 있는데 완료로 센다
+ *     (11/04 에 부위 볼륨에서 「안 끝난 주는 늘 꺾여 보인다」로 배운 그 모양이다)
+ *   · 더 나쁜 것은 그 권유가 **지금 적을 칸에** 뜬다는 것이다 — 세트 사이에
+ *     「82.5kg 로 올리세요」로 읽힌다
+ *
+ * 그래서 **어제까지의 흐름**으로 오늘 할 것을 권한다.
  */
-export function nextStep(workouts, exercise, today = null) {
-  const all = sessionsOf(workouts, exercise, today);
+export function nextStep(workouts, exercise, today = null, writing = null) {
+  const all = sessionsOf(workouts, exercise, today, { before: writing || today });
   const s = all.filter((x) => !x.skipped);
   if (!s.length) return null;
 
@@ -275,9 +291,13 @@ export function spanLabel(ms) {
  *   lines   `[{ kg, weightText, reps, sets, link }]` — 적은 차례. `link` 는 'super'·'drop'
  *   totalSets           그날 그 운동의 세트 합
  *   span                '26분' — **첫 줄부터 마지막 줄까지**. 못 재면 null
+ *
+ * ★ **적고 있는 날은 「지난 판」이 아니다** (2026-11-05). 안 빼면 오늘 한 세트를
+ * 적은 뒤 **「지난 판 · 11/05 (오늘) · 1줄」**이 뜬다 — 이름과 다르고, 그 내용은
+ * 바로 아래 오늘 목록에 이미 있다(같은 것을 두 번 그린다).
  */
-export function lastSession(workouts, exercise, today = null) {
-  const s = sessionsOf(workouts, exercise, today, { max: 1 })[0];
+export function lastSession(workouts, exercise, today = null, writing = null) {
+  const s = sessionsOf(workouts, exercise, today, { max: 1, before: writing || today })[0];
   if (!s) return null;
   const lines = s.rows.map((w) => {
     const kg = parseWeight(w?.weight);

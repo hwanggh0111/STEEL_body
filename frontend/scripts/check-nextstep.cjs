@@ -216,6 +216,33 @@ ok('시각을 못 읽는 줄은 뒤에 둔다',
   L.lastSession(noStamp, '벤치프레스', TODAY).lines.map((l) => l.weightText), ['80kg', '75kg']);
 
 console.log('');
+console.log('── ★ 적고 있는 날은 셈에서 뺀다 ──');
+// ★★ **오늘은 아직 안 끝났다.** 안 빼면 오늘 한 세트를 적자마자 「80kg 8회를 3판
+//    채웠어요 — 올려볼 자리예요」가 **지금 적을 칸에** 뜬다 — 세트 사이에
+//    「82.5kg 로 올리세요」로 읽힌다 (11/04 에 「안 끝난 주는 늘 꺾여 보인다」로
+//    배운 그 모양이다)
+const withToday = days(
+  row('벤치프레스', '80', 4, 8, { date: '2026-10-28' }),
+  row('벤치프레스', '80', 4, 8, { date: '2026-10-31' }),
+  row('벤치프레스', '80', 1, 8, { date: TODAY }),      // 오늘 한 세트만 적었다
+);
+const wt = L.nextStep(withToday, '벤치프레스', TODAY, TODAY);
+ok('**오늘 적은 줄을 완료로 세지 않는다**', [wt.kind, wt.streak, wt.need], ['same', 2, 1]);
+// ★ 「지난 판」은 **지난 날**이다 — 오늘 것은 바로 아래 목록에 이미 있다
+ok('**「지난 판」에 오늘이 안 뜬다**',
+  (() => { const x = L.lastSession(withToday, '벤치프레스', TODAY, TODAY); return [x.date, x.ago]; })(),
+  ['2026-10-31', '5일 전']);
+// 지난 날짜에 적을 때는 **그 날 앞까지** 본다 (달력에서 어제 것을 적어 넣는 길)
+ok('지난 날짜에 적으면 그 날 앞까지 본다',
+  L.nextStep(withToday, '벤치프레스', TODAY, '2026-10-31').from.date, '2026-10-28');
+// 날을 안 넘기면 오늘을 뺀다 (`writing` 이 없으면 `today` 로 본다)
+ok('  날을 안 넘기면 오늘로 본다',
+  L.nextStep(withToday, '벤치프레스', TODAY).from.date, '2026-10-31');
+// 그 날 앞에 아무것도 없으면 권하지 않는다
+ok('  그 앞에 판이 없으면 안 권한다',
+  L.nextStep(days(row('벤치프레스', '80', 4, 8, { date: TODAY })), '벤치프레스', TODAY, TODAY), null);
+
+console.log('');
 console.log('── 왜 이 수인가 (화면이 그대로 적는 말) ──');
 // ★ 말과 수는 **같이 틀린다** — 「세 판 채웠어요」라고 적으면서 두 판만 셌으면 거짓이다
 ok('올릴 때', L.stepReason(up), '80kg 8회를 3판 채웠어요 — 한 칸(2.5kg) 올려볼 자리예요.');

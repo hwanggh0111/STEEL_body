@@ -339,10 +339,16 @@ export default function TrainPage() {
   // 고르는 데 꼭 필요한 바로 그것이다. 셈은 `data/lastSets.js` 에 있다
   // (화면에서는 확인할 수 없는 셈이다 — 「세 판 연속」을 눈으로 보려면 기록을
   // 세 판 만들어야 한다. `npm run nextstep` 이 값으로 본다)
-  const step = useMemo(() => nextStep(workouts, exercise, today), [workouts, exercise, today]);
-  const lastPlay = useMemo(() => lastSession(workouts, exercise, today), [workouts, exercise, today]);
-  // 지난 판은 **접은 채로** 시작한다 — 펼쳐 두면 적는 칸이 아래로 밀린다
+  // **적고 있는 날**(`date`)을 같이 넘긴다 — 그 날은 셈에서 뺀다. 안 빼면 오늘
+  // 한 세트를 적자마자 「3판 채웠어요 · 올려볼 자리예요」가 뜨고(오늘은 아직 안
+  // 끝났다) 「지난 판」에 **오늘**이 뜬다. 지난 날짜에 적을 때도 그 날 앞까지 본다
+  const step = useMemo(() => nextStep(workouts, exercise, today, date), [workouts, exercise, today, date]);
+  const lastPlay = useMemo(() => lastSession(workouts, exercise, today, date), [workouts, exercise, today, date]);
+  // 지난 판은 **접은 채로** 시작한다 — 펼쳐 두면 적는 칸이 아래로 밀린다.
+  // **운동을 바꾸면 다시 접는다** — 안 접으면 다음 운동의 지난 판이 펼쳐진 채
+  // 뜬다(한 번 펼친 것이 그 뒤 모든 운동에 따라붙는다)
   const [openLast, setOpenLast] = useState(false);
+  useEffect(() => { setOpenLast(false); }, [exercise]);
 
   /** 권한 값을 칸에 넣는다. **단추를 눌렀을 때만** 움직인다 (미리 채우기와 다투지 않는다) */
   const fillStep = () => {
