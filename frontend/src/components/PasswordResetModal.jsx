@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+// 메일 칸은 **한 손으로** 다듬는다 (2026-11-05 — 가입에서 두 걸음이 어긋났다)
+import { cleanEmailField } from '../data/typedField';
 import client from '../api/client';
 import { passwordError } from '../data/password';
 import { PW_MAX, PW_MIN } from '../data/limits';
@@ -54,7 +56,10 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
     if (mailReady === false) { setError('지금은 메일을 보낼 수 없어요. 관리자에게 문의해주세요'); return; }
     setLoading(true);
     try {
-      const { data } = await client.post('/auth/send-code', { email: email.trim() });
+      // **번호를 받는 걸음과 쓰는 걸음이 같은 손으로 다듬는다** (2026-11-05).
+      // 가입 쪽에서 그 둘이 어긋나 **대문자가 섞인 메일로는 가입이 안 됐다** —
+      // 여기는 양쪽이 `trim()` 으로 같았지만, 한 손으로 모아 다음에 안 어긋나게 둔다
+      const { data } = await client.post('/auth/send-code', { email: cleanEmailField(email) });
       setStep(2);
       setInfo(data.code ? `[개발 모드] 인증번호: ${data.code}` : '인증번호가 이메일로 발송됐어요');
     } catch (err) {
@@ -76,7 +81,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
     if (newPw !== newPw2) { setError('새 비밀번호가 일치하지 않아요'); return; }
     setLoading(true);
     try {
-      await client.post('/auth/reset-password', { email: email.trim(), code: code.trim(), newPassword: newPw });
+      await client.post('/auth/reset-password', { email: cleanEmailField(email), code: code.trim(), newPassword: newPw });
       setStep(3);
     } catch (err) {
       setError(err.response?.data?.error || '비밀번호 재설정 실패');

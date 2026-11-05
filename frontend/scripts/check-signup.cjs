@@ -218,6 +218,33 @@ for (const [화면, 이름] of [['src/pages/RegisterPage.jsx', 'cleanEmailField'
   ok(`${화면} 가 그 자를 쓴다`, read(화면).includes(이름), true);
 }
 // 가입 화면이 **제 손으로 소문자만** 낮추던 자리가 남아 있나
+// ── ★ **메일을 서버로 보내는 자리가 다 같은 손을 거치는가** ── (2026-11-05)
+//
+// 위의 「쓰는 데 셋」은 **파일에 그 이름이 있는가**만 봤다. 그런데 가입은 메일을
+// **두 걸음**에 걸쳐 보내고(`send-code` · `register`) **그 둘이 다른 손**을 쓰고 있었다:
+//
+//   send-code   `email.trim()`            → `Kevin@Test.com`
+//   register    `cleanEmailField(email)`  → `kevin@test.com`
+//
+// 서버는 인증번호를 **생글자 메일**로 보관했으므로 가입이 「인증번호를 먼저
+// 발송해주세요」로 막혔다 — **대문자가 하나라도 들어간 메일로는 가입이 안 됐다.**
+// **폰 자판은 첫 글자를 대문자로 만든다.** 서버도 열쇠로 맞추게 고쳤지만
+// (`db.putVerifyCode`), 두 겹으로 막는다 — **생글자로 보내는 자리**가 없는지 본다.
+const 메일보내는자리 = [
+  ['가입', 'src/pages/RegisterPage.jsx'],
+  ['비밀번호 재설정', 'src/components/PasswordResetModal.jsx'],
+  ['소셜 로그인 메일 확인', 'src/pages/OauthEmailPage.jsx'],
+];
+const 생글자메일 = [];
+for (const [이름, 파일] of 메일보내는자리) {
+  const src = read(파일);
+  if (!src.includes('cleanEmailField')) 생글자메일.push(`${이름} — 다듬는 손을 안 쓴다`);
+  for (const m of src.matchAll(/email:\s*([A-Za-z0-9_.]+)\.trim\(\)/g)) {
+    생글자메일.push(`${이름} — email: ${m[1]}.trim() (한 손을 안 거쳤다)`);
+  }
+}
+ok('메일을 보내는 자리가 다 같은 손을 쓴다', 생글자메일, []);
+
 ok('가입 화면이 아이디를 제 손으로 안 다듬는다',
   read('src/pages/RegisterPage.jsx').includes("val.toLowerCase()"), false);
 

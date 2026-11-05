@@ -160,6 +160,32 @@ async function run() {
     ok('  아이디만 바꿔 **같은 번호로** 다시 된다', retry.status, 201);
 
     console.log('');
+    console.log('── ★ 메일에 대문자가 섞여 있어도 가입된다 ──');
+    //
+    // **폰 자판은 첫 글자를 대문자로 만든다.** 그래서 번호는 `Kevin@…` 으로 받고,
+    // 가입 화면은 메일 칸을 **소문자로 다듬어**(`data/typedField.cleanEmailField`)
+    // `kevin@…` 으로 보낸다 — 두 걸음이 **다른 글자**로 간다.
+    //
+    // 사람 쪽은 소문자 열쇠로 맞추는데(`db.emailKey`) **인증번호만 생글자로**
+    // 보관하고 해시까지 생글자로 만들면, 가입이 「인증번호를 먼저 발송해주세요」로
+    // 막힌다. **대문자가 하나라도 들어간 메일로는 가입이 안 되는 것이다.**
+    const upper = await codeFor('Kevin@Test.local');
+    ok('대문자 메일로 번호가 온다', /^[0-9]{6}$/.test(String(upper)), true);
+    const lowered = await join('kevin@test.local', { code: upper });
+    ok('**소문자로 다듬어 보내도 가입된다**', lowered.status, 201);
+    ok('  계정이 생겼다', !!db.findUserByEmail('KEVIN@TEST.LOCAL'), true);
+    // 반대 쪽도 — 소문자로 받고 대문자로 보내는 길(다른 기기 · 자동완성)
+    const lowerCode = await codeFor('ann@test.local');
+    const upperJoin = await join('Ann@Test.local', { code: lowerCode });
+    ok('  거꾸로도 된다 (소문자로 받고 대문자로 보내기)', upperJoin.status, 201);
+    // 번호를 다시 받으면 **앞의 것은 죽어야 한다** — 대소문자로 두 줄이 공존하면
+    // 옛 번호가 10분 동안 살아 있다
+    const first = await codeFor('bob@test.local');
+    await codeFor('BOB@test.local');
+    const stale = await join('bob@test.local', { code: first });
+    ok('  다시 받으면 앞의 번호는 죽는다 (대소문자로 두 줄이 안 생긴다)', stale.status, 400);
+
+    console.log('');
     console.log('── 관리자 가로채기 ── (ADMIN_EMAIL=boss@gmail.com)');
     const steal = await join('boss@gmail.com');
     ok('번호 없이 관리자 주소로 가입할 수 없다', steal.status, 400);

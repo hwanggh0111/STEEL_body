@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+// 메일 칸은 **한 손으로** 다듬는다 (2026-11-05 — 가입에서 두 걸음이 어긋났다)
+import { cleanEmailField } from '../data/typedField';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import client from '../api/client';
@@ -104,7 +106,8 @@ export default function OauthEmailPage() {
     setSending(true);
     setError('');
     try {
-      const { data } = await client.post('/auth/send-code', { email: email.trim() });
+      // 가입 · 비밀번호 찾기와 **같은 손**으로 다듬는다 (2026-11-05)
+      const { data } = await client.post('/auth/send-code', { email: cleanEmailField(email) });
       setSent(true);
       setInfo(data?.code
         ? `[개발 모드] 인증번호: ${data.code}`
@@ -122,7 +125,7 @@ export default function OauthEmailPage() {
     setSaving(true);
     setError('');
     try {
-      const { data } = await client.post('/oauth/email', { email: email.trim(), code });
+      const { data } = await client.post('/oauth/email', { email: cleanEmailField(email), code });
       useAuthStore.getState().socialLoggedIn({ nickname: data?.nickname, email: data?.email });
       if (data?.restored) toast('계정이 되살아났어요');
       // **가려던 자리로** (2026-10-20). 메일을 묻는 걸음을 거쳐도 잃지 않는다 —

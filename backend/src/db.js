@@ -2113,13 +2113,26 @@ const db = {
     data.socialPending = data.socialPending.filter(r => r.token !== tokenHash);
     save(data);
   },
+  // ── **메일 열쇠로 보관한다** ── (2026-11-05)
+  //
+  // 사람은 `emailKey`(앞뒤 떼고 소문자)로 맞추는데 **인증번호만 생글자로** 보관하고
+  // 있었다. 그래서 둘이 어긋났다 —
+  //
+  //   · 폰 자판은 첫 글자를 **대문자로** 만든다 → 번호는 `Kevin@…` 으로 받는다
+  //   · 가입 화면은 메일 칸을 **소문자로 다듬어** 보낸다(`cleanEmailField`)
+  //   → 가입이 **「인증번호를 먼저 발송해주세요」**로 막힌다.
+  //     **대문자가 하나라도 들어간 메일로는 가입이 안 됐다**
+  //
+  // 그리고 대소문자로 **두 줄이 공존**해서 「새로 보내면 앞의 것은 죽는다」가 깨졌다 —
+  // 다시 받아도 **옛 번호가 10분 동안 살아 있었다.**
   putVerifyCode(email, hash, ttlMs) {
     const data = load();
     if (!data.verifyCodes) data.verifyCodes = [];
     const now = Date.now();
+    const key = emailKey(email);
     // 새로 보내면 앞의 것은 죽는다. 같이 식은 줄도 이때 걷는다
-    data.verifyCodes = data.verifyCodes.filter(r => r && r.expires > now && r.email !== email);
-    const row = { email, hash, expires: now + ttlMs, attempts: 0 };
+    data.verifyCodes = data.verifyCodes.filter(r => r && r.expires > now && emailKey(r.email) !== key);
+    const row = { email: key, hash, expires: now + ttlMs, attempts: 0 };
     data.verifyCodes.push(row);
     save(data);
     // **여기서는 기다리지 않고 바로 쓴다.** 보통 저장은 0.5초 모아 쓰는데,
@@ -2131,10 +2144,13 @@ const db = {
   /** 살아 있는 줄만 돌려준다. 만료된 줄은 그 자리에서 걷는다 */
   getVerifyCode(email) {
     const data = load();
-    const row = (data.verifyCodes || []).find(r => r.email === email);
+    const key = emailKey(email);
+    // **열쇠로 찾는다** (위 `putVerifyCode` 머리글). 10/05 이전에 담긴 생글자 줄도
+    // 같이 찾히게 양쪽을 열쇠로 맞춘다 — 번호는 10분이면 식으니 곧 다 열쇠가 된다
+    const row = (data.verifyCodes || []).find(r => emailKey(r.email) === key);
     if (!row) return null;
     if (Date.now() > row.expires) {
-      data.verifyCodes = data.verifyCodes.filter(r => r.email !== email);
+      data.verifyCodes = data.verifyCodes.filter(r => emailKey(r.email) !== key);
       save(data);
       return null;
     }
@@ -2143,7 +2159,7 @@ const db = {
   /** 틀린 횟수를 하나 올리고 누적을 돌려준다 */
   bumpVerifyAttempt(email) {
     const data = load();
-    const row = (data.verifyCodes || []).find(r => r.email === email);
+    const row = (data.verifyCodes || []).find(r => emailKey(r.email) === emailKey(email));
     if (!row) return 0;
     row.attempts = (row.attempts || 0) + 1;
     save(data);
@@ -2153,7 +2169,8 @@ const db = {
     const data = load();
     if (!data.verifyCodes || !data.verifyCodes.length) return;
     const before = data.verifyCodes.length;
-    data.verifyCodes = data.verifyCodes.filter(r => r.email !== email);
+    const key = emailKey(email);
+    data.verifyCodes = data.verifyCodes.filter(r => emailKey(r.email) !== key);
     if (data.verifyCodes.length !== before) save(data);
   },
   /** 식은 줄 걷기. 안 걷으면 번호를 받아간 메일 수만큼 파일이 커진다 */

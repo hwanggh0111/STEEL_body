@@ -273,7 +273,11 @@ export default function RegisterPage() {
     if (mailReady === false) { setCodeError('지금은 메일을 보낼 수 없어요. 관리자에게 문의해주세요'); return; }
     setCodeSending(true);
     try {
-      const { data } = await client.post('/auth/send-code', { email: email.trim() });
+      // **가입에 보내는 것과 같은 손으로 다듬어 보낸다** (2026-11-05).
+      // 여태 여기는 `trim()`, 가입은 `cleanEmailField`(소문자)였다 — 대문자가
+      // 섞인 메일은 **두 걸음이 다른 글자로 가서** 가입이 막혔다.
+      // 서버도 열쇠로 맞추게 고쳤지만, **두 겹으로 막는다**
+      const { data } = await client.post('/auth/send-code', { email: cleanEmailField(email) });
       setCodeSent(true);
       // 내 컴퓨터(SMTP 없음)에서는 번호가 응답에 실려 온다 — 그때만 화면에 띄운다
       setCodeInfo(data?.code ? `[개발 모드] 인증번호: ${data.code}` : '인증번호를 메일로 보냈어요 (5분 안에 입력)');
@@ -294,7 +298,7 @@ export default function RegisterPage() {
     if (code.length !== 6) { setCodeError('메일로 받은 6자리를 넣어주세요'); return; }
     setVerifying(true);
     try {
-      await client.post('/auth/verify-code', { email: email.trim(), code: code.trim() });
+      await client.post('/auth/verify-code', { email: cleanEmailField(email), code: code.trim() });
       const guess = suggestUsername(email);
       if (guess && !username) updateUsernameHint(guess);
       setStep('account');

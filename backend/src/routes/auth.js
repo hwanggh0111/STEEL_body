@@ -73,8 +73,11 @@ function makeCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
+// ★ **해시도 메일 열쇠로 만든다** (2026-11-05). 생글자로 만들면 보관 자리를 열쇠로
+// 맞춰도 `Kevin@…` 으로 받은 번호와 `kevin@…` 으로 보낸 번호의 해시가 달라 **「인증번호가
+// 틀렸어요」**가 된다 — 막히는 자리만 한 칸 옮겨 가는 것이다 (`db.putVerifyCode` 머리글)
 function hashCode(email, code) {
-  return crypto.createHash('sha256').update(String(email) + ':' + String(code)).digest('hex');
+  return crypto.createHash('sha256').update(db.emailKey(email) + ':' + String(code)).digest('hex');
 }
 
 // 번호 맞춰보기. verify-code 와 reset-password 가 **같은 판단**을 해야 해서 한 곳에 둔다
