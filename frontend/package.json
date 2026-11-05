@@ -88,7 +88,8 @@
     "basement": "node scripts/check-basement.cjs",
     "volume": "node scripts/check-volume.cjs",
     "composition": "node scripts/check-composition.cjs",
-    "alive": "node scripts/check-alive.cjs"
+    "alive": "node scripts/check-alive.cjs",
+    "draw": "node scripts/check-draw.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

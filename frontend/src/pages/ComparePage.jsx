@@ -656,7 +656,12 @@ export default function ComparePage({ embedded = false }) {
           축마다 눈금이 따로라(그 말이 그림에 적혀 있다) 단위가 달라도 서로 안 뭉갠다.
           **묶음 막대는 뺐다** — 0부터 시작하는 한 눈금에 체중(73)과 체지방(16)을 같이
           세워서, 사람이 보러 온 1.5% 변화가 픽셀 두어 개로 뭉개졌다.
-          제목도 「밸런스 비교」에서 고쳤다 — 균형을 재는 그림이 아니다 */}
+          제목도 「밸런스 비교」에서 고쳤다 — 균형을 재는 그림이 아니다.
+
+          **단위를 같이 넘긴다** (2026-11-05) — 위의 표는 「22%」라고 적는데 바로 밑의
+          이 그림은 「22」라고만 적고 있었다. 체중(kg) · 체지방률(%) · 체수분(L) 이
+          다 단위 없이 나란히 적히면 **다른 단위로 읽힌다** (체지방률 22 → 16 을
+          kg 으로 읽으면 6kg 을 뺀 것이 된다) */}
       {list.length >= 3 && (
         <>
           <div className="section-title">
@@ -670,7 +675,7 @@ export default function ComparePage({ embedded = false }) {
                 { key: 'before', label: '과거', color: CHART.muted },
                 { key: 'after', label: '현재', color: CHART.accent },
               ]}
-              data={list.map((c) => ({ subject: c.label, before: c.before, after: c.after }))}
+              data={list.map((c) => ({ subject: c.label, unit: c.unit, before: c.before, after: c.after }))}
             />
           </div>
         </>
