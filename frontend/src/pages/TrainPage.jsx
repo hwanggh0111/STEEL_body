@@ -1199,8 +1199,16 @@ export default function TrainPage() {
               ) : (
                 <span style={{ color: 'var(--text-muted)' }}>처음 하는 운동이에요</span>
               )}
+              {/* ── **무엇의 최고인지 적는다** ── (2026-11-05)
+                  최고 기록은 **1RM 으로 환산해서** 고른다(`personalRecord.strengthOf`) —
+                  100kg 1회(1RM 100)보다 **80kg 10회(1RM 107)**가 위다. 그런데 이 줄은
+                  **「최고 80 kg」**이라고만 적었다 — 100kg 을 들어본 사람이 읽으면
+                  거짓이다. **횟수를 같이 적으면** 그것이 환산해 고른 줄임이 보인다
+                  (최고 기록 목록 `BestRecords` 는 처음부터 「80kg × 10회」로 적는다) */}
               {best?.weight != null && (
-                <> &nbsp;&middot;&nbsp; 최고 <span style={{ color: 'var(--text-primary)' }}>{best.weight} kg</span></>
+                <> &nbsp;&middot;&nbsp; 최고 기록 <span style={{ color: 'var(--text-primary)' }}>
+                  {best.weight} kg &times; {best.reps}회
+                </span></>
               )}
             </div>
 

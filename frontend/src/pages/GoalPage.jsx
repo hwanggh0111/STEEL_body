@@ -356,14 +356,16 @@ export default function GoalPage() {
                 <div className="serif-display" style={{ fontSize: 16, marginTop: 13 }}>{weekLine(week)}</div>
               </div>
 
-              <SectionTitle>이어온 주</SectionTitle>
+              {/* **목표를 채운 주**가 이어진 것이다 — 기록이 있는 주를 세는
+                  홈의 「운동한 주 연속」과 다른 수다 (2026-11-05) */}
+              <SectionTitle>목표를 채운 주</SectionTitle>
               <div className="card" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
                   <span>
                     <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5, color: 'var(--accent)' }}>
                       {streak?.current ?? 0}
                     </span>
-                    <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> 주 연속</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> 주 연속 (목표)</span>
                   </span>
                   {streak?.best > 0 && (
                     <span className="badge badge-success">가장 길게는 {streak.best}주</span>

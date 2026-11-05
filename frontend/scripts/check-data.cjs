@@ -2203,5 +2203,19 @@ console.log('── 늘어온 길 (data/liftTrend.js) ──');
     /<BestRecords[^>]*\/>[\s\S]{0,1200}?<LiftTrend/.test(fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8')), true);
 }
 
+console.log('');
+console.log('── ★ 「최고」가 무엇의 최고인지 적는가 ──');
+// 최고 기록은 **1RM 으로 환산해서** 고른다(`personalRecord.strengthOf`) —
+// 100kg 1회(1RM 100)보다 **80kg 10회(1RM 107)**가 위다. 그래서 기록 화면 머리가
+// 「최고 80 kg」이라고만 적으면 **100kg 을 들어본 사람에게 거짓**이다. 횟수를 같이
+// 적어 그것이 환산해 고른 줄임을 보인다 (최고 기록 목록은 처음부터 그렇게 적는다)
+{
+  const train = fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8');
+  ok('기록 화면이 「최고 기록 N kg × M회」로 적는다',
+    /최고 기록 <span[\s\S]{0,200}?best\.reps\}회/.test(train), true);
+  const bests = fs.readFileSync('src/components/BestRecords.jsx', 'utf-8');
+  ok('  목록도 무게와 횟수를 같이 적는다', /\$\{e\.kg\}kg × \$\{e\.reps\}회/.test(bests), true);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

@@ -334,5 +334,25 @@ const card = fs.readFileSync('src/components/home/GoalCard.jsx', 'utf-8');
 ok('홈 카드가 체중 말고도 그린다', /fatTarget/.test(card) && /muscleTarget/.test(card), true);
 ok('  글자가 체중으로 박혀 있지 않다', /\{body\.label\}/.test(card), true);
 
+console.log('');
+console.log('── ★ 「연속 주」가 두 가지다 — 말이 갈려 있는가 ──');
+// ── 무엇이 틀렸었나 ── (2026-11-05)
+//
+// 「연속 주」를 세는 손이 **둘**이다. 합칠 자리가 아니다 — **다른 것을 센다**:
+//
+//   goal.weekStreak        **목표를 채운 주**가 이어진 수 (주 3회 …)
+//   weeklyReport.streak    **기록이 있는 주**가 이어진 수 (목표와 상관없다)
+//
+// 그런데 **같은 홈 화면에 「주 연속」이라는 같은 말로** 떠 있었다 — 주 3회 목표인
+// 사람에게 「2주 연속」과 「주 연속 7」이 나란히 보이면 **어느 것이 맞는지 알 수가
+// 없다.** 셈이 아니라 **말**이 겹친 자리다.
+const weekly = fs.readFileSync('src/components/WeeklyReport.jsx', 'utf-8');
+const goalCard = fs.readFileSync('src/components/home/GoalCard.jsx', 'utf-8');
+ok('주간 요약은 「운동한 주 연속」이라고 적는다', /stat-label">운동한 주 연속</.test(weekly), true);
+ok('  그냥 「주 연속」으로 적지 않는다', /stat-label">주 연속</.test(weekly), false);
+ok('목표 카드는 「목표 N주 연속」이라고 적는다', /목표 \{streak\.current\}주 연속/.test(goalCard), true);
+ok('목표 화면도 목표라고 적는다',
+  /목표를 채운 주/.test(fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8')), true);
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

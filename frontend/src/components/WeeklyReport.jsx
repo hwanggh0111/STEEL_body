@@ -80,9 +80,16 @@ function WeeklyReport({ workouts }) {
               <div className="stat-label">{tons ? '총 볼륨(톤)' : '총 볼륨(kg)'}</div>
             </div>
           )}
+          {/* ── **말을 갈라 적는다** ── (2026-11-05)
+              이 수는 **기록이 있는 주**가 이어진 것이고, 바로 위 목표 카드의
+              「3주 연속」은 **목표를 채운 주**가 이어진 것이다. 둘은 다른 것을
+              세는데 **같은 홈 화면에 「주 연속」이라는 같은 말로** 떠 있었다 —
+              주 3회 목표인 사람에게 「2주 연속」과 「주 연속 7」이 나란히 보이면
+              어느 것이 맞는지 알 수가 없다. 셈을 합칠 자리가 아니라(다른 것을
+              센다) **말을 갈라야 하는 자리**다 */}
           <div className="stat-box">
             <div className="stat-number">{r.streak}</div>
-            <div className="stat-label">주 연속</div>
+            <div className="stat-label">운동한 주 연속</div>
           </div>
         </div>
 

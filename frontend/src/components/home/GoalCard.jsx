@@ -87,9 +87,11 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
               주 {week.target}회
-              {/* 이어온 주는 **둘 이상일 때만** 말한다. 「1주 연속」은 연속이 아니다 */}
+              {/* 이어온 주는 **둘 이상일 때만** 말한다. 「1주 연속」은 연속이 아니다.
+                  **「목표」를 붙여 적는다** (2026-11-05) — 아래 이번 주 요약의
+                  「운동한 주 연속」은 기록이 있는 주를 세는 **다른 수**다 */}
               {streak?.current > 1 && (
-                <> · <span style={{ color: 'var(--accent)' }}>{streak.current}주 연속</span></>
+                <> · <span style={{ color: 'var(--accent)' }}>목표 {streak.current}주 연속</span></>
               )}
             </div>
           </div>
