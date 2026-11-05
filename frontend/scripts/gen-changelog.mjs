@@ -125,14 +125,32 @@ function build() {
     });
   }
 
-  // 같은 날 같은 범위로 여러 번 손댄 것은 마지막 것만 남긴다.
-  // 한 기능을 세 번 고친 게 세 줄로 뜨면 목록이 아니라 로그가 된다
-  const seen = new Set();
-  const picked = [];
+  // 같은 날 같은 범위로 여러 번 손댄 것은 **하나만** 남긴다.
+  // 한 기능을 세 번 고친 게 세 줄로 뜨면 목록이 아니라 로그가 된다.
+  //
+  // ── **남길 것은 「마지막」이 아니라 「가장 큰 것」이다** ── (2026-11-05)
+  //
+  // 차례가 최신부터라 여태 **마지막 커밋**이 남았다. 그런데 하루의 모양은 대개
+  // 「큰 것을 붙이고 → 작은 뒷손질을 두세 번」이다 — 그래서 **공지에 뒷손질이 뜨고
+  // 그날의 가장 큰 변경이 사라졌다.**
+  //
+  // 오늘 실제로 그렇게 됐다: `feat(유산소)`(런닝머신을 시간·거리로 적게 만든 것)가
+  // 공지에서 사라지고 `fix(유산소)`(위젯 한 줄)만 남았다. 읽는 사람에게는 **없던
+  // 기능이 생긴 것**이 그날의 소식인데, 공지는 위젯 글자를 말하고 있었다.
+  //
+  // `SHOWN` 에 적어둔 `weight` 가 **쓰이는 데가 없었다** — 그 수가 이 자리의 답이다
+  // (새 기능 3 · 고침 2 · 빨라짐 1). 같으면 최신이 이긴다.
+  const bestOf = new Map();
   for (const e of entries) {
     const key = `${e.date}|${e.scope || e.text.slice(0, 6)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const cur = bestOf.get(key);
+    const w = SHOWN[e.type]?.weight || 0;
+    if (!cur || w > cur.w) bestOf.set(key, { e, w });
+  }
+  const keepSet = new Set([...bestOf.values()].map((x) => x.e.hash));
+  const picked = [];
+  for (const e of entries) {
+    if (!keepSet.has(e.hash)) continue;
     picked.push(e);
     if (picked.length >= KEEP) break;
   }
