@@ -515,8 +515,37 @@ function _flushImmediate() {
   }
 }
 process.on('exit', () => { _flushImmediate(); _flushPhotosSync(); });
-process.on('SIGINT', () => { _flushImmediate(); _flushPhotosSync(); process.exit(); });
-process.on('SIGTERM', () => { _flushImmediate(); _flushPhotosSync(); process.exit(); });
+
+// ── **서버의 끝내기를 앞질러 나가지 않는다** ── (2026-11-05)
+//
+// 이 파일과 `index.js` 가 **둘 다** SIGTERM 을 듣고 있었다. 노드는 들은 차례대로
+// 다 부르는데, `index.js` 가 맨 위에서 이 파일을 들여오므로 **여기 것이 먼저**다.
+// 그리고 여기 것이 `process.exit()` 를 부르면 **그 뒤 차례는 아예 안 돈다** —
+// `index.js` 의 끝내기(`server.close` → `await db.drain()`)가 **통째로 건너뛰어졌다.**
+//
+// 그게 왜 나쁜가 —
+//
+//   · **Postgres 에서는 마지막 쓰기가 사라진다.** `_flushImmediate` 는 **파일**에
+//     동기로 쓰는 손이다. 운영은 Postgres 이고(`storage.js`) 그쪽은 기다려야 하는데,
+//     기다리는 자리가 바로 `db.drain()` 이다. 10/01 에 그 까닭을 `index.js` 에
+//     적어뒀다 — 「**마지막 저장이 통째로 사라진다.** Render 는 배포할 때마다
+//     SIGTERM 을 보내므로 그 자리가 매번 지나간다」. 그 고침이 **되살아난 버그**로
+//     덮여 있었다
+//   · **파일에서도 옛 판이 이길 수 있다.** 비동기 쓰기가 날아가 있는데 동기로 먼저
+//     쓰면, 그쪽 `rename` 이 **나중에 닿아** 마지막 판을 옛 판으로 덮는다 —
+//     10/22 에 `drain()` 에 적어둔 그 자리다(「기다리는 것이 먼저다」)
+//
+// 그래서 **듣는 사람이 나뿐일 때만** 내가 끝낸다. 서버가 제 끝내기를 들고 있으면
+// 흘려만 쓰고 비킨다 — 그쪽이 기다려서 제대로 끝낸다.
+// (`scripts/` 의 자들처럼 서버 없이 이 파일만 쓰는 자리에서는 여태처럼 동작한다 —
+//  SIGTERM 을 듣는 사람이 생긴 뒤에는 **기본 종료가 사라지므로** 내가 나가야 한다)
+const _bye = (sig) => () => {
+  _flushImmediate();
+  _flushPhotosSync();
+  if (process.listenerCount(sig) <= 1) process.exit();
+};
+process.on('SIGINT', _bye('SIGINT'));
+process.on('SIGTERM', _bye('SIGTERM'));
 
 // 다음 ID 가져오기
 function nextId(table) {

@@ -57,7 +57,10 @@
     "order": "node scripts/check-order.cjs",
     "tag": "node scripts/check-tag.cjs",
     "fields": "node scripts/check-fields.cjs",
-    "cardioapi": "node scripts/check-cardio-api.cjs"
+    "cardioapi": "node scripts/check-cardio-api.cjs",
+    "gate": "node scripts/check-gate.cjs",
+    "adminapi": "node scripts/check-admin-api.cjs",
+    "bye": "node scripts/check-bye.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

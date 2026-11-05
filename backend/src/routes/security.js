@@ -416,10 +416,34 @@ router.delete('/user/:id', adminAuth, (req, res) => {
 });
 
 // POST /api/security/make-admin/:id - 관리자 권한 부여
+//
+// ── **막혀 있거나 정지된 사람에게는 안 걸린다** ── (2026-11-05)
+//
+// 막힘은 `role` 로 잡는다(`middleware/auth`: `role === 'blocked'` → 403).
+// 그래서 여기서 `role` 을 `'admin'` 으로 덮어쓰면 **차단이 조용히 풀린다.**
+//
+// 정지는 더 나쁘다 — 같은 미들웨어가 **관리자의 정지를 아예 안 본다**
+// (`user.role === 'admin' ? null : db.getSuspension(...)`). 그건 일부러 그렇게 둔
+// 정책이지만(자기 정지를 자기가 못 풀면 서비스가 잠긴다), 그 덕에 이 길이
+// **정지 해제 우회로**가 된다: 정지된 사람을 관리자로 올리면 정지가 사라지고
+// 관리자 화면까지 열린다.
+//
+// 이 파일의 다른 길들은 이미 그 결을 지킨다 — `unblock-user` 는 막힌 사람만,
+// `delete/user` 는 막힌 사람만, `revoke-admin` 은 자기 자신과 마지막 관리자를 지킨다.
+// **먼저 풀고 올리게 한다** — 두 걸음이 되는 대신, 처벌이 조용히 사라지지 않는다.
 router.post('/make-admin/:id', adminAuth, (req, res) => {
   const id = Number(req.params.id);
   const user = db.findUserById(id);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
+  if (user.role === 'blocked') {
+    return res.status(400).json({ error: '차단된 계정이에요 — 먼저 차단을 풀고 올려주세요' });
+  }
+  if (user.is_banned) {
+    return res.status(400).json({ error: '영구 정지된 계정이에요 — 먼저 정지를 풀고 올려주세요' });
+  }
+  if (db.getSuspension(id)) {
+    return res.status(400).json({ error: '정지 중인 계정이에요 — 먼저 정지를 풀고 올려주세요' });
+  }
 
   db.updateUserRole(id, 'admin');
   addLog('make-admin', `관리자 권한 부여: id=${id}, email=${user.email}`);
