@@ -156,6 +156,17 @@ async function call(method, url, body) {
   ok('  근력 줄에는 그 칸이 없다', bench, undefined);
 
   console.log('');
+  console.log('── 지하에서 올라온 줄 ──');
+  // 신호가 없을 때 기기에 세워둔 줄은 `clientKey` 를 달고 올라온다. **그 길도 같은
+  // 칸을 타야 한다** — 화면이 보내는 칸 이름이 다르면 그 줄만 시간 · 거리가 사라진다
+  const key = 'local-cardio-1';
+  const q1 = await call('POST', '/workouts', { date: today, exercise: '달리기', minutes: 25, distance_km: 4.2, clientKey: key });
+  ok('지하 줄도 같은 칸으로 들어간다', [q1.status, q1.body?.workout?.minutes, q1.body?.workout?.distance_km], [201, 25, 4.2]);
+  // 다시 보내도 한 번만 만든다 (재전송이 두 벌을 쌓지 않는다)
+  const q2 = await call('POST', '/workouts', { date: today, exercise: '달리기', minutes: 25, distance_km: 4.2, clientKey: key });
+  ok('  다시 보내도 두 벌이 안 쌓인다', q2.body?.id, q1.body?.id);
+
+  console.log('');
   console.log('── 고친다 ──');
   const up = await call('PUT', `/workouts/${run.id}`, { date: today, exercise: '런닝머신', minutes: 40, distance_km: 6 });
   ok('유산소 줄을 고친다', [up.status, up.body?.workout?.minutes, up.body?.workout?.distance_km], [200, 40, 6]);

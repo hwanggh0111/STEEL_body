@@ -107,6 +107,18 @@ const today = '2026-10-16';
 {
   const t = W.widgetText({}, today);
   ok('기록이 없으면 첫 기록을 권한다', [t.head, t.line, t.sub], ['', '첫 기록을 적어보세요', '']);
+  // ★ **매일 적는 사람에게 「첫 기록을 적어보세요」라고 하지 않는다** (2026-11-05).
+  //    유산소만 하는 사람은 지도의 여섯 부위가 늘 비어 있다 — 몸 지도는 10/21 에
+  //    그 말을 고쳤는데 **위젯에는 그대로 남아 있었다**
+  const cardioOnly = W.widgetText({
+    '2026-10-16': [{ exercise: '런닝머신', minutes: 30, distance_km: 5 }],
+  }, '2026-10-16');
+  ok('  유산소만 적는 사람에게는 다르게 말한다', [cardioOnly.line, cardioOnly.sub],
+    ['유산소를 적고 있어요', '지도의 여섯 부위는 비어 있습니다']);
+  const unknownOnly = W.widgetText({
+    '2026-10-16': [{ exercise: '짐볼놀이', weight: '맨몸', sets: 3, reps: 10 }],
+  }, '2026-10-16');
+  ok('  못 알아본 이름에는 또 다르게', unknownOnly.line, '부위를 못 알아본 기록이 있어요');
 }
 // 전부 이틀 안에 한 사람
 {

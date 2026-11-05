@@ -6,6 +6,8 @@
 // 한 주는 **월요일에 시작한다** (앱의 다른 곳과 같다 — HomePage 의 주간 달력).
 
 import { dateKey } from './dateKey';
+// 유산소는 볼륨에 들 수 없다 — 시간 · 거리로 센다 (2026-11-05)
+import { isCardioRow, cardioOf } from './cardio';
 import { parseWeight } from './personalRecord';
 import { partDistribution } from './bodyPart';
 import { i } from './particle';
@@ -148,6 +150,14 @@ export function buildWeekly(workouts, ref = new Date()) {
   const prevDays = doneDays(workouts, prevKeys);
   const parts = partDistribution(records);
   const prevParts = partDistribution(prevRecords);
+  // 이번 주 유산소 (2026-11-05) — **볼륨에 들 수 없는 것**이다. 유산소만 한 주에
+  // 「총 볼륨 0kg」을 큰 수로 띄우면 매일 뛴 사람에게 아무것도 안 했다고 말하는 셈이다
+  // (운동 끝 결산 · 홈의 오늘 카드와 **같은 가족의 잘못**이다)
+  const cardio = records.reduce((a2, r) => {
+    if (!isCardioRow(r)) return a2;
+    const c = cardioOf(r);
+    return { count: a2.count + 1, minutes: a2.minutes + (c.minutes || 0), km: a2.km + (c.km || 0) };
+  }, { count: 0, minutes: 0, km: 0 });
 
   const days = keys.map(key => {
     const list = listOf(workouts, key);
@@ -162,6 +172,7 @@ export function buildWeekly(workouts, ref = new Date()) {
   });
 
   return {
+    cardio: { ...cardio, km: Number(cardio.km.toFixed(2)) },
     from: keys[0],
     to: keys[6],
     days,

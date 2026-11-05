@@ -1,5 +1,7 @@
 import { useMemo, memo } from 'react';
 import { buildWeekly } from '../data/weeklyReport';
+// 유산소는 볼륨에 들 수 없다 (2026-11-05)
+import { minuteLabel, kmLabel } from '../data/cardio';
 
 // 이번 주 요약.
 //
@@ -63,10 +65,21 @@ function WeeklyReport({ workouts }) {
             <div className="stat-number">{r.daysDone}</div>
             <div className="stat-label">운동한 날</div>
           </div>
-          <div className="stat-box">
-            <div className="stat-number">{tons ?? r.volume.kg}</div>
-            <div className="stat-label">{tons ? '총 볼륨(톤)' : '총 볼륨(kg)'}</div>
-          </div>
+          {/* ── **유산소만 한 주는 볼륨이 0 이다** ── (2026-11-05)
+              「총 볼륨 0kg」을 큰 수로 띄우면 매일 뛴 사람에게 아무것도 안 했다고
+              말하는 셈이다. 그때는 **유산소 시간**을 세운다 — 결산의 큰 수와 같은
+              규칙이다. 더해서 한 수로 만들지 않는다(kg 과 분은 못 더한다) */}
+          {r.volume.kg === 0 && r.cardio?.count > 0 ? (
+            <div className="stat-box">
+              <div className="stat-number">{r.cardio.minutes}</div>
+              <div className="stat-label">유산소(분)</div>
+            </div>
+          ) : (
+            <div className="stat-box">
+              <div className="stat-number">{tons ?? r.volume.kg}</div>
+              <div className="stat-label">{tons ? '총 볼륨(톤)' : '총 볼륨(kg)'}</div>
+            </div>
+          )}
           <div className="stat-box">
             <div className="stat-number">{r.streak}</div>
             <div className="stat-label">주 연속</div>
@@ -77,6 +90,14 @@ function WeeklyReport({ workouts }) {
         {r.volume.bodyweightSets > 0 && (
           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: -8 }}>
             볼륨은 무게를 적은 것만 셉니다. 맨몸 {r.volume.bodyweightSets}세트는 빠져 있어요.
+          </div>
+        )}
+
+        {/* 무게도 들고 유산소도 한 주 — **나란히** 적는다 */}
+        {r.volume.kg > 0 && r.cardio?.count > 0 && (
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: -8 }}>
+            유산소 {r.cardio.count}건 · {[minuteLabel(r.cardio.minutes), kmLabel(r.cardio.km)].filter(Boolean).join(' · ')}
+            는 볼륨에 들지 않습니다.
           </div>
         )}
 
