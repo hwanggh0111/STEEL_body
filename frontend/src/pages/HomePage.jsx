@@ -1,4 +1,6 @@
 import { useRefreshTick } from '../store/refreshStore';
+// 「가장 최근」을 고르는 손 — 앞날 줄을 빼고 고른다 (2026-11-05)
+import { latestInbody } from '../data/inbodyLatest';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
@@ -86,8 +88,11 @@ function SectionTitle({ id, children }) {
 // 크게 띄웠다. 없는 것을 크게 띄우는 자리는 없앤다 — 기록이 없으면 안 그린다.
 function BodyLine({ records, onGo }) {
   if (!records || records.length === 0) return null;
-  const latest = records[0];
-  const prev = records[1];
+  // **앞날 줄은 「최근」이 아니다** (2026-11-05). 서버는 인바디 날짜를 하루 넉넉하게
+  // 받고(시차 · 자정 무렵) 목록은 날짜 내림차순이라, `records[0]` 이 **아직 안 잰
+  // 값**이 될 수 있었다 — 그러면 이 카드가 그 값을 크게 적고 날 수가 「-1일 전」이 된다
+  const { latest, prev } = latestInbody(records);
+  if (!latest) return null;
   const gap = daysBetween(latest.date, dateKey());
   const delta = prev != null && latest.weight != null && prev.weight != null
     ? Number((latest.weight - prev.weight).toFixed(1))

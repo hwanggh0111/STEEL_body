@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from 'react';
+// 「가장 최근」을 고르는 손 (2026-11-05)
+import { latestInbody } from '../../data/inbodyLatest';
 import { useWorkoutStore } from '../../store/workoutStore';
 import { useInbodyStore } from '../../store/inbodyStore';
 import { dateKey } from '../../data/dateKey';
@@ -58,7 +60,8 @@ export function useIntroStats() {
 
   return {
     totalWorkouts, totalInbody,
-    latest: records[0] || null,
+    // 앞날 줄은 「가장 최근」이 아니다 (2026-11-05)
+    latest: latestInbody(records).latest,
     week, weekDays: week.filter(d => d.done).length,
     todayDone: !!workouts[dateKey()]?.length,
   };

@@ -1,4 +1,6 @@
 import { ffmiOf, ffmiBand } from '../data/bodyIndex';
+// 「가장 최근」을 고르는 손 — 앞날 줄을 빼고 고른다 (2026-11-05)
+import { latestInbody } from '../data/inbodyLatest';
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useInbodyStore } from '../store/inbodyStore';
@@ -357,7 +359,10 @@ export default function InbodyPage({ embedded = false }) {
   })), [records]);
 
 
-  const latestRecord = records.length > 0 ? records[0] : null;
+  // **앞날 줄은 「가장 최근」이 아니다** (2026-11-05) — 체성분 도넛과 읽는 표가
+  // 아직 안 잰 값으로 그려졌다. 목록(아래 줄들)에는 그대로 보인다 —
+  // 잘못 적은 앞날 줄을 **사람이 찾아 고칠 자리**가 거기뿐이다
+  const { latest: latestRecord, prev: prevRecord, ahead } = latestInbody(records);
 
   const composition = useMemo(() => compositionOf(latestRecord), [latestRecord]);
 
@@ -587,6 +592,21 @@ export default function InbodyPage({ embedded = false }) {
         </>
       )}
 
+      {/* ── **앞날 날짜로 적힌 줄이 있으면 말해준다** ── (2026-11-05)
+          서버는 인바디 날짜를 **하루 넉넉하게** 받는다(시차 · 자정 무렵). 그래서
+          날짜를 잘못 적으면 앞날 줄이 남는데, 위의 「가장 최근」은 그것을 빼고
+          고른다 — **조용히 빼면** 「내가 적은 것이 어디 갔나」가 된다.
+          목록에는 그대로 있으니 **거기서 고치면 된다**고 적어준다 */}
+      {ahead > 0 && (
+        <div className="card" style={{
+          marginBottom: 16, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7,
+          borderColor: 'var(--warning)',
+        }}>
+          앞날 날짜로 적힌 기록이 <b style={{ color: 'var(--warning)' }}>{ahead}건</b> 있어요 —
+          위의 「가장 최근」에는 안 넣었습니다. <b>아래 목록에서 날짜를 고쳐주세요.</b>
+        </div>
+      )}
+
       {/* ── 신체 부위별 분석 ── */}
       {latestRecord && (latestRecord.fat_pct || latestRecord.muscle_kg) && (
         <>
@@ -597,7 +617,7 @@ export default function InbodyPage({ embedded = false }) {
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
             일반적으로 알려진 범위 안에서 지금 어디쯤인지 보여드립니다.
           </div>
-          <BodyReading record={latestRecord} prev={records[1]} />
+          <BodyReading record={latestRecord} prev={prevRecord} />
           <div style={{ height: 24 }} />
 
           <div className="section-title">

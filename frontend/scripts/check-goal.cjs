@@ -391,5 +391,40 @@ console.log('── ★★ 앞날 기록으로 미리 채워지지 않는가 ─
   ok('  날을 안 넘기면 여태처럼 다 센다', mg.monthSummary(wk, 2026, 11).days, 2);
 }
 
+console.log('');
+console.log('── ★ 인바디의 「가장 최근」도 앞날을 안 집는가 ──');
+// 서버가 주는 인바디 목록은 **날짜 내림차순**이다(`db.ROW_CMP.inbody`). 그래서
+// 화면 셋이 각자 집던 `records[0]` 이 **앞날 줄**이 될 수 있었다 — 홈의 「최근 체중」이
+// 아직 안 잰 값을 크게 적고, 그 옆 날 수가 **「-1일 전」**이 된다.
+// **목록은 안 걸러낸다** — 잘못 적은 앞날 줄을 사람이 찾아 고칠 자리가 거기뿐이다.
+{
+  const L = bundle('src/data/inbodyLatest.js', '.inb.cjs');
+  const TODAY = '2026-11-05';
+  const recs = [
+    { id: 3, date: '2026-11-06', weight: 99 },   // 앞날 (잘못 적은 것)
+    { id: 2, date: '2026-11-04', weight: 73 },
+    { id: 1, date: '2026-10-28', weight: 74 },
+  ];
+  const pick = L.latestInbody(recs, TODAY);
+  ok('**앞날 줄을 「가장 최근」으로 안 집는다**', [pick.latest.weight, pick.prev.weight], [73, 74]);
+  ok('  앞날에 몇 건인지 같이 준다 (화면이 말해준다)', pick.ahead, 1);
+  ok('  오늘까지만 돌려주는 손은 따로다 (목록은 안 걸러낸다)',
+    [L.inbodyUpto(recs, TODAY).length, recs.length], [2, 3]);
+  ok('  차례가 섞여 와도 첫 줄이 가장 최근이다',
+    L.latestInbody([recs[1], recs[2], recs[0]], TODAY).latest.date, '2026-11-04');
+  ok('  빈 것·없는 것도 안 터진다',
+    [L.latestInbody([], TODAY).latest, L.latestInbody(null, TODAY).latest], [null, null]);
+
+  const home = fs.readFileSync('src/pages/HomePage.jsx', 'utf-8');
+  const inb = fs.readFileSync('src/pages/InbodyPage.jsx', 'utf-8');
+  ok('화면 둘이 그 손을 쓴다',
+    /latestInbody\(records\)/.test(home) && /latestInbody\(records\)/.test(inb), true);
+  // **코드만 본다** — 까닭을 적어둔 주석에 그 글자가 들어 있다
+  const noComment = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  ok('  제 손으로 records[0] 을 집지 않는다',
+    /records\[0\]/.test(noComment(home)) || /records\[0\]/.test(noComment(inb)), false);
+  ok('  앞날 줄이 있으면 화면이 말해준다', /앞날 날짜로 적힌 기록이/.test(inb), true);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);
