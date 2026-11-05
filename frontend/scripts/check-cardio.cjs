@@ -202,6 +202,31 @@ ok('몸 지도에 유산소 줄이 있다', /cardio7\.count > 0/.test(map), true
 ok('  지어낸 줄에만 「고쳐 적으면」이라고 말한다', /시간 · 거리로 고쳐 적으면/.test(map), true);
 
 console.log('');
+console.log('── 유산소 줄을 그리는 자리 전부 ──');
+// ★★ **세트 · 횟수가 없는 줄은 이 앱에 처음 생긴 모양이다.** 그대로 그리는 자리가
+//    하나라도 남으면 거기서 **「undefined · 세트 · 회」**가 뜬다. 쓸어서 못 박아둔다
+const drawers = [
+  ['기록보기 줄 카드', 'src/components/WorkoutCard.jsx'],
+  ['홈의 오늘 카드', 'src/components/home/TodayCard.jsx'],
+  ['달력의 하루', 'src/components/DaySheet.jsx'],
+  ['지하에 세운 줄', 'src/components/OfflineBar.jsx'],
+  ['운동 끝 결산', 'src/components/SessionFinish.jsx'],
+  ['기록 화면', 'src/pages/TrainPage.jsx'],
+];
+for (const [name, file] of drawers) {
+  const src = codeOf(fs.readFileSync(file, 'utf-8'));
+  ok(`${name} 이 유산소 줄을 가린다`, /isCardioRow\(/.test(src) || /i\.cardio|w\.cardio/.test(src), true);
+}
+// 홈의 오늘 카드 — **유산소만 한 날 「0세트」**라고 적지 않는다
+const todayCard = codeOf(fs.readFileSync('src/components/home/TodayCard.jsx', 'utf-8'));
+ok('  오늘 카드가 「0세트」를 안 적는다', /sets > 0 \? `\$\{sets\}세트` : cardioLine/.test(todayCard), true);
+// 달력으로도 적을 수 있다 — 여기만 세트 · 횟수를 필수로 물으면 또 지어내야 한다
+const daySheet = codeOf(fs.readFileSync('src/components/DaySheet.jsx', 'utf-8'));
+ok('  달력으로도 유산소를 적는다', /isCardioName\(nm\)/.test(daySheet) && /aria-label="시간 분"/.test(daySheet), true);
+// 목소리는 무게 · 세트 · 횟수를 듣는다 — 유산소 칸에서는 눌러도 아무 일이 없다
+ok('  유산소에서는 목소리 단추를 안 그린다', /voiceLog && !cardio/.test(page), true);
+
+console.log('');
 console.log('── 서버와 같은 수인가 ──');
 const back = require('../../backend/src/utils/cardioFields');
 // **제 수를 들고 견준다** (양쪽에서 가져오면 같이 고치는 날 거짓 통과한다)

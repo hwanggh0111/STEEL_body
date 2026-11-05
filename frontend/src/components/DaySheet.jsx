@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 // 유산소 줄은 시간 · 거리다 (2026-11-05)
-import { isCardioRow, cardioText } from '../data/cardio';
+import {
+  isCardioRow, cardioText, isCardioName, MINUTES_MAX, DISTANCE_KM_MAX,
+} from '../data/cardio';
 import { planState, dayLabel, untilLabel } from '../data/plans';
 import ExerciseFinder from './ExerciseFinder';
 import { EXERCISE_NAME_MAX, MAX_PER_DAY, PLAN_NAME_MAX, REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
@@ -44,13 +46,18 @@ export default function DaySheet({
   const [weight, setWeight] = useState('');
   const [sets, setSets] = useState('');
   const [reps, setReps] = useState('');
+  // 유산소는 시간 · 거리로 적는다 (2026-11-05) — **달력으로도 적을 수 있어야 한다.**
+  // 기록 화면에는 그 칸이 생겼는데 여기만 세트 · 횟수를 필수로 물어서,
+  // 어제 뛴 것을 달력에서 적으려면 또 「1세트 1회」를 지어내야 했다
+  const [min, setMin] = useState('');
+  const [km, setKm] = useState('');
   const [error, setError] = useState('');
 
   // 다른 날로 옮기면 쓰던 것을 닫는다 — **다른 날 메모가 이 날에 붙으면 안 된다**
   useEffect(() => {
     setAdding(false); setName(''); setPlanError('');
     setWriting(false); setFinding(false);
-    setEx(''); setWeight(''); setSets(''); setReps(''); setError('');
+    setEx(''); setWeight(''); setSets(''); setReps(''); setMin(''); setKm(''); setError('');
   }, [date]);
 
   const list = Array.isArray(dayWorkouts) ? dayWorkouts : [];
@@ -65,7 +72,23 @@ export default function DaySheet({
   const writeHere = async () => {
     const nm = ex.trim();
     if (!nm) { setError('무슨 운동인지 적어주세요'); return; }
-    if (!sets || !reps) { setError('세트와 횟수를 적어주세요'); return; }
+    // 유산소면 시간 · 거리로 적는다 (기록 화면과 **같은 규칙** — 둘 중 하나만 적어도 된다)
+    const asCardio = isCardioName(nm);
+    if (asCardio) {
+      const hasMin = String(min).trim() !== '';
+      const hasKm = String(km).trim() !== '';
+      if (!hasMin && !hasKm) { setError('시간이나 거리를 적어주세요'); return; }
+      const nmin = Number(min);
+      const nkm = Number(km);
+      if (hasMin && (!Number.isInteger(nmin) || nmin < 1)) {
+        setError('시간은 1 이상의 정수(분)로 적어주세요'); return;
+      }
+      if (hasMin && nmin > MINUTES_MAX) { setError(`시간은 ${MINUTES_MAX}분 이하로 적어주세요`); return; }
+      if (hasKm && (!Number.isFinite(nkm) || nkm <= 0)) {
+        setError('거리는 0보다 큰 수(km)로 적어주세요'); return;
+      }
+      if (hasKm && nkm > DISTANCE_KM_MAX) { setError(`거리는 ${DISTANCE_KM_MAX}km 이하로 적어주세요`); return; }
+    } else if (!sets || !reps) { setError('세트와 횟수를 적어주세요'); return; }
     // ── **테두리는 한 자리에서 온다** ── (2026-10-31)
     //
     // 여태 이 줄이 `100` · `1000` 을 **또 적고** 있었다(서버 둘 · 루틴 · 기록 폼에
@@ -74,11 +97,13 @@ export default function DaySheet({
     // 서버에 보내 「1 이상의 정수여야 해요」를 받아왔다
     const ns = Number(sets);
     const nr = Number(reps);
-    if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
-      setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
-    }
-    if (ns > SETS_MAX || nr > REPS_MAX) {
-      setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+    if (!asCardio) {
+      if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
+        setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
+      }
+      if (ns > SETS_MAX || nr > REPS_MAX) {
+        setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+      }
     }
     // ── **무게는 저장 전에 안 보고 있었다** ── (2026-11-03)
     //
@@ -92,16 +117,26 @@ export default function DaySheet({
     }
     setError('');
     try {
-      await onAddWorkout?.({
-        date,
-        exercise: nm,
-        weight: String(weight).trim() || '맨몸',
-        sets: Number(sets),
-        reps: Number(reps),
-      });
+      // **두 모양을 섞어 보내지 않는다** (기록 화면과 같은 규칙).
+      // 칸 이름도 서버와 같은 `distance_km` 으로 — 지하에 세워둔 줄이 목록에
+      // 그대로 그려지는데 이름이 다르면 그 줄만 시간 · 거리가 안 보인다
+      await onAddWorkout?.(asCardio
+        ? {
+          date,
+          exercise: nm,
+          minutes: String(min).trim() === '' ? null : Number(min),
+          distance_km: String(km).trim() === '' ? null : Number(km),
+        }
+        : {
+          date,
+          exercise: nm,
+          weight: String(weight).trim() || '맨몸',
+          sets: Number(sets),
+          reps: Number(reps),
+        });
       // **칸은 열어둔 채 비운다.** 한 날에 여러 개를 몰아 적는 자리라
       // 적을 때마다 다시 펴게 하면 손이 두 배로 간다
-      setEx(''); setWeight(''); setSets(''); setReps('');
+      setEx(''); setWeight(''); setSets(''); setReps(''); setMin(''); setKm('');
     } catch (err) {
       setError(err?.response?.data?.error || '적지 못했어요');
     }
@@ -306,6 +341,19 @@ export default function DaySheet({
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+            {isCardioName(ex) ? (
+              <>
+                <input className="input" inputMode="numeric" value={min}
+                  onChange={(e) => setMin(e.target.value)} placeholder="시간(분)"
+                  min="1" max={MINUTES_MAX}
+                  aria-label="시간 분" style={{ fontSize: 13, padding: '8px 11px' }} />
+                <input className="input" inputMode="decimal" value={km}
+                  onChange={(e) => setKm(e.target.value)} placeholder="거리(km)"
+                  min="0" max={DISTANCE_KM_MAX}
+                  aria-label="거리 km" style={{ fontSize: 13, padding: '8px 11px' }} />
+              </>
+            ) : (
+              <>
             <input className="input" inputMode="decimal" value={weight}
               onChange={(e) => setWeight(e.target.value)} placeholder="무게"
               aria-label="무게 kg" style={{ fontSize: 13, padding: '8px 11px' }} />
@@ -315,6 +363,8 @@ export default function DaySheet({
             <input className="input" inputMode="numeric" value={reps}
               onChange={(e) => setReps(e.target.value)} placeholder="횟수"
               aria-label="횟수" style={{ fontSize: 13, padding: '8px 11px' }} />
+              </>
+            )}
           </div>
 
           {error && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}

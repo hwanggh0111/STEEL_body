@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+// 유산소 줄은 시간 · 거리다 (2026-11-05)
+import { isCardioRow, cardioText } from '../data/cardio';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';
 import { offlineStatus } from '../data/offline';
@@ -95,7 +97,11 @@ export default function OfflineBar() {
   const drop = async () => {
     const failed = queue.filter((q) => q.failed);
     const list = failed.slice(0, 5)
-      .map((q) => (q.kind === 'note' ? noteLabel(q) : `· ${q.payload.date} ${q.payload.exercise} ${q.payload.weight} ${q.payload.sets}세트`))
+      // 유산소 줄은 무게 · 세트가 없다 (2026-11-05) — **무엇을 버리는지 보여주는
+      // 자리**라 「undefined 세트」가 뜨면 사람이 제 기록을 못 알아본다
+      .map((q) => (q.kind === 'note' ? noteLabel(q)
+        : `· ${q.payload.date} ${q.payload.exercise} ${isCardioRow(q.payload)
+          ? cardioText(q.payload) : `${q.payload.weight} ${q.payload.sets}세트`}`))
       .join('\n');
     const more = failed.length > 5 ? `\n· 외 ${failed.length - 5}개` : '';
     const ok = await confirmDialog(

@@ -1483,7 +1483,11 @@ export default function TrainPage() {
                 조용히 쌓이고, 그러면 이 앱의 모든 숫자를 못 믿게 된다.
                 알아듣기가 안 되는 브라우저에서는 단추가 아예 안 나온다 */}
             <div style={{ marginBottom: 10 }}>
-              {voiceLog && <VoiceSet onFill={(v) => {
+              {/* ── 유산소에서는 목소리 단추를 안 그린다 ── (2026-11-05)
+                  목소리는 **무게 · 세트 · 횟수**를 듣는다(`data/voiceLog.js`).
+                  유산소 칸에서는 그 셋이 화면에 없어서, 눌러 말해도 **아무 일도
+                  안 일어난 것처럼** 보인다 — 없는 단추보다 나쁘다 */}
+              {voiceLog && !cardio && <VoiceSet onFill={(v) => {
                 // 안 들은 칸은 그대로 둔다. 비우면 지난 기록으로 채워둔 값이 날아간다
                 if (v.weight !== null) setWeight(v.weight === '맨몸' ? '' : String(v.weight));
                 if (v.reps !== null) setReps(String(v.reps));

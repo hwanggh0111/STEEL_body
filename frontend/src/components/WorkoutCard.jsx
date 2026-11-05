@@ -1,4 +1,6 @@
 import { memo } from 'react';
+// 유산소 줄은 시간 · 거리다 (2026-11-05)
+import { isCardioRow, cardioText } from '../data/cardio';
 import { confirmDialog } from './ConfirmModal';
 import MiniBody from './MiniBody';
 
@@ -20,7 +22,11 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
           {workout.exercise}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-          {workout.weight} · {workout.sets}세트 · {workout.reps}회
+          {/* 유산소 줄은 시간 · 거리로 적는다 (2026-11-05). 그대로 그리면
+              「undefined · 세트 · 회」가 된다 — 기록을 보는 가장 큰 자리다 */}
+          {isCardioRow(workout)
+            ? cardioText(workout)
+            : `${workout.weight} · ${workout.sets}세트 · ${workout.reps}회`}
         </div>
         {/* 아직 서버에 못 올린 것. **적은 사람에게는 이미 한 운동**이라 목록에
             그대로 보여주되, 어디까지 갔는지는 숨기지 않는다 */}

@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+// 유산소 줄은 시간 · 거리다 (2026-11-05)
+import { isCardioRow, cardioText, cardioOf, minuteLabel, kmLabel } from '../../data/cardio';
 import { volumeOf } from '../../data/weeklyReport';
 import { bodyPartOf } from '../../data/bodyPart';
 
@@ -79,6 +81,13 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
     const sets = todayWorkouts.reduce((n, w) => n + (Number(w.sets) || 0), 0);
     const { kg } = volumeOf(todayWorkouts);
     const parts = [...new Set(todayWorkouts.map(w => bodyPartOf(w.exercise)))];
+    // 오늘의 유산소 — 세트에도 무게에도 들 수 없는 것이다
+    const cardioSum = todayWorkouts.reduce((a2, w) => {
+      if (!isCardioRow(w)) return a2;
+      const c2 = cardioOf(w);
+      return { minutes: a2.minutes + (c2.minutes || 0), km: a2.km + (c2.km || 0) };
+    }, { minutes: 0, km: 0 });
+    const cardioLine = [minuteLabel(cardioSum.minutes), kmLabel(cardioSum.km)].filter(Boolean).join(' · ');
     return (
       <div className="card" style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
@@ -86,7 +95,12 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
             오늘 {todayWorkouts.length}개
           </span>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            {sets}세트{kg > 0 ? ` · ${kg.toLocaleString()}kg` : ''}
+            {/* **유산소만 한 날은 세트가 0 이다** (2026-11-05) — 「0세트」라고 적으면
+                30분을 뛰고 온 사람에게 아무것도 안 했다고 말하는 셈이다.
+                그때는 시간 · 거리로 적는다 (결산이 큰 수를 그렇게 고른 것과 같다) */}
+            {sets > 0 ? `${sets}세트` : cardioLine}
+            {kg > 0 ? ` · ${kg.toLocaleString()}kg` : ''}
+            {sets > 0 && cardioLine ? ` · ${cardioLine}` : ''}
           </span>
         </div>
 
@@ -105,7 +119,9 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {todayWorkouts.map(w => (
             <div key={w.id} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {w.exercise} — {w.weight} · {w.sets}세트 · {w.reps}회
+              {/* 유산소 줄은 무게 · 세트 · 횟수가 없다 (2026-11-05) —
+                  그대로 그리면 「런닝머신 — undefined · 세트 · 회」가 된다 */}
+              {w.exercise} — {isCardioRow(w) ? cardioText(w) : `${w.weight} · ${w.sets}세트 · ${w.reps}회`}
             </div>
           ))}
         </div>
