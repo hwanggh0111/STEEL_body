@@ -89,7 +89,8 @@
     "volume": "node scripts/check-volume.cjs",
     "composition": "node scripts/check-composition.cjs",
     "alive": "node scripts/check-alive.cjs",
-    "draw": "node scripts/check-draw.cjs"
+    "draw": "node scripts/check-draw.cjs",
+    "nextstep": "node scripts/check-nextstep.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

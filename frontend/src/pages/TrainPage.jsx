@@ -1,6 +1,8 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
+// 지난 판을 읽는 셈 — 「다음 한 걸음」과 「지난 판」 (2026-11-05, `npm run nextstep`)
+import { nextStep, lastSession, stepReason, shortDate } from '../data/lastSets';
 import { readLS, saveLS } from '../data/safeStorage';
 import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
@@ -312,6 +314,33 @@ export default function TrainPage() {
     }
     return found;
   }, [workouts, exercise]);
+
+  // ── 다음 한 걸음 · 지난 판 ── (2026-11-05)
+  //
+  // 지난번 값을 칸에 채워주고 **거기서 멈추고 있었다.** 80kg 8회를 세 판 내내
+  // 채웠는지, 아니면 지난번에 6회에서 멈췄는지는 화면에 없었다 — 올릴지 말지를
+  // 고르는 데 꼭 필요한 바로 그것이다. 셈은 `data/lastSets.js` 에 있다
+  // (화면에서는 확인할 수 없는 셈이다 — 「세 판 연속」을 눈으로 보려면 기록을
+  // 세 판 만들어야 한다. `npm run nextstep` 이 값으로 본다)
+  const step = useMemo(() => nextStep(workouts, exercise, today), [workouts, exercise, today]);
+  const lastPlay = useMemo(() => lastSession(workouts, exercise, today), [workouts, exercise, today]);
+  // 지난 판은 **접은 채로** 시작한다 — 펼쳐 두면 적는 칸이 아래로 밀린다
+  const [openLast, setOpenLast] = useState(false);
+
+  /** 권한 값을 칸에 넣는다. **단추를 눌렀을 때만** 움직인다 (미리 채우기와 다투지 않는다) */
+  const fillStep = () => {
+    if (!step) return;
+    setWeight(step.body ? '' : String(step.kg));
+    setReps(String(step.reps));
+    if (step.sets) setSets(String(step.sets));
+    setError('');
+  };
+  const fillSame = () => {
+    if (!step) return;
+    setWeight(step.body ? '' : String(step.from.kg));
+    setReps(String(step.from.reps));
+    setError('');
+  };
 
   // 최고 기록. **`bestRecords` 는 Map 이고 열쇠가 `이름::갈래`다** — 같은 운동이라도
   // 무게로 든 것과 맨몸으로 한 것을 따로 센다. 무게 쪽만 화면에 적는다.
@@ -1066,6 +1095,107 @@ export default function TrainPage() {
                 <> &nbsp;&middot;&nbsp; 최고 <span style={{ color: 'var(--text-primary)' }}>{best.weight} kg</span></>
               )}
             </div>
+
+            {/* ── 다음 한 걸음 ── (2026-11-05)
+                **권하는 것일 뿐이다.** 등급도 점수도 아니다 — 이 앱은 몸에 등급을
+                안 매긴다(8/25). 그래서 묻는 말투로 적고, 단추를 누르지 않으면
+                아무것도 안 바뀐다. 고치는 중에는 안 그린다 — 그 자리는 지난 판이
+                아니라 **그 기록**을 다루는 자리다 */}
+            {step && !editingId && (
+              <div style={{
+                marginBottom: 12, padding: '11px 12px', borderRadius: 'var(--radius)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--accent-low)',
+              }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0.5 }}>다음 한 걸음</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 3 }}>
+                  <span style={{
+                    fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1,
+                    fontSize: 25, lineHeight: 1.1, color: 'var(--accent)',
+                  }}>{step.body ? step.reps : step.kg}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    {step.body
+                      ? `회${step.sets ? ` · ${step.sets}세트` : ''}`
+                      : `kg × ${step.reps}회${step.sets ? ` · ${step.sets}세트` : ''}`}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.7 }}>
+                  {stepReason(step)}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button type="button" className="btn-primary" onClick={fillStep}
+                    style={{ flex: 1, padding: '8px 10px', fontSize: 12.5 }}>이대로 채우기</button>
+                  {step.kind === 'up' && (
+                    <button type="button" className="btn-secondary" onClick={fillSame}
+                      style={{ flex: 1, padding: '8px 10px', fontSize: 12.5 }}>지난번과 같게</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                  권하는 것일 뿐이에요 — 오늘 컨디션은 사람이 압니다. 칸은 그대로 고칠 수 있어요.
+                </div>
+              </div>
+            )}
+
+            {/* ── 지난 판 ── (2026-11-05)
+                「지난번 80kg」 한 줄만 보였다. 그날 무게를 내려 더 한 것과 드롭으로
+                내려간 줄은 **기록 탭으로 나가야** 보였다. 적는 자리에 접어 둔다 —
+                세트 칸을 누르는 중에도 그 자리에 있다.
+                ★ 「세트 사이」라고 적지 않는다 — 우리가 아는 것은 **줄을 적은
+                시각**뿐이다 (`data/pace.js` 가 못 박아둔 말이다) */}
+            {lastPlay && lastPlay.lines.length > 0 && !editingId && (
+              <div style={{
+                marginBottom: 12, borderRadius: 'var(--radius)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setOpenLast((v) => !v)}
+                  aria-expanded={openLast}
+                  style={{
+                    width: '100%', minHeight: 40, padding: '9px 12px', background: 'none', border: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                    font: 'inherit', fontSize: 12.5, color: 'var(--text-secondary)', cursor: 'pointer',
+                  }}
+                >
+                  <span>지난 판 · {shortDate(lastPlay.date)}
+                    <span style={{ color: 'var(--text-muted)' }}> ({lastPlay.ago})</span>
+                    <span style={{ color: 'var(--text-muted)' }}> · {lastPlay.lines.length}줄</span>
+                  </span>
+                  <span style={{ color: 'var(--accent)', fontSize: 12 }}>{openLast ? '접기' : '펼치기'}</span>
+                </button>
+                {openLast && (
+                  <div style={{ padding: '0 12px 11px' }}>
+                    {lastPlay.lines.map((l, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
+                        borderTop: '1px solid var(--border)', fontSize: 12.5,
+                      }}>
+                        <span style={{
+                          width: 18, flexShrink: 0, color: 'var(--text-muted)',
+                          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+                        }}>{i + 1}</span>
+                        <span style={{
+                          flexGrow: 1, minWidth: 0,
+                          color: l.link === 'drop' ? 'var(--text-muted)' : 'var(--text-primary)',
+                        }}>{l.weightText}</span>
+                        <span style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>
+                          {l.reps != null ? `${l.reps}회` : '-'}{l.sets > 1 ? ` × ${l.sets}세트` : ''}
+                        </span>
+                        {l.link && (
+                          <span style={{
+                            flexShrink: 0, fontSize: 10, padding: '0 5px', borderRadius: 'var(--radius)',
+                            border: '1px solid var(--border-hover)', color: 'var(--info)',
+                          }}>{l.link === 'drop' ? '드롭' : '슈퍼'}</span>
+                        )}
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                      세트 합 {lastPlay.totalSets}
+                      {lastPlay.span && ` · 첫 줄부터 마지막 줄까지 ${lastPlay.span}`}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── 오늘 무게가 내 1RM 의 몇 %인가 ── (2026-10-05)
                 「무엇을 하는 무게인가」만 말하고 **판단은 안 한다** — 가벼운 무게로
