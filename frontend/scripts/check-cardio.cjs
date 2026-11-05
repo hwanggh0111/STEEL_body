@@ -120,6 +120,8 @@ ok('  글자로 와도 숫자로 읽는다', C.paceLabel('31', '5'), '6분 12초
 
 console.log('');
 console.log('── 최근 이레 ──');
+// **최근 이레 합은 몸 지도의 셈이 센다**(`bodyHeat.cardio7`) — 여기서 또 세지 않는다.
+// 세는 손이 둘이면 한쪽만 고쳐지는 날이 온다 (`data/cardio.js` 머리글)
 const week = {
   '2026-11-05': [row('런닝머신', { date: '2026-11-05', minutes: 30, distance_km: 5 })],
   '2026-11-03': [row('실내 자전거', { date: '2026-11-03', minutes: 40 }),
@@ -128,14 +130,8 @@ const week = {
   '2026-10-20': [row('런닝머신', { date: '2026-10-20', minutes: 999 })],
   '2026-12-01': [row('런닝머신', { date: '2026-12-01', minutes: 60 })],
 };
-const sum = C.cardioSummary(week, TODAY);
-// 11/05 · 11/03 · 10/30 이 창 안이다 (10/30 은 엿새 전). 10/20 은 밖, 12/01 은 앞날
-ok('**최근 이레만 센다**', [sum.count, sum.minutes, sum.km], [3, 95, 9.2]);
-ok('  이름도 모아둔다', sum.names, ['런닝머신', '실내 자전거', '달리기']);
-ok('  한 줄로', C.summaryText(sum), '1시간 35분 · 9.2km');
-ok('없으면 말하지 않는다', C.summaryText(C.cardioSummary({}, TODAY)), null);
-// 앞날 기록이 섞여도 창 셈이 무너지지 않는다
-ok('앞날은 안 센다', C.cardioSummary({ '2026-12-01': week['2026-12-01'] }, TODAY).count, 0);
+ok('셈이 한 손인가 (최근 이레를 두 벌로 안 센다)',
+  /export function cardioSummary/.test(fs.readFileSync('src/data/cardio.js', 'utf-8')), false);
 
 console.log('');
 console.log('── 몸 지도 ──');
@@ -191,6 +187,8 @@ ok('  고치기로 열면 시간 · 거리를 채운다', /setMinutes\(c\.minute
 // ★ **루틴의 세트 단추가 유산소에 뜨면 「1세트 1회」가 다시 들어온다**
 ok('  루틴에서 유산소에는 세트 단추를 안 그린다', /\{cardio \? \(\s*<div[\s\S]{0,200}?유산소는 세트로 세지 않아요/.test(page), true);
 ok('  「여기까지 기록」도 안 그린다', /canFinishEarly && !cardio/.test(page), true);
+// 세트 단추를 안 그리면서 머리만 「0 / 4세트」로 남으면 그 자리가 거짓이 된다
+ok('  진행 중 머리의 세트 수도 안 그린다', /\{!cardio && \([\s\S]{0,200}?setsDone/.test(page), true);
 // ★ **유산소 뒤에 휴식 타이머를 켜지 않는다** — 휴식은 세트 사이의 것이다
 ok('  유산소 뒤에 쉬라고 하지 않는다', /asCardio\s*\?\s*false/.test(page), true);
 

@@ -128,49 +128,13 @@ export function cardioText(row) {
   return [minuteLabel(minutes), kmLabel(km)].filter(Boolean).join(' · ');
 }
 
-/** 'YYYY-MM-DD' 에서 며칠 뒤로 (`bodyHeat.shiftBack` 과 같은 자) */
-function shiftBack(key, days) {
-  const d = new Date(`${key}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() - days);
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/**
- * **최근 이레의 유산소.** 몸 지도 아래 한 줄과 통계가 같은 것을 본다.
- *
- * 「이번 주」로 세지 않는다 — 월요일 아침마다 0 이 되어, 일요일에 10km 뛴 사람이
- * 월요일에 아무것도 안 한 사람이 된다 (`bodyHeat` 가 세트를 세는 그 규칙과 같다).
- * **앞날은 안 센다.**
- *
- * 돌려주는 것: `{ count, minutes, km, names, days }`
- */
-export function cardioSummary(workouts, today = null, days = 7) {
-  const from = today ? shiftBack(today, Math.max(0, days - 1)) : null;
-  let count = 0;
-  let minutes = 0;
-  let km = 0;
-  const names = [];
-  Object.entries(workouts || {}).forEach(([date, list]) => {
-    if (!date || !Array.isArray(list)) return;
-    if (today && date > today) return;          // 앞날은 아직 한 것이 아니다
-    if (from && date < from) return;
-    list.forEach((row) => {
-      if (!isCardioRow(row)) return;
-      const { minutes: m, km: d } = cardioOf(row);
-      count += 1;
-      minutes += m || 0;
-      km += d || 0;
-      const nm = String(row?.exercise || '').trim();
-      if (nm && !names.includes(nm)) names.push(nm);
-    });
-  });
-  return { count, minutes, km: Number(km.toFixed(2)), names, days };
-}
-
-/** 최근 이레 유산소를 한 줄로 — '2시간 10분 · 14.2km'. 없으면 null */
-export function summaryText(sum) {
-  if (!sum || sum.count === 0) return null;
-  return [minuteLabel(sum.minutes), kmLabel(sum.km)].filter(Boolean).join(' · ');
-}
+// ── **최근 이레 합을 여기서 또 세지 않는다** ── (2026-11-05)
+//
+// 처음에 `cardioSummary`(최근 이레 시간·거리)를 여기에도 두었다. 그런데 **몸 지도의
+// 셈이 이미 한 번 훑으며 그것을 센다**(`bodyHeat.buildHeat` 의 `cardio7` — 같은
+// 창이다). 쓰는 데는 한 곳인데 **세는 손이 둘**이면 한쪽만 고쳐지는 날이 온다 —
+// 이 앱이 몸 지도와 목표를 한 손으로 모은 것이 그 까닭이다.
+//
+// 그래서 걷었다. 통계에 유산소 추이를 붙이는 날에는 **쓰는 그 자리에서** 센다.
+// (`npm run alive` 는 **자(scripts)를 호출자로 센다** — 일부러 그렇게 뒀다.
+//  그래서 「자만 부르는 셈」은 그 자가 안 잡는다. 두 벌인지는 사람이 봐야 한다)

@@ -991,9 +991,13 @@ export default function TrainPage() {
                   fontSize: 14, color: 'var(--accent)', fontWeight: 600, minWidth: 0,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{current.name}</span>
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
-                  {setsDone}{plannedSets ? ` / ${plannedSets}` : ''}세트
-                </span>
+                {/* 유산소에는 세트가 없다 (2026-11-05) — 세트 단추를 안 그리면서
+                    이 머리만 「0 / 4세트」로 남아 있으면 그 자리가 거짓이 된다 */}
+                {!cardio && (
+                  <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                    {setsDone}{plannedSets ? ` / ${plannedSets}` : ''}세트
+                  </span>
+                )}
               </div>
               {/* ── 유산소에는 세트가 없다 ── (2026-11-05)
                   루틴에 런닝머신이 들어 있으면 이 자리에 **세트 단추**가 떴다 —
