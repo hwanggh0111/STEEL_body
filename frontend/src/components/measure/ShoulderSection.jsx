@@ -1,4 +1,6 @@
 import { useState } from 'react';
+// 앞날 줄을 빼고 고른다 (2026-11-05)
+import { measuresUpto } from '../../data/measureChange';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { BODY_CM_MAX } from '../../data/measureRange';
@@ -57,8 +59,12 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
     setShoulderWidth(''); setWaist('');
   };
 
-  const latest = records[0];
-  const oldest = records.length >= 2 ? records[records.length - 1] : null;
+  // **앞날 줄은 「최근」이 아니다** (2026-11-05) — 서버는 측정 날짜도 하루 넉넉하게
+  // 받고(시차 · 자정 무렵) 목록은 날짜 내림차순이라, 첫 줄이 **아직 재지도 않은
+  // 값**이 될 수 있었다. 그러면 「어깨가 +1.5cm 늘었어요」가 거짓이 된다
+  const upto = measuresUpto(records);
+  const latest = upto[0];
+  const oldest = upto.length >= 2 ? upto[upto.length - 1] : null;
   const latestShoulder = latest?.data?.shoulder;
   const oldestShoulder = oldest?.data?.shoulder;
   const diff = latestShoulder && oldestShoulder ? (latestShoulder - oldestShoulder).toFixed(1) : null;

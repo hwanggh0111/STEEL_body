@@ -426,5 +426,28 @@ console.log('── ★ 인바디의 「가장 최근」도 앞날을 안 집는
   ok('  앞날 줄이 있으면 화면이 말해준다', /앞날 날짜로 적힌 기록이/.test(inb), true);
 }
 
+console.log('');
+console.log('── ★ 측정도 앞날을 안 집는가 ──');
+// 서버는 **측정** 날짜도 하루 넉넉하게 받는다(`dayRange` 는 운동·인바디·측정에 다
+// 쓰인다). 목록은 날짜 내림차순이라 앞날 줄이 「지난번」이 되면 **아직 재지도 않은
+// 값**으로 「+1.5cm 늘었어요」를 말한다
+{
+  const MC = bundle('src/data/measureChange.js', '.mc.cjs');
+  const TODAY = '2026-11-05';
+  const recs = [
+    { id: 3, date: '2026-11-06', data: { shoulder: 48 } },   // 앞날 (잘못 적은 것)
+    { id: 2, date: '2026-11-04', data: { shoulder: 45 } },
+    { id: 1, date: '2026-10-20', data: { shoulder: 44 } },
+  ];
+  const ch = MC.changeOf(recs, 'shoulder', TODAY);
+  ok('**앞날 줄을 「지난번」으로 안 집는다**', [ch.last, ch.prev], [45, 44]);
+  ok('  최고값도 앞날을 안 센다', MC.bestOf(recs, 'shoulder', 'up', TODAY).value, 45);
+  // ★ 날짜를 안 넘기면 **돌린 날에 따라** 달라진다 — 자는 늘 넘긴다
+  ok('  날을 넘기지 않으면 오늘로 본다', typeof MC.changeOf(recs, 'shoulder').last, 'number');
+  ok('  오늘까지만 돌려주는 손이 있다', MC.measuresUpto(recs, TODAY).length, 2);
+  const sh = fs.readFileSync('src/components/measure/ShoulderSection.jsx', 'utf-8');
+  ok('어깨 측정 화면이 그 손을 쓴다', /measuresUpto\(records\)/.test(sh), true);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

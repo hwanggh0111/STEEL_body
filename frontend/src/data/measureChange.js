@@ -26,10 +26,25 @@
 // 배열이 올 자리에 객체가 오면 `.filter` 가 없어서 그 자리에서 터지고,
 // 터지면 **흰 화면**이다. 빈 목록으로 보고 그리는 편이 낫다 —
 // 화면이 「없습니다」를 보여주는 것과 아무것도 안 보여주는 것은 다르다.
+import { dateKey } from './dateKey';
+
 const asList = (v) => (Array.isArray(v) ? v : []);
 
-function withKey(records, key) {
-  return asList(records)
+// ── **앞날은 안 센다** ── (2026-11-05)
+//
+// 서버는 측정 날짜도 **하루 넉넉하게** 받는다 — 시차와 자정 무렵을 위해 일부러
+// 그렇게 뒀다(`utils/dayRange.js` 는 운동 · 인바디 · 측정에 다 쓰인다). 목록은
+// **날짜 내림차순**이라 앞날 줄이 있으면 그것이 「지난번」이 된다 —
+// 아직 재지도 않은 값으로 「+1.5cm 늘었어요」를 말하게 된다.
+//
+// 몸 지도 · 체형 · 최고 기록 · 목표 · 주간 요약 · 달 요약 · 인바디의 「가장 최근」이
+// 전부 그 줄을 지킨다. **여기만 빠져 있었다** (같은 날 함께 쓸었다).
+export function measuresUpto(records, today = dateKey()) {
+  return asList(records).filter((r) => !today || (typeof r?.date === 'string' && r.date <= today));
+}
+
+function withKey(records, key, today = dateKey()) {
+  return measuresUpto(records, today)
     .filter((r) => r?.data?.[key] != null && r.data[key] !== '')
     .slice()
     .sort((a, b) => String(b.date).localeCompare(String(a.date)) || (b.id || 0) - (a.id || 0));
@@ -52,8 +67,10 @@ const dayStart = (s) => {
  *   적은 적이 없으면 `null` — **화면은 그때 아무 줄도 안 그린다.**
  *   한 번만 적었으면 `prev` 가 `null` 이다 (견줄 것이 없다고 말한다)
  */
-export function changeOf(records, key) {
-  const rows = withKey(records, key);
+// `today` 를 **끝까지 넘긴다** — 안 넘기면 부르는 쪽이 오늘을 못 정하고,
+// 자도 「돌린 날」에 따라 다르게 센다(그러면 자가 거짓으로 통과한다)
+export function changeOf(records, key, today = dateKey()) {
+  const rows = withKey(records, key, today);
   if (rows.length === 0) return null;
   const last = num(rows[0].data[key]);
   if (last === null) return null;
@@ -74,8 +91,8 @@ export function changeOf(records, key) {
  * 최고 기록. `better` 가 'down' 이면 **작을수록 좋은 것**이다 (1km 달리기).
  * **체력 테스트에서만 쓴다** — 몸에는 최고를 매기지 않는다.
  */
-export function bestOf(records, key, better = 'up') {
-  const rows = withKey(records, key);
+export function bestOf(records, key, better = 'up', today = dateKey()) {
+  const rows = withKey(records, key, today);
   if (rows.length === 0) return null;
   let best = null;
   for (const r of rows) {
