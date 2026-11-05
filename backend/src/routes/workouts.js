@@ -15,6 +15,9 @@ const { normalizeWeight } = require('../utils/workoutFields');
 // 맞춰 뒀다 — 그리고 **루틴은 아무 테두리도 없었다**
 const { SETS_MAX, REPS_MAX } = require('../utils/setRange');
 const { isRecordDay } = require('../utils/dayRange');
+// 유산소 줄의 시간 · 거리 (2026-11-05). 손으로 적는 길과 파일로 넣는 길이
+// **같은 자**를 들어야 한다 — 무게에서 이미 한 번 어긋났던 자리다
+const { normalizeCardio } = require('../utils/cardioFields');
 const { sendFresh } = require('../utils/fresh');
 
 // 무게 칸과 운동명을 다듬는 자는 **`utils/workoutFields.js` 한 곳에** 있다
@@ -79,6 +82,9 @@ const slim = (w) => {
   };
   // 있을 때만 — 없으면 칸을 안 만든다 (옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다)
   if (w.link) o.link = w.link;
+  // 유산소 줄의 시간 · 거리 — 있을 때만 (옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다)
+  if (w.minutes != null) o.minutes = w.minutes;
+  if (w.distance_km != null) o.distance_km = w.distance_km;
   if (w.updated_at) o.updated_at = w.updated_at;
   return o;
 };
@@ -98,17 +104,28 @@ router.get('/', auth, (req, res) => {
 
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
-  const { date, exercise, weight, sets, reps, clientKey, link } = req.body;
+  const { date, exercise, weight, sets, reps, clientKey, link, minutes } = req.body;
+  // 파일로 넣는 길과 옛 앱이 `distance_km` 으로 보낼 수 있다 — 둘 다 받는다
+  const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
   // 오프라인 줄에서 올라온 것만 이 키를 달고 온다 (`local-...`). 재전송돼도 서버가
   // 한 번만 만들게 하는 데만 쓴다. 모양이 아니면 그냥 무시(없는 것으로).
   const key = typeof clientKey === 'string' && clientKey.startsWith('local-') && clientKey.length <= 64
     ? clientKey : null;
 
+  // ── 유산소 줄인가 ── (2026-11-05)
+  //
+  // 시간이나 거리가 적혀 있으면 유산소 줄이고, 그때는 **세트 · 횟수를 묻지 않는다.**
+  // 여태 그 둘이 필수라서 런닝머신을 적으려면 「1세트 1회」를 지어내야 했다
+  const c = normalizeCardio(minutes, distanceKm);
+  if (!c.ok) return res.status(400).json({ error: c.why });
+
   // 0 은 빠뜨린 것이 아니라 잘못 적은 것이다. `!sets` 로 묶으면 「필수에요」라고 답하게 되는데,
   // 친 사람은 칸을 채웠으니 왜 안 되는지 모른다. 아래 「1 이상」 검사로 내려보낸다
-  if (!date || exercise === undefined || exercise === null || exercise === '' ||
-      sets === undefined || sets === null || sets === '' ||
-      reps === undefined || reps === null || reps === '') {
+  if (!date || exercise === undefined || exercise === null || exercise === '') {
+    return res.status(400).json({ error: '날짜와 운동명은 필수에요' });
+  }
+  if (!c.cardio && (sets === undefined || sets === null || sets === '' ||
+      reps === undefined || reps === null || reps === '')) {
     return res.status(400).json({ error: '날짜, 운동명, 세트, 횟수는 필수에요' });
   }
 
@@ -135,14 +152,18 @@ router.post('/', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });
   }
 
-  // 2.5세트는 없다. 화면도 정수로 그린다
-  const numSets = Number(sets);
-  const numReps = Number(reps);
-  if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
-    return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
-  }
-  if (numSets > SETS_MAX || numReps > REPS_MAX) {
-    return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
+  // 2.5세트는 없다. 화면도 정수로 그린다.
+  // **유산소 줄에는 세트 · 횟수를 담지 않는다** — 「1세트 1회」를 대신 넣어두면
+  // 그것이 바로 없애려는 그 거짓이다 (`utils/cardioFields.js` 머리글)
+  const numSets = c.cardio ? null : Number(sets);
+  const numReps = c.cardio ? null : Number(reps);
+  if (!c.cardio) {
+    if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
+      return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
+    }
+    if (numSets > SETS_MAX || numReps > REPS_MAX) {
+      return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
+    }
   }
 
   const w = normalizeWeight(weight);
@@ -157,7 +178,8 @@ router.post('/', auth, spamCheck, (req, res) => {
   // **아는 말만 받는다.** 아무 문자열이나 받으면 화면이 모르는 표시를 만나 빈 칸을 그린다
   const safeLink = link === 'super' || link === 'drop' ? link : null;
 
-  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink);
+  const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink,
+    { minutes: c.minutes, distanceKm: c.distanceKm });
   // **담은 줄을 같이 보낸다** (2026-10-31) — 화면이 그것을 제자리에 꽂고 목록
   // 전체를 다시 받지 않는다. `GET /workouts` 가 주는 줄과 **같은 모양**이어야 한다
   // (화면이 둘을 섞어 쓴다) — 그래서 다듬거나 고르지 않고 그대로 보낸다
@@ -177,9 +199,16 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '잘못된 ID에요' });
   }
 
-  const { date, exercise, weight, sets, reps } = req.body;
+  const { date, exercise, weight, sets, reps, minutes } = req.body;
+  const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
+  // 고치면서 유산소 줄로 바뀔 수 있다 (세트·횟수로 적어둔 런닝머신을 고치는 길이다)
+  const cp = normalizeCardio(minutes, distanceKm);
+  if (!cp.ok) return res.status(400).json({ error: cp.why });
 
-  if (!date || !exercise || sets === undefined || reps === undefined) {
+  if (!date || !exercise) {
+    return res.status(400).json({ error: '날짜와 운동명은 필수에요' });
+  }
+  if (!cp.cardio && (sets === undefined || reps === undefined)) {
     return res.status(400).json({ error: '날짜, 운동명, 세트, 횟수는 필수에요' });
   }
 
@@ -203,24 +232,31 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });
   }
 
-  const numSets = Number(sets);
-  const numReps = Number(reps);
-  if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
-    return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
-  }
-  if (numSets > SETS_MAX || numReps > REPS_MAX) {
-    return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
+  const numSets = cp.cardio ? null : Number(sets);
+  const numReps = cp.cardio ? null : Number(reps);
+  if (!cp.cardio) {
+    if (!Number.isInteger(numSets) || !Number.isInteger(numReps) || numSets <= 0 || numReps <= 0) {
+      return res.status(400).json({ error: '세트와 횟수는 1 이상의 정수여야 해요' });
+    }
+    if (numSets > SETS_MAX || numReps > REPS_MAX) {
+      return res.status(400).json({ error: `세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하여야 해요` });
+    }
   }
 
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: w.why });
 
+  // **두 모양을 섞어 담지 않는다** — 유산소 줄로 고치면 세트 · 횟수를 비우고,
+  // 근력 줄로 되돌리면 시간 · 거리를 비운다. 둘 다 적혀 있으면 읽는 쪽마다
+  // 다른 것을 보고 다른 말을 한다
   const result = db.updateWorkout(id, req.userId, {
     date,
     exercise: safeExercisePut,
     weight: w.value,
     sets: numSets,
     reps: numReps,
+    minutes: cp.minutes,
+    distance_km: cp.distanceKm,
   });
 
   if (result.changes === 0) {

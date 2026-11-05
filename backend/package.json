@@ -56,7 +56,8 @@
     "range": "node scripts/check-range.cjs",
     "order": "node scripts/check-order.cjs",
     "tag": "node scripts/check-tag.cjs",
-    "fields": "node scripts/check-fields.cjs"
+    "fields": "node scripts/check-fields.cjs",
+    "cardioapi": "node scripts/check-cardio-api.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

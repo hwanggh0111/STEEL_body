@@ -41,6 +41,8 @@ import { parseWeight, daysBetween } from './personalRecord';
 // 조사는 **앱의 손**으로 붙인다 — 보간 뒤에 글자로 박으면 「…회을」이 나는 날이 온다
 // (`npm run data` 가 그 자리를 잡는다)
 import { particle } from './particle';
+// 유산소 줄은 무게가 아니라 **시간 · 거리**다 (2026-11-05)
+import { isCardioRow, cardioText } from './cardio';
 import { WEIGHT_KG_MAX, REPS_MAX } from './limits';
 
 /** 올리는 칸을 모를 때 쓰는 값 — 바에 꽂는 제일 작은 원판 짝(1.25kg × 2) */
@@ -280,8 +282,18 @@ export function lastSession(workouts, exercise, today = null) {
   const lines = s.rows.map((w) => {
     const kg = parseWeight(w?.weight);
     const text = String(w?.weight ?? '').trim();
+    // 유산소 줄은 **그 줄에 적힌 시간·거리**로 말한다 (무게 칸은 비어 있다).
+    // 지어내 적어둔 옛 줄(1세트 1회)은 유산소 줄이 아니라 **옛 모양 그대로** 나간다
+    if (isCardioRow(w)) {
+      return {
+        kg: null, cardio: true, weightText: cardioText(w),
+        reps: null, sets: null,
+        link: w?.link === 'super' || w?.link === 'drop' ? w.link : null,
+      };
+    }
     return {
       kg,
+      cardio: false,
       // 무게 칸은 자유 입력이다 ('20kg 양쪽'). **적힌 그대로** 보여준다 —
       // 수만 꺼내 그리면 「양쪽」이 사라져 한쪽 무게로 읽힌다
       weightText: kg === null ? (text || '맨몸') : (/^\d+(\.\d+)?$/.test(text) ? `${text}kg` : text),

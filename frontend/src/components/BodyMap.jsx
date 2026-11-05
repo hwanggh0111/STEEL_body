@@ -6,6 +6,8 @@ import { buildHeat, MAP_PARTS } from '../data/bodyHeat';
 import { FRONT, BACK, HEAD, VIEWBOX, GOLD, GOLD_LOW, SKIN, SKIN_EDGE, heatPaint } from './bodyShapes';
 
 import { particle } from '../data/particle';
+// 유산소 — 지도의 여섯 부위에 자리는 없지만 **셀 곳은 생겼다** (2026-11-05)
+import { minuteLabel, kmLabel } from '../data/cardio';
 // 몸 지도.
 //
 // 최근에 자극한 부위가 아직 달아 있고, 날이 갈수록 식는다. 계산은 `data/bodyHeat.js`
@@ -156,6 +158,15 @@ export default function BodyMap() {
             <>
               기록이 <span style={{ color: 'var(--accent)' }}>{heat.cardio.count + heat.other.count}건</span> 있는데
               <br />지도의 여섯 부위에 자리가 없어요.
+              {/* **적은 것을 수로 말한다** (2026-11-05). 여태 「자리가 없어요」로
+                  끝냈다 — 매일 적는 사람에게 아무것도 돌려주지 않는 말이다 */}
+              {heat.cardio7.count > 0 && (
+                <><br /><span style={{ color: 'var(--text-secondary)' }}>
+                  최근 이레 유산소 <b style={{ color: 'var(--accent)' }}>
+                    {[minuteLabel(heat.cardio7.minutes), kmLabel(heat.cardio7.km)].filter(Boolean).join(' · ')}
+                  </b>
+                </span></>
+              )}
               <br /><span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
                 지도는 <b>근육 부위 여섯</b>(가슴 · 등 · 어깨 · 하체 · 팔 · 코어)을 그립니다 —
                 유산소 · 전신은 여기 자리가 없습니다.
@@ -300,6 +311,27 @@ export default function BodyMap() {
         })}
       </div>
 
+      {/* ── 유산소 한 줄 ── (2026-11-05)
+          **부위 여섯과 같은 줄에 세우지 않는다** — 근육 부위가 아니다. 그래서
+          막대도 부위끼리 견주는 그 막대(`maxSets7`)를 쓰지 않고, 시간과 거리를
+          수로만 적는다. 「2시간 10분」이 많은지 적은지는 우리가 말할 수 없다
+          (부위 막대에 적어둔 그 선이다 — 서로 견주는 것까지가 우리가 말할 수 있는 선) */}
+      {heat.cardio7.count > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+          padding: '10px 2px', borderTop: '1px solid var(--bg-tertiary)',
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: 'var(--info)', opacity: 0.9 }} />
+          <span style={{ width: 44, flexShrink: 0, fontSize: 14, color: 'var(--info)' }}>유산소</span>
+          <span style={{ flexGrow: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            {[minuteLabel(heat.cardio7.minutes), kmLabel(heat.cardio7.km)].filter(Boolean).join(' · ')}
+          </span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+            최근 이레 {heat.cardio7.count}건
+          </span>
+        </div>
+      )}
+
       {/* 어느 부위에도 못 들어간 것. **조용히 빼지 않는다** —
           「나는 이만큼 했는데 지도가 비어 있다」가 되면 지도를 못 믿게 된다.
 
@@ -313,11 +345,21 @@ export default function BodyMap() {
           못 알아본 것이 아니라 **지도의 여섯 부위에 그 자리가 없는 것**이다. 뽑아둔
           부위 표가 그 말을 적어두고 있다(「못 맞힌 것이 아니라 셀 곳이 없다는 뜻이다」).
           그런데 화면은 **이름을 고쳐 적으라고** 했다 — 어떻게 적어도 안 되는 일이다. */}
+      {/* ── **이제 참인 말을 할 수 있다** ── (2026-11-05)
+          10/21 에 이 자리를 갈라놓으면서 적어둔 말이 「이름을 고쳐 적어도 런닝머신은
+          여섯 중 하나가 되지 않는다」였다. 맞다 — 그런데 **시간·거리로 적으면 위
+          유산소 줄에는 들어온다.** 그 칸이 없어서 할 수 없던 말이다.
+          그래서 **지어내 적어둔 옛 줄**(1세트 1회)에만 그렇게 권한다 */}
       {heat.cardio.count > 0 && (
         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
-          유산소 · 전신 {heat.cardio.count}건은 지도에 자리가 없어요
+          유산소 · 전신 {heat.cardio.count}건은 지도의 여섯 부위에 자리가 없어요
           {heat.cardio.names.length > 0 && ` (${heat.cardio.names.slice(0, 3).join(' · ')}${heat.cardio.names.length > 3 ? ' 외' : ''})`}.
           지도는 근육 부위 여섯만 그립니다 — 기록은 그대로 남아 있습니다.
+          {heat.cardio.count > heat.cardio.logged && (
+            <> 그중 <b style={{ color: 'var(--text-secondary)' }}>{heat.cardio.count - heat.cardio.logged}건</b>은
+              세트 · 횟수로 적혀 있어요 — <b style={{ color: 'var(--accent)' }}>시간 · 거리로 고쳐 적으면</b>
+              위 유산소 줄에 들어옵니다.</>
+          )}
         </div>
       )}
       {heat.other.count > 0 && (

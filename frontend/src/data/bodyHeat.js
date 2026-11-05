@@ -1,5 +1,8 @@
 import { bodyPartOf, isKnownName } from './bodyPart';
 import { daysBetween } from './personalRecord';
+// 유산소 줄의 시간 · 거리 (2026-11-05) — 지도의 여섯 부위에 자리는 없지만
+// **셀 곳은 생겼다**. 「자리가 없어요」만 적던 자리에 그 수를 준다
+import { isCardioRow, cardioOf } from './cardio';
 
 // 몸 지도 — **어느 부위가 아직 달아 있고 어디가 식었나.**
 //
@@ -76,7 +79,12 @@ export function buildHeat(workouts, today) {
   // 된다. **둘로 갈라 센다** (2026-10-21) — 사전이 아는 유산소와, 못 알아본 이름.
   // 화면이 둘에 할 말이 다르다 (`bodyPart.isKnownName` 머리글)
   const other = { count: 0, names: [] };
-  const cardio = { count: 0, names: [] };
+  // `logged` 는 **시간이나 거리가 적힌 줄** 수다. 나머지는 지어내어 적어둔 옛 줄
+  // (「런닝머신 1세트 1회」) — 화면이 **그 둘에 할 말이 다르다**:
+  // 적은 것은 아래 유산소 줄에 들어오고, 지어낸 것은 고쳐 적어야 들어온다
+  const cardio = { count: 0, logged: 0, names: [] };
+  // 최근 이레 유산소 — 부위의 `sets7` 과 **같은 창**으로 센다
+  const cardio7 = { count: 0, minutes: 0, km: 0 };
 
   // 최근 이레. **오늘까지 7일**이다(오늘 포함) — 「이번 주」로 세면 월요일 아침마다
   // 모든 부위가 0 이 되어, 일요일에 조진 사람이 월요일에 아무것도 안 한 사람이 된다
@@ -94,6 +102,15 @@ export function buildHeat(workouts, today) {
         const bucket = isKnownName(name) ? cardio : other;
         bucket.count += 1;
         if (name && !bucket.names.includes(name)) bucket.names.push(name);
+        if (isCardioRow(record)) {
+          bucket.logged = (bucket.logged || 0) + 1;
+          if (weekAgo && date >= weekAgo) {
+            const { minutes, km } = cardioOf(record);
+            cardio7.count += 1;
+            cardio7.minutes += minutes || 0;
+            cardio7.km += km || 0;
+          }
+        }
         return;
       }
       const slot = byPart[part];
@@ -142,6 +159,8 @@ export function buildHeat(workouts, today) {
     hot: MAP_PARTS.filter((p) => byPart[p].days === 0),
     other,
     cardio,
+    // 최근 이레 유산소 (시간 · 거리). 부위의 `sets7` 과 같은 창이다
+    cardio7: { ...cardio7, km: Number(cardio7.km.toFixed(2)) },
     maxSets7,
     any,
   };

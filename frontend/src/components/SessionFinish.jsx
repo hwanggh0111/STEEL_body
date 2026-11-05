@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+// 유산소는 무게도 세트도 아니다 — **시간 · 거리** (2026-11-05)
+import { minuteLabel, kmLabel, cardioText } from '../data/cardio';
 import { useNavigate } from 'react-router-dom';
 import { shortTime, longTime } from '../data/pace';
 
@@ -97,9 +99,20 @@ export default function SessionFinish() {
   if (!summary) return null;
 
   const { sets, count, weeks, deltaKg, record, routineName, bodyweightSets, items, parts, pace } = summary;
+  const cardio = summary.cardio || { count: 0, minutes: 0, km: 0 };
   // 맨몸만 한 날은 총 무게가 0 이다. 0kg 을 크게 띄우면 열심히 한 사람에게
-  // 아무것도 아니라고 말하는 셈이라, 그때는 세트 수를 대신 세운다
+  // 아무것도 아니라고 말하는 셈이라, 그때는 세트 수를 대신 세운다.
+  //
+  // ── **유산소만 한 날은 그 둘이 다 0 이다** ── (2026-11-05)
+  //
+  // 30분을 뛰고 결산을 열면 큰 수가 **「0 SETS」**였다 — 이 파일이 바로 위에
+  // 적어둔 그 잘못(「0 을 크게 띄우면 아무것도 아니라고 말하는 셈」)이 유산소
+  // 칸을 만들면서 **실제로 닿는 자리**가 됐다. 그때는 **시간**을 세운다.
+  // 시간이 없고 거리만 적은 사람에게는 거리를 세운다.
+  // **더해서 한 수로 만들지 않는다** — kg 과 분은 더할 수 없다
   const weighted = kg > 0;
+  const bigCardio = !weighted && sets === 0 && (cardio.minutes > 0 || cardio.km > 0);
+  const bigKm = bigCardio && cardio.minutes <= 0;
 
   return (
     <div
@@ -130,18 +143,32 @@ export default function SessionFinish() {
         {/* 오늘 든 무게 — 이 화면에서 큰 것은 이것 하나뿐이다 */}
         <div style={{ marginTop: 'clamp(56px, 13vh, 120px)', textAlign: 'center' }}>
           <div className="label" style={{ marginBottom: 16, letterSpacing: 2.2 }}>
-            {weighted ? '오늘 들어올린 무게' : '오늘 해낸 세트'}
+            {weighted ? '오늘 들어올린 무게' : bigCardio ? '오늘 움직인 시간' : '오늘 해낸 세트'}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
             <span style={{
               fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 'clamp(58px, 20vw, 82px)',
               lineHeight: 0.84, letterSpacing: 2, color: 'var(--accent)',
-            }}>{weighted ? shown.toLocaleString() : sets}</span>
+            }}>{weighted ? shown.toLocaleString()
+              : bigCardio ? (bigKm ? Number(cardio.km.toFixed(2)) : cardio.minutes)
+                : sets}</span>
             <span className="label" style={{ marginBottom: 0, fontSize: 13, letterSpacing: 3, color: 'var(--text-secondary)' }}>
-              {weighted ? 'KG' : 'SETS'}
+              {weighted ? 'KG' : bigCardio ? (bigKm ? 'KM' : 'MIN') : 'SETS'}
             </span>
           </div>
 
+          {/* 무게도 들고 유산소도 한 날 — **둘을 나란히** 적는다.
+              큰 수가 이미 시간이면(유산소만 한 날) 또 적지 않는다 */}
+          {!bigCardio && cardio.count > 0 && (
+            <div className="serif-display" style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 18 }}>
+              유산소 {[minuteLabel(cardio.minutes), kmLabel(cardio.km)].filter(Boolean).join(' · ')}
+            </div>
+          )}
+          {bigCardio && cardio.minutes > 0 && cardio.km > 0 && (
+            <div className="serif-display" style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 18 }}>
+              {kmLabel(cardio.km)} 움직였어요
+            </div>
+          )}
           {weighted && deltaKg !== null && deltaKg !== 0 && (
             <div className="serif-display" style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 20 }}>
               지난주 같은 날보다 {deltaKg > 0 ? `${deltaKg.toLocaleString()}kg 더` : `${Math.abs(deltaKg).toLocaleString()}kg 적게`}
@@ -196,7 +223,9 @@ export default function SessionFinish() {
                     {w.exercise}
                   </span>
                   <span style={{ flexShrink: 0, color: 'var(--text-muted)' }}>
-                    {weightLabel(w.weight)} · {w.sets}세트{w.reps ? ` × ${w.reps}회` : ''}
+                    {w.cardio
+                      ? cardioText({ minutes: w.minutes, distance_km: w.km })
+                      : `${weightLabel(w.weight)} · ${w.sets}세트${w.reps ? ` × ${w.reps}회` : ''}`}
                   </span>
                 </div>
               ))}

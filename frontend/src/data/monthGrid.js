@@ -7,6 +7,8 @@
 // 여기서는 격자를 만들고, 그 달에 무엇을 했는지 세기만 한다. 그리는 것은 화면이 한다.
 
 import { dateKey } from './dateKey';
+// 유산소는 시간 · 거리다 (2026-11-05)
+import { isCardioRow, cardioOf } from './cardio';
 import { parseWeight } from './personalRecord';
 import { bodyPartOf, partDistribution } from './bodyPart';
 
@@ -63,6 +65,9 @@ export function monthSummary(workouts, year, month) {
   let sets = 0;
   let kg = 0;
   let bodyweightSets = 0;
+  // 유산소 — 무게에도 세트에도 들 수 없는 것이라 여태 **달 요약에 한 줄도 없었다**
+  // (2026-11-05). 한 달 내내 뛴 사람에게 「0건 0세트」라고 말하던 자리다
+  const cardio = { count: 0, minutes: 0, km: 0 };
   const records = [];
 
   entries.forEach(([, list]) => {
@@ -73,6 +78,12 @@ export function monthSummary(workouts, year, month) {
       sets += s;
       if (w === null) bodyweightSets += s;
       else kg += w * s * reps;
+      if (isCardioRow(r)) {
+        const c = cardioOf(r);
+        cardio.count += 1;
+        cardio.minutes += c.minutes || 0;
+        cardio.km += c.km || 0;
+      }
       records.push(r);
     });
   });
@@ -83,6 +94,7 @@ export function monthSummary(workouts, year, month) {
     sets,
     volumeKg: Math.round(kg),
     bodyweightSets,
+    cardio: { ...cardio, km: Number(cardio.km.toFixed(2)) },
     parts: partDistribution(records),
   };
 }

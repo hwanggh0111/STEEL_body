@@ -1,4 +1,8 @@
 import { volumeOf, buildWeekly } from './weeklyReport';
+// 유산소는 무게가 아니라 **시간 · 거리**다 (2026-11-05) — 결산의 「든 무게」에
+// 들 수 없는 것이라 여태 **아무 데도 안 적혔다**. 30분을 뛴 사람에게 결산이
+// 「오늘 0kg」이라고 말하고 있었다
+import { isCardioRow, cardioOf } from './cardio';
 import { bodyPartOf } from './bodyPart';
 import { bestRecords, checkRecord } from './personalRecord';
 import { dateKey } from './dateKey';
@@ -45,6 +49,12 @@ export function buildSummary(workouts, today, routineName) {
   const list = (workouts || {})[today] || [];
   const { kg, bodyweightSets } = volumeOf(list);
   const sets = list.reduce((n, w) => n + (Number(w?.sets) || 0), 0);
+  // 오늘의 유산소 — 건수 · 시간 · 거리. **무게와 섞지 않는다**
+  const cardio = list.reduce((a, w) => {
+    if (!isCardioRow(w)) return a;
+    const { minutes, km } = cardioOf(w);
+    return { count: a.count + 1, minutes: a.minutes + (minutes || 0), km: a.km + (km || 0) };
+  }, { count: 0, minutes: 0, km: 0 });
   const parts = [...new Set(list.map((w) => bodyPartOf(w?.exercise)))];
 
   // 지난주 같은 요일. **같은 날짜(한 달 전)가 아니라 같은 요일**이다 —
@@ -88,8 +98,15 @@ export function buildSummary(workouts, today, routineName) {
       weight: w?.weight ?? null,
       sets: Number(w?.sets) || 0,
       reps: Number(w?.reps) || 0,
+      // 유산소 줄은 세트 · 횟수가 없다. 화면이 **그 줄만 다르게** 적는다
+      minutes: cardioOf(w).minutes,
+      km: cardioOf(w).km,
+      cardio: isCardioRow(w),
     })),
     bodyweightSets,
+    // 유산소 (시간 · 거리). 화면은 이것을 **든 무게와 나란히** 적는다 —
+    // 더해서 한 수로 만들 수 없는 것들이다
+    cardio: { ...cardio, km: Number(cardio.km.toFixed(2)) },
     deltaKg,
     weeks: weekly?.streak || 0,
     record,

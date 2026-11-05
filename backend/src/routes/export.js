@@ -20,9 +20,11 @@ router.get('/workouts', auth, (req, res) => {
   //
   // 사람이 읽는 말로 적는다. 엑셀에서 열어보는 파일이라 'drop' 보다 「드롭」이 맞다
   const LINK_KO = { drop: '드롭', super: '슈퍼' };
-  const header = '날짜,운동명,무게,세트,횟수,묶음';
+  // 유산소 칸 둘을 더한다 (2026-11-05). **되읽는 쪽과 짝이다** —
+  // 내보낸 것을 못 되읽으면 「챙겨 나갈 수는 있는데 들고 들어올 수는 없다」가 된다
+  const header = '날짜,운동명,무게,세트,횟수,묶음,시간(분),거리(km)';
   const rows = workouts.map(w =>
-    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''}`
+    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM for Korean Excel support
 

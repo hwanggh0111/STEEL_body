@@ -79,7 +79,10 @@ ok('  고친 날에 그대로 서 있는다', /keepDay \? .*|if \(keepDay\)/.tes
 ok('지운다', /deleteWorkout\(w\.id\)/.test(train), true);
 ok('  지우기 전에 한 번 묻는다', /confirmDialog\([\s\S]{0,400}?지울까요/.test(train), true);
 // 3. 지난 날짜에 적기 — 여태 `date: today` 가 박혀 있었다
-ok('지난 날짜에 적는다', /payload = \{ date,/.test(train), true);
+// **보낼 것이 두 갈래가 됐다** (2026-11-05 — 유산소 줄은 시간·거리로 적는다).
+// 글자 모양(`payload = { date,`)으로 보던 자리라 갈래가 생기자마자 어긋났다.
+// 보려던 것은 「`today` 를 박지 않고 고른 날짜를 보낸다」다 — **두 갈래 다** 그래야 한다
+ok('지난 날짜에 적는다', (train.match(/date, exercise: name/g) || []).length >= 2, true);
 ok('  오늘을 박아넣지 않는다', /date: today,/.test(train), false);
 ok('  오늘 아닌 날은 화면에 적는다', /오늘이 아닌/.test(train), true);
 // **지난 날짜에 적을 때는 쉬라고 하지 않고 진행표도 안 넘긴다.** 어제 한 것을 적어

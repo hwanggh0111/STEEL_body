@@ -3,6 +3,11 @@ import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 // 지난 판을 읽는 셈 — 「다음 한 걸음」과 「지난 판」 (2026-11-05, `npm run nextstep`)
 import { nextStep, lastSession, stepReason, shortDate } from '../data/lastSets';
+// 유산소는 **시간 · 거리로** 적는다 (2026-11-05, `npm run cardio`)
+import {
+  isCardioName, isCardioRow, cardioText, cardioOf, paceLabel,
+  MINUTES_MAX, DISTANCE_KM_MAX,
+} from '../data/cardio';
 import { readLS, saveLS } from '../data/safeStorage';
 import { plateText, BARS, barFor, equipOf } from '../data/plateMath';
 import { useRefreshTick } from '../store/refreshStore';
@@ -197,6 +202,14 @@ export default function TrainPage() {
   const [weight, setWeight] = useState(brought?.weight != null ? String(brought.weight) : '');
   const [sets, setSets] = useState(brought?.sets != null ? String(brought.sets) : '');
   const [reps, setReps] = useState(brought?.reps != null ? String(brought.reps) : '');
+  // ── 유산소 칸 ── (2026-11-05)
+  //
+  // 런닝머신 30분을 적을 칸이 없어서 **「1세트 1회」를 지어내야** 했다 — 이 파일
+  // 머리글에 그렇게 적혀 있고(「세트와 횟수를 지어내야 했다」), 지어낸 줄은
+  // 볼륨 · 몸 지도 · 결산 어느 셈에도 안 든다. 어느 운동이 시간·거리로 적는
+  // 것인지는 **사전이 든다**(`cardio: true`)
+  const [minutes, setMinutes] = useState('');
+  const [distance, setDistance] = useState('');
   // 횟수를 세어주는 카메라 (2026-09-30). **고른 운동이 있을 때만 열린다** —
   // 어느 관절을 볼지는 이름으로 정한다(`data/repCount.js`)
   const [countOpen, setCountOpen] = useState(false);
@@ -293,6 +306,10 @@ export default function TrainPage() {
   const voiceLog = useSettingsStore((st) => st.voiceLog);
   useWakeLock(Boolean(session) && keepAwake);
   const exercise = picked ?? current?.name ?? '';
+  // **이름으로** 판단한다 — 담긴 줄을 그릴 때는 그 줄에 시간·거리가 적혀
+  // 있는가로 본다(`isCardioRow`). 둘을 섞으면 지어내 적어둔 옛 줄이 갑자기
+  // 「유산소 줄」로 읽혀 **없는 시간을 0분으로** 그린다
+  const cardio = isCardioName(exercise);
 
   // 이 운동을 마지막으로 한 기록. 미리 채울 값이고 화면에도 적는다
   const lastRecord = useMemo(() => {
@@ -430,10 +447,18 @@ export default function TrainPage() {
       setWeight(isBodyweight(lastRecord.weight) ? '' : String(lastRecord.weight ?? ''));
       setSets(String(lastRecord.sets ?? ''));
       setReps(String(lastRecord.reps ?? ''));
+      // 유산소 줄이면 **시간 · 거리**를 채운다. 지난번 30분을 탄 사람은 대개 또
+      // 30분을 탄다 — 근력의 무게를 채워주는 것과 같은 까닭이다.
+      // **지어내지 않는다**: 지난 줄에 없는 칸은 비워 둔다
+      const last = cardioOf(lastRecord);
+      setMinutes(last.minutes != null ? String(last.minutes) : '');
+      setDistance(last.km != null ? String(last.km) : '');
     } else {
       setWeight('');
       setSets(current?.sets != null ? String(current.sets) : '');
       setReps(current?.reps != null ? String(current.reps) : '');
+      setMinutes('');
+      setDistance('');
     }
     setError('');
   }, [exercise, lastRecord, current, session, picked, editingId]);
@@ -493,7 +518,33 @@ export default function TrainPage() {
     const useReps = over ? String(over.reps) : reps;
     const useWeight = over ? over.weight : weight;
     if (!name) { setError('무슨 운동인지 골라주세요'); return; }
-    if (!useSets || !useReps) { setError('세트와 횟수를 적어주세요'); return; }
+
+    // ── 유산소 줄 ── (2026-11-05)
+    //
+    // **세트 칸에서 온 것(`over`)은 유산소가 아니다** — 세트를 누르는 길은 근력
+    // 줄에만 있다. 그래서 폼으로 적을 때만 유산소로 본다
+    const asCardio = cardio && !over;
+    if (asCardio) {
+      const hasMin = String(minutes).trim() !== '';
+      const hasKm = String(distance).trim() !== '';
+      if (!hasMin && !hasKm) { setError('시간이나 거리를 적어주세요'); return; }
+      const nm = Number(minutes);
+      const nk = Number(distance);
+      // **어디까지 되는지 말해준다** — 「숫자가 너무 큽니다」로 끝내면 사람은
+      // 몇 분까지 되는지 모른 채로 고쳐 적는다 (10/31 의 교훈)
+      if (hasMin && (!Number.isInteger(nm) || nm < 1)) {
+        setError('시간은 1 이상의 정수(분)로 적어주세요'); return;
+      }
+      if (hasMin && nm > MINUTES_MAX) {
+        setError(`시간은 ${MINUTES_MAX}분 이하로 적어주세요`); return;
+      }
+      if (hasKm && (!Number.isFinite(nk) || nk <= 0)) {
+        setError('거리는 0보다 큰 수(km)로 적어주세요'); return;
+      }
+      if (hasKm && nk > DISTANCE_KM_MAX) {
+        setError(`거리는 ${DISTANCE_KM_MAX}km 이하로 적어주세요`); return;
+      }
+    } else if (!useSets || !useReps) { setError('세트와 횟수를 적어주세요'); return; }
     // ── **테두리는 한 자리에서 온다** ── (2026-10-31)
     //
     // 여태 이 줄이 `100`·`1000` 을 생글자로 들고 「숫자가 너무 큽니다」로만 말했다 —
@@ -502,17 +553,30 @@ export default function TrainPage() {
     // 달력의 「이 날에 적기」에도 같은 줄이 있었다(같은 날 같이 고쳤다)
     const ns = Number(useSets);
     const nr = Number(useReps);
-    if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
-      setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
-    }
-    if (ns > SETS_MAX || nr > REPS_MAX) {
-      setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+    if (!asCardio) {
+      if (!Number.isInteger(ns) || !Number.isInteger(nr) || ns < 1 || nr < 1) {
+        setError('세트와 횟수는 1 이상의 정수로 적어주세요'); return;
+      }
+      if (ns > SETS_MAX || nr > REPS_MAX) {
+        setError(`세트는 ${SETS_MAX} 이하, 횟수는 ${REPS_MAX} 이하로 적어주세요`); return;
+      }
     }
 
     setSaving(true);
     setError('');
     try {
-      const payload = { date, exercise: name, weight: asWeight(useWeight), sets: Number(useSets), reps: Number(useReps) };
+      // **두 모양을 섞어 보내지 않는다.** 유산소 줄에 세트·횟수를 같이 담으면
+      // 읽는 쪽마다 다른 것을 보고 다른 말을 한다 (서버도 같은 자로 막는다).
+      // 칸 이름은 **서버와 같은 `distance_km`** 으로 보낸다 — 지하에 세워둔 줄이
+      // 목록에 섞여 그려지는데(`offline.mergeQueue`), 이름이 다르면 그 줄만
+      // 시간·거리가 안 보인다
+      const payload = asCardio
+        ? {
+          date, exercise: name,
+          minutes: String(minutes).trim() === '' ? null : Number(minutes),
+          distance_km: String(distance).trim() === '' ? null : Number(distance),
+        }
+        : { date, exercise: name, weight: asWeight(useWeight), sets: Number(useSets), reps: Number(useReps) };
       // 이어가기로 들어온 줄이면 표시를 단다. 고치는 중에는 안 단다 —
       // 고치는 것은 새로 이어 한 세트가 아니다
       if (nextLink && !editingId) payload.link = nextLink;
@@ -577,7 +641,12 @@ export default function TrainPage() {
         // 안 돌았다.** 쉬지 않는 것은 「드롭세트」를 누른 그 순간이므로
         // **거기서 멈춘다**(아래 단추). 적는 쪽은 늘 켠다
         primeAudio();
-        const started = useRestTimerStore.getState().autoStartAfterSet(`${name} ${payload.sets}세트`);
+        // **유산소 뒤에는 쉬라고 하지 않는다** (2026-11-05). 휴식 타이머는
+        // 「세트 사이」를 위한 것이다 — 30분을 뛰고 나온 사람에게 90초를 세는 것은
+        // 틀린 말이고, 그 타이머가 아래 띠를 차지한다
+        const started = asCardio
+          ? false
+          : useRestTimerStore.getState().autoStartAfterSet(`${name} ${payload.sets}세트`);
         if (started) setShowTimer(true);
 
         await advance('done', name);
@@ -785,6 +854,14 @@ export default function TrainPage() {
     setWeight(isBodyweight(w.weight) ? '' : String(w.weight ?? ''));
     setSets(String(w.sets ?? ''));
     setReps(String(w.reps ?? ''));
+    // **유산소 줄도 고칠 수 있어야 한다** (2026-11-05). 이 줄이 없으면 고치려고
+    // 열었을 때 시간 · 거리가 비어 있고, 그대로 저장하면 「시간이나 거리를
+    // 적어주세요」가 뜬다 — 사람은 **고치지도 못하고 왜인지도 모른다**
+    {
+      const c = cardioOf(w);
+      setMinutes(c.minutes != null ? String(c.minutes) : '');
+      setDistance(c.km != null ? String(c.km) : '');
+    }
     setFinding(false);
     setError('');
     setRecord(null);
@@ -818,13 +895,17 @@ export default function TrainPage() {
     setWeight('');
     setSets('');
     setReps('');
+    setMinutes('');
+    setDistance('');
     setError('');
   };
 
   // **한 번 묻는다.** 지운 기록은 되돌릴 데가 없다 (서버에도 휴지통이 없다)
   const removeRecord = async (w) => {
     const ok = await confirmDialog(
-      `「${w.exercise} ${isBodyweight(w.weight) ? '맨몸' : w.weight + 'kg'} × ${w.sets}×${w.reps}」 를 지울까요?
+      `「${w.exercise} ${isCardioRow(w)
+        ? cardioText(w)
+        : `${isBodyweight(w.weight) ? '맨몸' : w.weight + 'kg'} × ${w.sets}×${w.reps}`}」 를 지울까요?
 
 지운 기록은 되돌릴 수 없습니다.`,
       { title: '이 줄을 지울까요', confirmText: '지웁니다', danger: true },
@@ -908,13 +989,26 @@ export default function TrainPage() {
                   {setsDone}{plannedSets ? ` / ${plannedSets}` : ''}세트
                 </span>
               </div>
-              <SetChecks done={setsDone} planned={plannedSets} onTap={tapSet} disabled={saving} />
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                {plannedSets
-                  ? '한 세트 끝낼 때마다 누르세요. 마지막 세트를 누르면 기록하고 다음 운동으로 갑니다.'
-                  : '한 세트 끝낼 때마다 누르세요. 다 하면 「여기까지 기록」을 누릅니다.'}
-              </div>
-              {canFinishEarly && (
+              {/* ── 유산소에는 세트가 없다 ── (2026-11-05)
+                  루틴에 런닝머신이 들어 있으면 이 자리에 **세트 단추**가 떴다 —
+                  누르면 「1세트 1회」로 적힌다. 그것이 유산소 칸을 만든 까닭인
+                  바로 그 거짓이다. 유산소에는 아래 칸으로 적게 한다 */}
+              {cardio ? (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                  유산소는 세트로 세지 않아요 — 아래에서 <b style={{ color: 'var(--text-secondary)' }}>시간 · 거리</b>로
+                  적습니다. 적으면 다음 운동으로 넘어가요.
+                </div>
+              ) : (
+                <>
+                  <SetChecks done={setsDone} planned={plannedSets} onTap={tapSet} disabled={saving} />
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    {plannedSets
+                      ? '한 세트 끝낼 때마다 누르세요. 마지막 세트를 누르면 기록하고 다음 운동으로 갑니다.'
+                      : '한 세트 끝낼 때마다 누르세요. 다 하면 「여기까지 기록」을 누릅니다.'}
+                  </div>
+                </>
+              )}
+              {canFinishEarly && !cardio && (
                 <button className="btn-primary" disabled={saving} onClick={finishSets}>
                   여기까지 기록 · {setsDone}세트
                 </button>
@@ -1086,8 +1180,12 @@ export default function TrainPage() {
             <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.7 }}>
               {lastRecord ? (
                 <>지난번 <span style={{ color: 'var(--text-primary)' }}>
-                  {isBodyweight(lastRecord.weight) ? '맨몸' : `${lastRecord.weight} kg`} &times; {lastRecord.reps}회
-                </span> ({lastRecord.date.slice(5).replace('-', '/')})</>
+                  {/* 유산소 줄은 **그 줄에 적힌 것**으로 말한다 — 지어내 적어둔 옛
+                      줄(1세트 1회)은 옛 모양 그대로 보여준다 */}
+                  {isCardioRow(lastRecord)
+                    ? cardioText(lastRecord)
+                    : <>{isBodyweight(lastRecord.weight) ? '맨몸' : `${lastRecord.weight} kg`} &times; {lastRecord.reps}회</>}
+                </span> ({shortDate(lastRecord.date)})</>
               ) : (
                 <span style={{ color: 'var(--text-muted)' }}>처음 하는 운동이에요</span>
               )}
@@ -1292,6 +1390,33 @@ export default function TrainPage() {
 
                 세트 수는 ± 를 안 붙였다. 3↔5 처럼 **한 번에 정하는 값**이고,
                 칸 셋에 단추가 여섯이면 좁은 폰(360)에서 숫자가 안 보인다. */}
+            {/* ── 유산소는 칸이 다르다 ── (2026-11-05)
+                무게 · 세트 · 횟수 대신 **시간(분) · 거리(km)**. 둘 중 하나만 적어도
+                된다 — 「5km 뛰었다(시간은 안 봤다)」와 「30분 탔다(거리는 안 뜬다)」가
+                둘 다 있다. 한쪽을 필수로 걸면 그중 한 사람은 또 지어내야 한다 */}
+            {cardio ? (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <NumberStep
+                    id="tr-min" label="시간 분" value={minutes} onChange={setMinutes}
+                    step={5} min={1} max={MINUTES_MAX} startAt={5} inputMode="numeric"
+                  />
+                  <NumberStep
+                    id="tr-km" label="거리 km" value={distance} onChange={setDistance}
+                    step={0.5} min={0} max={DISTANCE_KM_MAX} startAt={0.5} placeholder="비워도 돼요" inputMode="decimal"
+                  />
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                  유산소는 <b style={{ color: 'var(--text-secondary)' }}>시간과 거리</b>로 적어요 —
+                  무게 · 세트 · 횟수는 안 적습니다. 둘 중 하나만 적어도 됩니다.
+                  {/* 지어내는 것이 아니라 나눗셈이다. 그래도 「평균」이라고 적는다 —
+                      걷다 뛰었으면 그 수는 평균이다 */}
+                  {paceLabel(minutes, distance) && (
+                    <> 지금 적은 것은 평균 <b style={{ color: 'var(--accent)' }}>{paceLabel(minutes, distance)}</b> 예요.</>
+                  )}
+                </div>
+              </div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1.35fr)', gap: 8, marginBottom: 10 }}>
               <NumberStep
                 id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
@@ -1311,6 +1436,7 @@ export default function TrainPage() {
                 step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
               />
             </div>
+            )}
 
             {/* ── 바에 뭘 꽂나 ── (2026-10-05)
                 100kg 을 치려면 양쪽에 25+15. **매 세트 머리로 하던 계산**이다.
@@ -1614,7 +1740,9 @@ export default function TrainPage() {
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>이 기기에</span>
               )}
               <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                {isBodyweight(w.weight) ? '맨몸' : `${w.weight}`} &times; {w.sets}&times;{w.reps}
+                {isCardioRow(w)
+                  ? cardioText(w)
+                  : <>{isBodyweight(w.weight) ? '맨몸' : `${w.weight}`} &times; {w.sets}&times;{w.reps}</>}
               </span>
 
               {/* ── 고치기 · 지우기 ── (2026-09-18)

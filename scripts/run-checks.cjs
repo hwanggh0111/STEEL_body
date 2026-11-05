@@ -35,6 +35,7 @@ const SKIP = {
   // 10/27 에 세운 자고(「반드시 `npm run build`」), 건너뛰면 그 자가 사라진다.
   'check-odd-api.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run odd`)',
   'check-shield.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run shield`)',
+  'check-cardio-api.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run cardioapi`)',
 };
 
 const files = fs.readdirSync(DIR).filter((f) => /^check-.*\.cjs$/.test(f)).sort();

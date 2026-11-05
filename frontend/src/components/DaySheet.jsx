@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+// 유산소 줄은 시간 · 거리다 (2026-11-05)
+import { isCardioRow, cardioText } from '../data/cardio';
 import { planState, dayLabel, untilLabel } from '../data/plans';
 import ExerciseFinder from './ExerciseFinder';
 import { EXERCISE_NAME_MAX, MAX_PER_DAY, PLAN_NAME_MAX, REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
@@ -160,7 +162,8 @@ export default function DaySheet({
               <div key={w.id} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
                 {w.exercise}
                 <span style={{ color: 'var(--text-muted)' }}>
-                  {' · '}{w.weight} · {w.sets}세트 {w.reps}회
+                  {/* 유산소 줄은 시간 · 거리다 (2026-11-05) */}
+                  {' · '}{isCardioRow(w) ? cardioText(w) : `${w.weight} · ${w.sets}세트 ${w.reps}회`}
                 </span>
               </div>
             ))}

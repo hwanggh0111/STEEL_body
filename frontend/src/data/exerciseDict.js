@@ -340,14 +340,21 @@ export const EXERCISE_DICT = [
   { ko: '데드버그', en: 'dead bug', group: '코어', part: '코어', gear: 'none', desc: '누워서 팔다리를 엇갈려 뻗음. 허리를 지키는 코어' },
   { ko: '앱도미널 크런치 머신', en: 'abdominal crunch machine', group: '코어', part: '코어', gear: 'none', desc: '머신에 앉아 상체를 말아 내림. 복근에 무게를 걸 수 있음' },
 
+  // ── **`cardio: true` — 시간 · 거리로 적는 운동** ── (2026-11-05)
+  //
+  // 「전신 · 유산소」로 묶어 판단하면 안 된다 — 버피 · 점핑잭 · 케틀벨 스윙도 그
+  // 부위고, 그것들은 **세트 · 횟수가 맞는** 운동이다. 시간·거리로 적는 것은 유산소
+  // **기계**들과 달리기 · 줄넘기다. 기록 화면이 이 표를 보고 **칸을 바꾼다**
+  // (`data/cardio.js` · `npm run cardio`). 아래 달리기 설명에 11/03 에 적어둔
+  // 「거리와 시간으로 적는다」가 그때는 **적을 칸이 없는 말**이었다
   // ─── 유산소머신 ───
-  { ko: '런닝머신', en: 'treadmill', alias: ['트레드밀', '러닝머신'], group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '헬스장 러닝머신. 속도와 경사로 강도를 맞춤' },
-  { ko: '인클라인 워킹', en: 'incline treadmill walking', group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '러닝머신 경사 걷기. 무릎 부담 없이 둔근 + 지방 연소' },
-  { ko: '실내 자전거', en: 'stationary bike', alias: ['사이클', '싸이클', '자전거'], group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '헬스장 사이클. 무릎 부담이 가장 적은 유산소' },
-  { ko: '로잉머신', en: 'rowing machine', group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '앉아서 당기는 노젓기. 등 + 하체 + 유산소 한꺼번에' },
-  { ko: '스텝퍼', en: 'stair climber', alias: ['스테퍼', '계단오르기'], group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '계단 오르기 기계. 둔근 + 허벅지 + 유산소' },
-  { ko: '일립티컬', en: 'elliptical', group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '발이 땅에 안 닿는 유산소. 무릎·발목에 충격이 없음' },
-  { ko: '에어바이크', en: 'air bike', group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '팔다리를 같이 쓰는 자전거. 짧고 강한 인터벌용' },
+  { ko: '런닝머신', en: 'treadmill', alias: ['트레드밀', '러닝머신'], group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '헬스장 러닝머신. 속도와 경사로 강도를 맞춤' },
+  { ko: '인클라인 워킹', en: 'incline treadmill walking', group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '러닝머신 경사 걷기. 무릎 부담 없이 둔근 + 지방 연소' },
+  { ko: '실내 자전거', en: 'stationary bike', alias: ['사이클', '싸이클', '자전거'], group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '헬스장 사이클. 무릎 부담이 가장 적은 유산소' },
+  { ko: '로잉머신', en: 'rowing machine', group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '앉아서 당기는 노젓기. 등 + 하체 + 유산소 한꺼번에' },
+  { ko: '스텝퍼', en: 'stair climber', alias: ['스테퍼', '계단오르기'], group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '계단 오르기 기계. 둔근 + 허벅지 + 유산소' },
+  { ko: '일립티컬', en: 'elliptical', group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '발이 땅에 안 닿는 유산소. 무릎·발목에 충격이 없음' },
+  { ko: '에어바이크', en: 'air bike', group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '팔다리를 같이 쓰는 자전거. 짧고 강한 인터벌용' },
 
   // ── **기계 없이 하는 유산소가 빠져 있었다** ── (2026-11-03)
   //
@@ -362,9 +369,9 @@ export const EXERCISE_DICT = [
   //
   // 부위는 「전신 · 유산소」다 — 지도에는 「기타」로 가고, 그러면 화면이 **맞는 말**을
   // 한다(「셀 곳이 없다」). 이 둘은 **기계가 없어서** 앉을 자리가 없었던 것이다
-  { ko: '달리기', en: 'running', alias: ['러닝', '런닝', '조깅'], group: '유산소', part: '전신 · 유산소', gear: 'none', desc: '밖에서 뛰기. 기계 없이 하는 유산소 — 거리와 시간으로 적는다' },
-  { ko: '줄넘기', en: 'jump rope', alias: ['줄넘기운동'], group: '유산소', part: '전신 · 유산소', gear: 'none', desc: '제자리에서 줄을 넘는다. 좁은 자리에서 심박수를 가장 빨리 올린다' },
-  { ko: '스키에르그', en: 'ski erg', group: '유산소머신', part: '전신 · 유산소', gear: 'none', desc: '서서 위에서 아래로 당기는 기계. 등 + 코어 + 유산소' },
+  { ko: '달리기', en: 'running', alias: ['러닝', '런닝', '조깅'], group: '유산소', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '밖에서 뛰기. 기계 없이 하는 유산소 — 거리와 시간으로 적는다' },
+  { ko: '줄넘기', en: 'jump rope', alias: ['줄넘기운동'], group: '유산소', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '제자리에서 줄을 넘는다. 좁은 자리에서 심박수를 가장 빨리 올린다' },
+  { ko: '스키에르그', en: 'ski erg', group: '유산소머신', part: '전신 · 유산소', cardio: true, gear: 'none', desc: '서서 위에서 아래로 당기는 기계. 등 + 코어 + 유산소' },
 
   // ─── 전신 ───
   { ko: '파워클린', en: 'power clean', group: '전신', part: '전신 · 유산소', gear: 'bar', desc: '바닥에서 어깨까지 한 번에 끌어 올림. 폭발력 전신' },

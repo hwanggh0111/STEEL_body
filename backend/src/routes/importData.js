@@ -44,7 +44,9 @@ const KINDS = {
     existing: (userId) => db.getWorkouts(userId),
     // 7번째가 clientKey(오프라인 줄 표시), 8번째가 link(슈퍼 · 드롭)다.
     // **빠뜨리면 내려받아 다시 올린 기록에서 묶음이 사라진다** (2026-10-05)
-    put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps, null, r.link),
+    // 유산소 줄의 시간 · 거리도 같이 넘긴다 (2026-11-05)
+    put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps, null, r.link,
+      { minutes: r.minutes ?? null, distanceKm: r.distanceKm ?? null }),
   },
   inbody: {
     label: '인바디',

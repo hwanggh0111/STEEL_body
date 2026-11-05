@@ -16,6 +16,9 @@
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
 // 무게 · 운동명을 다듬는 자는 저장하는 쪽과 **같은 것**을 쓴다 (2026-10-22)
 const { normalizeWeight, cleanExerciseName } = require('./workoutFields');
+// 유산소 줄의 시간 · 거리 — **손으로 적는 길과 같은 자**를 쓴다 (2026-11-05).
+// 무게에서 한 번 어긋났던 자리라(이 파일 머리글) 처음부터 한 곳에서 든다
+const { normalizeCardio } = require('./cardioFields');
 const { isRecordDay } = require('./dayRange');
 // 내보낼 때 엑셀 때문에 붙인 작은따옴표를 뗀다 — 규칙은 그쪽 한 곳에 있다
 const { unguardCell } = require('./csv');
@@ -128,6 +131,9 @@ function readWorkouts(text) {
   const iReps = at(header, '횟수', 'reps');
   // 2026-10-05 — 슈퍼세트 · 드롭세트 표시. 옛 파일에는 이 칸이 없다(그러면 -1)
   const iLink = at(header, '묶음', 'link');
+  // 2026-11-05 — 유산소의 시간 · 거리. 옛 파일에는 이 칸이 없다(그러면 -1)
+  const iMin = at(header, '시간(분)', '시간', 'minutes');
+  const iKm = at(header, '거리(km)', '거리', 'distance_km', 'distance');
   if (iDate < 0 || iName < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜」와 「운동명」 칸이 있어야 해요' }] };
   }
@@ -158,11 +164,23 @@ function readWorkouts(text) {
     }
     if (!exercise) { bad.push({ line, why: '운동명이 비어 있어요' }); continue; }
     if (!w.ok) { bad.push({ line, why: w.why }); continue; }
-    if (!Number.isInteger(sets) || !Number.isInteger(reps) || sets < 1 || reps < 1) {
-      bad.push({ line, why: '세트와 횟수는 1 이상의 정수여야 해요' });
-      continue;
+
+    // ── 유산소 줄인가 ── (2026-11-05)
+    //
+    // 시간이나 거리가 적혀 있으면 유산소 줄이고, 그때는 **세트 · 횟수를 묻지 않는다.**
+    // 안 그러면 내보낸 유산소 줄을 **우리 손으로 거절한다** — 세트 칸이 비어 있으니까
+    const c = normalizeCardio(
+      iMin >= 0 ? (cells[iMin] || '') : '',
+      iKm >= 0 ? (cells[iKm] || '') : '',
+    );
+    if (!c.ok) { bad.push({ line, why: c.why }); continue; }
+    if (!c.cardio) {
+      if (!Number.isInteger(sets) || !Number.isInteger(reps) || sets < 1 || reps < 1) {
+        bad.push({ line, why: '세트와 횟수는 1 이상의 정수여야 해요' });
+        continue;
+      }
+      if (sets > 100 || reps > 1000) { bad.push({ line, why: '세트나 횟수가 너무 커요' }); continue; }
     }
-    if (sets > 100 || reps > 1000) { bad.push({ line, why: '세트나 횟수가 너무 커요' }); continue; }
 
     // **아는 말만 받는다.** 모르는 글자가 들어오면 화면이 못 그리는 딱지가 생긴다.
     // **없으면 칸을 안 만든다** — 옛 파일에서 읽은 줄과 모양이 같아야 한다
@@ -172,7 +190,11 @@ function readWorkouts(text) {
       : linkRaw === '슈퍼' || linkRaw === 'super' ? 'super' : null;
 
     const weight = w.value;
-    out.push(link ? { date, exercise, weight, sets, reps, link } : { date, exercise, weight, sets, reps });
+    // 유산소 줄은 **세트 · 횟수를 담지 않는다** (지어낸 「1세트 1회」가 그 거짓이다)
+    const row = c.cardio
+      ? { date, exercise, weight, sets: null, reps: null, minutes: c.minutes, distanceKm: c.distanceKm }
+      : { date, exercise, weight, sets, reps };
+    out.push(link ? { ...row, link } : row);
   }
   return { rows: out, bad };
 }
@@ -360,7 +382,11 @@ function readMeasures(text) {
 
 
 /** 이 줄이 이미 있는 것과 같은가 — **다시 넣어도 안 늘어나게** 하는 열쇠 */
-const workoutKey = (w) => [w.date, String(w.exercise).trim(), String(w.weight).trim(), w.sets, w.reps].join('|');
+// **유산소 줄도 가를 수 있어야 한다** (2026-11-05) — 세트 · 횟수가 둘 다 비어
+// 있어서, 시간 · 거리를 열쇠에 안 넣으면 같은 날 30분과 60분이 **같은 줄**이 되어
+// 뒤엣것이 「이미 있어서 건너뛰었어요」로 사라진다
+const workoutKey = (w) => [w.date, String(w.exercise).trim(), String(w.weight).trim(),
+  w.sets, w.reps, w.minutes ?? '', w.distanceKm ?? w.distance_km ?? ''].join('|');
 const inbodyKey = (r) => [r.date, r.weight, r.height ?? '', r.fat_pct ?? '', r.muscle_kg ?? '', r.water_l ?? ''].join('|');
 /**
  * 측정 열쇠 — **값까지 본다** (2026-09-18 에 고쳤다).

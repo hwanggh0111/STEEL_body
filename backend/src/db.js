@@ -878,7 +878,7 @@ const db = {
   // `link` 는 **이 줄이 바로 앞 줄과 묶인다**는 표시다 (2026-10-05) —
   // 'super'(슈퍼세트: 쉬지 않고 다른 운동) · 'drop'(드롭세트: 무게만 내려 이어서).
   // 묶음 번호를 따로 두지 않는다. 「앞 줄과 묶인다」만 있으면 줄 셋도 이어진다
-  createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null, link = null) {
+  createWorkout(userId, date, exercise, weight, sets, reps, clientKey = null, link = null, cardio = null) {
     const data = load();
     if (clientKey) {
       // **내 줄만 본다** (2026-09-30). 여태 모든 사람의 모든 줄을 훑었다 — 지하에서
@@ -896,6 +896,10 @@ const db = {
     if (clientKey) workout.client_key = clientKey;
     // 없으면 칸을 안 만든다 — 옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다
     if (link) workout.link = link;
+    // 유산소 줄의 시간 · 거리 (2026-11-05) — **있을 때만 칸을 만든다**.
+    // 없는 칸을 `null` 로 만들어두면 옛 줄과 모양이 갈려 섞어 읽을 때 걸린다
+    if (cardio && cardio.minutes != null) workout.minutes = cardio.minutes;
+    if (cardio && cardio.distanceKm != null) workout.distance_km = cardio.distanceKm;
     data.workouts.push(workout);
     afterRowChange('workouts', userId, { added: workout });
     save(data);
@@ -930,6 +934,16 @@ const db = {
     if (fields.weight !== undefined) workout.weight = fields.weight;
     if (fields.sets !== undefined) workout.sets = fields.sets;
     if (fields.reps !== undefined) workout.reps = fields.reps;
+    // 유산소 줄의 시간 · 거리 (2026-11-05). **`null` 이 오면 칸을 지운다** —
+    // 유산소 줄로 고치면 세트·횟수가 빠지고 되돌리면 시간·거리가 빠진다.
+    // 두 모양이 한 줄에 같이 남으면 읽는 쪽마다 다른 것을 보고 다른 말을 한다
+    for (const k of ['minutes', 'distance_km']) {
+      if (fields[k] === undefined) continue;
+      if (fields[k] === null) delete workout[k];
+      else workout[k] = fields[k];
+    }
+    if (fields.sets === null) delete workout.sets;
+    if (fields.reps === null) delete workout.reps;
     workout.updated_at = new Date().toISOString();
     afterRowChange('workouts', userId, moved ? { moved: workout } : { updated: true });
     save(data);

@@ -1,4 +1,6 @@
 import { useRefreshTick } from '../store/refreshStore';
+// 유산소는 볼륨에 들 수 없다 — 시간 · 거리로 적는다 (2026-11-05)
+import { minuteLabel, kmLabel } from '../data/cardio';
 import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -433,6 +435,14 @@ export default function HistoryPage() {
               {summary.bodyweightSets > 0 && (
                 <span style={{ color: 'var(--text-muted)' }}> · 맨몸 {summary.bodyweightSets}세트는 빠짐</span>
               )}
+            </div>
+          )}
+          {/* 유산소 — **볼륨에 들 수 없는 것**이라 여태 이 요약에 한 줄도 없었다
+              (2026-11-05). 한 달 내내 뛴 사람에게 「총 볼륨」만 보여주던 자리다 */}
+          {summary.cardio?.count > 0 && (
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              유산소 {summary.cardio.count}건 ·{' '}
+              {[minuteLabel(summary.cardio.minutes), kmLabel(summary.cardio.km)].filter(Boolean).join(' · ')}
             </div>
           )}
           {summary.parts.length > 0 && (
