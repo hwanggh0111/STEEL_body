@@ -19,6 +19,7 @@
     "android:icons": "node scripts/gen-app-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#12100c\" --iconBackgroundColorDark \"#12100c\" --splashBackgroundColor \"#12100c\" --splashBackgroundColorDark \"#12100c\" && npm run trim",
     "play:assets": "node scripts/gen-play-assets.mjs",
     "check": "node ../scripts/run-checks.cjs",
+    "cardiotrend": "node scripts/check-cardiotrend.cjs",
     "plate": "node scripts/check-plate.cjs",
     "font": "node scripts/check-font.cjs",
     "settings": "node scripts/check-settings.cjs",

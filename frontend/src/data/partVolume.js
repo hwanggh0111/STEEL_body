@@ -79,8 +79,11 @@ export function weekOf(date) {
   return d ? dateKey(mondayOf(d)) : null;
 }
 
-/** 창 안에 온전히 들어오는 **첫 월요일**. 반쪽 주를 빼는 자리다 */
-function firstFullWeek(today, days) {
+/** 창 안에 온전히 들어오는 **첫 월요일**. 반쪽 주를 빼는 자리다.
+ *
+ *  유산소 추이(`cardioTrend.js`)가 **이 자리를 그대로 꺼내 쓴다** — 주 경계를
+ *  두 벌로 적으면 한쪽만 고쳐진다 (2026-11-09) */
+export function firstFullWeek(today, days) {
   const base = dayOrNull(today);
   if (!base) return null;
   const startKey = dateKey(new Date(base.getTime() - days * 86400000));

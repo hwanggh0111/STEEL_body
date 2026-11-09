@@ -18,6 +18,7 @@ import SegRow from '../components/SegRow';
 import BestRecords from '../components/BestRecords';
 import LiftTrend from '../components/LiftTrend';
 import PartTrend from '../components/PartTrend';
+import CardioTrend from '../components/CardioTrend';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -712,6 +713,17 @@ export default function HistoryPage() {
           **운동 쪽 선 바로 아래**에 둔다 — 좁은 것에서 넓은 것으로 읽힌다
           (한 운동 → 그 부위). 그릴 부위가 없으면 아무것도 안 그린다 */}
       <PartTrend workouts={workouts} today={today} />
+
+      {/* ── **유산소가 쌓여온 길** ── (2026-11-09)
+          //
+          위의 두 선은 **무게**를 본다 — 그래서 둘 다 「유산소는 뺐습니다」라고
+          적어두고 있었다. 11/05 에 시간·거리 칸을 줬으니(`data/cardio.js`) 그것이
+          모이는 그림을 여기 둔다. **매일 런닝머신만 걷는 사람**에게 통계가
+          빈 화면이던 자리다.
+
+          **부위 선 바로 아래**에 둔다 — 좁은 것에서 넓은 것으로 읽힌다
+          (한 운동 → 그 부위 → 유산소). 그릴 것이 없으면 아무것도 안 그린다 */}
+      <CardioTrend workouts={workouts} today={today} />
 
       {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
       {records.length > 1 && (
