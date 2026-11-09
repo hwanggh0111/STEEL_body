@@ -530,5 +530,27 @@ console.log('── ★ 체중 선에도 앞날 점을 안 찍는가 ── (202
   ok('  **세는 것도 걸러낸 것으로 센다**', /\{weightRows\.length > 1 &&/.test(page), true);
   ok('  화면이 제 손으로 records 를 안 센다', /\{records\.length > 1 &&/.test(page), false);
 }
+console.log('');
+console.log('── ★ 못 받은 것을 「불러오는 중」으로 삼키지 않는가 ── (2026-11-09, 2차 검사)');
+// **상태는 셋이다** — 아직 안 왔다 · 못 받았다 · 받았다.
+//
+// `goalStore` 의 `catch` 는 **일부러 `loaded` 를 안 켠다**(못 받은 것을 「목표가 없다」로
+// 읽으면, 목표를 세워둔 사람에게 「세워보세요」가 뜬다). 그러면 화면이 `!loaded` 를
+// 「받는 중」으로 읽어 **「불러오는 중…」이 영영 돌았다** — 아무것도 받고 있지 않은데.
+// 더 나쁜 것은 `showForm` 도 `loaded` 에 걸려 있어서 **목표를 세울 길조차 없었다.**
+// `gymStore` 는 이 셋을 이미 가려 두고 있었다 — 한 집에서 한쪽만 안 되어 있었다
+{
+  const store = fs.readFileSync('src/store/goalStore.js', 'utf-8');
+  const page = fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8');
+  ok('스토어가 failed 를 든다', /\n\s*failed: false,/.test(store), true);
+  ok('  못 받으면 failed 를 켠다', /loading: false, failed: true/.test(store), true);
+  ok('  다시 받기 전에 끈다', /loading: true, failed: false/.test(store), true);
+  ok('화면이 셋을 가른다', /!loaded && !failed/.test(page), true);
+  ok('  못 받았다고 말하고 다시 할 길을 준다',
+    /failed && \(/.test(page) && /fetchGoal\(true\)/.test(page), true);
+  ok('  **못 받은 사람도 목표를 세울 수 있다**',
+    /\(loaded \|\| failed\) && !hasGoal\(goal\)/.test(page), true);
+}
+
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

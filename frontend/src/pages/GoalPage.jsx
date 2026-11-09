@@ -184,7 +184,7 @@ export default function GoalPage() {
   const navigate = useNavigate();
   const { workouts, fetchAll: fetchWorkouts } = useWorkoutStore();
   const { records, fetchAll: fetchInbody } = useInbodyStore();
-  const { goal, loaded, fetch: fetchGoal, save, clear } = useGoalStore();
+  const { goal, loaded, failed, fetch: fetchGoal, save, clear } = useGoalStore();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -299,7 +299,9 @@ export default function GoalPage() {
     }
   };
 
-  const showForm = editing || (loaded && !hasGoal(goal));
+  // **못 받아온 사람도 목표를 세울 수 있어야 한다.** 여태 `loaded` 에만 걸려 있어서
+  // 못 받아오면 폼이 안 나왔다 — 「불러오는 중…」만 영영 도는 죽은 화면이었다
+  const showForm = editing || ((loaded || failed) && !hasGoal(goal));
 
   return (
     <div>
@@ -317,8 +319,21 @@ export default function GoalPage() {
         )}
       </div>
 
-      {!loaded && (
+      {/* **아직 안 온 것 · 못 받은 것 · 받은 것**을 가른다 (2026-11-09, 2차 검사).
+          못 받았을 때 「불러오는 중…」이 영영 돌면 사람은 기다린다 */}
+      {!loaded && !failed && (
         <div className="card" style={{ color: 'var(--text-muted)', fontSize: 13 }}>불러오는 중…</div>
+      )}
+      {failed && (
+        <div className="card" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          지금은 목표를 못 불러왔어요 ·{' '}
+          <button
+            type="button"
+            onClick={() => fetchGoal(true)}
+            style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
+          >다시</button>
+          <div style={{ marginTop: 6, fontSize: 12.5 }}>세운 목표가 있어도 지금은 보이지 않아요. 아래에 새로 적으셔도 됩니다.</div>
+        </div>
       )}
 
       {showForm && (

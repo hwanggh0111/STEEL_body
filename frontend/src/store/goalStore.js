@@ -27,6 +27,14 @@ export const useGoalStore = create((set, get) => ({
   goal: null,
   loaded: false,
   loading: false,
+  // ── **못 받은 것과 아직 안 온 것을 가른다** ── (2026-11-09, 2차 검사)
+  //
+  // 아래 `catch` 는 **일부러 `loaded` 를 안 켠다**(까닭은 그 자리에 적혀 있다).
+  // 그런데 화면은 `!loaded` 를 「받는 중」으로 읽어서, 못 받아온 사람에게
+  // **「불러오는 중…」이 영영 돌았다.** 아무것도 받고 있지 않은데 그렇게 적힌다.
+  // 더 나쁜 것은 `showForm` 도 `loaded` 에 걸려 있어서 **목표를 세울 길조차
+  // 없었다** — 화면이 죽은 채로 돈다. `gymStore` 는 이 셋을 이미 가려 뒀다
+  failed: false,
 
   fetch: (force = false) => {
     // ── 날아가 있는 요청과 `force` ── (2026-09-18)
@@ -44,7 +52,7 @@ export const useGoalStore = create((set, get) => ({
       return waiting.then(() => get().fetch(true), () => get().fetch(true));
     }
     if (!force && fetchedAt && Date.now() - fetchedAt < FRESH_MS) return Promise.resolve();
-    set({ loading: true });
+    set({ loading: true, failed: false });
     // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
     const mine = sessionEpoch();
     inflight = (async () => {
@@ -55,14 +63,14 @@ export const useGoalStore = create((set, get) => ({
         // 서버는 목표 하나 또는 null 을 준다. 배열이나 딴 것이 오면 없는 것으로 친다 —
         // 화면이 `goal.weeklyTarget` 을 바로 읽는다
         const row = data && typeof data === 'object' && !Array.isArray(data) ? data : null;
-        set({ goal: row, loaded: true, loading: false });
+        set({ goal: row, loaded: true, loading: false, failed: false });
         fetchedAt = Date.now();
       } catch {
         if (!isSameSession(mine)) return;
         // 못 받아와도 화면은 그대로 돈다 — 목표는 홈의 곁다리다.
         // **loaded 는 안 켠다** — 못 받아온 것을 「목표가 없다」로 읽으면
         // 목표를 세워둔 사람에게 「목표를 세워보세요」가 뜬다
-        set({ loading: false });
+        set({ loading: false, failed: true });
       } finally {
         inflight = null;
       }
@@ -92,6 +100,6 @@ export const useGoalStore = create((set, get) => ({
 
   reset: () => {
     resetGoalCache();
-    set({ goal: null, loaded: false, loading: false });
+    set({ goal: null, loaded: false, loading: false, failed: false });
   },
 }));

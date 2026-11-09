@@ -116,7 +116,15 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
               해두세요. 지운 뒤에는 저희도 꺼내 드릴 수 없습니다.
             </div>
 
-            {!me ? (
+            {/* **못 받은 것과 아직 안 온 것을 가른다** (2026-11-09, 2차 검사).
+                `/auth/me` 가 실패하면 `me` 는 영영 null 이라 여태 **「불러오는 중…」이
+                그대로 돌았다** — 아래 `error` 줄이 「못 불러왔어요」라고 적는데 그 위에서
+                아직 받는 중이라고 말하니, 한 화면이 두 말을 했다 */}
+            {!me && error ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                위 내용을 확인하지 못했어요. 창을 닫고 잠시 뒤에 다시 열어주세요.
+              </div>
+            ) : !me ? (
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>불러오는 중…</div>
             ) : (
               <>

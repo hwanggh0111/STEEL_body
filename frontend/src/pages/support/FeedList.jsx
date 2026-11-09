@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { fmtDate, useFeedDetails } from './feedData';
+import FeedDetailBody from './FeedDetailBody';
 
 // 한 줄씩 세운 목록. 세부 내용이 있는 줄만 눌러서 펼친다.
 //
@@ -7,39 +8,6 @@ import { fmtDate, useFeedDetails } from './feedData';
 // Fast Refresh 가 매번 포기하고 화면을 통째로 새로 그린다 — 한 파일이 컴포넌트만
 // 내보내야 붙는 기능이다. 데이터는 feedData.js 로 뺐다.
 
-/**
- * 펼친 자리에 무엇을 적을까 — **상태는 셋이다.**
- *
- *   본문이 있다        → 그 글
- *   묶음이 아직 안 왔다 → 「불러오는 중…」
- *   못 받았다           → 「못 불러왔어요 · 다시」
- *   ★ 묶음은 왔는데 그 줄이 없다 → **「본문이 아직 안 올라왔어요」**
- *
- * 넷째 줄이 11/09 에 라이브에서 빠져 있던 자리다. **공지함 찾기 쪽도 같은 손을
- * 쓴다**(`NoticeArchive`) — 두 벌로 적으면 한쪽만 고쳐진다.
- */
-export function detailBody(key, details, failed, retry) {
-  const muted = { color: 'var(--text-muted)' };
-  const again = (
-    <button
-      type="button"
-      onClick={retry}
-      style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
-    >다시</button>
-  );
-  const body = details?.[key];
-  if (body) return body;
-  if (failed) return <span style={muted}>지금은 본문을 못 불러왔어요 · {again}</span>;
-  // ★ **묶음은 왔다.** 그러면 더 기다릴 것이 없다 — 없다고 말하고 길을 준다
-  if (details) {
-    return (
-      <span style={muted}>
-        이 줄은 본문이 아직 안 올라왔어요 — 바뀐 내용은 위 한 줄이 전부입니다. · {again}
-      </span>
-    );
-  }
-  return <span style={muted}>불러오는 중…</span>;
-}
 
 export default function FeedList({ items }) {
   const [open, setOpen] = useState(null);
@@ -109,7 +77,7 @@ export default function FeedList({ items }) {
                 열쇠가 없었다 — 뿌리는 `feedData.js` 의 `DETAIL_URL` 에서 막았다).
                 그래도 이 자리를 막는다: **데이터가 다시 어긋나는 날 같은 증상이
                 재발**하고, 그때 사람이 보는 것은 이 글자다 */}
-            {detailBody(c.key, details, failed, retry)}
+            <FeedDetailBody itemKey={c.key} details={details} failed={failed} retry={retry} />
           </div>
         )}
       </div>
