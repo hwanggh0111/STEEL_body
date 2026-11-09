@@ -4,6 +4,8 @@ import { useInbodyStore } from '../store/inbodyStore';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildChange } from '../data/bodyChange';
+// **「가장 최근」을 제 손으로 집지 않는다** (2026-11-09) — 11/05 에 세운 그 손
+import { latestInbody } from '../data/inbodyLatest';
 import SegRow from '../components/SegRow';
 // 갈래를 주소에 남긴다 — 새로고침·링크·바로가기가 산다 (2026-10-06)
 import { useTabParam } from '../data/useTabParam';
@@ -97,11 +99,19 @@ export default function BodyPage() {
   // 여기서 다시 짰다가 걷었다 — 같은 것을 두 벌로 두면 한쪽만 고치는 날이 온다.
   // 저것은 `npm run check` 가 이미 돌려보고 있고, 「좋다 나쁘다를 안 매긴다」는
   // 규칙도 저기에 적혀 있다. 여기서는 **한 줄만** 꺼내 쓴다
-  const change = useMemo(() => buildChange(records, 'last'), [records]);
-  const latest = useMemo(() => {
-    const sorted = [...(records || [])].filter(r => r && r.date).sort((a, b) => (a.date < b.date ? 1 : -1));
-    return sorted[0] || null;
-  }, [records]);
+  const change = useMemo(() => buildChange(records, 'last', today), [records, today]);
+  // ── **「가장 최근」을 여기서 또 집고 있었다** ── (2026-11-09)
+  //
+  // 제 손으로 날짜 내림차순으로 세워 `sorted[0]` 을 집었다. 서버는 인바디 날짜를
+  // **하루 넉넉하게** 받으므로(시차 · 자정 무렵) 그것이 **앞날 줄**일 수 있고,
+  // 그러면 아래 `stale` 이 **음수**가 된다 — `stale >= 14` 로 거르니까
+  // **「마지막으로 잰 지 N일 됐어요」가 영영 안 뜬다.** 넉 달을 안 재도 조용하다.
+  //
+  // 11/05 에 홈 · 인바디 화면에서 같은 것을 고치고 손을 하나 세웠다
+  // (`inbodyLatest.js` 의 `latestInbody`). **이 자리만 그 손을 안 거치고 있었다** —
+  // 손을 세운 날 고친 것은 그때 `records[0]` 을 집던 자리들뿐이었고, 여기는
+  // 제 손으로 **정렬까지 해서** 집고 있어서 그 그물에 안 걸렸다
+  const latest = useMemo(() => latestInbody(records, today).latest, [records, today]);
   const stale = latest ? daysBetween(latest.date, today) : null;
 
   return (

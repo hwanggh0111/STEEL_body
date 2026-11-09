@@ -172,7 +172,7 @@ if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 
   const esbuild = require('esbuild');
   const out = path.join(ROOT, '.feedlist.cjs');
   esbuild.buildSync({
-    entryPoints: [path.join(ROOT, 'src', 'pages', 'support', 'FeedList.jsx')],
+    entryPoints: [path.join(ROOT, 'src', 'pages', 'support', 'FeedDetailBody.jsx')],
     bundle: true, format: 'cjs', outfile: out, platform: 'node',
     // JSX 를 **작은 대역**으로 바꿔 받는다 — React 를 띄우지 않고 조각의 모양만 본다
     jsx: 'transform', jsxFactory: 'h', jsxFragment: '"frag"', logLevel: 'silent',
@@ -182,7 +182,7 @@ if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 
         + 'children: c.length > 1 ? c : c[0] } });',
     },
   });
-  const { detailBody } = require(out);
+  const detailBody = require(out).default;
   fs.unlinkSync(out);
 
   // React 조각에서 글자만 긁어낸다 (중첩된 children 까지)
@@ -192,7 +192,7 @@ if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 
     if (Array.isArray(el)) return el.map(textOf).join('');
     return textOf(el.props && el.props.children);
   };
-  const say = (details, failed) => textOf(detailBody('abc123', details, failed, () => {}));
+  const say = (details, failed) => textOf(detailBody({ itemKey: 'abc123', details, failed, retry: () => {} }));
 
   console.log('\n── 펼친 자리가 말하는 것 (상태 넷) ──');
   ok('본문이 있으면 그 글', say({ abc123: '여기가 본문이다' }, false), '여기가 본문이다');
@@ -207,6 +207,10 @@ if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 
 
   console.log('\n── 본문을 받는 주소에 판이 붙는가 ──');
   const fd = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'support', 'feedData.js'), 'utf8');
+  // 그 파일은 **컴포넌트만** 내보낸다 — 함수를 하나 더 얹으면 개발 중에 화면이
+  // 통째로 다시 그려진다 (`FeedList` 머리글이 적어둔 규칙이다)
+  const fl = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'support', 'FeedList.jsx'), 'utf8');
+  ok('목록 파일은 컴포넌트만 내보낸다', (fl.match(/^export /gm) || []).length, 1);
   ok('내용 해시를 주소에 붙여 받는다', /feed-detail\.json\?v=\$\{FEED_INDEX\.detailVersion\}/.test(fd), true);
   ok('  판이 없는 옛 묶음도 그냥 받는다', /:\s*'\/feed-detail\.json'/.test(fd), true);
   const idx = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'feedIndex.json'), 'utf8'));

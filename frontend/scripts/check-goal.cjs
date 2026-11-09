@@ -507,6 +507,16 @@ console.log('── ★ 몸 변화의 「현재」도 앞날을 안 집는가 �
   ok('날을 안 넘기면 셈이 오늘을 정한다', BC.pickPair(recs, 'last') !== null, true);
   const ui = fs.readFileSync('src/components/BodyChange.jsx', 'utf-8');
   ok('몸 변화 화면이 오늘을 넘긴다', /buildChange\(records, span, today\)/.test(ui), true);
+  // ★ **「몸」 화면이 제 손으로 가장 최근을 집고 있었다** (2026-11-09, 1차 검토에서 잡았다).
+  //
+  // 정렬까지 제 손으로 해서 `sorted[0]` 을 집었다 — 그것이 앞날 줄이면 아래
+  // `stale` 이 **음수**가 되고, `stale >= 14` 로 거르니까 **「마지막으로 잰 지 N일
+  // 됐어요」가 영영 안 뜬다.** 넉 달을 안 재도 조용하다
+  const bp = fs.readFileSync('src/pages/BodyPage.jsx', 'utf-8');
+  ok('「몸」 화면이 그 손을 쓴다', /latestInbody\(records, today\)/.test(bp), true);
+  ok('  제 손으로 정렬해 첫 줄을 집지 않는다',
+    /sorted\[0\]/.test(bp.replace(/^\s*\/\/.*$/gm, '')), false);
+  ok('  달라진 것도 오늘을 넘겨 센다', /buildChange\(records, 'last', today\)/.test(bp), true);
 }
 
 console.log('');
