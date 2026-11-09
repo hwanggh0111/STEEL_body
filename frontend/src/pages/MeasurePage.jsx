@@ -54,6 +54,14 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
   const [tab, setTab] = useState(initialTab);
   const [measures, setMeasures] = useState([]);
   const [loading, setLoading] = useState(true);
+  // ── **못 받은 것과 없는 것은 다르다** ── (2026-11-09)
+  //
+  // 여태 실패를 토스트로만 알렸다. 토스트가 사라지면 갈래마다
+  // **「데이터 없음 — 어깨 측정 기록이 없어요」** 가 남는다 — **재둔 사람에게
+  // 안 쟀다고 말하는 것**이다. 갈래가 일곱이라 그 말이 일곱 자리에 있다.
+  // 그래서 **갈래를 그리기 전에 한 자리에서** 가린다 (받는 중 · 받음 · 못 받음)
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [saving, setSaving] = useState(false);
 
   // 검색에서 다시 들어올 때 칸을 따라간다. **아는 칸일 때만** 옮긴다 (위 참고)
@@ -67,13 +75,15 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
   const refreshTick = useRefreshTick();
 
   useEffect(() => {
+    setFailed(false);
     client.get('/measures')
       // 서버가 배열을 준다. 다른 모양이 오면 빈 것으로 친다 —
       // 목록을 그리는 코드에 객체가 들어가면 화면이 통째로 죽는다
       .then(({ data }) => setMeasures(Array.isArray(data) ? data : []))
-      .catch(() => toast('측정 데이터를 불러오지 못했어요', 'error'))
+      // **상태로 남긴다** — 토스트만으로는 사라진 뒤에 거짓이 남는다 (2026-11-09)
+      .catch(() => { setFailed(true); toast('측정 데이터를 불러오지 못했어요', 'error'); })
       .finally(() => setLoading(false));
-  }, [refreshTick]);
+  }, [refreshTick, retry]);
 
   const filterByType = (type) => measures.filter(m => m.type === type);
 
@@ -244,6 +254,31 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
         </div>
       )}
 
+      {/* ★ **못 받았으면 갈래를 안 그린다** (2026-11-09).
+
+          갈래마다 「…기록이 없어요」가 적혀 있어서(일곱 자리), 못 받아온 것이
+          **재둔 사람에게 안 쟀다고 말하는 것**이 된다. 갈래 일곱을 각자 고치는
+          대신 **한 자리에서** 가린다 — 「없다」고 말할 자리가 하나도 안 열린다.
+
+          기록이 있는데 못 받은 것인지 정말 없는 것인지 우리는 모른다. 그래서
+          **모른다고 말하고 다시 받는 길을 준다** (`FeedDetailBody` 와 같은 선) */}
+      {failed && measures.length === 0 ? (
+        <div className="empty-state" style={{ padding: '28px 0' }}>
+          <div className="empty-state-title">측정 기록을 못 불러왔어요</div>
+          <div className="empty-state-desc">
+            안 잰 것이 아니라, 지금 목록을 받아오지 못했어요.<br />
+            <button
+              type="button"
+              onClick={() => setRetry((n) => n + 1)}
+              style={{
+                background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
+                textDecoration: 'underline', textUnderlineOffset: 3,
+              }}
+            >다시 받기</button>
+          </div>
+        </div>
+      ) : (<>
       {tab === 'size' && <BodySizeSection records={filterByType('bodySize')} onSave={(data) => handleSave('bodySize', data)} onDelete={handleDelete} />}
       {tab === 'shoulder' && <ShoulderSection records={filterByType('shoulder')} onSave={(data) => handleSave('shoulder', data)} onDelete={handleDelete} />}
       {tab === 'orm' && <OneRMSection records={filterByType('oneRM')} onSave={(data) => handleSave('oneRM', data)} onDelete={handleDelete} />}
@@ -251,6 +286,7 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
       {tab === 'heart' && <HeartRateSection />}
       {tab === 'stopwatch' && <StopwatchSection onSave={(data) => handleSave('stopwatch', data)} />}
       {tab === 'flex' && <FlexibilitySection records={filterByType('flexibility')} onSave={(data) => handleSave('flexibility', data)} onDelete={handleDelete} />}
+      </>)}
     </div>
   );
 }

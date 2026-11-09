@@ -99,6 +99,19 @@ export default function RoutinePage() {
   const [loading, setLoading] = useState(false);
   const [openIdx, setOpenIdx] = useState(null);
   const [myRoutines, setMyRoutines] = useState([]);
+  // ── **못 받은 것과 없는 것은 다르다** ── (2026-11-09)
+  //
+  // 여태 실패를 **토스트로만** 알렸다(`.catch(() => toast(…))`). 토스트는
+  // 몇 초 뒤 사라지고, 그 뒤에 남는 화면은 **「아직 만든 루틴이 없어요 —
+  // 추천에서 골라 담거나 직접 만들 수 있습니다」** 였다. 루틴이 열 개인
+  // 사람에게 없다고 말하고 **만들라고 시킨다.**
+  //
+  // 공지함에서 닫은 그 류다(「상태가 셋인데 분기가 둘」) — 받는 중 · 받음 ·
+  // **못 받음**이 셋인데 둘로만 갈라져 있었다. `retry` 는 다시 받는 단추가
+  // 쓰는 것이다(머리의 새로고침은 여럿을 한꺼번에 받고 간격 제한이 있어서,
+  // 이 자리에는 **이 목록만 다시 받는 길**을 따로 둔다)
+  const [routinesFailed, setRoutinesFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   // 고치는 중인 루틴 id. null 이면 새로 만드는 중
   const [editingId, setEditingId] = useState(null);
@@ -177,6 +190,7 @@ export default function RoutinePage() {
     client.get('/my-routines')
       .then(({ data }) => {
         const list = Array.isArray(data) ? data : [];
+        setRoutinesFailed(false);
         setMyRoutines(list);
         if (!movedRef.current && list.length === 0) { movedRef.current = true; setTab('pick'); }
         if (wantEditId != null && !openedEditRef.current) {
@@ -187,10 +201,11 @@ export default function RoutinePage() {
           if (found) editRoutine(found);
         }
       })
-      .catch(() => toast('루틴을 불러오지 못했어요', 'error'));
+      // **상태로 남긴다.** 토스트만으로는 사라진 뒤에 거짓이 남는다
+      .catch(() => { setRoutinesFailed(true); toast('루틴을 불러오지 못했어요', 'error'); });
   // 머리의 새로고침 — 다른 기기에서 만든 루틴이 여기서 보여야 한다
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTick]);
+  }, [refreshTick, retry]);
 
   // 저장 · 수정 · 삭제는 **여기서만 알린다.**
   //
@@ -450,7 +465,25 @@ export default function RoutinePage() {
         지난번에 든 무게를 미리 채워둡니다.
       </p>
 
-      {myRoutines.length === 0 && !showCreate && (
+      {/* ★ **못 받았으면 없다고 말하지 않는다** (2026-11-09) — 다시 받는 길을 준다 */}
+      {myRoutines.length === 0 && !showCreate && routinesFailed && (
+        <div className="empty-state" style={{ padding: '28px 0' }}>
+          <div className="empty-state-title">루틴을 못 불러왔어요</div>
+          <div className="empty-state-desc">
+            만든 루틴이 없는 것이 아니라, 지금 목록을 받아오지 못했어요.<br />
+            <button
+              type="button"
+              onClick={() => setRetry((n) => n + 1)}
+              style={{
+                background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 13, color: 'var(--accent)',
+                textDecoration: 'underline', textUnderlineOffset: 3,
+              }}
+            >다시 받기</button>
+          </div>
+        </div>
+      )}
+      {myRoutines.length === 0 && !showCreate && !routinesFailed && (
         <div className="empty-state" style={{ padding: '28px 0' }}>
           <div className="empty-state-title">루틴 없음</div>
           <div className="empty-state-desc">
