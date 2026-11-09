@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { buildChange, SPANS, trainingIn } from '../data/bodyChange';
+// **앞날 줄은 「현재」가 아니다** (2026-11-09) — 셈에 오늘을 같이 넘긴다
+import { useToday } from '../data/useToday';
 
 // 인바디 값이 **얼마나 달라졌나**.
 //
@@ -39,8 +41,9 @@ function Row({ row, max }) {
 }
 
 export default function BodyChange({ records, workouts }) {
+  const today = useToday();
   const [span, setSpan] = useState('last');
-  const change = useMemo(() => buildChange(records, span), [records, span]);
+  const change = useMemo(() => buildChange(records, span, today), [records, span, today]);
   // 같은 기간에 운동을 얼마나 했나 — 시안 C 의 「그동안 운동은」이다
   const training = useMemo(
     () => (change ? trainingIn(workouts, change.from, change.to) : null),
@@ -48,7 +51,7 @@ export default function BodyChange({ records, workouts }) {
   );
 
   // 어느 기간으로도 견줄 것이 없으면 아예 안 그린다
-  const any = useMemo(() => !!buildChange(records, 'last'), [records]);
+  const any = useMemo(() => !!buildChange(records, 'last', today), [records, today]);
   if (!any) return null;
 
   return (

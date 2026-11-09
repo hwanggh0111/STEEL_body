@@ -222,8 +222,11 @@ export default function GoalPage() {
       field: m.field,
       target: goal?.[m.targetKey],
       start: goal?.[m.startKey],
+      // **앞날 인바디 줄은 「지금 값」이 아니다** (2026-11-09) — 안 넘기면
+      // 셈이 제 손으로 오늘을 정하지만, 이 화면은 이미 오늘을 들고 있다
+      today,
     }),
-  })).filter(({ p }) => p), [records, goal]);
+  })).filter(({ p }) => p), [records, goal, today]);
   // 「이대로면 언제」는 **체중만** 말한다. 체지방률·골격근량은 물 마신 것에도
   // 흔들려서, 4주 흐름으로 날을 집으면 지어낸 수가 된다 —
   // 「모르면 말하지 않는다」가 이 화면의 규칙이다

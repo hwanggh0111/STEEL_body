@@ -15,6 +15,8 @@
 // 있어야 한다. 그래서 `npm run goal` 이 값으로 본다.
 
 import { dateKey } from './dateKey';
+// **앞날 인바디 줄로 목표를 채우지 않는다** (2026-11-09) — 11/05 에 세운 그 손
+import { inbodyUpto } from './inbodyLatest';
 import { mondayOf, weekKeys } from './weeklyReport';
 
 /** 주 8회는 없다. 몸이 쉬는 날을 스스로 지우는 목표를 앱이 거들지 않는다. */
@@ -232,11 +234,25 @@ export function weekStreak(workouts, goal, today = dateKey()) {
  * @param field  인바디 줄에서 읽을 칸 ('weight' · 'fat_pct' · 'muscle_kg')
  * @param target 목표값. null 이면 **쫓지 않는 값**이라 `null` 을 돌려준다
  * @param start  목표를 세운 날의 값
+ * @param today  오늘 ('YYYY-MM-DD'). 그 뒤 날짜로 적힌 줄은 안 본다
+ *
+ * ── ★ **앞날 줄로 목표가 미리 채워졌다** ── (2026-11-09)
+ *
+ * 11/05 에 「아직 하지도 않은 운동으로 목표가 미리 채워졌다」를 세 자리에서
+ * 고쳤다(주 N회 쪽). 그런데 **인바디 목표 — 체중 · 체지방률 · 골격근량 — 은
+ * 그대로 남아 있었다.** 서버는 인바디 날짜를 하루 넉넉하게 받으므로(시차 ·
+ * 자정 무렵) 내일 날짜 줄이 실제로 들어온다. 그 줄을 「지금 값」으로 집으면 —
+ *
+ *   · 「목표 70kg 까지 **0.4kg 남았어요**」가 **아직 안 잰 값**으로 적힌다
+ *   · 진행률 막대가 미리 차고, 「도달!」까지 **먼저 떠버린다**
+ *   · 되레 멀어졌다는 표시(`away`)도 그 값으로 켜진다
+ *
+ * **목표는 지킨 것을 세는 수다** — 미리 채워지면 뜻이 없다 (11/05 에 적은 말이다).
  */
-export function measureProgress(records, { field, target, start: pinned }) {
+export function measureProgress(records, { field, target, start: pinned, today = null }) {
   if (target == null) return null;
 
-  const rows = (records || [])
+  const rows = inbodyUpto(records, today || undefined)
     .filter(r => Number(r?.[field]) > 0 && r?.date)
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
@@ -272,8 +288,9 @@ export function measureProgress(records, { field, target, start: pinned }) {
  * 안 쓴다**(쫓는 값 셋을 목록으로 돌리며 `measureProgress` 를 바로 부른다).
  * 적어둔 말과 코드가 달랐던 자리라 바로잡았다 (2026-10-24).
  */
-export function weightProgress(records, goal) {
+export function weightProgress(records, goal, today = null) {
   return measureProgress(records, {
+    today,
     field: 'weight',
     target: goal?.weightTarget,
     start: goal?.weightStart,
@@ -311,7 +328,7 @@ const MAX_ETA_DAYS = 400;
  * 못 믿게 된다.
  */
 export function weightEta(records, goal, today = dateKey()) {
-  const p = weightProgress(records, goal);
+  const p = weightProgress(records, goal, today);
   if (!p || p.now == null || p.reached || !p.dir || p.dir === 'same') return null;
 
   const from = at(today);

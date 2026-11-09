@@ -449,5 +449,76 @@ console.log('── ★ 측정도 앞날을 안 집는가 ──');
   ok('어깨 측정 화면이 그 손을 쓴다', /measuresUpto\(records\)/.test(sh), true);
 }
 
+console.log('');
+console.log('── ★★ 인바디 목표도 앞날을 안 집는가 ── (2026-11-09, 11/05 에 빠진 자리)');
+// 11/05 에 「아직 하지도 않은 운동으로 목표가 미리 채워졌다」를 **주 N회** 쪽 세
+// 자리에서 고쳤다. 그런데 **인바디 목표 — 체중 · 체지방률 · 골격근량 — 은 그대로
+// 남아 있었다.** 「목표 70kg 까지 0.4kg 남았어요」가 아직 안 잰 값으로 적혔다
+{
+  const TODAY = '2026-11-05';
+  const recs = [
+    { id: 3, date: '2026-11-06', weight: 70.2, fat_pct: 15, muscle_kg: 34 },   // 앞날 (잘못 적은 것)
+    { id: 2, date: '2026-11-04', weight: 73.0, fat_pct: 17, muscle_kg: 33 },
+    { id: 1, date: '2026-10-20', weight: 75.0, fat_pct: 19, muscle_kg: 32 },
+  ];
+  const P = (today) => g.measureProgress(recs, {
+    field: 'weight', target: 70, start: 75, today,
+  });
+  ok('**앞날 줄을 「지금 값」으로 안 집는다**', P(TODAY).now, 73);
+  ok('  남은 거리도 그 값으로 센다', P(TODAY).left, 3);
+  ok('  마지막 날짜도 지난 것을 가리킨다', P(TODAY).lastDate, '2026-11-04');
+  // ★ **「도달!」이 먼저 떠버렸다** — 앞날 줄이 69.5 면 아직 아닌데 닿은 것이 된다
+  const reached = g.measureProgress(
+    [{ date: '2026-11-06', weight: 69.5 }, { date: '2026-11-04', weight: 73 }],
+    { field: 'weight', target: 70, start: 75, today: TODAY },
+  );
+  ok('  「도달」이 앞날로 먼저 안 뜬다', reached.reached, false);
+  ok('날을 안 넘기면 셈이 오늘을 정한다', typeof P(null).now, 'number');
+  ok('  기록이 앞날뿐이면 집을 것이 없다',
+    g.measureProgress([{ date: '2026-11-06', weight: 70 }],
+      { field: 'weight', target: 70, start: 75, today: TODAY }).now, null);
+  // 화면 둘이 오늘을 넘기는가 — 안 넘기면 셈이 제 손으로 정해 **돌린 날**에 기댄다
+  const card = fs.readFileSync('src/components/home/GoalCard.jsx', 'utf-8');
+  const gp = fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8');
+  ok('홈의 목표 카드가 오늘을 넘긴다', /start: k\.s, today \}/.test(card), true);
+  ok('  목표 화면도 넘긴다', /\n\s*today,\n\s*\}\),/.test(gp), true);
+}
+
+console.log('');
+console.log('── ★ 몸 변화의 「현재」도 앞날을 안 집는가 ── (2026-11-09)');
+// 몸 변화 카드는 `records[0]` 을 「현재」로 집었다 — 그것이 앞날 줄이면 **카드의
+// 모든 수**가 안 잰 값 기준이 된다(변화량 셋 · 한 마디 요약 · 「그 사이 운동 N일」)
+{
+  const BC = bundle('src/data/bodyChange.js', '.bc.cjs');
+  const TODAY = '2026-11-05';
+  const recs = [
+    { id: 3, date: '2026-11-06', weight: 70, muscle_kg: 35, fat_pct: 14 },   // 앞날
+    { id: 2, date: '2026-11-04', weight: 73, muscle_kg: 33, fat_pct: 17 },
+    { id: 1, date: '2026-10-20', weight: 75, muscle_kg: 32, fat_pct: 19 },
+  ];
+  const pair = BC.pickPair(recs, 'last', TODAY);
+  ok('**앞날 줄을 「현재」로 안 집는다**', [pair.now.date, pair.then.date],
+    ['2026-11-04', '2026-10-20']);
+  const ch = BC.buildChange(recs, 'last', TODAY);
+  ok('  변화량도 그 둘로 센다', [ch.from, ch.to], ['2026-10-20', '2026-11-04']);
+  ok('  「그 사이」 창이 앞날까지 안 벌어진다', ch.to <= TODAY, true);
+  ok('걸러내고 둘이 안 남으면 아무것도 안 말한다',
+    BC.pickPair([{ date: '2026-11-06', weight: 70 }, { date: '2026-11-04', weight: 73 }], 'last', TODAY), null);
+  ok('날을 안 넘기면 셈이 오늘을 정한다', BC.pickPair(recs, 'last') !== null, true);
+  const ui = fs.readFileSync('src/components/BodyChange.jsx', 'utf-8');
+  ok('몸 변화 화면이 오늘을 넘긴다', /buildChange\(records, span, today\)/.test(ui), true);
+}
+
+console.log('');
+console.log('── ★ 체중 선에도 앞날 점을 안 찍는가 ── (2026-11-09)');
+// 안 걸러내면 **아직 안 잰 체중**이 선 맨 오른쪽 점이 되어 마지막 토막이 거짓이 된다.
+// 목록(인바디 화면)은 그대로 둔다 — 잘못 적은 날짜를 사람이 고칠 자리가 거기뿐이다
+{
+  const page = fs.readFileSync('src/pages/HistoryPage.jsx', 'utf-8');
+  ok('걸러낸 줄로 선을 그린다', /<WeightChart records=\{weightRows\} \/>/.test(page), true);
+  ok('  그 줄을 11/05 의 손으로 만든다', /inbodyUpto\(records, today\)/.test(page), true);
+  ok('  **세는 것도 걸러낸 것으로 센다**', /\{weightRows\.length > 1 &&/.test(page), true);
+  ok('  화면이 제 손으로 records 를 안 센다', /\{records\.length > 1 &&/.test(page), false);
+}
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

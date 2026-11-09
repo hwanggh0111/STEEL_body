@@ -19,6 +19,7 @@ import BestRecords from '../components/BestRecords';
 import LiftTrend from '../components/LiftTrend';
 import PartTrend from '../components/PartTrend';
 import CardioTrend from '../components/CardioTrend';
+import { inbodyUpto } from '../data/inbodyLatest';
 import DaySheet from '../components/DaySheet';
 import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
@@ -244,6 +245,12 @@ export default function HistoryPage() {
   const allExercises = useMemo(() => [...new Set(Object.values(workouts).flat().map(w => w.exercise).filter(Boolean))].sort(), [workouts]);
 
   const dates = useMemo(() => workouts ? Object.keys(workouts).sort().reverse() : [], [workouts]);
+
+  // 체중 선에 쓸 줄 — **앞날 줄을 뺀 것** (2026-11-09). 서버는 인바디 날짜를 하루
+  // 넉넉하게 받으므로(시차 · 자정 무렵) 안 걸러내면 **아직 안 잰 체중**이 선 맨
+  // 오른쪽 점이 되어 마지막 토막이 거짓이 된다. 목록(인바디 화면)은 그대로 둔다 —
+  // 잘못 적은 날짜를 사람이 고칠 자리가 거기뿐이다 (11/05 에 정한 선)
+  const weightRows = useMemo(() => inbodyUpto(records, today), [records, today]);
 
   // 보고 있는 달. 처음에는 이번 달을 연다.
   //
@@ -725,15 +732,22 @@ export default function HistoryPage() {
           (한 운동 → 그 부위 → 유산소). 그릴 것이 없으면 아무것도 안 그린다 */}
       <CardioTrend workouts={workouts} today={today} />
 
-      {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다 */}
-      {records.length > 1 && (
+      {/* 점 하나로는 선이 안 그려진다. 두 번은 재야 변화가 있다.
+          **세는 것도 걸러낸 목록으로 센다** (2026-11-09) — 안 그러면 「1건 + 앞날
+          1건」인 사람에게 제목만 뜨고 아래는 「2개 이상 있어야」가 된다 */}
+      {weightRows.length > 1 && (
         <>
           <div className="section-title">
             <div className="accent-bar" />
             체중 변화
           </div>
           <div className="card" style={{ marginBottom: 24, padding: 12 }}>
-            <WeightChart records={records} />
+            {/* **앞날 줄은 선에 안 넣는다** (2026-11-09) — 서버는 인바디 날짜를
+                하루 넉넉하게 받는다(시차 · 자정 무렵). 안 걸러내면 **아직 안 잰
+                체중**이 선 맨 오른쪽 점이 되어 마지막 토막이 거짓이 된다.
+                목록(인바디 화면)은 그대로 둔다 — 잘못 적은 날짜를 사람이 고칠
+                자리가 거기뿐이다 (11/05 에 정한 선) */}
+            <WeightChart records={weightRows} />
           </div>
         </>
       )}

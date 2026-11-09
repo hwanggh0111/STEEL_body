@@ -31,11 +31,12 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
       { label: '골격근량', unit: 'kg', field: 'muscle_kg', t: goal?.muscleTarget, s: goal?.muscleStart },
     ];
     for (const k of picks) {
-      const p = measureProgress(records, { field: k.field, target: k.t, start: k.s });
+      // 앞날 인바디 줄은 「지금 값」이 아니다 (2026-11-09)
+      const p = measureProgress(records, { field: k.field, target: k.t, start: k.s, today });
       if (p) return { ...p, label: k.label, unit: k.unit };
     }
     return null;
-  }, [records, goal]);
+  }, [records, goal, today]);
 
   // 아직 받아오는 중이면 아무것도 안 그린다 — 깜빡 띄웠다 지우지 않는다
   if (!loaded) return null;

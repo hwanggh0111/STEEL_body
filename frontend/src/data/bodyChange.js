@@ -6,6 +6,8 @@
 // 견줄 것이 없으면(기록이 하나면) 아무것도 돌려주지 않는다 — 화면이 안 나온다.
 
 import { muscleRatio } from './bodyRanges';
+// **앞날 줄은 「현재」가 아니다** (2026-11-09) — 11/05 에 세운 그 손을 거친다
+import { inbodyUpto } from './inbodyLatest';
 import { volumeOf } from './weeklyReport';
 
 export const SPANS = [
@@ -43,8 +45,18 @@ function daysBetween(a, b) {
  * 'all' 은 제일 오래된 것. 3개월치가 없으면 제일 오래된 것으로 떨어진다 —
  * 없다고 화면을 비우는 것보다 낫고, 날짜를 같이 보여주므로 속이는 것이 아니다.
  */
-export function pickPair(records, spanKey = 'last') {
-  const list = (records || []).filter(r => r && r.date);
+export function pickPair(records, spanKey = 'last', today = null) {
+  // ── **「현재」가 앞날 줄이었다** ── (2026-11-09)
+  //
+  // 서버는 인바디 날짜를 **하루 넉넉하게** 받고(시차 · 자정 무렵) 목록은 날짜
+  // 내림차순이다. 그래서 `list[0]` 이 **아직 안 잰 줄**이 될 수 있었다 — 그러면
+  // 몸 변화 카드의 **모든 수**가 그 값 기준이 된다(체중 · 골격근 · 체지방률의
+  // 변화량 · 한 마디 요약 · 「그 사이 운동 N일」의 창까지).
+  //
+  // 11/05 에 홈의 「최근 체중」과 인바디 화면에서 같은 것을 고치고 **손을 하나
+  // 세웠는데**(`inbodyLatest.js`), **이 자리만 그 손을 안 거치고 있었다.**
+  // `today` 를 안 주면 그 손이 오늘을 정한다 — 부르는 쪽을 안 고쳐도 막힌다
+  const list = inbodyUpto(records, today || undefined).filter(r => r && r.date);
   if (list.length < 2) return null;
 
   const now = list[0];
@@ -102,8 +114,8 @@ function headlineOf(rows) {
 /**
  * 변화 요약. 견줄 것이 없으면 null.
  */
-export function buildChange(records, spanKey = 'last') {
-  const pair = pickPair(records, spanKey);
+export function buildChange(records, spanKey = 'last', today = null) {
+  const pair = pickPair(records, spanKey, today);
   if (!pair) return null;
 
   const { now, then } = pair;
