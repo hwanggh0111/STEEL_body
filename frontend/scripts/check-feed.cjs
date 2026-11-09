@@ -156,5 +156,79 @@ ok('  detail 을 싣는다', /detail/.test(feedData), true);
 // 뽑아 적은 파일이라는 말이 그 파일에 적혀 있나 — 손으로 고치면 다음 빌드에 덮인다
 if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 않는다/.test(list.note || ''), true);
 
+// ── 펼친 자리의 상태는 셋이 아니라 넷이다 ── (2026-11-09, 라이브 검사에서 넘어온 것)
+//
+// 라이브 고객센터의 최신 공지 두 줄에 더하기 표시가 보이는데, 눌러도 본문이 영영
+// 안 왔다. 뿌리는 둘이었다.
+//
+//   ⑴ 캐시 — 목록은 번들(해시가 박혀 즉시 새것)인데 본문은 정적 파일이라
+//      브라우저가 최장 이레 묵은 것을 내준다(라이브에서 재봤다: max-age=604800).
+//      그래서 새 줄의 열쇠가 옛 본문에 없다. 본문 주소에 내용 해시를 붙여 막았다
+//   ⑵ 화면 — 그때 「묶음은 왔는데 그 줄이 없다」는 분기가 없어서
+//      「불러오는 중...」이 영영 돌았다. 사람은 그 앞에서 기다린다
+//
+// 아래는 ⑵ 를 값으로 본다. JSX 를 그대로 묶어 불러 함수를 직접 부른다.
+{
+  const esbuild = require('esbuild');
+  const out = path.join(ROOT, '.feedlist.cjs');
+  esbuild.buildSync({
+    entryPoints: [path.join(ROOT, 'src', 'pages', 'support', 'FeedList.jsx')],
+    bundle: true, format: 'cjs', outfile: out, platform: 'node',
+    // JSX 를 **작은 대역**으로 바꿔 받는다 — React 를 띄우지 않고 조각의 모양만 본다
+    jsx: 'transform', jsxFactory: 'h', jsxFragment: '"frag"', logLevel: 'silent',
+    external: ['react', 'react-dom'],
+    banner: {
+      js: 'const h = (t, p, ...c) => ({ props: { ...(p || {}), '
+        + 'children: c.length > 1 ? c : c[0] } });',
+    },
+  });
+  const { detailBody } = require(out);
+  fs.unlinkSync(out);
+
+  // React 조각에서 글자만 긁어낸다 (중첩된 children 까지)
+  const textOf = (el) => {
+    if (el == null || typeof el === 'boolean') return '';
+    if (typeof el === 'string' || typeof el === 'number') return String(el);
+    if (Array.isArray(el)) return el.map(textOf).join('');
+    return textOf(el.props && el.props.children);
+  };
+  const say = (details, failed) => textOf(detailBody('abc123', details, failed, () => {}));
+
+  console.log('\n── 펼친 자리가 말하는 것 (상태 넷) ──');
+  ok('본문이 있으면 그 글', say({ abc123: '여기가 본문이다' }, false), '여기가 본문이다');
+  ok('아직 안 왔으면 불러오는 중', /불러오는 중/.test(say(null, false)), true);
+  ok('못 받았으면 다시 해볼 수 있다', /못 불러왔어요/.test(say(null, true)) && /다시/.test(say(null, true)), true);
+  // ★ 여기가 11/09 에 비어 있던 넷째 자리다
+  ok('묶음은 왔는데 그 줄이 없으면 없다고 말한다', /본문이 아직 안 올라왔어요/.test(say({ other: '남의 본문' }, false)), true);
+  ok('  그때 불러오는 중이라고 하지 않는다', /불러오는 중/.test(say({ other: '남의 본문' }, false)), false);
+  ok('  빈 묶음도 같다', /본문이 아직 안 올라왔어요/.test(say({}, false)), true);
+  // 못 받은 것이 먼저다 - 묶음이 없는데 실패했으면 다시 해볼 자리를 준다
+  ok('실패가 없음보다 앞선다', /못 불러왔어요/.test(say(null, true)), true);
+
+  console.log('\n── 본문을 받는 주소에 판이 붙는가 ──');
+  const fd = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'support', 'feedData.js'), 'utf8');
+  ok('내용 해시를 주소에 붙여 받는다', /feed-detail\.json\?v=\$\{FEED_INDEX\.detailVersion\}/.test(fd), true);
+  ok('  판이 없는 옛 묶음도 그냥 받는다', /:\s*'\/feed-detail\.json'/.test(fd), true);
+  const idx = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'feedIndex.json'), 'utf8'));
+  ok('목록에 그 판이 적혀 있다', /^[0-9a-f]{10}$/.test(String(idx.detailVersion || '')), true);
+  // 적힌 판이 실제 본문 파일의 해시와 같은가 - 다르면 캐시가 안 빗나간다
+  const detailRaw = fs.readFileSync(path.join(ROOT, 'public', 'feed-detail.json'), 'utf8');
+  const real = require('crypto').createHash('sha1').update(detailRaw).digest('hex').slice(0, 10);
+  ok('  그 판이 본문 파일의 해시와 같다', idx.detailVersion, real);
+
+  console.log('\n── 짝이 어긋나면 빌드가 깨지는가 ──');
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-feed.mjs'), 'utf8');
+  ok('본문이 있다고 적혔는데 없으면 깬다', /본문이 있다고 적혔는데 없는 줄/.test(gen) && /process\.exit\(1\)/.test(gen), true);
+  ok('  열쇠가 겹치면 깬다 (남의 본문이 열린다)', /열쇠가 겹칩니다/.test(gen), true);
+  // 목록과 본문의 짝이 실제로 맞는가 - 지금 파일로 직접 센다
+  const want = (idx.items || []).filter((r) => r.has).map((r) => r.key);
+  const have = new Set(Object.keys(JSON.parse(detailRaw)));
+  ok('지금 파일의 짝이 맞다', want.filter((k) => !have.has(k)), []);
+  ok('  본문만 있고 목록이 모르는 줄도 없다', [...have].filter((k) => !want.includes(k)), []);
+  ok('  열쇠가 겹치지 않는다',
+    (idx.items || []).map((r) => r.key).filter((k, i, a) => a.indexOf(k) !== i), []);
+}
+
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

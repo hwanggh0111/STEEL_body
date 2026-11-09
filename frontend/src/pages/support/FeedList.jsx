@@ -7,6 +7,40 @@ import { fmtDate, useFeedDetails } from './feedData';
 // Fast Refresh 가 매번 포기하고 화면을 통째로 새로 그린다 — 한 파일이 컴포넌트만
 // 내보내야 붙는 기능이다. 데이터는 feedData.js 로 뺐다.
 
+/**
+ * 펼친 자리에 무엇을 적을까 — **상태는 셋이다.**
+ *
+ *   본문이 있다        → 그 글
+ *   묶음이 아직 안 왔다 → 「불러오는 중…」
+ *   못 받았다           → 「못 불러왔어요 · 다시」
+ *   ★ 묶음은 왔는데 그 줄이 없다 → **「본문이 아직 안 올라왔어요」**
+ *
+ * 넷째 줄이 11/09 에 라이브에서 빠져 있던 자리다. **공지함 찾기 쪽도 같은 손을
+ * 쓴다**(`NoticeArchive`) — 두 벌로 적으면 한쪽만 고쳐진다.
+ */
+export function detailBody(key, details, failed, retry) {
+  const muted = { color: 'var(--text-muted)' };
+  const again = (
+    <button
+      type="button"
+      onClick={retry}
+      style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
+    >다시</button>
+  );
+  const body = details?.[key];
+  if (body) return body;
+  if (failed) return <span style={muted}>지금은 본문을 못 불러왔어요 · {again}</span>;
+  // ★ **묶음은 왔다.** 그러면 더 기다릴 것이 없다 — 없다고 말하고 길을 준다
+  if (details) {
+    return (
+      <span style={muted}>
+        이 줄은 본문이 아직 안 올라왔어요 — 바뀐 내용은 위 한 줄이 전부입니다. · {again}
+      </span>
+    );
+  }
+  return <span style={muted}>불러오는 중…</span>;
+}
+
 export default function FeedList({ items }) {
   const [open, setOpen] = useState(null);
   // 본문은 **펼칠 때** 받는다 (2026-10-16). 묶음에는 목록만 실려 있다 —
@@ -62,20 +96,20 @@ export default function FeedList({ items }) {
             fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85,
             whiteSpace: 'pre-wrap', padding: '2px 0 16px', paddingLeft: 58, maxWidth: 460,
           }}>
-            {/* **아직 안 온 것과 못 받은 것을 가른다.** 신호가 없을 때 「불러오는 중」이
-                영영 돌면 사람은 기다리고, 「못 불러왔어요」만 있으면 다시 해볼 수 없다 */}
-            {details?.[c.key] ?? (failed
-              ? (
-                <span style={{ color: 'var(--text-muted)' }}>
-                  지금은 본문을 못 불러왔어요 ·{' '}
-                  <button
-                    type="button"
-                    onClick={retry}
-                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
-                  >다시</button>
-                </span>
-              )
-              : <span style={{ color: 'var(--text-muted)' }}>불러오는 중…</span>)}
+            {/* ── ★ **상태는 셋인데 분기가 둘이었다** ── (2026-11-09, 라이브 검사)
+
+                「아직 안 온 것」과 「못 받은 것」은 가려놨는데, **셋째가 비어
+                있었다** — **묶음은 왔는데 그 줄의 본문이 없는 것.** 그러면 파일은
+                200 으로 받아졌으니 `failed` 가 거짓이고, 열쇠가 없으니
+                `undefined` 라 `??` 가 폴백으로 넘기고, 실패가 아니니
+                **「불러오는 중…」이 영영 돈다.** 바로 위 주석이 스스로 경계한
+                그 상황이다 — 영영 도는 「불러오는 중」 앞에서 사람은 기다린다.
+
+                11/09 에 라이브에서 공지 두 줄이 그랬다(본문 파일이 이레 묵어
+                열쇠가 없었다 — 뿌리는 `feedData.js` 의 `DETAIL_URL` 에서 막았다).
+                그래도 이 자리를 막는다: **데이터가 다시 어긋나는 날 같은 증상이
+                재발**하고, 그때 사람이 보는 것은 이 글자다 */}
+            {detailBody(c.key, details, failed, retry)}
           </div>
         )}
       </div>

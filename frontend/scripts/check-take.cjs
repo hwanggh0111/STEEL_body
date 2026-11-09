@@ -250,7 +250,10 @@ ok('  차기 전에는 상자를 안 그린다', /news\.length > 0 && \(/.test(s
   const feed = read('src/pages/support/feedData.js');
   ok('공지함도 목록만 싣는다', /^import .*feedIndex\.json/m.test(feed), true);
   ok('  무거운 원본을 안 들여온다', /^import .*(notices|changelog)\.json/m.test(feed), false);
-  ok('  본문은 펼칠 때 받는다', /fetch\('\/feed-detail\.json'\)/.test(feed), true);
+  // **주소에 판이 붙었다** (2026-11-09) — 목록은 번들(즉시 새것)인데 본문은 정적
+  // 파일이라 브라우저가 최장 이레 묵은 것을 내줬다. 받는 자리는 그대로 하나다
+  ok('  본문은 펼칠 때 받는다', /fetch\(DETAIL_URL\)/.test(feed), true);
+  ok('    그 주소에 본문의 판이 붙는다', /feed-detail\.json\?v=/.test(feed), true);
   // 열 줄을 펼쳐도 왕복은 한 번이어야 한다
   ok('  한 번만 받는다', /if \(details\) return Promise\.resolve\(details\)/.test(feed), true);
   // 신호가 없을 때 한 번 막혔다고 영영 안 받으면, 신호가 돌아와도 그대로다

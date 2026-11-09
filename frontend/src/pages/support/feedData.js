@@ -39,6 +39,28 @@ export const FEED = (FEED_INDEX.items || []).map((r, i) => ({
   return (a.notice === b.notice) ? 0 : (a.notice ? -1 : 1);
 });
 
+// ── ★★ **받을 판을 이름에 붙인다** ── (2026-11-09)
+//
+// 여태 `/feed-detail.json` 을 **그냥** 받았다. 그런데 이 둘은 **서로 다른 판으로
+// 서빙된다** —
+//
+//   feedIndex.json (위에서 들인 것)  번들에 실린다. 이름에 해시가 박혀 배포하면
+//                                    **즉시** 새것이 간다 (immutable)
+//   /feed-detail.json                정적 파일. 이름이 안 바뀌어서 브라우저 HTTP
+//                                    캐시가 **최장 이레** 묵은 것을 내준다
+//                                    (라이브에서 받아 봤다 — `max-age=604800`)
+//
+// 그래서 배포 뒤 최장 이레 동안 **목록은 새것 · 본문은 옛것**이 된다. 새 줄에는
+// 「본문이 있다」가 적혀 있는데 받아온 옛 본문에는 그 열쇠가 없어서, 눌러도
+// **영영 「불러오는 중…」**이었다 (11/09 라이브 검사에서 공지 두 줄이 그랬다).
+//
+// 그래서 **그 본문의 판**(내용 해시, `gen-feed.mjs` 가 박는다)을 열쇠에 붙여 받는다 —
+// 내용이 바뀌면 주소가 바뀌어 캐시가 **반드시 빗나가고**, 안 바뀌면 이레를 그대로
+// 쓴다(헛된 왕복이 없다). 판이 없는 옛 묶음도 그냥 받는다 — 떨어지지 않는다
+const DETAIL_URL = FEED_INDEX.detailVersion
+  ? `/feed-detail.json?v=${FEED_INDEX.detailVersion}`
+  : '/feed-detail.json';
+
 // 받아둔 본문. **한 번만 받는다** — 공지함에서 열 줄을 펼쳐도 왕복은 한 번이다
 let details = null;
 let pending = null;
@@ -52,7 +74,7 @@ let pending = null;
 export function loadFeedDetails() {
   if (details) return Promise.resolve(details);
   if (!pending) {
-    pending = fetch('/feed-detail.json')
+    pending = fetch(DETAIL_URL)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d) => { details = d && typeof d === 'object' ? d : {}; return details; })
       .catch((e) => { pending = null; throw e; });

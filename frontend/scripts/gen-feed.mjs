@@ -45,6 +45,7 @@
 // 그대로 두고 조용히 빠진다. 빌드를 막을 이유가 없다 (`gen-changelog` 와 같다).
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -150,17 +151,79 @@ if (!existsSync(DATA)) mkdirSync(DATA, { recursive: true });
 writeFileSync(OUT, `${JSON.stringify(out, null, 2)}\n`, 'utf8');
 console.log(`[feed] ${rows.length}줄 → src/data/feedList.json`);
 
+// -- 목록과 본문의 짝을 여기서 못 박는다 -- (2026-11-09)
+//
+// 둘은 한 번에 나오므로 여기서 어긋날 수 없다. 그런데 라이브에서는 어긋났다 --
+// 고객센터 최신 공지 두 줄에 더하기 표시가 보이는데, 눌러도 본문이 영영 안 왔다.
+//
+// 까닭은 두 파일이 서로 다른 판으로 서빙되기 때문이다.
+//
+//   feedIndex.json           src/data 에 있어 번들에 실린다. 이름에 해시가 박혀
+//                            배포하면 즉시 새것이 간다 (immutable)
+//   public/feed-detail.json  정적 파일. 이름이 안 바뀌어서 브라우저 HTTP 캐시가
+//                            최장 7일(max-age=604800) 묵은 것을 내준다
+//
+// 그래서 배포 뒤 최장 이레 동안 목록은 새것, 본문은 옛것이었다. 새 줄은 본문이
+// 있다고 적혀 있고, 받아온 옛 본문에는 그 열쇠가 없다.
+//
+// 본문 파일에 내용 해시를 붙여 그 짝을 묶는다 -- 번들은 제가 지어진 그 본문의
+// 판을 이름으로 부른다(/feed-detail.json?v=...). 내용이 바뀌면 열쇠가 바뀌므로
+// 캐시가 반드시 빗나가고, 안 바뀌면 이레를 그대로 쓴다 (헛된 왕복이 없다).
+const detailJson = JSON.stringify(details);
+const detailVersion = createHash('sha1').update(detailJson).digest('hex').slice(0, 10);
+
+// -- 그리고 어긋나면 빌드를 깬다 --
+//
+// 이 파일 머리글에 「절대 실패로 끝나지 않는다」고 적어뒀다 -- 읽을 것이 없을 때의
+// 말이다. 짝이 어긋난 것은 다르다: 그대로 내보내면 사람이 눌러도 아무 일이
+// 안 일어나는 줄이 라이브에 남는다. 해시가 또 바뀌어도 라이브까지 못 나가게 한다.
+{
+  const want = [...noticeRows, ...changeRows].filter((r) => r.has).map((r) => r.key);
+  const have = new Set(Object.keys(details));
+  const missing = want.filter((k) => !have.has(k));
+  const orphan = [...have].filter((k) => !want.includes(k));
+  // ★ **열쇠가 겹치면 남의 본문이 열린다** — 짝 어긋남보다 이쪽이 실제로 일어난다.
+  //
+  // 위의 두 집합은 **같은 자리에서 한 번에** 나오므로(`has` 는 `detail` 이 있다는
+  // 뜻이고 본문도 그 `detail` 이다) 서로 어긋날 수가 없다 — 그래서 저 가드는
+  // 생성기가 갈라지는 날을 위한 울타리다. 실제로 어긋나는 길은 **열쇠가 겹치는
+  // 것**이다: `notices.json` 의 id 는 **손으로 적는다**(`n-2026-10-26-a`). 같은 id
+  // 를 두 줄에 적으면 본문 하나가 다른 하나를 덮고, 눌렀을 때 **남의 글이 열린다** —
+  // 아무 오류도 안 나고, 화면은 멀쩡해 보인다
+  const dup = [...new Set([...noticeRows, ...changeRows]
+    .map((r) => r.key)
+    .filter((k, i, a) => a.indexOf(k) !== i))];
+  if (dup.length) {
+    console.error('[feed] 열쇠가 겹칩니다 - 눌렀을 때 남의 본문이 열립니다: ' + dup.join(' '));
+    console.error('  notices.json 의 id 를 서로 다르게 적으세요 (커밋 쪽은 hash 라 겹칠 일이 없습니다).');
+    process.exit(1);
+  }
+  if (missing.length || orphan.length) {
+    const lines = [
+      '[feed] 목록과 본문의 짝이 어긋났습니다 - 그대로 내보내면 눌러도 본문이 안 옵니다.',
+      missing.length ? `  본문이 있다고 적혔는데 없는 줄 ${missing.length}: ${missing.slice(0, 8).join(' ')}` : '',
+      orphan.length ? `  본문만 있고 목록이 모르는 줄 ${orphan.length}: ${orphan.slice(0, 8).join(' ')}` : '',
+      '  notices.json 을 고친 뒤 `npm run feed` 를 다시 돌리세요.',
+    ].filter(Boolean);
+    console.error(lines.join('\n'));
+    process.exit(1);
+  }
+}
+
 const all = {
   note: '뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.',
+  // 본문 파일의 판. 화면이 이 판을 이름에 붙여 받는다 -- 옛 본문이 새 목록과
+  // 짝지어지는 일을 막는 열쇠다 (위 머리글)
+  detailVersion,
   items: [...noticeRows, ...changeRows],
 };
 writeFileSync(OUT_ALL, JSON.stringify(all, null, 2) + '\n', 'utf8');
 
 if (!existsSync(PUBLIC)) mkdirSync(PUBLIC, { recursive: true });
 // **줄바꿈 없이 쓴다** — 사람이 읽는 파일이 아니라 받아가는 파일이다
-writeFileSync(OUT_DETAIL, JSON.stringify(details), 'utf8');
+writeFileSync(OUT_DETAIL, detailJson, 'utf8');
 
 const kb = (n) => `${Math.round(n / 102.4) / 10}KB`;
 console.log(`[feed] ${all.items.length}줄(본문 없이) → src/data/feedIndex.json ${kb(JSON.stringify(all).length)}`);
-console.log(`[feed] 본문 ${Object.keys(details).length}개 → public/feed-detail.json ${kb(JSON.stringify(details).length)} (펼칠 때만 받는다)`);
+console.log(`[feed] 본문 ${Object.keys(details).length}개 → public/feed-detail.json ${kb(detailJson.length)} - 판 ${detailVersion} (펼칠 때만 받는다)`);
 
