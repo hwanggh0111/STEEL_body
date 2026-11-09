@@ -164,6 +164,25 @@ ok('2월은 28일', y26.months[1].days.length, 28);
 ok('윤년 2월은 29일', wall.buildYear({}, 2024).months[1].days.length, 29);
 ok('기록이 있는 해를 최신순으로', wall.yearsWithRecords(Y), [2026, 2025]);
 ok('빈 날짜는 해로 치지 않는다', wall.yearsWithRecords({ '2026-01-01': [] }), []);
+// ★ **앞날은 아직 새길 것이 없다** (2026-11-09) — 달력의 「적기」는 앞날을 막지
+// 않는다(내일 할 것을 미리 적는 사람이 있다). 안 걸러내면 벽에 **안 한 날**이
+// 새겨지고 「올해 N일」과 「가장 길게」가 그만큼 늘어난다
+{
+  const TODAY = '2026-01-07';
+  const f = wall.buildYear(Y, 2026, TODAY);
+  ok('앞날 칸은 비어 있다', dayOf(f.months[0], 8).level, 0);
+  ok('  「올해 며칠」에 안 든다', f.total.days, 3);
+  ok('  이어진 날도 그만큼만 센다', f.total.longest, 3);
+  ok('  오늘은 새겨진다 (경계)', dayOf(f.months[0], 7).level > 0, true);
+  ok('날을 안 넘기면 여태처럼 다 센다', wall.buildYear(Y, 2026).total.days, 4);
+  // 12/31 에 내년 1월 줄을 적어두면 **내년 갈래가 미리 생겼다**
+  ok('앞날 해는 갈래로 안 세운다',
+    wall.yearsWithRecords({ '2027-01-02': [{ exercise: '스쿼트', weight: '100', sets: 1, reps: 1 }],
+      '2026-01-05': [{ exercise: '스쿼트', weight: '100', sets: 1, reps: 1 }] }, '2026-12-31'), [2026]);
+  const ui = fs.readFileSync('src/components/YearWall.jsx', 'utf-8');
+  ok('벽 화면이 오늘을 넘긴다', /buildYear\(workouts, shown, today\)/.test(ui), true);
+}
+
 // 무게를 한 번도 안 적은 해는 기준이 없다. 전부 얕은 각인이 맞다
 const bw = wall.buildYear({ '2026-03-03': [{ exercise: '푸시업', weight: '맨몸', sets: 3, reps: 20 }] }, 2026);
 ok('무게가 아예 없는 해는 전부 얕게', dayOf(bw.months[2], 3).level, 1);

@@ -23,10 +23,12 @@ function daysInMonth(year, monthIndex) {
 }
 
 /** 기록이 있는 해를 최신순으로. 없으면 빈 배열. */
-export function yearsWithRecords(workouts) {
+export function yearsWithRecords(workouts, today = null) {
   const years = new Set();
   Object.entries(workouts || {}).forEach(([date, list]) => {
     if (!Array.isArray(list) || list.length === 0) return;
+    // 12/31 에 내년 1월 줄을 적어두면 **내년 갈래가 미리 생겼다** (2026-11-09)
+    if (today && date > today) return;
     const y = Number(String(date).slice(0, 4));
     if (Number.isFinite(y)) years.add(y);
   });
@@ -40,11 +42,21 @@ export function yearsWithRecords(workouts) {
  * 모르니까). 그 날을 0kg 으로 두면 운동한 날이 안 한 날과 똑같이 비어 보인다 —
  * 그래서 볼륨이 0 이어도 기록이 있으면 **제일 얕은 각인(1)** 은 준다.
  *
+ * ── **앞날은 아직 새길 것이 없다** ── (2026-11-09)
+ *
+ * 서버는 운동 날짜를 **하루 넉넉하게** 받고(시차 · 자정 무렵) 달력의 「적기」는
+ * 앞날을 막지 않는다 — 내일 할 것을 미리 적어두는 사람이 있다. 그 줄을 안 걸러내면
+ * 벽에 **아직 안 한 날**이 새겨지고, 「올해 103일」과 「가장 길게 3일」이 그만큼
+ * 늘어난다. 11/05 에 몸 지도 · 목표 · 주간 요약 · 달 요약에서 쓸어낸 그 줄이
+ * **여기만 없었다.**
+ *
+ * `today` 를 안 넘기면 여태처럼 다 센다 — 부르는 쪽을 안 고쳐도 깨지지 않는다.
+ *
  * 돌려주는 것:
  *   months  [{ name, index, days: [{ date, day, kg, level }], count }]
  *   total   { days, kg, tons, longest, bestMonth }
  */
-export function buildYear(workouts, year) {
+export function buildYear(workouts, year, today = null) {
   const y = Number(year);
   const byDate = {};
   let maxKg = 0;
@@ -53,6 +65,7 @@ export function buildYear(workouts, year) {
     const last = daysInMonth(y, m);
     for (let d = 1; d <= last; d += 1) {
       const date = `${y}-${pad(m + 1)}-${pad(d)}`;
+      if (today && date > today) continue;      // 앞날은 아직 새길 것이 없다
       const list = (workouts || {})[date];
       if (!Array.isArray(list) || list.length === 0) continue;
       const { kg } = volumeOf(list);

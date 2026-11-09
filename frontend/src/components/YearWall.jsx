@@ -32,14 +32,15 @@ export default function YearWall({ onPickMonth }) {
   const today = useToday();
   const workouts = useWorkoutStore((s) => s.workouts);
 
-  const years = useMemo(() => yearsWithRecords(workouts), [workouts]);
+  const years = useMemo(() => yearsWithRecords(workouts, today), [workouts, today]);
   const thisYear = Number(today.slice(0, 4));
   const [year, setYear] = useState(null);
   // 고르기 전에는 올해. 올해 기록이 하나도 없으면 기록이 있는 가장 최근 해를 편다 —
   // 1월 2일에 열었는데 빈 벽만 나오면 이 화면은 아무 말도 안 하는 것이다
   const shown = year ?? (years.includes(thisYear) ? thisYear : years[0]);
 
-  const wall = useMemo(() => (shown ? buildYear(workouts, shown) : null), [workouts, shown]);
+  // **앞날은 아직 새길 것이 없다** (2026-11-09) — 셈에 오늘을 같이 넘긴다
+  const wall = useMemo(() => (shown ? buildYear(workouts, shown, today) : null), [workouts, shown, today]);
 
   if (!wall || wall.total.days === 0) return null;
 
