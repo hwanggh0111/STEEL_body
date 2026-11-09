@@ -60,3 +60,21 @@ export function stampOf(iso) {
   if (!iso || Number.isNaN(d.getTime())) return '-';
   return `${dateKey(d)} ${clockOf(iso)}`;
 }
+
+// ── **오늘까지만 센다** ── (2026-11-09)
+//
+// 「앞날 줄」을 세면 수가 부푼다. 서버는 날짜를 **하루 넉넉하게** 받고(시차 · 자정
+// 무렵) 달력의 「적기」는 앞날을 막지 않으므로, **내일 날짜 줄이 실제로 들어온다.**
+//
+// 이 손을 여기 두는 까닭은 이 파일 머리글에 이미 적혀 있다 — 「같은 헬퍼가 여러
+// 곳에 따로 있었다. 새로 쓰는 곳은 여기를 쓴다.」 지금 같은 일을 하는 자리가
+// **세 벌**이다(`inbodyLatest.js` 의 `upto` · `weeklyReport.js` 의 `upto` ·
+// `yearWall.js`). 전부 모듈 안에 숨어 있어서 넷째가 또 생긴다 — 그래서 새 것은
+// 여기에 둔다.
+//
+// **목록은 이것으로 거르지 않는다.** 잘못 적은 앞날 줄을 사람이 찾아 고칠 자리가
+// 목록뿐이다(11/05 에 정한 선). 거르는 것은 **세는 자리**다.
+export function upToToday(keys, today) {
+  if (!Array.isArray(keys)) return [];
+  return today ? keys.filter((k) => typeof k === 'string' && k <= today) : keys;
+}

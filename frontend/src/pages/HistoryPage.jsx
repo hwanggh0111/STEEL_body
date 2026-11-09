@@ -28,6 +28,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { TOKEN_KEY } from '../data/localKeys';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
+import { upToToday } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 // 갈래를 주소에 남긴다 (2026-10-06)
 import { useTabParam } from '../data/useTabParam';
@@ -333,8 +334,28 @@ export default function HistoryPage() {
         : (workouts[date] || [])])
       .filter(([, list]) => list.length > 0);
   }, [dates, workouts, filterExercise, ym, selectedDate]);
-  const totalDays = dates.length;
-  const totalWorkouts = useMemo(() => workouts ? Object.values(workouts).flat().length : 0, [workouts]);
+  // ── ★ **통계 칸 셋이 앞날 줄을 세고 있었다** ── (2026-11-09)
+  //
+  // 같은 화면 안에서 **두 수가 달랐다.** 오늘 한 해 벽을 고쳐 「올해 N일」은 오늘까지만
+  // 세는데, 바로 아래 통계 칸은 안 걸러서 —
+  //
+  //     어제 하나 + 내일 하나 적어둔 사람
+  //       한 해 벽   올해 1일 · 가장 길게 1
+  //       통계 칸    운동일 2 · 총 운동 2      ← 같은 화면, 다른 수
+  //
+  // 11/05 에 주 연속 · 최고 N kg 에서 고친 그 류(「같은 말로 다른 수」)가 **한 화면
+  // 안에서** 생긴 것이다.
+  //
+  // ★ **`dates` 자체는 거르지 않는다.** 그 배열은 아래에서 **날짜별 목록**을 그리는
+  // 데도 쓰인다. 잘못 적은 앞날 줄을 사람이 찾아 고칠 자리가 그 목록뿐이라, 거기서
+  // 숨기면 **고칠 길이 사라진다**(11/05 에 정한 선). 거르는 것은 **세는 자리**뿐이다 —
+  // 목록은 그대로, 수는 오늘까지.
+  const countedDates = useMemo(() => upToToday(dates, today), [dates, today]);
+  const totalDays = countedDates.length;
+  const totalWorkouts = useMemo(
+    () => countedDates.reduce((n, d) => n + ((workouts && workouts[d]) || []).length, 0),
+    [countedDates, workouts],
+  );
 
   // 카드가 memo 라, 이 함수가 매 렌더 새로 만들어지면 memo 가 아무 일도 못 한다
   const handleDelete = useCallback(async (id) => {
@@ -637,13 +658,16 @@ export default function HistoryPage() {
           <div style={{
             display: 'grid',
             // 그리는 칸만 센다 — 손으로 2·3 을 적으면 칸을 하나 빼는 날 어긋난다
-            gridTemplateColumns: `repeat(${(totalWorkouts > 0 ? 2 : 0) + (records.length > 0 ? 1 : 0)}, 1fr)`,
+            // 인바디도 **걸러낸 줄**로 센다 — `weightRows` 가 위에 이미 있다.
+            // 앞날 인바디만 적어둔 사람에게 칸이 열리고 「1」이 적히면 안 된다
+            gridTemplateColumns: `repeat(${(totalWorkouts > 0 ? 2 : 0) + (weightRows.length > 0 ? 1 : 0)}, 1fr)`,
             gap: 8, marginBottom: 24,
           }}>
             {totalWorkouts > 0 && <StatBox number={totalDays} label="운동일" />}
             {totalWorkouts > 0 && <StatBox number={totalWorkouts} label="총 운동" />}
-            {/* 인바디를 한 번도 안 적었으면 그 칸도 없다 */}
-            {records.length > 0 && <StatBox number={records.length} label="인바디" />}
+            {/* 인바디를 한 번도 안 적었으면 그 칸도 없다. **앞날 줄은 안 센다** —
+                바로 위 체중 선이 쓰는 그 `weightRows` 와 같은 수여야 한다 */}
+            {weightRows.length > 0 && <StatBox number={weightRows.length} label="인바디" />}
           </div>
         </>
       )}

@@ -22,6 +22,8 @@
     "cardiotrend": "node scripts/check-cardiotrend.cjs",
     "measure": "node scripts/measure-pushpull.cjs",
     "threestate": "node scripts/check-threestate.cjs",
+    "stats": "node scripts/check-stats.cjs",
+    "clog": "node scripts/check-changelog.cjs",
     "plate": "node scripts/check-plate.cjs",
     "font": "node scripts/check-font.cjs",
     "settings": "node scripts/check-settings.cjs",
