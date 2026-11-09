@@ -2,7 +2,9 @@ import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 // 지난 판을 읽는 셈 — 「다음 한 걸음」과 「지난 판」 (2026-11-05, `npm run nextstep`)
-import { nextStep, lastSession, stepReason, shortDate } from '../data/lastSets';
+import {
+  nextStep, lastSession, stepReason, shortDate, lastRecordOf, plannedSetsOf,
+} from '../data/lastSets';
 // 유산소는 **시간 · 거리로** 적는다 (2026-11-05, `npm run cardio`)
 import {
   isCardioName, isCardioRow, cardioText, cardioOf, paceLabel,
@@ -311,26 +313,17 @@ export default function TrainPage() {
   // 「유산소 줄」로 읽혀 **없는 시간을 0분으로** 그린다
   const cardio = isCardioName(exercise);
 
-  // 이 운동을 마지막으로 한 기록. 미리 채울 값이고 화면에도 적는다
-  const lastRecord = useMemo(() => {
-    if (!exercise) return null;
-    const name = exercise.trim();
-    let found = null;
-    for (const date of Object.keys(workouts).sort().reverse()) {
-      // **이어 적은 줄은 건너뛴다** (2026-10-05, 리뷰에서 잡혔다).
-      // 목록은 최신이 위라 드롭세트 줄이 본세트보다 앞에 온다. 그냥 첫 줄을 잡으면
-      // 벤치 80×8 → 65 → 52 로 적은 다음날 「지난번 52kg」이 뜨고 칸에도 52 가 채워진다.
-      // 드롭세트는 그 세션에서 **제일 가벼운 무게**다 — 다음에 들 무게가 아니다
-      // **드롭세트 줄만 건너뛴다** (2026-10-05, 2차 리뷰에서 바로잡았다).
-      // 처음에는 묶인 줄을 다 건너뛰었는데, **슈퍼세트는 제 무게로 한 멀쩡한 세트**다.
-      // 늘 슈퍼세트로 하는 운동(케이블 플라이 · 레터럴 레이즈)은 모든 줄에 표시가
-      // 붙으므로, 다 건너뛰면 그 운동만 **「지난번」이 영영 안 뜨고** 칸도 안 채워진다.
-      // 건너뛸 이유가 있는 것은 드롭세트뿐이다 — 그 세션에서 제일 가벼운 무게다
-      const hit = (workouts[date] || []).find((w) => w.exercise?.trim() === name && w.link !== 'drop');
-      if (hit) { found = { ...hit, date }; break; }
-    }
-    return found;
-  }, [workouts, exercise]);
+  // 이 운동을 마지막으로 한 기록. 미리 채울 값이고 화면에도 적는다.
+  //
+  // **셈은 `data/lastSets.js` 가 한다** (2026-11-09). 여기 박혀 있을 때 **날짜를
+  // 안 가리고 있었다** — 앞날에 적어둔 줄이 「지난번」이 되어 칸까지 채웠다.
+  // 바로 아래 두 줄(`nextStep` · `lastSession`)은 11/05 부터 날짜를 가려 받는데
+  // 이 줄만 안 가려서, **같은 화면에서 셋이 서로 다른 날을 보고 있었다.**
+  // 드롭세트를 건너뛰는 까닭도 그 파일에 옮겨 적었다 — `npm run nextstep` 이 값으로 본다
+  const lastRecord = useMemo(
+    () => lastRecordOf(workouts, exercise, today, date),
+    [workouts, exercise, today, date],
+  );
 
   // ── 다음 한 걸음 · 지난 판 ── (2026-11-05)
   //
@@ -688,15 +681,12 @@ export default function TrainPage() {
   //
   // 몇 세트인지는 폼을 채울 때와 **같은 순서**로 안다 — 지난 기록이 먼저, 없으면
   // 루틴에 적힌 것. 둘 다 없으면 모르는 것이고, 그때는 「여기까지 기록」으로 끝낸다
-  const plannedSets = useMemo(() => {
-    if (!current) return null;
-    const nm = current.name.trim();
-    for (const d of Object.keys(workouts).sort().reverse()) {
-      const hit = (workouts[d] || []).find((w) => w.exercise?.trim() === nm && w.link !== 'drop');
-      if (hit && Number(hit.sets) > 0) return Number(hit.sets);
-    }
-    return Number(current.sets) > 0 ? Number(current.sets) : null;
-  }, [current, workouts]);
+  const plannedSets = useMemo(
+    // **이 자리도 날짜를 안 가리고 있었다** (2026-11-09) — 앞날에 「5세트」를
+    // 적어두면 오늘 판이 5세트짜리로 세워졌다
+    () => (current ? plannedSetsOf(workouts, current.name, today, date, current.sets) : null),
+    [current, workouts, today, date],
+  );
 
   const setsDone = current?.setsDone || 0;
   // 세트를 몇 개 했는데 다 안 했다 — 그때만 「여기까지 기록」을 준다.

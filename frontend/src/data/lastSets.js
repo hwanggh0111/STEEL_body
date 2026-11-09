@@ -331,3 +331,77 @@ export function lastSession(workouts, exercise, today = null, writing = null) {
     span: lines.length >= 2 ? spanLabel(s.spanMs) : null,
   };
 }
+
+/**
+ * **지난번 줄** — 칸에 미리 채우고 화면에 「지난번 80kg × 8회 (10/31)」로 적는 그것.
+ *
+ * ── 왜 여기로 옮겼나 ── (2026-11-09)
+ *
+ * 이 셈은 `TrainPage` 안에 박혀 있었고, **날짜를 안 가리고 있었다.** 11/05 에 바로
+ * 아래 두 줄(`nextStep` · `lastSession`)을 붙이면서 그 둘에는 `today` 와 적는 날을
+ * 넘겼는데, **그 위의 「지난번」은 그대로 뒀다.** 그래서 같은 화면에서 셋이 서로
+ * 다른 날을 보고 있었다 —
+ *
+ *   ⑴ **앞날 기록이 「지난번」이 된다.** 달력의 「적기」는 앞날을 막지 않는다(막을
+ *      일도 아니다 — 내일 할 것을 미리 적어두는 사람이 있다). 다음 주 월요일에
+ *      「벤치 100kg」을 적어두면 오늘 기록 화면이 **「지난번 100kg」**이라고 말하고
+ *      **칸에도 100 이 채워진다.** 「지난번과 같게」 단추까지 그 수를 집는다.
+ *      11/05 에 측정 · 인바디 · 앞날 목표에서 고친 것과 **같은 모양**이다
+ *   ⑵ **지난 날짜에 적을 때 뒷날 것을 「지난번」이라 한다.** 어제 것을 뒤늦게
+ *      적는데 오늘 기록이 「지난번」으로 뜬다 — 그것은 지난번이 아니라 **다음번**이다
+ *
+ * ★ **그 날 것은 뺀다고 하지 않았다.** `nextStep` 은 적는 날을 셈에서 빼지만(안 빼면
+ * 오늘 한 세트를 적자마자 「3판 채웠어요」가 뜬다), 「지난번」은 **그 날 것을 쓰는 게
+ * 맞다** — 벤치 80×8 을 한 세트 적고 둘째 세트를 적을 때 칸이 80 으로 채워지는 그것이
+ * 이 자리의 쓸모다. 그래서 자른 선이 다르다(`<=` 와 `<`).
+ *
+ * **드롭세트 줄은 건너뛴다** — 그 판에서 제일 가벼운 무게라 다음에 들 무게가 아니다
+ * (2026-10-05 에 정했다). 슈퍼세트는 제 무게로 한 멀쩡한 세트라 건너뛰지 않는다.
+ *
+ * @param writing 적고 있는 날 ('YYYY-MM-DD'). 그 날**까지** 본다
+ */
+export function lastRecordOf(workouts, exercise, today = null, writing = null) {
+  const name = String(exercise ?? '').trim();
+  if (!name) return null;
+  // 선은 **둘 중 이른 쪽**이다. 적는 날이 앞날로 적혀 있어도(지난 줄을 고치려
+  // 눌렀을 때 그럴 수 있다) 오늘을 넘겨 보지 않는다
+  const cut = [today, writing].filter(Boolean).sort()[0] || null;
+  const dates = Object.keys(workouts || {})
+    .filter((d) => d && (!cut || d <= cut))
+    .sort()
+    .reverse();
+  for (const date of dates) {
+    const hit = (workouts[date] || [])
+      .find((w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
+    if (hit) return { ...hit, date };
+  }
+  return null;
+}
+
+/**
+ * **이 판은 몇 세트인가** — 「다음 세트」가 끝을 아는 데 쓰는 수.
+ *
+ * 지난 기록이 먼저고, 없으면 루틴에 적힌 것(`fallback`)이다. 둘 다 없으면 모르는
+ * 것이고 그때는 「여기까지 기록」으로 끝낸다.
+ *
+ * **이 자리도 날짜를 안 가리고 있었다** (2026-11-09) — 앞날에 「벤치 5세트」를
+ * 적어두면 오늘 판이 **5세트짜리로 세워졌다.** 세트 수가 적힌 줄을 찾을 때까지
+ * 거슬러 가는 차례는 그대로 둔다(세트 없이 적힌 줄이 섞여 있을 수 있다).
+ */
+export function plannedSetsOf(workouts, exercise, today = null, writing = null, fallback = null) {
+  const name = String(exercise ?? '').trim();
+  const fb = posInt(fallback);
+  if (!name) return fb;
+  const cut = [today, writing].filter(Boolean).sort()[0] || null;
+  const dates = Object.keys(workouts || {})
+    .filter((d) => d && (!cut || d <= cut))
+    .sort()
+    .reverse();
+  for (const date of dates) {
+    const hit = (workouts[date] || [])
+      .find((w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
+    const n = posInt(hit?.sets);
+    if (n) return n;
+  }
+  return fb;
+}

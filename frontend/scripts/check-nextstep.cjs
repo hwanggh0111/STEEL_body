@@ -263,9 +263,59 @@ ok('걸린 시간', [L.spanLabel(26 * 60000), L.spanLabel(65 * 60000), L.spanLab
   ['26분', '1시간 5분', '2시간', null]);
 
 console.log('');
+console.log('── 「지난번」이 보는 날 ── (2026-11-09, 이 자리에서 잡은 버그 둘)');
+// ★ **앞날 기록이 「지난번」이 되고 칸까지 채웠다.** 달력의 「적기」는 앞날을 막지
+// 않는다 — 다음 주 월요일에 「벤치 100kg」을 적어두면 오늘 화면이 「지난번 100kg」을
+// 적고 칸에도 100 이 들어갔다. 11/05 에 측정 · 인바디 · 앞날 목표에서 고친 그 모양이다
+const FUT = {
+  '2026-11-03': [{ exercise: '벤치프레스', weight: '80', sets: 3, reps: 8 }],
+  '2026-11-16': [{ exercise: '벤치프레스', weight: '100', sets: 5, reps: 5 }],
+};
+ok('앞날 줄은 「지난번」이 아니다',
+  (L.lastRecordOf(FUT, '벤치프레스', TODAY, TODAY) || {}).weight, '80');
+ok('  날짜도 지난 것을 가리킨다',
+  (L.lastRecordOf(FUT, '벤치프레스', TODAY, TODAY) || {}).date, '2026-11-03');
+ok('  세트 수도 앞날에서 안 가져온다', L.plannedSetsOf(FUT, '벤치프레스', TODAY, TODAY, null), 3);
+// ⑵ **지난 날짜에 적을 때 뒷날 것은 「지난번」이 아니라 다음번이다**
+const BACK = {
+  '2026-11-01': [{ exercise: '벤치프레스', weight: '75', sets: 3, reps: 8 }],
+  '2026-11-03': [{ exercise: '벤치프레스', weight: '80', sets: 4, reps: 8 }],
+};
+ok('어제 것을 적을 때 오늘 줄을 안 집는다',
+  (L.lastRecordOf(BACK, '벤치프레스', TODAY, '2026-11-02') || {}).weight, '75');
+ok('  세트 수도 그 날까지만 본다', L.plannedSetsOf(BACK, '벤치프레스', TODAY, '2026-11-02', null), 3);
+// ★ **그 날 것은 뺀다고 하지 않았다** — 한 세트 적고 둘째 세트를 적을 때 칸이
+// 채워지는 것이 이 자리의 쓸모다 (`nextStep` 은 그 날을 빼지만 여기는 넣는다)
+ok('그 날 적은 줄은 「지난번」으로 쓴다',
+  (L.lastRecordOf(BACK, '벤치프레스', TODAY, '2026-11-03') || {}).weight, '80');
+// 드롭세트는 그 판에서 제일 가벼운 무게다 — 다음에 들 무게가 아니다 (2026-10-05)
+const DROP = {
+  '2026-11-03': [
+    { exercise: '벤치프레스', weight: '80', sets: 3, reps: 8 },
+    { exercise: '벤치프레스', weight: '52', sets: 1, reps: 10, link: 'drop' },
+  ],
+};
+ok('드롭 줄은 건너뛴다', (L.lastRecordOf(DROP, '벤치프레스', TODAY, TODAY) || {}).weight, '80');
+ok('세트가 안 적힌 줄은 더 거슬러 간다',
+  L.plannedSetsOf({
+    '2026-11-01': [{ exercise: '벤치프레스', weight: '75', sets: 4, reps: 8 }],
+    '2026-11-03': [{ exercise: '벤치프레스', minutes: 30 }],
+  }, '벤치프레스', TODAY, TODAY, null), 4);
+ok('기록이 없으면 루틴에 적힌 것', L.plannedSetsOf({}, '벤치프레스', TODAY, TODAY, 5), 5);
+ok('  둘 다 없으면 모르는 것이다', L.plannedSetsOf({}, '벤치프레스', TODAY, TODAY, null), null);
+ok('이상한 것을 줘도 안 터진다',
+  [L.lastRecordOf(null, '', null, null), L.lastRecordOf({ x: null }, '벤치프레스', TODAY, TODAY),
+    L.plannedSetsOf(null, '벤치프레스', TODAY, TODAY, 0)],
+  [null, null, null]);
+
+console.log('');
 console.log('── 화면이 그 셈만 쓰는가 ──');
 const page = codeOf(fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8'));
 ok('기록 화면이 셈 자리를 불러 쓴다', /nextStep\(|lastSession\(/.test(page), true);
+// ★ 「지난번」도 그 자리를 쓴다 — 화면에서 또 세면 날짜 가리는 선이 둘이 된다
+ok('  「지난번」도 셈 자리를 불러 쓴다', /lastRecordOf\(|plannedSetsOf\(/.test(page), true);
+ok('  화면이 기록을 제자리에서 거슬러 가지 않는다',
+  /Object\.keys\(workouts\)\.sort\(\)\.reverse\(\)/.test(page), false);
 // 권하는 말은 **물음**이다 — 명령으로 적으면 등급을 매기는 꼴이 된다
 ok('  권하는 것일 뿐이라고 적어둔다', /컨디션은 사람이 압니다|권하는 것일 뿐/.test(page), true);
 // ★ 「세트 사이」라고 적지 않는다 (`pace.js` 가 못 박은 말이다)

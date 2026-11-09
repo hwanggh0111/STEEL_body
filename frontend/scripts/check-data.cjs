@@ -929,8 +929,11 @@ console.log('\n── 슈퍼세트 · 드롭세트를 묶어 그리는 규칙 (2
   ok('화면이 줄 사이마다 정한다 (자리로만 안 본다)', /linkBoundary/.test(train), true);
   ok('  드롭세트는 같은 운동일 때만 묶는다',
     /a\.link === 'drop' \? nm\(a\) === nm\(b\) : !b\.link/.test(train), true);
-  // 슈퍼세트는 제 무게로 한 멀쩡한 세트다 — 「지난번」에서 빼면 그 운동만 영영 안 뜬다
-  ok('  「지난번」은 드롭세트만 건너뛴다', /w\.link !== 'drop'/.test(train), true);
+  // 슈퍼세트는 제 무게로 한 멀쩡한 세트다 — 「지난번」에서 빼면 그 운동만 영영 안 뜬다.
+  // **셈이 `data/lastSets.js` 로 옮겨갔다** (2026-11-09) — 화면에 박혀 있을 때
+  // 날짜를 안 가려서 앞날 줄이 「지난번」이 됐다. 규칙은 그대로이니 자리만 바꿔 본다
+  const lastsets = fs.readFileSync('src/data/lastSets.js', 'utf-8');
+  ok('  「지난번」은 드롭세트만 건너뛴다', /w\?\.link !== 'drop'/.test(lastsets), true);
 }
 
 console.log('\n── 자세 설명 (2026-09-02) ──');
