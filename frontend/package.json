@@ -98,7 +98,9 @@
     "nextstep": "node scripts/check-nextstep.cjs",
     "cardio": "node scripts/check-cardio.cjs",
     "weightread": "node scripts/check-weightread.cjs",
-    "brand": "node scripts/check-brand.cjs"
+    "weighthands": "node scripts/check-weighthands.cjs",
+    "brand": "node scripts/check-brand.cjs",
+    "logo": "node scripts/check-logo.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

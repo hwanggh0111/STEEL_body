@@ -1,154 +1,151 @@
 // BLACK IRON 로고. **앱의 모든 자리가 이것 하나를 쓴다.**
 //
-// 2026-09-01 저녁에 네 번째로 고쳤다. 앞 판은 「번쩍임」을 걷어내 촌스러움은 없앴지만
-// **딱딱했다.** 원인은 넷이고 넷 다 각(角)이다 —
-// **전부 대문자 · 넓은 자간 · 각진 마름모 · 가르는 직선.**
+// ── 2026-11-10 · 다섯째 판. 주인이 고른 안으로 갈아끼웠다 ──
 //
-// 우아함은 규칙이 아니라 **곡선 · 굵기 대비 · 소문자**에서 나온다.
+// 주인이 엠블럼 그림을 주고 안 열다섯 중 **「세로 잠금」**을 골랐다.
+// 적용 시안을 보고 「그대로 UI 옮겨」라 해서 그 비례대로 옮긴 것이 이 파일이다.
 //
-//   · **대문자를 버리고 「Black Iron」으로 적는다.** 전부 대문자는 표지판의 글이다 —
-//     읽는 사람에게 지시하는 결이 된다. 첫 자만 대문자로 두면 사람이 쓴 이름이 된다
-//   · **글자체는 Playfair Display**(세리프). 획이 굵어졌다 가늘어지는 대비가 있어서,
-//     같은 금색이어도 훨씬 부드럽게 앉는다. 산세리프 대문자는 이 대비가 없어 판판하다
-//   · **자간을 도로 좁힌다**(0.02em). 소문자에 자간을 벌리면 글자가 흩어져 보인다 —
-//     자간을 넓히는 것은 대문자에서만 통하는 수법이다
-//   · **가르는 직선을 뺐다.** 낱말 사이는 여백으로 나눈다. 선을 그으면 나눈 티가 난다
-//   · **마크는 각을 버리고 원으로.** 마름모(각 넷)를 링 하나로 바꾸고, 봉이 그 안을
-//     가로지른다. 원은 어느 크기로 줄여도 뭉개지지 않는 유일한 모양이다
-//   · **글자는 흘림(이탤릭)으로 세우고, 밑에 펜으로 그은 획을 하나 둔다.**
-//     곧게 선 글자에 자로 그은 선은 인쇄물이고, 기운 글자에 손으로 그은 획은 싸인이다.
-//     획은 **가운데가 굵고 양끝이 가늘며 끝이 위로 튄다** — 선(stroke)으로는 굵기를
-//     못 바꾸니 면(fill)으로 그린다
+// **앞 판(9/01, 넷째)이 세운 규칙 둘을 일부러 뒤집는다** — 그 까닭을 적어둔다.
+// 되돌릴 일이 생기면 이 두 줄을 먼저 읽어야 한다.
 //
-// 색은 `--accent` 하나만 납작하게 쓴다. 그라데이션도 그림자도 없다 —
-// 화면에서 금속을 흉내 내면 대개 싸 보인다(그게 앞 판이 촌스러웠던 이유다).
-// **마크는 `currentColor` 로 받는다** — SVG 속성 안에서는 `var(--accent)` 가
-// 치환되지 않아 값이 통째로 무시된다 (8/28 에 그래프에서 겪었다).
+//   ⑴ **마크가 선그림에서 그림으로 바뀌었다.** 앞 판은 「가는 링 하나에 봉 하나」였고
+//      「원은 어느 크기로 줄여도 뭉개지지 않는 유일한 모양」이라 적어뒀다. 그 말은
+//      지금도 맞다 — 그래서 **작은 자리 규칙을 새로 뒀다**(아래 `MARK_MIN`).
+//      바꾼 까닭은 받은 엠블럼의 **알파에 음영이 들어 있다**는 것이다. 모양 안쪽
+//      57,447픽셀 중 6,797(11.8%)이 반투명이라, 단색으로 칠해도 근육의 입체가
+//      농담으로 남는다. 선그림으로는 그 농담을 만들 수 없다 — 재서 확인했다.
+//
+//   ⑵ **글자가 소문자 세리프에서 대문자로 돌아갔다.** 앞 판은 「전부 대문자는 표지판의
+//      글이다」라며 `Black Iron`(Playfair 이탤릭)으로 갔다. 그 말에도 일리가 있다.
+//      그런데 **마크가 무거운 그림이 되자 가벼운 이탤릭이 받쳐주지 못했다** —
+//      시안에서 둘을 나란히 두고 보면 글자가 마크에 끌려다닌다. 무거운 마크에는
+//      무거운 글자가 맞다. 그래서 `Bebas Neue` 대문자다 — **앱이 이미 쓰는 글자체**라
+//      새로 부르는 것도 없다(`display-*` 들이 그것이다).
+//
+// **Playfair 는 그대로 남는다** — 로고에서만 뺀 것이고 `globals.css` 의 명조 계열이
+// 아직 그 글자체를 쓴다. 로고만 바꿨다고 글꼴 호출을 빼면 그 쪽이 깨진다.
+//
+// 색은 `--accent` 하나만 납작하게 쓴다. 그라데이션도 그림자도 없다.
+// **마크는 `currentColor` 가 아니라 `background` 로 받는다** — CSS 마스크로 그리므로
+// 색이 배경색이다. 그래서 반전(금 바탕에 먹 마크)도 `color` prop 하나로 끝난다.
 
-const HAIR = 1.1;          // 격자 24칸 기준 — 머리카락 굵기
+/** 받은 엠블럼에서 잘라낸 알파. `404 × 373` — 빈 자리를 다 떼어낸 테두리 상자다 */
+const MARK_SRC = '/images/mark.png';
+/** 높이 ÷ 폭. 정사각이 아니다 — 이 값을 지켜야 눌리지 않는다 */
+export const MARK_RATIO = 373 / 404;
+/**
+ * 마크를 글자 없이 혼자 세울 때의 **가장 작은 폭**(px).
+ *
+ * 16px 에서는 팔·다리가 뭉쳐 「사람」으로 안 읽힌다 — 실루엣 덩어리만 남는다.
+ * 브라우저 탭처럼 **이름이 옆에 붙는 자리**는 그보다 작아도 버티지만, 아이콘만
+ * 서는 자리는 24 아래로 내려가지 않는다.
+ */
+export const MARK_MIN = 24;
+/**
+ * 세로 잠금(마크 + 이름 + 설명 줄)의 **가장 작은 폭**(px).
+ *
+ * 그 아래로는 설명 줄이 먼저 죽고 이름이 다음이다. 좁은 자리에는 잠금을 쓰지 말고
+ * **마크만** 떼어 쓴다(`variant="mark"`).
+ */
+export const LOCKUP_MIN = 96;
 
 /**
- * 마크 — **가는 링 하나에 봉 하나.**
+ * 마크 — **받은 엠블럼의 실루엣.**
  *
- * 원판을 정면에서 본 모양(링)에 봉이 지난다. 각을 하나도 안 쓴다.
- * 봉의 양끝이 링 밖으로 조금 나가서, 갇힌 그림이 아니라 지나가는 그림이 된다.
+ * CSS 마스크로 그린다. 알파를 **농도**로 쓰므로 단색으로 칠해도 안쪽 음영이 남는다.
+ * `color` 를 주면 그 색으로 칠한다 — 금 바탕에 올릴 때 먹으로 뒤집는 자리에 쓴다.
  */
-export function LogoMark({ size = 24, style }) {
+export function LogoMark({ size = 24, color = 'var(--accent)', style }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"
-      style={{ color: 'var(--accent)', flexShrink: 0, display: 'block', ...style }}
-    >
-      <circle cx="12" cy="12" r="9.2" stroke="currentColor" strokeWidth={HAIR} />
-      <path d="M1.6 12H22.4" stroke="currentColor" strokeWidth={HAIR} strokeLinecap="round" />
-    </svg>
+    <span
+      role="img" aria-label="BLACK IRON"
+      style={{
+        display: 'block', flexShrink: 0,
+        width: size, height: size * MARK_RATIO,
+        background: color,
+        // `contain` 이 아니라 `100% 100%` 다 — 칸을 비례에 맞춰 이미 잡았으니
+        // 마스크를 칸에 꽉 채운다. `contain` 으로 두면 반올림 때 한 줄이 빈다
+        WebkitMaskImage: `url(${MARK_SRC})`, maskImage: `url(${MARK_SRC})`,
+        WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center', maskPosition: 'center',
+        WebkitMaskSize: '100% 100%', maskSize: '100% 100%',
+        ...style,
+      }}
+    />
   );
 }
 
 /**
- * 워드마크 — **「Black Iron」.** 세리프 · 첫 자만 대문자 · 자간은 좁게.
+ * 워드마크 — **「BLACK IRON」.** Bebas Neue · 대문자 · 자간 넓게.
  *
- * 앞 판은 「BLACK │ IRON」이었다. 대문자에 넓은 자간에 가르는 직선까지 있어서
- * 표지판처럼 읽혔다. 소문자를 살리고 선을 빼면 사람이 쓴 이름이 된다.
+ * `cap` 은 대문자 높이(px). Bebas 는 대문자만 있는 글자체라 글자 크기가 곧 대문자
+ * 높이에 가깝다 — 세리프였던 앞 판처럼 1.34배로 키울 일이 없다.
  */
-export function LogoWord({ cap = 19, style }) {
+export function LogoWord({ cap = 19, color = 'var(--accent)', style }) {
   return (
     <span style={{
-      // 라틴 전용 — 적히는 글이 `blackiron` 하나다. 한글이 올 자리가 없다
-      fontFamily: "'Playfair Display', 'Times New Roman', serif",
+      // 라틴 전용 — 적히는 글이 `BLACK IRON` 하나다. 한글이 올 자리가 없다
+      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
       fontWeight: 400,
-      // **흘림(이탤릭).** 곧게 선 글자는 인쇄물이고, 기울면 손으로 쓴 것이 된다 —
-      // 싸인처럼 보이게 하는 것의 절반은 이 기울기다
-      fontStyle: 'italic',
-      // 세리프는 대문자 높이가 낮게 앉는다 — 같은 자리에 놓으려면 조금 키운다
-      fontSize: cap * 1.34,
-      // 흘림은 글자끼리 이어지는 결이라 자간을 더 좁힌다. 벌리면 이어진 느낌이 끊긴다
-      letterSpacing: cap * 0.005,
-      // **마지막 글자 뒤에도 자간이 붙는다.** 그만큼 글자 칸이 오른쪽으로 넓어져서,
-      // 가운데 맞춘 자리(스플래시 · 로그인)에서는 글자가 **왼쪽으로 조금 밀린 듯** 보인다.
-      // 같은 값을 음수 여백으로 돌려줘 칸이 글자에 딱 붙게 한다 (2026-10-20)
-      marginRight: -(cap * 0.005),
+      fontSize: cap * 1.18,
+      // 대문자는 자간을 벌려야 숨이 트인다 — 소문자에서 하면 흩어져 보이지만
+      // 대문자에서는 그 반대다(앞 판 주석의 그 말을 뒤집지 않고 그대로 쓴다)
+      letterSpacing: cap * 0.085,
+      // **마지막 글자 뒤에도 자간이 붙는다.** 그만큼 칸이 오른쪽으로 넓어져서
+      // 가운데 맞춘 자리에서 글자가 왼쪽으로 밀린 듯 보인다 — 같은 값을 되돌린다
+      marginRight: -(cap * 0.085),
       lineHeight: 1,
-      color: 'var(--accent)',
+      color,
       whiteSpace: 'nowrap',
       ...style,
-    }}>Black Iron</span>
-  );
-}
-
-/**
- * 싸인 획 — **펜으로 한 번 그은 것.**
- *
- * 앞 판은 곧은 금선이었다. 자로 그은 선은 표(表)의 줄이고, 손으로 그은 획은 싸인이다.
- * 차이는 셋이다 — **가운데가 굵고 양끝이 가늘다 · 살짝 휘었다 · 끝이 위로 튄다.**
- *
- * 선(stroke)으로는 굵기를 바꿀 수 없어서 **면(fill)으로 그린다** — 위아래 곡선 두 개를
- * 맞물려 가운데가 부푼 모양을 만든다. 끝의 짧은 획은 펜을 떼면서 튀는 자국이다.
- */
-function Flourish({ width = '100%' }) {
-  return (
-    <svg viewBox="0 0 120 14" width={width} height="auto" fill="none" aria-hidden="true"
-      style={{ display: 'block', color: 'var(--accent)', overflow: 'visible' }}>
-      {/* 몸통 — 가운데가 굵고 양끝으로 갈수록 얇아진다 */}
-      <path
-        d="M2 9.4C22 3.6 44 2.2 74 3.4c14 .6 28 1.8 44 4.2-16-1.2-30-1.8-44-2.2C44 5 22 6.2 2 9.4Z"
-        fill="currentColor" opacity="0.9"
-      />
-      {/* 끝의 튄 자국 — 펜을 떼면서 위로 올라간다 */}
-      <path
-        d="M108 6.6c4.4-1.6 8-3.4 10.6-5.6-1.6 2.8-4.6 5-8.6 6.6Z"
-        fill="currentColor" opacity="0.65"
-      />
-    </svg>
+    }}>BLACK IRON</span>
   );
 }
 
 /**
  * 로고 한 벌.
  *
- * `cap` 은 대문자 높이(px). 마크가 같은 높이로 따라온다.
+ * `cap` 은 대문자 높이(px). 마크가 그 비례로 따라온다.
  * `variant`
- *   'row'   머리 · 탭바 — 마크 + 글자. 금선과 부제는 안 넣는다 (작은 자리에서는 과하다)
- *   'stack' 스플래시 · 로그인 — 마크 · 글자 · 금선 · 부제
+ *   'row'   머리 · 탭바 — 마크 + 글자를 나란히
+ *   'stack' 스플래시 · 로그인 — **세로 잠금**(주인이 고른 그 안)
  *   'word'  글자만 (마크를 따로 놓는 자리)
- *   'mark'  마크만 (아이콘 자리)
+ *   'mark'  마크만 (아이콘 · 파비콘 자리)
+ *
+ * 간격은 시안의 비례 그대로다 — **마크 높이 : 글자 높이 ≈ 3 : 1**,
+ * 마크 아래 틈은 글자 높이만큼, 설명 줄은 그 절반.
  */
-export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record your training', style, ...rest }) {
-  if (variant === 'mark') return <LogoMark size={cap * 1.15} style={style} {...rest} />;
-  if (variant === 'word') return <LogoWord cap={cap} style={style} {...rest} />;
+export default function Logo({
+  cap = 19, variant = 'row', subtitle = '적은 것을 몸으로', color = 'var(--accent)', style, ...rest
+}) {
+  if (variant === 'mark') return <LogoMark size={cap * 1.15} color={color} style={style} {...rest} />;
+  if (variant === 'word') return <LogoWord cap={cap} color={color} style={style} {...rest} />;
 
   if (variant === 'stack') {
     return (
       <span style={{
-        display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-        gap: cap * 0.42, ...style,
+        display: 'inline-flex', flexDirection: 'column', alignItems: 'center', ...style,
       }} {...rest}>
-        <LogoMark size={cap * 2.0} />
-        {/* ── 잉크를 가운데로 ── (2026-10-20, **재서** 넣은 값이다)
-            이탤릭은 **글자 칸과 잉크가 어긋난다.** Playfair Display Italic 로
-            「Black Iron」을 짜서 재보니 —
-
-              칸 너비 4467   잉크 -33 ~ 4417   (1000 유닛 = 1em)
-              칸의 가운데 2233.5 · 잉크의 가운데 2192.0 → **0.0415em 왼쪽**
-
-            첫 자  가 칸 밖으로 33유닛 나가고 끝 자  뒤에 50유닛이 남아서다.
-            그래서 칸을 가운데 맞추면 글자는 왼쪽으로 밀려 보이고(cap 48 에서 2.67px),
-            **완벽히 가운데인 마크와 그만큼 어긋난다.** 잰 값만큼 되돌린다
-            (0.0415em × 글자 크기 1.34cap = 0.0556cap). 세로로 세우는 자리에서만 한다 —
-            머리·탭바는 마크와 나란히 두는 자리라 가운데 맞추기가 없다.
-
-            싸인 획도 같이 재봤다: 잉크 무게중심 59.12 / 칸의 가운데 60 — 0.7% 라서
-            그대로 뒀다(cap 48 에서 1px 아래다). 쏠려 보인 것은 이 글자였다 */}
-        <LogoWord cap={cap} style={{ transform: `translateX(${cap * 0.0556}px)` }} />
-        <Flourish width="62%" />
+        {/* 마크 폭 ≈ 글자 높이의 3.3배. 시안에서 잰 값이다 */}
+        <LogoMark size={cap * 3.3} color={color} />
+        {/* 마크 아래 틈 = 글자 높이만큼 */}
+        <span style={{ height: cap * 0.95, flexShrink: 0 }} />
+        <LogoWord cap={cap} color={color} />
         {subtitle ? (
-          <span style={{
-            // 부제도 같은 흘림으로 — 대문자로 적으면 다시 표지판이 된다
-            // 부제는 **넘겨받는 글**이라 한글이 올 수 있다 — Playfair 에는 한글이 없다
-            fontFamily: "'Playfair Display', 'IBM Plex Sans KR', serif", fontStyle: 'italic', fontWeight: 400,
-            fontSize: cap * 0.46, letterSpacing: cap * 0.01,
-            color: 'var(--accent-low)', whiteSpace: 'nowrap',
-          }}>{subtitle}</span>
+          <>
+            {/* 설명 줄 앞 틈은 그 절반 */}
+            <span style={{ height: cap * 0.48, flexShrink: 0 }} />
+            <span style={{
+              // 설명 줄은 **한글이 온다** — Bebas 에는 한글이 없으니 본문 글자체로 받는다
+              fontFamily: "'IBM Plex Sans KR', 'Barlow', sans-serif",
+              fontWeight: 300,
+              fontSize: cap * 0.42,
+              letterSpacing: cap * 0.1,
+              marginRight: -(cap * 0.1),
+              color: 'var(--accent-low)',
+              whiteSpace: 'nowrap',
+            }}>{subtitle}</span>
+          </>
         ) : null}
       </span>
     );
@@ -156,9 +153,9 @@ export default function Logo({ cap = 19, variant = 'row', subtitle = 'Record you
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', ...style }} {...rest}>
-      <LogoMark size={cap * 1.12} />
+      <LogoMark size={cap * 1.12} color={color} />
       <span style={{ width: cap * 0.44, flexShrink: 0 }} />
-      <LogoWord cap={cap} />
+      <LogoWord cap={cap} color={color} />
     </span>
   );
 }

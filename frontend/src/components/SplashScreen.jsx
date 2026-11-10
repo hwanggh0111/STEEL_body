@@ -60,37 +60,21 @@ export default function SplashScreen({ onDone }) {
         opacity: phase === 0 ? 0 : 1,
         transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        {/* 스플래시에서만 다 편다 (마크 · 글자 · 싸인 획). 표어는 아래에 따로 둔다 —
-            줄어들 때 표어만 조금 더 줄어야 해서(15 → 11) 같은 덩이에 넣지 않는다.
-            40 은 폰에서 생각보다 작게 앉는다 (9/1 에 48 로 키웠다) */}
+        {/* ── 세로 잠금 그대로 ── (2026-11-10)
+            주인이 고른 안이 **마크 · 이름 · 설명 줄 셋**이다. 그래서 `subtitle` 을
+            로고에 맡기고 **영문 표어 줄을 뺐다** — 앞 판은 로고 밑에 따로 한 줄
+            (`Forge your body · Break your limits`)을 두어 **설명 줄이 둘**이었다.
+            시안에는 하나뿐이고, 둘을 두면 세로 잠금의 비례(3 : 1 : 0.5)가 무너진다.
+            줄어들 때 설명 줄만 더 줄어야 하는 문제도 같이 사라졌다 — 로고가
+            `cap` 하나로 셋을 같이 줄인다 */}
         <Logo
-          cap={phase >= 2 ? 32 : 48}
+          cap={phase >= 2 ? 26 : 38}
           variant="stack"
-          subtitle=""
           style={{
             filter: `drop-shadow(0 0 ${phase === 1 ? '20' : '8'}px rgba(238,183,125,${phase === 1 ? '0.6' : '0.3'}))`,
             transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
-        {/* 표어. **전부 대문자에 자간 3** 이었다 — 로고를 소문자 세리프로 바꾼 뒤에는
-            여기만 표지판처럼 남는다. 로고와 같은 결(세리프 이탤릭 · 소문자)로 맞춘다.
-            **기울어진 글자라 자간의 빈칸이 오른쪽에 남는다** — 그만큼 왼쪽으로 당겨
-            가운데를 맞춘다 (로고 글자도 같은 까닭으로 `Logo.jsx` 에서 당긴다) */}
-        <div style={{
-          // 라틴 전용 — 표어가 영문으로 박혀 있다 (Forge your body · Break your limits)
-          fontFamily: "'Playfair Display', serif",
-          fontStyle: 'italic',
-          fontSize: phase >= 2 ? 11 : 15,
-          letterSpacing: 0.2,
-          marginRight: -0.2,
-          color: 'var(--text-muted)',
-          marginTop: 14,
-          opacity: phase >= 1 ? 1 : 0,
-          transition: 'all 0.6s ease 0.3s',
-          whiteSpace: 'nowrap',
-        }}>
-          Forge your body · Break your limits
-        </div>
       </div>
 
       {/* 금빛 글로우 — 8/28 에 오렌지에서 바꿨는데 이 주석만 옛말로 남아 있었다.

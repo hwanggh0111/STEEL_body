@@ -39,6 +39,9 @@ const sizes = [
   ['PC 사이드바 (TabBar · 19)', { cap: 19, variant: 'row' }],
   ['홈으로 돌아올 때 (MiniSplash · 28)', { cap: 28, variant: 'row' }],
   ['로그인 · 회원가입 (34)', { cap: 34, variant: 'stack' }],
+  // 11/10 — 스플래시가 세로 잠금을 쓴다. 마크가 무거워져 앞 판(48 · 32)보다 줄였다
+  ['스플래시 · 펼친 때 (38)', { cap: 38, variant: 'stack' }],
+  ['스플래시 · 접힐 때 (26)', { cap: 26, variant: 'stack' }],
   ['점검 화면 (MaintenanceScreen · 16)', { cap: 16, variant: 'row' }],
   ['글자만 (40)', { cap: 40, variant: 'word' }],
 ];

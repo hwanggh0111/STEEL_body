@@ -106,8 +106,14 @@
          값을 치를 이유가 없다 (조각도 그때 받는다 — `data/poseModel.js`). -->
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <!-- ── Favicon — **PNG 다** ── (2026-11-10)
+         여태 `icon.svg` 하나였다. 주인이 고른 새 마크는 **받은 그림에서 잘라낸
+         래스터**라(알파에 음영이 들어 있어 선으로는 못 그린다) 벡터로 만들 수 없다.
+         그 PNG 를 base64 로 품은 SVG 를 쓸 수도 있지만 파비콘 하나에 44KB 는 과하다.
+         그래서 **크기별 PNG 둘**로 간다 — 탭은 32, 바로가기·고해상도는 192.
+         `icon.svg` 는 지웠다(쓰지 않는 파일을 남기면 어느 쪽이 참인지 흐려진다). -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />

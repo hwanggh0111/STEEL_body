@@ -1433,34 +1433,30 @@ ok('홈 화면에 붙는 짧은 이름', manifest.short_name, APP_NAME);
 ok('아이폰 홈 화면 이름',
   (html.match(/apple-mobile-web-app-title" content="([^"]+)"/) || [])[1], APP_NAME);
 ok('알림 제목', sw.includes(`payload.title || '${APP_NAME}'`), true);
-// 로고는 첫 글자만 세리프로 따로 그린다 — 두 조각을 이으면 이름이 나와야 한다
-const parts = [...logo.matchAll(/>(Black Iron)</g)].map((m) => m[1]);
-// 두 낱말을 굵기와 자간으로 갈라 그린다 — 이으면 이름이 나와야 한다
-// 로고는 소문자로 적고(「Black Iron」) 설치 이름은 대문자다(「BLACK IRON」) —
-// 같은 이름이어야 한다. 대소문자만 맞춰서 견준다
-ok('로고에 적힌 것이 앱 이름과 같다', parts.join(' ').toUpperCase(), APP_NAME);
-// **딱딱함은 각에서 온다.** 전부 대문자 · 넓은 자간 · 가르는 직선을 안 쓴다
-ok('로고를 전부 대문자로 적지 않는다', /Black Iron/.test(logo), true);
-ok('낱말 사이에 선을 안 긋는다', /width: 1, height: cap/.test(logo), false);
-// **두 낱말이 달라야 한다.** 같은 크기·같은 자간이면 그냥 긴 글자다
-// **번쩍이게 만드는 셋을 안 쓴다** — 금색 그라데이션 · 글자 그림자 · 굵기 대비.
-// 화면에서 금속을 흉내 내면 대개 싸 보인다. 한 색 · 가는 선 · 넓은 자간으로 간다
-ok('글자에 그라데이션을 안 쓴다', /backgroundClip: 'text'/.test(logo), false);
-ok('글자에 그림자를 안 쓴다', /textShadow/.test(logo), false);
-// 소문자에 자간을 벌리면 글자가 흩어진다. 값은 손볼 수 있으니 **넓지 않은지**만 본다
+// ── 로고 규칙이 2026-11-10 에 바뀌었다 ──
+//
+// 아래 줄들은 **9/01 의 넷째 판**을 지키고 있었다 — 소문자 `Black Iron` · 좁은 자간 ·
+// 링 하나와 봉 하나 · 싸인 획 · 이탤릭. 그 자가 틀렸던 것이 아니라 **지키던 결정이
+// 바뀌었다**: 주인이 엠블럼 그림을 주고 안 열다섯 중 「세로 잠금」을 골랐다.
+// 자는 결정을 지키는 것이지 자신을 지키는 것이 아니다 — **새 선으로 옮긴다.**
+// 바뀐 까닭은 `src/components/Logo.jsx` 머리글에 적어뒀다(음영이 알파에 있어서
+// 선그림으로는 못 만든다 · 무거운 마크에는 무거운 글자가 맞다).
+//
+// **안 바뀐 것도 있다** — 번쩍이게 만드는 셋(그라데이션 · 글자 그림자 · 굵기 대비)은
+// 여전히 안 쓴다. 그 줄은 위에 그대로 있다.
+ok('로고에 적힌 것이 앱 이름과 같다',
+  [...logo.matchAll(/>(BLACK IRON)</g)].map((m) => m[1]).join(' '), APP_NAME);
+// 대문자로 돌아왔다 — 무거운 마크를 가벼운 이탤릭이 못 받쳐줬다
+ok('대문자로 적는다', /BLACK IRON/.test(logo), true);
+// **대문자는 자간을 벌려야 숨이 트인다** (소문자에서는 그 반대였다 — 그 말도 맞다)
 const wordSpacing = Number((logo.match(/letterSpacing: cap \* (0\.[0-9]+)/) || [])[1]);
-ok('소문자라 자간을 좁게 둔다', wordSpacing > 0 && wordSpacing <= 0.03, true);
-// 마크는 선 하나 굵기. 획이 많아지면 작은 자리에서 뭉친다
-// 마크는 **링 하나 + 봉 하나**. 각진 도형을 안 쓴다 — 원은 어느 크기로 줄여도 안 뭉갠다
-// **마크 함수 안만 센다.** 파일 전체를 세면 싸인 획의 path 까지 걸린다 —
-// 실제로 그렇게 짰다가 FAIL 이 났다
-const markBody = logo.slice(logo.indexOf('export function LogoMark'), logo.indexOf('export function LogoWord'));
-ok('마크가 링 하나 + 봉 하나다',
-  [(markBody.match(/<circle/g) || []).length, (markBody.match(/<path/g) || []).length], [1, 1]);
-// 싸인 획 — 자로 그은 선이 아니라 **면으로 그린 획**이다 (가운데가 굵고 끝이 가늘다)
-ok('밑줄은 곧은 선이 아니라 그은 획이다',
-  /function Flourish/.test(logo) && /fill="currentColor"/.test(logo), true);
-ok('글자를 흘려 쓴다 (싸인 결)', /fontStyle: 'italic'/.test(logo), true);
+ok('대문자라 자간을 벌린다', wordSpacing >= 0.05, true);
+// 마크는 **받은 엠블럼의 알파**를 마스크로 그린다. SVG 도형이 아니다
+ok('마크를 마스크로 그린다', /maskImage/.test(logo) && /mark\.png/.test(logo), true);
+ok('  비례를 지킨다 (정사각이 아니다)', /373 \/ 404/.test(logo), true);
+// 쓰지 않게 된 것은 **남기지 않는다** — 어느 쪽이 참인지 흐려진다
+ok('옛 싸인 획을 걷었다', /function Flourish/.test(logo), false);
+ok('옛 이탤릭을 걷었다', /fontStyle: 'italic'/.test(logo), false);
 // ── 나가기는 한 곳에만 (2026-09-22) ──
 //
 // 로그아웃은 「토큰을 비우고 로그인 화면으로」가 아니다. 그 전에 **줄에 남은 것**을
@@ -1532,23 +1528,36 @@ for (const f of keyScanFiles) {
 // 걸리는 것은 **다른 데서 새로 지은 이름**뿐이다
 const strayKeys = literalKeys.filter((row) => !keys.includes("'" + row.split(' — ')[1] + "'"));
 ok('저장하는 이름을 localKeys 밖에서 짓지 않는다', strayKeys, []);
-// 홈 화면에 깔리는 그림은 **앱 안의 마크와 같아야 한다.** 다르면 깔고 나서 다른 앱처럼 보인다.
-// 앱 아이콘은 512 격자, 로고는 24 격자라 좌표는 다르지만 **모양(마름모+봉+판)** 은 같다
-const icon = fs.readFileSync('public/icons/icon.svg', 'utf-8');
+// ── 홈 화면에 깔리는 그림도 앱 안의 마크와 같아야 한다 ──
+//
+// 다르면 깔고 나서 **다른 앱처럼** 보인다. 11/10 에 아이콘 꼴이 바뀌었다 —
+// 여태 `icon.svg` 한 벌(벡터 · 링 하나와 봉 하나)이었는데 주인이 고른 새 마크는
+// **받은 그림에서 잘라낸 래스터**라 벡터로 못 만든다. 그래서 **크기별 PNG** 로 갔고
+// `icon.svg` 는 지웠다. 자도 그 선으로 옮긴다 — 모양을 세는 대신
+// **네 벌이 다 있고 manifest 가 옛것을 안 가리키는가**를 본다
+// (크기와 비례까지는 `npm run logo` 가 전수로 본다)
 // 로고만 우아하고 그 옆 글자가 표지판이면, 로고가 혼자 논다.
 // 스플래시의 표어가 딱 그 자리였다 — 전부 대문자에 자간 3 이었다
 const splash = fs.readFileSync('src/components/SplashScreen.jsx', 'utf-8');
+// ★ **주석을 떼고 본다.** 안 떼면 내가 바꾸면서 적어둔 「`Forge your body` 를 뺐다」는
+// 설명이 그대로 잡혀 거짓 FAIL 이 난다 — 오늘 `brand`·`logo` 자에서도 같은 자리를 밟았다
+const splashCode = stripNotes(splash);
 ok('스플래시 표어를 전부 대문자로 찍지 않는다', /textTransform: 'uppercase'/.test(splash), false);
-ok('표어도 로고와 같은 글자체다', /Playfair Display/.test(splash), true);
+// 11/10 — 스플래시의 **영문 표어 줄을 뺐다**. 세로 잠금이 설명 줄을 품고 있어서
+// 둘을 두면 「설명 줄이 둘」이 되고 비례(3 : 1 : 0.5)가 무너진다.
+// 그래서 보던 것(표어가 로고와 같은 글자체인가)이 **볼 것이 없어졌다** —
+// 대신 **로고에 맡겼는가**를 본다
+ok('스플래시가 설명 줄을 로고에 맡긴다',
+  /variant="stack"/.test(splashCode) && !/Forge your body/.test(splashCode), true);
 // 사람이 이 앱을 처음 보는 자리에서는 로고를 한 벌 다 편다 (부제까지)
 const login = fs.readFileSync('src/pages/LoginPage.jsx', 'utf-8');
 ok('로그인 화면이 부제를 지우지 않는다', /variant="stack" subtitle=""/.test(login), false);
 
-ok('앱 아이콘도 링 하나 + 봉 하나다 (로고와 같은 모양)',
-  [(icon.match(/<circle/g) || []).length, (icon.match(/<path/g) || []).length, / H\d/.test(icon)],
-  [1, 1, true]);
-// 금색은 한 색으로 납작하게. 아이콘에서도 그라데이션을 안 쓴다
-ok('아이콘 금색에 그라데이션을 안 쓴다', icon.includes('stroke="url(#'), false);
+const ICON_FILES = ['icon-512.png', 'icon-192.png', 'icon-32.png', 'apple-touch-icon-180.png'];
+ok('앱 아이콘이 네 벌 다 있다',
+  ICON_FILES.filter((f) => !fs.existsSync('public/icons/' + f)), []);
+ok('  옛 icon.svg 는 지웠다', fs.existsSync('public/icons/icon.svg'), false);
+ok('  manifest 가 그것을 더 안 가리킨다', JSON.stringify(manifest).includes('icon.svg'), false);
 
 // **시안에 실제로 쓰는 자리가 다 있어야 한다.** 9/1 에 이름표가 앱과 어긋나 있었고
 // (「로그인 · 스플래시 (34)」인데 앱은 26 · 48 이었다), 그걸 고치면서도 **홈 화면 머리와
