@@ -100,7 +100,8 @@
     "weightread": "node scripts/check-weightread.cjs",
     "weighthands": "node scripts/check-weighthands.cjs",
     "brand": "node scripts/check-brand.cjs",
-    "logo": "node scripts/check-logo.cjs"
+    "logo": "node scripts/check-logo.cjs",
+    "datehands": "node scripts/check-datehands.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
