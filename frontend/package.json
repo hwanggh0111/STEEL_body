@@ -97,7 +97,8 @@
     "draw": "node scripts/check-draw.cjs",
     "nextstep": "node scripts/check-nextstep.cjs",
     "cardio": "node scripts/check-cardio.cjs",
-    "weightread": "node scripts/check-weightread.cjs"
+    "weightread": "node scripts/check-weightread.cjs",
+    "brand": "node scripts/check-brand.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

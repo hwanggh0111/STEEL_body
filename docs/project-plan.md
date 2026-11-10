@@ -1,4 +1,4 @@
-# STEEL BODY 프로젝트 플랜
+# BLACK IRON 프로젝트 플랜
 
 ## 기술 스택
 - Frontend: React 18 + Vite + Zustand + Recharts

@@ -1,4 +1,4 @@
-# STEEL BODY API 명세서
+# BLACK IRON API 명세서
 
 최종 확인: 2026-08-24 (실제 라우터에서 뽑아 맞춘 판본)
 

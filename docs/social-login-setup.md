@@ -59,7 +59,14 @@
 ### 받는 절차
 
 1. <https://developers.naver.com/apps/#/register> 로 갑니다 (네이버 계정으로 로그인)
-2. **애플리케이션 이름** — `STEEL BODY` (로그인 동의 화면에 이 이름이 뜹니다)
+2. **애플리케이션 이름** — `BLACK IRON` (로그인 동의 화면에 이 이름이 뜹니다)
+
+   ★ **앱에 적힌 이름과 한 글자도 다르면 안 된다** (2026-11-10). 여기 적는 이름이
+   네이버 동의 화면에 그대로 뜬다 — 「BLACK IRON 에 로그인」. 앱은
+   `index.html` 과 `manifest.json` 에서 **BLACK IRON** 이라고 말하는데 이 칸에
+   다른 이름을 적어두면 **사용자가 로그인하다 멈춘다**(「내가 쓰는 앱이 아닌데?」).
+   이 문서는 11/10 까지 `STEEL BODY` 라고 적어두고 있었다. `npm run brand` 가 이제
+   그 어긋남을 잡는다.
 3. **사용 API** — `네이버 로그인` 을 고릅니다
 4. **제공 정보 선택** — 여기가 중요합니다
 
@@ -175,7 +182,7 @@ INSTAGRAM_APP_SECRET=받은_시크릿
 
 1. <https://developer.x.com/en/portal/dashboard> 로 갑니다 (X 계정으로 로그인)
 2. 개발자 계정이 없으면 만듭니다 — **Free** 등급으로 충분합니다 (로그인만 쓰므로)
-3. **Projects & Apps** → 앱을 하나 만듭니다 (`STEEL BODY`)
+3. **Projects & Apps** → 앱을 하나 만듭니다 (`BLACK IRON` — 위 네이버 항목의 ★ 와 같다)
 4. 그 앱의 **User authentication settings** → **Set up**
 5. 설정은 이렇게 둡니다
 
