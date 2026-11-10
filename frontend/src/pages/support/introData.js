@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { latestInbody } from '../../data/inbodyLatest';
 import { useWorkoutStore } from '../../store/workoutStore';
 import { useInbodyStore } from '../../store/inbodyStore';
-import { dateKey } from '../../data/dateKey';
+import { dateKey, upToToday } from '../../data/dateKey';
 
 // 고객센터가 보여주는 숫자를 한 군데서 만든다.
 // 화면마다 따로 계산하면 어느 순간 한 곳만 옛날 값을 보여주게 된다.
@@ -43,20 +43,40 @@ export function useIntroStats() {
     if (!useInbodyStore.getState().loading) fetchInbody();
   }, []);
 
-  const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
-  const totalInbody = records.length;
+  // ── ★ **고객센터의 수 셋도 앞날 줄을 셌다** ── (2026-11-10)
+  //
+  // 이 파일은 11/05 에 `latest`(가장 최근 인바디)만 걸렀다. 세는 자리 셋은 안 걸렀다 —
+  // 「지금까지 N회 적었다」 · 「이번 주만 N일 나왔다」. 기록 화면 통계 칸(11/09)과 홈
+  // 줄(11/10)을 고친 뒤라 **같은 앱이 세 수를 말하고 있었다.**
+  //
+  // 「지금까지」 · 「나왔다」는 **한 것**을 말하는 말이다. 앞날에 담아둔 계획이 거기
+  // 세어지면 그 문장이 거짓이 된다. 주는 `data/goal.js` 의 `doneIn` 과 같은 선을 쓴다
+  const today = dateKey();
+  const totalWorkouts = useMemo(
+    () => upToToday(Object.keys(workouts), today)
+      .reduce((n, k) => n + ((workouts && workouts[k]) || []).length, 0),
+    [workouts, today],
+  );
+  const totalInbody = useMemo(
+    () => (records || []).filter(r => !r?.date || r.date <= today).length,
+    [records, today],
+  );
 
   const week = useMemo(() => {
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    // 바깥의 `today`(글자 열쇠)와 **이름이 겹치면 안 된다** — 겹치면 아래 `key <= today`
+    // 가 날짜 객체와 글자를 견주게 되어 **늘 참**이 된다(조용히 안 걸러진다)
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       const key = dateKey(d);
-      return { key, done: !!workouts[key]?.length };
+      // ★ 칸은 일곱 개 그대로 그린다(주간 달력이다). **앞날 칸만 「했다」로 안 켠다** —
+      // 아래 `weekDays` 가 이 깃발을 세므로, 여기서 켜면 그 수가 미리 채워진다
+      return { key, done: key <= today && !!workouts[key]?.length };
     });
-  }, [workouts]);
+  }, [workouts, today]);
 
   return {
     totalWorkouts, totalInbody,

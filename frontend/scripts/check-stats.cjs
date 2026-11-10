@@ -118,6 +118,48 @@ console.log('── 화면이 그 손을 쓰는가 ──');
     /const dates = useMemo\(\(\) => workouts \? Object\.keys\(workouts\)\.sort\(\)\.reverse\(\) : \[\]/.test(page), true);
 }
 
+console.log('');
+console.log('── ★ 홈의 「지금까지 통틀어」도 같은 수인가 ── (2026-11-10)');
+{
+  // 11/09 에 기록 화면만 고쳤더니 **홈이 옛 셈으로 남아** 같은 앱이 두 수를 말했다.
+  // 류를 하나 닫으면 앱 전체에서 그 류를 훑는 것까지가 한 건이다
+  const { upToToday } = dateKey;
+  const home = codeOf(read('src/pages/HomePage.jsx'));
+  ok('upToToday 를 들였다', /upToToday/.test(home) && /from '\.\.\/data\/dateKey'/.test(home), true);
+  ok('세는 자리가 그 손을 쓴다', /upToToday\(Object\.keys\(workouts\), today\)/.test(home), true);
+  ok('  Object.values(workouts).flat().length 로 세지 않는다',
+    /Object\.values\(workouts\)\.flat\(\)\.length/.test(home), false);
+  // ★ 달력은 거르지 않는다 — 앞날 계획을 그려야 사람이 찾아 고친다
+  ok('★ 달력이 보는 workouts 는 원본이다', /workouts\[d\]\?\.length > 0/.test(home), true);
+  // 주 줄도 같이 본다 — 바로 밑 목표 고리(`doneIn`)는 걸러는데 이 줄만 안 걸렀다
+  ok('이번 주 N일도 그 손을 쓴다', /upToToday\(weekDates, today\)/.test(home), true);
+  ok('  weekDates.filter 로 바로 세지 않는다',
+    /weekDone = useMemo\(\(\) => weekDates\.filter/.test(home), false);
+  // 수로도 견준다 — 홈 줄과 기록 화면 통계 칸이 같은 기록에서 같은 수여야 한다
+  const 홈통틀어 = upToToday(Object.keys(workouts), TODAY)
+    .reduce((n, d) => n + ((workouts && workouts[d]) || []).length, 0);
+  const 기록총운동 = upToToday(dates, TODAY).reduce((n, d) => n + workouts[d].length, 0);
+  ok('홈이 센 수', 홈통틀어, 1);
+  ok('  ★ 기록 화면 통계 칸과 같은 수다', 홈통틀어, 기록총운동);
+}
+
+console.log('');
+console.log('── ★ 고객센터의 수 셋도 같은 선인가 ── (2026-11-10)');
+{
+  const intro = codeOf(read('src/pages/support/introData.js'));
+  ok('upToToday 를 들였다', /upToToday/.test(intro), true);
+  ok('지금까지 N회가 그 손을 쓴다', /upToToday\(Object\.keys\(workouts\), today\)/.test(intro), true);
+  ok('  flat().length 로 세지 않는다', /Object\.values\(workouts\)\.flat\(\)\.length/.test(intro), false);
+  ok('인바디 건수도 거른다', /r\.date <= today/.test(intro), true);
+  ok('  records.length 로 바로 세지 않는다', /const totalInbody = records\.length/.test(intro), false);
+  ok('이번 주 깃발이 앞날에 안 켜진다', /done: key <= today/.test(intro), true);
+  // ★ 이름이 겹치면 날짜 객체와 글자를 견주어 **늘 참**이 된다 — 조용히 안 걸러진다
+  ok('★ 주 안쪽이 today 를 가리지 않는다 (now 로 둔다)',
+    /const now = new Date\(\)/.test(intro) && !/const today = new Date\(\)/.test(intro), true);
+  // 칸은 일곱 개 그대로 — 주간 달력이다
+  ok('주 칸은 일곱 개 그대로', /length: 7/.test(intro), true);
+}
+
 for (const f of TMP) { try { fs.unlinkSync(path.join(ROOT, f)); } catch { /* 남아도 해롭지 않다 */ } }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

@@ -15,7 +15,7 @@ import TodayCard from '../components/home/TodayCard';
 import GoalCard from '../components/home/GoalCard';
 import { useGoalStore } from '../store/goalStore';
 import { weekProgress, weekLine, hasGoal } from '../data/goal';
-import { dateKey } from '../data/dateKey';
+import { dateKey, upToToday } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildHeat } from '../data/bodyHeat';
@@ -292,8 +292,34 @@ export default function HomePage() {
   // deps 를 비워두면 마운트할 때의 주를 붙들고 있어 일요일 밤을 못 넘긴다 —
   // `today` 를 본다 (하루 안에서는 같은 값이라 memo 는 그대로 유지된다)
   const weekDates = useMemo(() => weekKeys(mondayOf()), [today]);
-  const weekDone = useMemo(() => weekDates.filter(d => workouts[d]?.length > 0).length, [weekDates, workouts]);
-  const totalWorkouts = useMemo(() => Object.values(workouts).flat().length, [workouts]);
+  // ★ **이 줄도 앞날을 셌다** (2026-11-10). 바로 밑 주간 목표 고리는 `weekProgress` 가
+  // 오늘까지만 세는데(`data/goal.js` 의 `doneIn`), 이 줄은 안 걸렀다 — 목요일에 토요일
+  // 줄을 적어둔 사람에게 **같은 화면에서** 「이번 주 2일」 · 고리는 「1회 했어요」가 됐다.
+  // ★ `weekDates` 는 그대로다 — 달력 칸은 앞날도 그려야 한다(거기서 고친다)
+  const weekDone = useMemo(
+    () => upToToday(weekDates, today).filter(d => workouts[d]?.length > 0).length,
+    [weekDates, workouts, today],
+  );
+  // ── ★ **「지금까지 통틀어」가 앞날 줄을 세고 있었다** ── (2026-11-10)
+  //
+  // 11/09 에 기록 화면의 통계 칸을 고쳐 **오늘까지만** 세게 했다. 그런데 홈의 이 줄은
+  // 그 손을 안 썼다 — **같은 앱이 두 수를 말했다** —
+  //
+  //     어제 하나 + 내일 하나 적어둔 사람
+  //       기록 화면 통계 칸   총 운동 1
+  //       홈 주간 달력 밑줄   통틀어 2회      ← 같은 앱, 다른 수
+  //
+  // 「지금까지」라는 말 자체가 **오늘까지**다. 앞날에 담아둔 계획이 「한 것」으로
+  // 세어지면 그 줄은 거짓말이 된다. 같은 류 넷째 벌이다(11/05 주 연속 · 최고 N kg,
+  // 11/09 통계 칸 · 한 해 벽).
+  //
+  // ★ `workouts` 자체는 거르지 않는다 — 달력과 목록이 그것을 그린다. 거르는 것은
+  // **세는 자리**뿐이다(11/05 에 정한 선).
+  const totalWorkouts = useMemo(
+    () => upToToday(Object.keys(workouts), today)
+      .reduce((n, d) => n + ((workouts && workouts[d]) || []).length, 0),
+    [workouts, today],
+  );
   // 주간 달력 위에 거는 한 줄. 달력은 **어느 날** 했는지를 말하고, 이 줄은
   // **몇 번 남았는지**를 말한다 — 같은 주를 두 번 그리는 것이 아니라 한 번 더 세는 것이다
   const weekGoal = useMemo(() => weekProgress(workouts, goal, today), [workouts, goal, today]);
