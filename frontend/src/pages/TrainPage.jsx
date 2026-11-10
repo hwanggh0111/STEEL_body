@@ -33,7 +33,7 @@ import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
 import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey } from '../data/dateKey';
-import { bestRecords, checkRecord } from '../data/personalRecord';
+import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
 import { cannotCount } from '../data/repCount';
 import { useWakeLock } from '../data/useWakeLock';
 import GymSetting from '../components/GymSetting';
@@ -383,10 +383,22 @@ export default function TrainPage() {
   // 적어주고 라이즈는 1RM 으로 워밍업을 자동 구성한다 — 우리는 재료를 다 갖고 있었다.
   //
   // `best.score` 가 그 운동의 최고 1RM 환산값이다(`data/personalRecord.js`).
-  const todayKg = useMemo(() => {
-    const n = Number(String(weight).match(/\d+(?:\.\d+)?/)?.[0]);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }, [weight]);
+  // ── ★ **무게를 읽는 손이 또 한 벌이었다** ── (2026-11-10)
+  //
+  // 이 줄이 `parseWeight` 를 안 쓰고 **제 정규식**을 들고 있었다. 그래서 그 자가
+  // 고쳐질 때마다 여기만 옛 자로 남았다 —
+  //
+  //     적은 값     parseWeight   여기(원판 · 1RM % · 워밍업)
+  //     "-50"      null          **50**     ← 10/28 에 고친 「음수 부호」가 여기엔 없었다
+  //     "1,000"    1000          **1**      ← 11/10 에 고친 「쉼표」가 여기엔 없었다
+  //
+  // 「-50」을 적으면 원판 줄이 **「양쪽 15」**라고 말했다. 서버는 그 줄을 거부하는데
+  // 화면은 꽂을 것을 알려주고 있었던 것이다. 들지도 않을 무게다.
+  //
+  // **읽는 자는 하나여야 한다.** 서버(`workoutFields.js:65`)와 `parseWeight` 는
+  // `npm run weightread` 가 견주지만, 그 자는 **이 세 번째 손을 못 본다** —
+  // 함수 둘을 불러 견주는 자라서 화면 안에 박힌 정규식은 보이지 않는다.
+  const todayKg = useMemo(() => parseWeight(weight), [weight]);
 
   const pct = percentOf1RM(todayKg, best?.score);
   const zone = zoneOf(pct);
@@ -622,7 +634,9 @@ export default function TrainPage() {
       // 이어가기 단추를 그리려고 방금 적은 것을 든다. 표시는 한 번만 붙으므로 비운다
       setJustSaved({
         exercise: name,
-        kg: over ? (Number(String(over.weight).match(/\d+(?:\.\d+)?/)?.[0]) || null) : todayKg,
+        // 같은 손의 **네 번째 벌**이었다 (2026-11-10, 위 `todayKg` 머리글).
+        // 저장 직후 카드에 적히는 수라 「-50」이 **50** 으로, 「1,000」이 **1** 로 떴다
+        kg: over ? parseWeight(over.weight) : todayKg,
         reps: Number(useReps),
         sets: Number(useSets),
       });
