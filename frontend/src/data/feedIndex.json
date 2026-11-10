@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "0e62ec5005",
+  "detailVersion": "d05326c222",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,6 +501,14 @@
       "has": true
     },
     {
+      "key": "c89533e",
+      "date": "2026-11-10",
+      "text": "★ **주인이 고른 안을 UI 로 옮겼다** — 세로 잠금 · 화면과 파일 다섯 벌 전부",
+      "label": "바뀜",
+      "scope": "로고",
+      "has": true
+    },
+    {
       "key": "7f49584",
       "date": "2026-11-10",
       "text": "★ **앱은 BLACK IRON 인데 로그인 동의 화면에는 STEEL BODY 가 뜰 참이었다**",
@@ -810,14 +818,6 @@
       "text": "**두 번째 바퀴 — 네 이름 더, 그리고 「가슴운동」**",
       "label": "고침",
       "scope": "사전",
-      "has": true
-    },
-    {
-      "key": "20220e8",
-      "date": "2026-11-03",
-      "text": "**붙여넣은 공백에 가입이 막혔다 · 「벤프」로 적으면 몸 지도가 안 달아올랐다**",
-      "label": "고침",
-      "scope": "가입·사전",
       "has": true
     }
   ]
