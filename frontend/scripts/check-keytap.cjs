@@ -158,6 +158,27 @@ for (const f of ['ConfirmModal.jsx', 'PasswordResetModal.jsx', 'AccountDeleteMod
 }
 
 console.log('');
+console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)');
+//
+// `Toast` 는 **화면에 그려지기만** 했다 — `aria-live` 도 `role` 도 없었다. 눈으로
+// 안 보는 사람에게는 「지웠어요」도 「되돌리기」도 전해지지 않았고, **8초가 지나면
+// 그 줄은 되돌릴 수 없다**(`data/undoRow.js` 의 `UNDO_MS`). 꾸밈이 아니라 **기능이
+// 통째로 안 닿은 것**이라 자로 박는다.
+{
+  const t = fs.readFileSync(path.join(SRC, 'components', 'Toast.jsx'), 'utf8');
+  ok('알림이 제 존재를 알린다 (role · aria-live)', /aria-live/.test(t) && /role:/.test(t), true);
+  // **되돌리기가 붙은 것만** 끼어든다 — 그냥 알림이 매번 끼어들면 쓰는 사람이 말을 못 듣는다
+  ok("  되돌리기가 붙으면 'assertive'", /role: 'alert', 'aria-live': 'assertive'/.test(t), true);
+  ok("  그냥 알림은 'polite'", /role: 'status', 'aria-live': 'polite'/.test(t), true);
+  // 자판으로 지운 사람은 알림까지 탭으로 가는 동안 8초가 지난다 — 그때만 포커스를 옮긴다
+  ok('  자판으로 한 일이면 되돌리기 단추로 포커스를 옮긴다', /btnRef\.current\.focus\(\)/.test(t), true);
+  ok('  닫힐 때 있던 자리로 돌려준다', /back\.focus\(\)/.test(t), true);
+  // 글 + 단추가 화면보다 넓어지면 단추 절반이 화면 밖으로 나가 **누를 수가 없다**
+  const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8');
+  ok('  단추 붙은 알림이 화면 밖으로 안 나간다', /\.toast-action[\s\S]{0,200}max-width/.test(css), true);
+}
+
+console.log('');
 if (bad === 0) console.log('눌리는 것이 자판으로도 눌립니다 (적어둔 자리를 뺀 나머지)');
 else console.log(bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

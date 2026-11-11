@@ -394,6 +394,21 @@ body::before {
 @media (min-width: 768px) {
   .toast { bottom: 24px; }
 }
+
+/* ── **단추가 붙은 알림은 좁은 폰에서 잘릴 수 있다** ── (2026-11-11)
+
+   `.toast` 는 `white-space: nowrap` 이고 가운데 맞춤(`translateX(-50%)`)이다.
+   글 + 되돌리기 단추가 화면보다 넓어지면 **양쪽이 다 잘리고**, 그러면 단추의
+   절반이 화면 밖으로 나가 **누를 수가 없다** — 8초뿐인 단추다.
+
+   지금 쓰는 말(「삭제 완료!」 · 「수정 완료!」)로는 접은 폴더블(280px)에서도
+   들어간다. 그래도 **말 한 줄 길어지면 그때 터지는** 자리라 미리 막는다 —
+   글은 접히게 두고, 단추는 `flex: none` 이라 안 찌그러진다. */
+.toast-action {
+  white-space: normal;
+  max-width: min(420px, calc(100vw - 32px));
+  text-align: left;
+}
 @keyframes toastIn {
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
