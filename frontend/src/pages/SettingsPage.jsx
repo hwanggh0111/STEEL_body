@@ -113,7 +113,7 @@ function Pick({ items, value, onPick, idOf = (x) => x.id, nameOf = (x) => x.name
             onClick={() => onPick(id)}
             aria-pressed={on}
             style={{
-              minHeight: 34, padding: '6px 12px', borderRadius: 6, fontSize: 12,
+              minHeight: 34, padding: '6px 12px', borderRadius: 'var(--radius)', fontSize: 12,
               fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
               border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
               background: on ? 'var(--accent-dim)' : 'none',
@@ -759,7 +759,7 @@ export default function SettingsPage() {
                 style={{
                   flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px',
                   background: 'var(--bg-primary)', border: '1px solid var(--border-hover)',
-                  borderRadius: 6, color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                  borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
                 }}
               />
               <button
@@ -807,7 +807,7 @@ export default function SettingsPage() {
                     autoFocus
                     autoComplete="username"
                     placeholder={`영문+숫자 4~${USERNAME_MAX}자`}
-                    style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 6, color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                    style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
                       borderColor: idDraft
                         ? (idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)') : 'var(--border-hover)')
                         : 'var(--border-hover)',

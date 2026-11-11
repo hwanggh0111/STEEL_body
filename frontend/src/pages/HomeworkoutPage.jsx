@@ -138,7 +138,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
       {/* 더 준 것이 있으면 **그렇다고 말한다.** 말 없이 시간이 늘면 타이머가 고장난 것으로 읽힌다 */}
       {extraGiven > 0 && (
         <div style={{
-          marginTop: 11, padding: '9px 11px', borderRadius: 6,
+          marginTop: 11, padding: '9px 11px', borderRadius: 'var(--radius)',
           border: '1px solid var(--accent)', background: 'var(--accent-dim)',
           fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.6,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
@@ -1255,7 +1255,7 @@ export default function HomeworkoutPage() {
           {/* 눌렀을 때 **무슨 일이 나는지** 미리 적는다. 「기록에 남기기」가 몸 지도까지
               간다는 것은 눌러보기 전에는 모른다 */}
           <div style={{
-            marginTop: 12, padding: '9px 11px', borderRadius: 6,
+            marginTop: 12, padding: '9px 11px', borderRadius: 'var(--radius)',
             border: '1px solid var(--border-hover)', background: 'var(--bg-secondary)',
             fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6,
           }}>
@@ -1341,7 +1341,7 @@ export default function HomeworkoutPage() {
             {isRest && breathable && recLine && (
               <div style={{
                 display: 'flex', gap: 8, alignItems: 'flex-start',
-                marginTop: 8, padding: '9px 11px', borderRadius: 6,
+                marginTop: 8, padding: '9px 11px', borderRadius: 'var(--radius)',
                 border: `1px solid ${recLine.sure ? 'var(--info)' : 'var(--border-hover)'}`,
                 background: 'var(--bg-secondary)',
                 fontSize: 12, lineHeight: 1.6, textAlign: 'left',

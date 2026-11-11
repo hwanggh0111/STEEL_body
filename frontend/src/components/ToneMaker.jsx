@@ -32,7 +32,7 @@ function Row({ label, items, value, onPick, idOf = (x) => x.id, nameOf = (x) => 
               onClick={() => onPick(id)}
               aria-pressed={on}
               style={{
-                minHeight: 32, padding: '5px 11px', borderRadius: 6, fontSize: 11.5,
+                minHeight: 32, padding: '5px 11px', borderRadius: 'var(--radius)', fontSize: 11.5,
                 fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
                 background: on ? 'var(--accent-dim)' : 'none',
@@ -124,7 +124,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
               <button
                 onClick={() => removeOne(t.id)}
                 style={{
-                  flexShrink: 0, padding: '4px 9px', fontSize: 11, borderRadius: 6,
+                  flexShrink: 0, padding: '4px 9px', fontSize: 11, borderRadius: 'var(--radius)',
                   background: 'none', border: '1px solid var(--border)',
                   color: 'var(--text-muted)', fontFamily: 'inherit', cursor: 'pointer',
                 }}
@@ -147,7 +147,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
         >{canAdd(tones) ? '내 소리 만들기' : `${MAX_TONES}개까지 만들 수 있어요`}</button>
       ) : (
         <div style={{
-          padding: 12, borderRadius: 8,
+          padding: 12, borderRadius: 'var(--radius)',
           border: '1px solid var(--border-hover)', background: 'var(--bg-tertiary)',
         }}>
           <Row label="얼마나 높게" items={PITCHES} value={draft.pitch} onPick={pick('pitch')} />
@@ -169,7 +169,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
               style={{
                 flex: 1, minWidth: 0, minHeight: 36, padding: '7px 10px',
                 background: 'var(--bg-primary)', border: '1px solid var(--border-hover)',
-                borderRadius: 6, color: 'var(--text-primary)', fontSize: 12.5, fontFamily: 'inherit',
+                borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 12.5, fontFamily: 'inherit',
               }}
             />
             <button

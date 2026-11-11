@@ -1215,7 +1215,10 @@ const overlaps = (svg) => {
 const outside = (svg, W) => boxes(svg).filter(b => b.x0 < -0.5 || b.x1 > W + 0.5).map(b => b.t);
 
 // 폰(320 · 375 · 430)부터 PC(900)까지. 날짜 수는 나흘치부터 석 달치까지
-const WIDTHS = [320, 375, 430, 900];
+// ★ **280 을 넣었다** (2026-11-11). 폴더블을 접으면 280px 이고(점검표 11번이
+// 그 폭을 못 박았다) 폰에서 글자를 크게 하면 그만큼 더 좁아진 것처럼 된다.
+// 320 부터만 재면 **가장 좁은 사람의 화면을 아무도 안 본 것**이다
+const WIDTHS = [280, 320, 375, 430, 900];
 const days = (n) => Array.from({ length: n }, (_, i) =>
   ({ date: '08-' + String((i % 28) + 1).padStart(2, '0'), weight: 70 + (i % 5) * 0.4 }));
 // 비교 화면이 실제로 넘기는 다섯 칸 (이름이 길어지면 여기서 걸린다)
@@ -1236,9 +1239,9 @@ for (const W of WIDTHS) {
     clipped = clipped.concat(outside(svg, W).map(t => name + ' ' + W + ' ' + t));
   }
 }
-ok('폭 넷 × 날짜 넷 — 글자가 서로 겹치지 않는다', hit, []);
+ok('폭 다섯 × 날짜 넷 — 글자가 서로 겹치지 않는다 (280 = 접은 폴더블)', hit, []);
 // 마지막 날짜는 오른쪽 끝에 있다. 가운데 맞춤이면 절반이 잘려 나간다
-ok('폭 넷 — 글자가 그래프 밖으로 나가지 않는다 (잘려 보인다)', clipped, []);
+ok('폭 다섯 — 글자가 그래프 밖으로 나가지 않는다 (잘려 보인다)', clipped, []);
 
 // 날짜 건너뛰기 — 폰에서는 성기게, PC 에서는 촘촘하게
 const marks = (n, innerW) => axis.labelIndices(n, innerW);

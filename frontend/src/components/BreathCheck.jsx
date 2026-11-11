@@ -35,7 +35,7 @@ export default function BreathCheck({ sense }) {
 
   return (
     <div style={{
-      marginTop: 11, padding: '11px 12px', borderRadius: 8,
+      marginTop: 11, padding: '11px 12px', borderRadius: 'var(--radius)',
       border: '1px solid var(--border-hover)', background: 'var(--bg-tertiary)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
