@@ -232,7 +232,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                   color: on ? 'var(--accent)' : 'var(--text-primary)',
                 }}>{x.label}</div>
                 {!kind && (
-                  <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{x.desc}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{x.desc}</div>
                 )}
               </button>
             );

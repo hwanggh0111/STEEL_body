@@ -112,7 +112,8 @@ export default function ExerciseNameInput({
           라벨 밭이 되는데, 사람이 알아야 하는 것은 **안 잡힌 줄 하나**다 */}
       {unknown && (
         <div style={{
-          fontSize: 10.5, color: 'var(--warning)', lineHeight: 1.5,
+          // 읽어야 하는 **경고 문장**이다 — 딱지가 아니라 글이라 11.5 로 올렸다 (2026-11-11)
+          fontSize: 11.5, color: 'var(--warning)', lineHeight: 1.5,
           marginTop: 3, letterSpacing: -0.1,
         }}>
           부위를 못 알아봐요 · 몸 지도에 안 들어갑니다

@@ -140,7 +140,7 @@ function WeeklyReport({ workouts }) {
                   background: w.current ? 'var(--accent)' : 'var(--bg-tertiary)',
                   borderRadius: 'var(--radius)',
                 }} />
-                <div style={{ fontSize: 10, color: w.current ? 'var(--accent)' : 'var(--text-muted)' }}>{w.days}일</div>
+                <div style={{ fontSize: 11, color: w.current ? 'var(--accent)' : 'var(--text-muted)' }}>{w.days}일</div>
               </div>
             ))}
           </div>

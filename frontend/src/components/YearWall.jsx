@@ -104,7 +104,8 @@ export default function YearWall({ onPickMonth }) {
                 // 기록 없는 달도 **눌리는 칸**이다 — 흐려도 4.5 를 지킨다 (2026-11-11)
                 color: m.count > 0 ? 'var(--text-secondary)' : 'var(--text-faint-tap)',
               }}>{m.name}</span>
-              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>
+              {/* 그 달에 몇 번 했나. 9px 은 이 앱에서 가장 작은 글자였다 (2026-11-11) */}
+              <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
               {m.days.map((d) => (

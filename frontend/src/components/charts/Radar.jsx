@@ -67,11 +67,11 @@ export default function Radar({ data, series, height = 260, width = 320 }) {
       </div>
       {/* 숫자로 안 읽힌 축은 **뺐다고 말한다** — 조용히 빼면 「그 항목은 안 변했나」가 된다 */}
       {g.dropped.length > 0 && (
-        <div style={{ fontSize: 10.5, color: CHART.muted, textAlign: 'center', marginTop: 6 }}>
+        <div style={{ fontSize: 11.5, color: CHART.muted, textAlign: 'center', marginTop: 6 }}>
           그림에서 뺀 축 — {g.dropped.join(' · ')} (숫자로 읽히지 않아요)
         </div>
       )}
-      <div style={{ fontSize: 10.5, color: CHART.muted, textAlign: 'center', marginTop: 6, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 11.5, color: CHART.muted, textAlign: 'center', marginTop: 6, lineHeight: 1.6 }}>
         단위가 서로 달라 축마다 눈금이 따로입니다 — 모양이 아니라 <b>두 시점의 차이</b>를 봅니다
       </div>
     </div>

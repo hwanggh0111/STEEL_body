@@ -185,7 +185,7 @@ function PumpRow({ pump, next }) {
           </div>
         ))}
         {pump.untouched.length > 0 && (
-          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
             아직 안 건드린 곳: {pump.untouched.join(' · ')}
           </div>
         )}
@@ -228,7 +228,7 @@ function ProgramPump({ list }) {
           </div>
         ))}
         {pump.untouched.length > 0 && (
-          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
             안 하는 곳: {pump.untouched.join(' · ')}
           </div>
         )}

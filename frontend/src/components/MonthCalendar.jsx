@@ -154,16 +154,22 @@ export default function MonthCalendar({
                           {planned}개
                         </span>
                       ) : null}
-                      {/* **적어둔 글이 칸에 보인다.** 세 줄까지, 넘치면 잘린다.
-                          쉰 날에도 메모는 있을 수 있어서(「출장이라 쉼」) 흐린 색으로 둔다 */}
+                      {/* **적어둔 글이 칸에 보인다.** 넘치면 잘린다 — 통째로는 날을 누르면 나온다.
+                          쉰 날에도 메모는 있을 수 있어서(「출장이라 쉼」) 흐린 색으로 둔다.
+
+                          ★ **9px 이었다** (2026-11-11). 이 앱에서 가장 작은 글자였고,
+                          칸이 좁다는 것이 까닭이었다. 그런데 9px 로 세 줄을 보여주는 것은
+                          **글자를 더 넣은 것이지 더 보여준 것이 아니다** — 읽을 수 없으면
+                          「메모가 있다」밖에 전해지지 않는다. 10.5 로 올리고 **두 줄**로 줄였다
+                          (칸은 `minHeight: 96` 이라 두 줄이 들어간다). */}
                       {memo && (
                         <span style={{
-                          fontSize: 9, lineHeight: 1.28, marginTop: 1,
+                          fontSize: 10.5, lineHeight: 1.3, marginTop: 1,
                           color: 'var(--text-secondary)',
                           opacity: memoPending || memoFailed ? 0.7 : 0.95,
                           textDecoration: memoFailed ? 'underline dotted' : 'none',
                           textAlign: 'left', wordBreak: 'break-all',
-                          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3,
+                          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
                           overflow: 'hidden',
                         }}>{memo}</span>
                       )}
