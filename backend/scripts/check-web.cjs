@@ -38,6 +38,40 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
   process.exit(0);
 }
 
+// ── **`dist` 는 있는데 「빌드 뒤 걸음」이 안 돌았다** ── (2026-11-11, 정석)
+//
+// 이 자가 보는 것 넷 중 셋(미리 압축 · 캐시 머리 · 주소에 맞는 문서)은 **`vite build`
+// 가 만드는 것이 아니다.** `npm run build` 가 그 뒤에 두 걸음을 더 돈다 —
+// `scripts/precompress.mjs`(`.br`·`.gz`) 와 `scripts/route-chunks.mjs`
+// (`route-chunks.json`·`route-html/`). `npx vite build` 나 `vite build` 로 지으면
+// 그 산출물이 **아예 없고**, 서버는 그 없음에 맞게 **그냥 내주는 것이 맞다.**
+// 그런데 이 자는 그걸 **결함 다섯 건**으로 적었다 (11/11 에 실제로 그 꼴로 떠 있었다).
+//
+// 같은 코드가 라이브에서는 제대로 내준다 — `/site` 10,762 > `/support` 10,550,
+// `/site` 문서에 `SiteHome-*.js` 가 미리 적혀 있다. Render 는 `npm run build` 다
+// (`render.yaml`). **즉 코드가 아니라 지은 방법이고, 그건 FAIL 이 아니다.**
+//
+// 이 파일 머리글이 이미 그 선을 적어뒀다 — 「빌드 안 한 사람에게 틀린 실패를 보여주는
+// 검사는 곧 무시된다」. `dist` 가 없을 때와 **반만 있을 때**를 같게 다룬다.
+const hasBr = (() => {
+  try {
+    if (fs.existsSync(path.join(DIST, 'index.html.br'))) return true;
+    const a = path.join(DIST, 'assets');
+    return fs.existsSync(a) && fs.readdirSync(a).some((f) => f.endsWith('.br'));
+  } catch { return false; }
+})();
+const hasRouteDocs = fs.existsSync(path.join(DIST, 'route-chunks.json'))
+  && fs.existsSync(path.join(DIST, 'route-html'));
+
+if (!hasBr) {
+  console.log('── 웹이 무엇을 어떻게 내주나 ──');
+  console.log('건너뜀 — `dist` 에 미리 압축한 것(`.br`)이 없습니다.'
+    + ' `vite build` 로만 지은 `dist` 라 압축·캐시·조각 머리를 볼 수가 없습니다'
+    + ' (`cd frontend && npm run build` 로 지으면 이 묶음이 전부 섭니다).');
+  console.log('  ※ 코드 결함이 아닙니다 — 지은 방법입니다. Render 는 `npm run build` 로 짓습니다.');
+  process.exit(0);
+}
+
 let fail = 0;
 const ok = (label, got, want) => {
   const good = JSON.stringify(got) === JSON.stringify(want);
@@ -139,9 +173,28 @@ const hashed = (() => {
     // (`npm run build` → `[route-chunks] 주소 8개에 …`). `npx vite build` 로 지으면
     // 그 걸음이 **안 돌아서** 이 줄이 FAIL 한다 — 코드는 멀쩡한데 검사가 운다.
     // 오늘 그걸로 두 번 멈췄다. **`npm run build` 로 다시 짓고 보라.**
-    ok('  /site 는 받을 조각을 미리 적어 보낸다 (문서가 더 크다)'
-      + ' [FAIL 이면 frontend 에서 `npm run build` 로 다시 지어 보세요]',
-    site.bytes > plain.bytes, true);
+    // ── **안 돌린 걸음을 FAIL 로 적지 않는다** ── (2026-11-11, 정석)
+    //
+    // 이 줄은 **코드가 멀쩡해도 FAIL** 했다. 조각을 미리 적어 넣는 일은 빌드 **뒤에
+    // 따로 도는 걸음**(`scripts/route-chunks.mjs`)이라, `npx vite build` 로 지으면
+    // `dist/route-chunks.json` 과 `dist/route-html/` 이 **아예 안 생긴다.** 그러면
+    // 서버는 폴백으로 내주는 것이 맞고 — 그게 정상 동작이다 — 이 줄만 울었다.
+    //
+    // 실제로 그 꼴로 떠 있었다(11/11). 라이브에서는 같은 코드가 제대로 내준다:
+    // `/site` 10,762 > `/support` 10,550 이고 `/site` 문서에 `SiteHome-*.js` 가
+    // 미리 적혀 있다. **자가 거짓 FAIL 을 내면 다음 사람이 자를 안 믿는다** — 이
+    // 파일 머리글이 `dist` 가 없을 때 건너뛰는 까닭으로 적어둔 그 말이다.
+    //
+    // 그래서 **걸음이 돌았는지 먼저 보고**, 안 돌았으면 건너뛴다. 돌았는데 문서가
+    // 안 크면 그때는 진짜 FAIL 이다 — 막으려던 결함이 그 자리에 있다.
+    if (!hasRouteDocs) {
+      console.log('     건너뜀 — `dist/route-chunks.json` 이 없습니다.'
+        + ' 빌드 뒤 걸음을 안 돌린 `dist` 라 폴백으로 내주는 것이 맞습니다'
+        + ' (`cd frontend && npm run build` 로 지으면 이 줄이 섭니다)');
+    } else {
+      ok('  /site 는 받을 조각을 미리 적어 보낸다 (문서가 더 크다)',
+        site.bytes > plain.bytes, true);
+    }
     ok('  목록에 없는 주소도 그냥 열린다', plain.status, 200);
 
     console.log('\n  / 가 정적 쪽으로 새지 않는가');
