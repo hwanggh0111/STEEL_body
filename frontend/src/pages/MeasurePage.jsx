@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import client from '../api/client';
 import { toast } from '../components/Toast';
 import { isOfflineError } from '../data/offline';
+import { measurePayload, UNDO_MS } from '../data/undoRow';
 import { confirmDialog } from '../components/ConfirmModal';
 import BodySizeSection from '../components/measure/BodySizeSection';
 import OneRMSection from '../components/measure/OneRMSection';
@@ -158,12 +159,40 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
   };
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog('이 측정 기록을 삭제할까요?', { title: '측정 기록 삭제', confirmText: '삭제' });
+    const ok = await confirmDialog(
+      '이 측정 기록을 삭제할까요?\n\n지운 바로 뒤 몇 초 동안만 되돌릴 수 있어요.',
+      { title: '측정 기록 삭제', confirmText: '삭제' },
+    );
     if (!ok) return;
+    // ★ **지우기 전에 줄을 뜬다** (2026-11-11) — `deleteMeasure` 도 줄을 바로 지운다
+    // (소프트 삭제가 없다). 측정은 **고치는 길이 없어** 되돌릴 것은 지우기 하나다
+    const before = measures.find((m) => m.id === Number(id)) || null;
+    const body = before ? measurePayload(before) : null;
     try {
       await client.delete(`/measures/${id}`);
       setMeasures(prev => prev.filter(m => m.id !== Number(id)));
-      toast('삭제 완료!');
+      toast('삭제 완료!', 'success', body ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          // ★ **담는 일과 받는 일을 가른다** — 한 뭉치에 넣으면 담긴 뒤에 받기가
+          // 끊겼을 때 「되살리지 못했어요」라는 **거짓말**을 한다(위 `handleSave` 의
+          // 머리글 · 11/04 에 그 자리를 고쳤다). `npm run basement` 가 이것을 본다
+          try {
+            await client.post('/measures', body);
+          } catch (err) {
+            toast(err.response?.data?.error || '되살리지 못했어요', 'error');
+            return;
+          }
+          try {
+            const { data: refreshed } = await client.get('/measures');
+            setMeasures(Array.isArray(refreshed) ? refreshed : []);
+            toast('되살렸어요');
+          } catch {
+            // **담긴 것은 담겼다.** 목록만 못 맞췄다고 말한다
+            toast('되살렸어요 — 목록은 못 받아왔어요. 새로고침하면 보입니다');
+          }
+        },
+      } : null);
     } catch (err) {
       // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
       toast(err.response?.data?.error || '삭제에 실패했어요', 'error');

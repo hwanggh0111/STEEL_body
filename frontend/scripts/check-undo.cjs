@@ -39,6 +39,19 @@ const ok = (name, got, want) => {
   console.log((pass ? 'OK   ' : 'FAIL ') + name + ' → ' + JSON.stringify(got)
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
+/**
+ * `a` 가 `b` **앞에** 있는가.
+ *
+ * ★ `indexOf` 를 그냥 견주면 **없는 것이 통과한다** — 둘 중 하나가 사라져 -1 이 되면
+ * `-1 < 어떤수` 가 참이다. 되돌려-FAIL 을 보다가 그걸 잡았다(사본에서 그 줄을 지웠는데
+ * 자가 통과했다). **둘 다 있어야** 본다
+ */
+const 앞에 = (src, a, b) => {
+  const i = src.indexOf(a);
+  const j = src.indexOf(b);
+  return i >= 0 && j >= 0 && i < j;
+};
+
 const codeOf = (s) => s
   .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')
   .replace(/^\s*\/\/.*$/gm, '')
@@ -119,7 +132,7 @@ const toastSrc = codeOf(fs.readFileSync(at('src/components/Toast.jsx'), 'utf-8')
 
 ok('적는 화면이 **고치기 전 줄**을 뜬다', /rowById\(workouts, editingId\)/.test(train), true);
 ok('  고치기 **전에** 뜬다 (뒤에 뜨면 이미 새 값이다)',
-  train.indexOf('rowById(workouts, editingId)') < train.indexOf('await updateWorkout(editingId, payload)'), true);
+  앞에(train, 'rowById(workouts, editingId)', 'await updateWorkout(editingId, payload)'), true);
 ok('  달라졌을 때만 단추를 건다', /changed\(before, payload\)/.test(train), true);
 ok('  지운 줄도 되살린다 (`addWorkout` 으로)', /addWorkout\(body\)/.test(train), true);
 ok('기록 화면도 지운 줄을 되살린다', /addWorkout\(body\)/.test(hist), true);
@@ -165,13 +178,57 @@ ok('  없으면 null', [U.recordById([], 55), U.recordById(null, 55), U.recordBy
 
 const inbody = codeOf(fs.readFileSync(at('src/pages/InbodyPage.jsx'), 'utf-8'));
 ok('인바디 화면이 고치기 **전** 줄을 뜬다',
-  /recordById\(records, editingId\)/.test(inbody)
-  && inbody.indexOf('recordById(records, editingId)') < inbody.indexOf('await updateRecord(editingId, payload)'), true);
+  앞에(inbody, 'recordById(records, editingId)', 'await updateRecord(editingId, payload)'), true);
 ok('  지운 줄도 **지우기 전에** 뜬다',
-  inbody.indexOf('recordById(records, id)') < inbody.indexOf('await deleteRecord(id)'), true);
+  앞에(inbody, 'recordById(records, id)', 'await deleteRecord(id)'), true);
 ok('  달라졌을 때만 단추를 건다', /inbodyChanged\(before, payload\)/.test(inbody), true);
 ok('  ★ 되살릴 때 서버가 날짜를 바꿔 적으면 그 말을 전한다 (`dateFixed`)',
   /dateFixed[\s\S]{0,160}되살렸는데 날짜/.test(inbody), true);
+
+console.log('');
+console.log('── 측정(둘레) — 고치는 길이 없어 되돌릴 것은 지우기 하나다 ──');
+const 측정 = { id: 71, user_id: 46, type: 'bodySize', date: '2026-11-11', data: { chest: 103, waist: 82, arm: 36.5 } };
+ok('**셋을 그대로 보낸다**', U.measurePayload(측정),
+  { type: 'bodySize', date: '2026-11-11', data: { chest: 103, waist: 82, arm: 36.5 } });
+ok('  ★ `data` 는 통째로 그대로 (갈래가 여섯이라 칸을 여기서 다시 세지 않는다)',
+  U.measurePayload({ ...측정, type: 'stopwatch', data: { sec: 12.4, note: '100m' } }).data,
+  { sec: 12.4, note: '100m' });
+ok('  `id` 는 안 보낸다', 'id' in U.measurePayload(측정), false);
+ok('  갈래가 서버 목록에 없으면 단추를 안 준다 (서버가 400 으로 막는다)',
+  U.measurePayload({ ...측정, type: 'bodyFat' }), null);
+ok('  날짜·꾸러미가 없으면 안 준다',
+  [U.measurePayload({ ...측정, date: '' }), U.measurePayload({ ...측정, data: null }),
+    U.measurePayload({ ...측정, data: [1, 2] })], [null, null, null]);
+ok('  갈래 여섯을 다 받는다',
+  ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch']
+    .filter((t) => U.measurePayload({ ...측정, type: t }) === null), []);
+
+console.log('');
+console.log('── 내 루틴 — 지우면 다시 짜야 한다 ──');
+const 루틴 = { id: 9, name: '월요일 가슴', exercises: [{ name: '벤치프레스', sets: 4, reps: 8 }, '푸시업'] };
+ok('**이름과 운동 목록을 그대로**', U.routinePayload(루틴),
+  { name: '월요일 가슴', exercises: [{ name: '벤치프레스', sets: 4, reps: 8 }, '푸시업'] });
+ok('  ★ 목록 모양을 바꾸지 않는다 (글자 줄과 꾸러미 줄이 섞여 있다)',
+  U.routinePayload(루틴).exercises[1], '푸시업');
+ok('  이름·운동이 없으면 단추를 안 준다',
+  [U.routinePayload({ name: '', exercises: ['푸시업'] }), U.routinePayload({ name: 'x', exercises: [] }),
+    U.routinePayload({ name: 'x' })], [null, null, null]);
+ok('이름이 바뀌면 되돌릴 것이 있다', U.routineChanged(루틴, { ...루틴, name: '월요일 등' }), true);
+ok('  운동 하나가 빠진 것도', U.routineChanged(루틴, { ...루틴, exercises: ['푸시업'] }), true);
+ok('  세트 수만 바뀐 것도', U.routineChanged(루틴,
+  { ...루틴, exercises: [{ name: '벤치프레스', sets: 5, reps: 8 }, '푸시업'] }), true);
+ok('  같으면 단추를 안 준다', U.routineChanged(루틴, { ...루틴 }), false);
+
+const meas = codeOf(fs.readFileSync(at('src/pages/MeasurePage.jsx'), 'utf-8'));
+const rout = codeOf(fs.readFileSync(at('src/pages/RoutinePage.jsx'), 'utf-8'));
+ok('측정 화면이 **지우기 전에** 줄을 뜬다',
+  앞에(meas, 'measures.find((m) => m.id === Number(id))', 'await client.delete(`/measures/'), true);
+ok('  되살린 뒤 목록을 다시 받는다', /post\('\/measures', body\)[\s\S]{0,400}get\('\/measures'\)/.test(meas), true);
+ok('루틴 화면이 고치기 **전에** 뜬다',
+  앞에(rout, 'myRoutines.find((r) => (r.id ?? r._id) === id)', 'await client.put(`/my-routines/${id}`, { name: routine.name'), true);
+ok('  지우기 **전에도** 뜬다',
+  앞에(rout, 'myRoutines.find((r) => (r._id || r.id) === id)', 'await client.delete(`/my-routines/'), true);
+ok('  달라졌을 때만 단추를 건다', /routineChanged\(before, routine\)/.test(rout), true);
 
 console.log('');
 console.log('── ★ 어디까지 덮었나 — 수로 남긴다 ──');
@@ -185,11 +242,16 @@ const 덮은것 = [
   ['운동 기록 · 지우기(기록 화면)', hist, /addWorkout\(body\)/],
   ['인바디 · 고치기', inbody, /inbodyChanged\(before, payload\)/],
   ['인바디 · 지우기', inbody, /addRecord\(body\)/],
+  ['측정 · 지우기 (고치는 길이 없다)', meas, /post\('\/measures', body\)/],
+  ['내 루틴 · 고치기', rout, /routineChanged\(before, routine\)/],
+  ['내 루틴 · 지우기', rout, /post\('\/my-routines', body\)/],
 ];
 for (const [name, src, re] of 덮은것) ok('  ' + name, re.test(src), true);
-ok('**덮은 자리 다섯**', 덮은것.length, 5);
-// 아직 안 덮은 것 — 이 수가 줄면 이 줄도 같이 고쳐야 한다(그게 이 자의 일이다)
-ok('  아직 안 덮은 종류 다섯 (측정 · 메모 · 계획 · 내 루틴 · 사진)', 5, 5);
+ok('**덮은 자리 여덟**', 덮은것.length, 8);
+// 아직 안 덮은 것 — 이 수가 줄면 이 줄도 같이 고쳐야 한다(그게 이 자의 일이다).
+// 메모 · 계획은 **글**이라 사람이 다시 적을 수 있고, 사진은 되돌리기의 결이 다르다
+// (파일을 다시 올려야 하고 용량·저장 쪽에 닿는다) → 출시 뒤 (11/11 판정)
+ok('  아직 안 덮은 종류 셋 (메모 · 계획 · 사진)', 3, 3);
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

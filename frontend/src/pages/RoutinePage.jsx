@@ -5,6 +5,7 @@ import client from '../api/client';
 import NavIcon from '../components/NavIcon';
 import { toast } from '../components/Toast';
 import { eul } from '../data/particle';
+import { routinePayload, routineChanged, UNDO_MS } from '../data/undoRow';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { MAX_EXERCISES, REPS_MAX, ROUTINE_NAME_MAX, SETS_MAX } from '../data/limits';
@@ -296,6 +297,8 @@ export default function RoutinePage() {
   const updateMyRoutine = async (id, routine) => {
     if (savingRoutine) return false;
     setSavingRoutine(true);
+    // 고치기 **전에** 뜬다 — 뒤에 뜨면 이미 새 값이다
+    const before = myRoutines.find((r) => (r.id ?? r._id) === id) || null;
     try {
       const { data: saved } = await client.put(`/my-routines/${id}`, { name: routine.name, exercises: routine.exercises });
       // 서버가 **담은 것을 돌려주는데**(`result.record`) 여태 통째로 버렸다 —
@@ -305,7 +308,27 @@ export default function RoutinePage() {
           ? { ...r, ...routine, name: saved?.name ?? routine.name, exercises: saved?.exercises ?? routine.exercises }
           : r
       )));
-      toast('루틴을 고쳤습니다');
+      // ★ **고치기 전 루틴을 들고 있는다** (2026-11-11). 루틴은 사람이 공들여 짠
+      // 것이라, 이름이나 운동 목록을 잘못 덮으면 **다시 짜는 시간**이 사라진다
+      const undo = before && routineChanged(before, routine) ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          const body = routinePayload(before);
+          if (!body) return;
+          try {
+            const { data: back } = await client.put(`/my-routines/${id}`, body);
+            setMyRoutines(prev => prev.map(r => (
+              (r.id ?? r._id) === id
+                ? { ...r, ...body, name: back?.name ?? body.name, exercises: back?.exercises ?? body.exercises }
+                : r
+            )));
+            toast('되돌렸어요');
+          } catch (e) {
+            toast(e.response?.data?.error || '되돌리지 못했어요', 'error');
+          }
+        },
+      } : null;
+      toast('루틴을 고쳤습니다', 'success', undo);
       return true;
     } catch (err) {
       toast(err.response?.data?.error || '고치지 못했어요', 'error');
@@ -346,10 +369,31 @@ export default function RoutinePage() {
   };
 
   const deleteMyRoutine = async (id) => {
+    // ★ **지우기 전에 뜬다** (2026-11-11). `deleteMyRoutine` 도 줄을 바로 지운다 —
+    // 되살리면 `id` 는 새것이 되지만 이름과 운동 목록은 그대로다
+    const before = myRoutines.find((r) => (r._id || r.id) === id) || null;
+    const body = before ? routinePayload(before) : null;
     try {
       await client.delete(`/my-routines/${id}`);
       setMyRoutines(prev => prev.filter(r => (r._id || r.id) !== id));
-      toast('루틴을 지웠어요');
+      toast('루틴을 지웠어요', 'success', body ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          try {
+            const { data: saved } = await client.post('/my-routines', body);
+            // 서버가 담은 글자를 그대로 쓴다 (`saveMyRoutine` 과 같은 까닭)
+            setMyRoutines(prev => [...prev, {
+              ...body,
+              name: saved?.name ?? body.name,
+              exercises: saved?.exercises ?? body.exercises,
+              id: saved?.id, _id: saved?._id,
+            }]);
+            toast('되살렸어요');
+          } catch (e) {
+            toast(e.response?.data?.error || '되살리지 못했어요', 'error');
+          }
+        },
+      } : null);
     } catch (err) {
       toast(err.response?.data?.error || '루틴 삭제에 실패했어요', 'error');
     }

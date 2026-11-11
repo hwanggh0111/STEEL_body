@@ -92,10 +92,13 @@ console.log('── 서버가 다듬은 글자를 읽는가 ──');
 // 자리를 안 밟았다. 이 화면은 다시 받지 않으므로 **돌려준 것을 읽어야** 한다.
 // 서버가 진짜로 돌려주는지는 backend 의 `npm run echo` 가 두드려서 본다.
 {
-  // 서버로 보내는 네 자리 — 만들기 · 프로그램 옮기기 · 고치기 · 운동 하나 더
+  // 서버로 보내는 여섯 자리 — 만들기 · 프로그램 옮기기 · 고치기 · 운동 하나 더 ·
+  // **되돌리기 둘**(고친 것을 옛 몸통으로 다시 PUT · 지운 루틴을 다시 POST · 11/11).
+  // 이 수가 이 자의 일이다 — 새 보내는 자리가 생기면 **여기서 걸려** 응답을 읽는지
+  // 같이 보게 된다(11/11 에 내 되돌리기 둘이 그렇게 걸렸다)
   const calls = [...src.matchAll(/(?:const \{ data: (\w+) \} = )?await client\.(post|put)\(`?['`]?\/my-routines/g)];
-  ok('서버로 보내는 자리 넷', calls.length, 4);
-  ok('  네 자리가 다 응답을 받는다', calls.filter((m) => !m[1]).map((m) => m[2]), []);
+  ok('서버로 보내는 자리 여섯', calls.length, 6);
+  ok('  여섯 자리가 다 응답을 받는다', calls.filter((m) => !m[1]).map((m) => m[2]), []);
   // 받은 것을 **목록에 얹을 때** 쓰는가 (`saved.name` · `saved.exercises`)
   ok('  담긴 이름을 쓴다', (src.match(/saved\??\.name/g) || []).length >= 2, true);
   ok('  담긴 운동 목록을 쓴다', (src.match(/saved\??\.exercises/g) || []).length >= 4, true);

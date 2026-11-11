@@ -145,5 +145,64 @@ export function recordById(records, id) {
   return records.find((r) => String(r?.id) === String(id)) || null;
 }
 
+// ── 측정 줄 ── (2026-11-11)
+//
+// 측정은 **고치는 길이 없다** — 지우고 다시 적는다. 그래서 되돌릴 것은 **지우기**
+// 하나인데, 그 하나가 인바디와 같은 무게다: 둘레·어깨·유연성은 **선으로 그려지는
+// 수**라 한 점이 사라지면 선이 휜다.
+//
+// 서버가 받는 칸은 셋이다 — `type` · `date` · `data`(갈래마다 다른 꾸러미 ·
+// `routes/measures.js:32`). **`data` 는 통째로 그대로 돌려보낸다** — 갈래가 여섯이고
+// (전신 사이즈 · 1RM · 체력 · 유연성 · 어깨 · 스톱워치) 그 안의 칸을 여기서 다시
+// 세면 **갈래가 하나 늘 때마다 이 자리가 틀린다**.
+const MEASURE_TYPES = ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch'];
+
+/**
+ * 측정 한 줄을 **서버가 받는 몸통**으로.
+ *
+ * 돌려주는 것 — 보낼 수 있으면 `{ type, date, data }`, **아니면 `null`**
+ * (갈래가 서버 목록에 없거나 · 날짜가 없거나 · 꾸러미가 없는 줄. 서버가 400 으로
+ * 막는 그 셋을 여기서 그대로 본다 — 눌러서 실패하는 단추를 보여주지 않는다).
+ */
+export function measurePayload(row) {
+  const type = String(row?.type ?? '').trim();
+  const date = String(row?.date ?? '').trim();
+  const data = row?.data;
+  if (!MEASURE_TYPES.includes(type)) return null;
+  if (!date || !data || typeof data !== 'object' || Array.isArray(data)) return null;
+  return { type, date, data };
+}
+
+// ── 내 루틴 ── (2026-11-11)
+//
+// 루틴은 **사람이 공들여 짠 것**이다. 지우면 다시 짜야 한다 — 수가 틀리는 것이
+// 아니라 **시간이 사라진다.** 서버가 받는 칸은 둘이다 (`name` · `exercises` ·
+// `routes/myRoutines.js:36`).
+//
+// ★ **운동 목록은 통째로 그대로 돌려보낸다.** 줄이 글자일 수도 있고 꾸러미일 수도
+// 있다(`typeof e === 'string' ? e : e?.name` 을 화면이 그렇게 읽는다) — 여기서 모양을
+// 바꾸면 되살린 루틴이 **원래와 다른 루틴**이 된다.
+
+/**
+ * 내 루틴 한 줄을 **서버가 받는 몸통**으로.
+ *
+ * 돌려주는 것 — 보낼 수 있으면 `{ name, exercises }`, **이름이 없거나 운동이 없으면
+ * `null`**(서버가 막는 자리다 · 빈 루틴을 되살려 놓는 것도 뜻이 없다).
+ */
+export function routinePayload(row) {
+  const name = String(row?.name ?? '').trim();
+  const exercises = Array.isArray(row?.exercises) ? row.exercises : null;
+  if (!name || !exercises || exercises.length === 0) return null;
+  return { name, exercises };
+}
+
+/** 루틴이 실제로 달라졌는가 — 이름과 **운동 목록 전체**를 견준다 */
+export function routineChanged(before, after) {
+  const a = routinePayload(before);
+  const b = routinePayload(after);
+  if (!a || !b) return false;
+  return a.name !== b.name || JSON.stringify(a.exercises) !== JSON.stringify(b.exercises);
+}
+
 /** 되돌리기 단추가 떠 있는 시간(ms). 보통 토스트(4초)보다 길게 둔다 */
 export const UNDO_MS = 8000;
