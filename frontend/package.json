@@ -107,7 +107,8 @@
     "plateaudata": "node scripts/measure-plateau.cjs",
     "swtype": "node scripts/check-swtype.cjs",
     "contrast": "node scripts/check-contrast.cjs",
-    "corner": "node scripts/check-corner.cjs"
+    "corner": "node scripts/check-corner.cjs",
+    "keytap": "node scripts/check-keytap.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

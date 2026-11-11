@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { toast } from './Toast';
 import { passwordError } from '../data/password';
@@ -31,6 +31,17 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
   const [again, setAgain] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // ── **자판으로 빠져나갈 길이 없었다** ── (2026-11-11)
+  //
+  // 닫는 길이 바깥 누르기와 ✕ 둘뿐이라 자판만 쓰는 사람은 이 창에 **갇혔다.**
+  // `ConfirmModal`·`PasswordResetModal` 에는 `Escape` 가 이미 있었고 이 창과
+  // 계정 삭제 창에만 없었다 (정석이 전수로 세어 짚었다).
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const localError = next ? checkNew(next, current) : '';
   const mismatch = again && next !== again;

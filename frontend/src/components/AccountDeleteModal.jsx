@@ -34,6 +34,20 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
     return () => { alive = false; };
   }, []);
 
+
+  // ── **자판으로 빠져나갈 길이 없었다** ── (2026-11-11)
+  //
+  // 닫는 길이 ⑴ 바깥을 누르기 ⑵ ✕ 를 누르기 둘뿐이었다. 둘 다 **눌러야** 하는
+  // 길이라, 자판만 쓰는 사람은 이 창에 **갇혔다**(`ConfirmModal`·`PasswordResetModal`
+  // 에는 `Escape` 가 이미 있었고 이 창에만 없었다 — 정석이 전수로 세어 짚었다).
+  //
+  // 창을 여는 자리마다 적지 않는다 — **창이 제 닫는 길을 안다.**
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const social = !!me?.is_social;
   const days = me?.grace_days ?? 30;
   const isAdmin = me?.role === 'admin';

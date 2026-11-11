@@ -101,6 +101,18 @@ export default function SiteHome() {
   const [photos, setPhotos] = useState([]);
   const [shot, setShot] = useState(null);     // 크게 볼 사진
 
+  // ── **크게 열린 사진을 자판으로 닫을 길이 없었다** ── (2026-11-11)
+  //
+  // 닫는 길이 **사진을 누르는 것** 하나뿐이었다(`cursor: 'zoom-out'`). 눌러 닫는
+  // 것은 손가락의 길이고, 자판만 쓰는 사람은 화면 전체를 덮은 사진 앞에서
+  // **빠져나갈 수가 없었다.** 창이 제 닫는 길을 안다 — 다른 창들이 그렇게 돼 있다.
+  useEffect(() => {
+    if (!shot) return;
+    const onKey = (e) => { if (e.key === 'Escape') setShot(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shot]);
+
   // 관리자가 걸어둔 사진. **못 받아오면 그 칸을 아예 안 그린다** —
   // 「사진이 없습니다」는 보러 온 사람에게 아무 쓸모가 없다
   useEffect(() => {

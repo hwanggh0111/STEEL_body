@@ -157,19 +157,47 @@ export default function TabBar() {
   };
 
   // ─── 공통 셀 컴포넌트 (모양/크기 통일) ───
+  //
+  // ── **앱의 주 길찾기가 자판으로 하나도 안 눌렸다** ── (2026-11-11)
+  //
+  // 이 칸은 `<div onClick>` 이었다. 마우스와 손가락으로는 눌리니 **아무도 몰랐다** —
+  // 그런데 탭 키로는 **멈추지도 않고**, 읽어주는 기계에는 「눌리는 것」이라고
+  // 알려주지도 않았다. 다섯 탭이 전부 그랬으니 **자판만 쓰는 사람은 이 앱에서
+  // 화면을 하나도 옮길 수 없었다**(뒤로 가기와 주소창뿐이다).
+  //
+  // 홈의 주간 달력 칸을 같은 까닭으로 고쳤는데(11/11 아침), 그때 **이 자리를 안
+  // 봤다.** 그쪽은 눌러서 하루를 보는 곁길이고 **여기는 주 길찾기**다 — 순서가
+  // 거꾸로였다. 정석이 전수로 세어 29건을 넘겼고 그 첫 건이 이것이다.
+  //
+  // **`<button>` 으로 바꾼다.** `role`·`tabIndex`·Enter/Space 를 손으로 흉내 내는
+  // 것보다 **원래 단추인 것**을 쓰는 것이 맞다 — 자판·낭독기·돋보기가 다 안다.
+  // 단추의 기본 꼴(테두리 · 글자꼴 · 배경)은 지우고, `border: 'none'` 을 **먼저**
+  // 적어 그 뒤의 `borderLeft`(고른 자리의 금색 선)가 살아남게 한다.
+  //
+  // `aria-current="page"` 는 **지금 어디인지**를 읽어준다 — 금색은 눈으로만 보인다.
+  // 안 읽은 수(badge)는 이름에 같이 넣는다. 「고객센터」만 읽히면 빨간 동그라미에
+  // 적힌 3 은 전해지지 않는다.
   const NavCell = ({ item, active, onClick, layout = 'vertical' }) => (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      aria-label={item.badge > 0 ? `${item.label}, 안 읽은 ${item.badge}` : undefined}
       style={{
         display: 'flex',
         flexDirection: layout === 'vertical' ? 'column' : 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: layout === 'vertical' ? 4 : 12,
+        width: '100%',
         padding: layout === 'vertical' ? `${NAV_TOKENS.paddingY}px 4px` : `${NAV_TOKENS.paddingY}px ${NAV_TOKENS.paddingX}px`,
         cursor: 'pointer',
         position: 'relative',
         transition: 'all 0.15s',
+        font: 'inherit',
+        color: 'inherit',
+        appearance: 'none',
+        border: 'none',
         borderLeft: layout === 'horizontal' && active ? '3px solid var(--accent)' : '3px solid transparent',
         background: active ? 'var(--accent-dim)' : 'none',
         borderRadius: layout === 'vertical' ? 'var(--radius)' : 0,
@@ -212,7 +240,7 @@ export default function TabBar() {
         transition: 'color 0.15s',
         whiteSpace: 'nowrap',
       }}>{item.label}</span>
-    </div>
+    </button>
   );
 
   // ─── PC: 좌측 사이드바 ───
