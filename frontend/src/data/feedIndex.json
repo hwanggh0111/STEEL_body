@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "1d3db41d91",
+  "detailVersion": "43ce01baf5",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,6 +501,14 @@
       "has": true
     },
     {
+      "key": "2fc5025",
+      "date": "2026-11-11",
+      "text": "★★ **하단 탭바가 `<div onClick>` 이라 자판만 쓰는 사람은 화면을 하나도 옮길 수 없었다**",
+      "label": "고침",
+      "scope": "자판",
+      "has": true
+    },
+    {
       "key": "4590314",
       "date": "2026-11-11",
       "text": "★★ **없는 조각을 조르면 `index.html` 을 200 으로 줬고, 서비스워커가 그 HTML 을 `.js` 주소로 영구히 담았다**",
@@ -810,14 +818,6 @@
       "text": "**나간 뒤에 앞 사람 기록이 다시 꽂혔다** — 비우기와 꽂기의 차례가 뒤집힌다",
       "label": "고침",
       "scope": "저장소",
-      "has": true
-    },
-    {
-      "key": "ac7c3cb",
-      "date": "2026-11-03",
-      "text": "**한 운동이 늘어온 길** — 숫자 하나뿐이던 자리에 선을 그린다",
-      "label": "새 기능",
-      "scope": "통계",
       "has": true
     }
   ]
