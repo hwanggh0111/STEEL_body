@@ -158,7 +158,7 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
                   {r.data?.ratio && <span style={{ fontSize: 13 }}>비율 <strong style={{ color: 'var(--accent)' }}>{r.data.ratio}</strong></span>}
                 </div>
               </div>
-              <button className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>
+              <button aria-label="이 어깨 기록 지우기" className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>
             </div>
           </div>
         );

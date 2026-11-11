@@ -227,6 +227,9 @@ body::before {
   transition: border-color 0.2s;
 }
 .input:focus       { outline: none; border-color: var(--accent); }
+/* 테두리만 바뀌는 칸은 **그 테두리가 포커스 표시**다 — 겉을 감싼 칸이 테두리를 들고
+   있으면 그 칸이 대신 켜진다(아래 `.field:focus-within`) */
+.field:focus-within { border-color: var(--accent-hover) !important; box-shadow: 0 0 0 1px var(--accent-hover); }
 .input::placeholder { color: var(--text-muted); }
 
 /* ─── 카드 ─────────────────────────── */
@@ -298,6 +301,27 @@ body::before {
 .progress-good    { background: var(--success); }
 .progress-warning { background: var(--warning); }
 .progress-danger  { background: var(--danger);  }
+
+/* ── **포커스가 보여야 자판으로 쓸 수 있다** ── (2026-11-11)
+
+   오늘 「눌리는데 자판으로 못 닿는 자리」 열아홉을 닫았다. 그런데 **닿은 다음**이
+   남아 있었다 — 탭이 멈추기는 하는데 **어디에 멈췄는지가 안 보이면** 자판으로 쓸 수
+   없다. 눌러보고 알아내는 수밖에 없고, 지우는 단추 앞에서 그건 위험하다.
+
+   브라우저가 제 고리를 그려주긴 한다. 다만 **흰 고리는 이 검정 바탕에서 묻히고**,
+   앱이 `outline: 'none'` 을 적어둔 자리에서는 아예 안 보였다(몸 지도의 부위 여섯 ·
+   홈페이지 운동 찾기 칸). 그래서 **금색으로 또렷하게** 우리가 그린다.
+
+   `:focus-visible` 이라 **손가락·마우스로 누를 때는 안 뜬다** — 자판과 낭독기로
+   옮겨 다닐 때만 보인다(`:focus` 로 걸면 누를 때마다 고리가 번쩍인다). */
+:where(button, a, summary, input, select, textarea, [tabindex], [role="button"], [role="switch"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+/* 몸 지도의 부위는 SVG 조각이다 — 브라우저마다 고리를 다르게 그려서(사파리는 거의
+   안 그린다) **선을 같이 굵게** 한다. 눈으로 보는 신호가 둘이면 하나가 빠져도 보인다 */
+.map-part:focus-visible > g { stroke: var(--accent); stroke-width: 1.6; }
 
 /* ─── 그림 아래 한 줄 짚어주는 상자 ─── (2026-11-11)
 

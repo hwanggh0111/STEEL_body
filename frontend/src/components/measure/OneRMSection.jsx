@@ -93,7 +93,7 @@ export default function OneRMSection({ records, onSave, onDelete }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, color: 'var(--accent)' }}>{r.data?.orm}kg</span>
-                {onDelete && <button className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>}
+                {onDelete && <button aria-label="이 1RM 기록 지우기" className="delete-btn" onClick={() => onDelete(r.id)}>✕</button>}
               </div>
             </div>
           ))}

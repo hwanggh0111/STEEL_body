@@ -55,7 +55,7 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
             title="수정"
           >✎</button>
         )}
-        <button className="delete-btn" onClick={async () => {
+        <button aria-label="이 기록 지우기" className="delete-btn" onClick={async () => {
           const ok = await confirmDialog(
             `"${workout.exercise}" 기록을 삭제할까요?
 

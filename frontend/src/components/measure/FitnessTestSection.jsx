@@ -142,7 +142,7 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
         <div key={r.id} className="card" style={{ marginBottom: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.date}</span>
-            {onDelete && <button className="delete-btn" onClick={() => onDelete(r.id)}>&#10005;</button>}
+            {onDelete && <button className="delete-btn" aria-label="이 체력 기록 지우기" onClick={() => onDelete(r.id)}>&#10005;</button>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {FITNESS_TESTS.map(f => r.data?.[f.key] && (

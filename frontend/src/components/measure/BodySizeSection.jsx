@@ -91,7 +91,7 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {r.data?.chest && <span style={{ fontSize: 12 }}>가슴 <strong style={{ color: 'var(--accent)' }}>{r.data.chest}</strong></span>}
               {r.data?.arm_r && <span style={{ fontSize: 12 }}>팔 <strong>{r.data.arm_r}</strong></span>}
-              <button className="delete-btn" onClick={(e) => { e.stopPropagation(); onDelete(r.id); }}>✕</button>
+              <button aria-label="이 치수 기록 지우기" className="delete-btn" onClick={(e) => { e.stopPropagation(); onDelete(r.id); }}>✕</button>
             </div>
           </div>
           {openIdx === i && (

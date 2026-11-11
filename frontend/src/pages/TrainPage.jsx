@@ -1275,18 +1275,27 @@ export default function TrainPage() {
                       : `kg × ${step.reps}회${step.sets ? ` · ${step.sets}세트` : ''}`}
                   </span>
                 </div>
+                {/* ── **권하는 말이 먼저, 뺀 판은 그 뒤** ── (2026-11-11)
+
+                    「왜 그 판을 안 봤나」(지난 일)와 「무엇을 권하나」(지금 할 일)는
+                    다른 말이다. 벼림이 한 문장을 둘로 갈라줬고(`stepExcluded`),
+                    자리는 여기서 정한다 — 말은 셈이 짓고 화면은 어디에 둘지만 한다.
+
+                    **위가 아니라 아래다.** 위에 두면 카드를 여는 첫 줄이 「뺐어요」가
+                    되고, 사람이 **advice 를 보기 전에 빠진 것**부터 읽는다. 주장을
+                    먼저, 단서를 뒤에 — 그게 읽는 차례다.
+
+                    한 문장이던 것이 접은 폴더블(280px)에서 **넉 줄 한 덩이**였다
+                    (75자 · 769px / 안쪽 폭 236px). 갈라 놓으면 각각 두 줄이고,
+                    크기와 색이 다르니 **덩이가 둘로 보인다.** */}
                 <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.7 }}>
-                  {/* **뺀 판은 작고 흐리게 위에** — 「왜 그 판을 안 봤나」(지난 일)와
-                      「무엇을 권하나」(지금 할 일)는 다른 말이다. 한 문장으로 이으면
-                      좁은 폰에서 넉 줄짜리 한 덩이가 된다 (2026-11-11, 꼴 쪽이 재서
-                      보내준 수다 · 말은 `lastSets` 가 짓고 여기는 자리만 정한다) */}
-                  {stepExcluded(step) && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
-                      {stepExcluded(step)}
-                    </div>
-                  )}
                   {stepReason(step)}
                 </div>
+                {stepExcluded(step) && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6 }}>
+                    {stepExcluded(step)}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <button type="button" className="btn-primary" onClick={fillStep}
                     style={{ flex: 1, padding: '8px 10px', fontSize: 12.5 }}>이대로 채우기</button>

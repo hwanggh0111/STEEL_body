@@ -215,7 +215,7 @@ export default function RoutineNotes({ onToRoutine }) {
               onClick={() => toRoutine(note.body)}
               style={{ ...ghost, borderColor: 'var(--accent)', color: 'var(--accent)', flexShrink: 0 }}
             >루틴으로</button>
-            <button className="delete-btn" onClick={() => remove(note)}>✕</button>
+            <button aria-label="이 메모 지우기" className="delete-btn" onClick={() => remove(note)}>✕</button>
           </div>
         </div>
       ))}

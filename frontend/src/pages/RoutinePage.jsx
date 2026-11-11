@@ -549,7 +549,16 @@ export default function RoutinePage() {
             >수정</button>
             <button
               onClick={async () => {
-                const ok = await confirmDialog(`"${r.name}" 루틴을 삭제할까요?`, { title: '루틴 삭제', confirmText: '삭제' });
+                // 되돌리기가 있는 지우기는 **그 말을 한다** (2026-11-11). 운동·측정은
+                // 그렇게 적는데 여기만 아무 말이 없었다 — 다른 창들이 「되돌릴 수
+                // 없어요」라고 명시하니까, **아무 말 없는 창은 못 되돌린다고 읽힌다.**
+                // 그래서 공들여 짠 루틴을 지우고 **되돌릴 수 있는데 포기**한다
+                const ok = await confirmDialog(
+                  `"${r.name}" 루틴을 삭제할까요?
+
+지운 바로 뒤 몇 초 동안만 되돌릴 수 있어요.`,
+                  { title: '루틴 삭제', confirmText: '삭제' },
+                );
                 if (!ok) return;
                 // 알리는 것은 deleteMyRoutine 이 한다. 여기서 또 띄우면
                 // 실패해도 「삭제 완료」가 먼저 번쩍인다

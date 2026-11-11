@@ -161,6 +161,55 @@ for (const f of ['ConfirmModal.jsx', 'PasswordResetModal.jsx', 'AccountDeleteMod
 }
 
 console.log('');
+console.log('── 닿은 다음 — 포커스가 보이는가 ── (2026-11-11)');
+//
+// 「눌리는데 자판으로 못 닿는 자리」를 다 닫고 보니 **닿은 다음**이 남아 있었다 —
+// 탭이 멈추는데 **어디에 멈췄는지 안 보이면** 자판으로 쓸 수 없다. 눌러보고 알아내는
+// 수밖에 없고, **지우는 단추 앞에서 그건 위험하다.**
+//
+// 브라우저가 제 고리를 그려주긴 하는데 ⑴ 흰 고리는 검정 바탕에서 묻히고
+// ⑵ 앱이 `outline: 'none'` 을 적어둔 자리에서는 아예 안 보였다(몸 지도의 부위 여섯 ·
+// 홈페이지 운동 찾기 칸). 그래서 금색으로 우리가 그린다.
+{
+  const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8');
+  ok('포커스 표시가 있다 (:focus-visible)', /:focus-visible\s*\{[\s\S]{0,120}outline:/.test(css), true);
+  // `:focus` 로 걸면 손가락으로 누를 때마다 고리가 번쩍인다 — 자판일 때만 뜨게 한다
+  ok('  누를 때는 안 뜬다 (:focus 가 아니라 :focus-visible)',
+    /\[role="button"\][\s\S]{0,40}:focus-visible/.test(css), true);
+  ok('  몸 지도 조각은 선도 굵어진다 (SVG 는 고리를 잘 안 그린다)',
+    /\.map-part:focus-visible/.test(css), true);
+  ok('  테두리만 있는 칸은 겉 칸이 켜진다', /\.field:focus-within/.test(css), true);
+
+  // 자판으로 닿는 자리에서 `outline: 'none'` 을 적으면 **포커스가 사라진다.**
+  // `tabIndex={-1}`(프로그램이 옮기는 자리)은 고리를 안 그리는 것이 맞다
+  const 지운자리 = [];
+  const walk2 = (dir) => {
+    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, f.name);
+      if (f.isDirectory()) { walk2(full); continue; }
+      if (!/\.jsx$/.test(f.name)) continue;
+      const code = fs.readFileSync(full, 'utf8');
+      // 겉 칸이 테두리를 들고 켜지는 꼴(`.field:focus-within`)이면 칸 자체는 비켠다
+      const 겉칸이있다 = /className="field"/.test(code);
+      for (const t of openTags(code)) {
+        // ★ **주석에 적힌 글자에 걸렸다** (처음 돌렸을 때 내가 적어둔 「`outline: 'none'`
+        //    이었다」는 주석이 그대로 FAIL 로 나왔다). 속성에서 주석을 걷고 본다
+        const attrs = t.attrs.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\r\n]*/g, ' ');
+        if (!/outline:\s*['"]none['"]/.test(attrs)) continue;
+        if (겉칸이있다 && t.tag === 'input') continue;
+        if (/tabIndex=\{-1\}/.test(attrs)) continue;        // 프로그램이 옮기는 자리
+        if (!/tabIndex|role="button"|role="switch"/.test(attrs) && !/^(button|a|input|select|textarea|summary)$/.test(t.tag)) continue;
+        지운자리.push(path.relative(SRC, full).replace(/\\/g, '/') + ':' + lineOf(code, t.at));
+      }
+    }
+  };
+  walk2(SRC);
+  ok('  자판으로 닿는 자리에서 포커스를 지운 곳', 지운자리, []);
+  console.log('     ↑ 겉 칸이 테두리를 들고 있으면 거기에 `className="field"` 를 주고,');
+  console.log('       그럴 자리가 아니면 `outline` 을 지우지 않는다');
+}
+
+console.log('');
 console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)');
 //
 // `Toast` 는 **화면에 그려지기만** 했다 — `aria-live` 도 `role` 도 없었다. 눈으로

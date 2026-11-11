@@ -53,8 +53,15 @@ function InbodyCard({ record, onDelete, onEdit }) {
               title="수정"
             >✎</button>
           )}
-          <button className="delete-btn" onClick={async () => {
-            const ok = await confirmDialog(`${record.date} 인바디 기록을 삭제할까요?`, { title: '인바디 기록 삭제', confirmText: '삭제' });
+          <button aria-label="이 인바디 기록 지우기" className="delete-btn" onClick={async () => {
+            // 되돌리기가 있는 지우기는 **그 말을 한다** (2026-11-11) — 운동·측정과
+            // 같은 말이다. 같은 일에 다른 말을 쓰면 사람이 앱을 다시 배워야 한다
+            const ok = await confirmDialog(
+              `${record.date} 인바디 기록을 삭제할까요?
+
+지운 바로 뒤 몇 초 동안만 되돌릴 수 있어요.`,
+              { title: '인바디 기록 삭제', confirmText: '삭제' },
+            );
             if (ok) onDelete(record.id);
           }}>✕</button>
         </div>

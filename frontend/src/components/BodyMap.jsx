@@ -58,7 +58,11 @@ function Muscle({ shape, part, slot, dashed, selected, onPick }) {
       aria-pressed={selected}
       onClick={() => onPick(part)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(part); } }}
-      style={{ cursor: 'pointer', outline: 'none' }}
+      className="map-part"
+      // ★ `outline: 'none'` 이었다 (2026-11-11). **자판으로 닿는 칸인데 포커스가
+      //    안 보였다** — 탭으로 부위 여섯을 돌 수 있어도 지금 어디인지 알 수가 없다.
+      //    표시는 `globals.css` 의 `:focus-visible` 한 자리에서 온다
+      style={{ cursor: 'pointer' }}
     >
       <g fill={SKIN} stroke={SKIN_EDGE} strokeWidth="0.7">{shape}</g>
       {paint && (

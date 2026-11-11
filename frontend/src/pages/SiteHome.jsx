@@ -506,6 +506,9 @@ export default function SiteHome() {
               border: '1px solid var(--accent)', borderRadius: 'var(--radius)',
               background: 'var(--bg-secondary)', padding: '10px 13px',
             }}
+            /* 칸 자체는 `outline: 'none'` 이라 포커스가 안 보였다 — **겉 칸이 대신
+               켜진다**(`.field:focus-within`, 2026-11-11) */
+            className="field"
           >
             <NavIcon name="search" size={17} />
             <input
