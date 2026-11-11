@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "3f28aa74ae",
+  "detailVersion": "771ff9f584",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,6 +501,14 @@
       "has": true
     },
     {
+      "key": "b3abc2e",
+      "date": "2026-11-11",
+      "text": "★★ **눌리는데 자판으로 못 닿던 열아홉을 다 닫았다** — 목록이 비었다",
+      "label": "고침",
+      "scope": "자판",
+      "has": true
+    },
+    {
       "key": "d64bcb5",
       "date": "2026-11-11",
       "text": "★ **드롭 줄만 적은 날을 셈에서 빼면서 아무 말도 안 했다** — 수는 맞고 근거가 거짓이었다",
@@ -810,14 +818,6 @@
       "text": "**체성분 도넛이 체중을 넘게 그렸다** — 체수분을 조각으로 또 넣었다",
       "label": "고침",
       "scope": "몸",
-      "has": true
-    },
-    {
-      "key": "02baaaa",
-      "date": "2026-11-04",
-      "text": "**방금 붙인 둘에 edge 값을 먹여 버그 여섯을 잡았다**",
-      "label": "고침",
-      "scope": "통계·지하",
       "has": true
     }
   ]
