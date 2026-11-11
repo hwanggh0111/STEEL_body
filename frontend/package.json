@@ -107,6 +107,7 @@
     "plateaudata": "node scripts/measure-plateau.cjs",
     "swtype": "node scripts/check-swtype.cjs",
     "undo": "node scripts/check-undo.cjs",
+    "often": "node scripts/check-often.cjs",
     "contrast": "node scripts/check-contrast.cjs",
     "corner": "node scripts/check-corner.cjs",
     "keytap": "node scripts/check-keytap.cjs"

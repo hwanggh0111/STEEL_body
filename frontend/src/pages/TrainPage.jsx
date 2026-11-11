@@ -35,6 +35,7 @@ import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
 import { cannotCount } from '../data/repCount';
+import { liftNames } from '../data/liftTrend';
 import { rowPayload, rowById, changed, UNDO_MS } from '../data/undoRow';
 import { useWakeLock } from '../data/useWakeLock';
 import GymSetting from '../components/GymSetting';
@@ -336,6 +337,20 @@ export default function TrainPage() {
   // **적고 있는 날**(`date`)을 같이 넘긴다 — 그 날은 셈에서 뺀다. 안 빼면 오늘
   // 한 세트를 적자마자 「3판 채웠어요 · 올려볼 자리예요」가 뜨고(오늘은 아직 안
   // 끝났다) 「지난 판」에 **오늘**이 뜬다. 지난 날짜에 적을 때도 그 날 앞까지 본다
+  // ── **자주 하는 것** ── (2026-11-11)
+  //
+  // 적을 때마다 **이름을 처음부터 찾았다.** 「즐겨찾기」도 「최근 고른 운동」도 코드에
+  // 한 자도 없었는데, 그 사람의 기록에는 **이미 답이 있다** — 많이 한 순으로 주는 손
+  // (`liftTrend.liftNames`)을 통계가 쓰고 있었다. 셈을 새로 만들지 않고 그것을 쓴다.
+  //
+  // `metric: 'any'` 는 **맨몸까지** 센다(기본값은 무게 운동만이다 — 통계의 선 그리는
+  // 자리가 그래서 그렇다). 여기서 풀업·플랭크를 빼면 그 사람은 이 칸을 영영 못 쓴다.
+  //
+  // **서로 다른 날이 둘 이상**인 것만 온다(`MIN_POINTS`) — 한 번 해본 것은 「자주」가
+  // 아니다. 그래서 처음 온 사람에게는 **빈 배열**이고, 화면은 그 칸을 안 그린다
+  // (「기록이 쌓이면 저절로 나타난다」가 이 앱의 결이다).
+  const often = useMemo(() => liftNames(workouts, today, 8, { metric: 'any' }), [workouts, today]);
+
   const step = useMemo(() => nextStep(workouts, exercise, today, date), [workouts, exercise, today, date]);
   const lastPlay = useMemo(() => lastSession(workouts, exercise, today, date), [workouts, exercise, today, date]);
   // 지난 판은 **접은 채로** 시작한다 — 펼쳐 두면 적는 칸이 아래로 밀린다.
@@ -1728,6 +1743,26 @@ export default function TrainPage() {
             화면으로 나갔다 들어와야 했다 — 적으려던 것을 도중에 끊는 셈이었다 */}
         {finding && (
           <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            {/* **자주 하는 것** — 그 사람 기록에서 많이 한 순. 하나도 없으면
+                (처음 온 사람) 이 칸을 **아예 안 그린다** */}
+            {often.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  자주 하는 것
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {often.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: 12.5, padding: '6px 11px' }}
+                      onClick={() => pick(n)}
+                    >{n}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <ExerciseFinder onPick={pick} pickLabel="이걸로" autoFocus compact initialQuery={enteredPart} />
           </div>
         )}
