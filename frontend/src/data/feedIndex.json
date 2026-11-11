@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "299d5de659",
+  "detailVersion": "a6abec3a73",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,6 +501,14 @@
       "has": true
     },
     {
+      "key": "8a0693a",
+      "date": "2026-11-11",
+      "text": "★ **쉬는 동안 기록을 지우면 알림이 「남은 시간」을 덮었다**",
+      "label": "고침",
+      "scope": "알림",
+      "has": true
+    },
+    {
       "key": "c634bfb",
       "date": "2026-11-11",
       "text": "★ **적을 때마다 이름을 처음부터 찾았다** — 그 사람 기록에 이미 답이 있었다",
@@ -810,14 +818,6 @@
       "text": "**만들어 놓고 아무도 안 부르는 길**을 쓴다 — `npm run alive`",
       "label": "새 기능",
       "scope": "자",
-      "has": true
-    },
-    {
-      "key": "9b81550",
-      "date": "2026-11-04",
-      "text": "**팔이 발보다 길게 잡히면 손이 잘렸다** — 실루엣 틀이 발까지만 쟀다",
-      "label": "고침",
-      "scope": "체형",
       "has": true
     }
   ]
