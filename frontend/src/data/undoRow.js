@@ -152,7 +152,8 @@ export function recordById(records, id) {
 // 수**라 한 점이 사라지면 선이 휜다.
 //
 // 서버가 받는 칸은 셋이다 — `type` · `date` · `data`(갈래마다 다른 꾸러미 ·
-// `routes/measures.js:32`). **`data` 는 통째로 그대로 돌려보낸다** — 갈래가 여섯이고
+// `routes/measures.js:32`). **`data` 는 통째로 그대로 돌려보낸다** — **담기는 갈래가
+// 여섯**이고(서버 `VALID_TYPES`. 화면 칸은 일곱인데 「심박수 존」은 계산기라 안 담는다)
 // (전신 사이즈 · 1RM · 체력 · 유연성 · 어깨 · 스톱워치) 그 안의 칸을 여기서 다시
 // 세면 **갈래가 하나 늘 때마다 이 자리가 틀린다**.
 const MEASURE_TYPES = ['bodySize', 'oneRM', 'fitness', 'flexibility', 'shoulder', 'stopwatch'];

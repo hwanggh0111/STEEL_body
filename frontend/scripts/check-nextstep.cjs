@@ -14,6 +14,10 @@ const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
+// `--root=<길>` 을 주면 그 **사본**을 본다 (되돌려-FAIL 은 사본에서 한다 — 트리를 셋이 쓴다)
+const ROOT = (process.argv.find((a) => a.startsWith('--root=')) || '').slice(7) || '.';
+const at = (rel) => path.join(ROOT, rel);
+
 const bundle = (entry, out) => {
   esbuild.buildSync({
     entryPoints: [entry], bundle: true, format: 'cjs', outfile: out,
@@ -37,7 +41,7 @@ const codeOf = (s) => s
   .replace(/^\s*\/\/.*$/gm, '')
   .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
 
-const L = bundle('src/data/lastSets.js', '.lastsets.cjs');
+const L = bundle(at('src/data/lastSets.js'), '.lastsets.cjs');
 const TODAY = '2026-11-05';
 
 // 줄 하나. `t` 는 적은 시각(시:분) — 차례와 걸린 시간을 재는 데 쓴다
@@ -309,8 +313,41 @@ ok('이상한 것을 줘도 안 터진다',
   [null, null, null]);
 
 console.log('');
+console.log('── ★ 뺀 판을 말해주는가 (2026-11-11) ──');
+// 드롭 줄만 적은 날은 셈에서 뺀다(10/05 에 정했다). 그런데 **말을 안 했다** —
+// 어제 드롭만 적은 사람은 「다음 한 걸음」이 그 전 판을 근거로 권하는데도
+// 「어제 걸로 권했구나」로 읽는다. 수는 맞고 **무엇을 보고 권했는지가 거짓**이다
+{
+  const 드롭만 = days(
+    row('벤치프레스', '80', 4, 8, { date: '2026-10-28' }),
+    row('벤치프레스', '80', 4, 8, { date: '2026-10-31' }),
+    row('벤치프레스', '60', 1, 12, { date: '2026-11-03', link: 'drop' }),
+  );
+  const st = L.nextStep(드롭만, '벤치프레스', TODAY);
+  ok('**뺀 판의 날짜를 들고 온다**', st.skippedLast, '2026-11-03');
+  ok('  근거는 그 전 판이다 (80kg)', [st.from.kg, st.from.date], [80, '2026-10-31']);
+  ok('  한 줄이 그것부터 말한다', L.stepReason(st).startsWith('11/03 판은 드롭세트 줄만 있어 근거에서 뺐어요 — '), true);
+  ok('  권하는 말도 그대로 붙어 있다', /2판 채웠어요/.test(L.stepReason(st)), true);
+
+  // 멀쩡한 판이 가장 최근이면 **아무 말도 안 한다** — 늘 떠 있으면 아무도 안 읽는다
+  const 멀쩡 = days(
+    row('벤치프레스', '60', 1, 12, { date: '2026-10-28', link: 'drop' }),
+    row('벤치프레스', '80', 4, 8, { date: '2026-10-31' }),
+    row('벤치프레스', '80', 4, 8, { date: '2026-11-03' }),
+  );
+  const st2 = L.nextStep(멀쩡, '벤치프레스', TODAY);
+  ok('최근 판이 멀쩡하면 말하지 않는다', st2.skippedLast, undefined);
+  ok('  한 줄에도 안 적힌다', /근거에서 뺐어요/.test(L.stepReason(st2)), false);
+
+  // 드롭 줄만 있고 그 앞에 아무것도 없으면 **권할 것이 없다**(여태 그랬다)
+  const 드롭뿐 = days(row('벤치프레스', '60', 1, 12, { date: '2026-11-03', link: 'drop' }));
+  ok('드롭 줄뿐이면 권하지 않는다', L.nextStep(드롭뿐, '벤치프레스', TODAY), null);
+  ok('  권할 것이 없으면 줄도 없다', L.stepReason(null), '');
+}
+
+console.log('');
 console.log('── 화면이 그 셈만 쓰는가 ──');
-const page = codeOf(fs.readFileSync('src/pages/TrainPage.jsx', 'utf-8'));
+const page = codeOf(fs.readFileSync(at('src/pages/TrainPage.jsx'), 'utf-8'));
 ok('기록 화면이 셈 자리를 불러 쓴다', /nextStep\(|lastSession\(/.test(page), true);
 // ★ 「지난번」도 그 자리를 쓴다 — 화면에서 또 세면 날짜 가리는 선이 둘이 된다
 ok('  「지난번」도 셈 자리를 불러 쓴다', /lastRecordOf\(|plannedSetsOf\(/.test(page), true);

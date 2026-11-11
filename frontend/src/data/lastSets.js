@@ -183,6 +183,22 @@ export function stepOf(sessions) {
  */
 export function nextStep(workouts, exercise, today = null, writing = null) {
   const all = sessionsOf(workouts, exercise, today, { before: writing || today });
+  const step = stepFrom(all);
+  // ★ **뺀 판을 말해준다** (2026-11-11).
+  //
+  // 드롭 줄만 적은 날은 셈에서 빼는데(위 머리글 · 2026-10-05 에 정했다),
+  // 여태 **아무 말도 안 했다.** 그래서 어제 드롭만 적은 사람은 「다음 한 걸음」이
+  // **그 전 판**을 근거로 권하는데도 「어제 걸로 권했구나」로 읽는다 — 수는 맞지만
+  // **무엇을 보고 권했는지가 거짓**이다. 그 한 줄이 이 앱의 약속이다.
+  //
+  // 가장 최근 판이 빠졌을 때만 말한다 — 석 달 전에 드롭만 한 날까지 들추면
+  // 그 줄이 늘 떠 있어서 아무도 안 읽는다.
+  if (step && all[0]?.skipped) step.skippedLast = all[0].date;
+  return step;
+}
+
+/** 위 `nextStep` 의 몸통. 판 목록을 받아 권할 것을 만든다 (뺀 판은 여기서 거른다) */
+function stepFrom(all) {
   const s = all.filter((x) => !x.skipped);
   if (!s.length) return null;
 
@@ -245,21 +261,25 @@ export function nextStep(workouts, exercise, today = null, writing = null) {
  */
 export function stepReason(step) {
   if (!step) return '';
+  // 뺀 판이 있으면 **그것부터** 말한다 — 「무엇을 보고 권했나」가 먼저다
+  const 뺀판 = step.skippedLast
+    ? `${shortDate(step.skippedLast)} 판은 드롭세트 줄만 있어 근거에서 뺐어요 — `
+    : '';
   const unit = step.body ? '회' : 'kg';
   const was = step.body ? `${step.from.reps}회` : `${step.from.kg}kg ${step.from.reps}회`;
   if (step.kind === 'retry') {
-    return `지난번 ${step.target}회를 노렸는데 ${step.from.reps}회에서 멈췄어요 — ` +
+    return 뺀판 + `지난번 ${step.target}회를 노렸는데 ${step.from.reps}회에서 멈췄어요 — ` +
       (step.body ? '같은 횟수를 다시 노려볼까요?' : '같은 무게로 한 번 더 어떨까요?');
   }
   if (step.kind === 'up') {
     const much = step.body ? '한 회' : `한 칸(${step.step}${unit})`;
-    return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${much} 올려볼 자리예요.`;
+    return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${much} 올려볼 자리예요.`;
   }
   if (step.capped) {
-    return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — 칸이 받는 가장 큰 값이라 더 올려 권하지 않아요.`;
+    return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — 칸이 받는 가장 큰 값이라 더 올려 권하지 않아요.`;
   }
-  if (step.streak <= 1) return `지난번 그대로예요 — ${was} (${shortDate(step.from.date)}).`;
-  return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${step.need}판 더 채우면 올려볼 자리예요.`;
+  if (step.streak <= 1) return 뺀판 + `지난번 그대로예요 — ${was} (${shortDate(step.from.date)}).`;
+  return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${step.need}판 더 채우면 올려볼 자리예요.`;
 }
 
 /** 'YYYY-MM-DD' → '10/31' */

@@ -190,7 +190,7 @@ console.log('── 측정(둘레) — 고치는 길이 없어 되돌릴 것은 
 const 측정 = { id: 71, user_id: 46, type: 'bodySize', date: '2026-11-11', data: { chest: 103, waist: 82, arm: 36.5 } };
 ok('**셋을 그대로 보낸다**', U.measurePayload(측정),
   { type: 'bodySize', date: '2026-11-11', data: { chest: 103, waist: 82, arm: 36.5 } });
-ok('  ★ `data` 는 통째로 그대로 (갈래가 여섯이라 칸을 여기서 다시 세지 않는다)',
+ok('  ★ `data` 는 통째로 그대로 (담기는 갈래가 여섯이라 칸을 여기서 다시 세지 않는다)',
   U.measurePayload({ ...측정, type: 'stopwatch', data: { sec: 12.4, note: '100m' } }).data,
   { sec: 12.4, note: '100m' });
 ok('  `id` 는 안 보낸다', 'id' in U.measurePayload(측정), false);
