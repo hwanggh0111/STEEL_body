@@ -140,14 +140,36 @@ function build() {
   //
   // `SHOWN` 에 적어둔 `weight` 가 **쓰이는 데가 없었다** — 그 수가 이 자리의 답이다
   // (새 기능 3 · 고침 2 · 빨라짐 1). 같으면 최신이 이긴다.
+  // ── **같은 종류끼리는 묶지 않는다** ── (2026-11-11, 정석)
+  //
+  // 위의 규칙이 「하루 한 scope 에 **하나**」였다. 그래서 오늘 `fix(꼴)` 을 두 번
+  // 담았더니 저녁 커밋이 **아침 커밋의 소식을 덮었다** — 사용자가 보는 효과는
+  // 「안 보이는 글자 둘 · 머리 날짜 · 자판으로 닿기」 고침 여섯이 **고객센터 소식에서
+  // 사라진 것**이다(`4441b19`. 라이브에서 확인했다).
+  //
+  // 11/05 에 무게를 들인 까닭은 **「큰 것을 붙이고 → 작은 뒷손질」의 하루**였다 —
+  // `feat(유산소)` 가 `fix(유산소)` 위젯 한 줄에 덮였다. 그건 **종류가 다른** 둘이고,
+  // 뒤의 것이 앞의 것의 뒷손질이다. 그 자리에서는 무게가 맞다.
+  //
+  // 그런데 **종류가 같은 둘**(`fix` + `fix`)은 대개 **서로 다른 고침**이다. 그것을
+  // 묶으면 한 건이 통째로 사라진다 — **공지에서 사라지는 것이 한 줄 늘어나는 것보다
+  // 나쁘다.** 그래서 무게가 **가장 큰 것들을 모두** 남긴다:
+  //
+  //   feat(3) + fix(2)  →  feat 하나      (11/05 의 그 자리. 그대로다)
+  //   fix(2)  + fix(2)  →  **둘 다**      (오늘의 그 자리)
+  //
+  // 목록은 `KEEP` 으로 막혀 있어 줄이 무한히 늘지 않는다.
+  // **자(`check-changelog.cjs`)도 이 규칙을 알아야 한다** — 「전부 있어야 한다」로
+  // 두면 자와 생성기가 서로 다른 것을 맞다고 한다(11/11 에 그 꼴로 FAIL 이 떴다).
   const bestOf = new Map();
   for (const e of entries) {
     const key = `${e.date}|${e.scope || e.text.slice(0, 6)}`;
     const cur = bestOf.get(key);
     const w = SHOWN[e.type]?.weight || 0;
-    if (!cur || w > cur.w) bestOf.set(key, { e, w });
+    if (!cur || w > cur.w) bestOf.set(key, { w, hashes: new Set([e.hash]) });
+    else if (w === cur.w) cur.hashes.add(e.hash);
   }
-  const keepSet = new Set([...bestOf.values()].map((x) => x.e.hash));
+  const keepSet = new Set([...bestOf.values()].flatMap((x) => [...x.hashes]));
   const picked = [];
   for (const e of entries) {
     if (!keepSet.has(e.hash)) continue;
