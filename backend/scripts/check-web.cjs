@@ -120,8 +120,13 @@ const hashed = (() => {
     ok('  화면 문서는 늘 다시 물어본다', home.cache, 'no-cache');
     // **10/13~10/15 에 여기가 틀려 있었다** — 압축본은 res.sendFile 로 나가고
     // 그 기본 maxAge 는 0 이라, 해시 없는 압축본이 전부 max-age=0 이었다
-    const icon = await get('/icons/icon.svg');
-    ok('  해시 없는 압축본도 캐시된다 (0 이 아니다)', /max-age=(\d+)/.test(icon.cache || '') && Number(RegExp.$1) > 0, true);
+    // ★ **자가 없는 파일을 가리키고 있었다** (2026-11-11). 여태 `/icons/icon.svg` 를
+    // 봤는데 그 그림은 11/10 로고 교체 때 사라졌다 — 그래서 이 줄은 **압축본의 캐시
+    // 머리가 아니라 폴백의 머리**를 보고 있었다(그 사이 FAIL 로 떠 있었다).
+    // 지금은 **실재하는 비해시 압축본**을 본다 (`robots.txt` 는 크롤러가 직접 받는다)
+    const 비해시 = await get('/robots.txt');
+    ok('  해시 없는 압축본도 캐시된다 (0 이 아니다)',
+      /max-age=(\d+)/.test(비해시.cache || '') && Number(RegExp.$1) > 0, true);
 
     console.log('\n  주소에 맞는 문서를 주는가');
     // `/site` 는 그 화면 조각을 미리 적어 보내므로 `/support`(그 목록에 없는 주소)보다 크다

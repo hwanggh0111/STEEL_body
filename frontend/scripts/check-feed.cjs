@@ -234,5 +234,19 @@ if (list) ok('뽑아 적은 파일이라고 적어뒀다', /손으로 고치지 
 }
 
 
+console.log('\n── ★ 받은 것이 JSON 인지 보는가 (2026-11-11) ──');
+// 서버 폴백이 없는 주소에 `index.html` 을 **200 으로** 주던 일이 있었다. 그러면
+// `r.ok` 만 보는 코드는 통과하고 `r.json()` 에서 터져, 사람에게는 까닭 없이
+// 「못 불러왔어요」만 뜬다. 서버는 같은 날 404 로 끊었지만(`npm run assets`),
+// **받은 것의 종류를 보는 것은 받는 쪽 일**이다 — 이 파일이 빠진 배포가 한 번이라도
+// 나면 그때 또 같은 자리에 선다
+{
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'support', 'feedData.js'), 'utf8');
+  const code = src.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
+  ok('본문을 받는 자리가 `content-type` 을 본다', /content-type/.test(code), true);
+  ok('  JSON 이 아니면 거절한다', /includes\('json'\)/.test(code) && /Promise\.reject/.test(code), true);
+  ok('  `r.ok` 만 보고 바로 `json()` 하지 않는다', /r\.ok \? r\.json\(\)/.test(code), false);
+}
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

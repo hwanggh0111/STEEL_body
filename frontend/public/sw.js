@@ -3,6 +3,40 @@
 const CACHE_NAME = '__SW_VERSION__'.startsWith('__SW') ? 'blackiron-dev' : '__SW_VERSION__';
 const PRECACHE_URLS = ['/', '/index.html'];
 
+// ★ **받은 것이 그 주소의 것인가** (2026-11-11)
+//
+// 없는 조각을 조르면 서버가 `index.html` 을 **200 으로** 주던 일이 있었다
+// (`backend/src/index.js` 의 폴백 · 같은 날 고쳤다). 아래 4번 갈래는 해시 박힌
+// 이름을 「절대 낡지 않는다」고 보아 **캐시를 먼저 보고**, 빗나가면 받아서 담는다 —
+// 그때 **무엇을 받았는지는 안 봤다.** 그래서 HTML 한 장이 `.js` 주소로 담기면
+// 그 사람은 **새로고침으로도 회복이 안 됐다.**
+//
+// 서버만 고치면 **이미 담아버린 사람은 안 낫는다.** 그래서 ⑴ 담기 전에 보고
+// ⑵ **담아둔 것도 읽을 때 본다**(어긋나면 버리고 다시 받는다).
+// 확장자가 없는 주소는 화면 문서라 그대로 통과시킨다.
+const BODY_TYPE = {
+  js: 'javascript', mjs: 'javascript', css: 'css', json: 'json',
+  woff: 'font', woff2: 'font', ttf: 'font', otf: 'font',
+  png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', gif: 'image',
+  ico: 'image', svg: 'svg', wasm: 'wasm',
+};
+function bodyFits(pathname, res) {
+  if (!res) return false;
+  const m = /\.([A-Za-z0-9]+)$/.exec(pathname);
+  const want = m ? BODY_TYPE[m[1].toLowerCase()] : null;
+  if (!want) return true;                       // 모르는 확장자 · 화면 주소는 건드리지 않는다
+  // ★ **종류를 안 적어 보낸 것은 막지 않는다.** 처음엔 막는 쪽으로 적었는데
+  // `npm run sw` 가 잡았다 — 그 자의 흉내 응답에 머리글이 없어서, 조각이
+  // **두 번째부터도 네트워크를 타게** 됐다. 막아서 얻는 것도 없다: 이 결함은
+  // **`text/html` 이 분명히 적혀서** 생긴 것이고, 머리글이 없는 몸통을 안 담으면
+  // 머리글을 떼는 중간 장비 뒤에 있는 사람은 **오프라인이 조용히 안 된다**
+  const head = res.headers && typeof res.headers.get === 'function'
+    ? res.headers.get('content-type') : null;
+  const got = (head || '').toLowerCase();
+  if (!got) return true;
+  return got.includes(want);
+}
+
 // Install: precache core static files
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -119,13 +153,21 @@ self.addEventListener('fetch', (event) => {
   //    없을 때만 받아온다.
   if (sameOrigin && /\/assets\/.+-[A-Za-z0-9_-]{8,}\.(js|css|woff2?)$/.test(url.pathname)) {
     event.respondWith(
-      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        if (res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, clone)).catch(() => {});
+      caches.match(req).then((hit) => {
+        // ★ 담아둔 것도 **읽을 때 본다.** 어긋나면 버리고 다시 받는다 —
+        // 그 한 줄이 「새로고침해도 흰 화면」을 스스로 낫게 하는 자리다
+        if (hit && !bodyFits(url.pathname, hit)) {
+          caches.open(CACHE_NAME).then((c) => c.delete(req)).catch(() => {});
+          hit = null;
         }
-        return res;
-      }).catch(() => Response.error()))
+        return hit || fetch(req).then((res) => {
+          if (res.status === 200 && res.type === 'basic' && bodyFits(url.pathname, res)) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(req, clone)).catch(() => {});
+          }
+          return res;
+        }).catch(() => Response.error());
+      })
     );
     return;
   }
@@ -133,8 +175,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(req)
       .then((response) => {
-        // 우리 집 것이고 제대로 온 응답만 담아둔다
-        if (sameOrigin && response.status === 200 && response.type === 'basic') {
+        // 우리 집 것이고 제대로 온 응답만 담아둔다 (**무엇을 받았는지까지** 본다)
+        if (sameOrigin && response.status === 200 && response.type === 'basic'
+            && bodyFits(url.pathname, response)) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
         }

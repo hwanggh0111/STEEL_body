@@ -628,9 +628,31 @@ function routeDoc(urlPath) {
   return _routeDocs.get(clean) || null;
 }
 
+// ★ **확장자가 붙은 주소는 폴백에 태우지 않는다** (2026-11-11)
+//
+// 여태 `/api` 만 비키고 **그 외 전부** `index.html` 을 200 으로 받았다. 그래서
+// 사라진 조각(`/assets/index-5lFYZiws.js`)을 조르는 옛 탭이 **스크립트 자리에 HTML**
+// 을 받았고, 서비스워커는 해시 박힌 이름을 「절대 낡지 않는다」고 보아 **그것을
+// 그 주소로 담았다**(`public/sw.js` 의 4번 갈래 · 캐시 우선). 그 사람은 그 뒤로
+// 새로고침을 해도 계속 HTML 을 스크립트로 받는다 — **스스로 회복할 길이 없다.**
+// 조각 이름이 하루에 두 번 바뀌는 날(11/09·11/10)이 가장 잘 걸린다.
+//
+// 선은 **확장자**다. 이 앱의 화면 주소에는 점이 없다(`/home` · `/support/notices` ·
+// `/oauth/email` …). 그러니 점 뒤에 글자가 붙은 주소가 여기까지 왔다는 것은
+// **있어야 할 파일이 없다**는 뜻이고, 그때 줄 답은 404 다. 몸통이 아니라
+// **상태코드가 404 여야** 서비스워커도 브라우저도 담지 않는다.
+//
+// 실재하는 파일은 위(`express.static` · 미리 압축한 것 집어주는 길)에서 이미 나갔다.
+const FILE_LIKE = /\.[A-Za-z0-9]{1,8}$/;
+
 // SPA 폴백 — API가 아닌 모든 요청은 index.html로
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
+  if (FILE_LIKE.test(req.path)) {
+    // 담지 말라고 분명히 말한다 — 404 를 담는 캐시도 있다
+    res.set('Cache-Control', 'no-store');
+    return res.status(404).type('text/plain; charset=utf-8').send('404 Not Found');
+  }
   spaCSP(req, res, () => {
     // 폴백으로 나가는 index.html 도 **매번 물어보게 한다** — 위의 정적 서빙과
     // 같은 규칙이다. 여기만 빼먹으면 `/home` 처럼 **주소로 바로 들어온 사람**만
@@ -687,6 +709,16 @@ app.get('*', (req, res, next) => {
       res.status(500).send('화면을 불러오지 못했어요. 잠시 뒤에 다시 열어주세요.');
     });
   });
+});
+
+// ★ **없는 API 길은 JSON 으로 404 한다** (2026-11-11)
+//
+// 여기까지 온 `/api/…` 는 어느 길에도 안 맞은 것이다. 여태 express 의 기본 404 가
+// 받아 **HTML 한 줄**(`Cannot GET …`)을 보냈다 — 받는 쪽은 전부 JSON 을 기다리는
+// 자리라, 「무엇이 왔는지」를 안 보는 코드가 있으면 `r.json()` 에서 터진다.
+// 같은 날 고친 폴백·서비스워커와 **같은 류**다: 주소의 종류와 몸통의 종류를 맞춘다.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: '그런 길이 없습니다' });
 });
 
 // 전역 에러 핸들러 (내부 정보 노출 방지)

@@ -75,7 +75,19 @@ export function loadFeedDetails() {
   if (details) return Promise.resolve(details);
   if (!pending) {
     pending = fetch(DETAIL_URL)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      // ★ **`r.ok` 만 보면 HTML 을 JSON 으로 읽으려 든다** (2026-11-11)
+      //
+      // 서버의 폴백이 없는 주소에 `index.html` 을 **200 으로** 주던 일이 있었다.
+      // 그러면 여기는 `ok` 를 통과하고 `r.json()` 에서 터져, 사람에게는 까닭 없이
+      // 「못 불러왔어요」만 뜬다. 서버는 같은 날 404 로 끊게 고쳤지만, **받은 것이
+      // JSON 인지 보는 것은 이쪽 일**이다 — 이 파일이 빠진 배포가 한 번이라도 나면
+      // 그때 또 같은 자리에 선다.
+      .then((r) => {
+        const type = (r.headers.get('content-type') || '').toLowerCase();
+        if (!r.ok) return Promise.reject(new Error(String(r.status)));
+        if (!type.includes('json')) return Promise.reject(new Error('not-json'));
+        return r.json();
+      })
       .then((d) => { details = d && typeof d === 'object' ? d : {}; return details; })
       .catch((e) => { pending = null; throw e; });
   }

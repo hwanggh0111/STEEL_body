@@ -36,6 +36,12 @@ const ok = (name, got, want) => {
 };
 
 // ── 가짜 캐시 한 벌 ──
+/** 담아둔 것을 응답 꼴로 돌려준다 — **종류를 그대로** 들고 나온다 */
+const mkStored = (v) => new Response(v.body, {
+  status: 200,
+  headers: v.ct ? { 'content-type': v.ct } : undefined,
+});
+
 function makeCaches() {
   const stores = new Map();               // 캐시이름 → Map(주소 → 몸통글자)
   const keyOf = (req) => (typeof req === 'string' ? req : req.url);
@@ -44,11 +50,17 @@ function makeCaches() {
       if (!stores.has(name)) stores.set(name, new Map());
       const m = stores.get(name);
       return {
-        async put(req, res) { m.set(keyOf(req), await res.text()); },
-        async addAll(list) { for (const u of list) m.set(new URL(u, ORIGIN).pathname, '담아둔 ' + u); },
+        // **담아둔 것의 종류도 같이 들고 있는다** — 진짜 캐시가 그렇다.
+        // 종류를 잃어버리면 `bodyFits` 가 멀쩡한 조각을 버린다
+        async put(req, res) {
+          const ct = res.headers && typeof res.headers.get === 'function'
+            ? res.headers.get('content-type') : null;
+          m.set(keyOf(req), { body: await res.text(), ct });
+        },
+        async addAll(list) { for (const u of list) m.set(new URL(u, ORIGIN).pathname, { body: '담아둔 ' + u, ct: 'text/html' }); },
         async match(req) {
           const hit = m.get(keyOf(req));
-          return hit === undefined ? undefined : new Response(hit, { status: 200 });
+          return hit === undefined ? undefined : mkStored(hit);
         },
       };
     },
@@ -57,7 +69,7 @@ function makeCaches() {
         // 주소로도, 경로로도 찾는다 (precache 는 경로로 담는다)
         const k = keyOf(req);
         const hit = m.has(k) ? m.get(k) : m.get(new URL(k, ORIGIN).pathname);
-        if (hit !== undefined) return new Response(hit, { status: 200 });
+        if (hit !== undefined) return mkStored(hit);
       }
       return undefined;
     },
@@ -136,11 +148,14 @@ const req = (url, { mode = 'no-cors', method = 'GET' } = {}) => ({ url, mode, me
 // 위한 선이다. 그런데 Node 의 `new Response()` 는 type 이 `'default'` 라서, 그대로
 // 쓰면 **워커가 제대로 걸러낸 것을 검사가 「안 담았다」고 읽는다.** 처음에 그렇게
 // 두 건이 틀렸다 — 코드가 아니라 흉내가 틀린 것이었다.
-const mkRes = (body, type = 'basic') => ({
+// ★ **머리글까지 흉내 낸다** (2026-11-11) — 서비스워커가 11/11 부터 「받은 것이
+// 그 주소의 것인가」를 본다(`bodyFits`). 머리글이 없는 흉내로는 그 갈래를 못 본다
+const mkRes = (body, type = 'basic', ct = null) => ({
   status: 200,
   type,
+  headers: { get: (k) => (String(k).toLowerCase() === 'content-type' ? ct : null) },
   async text() { return body; },
-  clone() { return mkRes(body, type); },
+  clone() { return mkRes(body, type, ct); },
 });
 
 // 약속이 제 시간에 끝나는지 본다 — **잠든 서버**를 흉내 내려면 이게 필요하다
@@ -258,7 +273,15 @@ const 멈춤 = () => {
   console.log('\n── 손대지 않은 규칙들이 그대로인가 ──');
   {
     let 불린횟수 = 0;
-    const fetchImpl = async () => { 불린횟수 += 1; return mkRes('받아온 것'); };
+    // 조각은 **종류를 적어** 온다(서버가 그렇게 보낸다). 아래 해시 조각 갈래가
+    // 그것을 보고 담는다 — 안 적어 보내면 실제와 다른 것을 시험하는 꼴이 된다
+    const fetchImpl = async (r) => {
+      불린횟수 += 1;
+      const u = typeof r === 'string' ? r : (r && r.url) || '';
+      const ct = /\.js(\?|$)/.test(u) ? 'application/javascript'
+        : /\.css(\?|$)/.test(u) ? 'text/css' : null;
+      return mkRes('받아온 것', 'basic', ct);
+    };
     const caches = makeCaches();
     const w = loadWorker({ caches, fetchImpl });
     if (!w) 멈춤();

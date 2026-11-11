@@ -37,6 +37,7 @@ const SKIP = {
   'check-shield.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run shield`)',
   'check-cardio-api.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run cardioapi`)',
   'check-admin-api.cjs': '**진짜 서버를 띄운다** — 포트를 쓰므로 따로 돌린다 (`npm run adminapi`)',
+  'check-assets.cjs': '**진짜 서버를 띄운다** · `frontend/dist` 를 본다 — 따로 돌린다 (`npm run assets`)',
 };
 
 const files = fs.readdirSync(DIR).filter((f) => /^check-.*\.cjs$/.test(f)).sort();

@@ -60,7 +60,8 @@
     "cardioapi": "node scripts/check-cardio-api.cjs",
     "gate": "node scripts/check-gate.cjs",
     "adminapi": "node scripts/check-admin-api.cjs",
-    "bye": "node scripts/check-bye.cjs"
+    "bye": "node scripts/check-bye.cjs",
+    "assets": "node scripts/check-assets.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
