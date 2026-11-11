@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import NavIcon from '../../components/NavIcon';
 import { FAQ, matchFaq } from './faq';
 import client from '../../api/client';
@@ -105,7 +106,11 @@ export default function AskFirst() {
           return (
             <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
               <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={on}
                 onClick={() => setOpen(on ? null : f.q)}
+                onKeyDown={onEnterSpace(() => { setOpen(on ? null : f.q); })}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
               >
                 <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>

@@ -372,6 +372,18 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', onKey);
   }, [sideMenu]);
 
+  // ── **크게 띄운 사진은 Esc 로 닫을 길이 없었다** ── (2026-11-11)
+  //
+  // 바로 위의 서랍은 이 손을 갖췄는데 **사진만 빠져 있었다.** 닫는 길이 「사진을
+  // 누르기」 하나뿐이라, 자판만 쓰는 사람은 화면 전체를 덮은 사진 앞에서 빠져나갈
+  // 수가 없다. 홈페이지의 사진 크게 보기도 같은 자리였다(그쪽도 11/11 에 고쳤다).
+  useEffect(() => {
+    if (!zoomImg) return;
+    const onKey = (e) => { if (e.key === 'Escape') setZoomImg(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [zoomImg]);
+
   const initial = nickname ? nickname.charAt(0).toUpperCase() : '?';
 
   // **한도를 지키라고 말하는 대신 우리가 줄인다.**
@@ -480,15 +492,22 @@ export default function Layout() {
           {/* PC 에서는 왼쪽 사이드바가 이미 BLACK IRON 를 크게 달고 있다.
               머리에도 그대로 두면 **같은 워드마크 두 개가 나란히** 놓인다.
               PC 는 사이드바가 이름과 길찾기를, 머리가 계정을 맡는다 */}
-          <div
+          {/* ── **머리의 이름이 길찾기인데 단추가 아니었다** ── (2026-11-11)
+              눌러서 홈으로 가는 자리다(`goHome`). 맨 `div` 라 자판 탭이 멈추지 않고,
+              읽어주는 기계에는 그림 하나였다 — **「홈으로」라고 말해줘야** 누를 생각을
+              한다. 하단 탭바와 같은 류다(그쪽은 `<button>` 으로 바꿨다). */}
+          <button
+            type="button"
             onClick={goHome}
+            aria-label="홈으로"
             style={{
               cursor: 'pointer', display: isPC ? 'none' : 'flex',
               alignItems: 'center', gap: 8, minWidth: 0,
+              background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
             }}
           >
             <Logo cap={18} />
-          </div>
+          </button>
 
           {/* ── 새로고침 ── (2026-09-17)
               **앱으로 쓰는 사람에게는 다시 받을 길이 하나도 없었다.** 목록은 30초

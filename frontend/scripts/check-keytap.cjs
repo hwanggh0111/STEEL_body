@@ -81,14 +81,21 @@ const walk = (dir) => {
     if (!/\.jsx$/.test(f.name)) continue;
     const rel = path.relative(SRC, full).replace(/\\/g, '/');
     const code = fs.readFileSync(full, 'utf8');
-    // 창 바깥 눌러 닫기 — 그 파일에 Escape 가 있으면 겉장은 비킨다 (위 2번)
-    const 창이고Esc있다 = /role\s*=\s*["']dialog["']/.test(code) && /['"]Escape['"]/.test(code);
+    // 창 바깥 눌러 닫기 — 그 파일에 Escape 가 있으면 겉장은 비킨다 (위 2번).
+    //
+    // ★ 처음에는 `role="dialog"` 가 든 파일만 비켰다. 그랬더니 **`Layout` 의 서랍
+    //   겉장**이 걸렸다 — 그 서랍은 `Escape` 를 갖췄는데(:370) `role="dialog"` 를
+    //   안 쓴다. 겉장은 **화면을 덮는 칸**이라는 것으로 가리는 쪽이 맞다
+    const Esc있다 = /['"]Escape['"]/.test(code);
     for (const t of openTags(code)) {
       if (t.tag[0] === t.tag[0].toUpperCase()) continue;   // 남의 컴포넌트 (위 1번)
       if (원래단추.has(t.tag)) continue;
       if (!/\bonClick\s*=/.test(t.attrs)) continue;
       if (손을썼나(t.attrs)) continue;                      // 위 3번까지 여기서 걸러진다
-      if (창이고Esc있다 && /position:\s*['"]fixed['"]/.test(t.attrs)) continue;
+      // 화면을 덮는 겉장인가 — `inset: 0` 이나 네 변을 0 으로 깐 칸
+      const 겉장 = /position:\s*['"]fixed['"]/.test(t.attrs)
+        && (/inset:\s*0/.test(t.attrs) || (/top:\s*0/.test(t.attrs) && /bottom:\s*0/.test(t.attrs)));
+      if (Esc있다 && 겉장) continue;
       (found[rel] = found[rel] || []).push(lineOf(code, t.at));
     }
   }
@@ -106,26 +113,17 @@ console.log('── 자판으로 못 닿는 자리 ──');
 //   `SecurityPanel` 둘 중 하나            남의 컴포넌트에 넘기는 `onClick` 이다
 //   `SiteHome:652`                       창 겉장 — 다만 **`Escape` 가 없었다.**
 //                                        그래서 그 자리는 11/11 에 내가 고쳤다
-const 남은자리 = {
-  // 매일 지나는 자리 — 다음에 이것부터
-  'components/Layout.jsx': 3,              // 머리글 워드마크 → 홈 · 그 밖 둘
-  'components/RestBar.jsx': 1,             // 쉬는 띠
-  // 고객센터 — 사용자가 쓴다
-  'pages/support/SupportPage.jsx': 3,
-  'pages/support/FeedList.jsx': 1,
-  'pages/support/ReportList.jsx': 1,
-  'pages/support/ReportBox.jsx': 2,
-  'pages/support/AskFirst.jsx': 1,
-  // 그 외 사용자 화면
-  'pages/RoutinePage.jsx': 1,
-  'pages/routine/RoutineNotes.jsx': 1,
-  'components/measure/BodySizeSection.jsx': 1,
-  'pages/IntroPage.jsx': 1,
-  // 관리자 — 주인만 쓴다. 맨 뒤
-  'pages/AdminPage.jsx': 1,
-  'components/SecurityPanel.jsx': 1,
-  'components/admin/ReportAdmin.jsx': 1,
-};
+// **다 닫았다** (2026-11-11). 19건을 그날 안에 전부 닫아서 목록이 비었다 —
+// 이제 이 자는 「**새 자리가 생기면 FAIL**」 하나로 선다.
+//
+// 닫은 차례는 아픈 순이었다 — 하단 탭바(앱의 주 길찾기) → 머리글 이름 · 쉬는 띠
+// (매일 지나는 자리) → 고객센터 여덟(사용자가 쓴다) → 루틴 · 측정 · 소개 →
+// 관리자 셋(주인만 쓴다). 창 넷에는 `Escape` 를 달았다(계정 삭제 · 비밀번호 변경 ·
+// 사진 크게 보기 둘 · 사람 지우는 확인).
+//
+// 새로 `<div onClick>` 을 적었다가 걸리면 **고치는 쪽이 맞다.** 그래도 둬야 하면
+// 까닭과 함께 여기 적는다 — 꼴은 `{ '파일/경로.jsx': 수 }` 다.
+const 남은자리 = {};
 
 const 지금 = Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.length]));
 const 새로생긴것 = Object.keys(지금).filter((k) => !(k in 남은자리));
@@ -138,7 +136,12 @@ console.log('     ↑ `<div onClick>` 이면 `role="button"`·`tabIndex`·Enter/
 console.log('       **원래 단추인 것**(`<button>`)을 쓰는 쪽이 늘 낫다 — 자판·낭독기·돋보기가 다 안다');
 ok('적어둔 수와 같다 (고쳤으면 같이 내린다)', 줄었는데안내린것, []);
 const 합 = Object.values(지금).reduce((a, b) => a + b, 0);
-console.log(`     남은 자리 ${합}개 / 파일 ${Object.keys(지금).length}개`);
+console.log(합 === 0 ? '     남은 자리 없음 — 다 닫혔다' : `     남은 자리 ${합}개 / 파일 ${Object.keys(지금).length}개`);
+// 고치러 갈 때 자리를 바로 보려면 — `KEYTAP_LIST=1 npm run keytap`
+// (적어둔 수는 줄이 밀리므로 **열쇠로 삼지 않는다**. 보는 데만 쓴다)
+if (process.env.KEYTAP_LIST) {
+  for (const [f, lines] of Object.entries(found)) console.log('       ' + f + ' → ' + lines.join(' · '));
+}
 
 console.log('');
 console.log('── 닫은 자리가 다시 열리지 않았는가 ──');
@@ -179,6 +182,6 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
 }
 
 console.log('');
-if (bad === 0) console.log('눌리는 것이 자판으로도 눌립니다 (적어둔 자리를 뺀 나머지)');
+if (bad === 0) console.log('눌리는 것이 자판으로도 눌립니다');
 else console.log(bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

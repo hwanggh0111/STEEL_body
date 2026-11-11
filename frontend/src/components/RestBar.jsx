@@ -126,9 +126,21 @@ export default function RestBar({ bottom = 58 }) {
         <path d="M12 9v4l2.5 2M9 2h6" />
       </svg>
 
+      {/* 누르면 운동 화면으로 돌아가는 칸이다 — **자판으로도 닿게** 한다 (2026-11-11).
+          띠 자체는 `role="status"` 로 읽히는 자리라, 누르는 칸만 단추로 가른다.
+          `.tap-tight` 는 안 붙인다 — 띠 안의 큰 칸이라 44px 로 커져도 밀 것이 없다 */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="운동 화면으로 돌아가기"
         style={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
         onClick={() => { if (location.pathname !== '/train') navigate('/train'); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (location.pathname !== '/train') navigate('/train');
+          }
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{

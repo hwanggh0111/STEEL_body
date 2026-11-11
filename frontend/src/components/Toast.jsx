@@ -36,18 +36,40 @@ export default function Toast() {
   const [action, setAction] = useState(null);
   const timerRef = useRef(null);
   const btnRef = useRef(null);
+  // ── **되돌리기가 다른 알림에 밀려났다** ── (2026-11-11, 벼림이 짚었다)
+  //
+  // 알림 자리가 **하나**다(`showToastFn` 한 벌). 그래서 지운 직후 다른 알림이 뜨면
+  // **되돌리기 단추가 그대로 사라졌다** — 그 몇 초가 그 사람의 **유일한 복구 창**이고,
+  // 밀어낸 쪽은 대개 「저장했어요」처럼 **안 밀려도 되는 말**이다.
+  //
+  // 그래서 **되돌리기가 떠 있는 동안 그냥 알림은 기다린다.** 되돌리기끼리는 새것이
+  // 이긴다(방금 지운 것이 그 사람이 되돌릴 것이다). 기다리는 것은 **한 줄만** 들고
+  // 있는다 — 쌓아두면 알림이 줄줄이 뜬다.
+  const waitingRef = useRef(null);
+  const hasActionRef = useRef(false);
   // 포커스를 옮기기 전에 **어디에 있었는지**를 들고 있는다
   const cameFromRef = useRef(null);
 
   useEffect(() => {
-    const fn = (msg, t = 'success', act = null) => {
+    const show = (msg, t, act) => {
       if (timerRef.current) clearTimeout(timerRef.current);
       setMessage(msg);
       setType(t);
-      setAction(act && typeof act.run === 'function' ? act : null);
+      setAction(act);
       setVisible(true);
+      hasActionRef.current = !!act;
       cameFromRef.current = lastInput === 'key' ? document.activeElement : null;
       timerRef.current = setTimeout(() => setVisible(false), (act && act.ms) || 4000);
+    };
+    const fn = (msg, t = 'success', act = null) => {
+      const action2 = act && typeof act.run === 'function' ? act : null;
+      // 되돌리기가 떠 있는데 **그냥 알림**이 오면 밀어내지 않고 들고 있는다 (위 머리글)
+      if (hasActionRef.current && !action2) {
+        waitingRef.current = { msg, t };
+        return;
+      }
+      waitingRef.current = null;
+      show(msg, t, action2);
     };
     showToastFn = fn;
     return () => {
@@ -70,9 +92,16 @@ export default function Toast() {
   // 다음 탭이 화면 맨 위에서 다시 시작한다
   useEffect(() => {
     if (visible) return;
+    hasActionRef.current = false;
     const back = cameFromRef.current;
     cameFromRef.current = null;
     if (back && document.contains(back) && typeof back.focus === 'function') back.focus();
+    // 기다리던 말이 있으면 이제 띄운다 (되돌리기 창이 끝났다)
+    const wait = waitingRef.current;
+    if (wait && showToastFn) {
+      waitingRef.current = null;
+      showToastFn(wait.msg, wait.t, null);
+    }
   }, [visible]);
 
   if (!visible) return null;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { onEnterSpace } from '../data/pressKey';
 import NavIcon from '../components/NavIcon';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -93,7 +94,10 @@ function Todo({ pending, onGo }) {
   return (
     <div
       className={none ? 'card' : 'card clickable'}
+      role={none ? undefined : 'button'}
+      tabIndex={none ? undefined : 0}
       onClick={none ? undefined : onGo}
+      onKeyDown={none ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
       style={{
         marginBottom: 20,
         borderColor: none ? 'var(--border)' : 'var(--accent)',
@@ -145,7 +149,7 @@ function NewErrors({ count, loaded, onGo }) {
       onClick={onGo}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
+      onKeyDown={onEnterSpace(() => { onGo(); })}
       style={{
         marginBottom: 20, borderLeft: '2px solid var(--warning)',
         display: 'flex', alignItems: 'center', gap: 12,

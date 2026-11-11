@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import client from '../../api/client';
 import { toast } from '../../components/Toast';
 import { confirmDialog } from '../../components/ConfirmModal';
@@ -194,7 +195,14 @@ export default function RoutineNotes({ onToRoutine }) {
       {!loadFailed && notes.map((note) => (
         <div key={note.id} className="card" style={{ padding: '12px 14px', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ minWidth: 0, flexGrow: 1, cursor: 'pointer' }} onClick={() => open(note)}>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={`${noteTitle(note.body)} 열기`}
+              style={{ minWidth: 0, flexGrow: 1, cursor: 'pointer' }}
+              onClick={() => open(note)}
+              onKeyDown={onEnterSpace(() => { open(note); })}
+            >
               <div style={{
                 fontSize: 13.5, color: 'var(--text-primary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

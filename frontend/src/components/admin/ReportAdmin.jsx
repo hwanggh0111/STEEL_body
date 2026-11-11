@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import client from '../../api/client';
 import { toast } from '../Toast';
 import NavIcon from '../NavIcon';
@@ -129,7 +130,11 @@ function AbuseLogs() {
       borderColor: pending > 0 ? 'var(--danger)' : 'var(--border)',
     }}>
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={openList}
         onClick={() => setOpenList(v => !v)}
+        onKeyDown={onEnterSpace(() => { setOpenList(v => !v); })}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexWrap: 'wrap' }}
       >
         <span style={{ display: 'flex' }} aria-hidden="true"><NavIcon name="ban" size={16} /></span>
@@ -431,7 +436,7 @@ export default function ReportAdmin() {
                   role="button"
                   tabIndex={0}
                   onClick={() => openItem(r)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(r); } }}
+                  onKeyDown={onEnterSpace(() => { openItem(r); })}
                   style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
@@ -79,7 +80,12 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
 
       {records.map((r, i) => (
         <div key={r.id} className="card" style={{ marginBottom: 6, cursor: 'pointer', borderColor: openIdx === i ? 'var(--accent)' : 'var(--border)' }}
-          onClick={() => setOpenIdx(openIdx === i ? null : i)}>
+          role="button"
+          tabIndex={0}
+          aria-expanded={openIdx === i}
+          aria-label={`${r.date} 치수 ${openIdx === i ? '접기' : '펼치기'}`}
+          onClick={() => setOpenIdx(openIdx === i ? null : i)}
+          onKeyDown={onEnterSpace(() => { setOpenIdx(openIdx === i ? null : i); })}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.date}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

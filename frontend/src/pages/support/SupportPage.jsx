@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import { useNavigate } from 'react-router-dom';
 import ReportBox from './ReportBox';
 import client from '../../api/client';
@@ -174,7 +175,11 @@ export default function SupportPage() {
           예전에는 이 사실이 페이지 맨 아래 접힌 단추 안에만 있었다 */}
       {reports.length > 0 && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="내 제보 보기"
           onClick={() => openReport()}
+          onKeyDown={onEnterSpace(() => { openReport(); })}
           style={{
             borderLeft: `2px solid ${hasNewReply ? 'var(--accent)' : 'var(--border-hover)'}`,
             paddingLeft: 18, marginBottom: 28, cursor: 'pointer',
@@ -222,7 +227,10 @@ export default function SupportPage() {
         {HELP.map(h => (
           <div
             key={h.kind}
+            role="button"
+            tabIndex={0}
             onClick={() => openReport(h.kind)}
+            onKeyDown={onEnterSpace(() => { openReport(h.kind); })}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
               padding: '15px 0', borderBottom: '1px solid var(--border)',
@@ -332,7 +340,11 @@ export default function SupportPage() {
           return (
             <div key={f.q} style={{ borderBottom: '1px solid var(--border)' }}>
               <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={on}
                 onClick={() => setOpenFaq(on ? null : f.q)}
+                onKeyDown={onEnterSpace(() => { setOpenFaq(on ? null : f.q); })}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 0', cursor: 'pointer',

@@ -131,8 +131,20 @@ export default function SecurityPanel() {
   const [error, setError] = useState(false);
   // 지울 대상. 이메일을 그대로 적어야 지워진다
   const [deleting, setDeleting] = useState(null);
+
   const [confirmEmail, setConfirmEmail] = useState('');
   const [removing, setRemoving] = useState(false);
+  // ── **사람을 지우는 확인 창에 Esc 가 없었다** ── (2026-11-11)
+  //
+  // 닫는 길이 「겉장 누르기」와 「취소」뿐이었다 — 자판만 쓰는 사람은 **가장 위험한
+  // 창**에 갇혔다. 지우는 중(`removing`)에는 안 닫는다 — 누르던 것이 날아가면
+  // 무엇이 지워졌는지 알 수 없다(겉장 누르기도 같은 조건을 쓴다).
+  useEffect(() => {
+    if (!deleting) return;
+    const onKey = (e) => { if (e.key === 'Escape' && !removing) setDeleting(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleting, removing]);
   // 찾기 · 역할 거르기 · 서버 설정 접기
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');

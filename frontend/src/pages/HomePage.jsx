@@ -1,4 +1,5 @@
 import { useRefreshTick } from '../store/refreshStore';
+import { onEnterSpace } from '../data/pressKey';
 // 「가장 최근」을 고르는 손 — 앞날 줄을 빼고 고른다 (2026-11-05)
 import { latestInbody } from '../data/inbodyLatest';
 import { useEffect, useState, useMemo } from 'react';
@@ -106,7 +107,7 @@ function BodyLine({ records, onGo }) {
       role="button"
       tabIndex={0}
       onClick={() => onGo(stale)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(stale); } }}
+      onKeyDown={onEnterSpace(() => { onGo(stale); })}
       style={{
       marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
     }}>
@@ -164,7 +165,7 @@ function TodayFocus({ heat, cold, skipped = [], onGo }) {
       role="button"
       tabIndex={0}
       onClick={onGo}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGo(); } }}
+      onKeyDown={onEnterSpace(() => { onGo(); })}
       style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16 }}
     >
       {/* 작은 몸 — **지도와 같은 조각**을 줄여 쓴다 */}

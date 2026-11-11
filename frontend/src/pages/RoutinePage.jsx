@@ -1,4 +1,5 @@
 import { useRefreshTick } from '../store/refreshStore';
+import { onEnterSpace } from '../data/pressKey';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import client from '../api/client';
@@ -852,7 +853,11 @@ export default function RoutinePage() {
             >
               {/* 헤더 (클릭 시 설명 토글) */}
               <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={isOpen}
                 onClick={() => setOpenIdx(isOpen ? null : idx)}
+                onKeyDown={onEnterSpace(() => { setOpenIdx(isOpen ? null : idx); })}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
               >
                 <div style={{ flex: 1 }}>

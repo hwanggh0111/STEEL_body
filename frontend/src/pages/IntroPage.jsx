@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { onEnterSpace } from '../data/pressKey';
 import { useIntroStats, FEATURES } from './support/introData';
 import NavIcon from '../components/NavIcon';
 import pkg from '../../package.json';
@@ -95,7 +96,10 @@ export default function IntroPage({ embedded = false }) {
         {FEATURES.map((f, i) => (
           <div
             key={f.path + f.name}
+            role="button"
+            tabIndex={0}
             onClick={() => navigate(f.path, f.state ? { state: f.state } : undefined)}
+            onKeyDown={onEnterSpace(() => { navigate(f.path, f.state ? { state: f.state } : undefined); })}
             style={{
               display: 'flex', gap: 16, alignItems: 'baseline', cursor: 'pointer',
               padding: '13px 0', borderBottom: '1px solid var(--border)',

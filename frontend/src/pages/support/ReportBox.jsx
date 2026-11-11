@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
+import HintHits from './HintHits';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { matchFaq } from './faq';
@@ -67,7 +69,6 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
   const device = useDeviceInfo();
   const [sent, setSent] = useState(false);
   // 제목을 치는 동안 답이 이미 있는 질문인지 찾아본다
-  const [openHint, setOpenHint] = useState(null);
 
   const k = kind ? kindOf(kind) : null;
 
@@ -263,43 +264,9 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
               style={{ marginBottom: titleHits.length ? 10 : 16 }}
             />
 
-            {/* 치는 동안 답이 이미 있는 질문인지 알려준다.
+            {/* 치는 동안 답이 이미 있는 질문인지 알려준다 (`HintHits.jsx`).
                 막지는 않는다 — 답이 아니면 그대로 마저 적으면 된다 */}
-            {titleHits.length > 0 && (
-              <div style={{
-                border: '1px solid var(--border)', borderLeft: '2px solid var(--accent)',
-                borderRadius: 'var(--radius)', padding: '10px 12px', marginBottom: 16,
-              }}>
-                <div style={{ fontSize: 11.5, color: 'var(--accent)', marginBottom: 4 }}>
-                  혹시 이걸 찾으시나요?
-                </div>
-                {titleHits.map(f => {
-                  const on = openHint === f.q;
-                  return (
-                    <div key={f.q}>
-                      <div
-                        onClick={() => setOpenHint(on ? null : f.q)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          padding: '5px 0', cursor: 'pointer',
-                        }}
-                      >
-                        <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1 }}>{f.q}</span>
-                        <span style={{
-                          color: 'var(--text-muted)', fontSize: 13, flexShrink: 0,
-                          transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
-                        }}>+</span>
-                      </div>
-                      {on && (
-                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '0 0 8px' }}>
-                          {f.a}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <HintHits hits={titleHits} />
 
             {/* ── 버그 전용 ── */}
             {kind === 'bug' && (
@@ -354,7 +321,9 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             />
 
             <div
+              role="switch" aria-checked={attach} tabIndex={0}
               onClick={() => setAttach(a => !a)}
+              onKeyDown={onEnterSpace(() => setAttach(a => !a))}
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
                 background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',

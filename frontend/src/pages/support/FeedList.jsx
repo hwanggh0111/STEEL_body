@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import { fmtDate, useFeedDetails } from './feedData';
 import FeedDetailBody from './FeedDetailBody';
 
@@ -28,7 +29,11 @@ export default function FeedList({ items }) {
     return (
       <div key={c.key} style={{ borderBottom: '1px solid var(--border)' }}>
         <div
+          role={c.hasDetail ? 'button' : undefined}
+          tabIndex={c.hasDetail ? 0 : undefined}
+          aria-expanded={c.hasDetail ? on : undefined}
           onClick={() => c.hasDetail && setOpen(on ? null : c.key)}
+          onKeyDown={c.hasDetail ? onEnterSpace(() => { setOpen(on ? null : c.key); }) : undefined}
           style={{
             display: 'flex', gap: 12, alignItems: 'baseline',
             padding: '11px 0', cursor: c.hasDetail ? 'pointer' : 'default',

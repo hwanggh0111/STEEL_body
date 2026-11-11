@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { onEnterSpace } from '../../data/pressKey';
 import NavIcon from '../../components/NavIcon';
 import { readLS } from '../../data/safeStorage';
 import { SEEN_REPLY_KEY } from '../../data/localKeys';
@@ -124,7 +125,11 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
               <div
                 key={item.id}
                 className="card clickable"
+                role="button"
+                tabIndex={0}
+                aria-expanded={isOpen}
                 onClick={() => { setOpen(isOpen ? null : item.id); setConfirmDel(null); }}
+                onKeyDown={onEnterSpace(() => { setOpen(isOpen ? null : item.id); setConfirmDel(null); })}
                 style={{
                   padding: 14,
                   borderColor: isNew ? 'var(--accent)' : isOpen ? 'var(--border-hover)' : 'var(--border)',
