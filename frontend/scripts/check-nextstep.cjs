@@ -326,8 +326,12 @@ console.log('── ★ 뺀 판을 말해주는가 (2026-11-11) ──');
   const st = L.nextStep(드롭만, '벤치프레스', TODAY);
   ok('**뺀 판의 날짜를 들고 온다**', st.skippedLast, '2026-11-03');
   ok('  근거는 그 전 판이다 (80kg)', [st.from.kg, st.from.date], [80, '2026-10-31']);
-  ok('  한 줄이 그것부터 말한다', L.stepReason(st).startsWith('11/03 판은 드롭세트 줄만 있어 근거에서 뺐어요 — '), true);
-  ok('  권하는 말도 그대로 붙어 있다', /2판 채웠어요/.test(L.stepReason(st)), true);
+  // ★ **두 토막으로 준다** (꼴 쪽 요청 · 2026-11-11). 「왜 그 판을 안 봤나」와
+  // 「무엇을 권하나」는 다른 말이다 — 한 문장으로 이으면 좁은 폰에서 넉 줄이 된다.
+  // **화면에서 글자를 자르지 않는다**(말의 주인이 둘이 된다) — 셈이 토막을 둘로 준다
+  ok('  뺀 판은 **따로** 말한다', L.stepExcluded(st), '11/03 판은 드롭세트 줄만 있어 근거에서 뺐어요');
+  ok('  권하는 말에는 **안 섞인다**', /근거에서 뺐어요/.test(L.stepReason(st)), false);
+  ok('  권하는 말은 그대로다', /2판 채웠어요/.test(L.stepReason(st)), true);
 
   // 멀쩡한 판이 가장 최근이면 **아무 말도 안 한다** — 늘 떠 있으면 아무도 안 읽는다
   const 멀쩡 = days(
@@ -337,12 +341,13 @@ console.log('── ★ 뺀 판을 말해주는가 (2026-11-11) ──');
   );
   const st2 = L.nextStep(멀쩡, '벤치프레스', TODAY);
   ok('최근 판이 멀쩡하면 말하지 않는다', st2.skippedLast, undefined);
-  ok('  한 줄에도 안 적힌다', /근거에서 뺐어요/.test(L.stepReason(st2)), false);
+  ok('  토막도 빈 글이다', L.stepExcluded(st2), '');
+  ok('  권하는 말에도 없다', /근거에서 뺐어요/.test(L.stepReason(st2)), false);
 
   // 드롭 줄만 있고 그 앞에 아무것도 없으면 **권할 것이 없다**(여태 그랬다)
   const 드롭뿐 = days(row('벤치프레스', '60', 1, 12, { date: '2026-11-03', link: 'drop' }));
   ok('드롭 줄뿐이면 권하지 않는다', L.nextStep(드롭뿐, '벤치프레스', TODAY), null);
-  ok('  권할 것이 없으면 줄도 없다', L.stepReason(null), '');
+  ok('  권할 것이 없으면 줄도 없다', [L.stepReason(null), L.stepExcluded(null)], ['', '']);
 }
 
 console.log('');
@@ -357,6 +362,13 @@ ok('  화면이 기록을 제자리에서 거슬러 가지 않는다',
 ok('  권하는 것일 뿐이라고 적어둔다', /컨디션은 사람이 압니다|권하는 것일 뿐/.test(page), true);
 // ★ 「세트 사이」라고 적지 않는다 (`pace.js` 가 못 박은 말이다)
 ok('  「세트 사이」라고 적지 않는다', /세트 사이 (?:보통|휴식)/.test(page), false);
+
+console.log('');
+console.log('── 화면이 두 토막을 다 그리는가 ──');
+// 토막을 갈라만 두고 화면이 하나만 그리면 **뺀 판을 말하는 기능이 조용히 사라진다**
+ok('뺀 판 토막을 그린다', /stepExcluded\(step\)/.test(page), true);
+ok('  없으면 그 칸을 안 그린다', /\{stepExcluded\(step\) && \(/.test(page), true);
+ok('  권하는 말도 그대로 그린다', /\{stepReason\(step\)\}/.test(page), true);
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

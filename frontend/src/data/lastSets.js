@@ -259,27 +259,41 @@ function stepFrom(all) {
  * 적으면서 두 판만 셌으면 수가 맞아도 거짓이다 — 같은 자리에서 같이 본다
  * (`npm run nextstep`). **묻는 말투로 적는다** — 명령으로 적으면 등급을 매기는 꼴이 된다.
  */
+/**
+ * **뺀 판을 말해주는 한 토막** (없으면 빈 글).
+ *
+ * ── 왜 `stepReason` 과 갈라 두나 ── (2026-11-11, 꼴 쪽 요청)
+ *
+ * 처음에는 한 문장에 줄표로 이어 붙였다. 그런데 **두 가지 말**이다 —
+ * 앞은 **왜 그 판을 안 봤나**(지난 일), 뒤는 **그래서 무엇을 권하나**(지금 할 일).
+ * 줄표로 이으면 좁은 폰(접은 폴더블 236px)에서 **넉 줄짜리 한 덩이**가 되고,
+ * 그 아래 「이대로 채우기」가 더 밀려 내려간다 — 꼴 쪽이 재서 보내준 수다.
+ *
+ * **말은 여기서 짓고 화면은 어디에 둘지만 정한다.** 그래서 글자를 화면에서 자르지
+ * 않고 **토막을 둘로 주는 쪽**으로 갈랐다 — 화면에서 가르면 말의 주인이 둘이 된다.
+ */
+export function stepExcluded(step) {
+  if (!step || !step.skippedLast) return '';
+  return `${shortDate(step.skippedLast)} 판은 드롭세트 줄만 있어 근거에서 뺐어요`;
+}
+
 export function stepReason(step) {
   if (!step) return '';
-  // 뺀 판이 있으면 **그것부터** 말한다 — 「무엇을 보고 권했나」가 먼저다
-  const 뺀판 = step.skippedLast
-    ? `${shortDate(step.skippedLast)} 판은 드롭세트 줄만 있어 근거에서 뺐어요 — `
-    : '';
   const unit = step.body ? '회' : 'kg';
   const was = step.body ? `${step.from.reps}회` : `${step.from.kg}kg ${step.from.reps}회`;
   if (step.kind === 'retry') {
-    return 뺀판 + `지난번 ${step.target}회를 노렸는데 ${step.from.reps}회에서 멈췄어요 — ` +
+    return `지난번 ${step.target}회를 노렸는데 ${step.from.reps}회에서 멈췄어요 — ` +
       (step.body ? '같은 횟수를 다시 노려볼까요?' : '같은 무게로 한 번 더 어떨까요?');
   }
   if (step.kind === 'up') {
     const much = step.body ? '한 회' : `한 칸(${step.step}${unit})`;
-    return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${much} 올려볼 자리예요.`;
+    return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${much} 올려볼 자리예요.`;
   }
   if (step.capped) {
-    return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — 칸이 받는 가장 큰 값이라 더 올려 권하지 않아요.`;
+    return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — 칸이 받는 가장 큰 값이라 더 올려 권하지 않아요.`;
   }
-  if (step.streak <= 1) return 뺀판 + `지난번 그대로예요 — ${was} (${shortDate(step.from.date)}).`;
-  return 뺀판 + `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${step.need}판 더 채우면 올려볼 자리예요.`;
+  if (step.streak <= 1) return `지난번 그대로예요 — ${was} (${shortDate(step.from.date)}).`;
+  return `${was}${particle(was, '을', '를')} ${step.streak}판 채웠어요 — ${step.need}판 더 채우면 올려볼 자리예요.`;
 }
 
 /** 'YYYY-MM-DD' → '10/31' */

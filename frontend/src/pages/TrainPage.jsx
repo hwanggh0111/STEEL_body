@@ -3,7 +3,7 @@ import { BAR_KEY } from '../data/localKeys';
 import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
 // 지난 판을 읽는 셈 — 「다음 한 걸음」과 「지난 판」 (2026-11-05, `npm run nextstep`)
 import {
-  nextStep, lastSession, stepReason, shortDate, lastRecordOf, plannedSetsOf,
+  nextStep, lastSession, stepReason, stepExcluded, shortDate, lastRecordOf, plannedSetsOf,
 } from '../data/lastSets';
 // 유산소는 **시간 · 거리로** 적는다 (2026-11-05, `npm run cardio`)
 import {
@@ -1276,6 +1276,15 @@ export default function TrainPage() {
                   </span>
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.7 }}>
+                  {/* **뺀 판은 작고 흐리게 위에** — 「왜 그 판을 안 봤나」(지난 일)와
+                      「무엇을 권하나」(지금 할 일)는 다른 말이다. 한 문장으로 이으면
+                      좁은 폰에서 넉 줄짜리 한 덩이가 된다 (2026-11-11, 꼴 쪽이 재서
+                      보내준 수다 · 말은 `lastSets` 가 짓고 여기는 자리만 정한다) */}
+                  {stepExcluded(step) && (
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
+                      {stepExcluded(step)}
+                    </div>
+                  )}
                   {stepReason(step)}
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
