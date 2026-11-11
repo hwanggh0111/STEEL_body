@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "a6abec3a73",
+  "detailVersion": "4c93ea1c8b",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,6 +501,14 @@
       "has": true
     },
     {
+      "key": "76d634b",
+      "date": "2026-11-11",
+      "text": "★★ **닿게 만들었는데 「닿은 다음」이 안 보였다** · 지우기 말이 화면마다 갈렸다",
+      "label": "고침",
+      "scope": "꼴",
+      "has": true
+    },
+    {
       "key": "8a0693a",
       "date": "2026-11-11",
       "text": "★ **쉬는 동안 기록을 지우면 알림이 「남은 시간」을 덮었다**",
@@ -810,14 +818,6 @@
       "text": "**표는 「22%」라고 적고 그림은 「22」라고 적었다** — 그림 자리 넷",
       "label": "고침",
       "scope": "그림",
-      "has": true
-    },
-    {
-      "key": "5fb1af5",
-      "date": "2026-11-04",
-      "text": "**만들어 놓고 아무도 안 부르는 길**을 쓴다 — `npm run alive`",
-      "label": "새 기능",
-      "scope": "자",
       "has": true
     }
   ]
