@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "97a9a349fc",
+  "detailVersion": "71dc4af965",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -501,9 +501,9 @@
       "has": true
     },
     {
-      "key": "4441b19",
+      "key": "d9136fa",
       "date": "2026-11-11",
-      "text": "★ **테두리 색을 글자색으로 쓴 자리가 둘, 1.84 : 1 이었다** — 흐린 것과 안 보이는 것은 다르다",
+      "text": "★ **같은 단추가 화면마다 다르게 둥글었다** — 한 자리를 잡아도 다음 사람이 또 8을 적는다",
       "label": "고침",
       "scope": "꼴",
       "has": true
