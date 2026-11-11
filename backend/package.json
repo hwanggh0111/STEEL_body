@@ -61,7 +61,8 @@
     "gate": "node scripts/check-gate.cjs",
     "adminapi": "node scripts/check-admin-api.cjs",
     "bye": "node scripts/check-bye.cjs",
-    "assets": "node scripts/check-assets.cjs"
+    "assets": "node scripts/check-assets.cjs",
+    "routinerow": "node scripts/check-routinerow.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

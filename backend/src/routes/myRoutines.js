@@ -25,6 +25,25 @@ const MAX_EXERCISES = 50;
 // 화면도 같은 이름으로 막게 하고(`data/limits.js`) `npm run twins` 가 값을 견준다
 const ROUTINE_NAME_MAX = 100;
 
+// ── **운동 줄은 글자로도 담겨 있다** ── (2026-11-11, 정석)
+//
+// 이 앱의 루틴 줄은 꾸러미(`{ name, sets, reps }`)이지만, **글자 하나**(`'벤치프레스'`)
+// 로 담긴 옛 줄이 데이터 모양에 들어 있다. 화면이 네 자리에서 그렇게 다룬다 —
+// 읽는 자리 셋(`RoutinePage.jsx:167`·`:350`·`:850`)과 **고치는 폼에 얹을 때 꾸러미로
+// 바꿔주는 자리** 하나(`:166` 의 `editRoutine`). 그 읽기는 **2026-04-15 최초 판본부터**
+// 있다.
+//
+// 그런데 이 파일은 `typeof ex === 'object'` 만 통과시켜 **글자 줄을 조용히 버렸다.**
+// 고치는 화면은 위의 `editRoutine` 이 먼저 꾸러미로 바꿔 보내므로 멀쩡했는데,
+// **되돌리기는 그 자리를 지나지 않는다** — `data/undoRow.js` 의 `routinePayload` 는
+// 「되살린 루틴이 원래와 다른 루틴이 되면 안 된다」며 **담긴 모양 그대로** 보낸다.
+// 그래서 글자 줄이 있는 옛 루틴을 고치거나 지운 뒤 「되돌리기」를 누르면 **그 줄이
+// 빠진 루틴**이 되살아나고, 전부 글자였으면 400 이 나서 「되살리지 못했어요」가 뜬다.
+//
+// 담긴 것을 **버리는 쪽이 아니라 받는 쪽**이 맞다 — 지우는 것은 사람이 적은 것이다.
+// `npm run routinerow` 가 서버와 화면이 같은 모양을 받는지 본다.
+const asRow = (ex) => (typeof ex === 'string' ? { name: ex } : ex);
+
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {
   const routines = db.getMyRoutines(req.userId);
@@ -55,7 +74,8 @@ router.post('/', auth, spamCheck, (req, res) => {
   }
 
   // 개별 운동 항목 검증
-  const validExercises = exercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
+  const validExercises = exercises.map(asRow)
+    .filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
   if (validExercises.length === 0) {
     return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
   }
@@ -110,7 +130,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     if (exercises.length > MAX_EXERCISES) {
       return res.status(400).json({ error: `운동은 최대 ${MAX_EXERCISES}개까지 가능해요` });
     }
-    const valid = exercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
+    const valid = exercises.map(asRow)
+      .filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && ex.name.trim());
     if (valid.length === 0) {
       return res.status(400).json({ error: '유효한 운동을 하나 이상 입력하세요' });
     }
