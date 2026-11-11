@@ -1,4 +1,5 @@
 import { ffmiOf, ffmiBand } from '../data/bodyIndex';
+import { inbodyPayload, inbodyChanged, recordById, UNDO_MS } from '../data/undoRow';
 // 「가장 최근」을 고르는 손 — 앞날 줄을 빼고 고른다 (2026-11-05)
 import { latestInbody } from '../data/inbodyLatest';
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
@@ -276,9 +277,21 @@ export default function InbodyPage({ embedded = false }) {
       // 「인바디 기록 저장!」만 띄웠다. 사람은 1026년에 적은 줄 알고,
       // 체중 그래프에서 그 점을 못 찾는다
       if (editingId) {
+        // ★ **고치기 전 줄을 들고 있는다** (2026-11-11). 체중 90 을 910 으로 치면
+        // 그림 전체가 거짓말을 한다 — 서버 칸은 안 늘리고 **옛 몸통으로 다시 PUT**
+        const before = recordById(records, editingId);
         const r = await updateRecord(editingId, payload);
+        const undo = before && inbodyChanged(before, payload) ? {
+          label: '되돌리기', ms: UNDO_MS,
+          run: async () => {
+            const body = inbodyPayload(before);
+            if (!body) return;
+            try { await updateRecord(editingId, body); toast('되돌렸어요'); }
+            catch { toast('되돌리지 못했어요', 'error'); }
+          },
+        } : null;
         if (r?.dateKept) toast(`날짜 ${date} 는 적을 수 없어 날짜는 그대로 뒀어요`, 'error');
-        else toast('인바디 기록 수정 완료!');
+        else toast('인바디 기록 수정 완료!', 'success', undo);
         setEditingId(null);
         // 수정 진입 전 quickMode 복원
         if (savedQuickMode !== null) {
@@ -340,13 +353,28 @@ export default function InbodyPage({ embedded = false }) {
   };
 
   const handleDelete = useCallback(async (id) => {
+    // ★ **지운 줄을 그대로 다시 올린다** (2026-11-11) — `deleteInbody` 도 줄을 바로
+    // 지운다(소프트 삭제가 없다). 지우기 **전에** 줄을 떠야 한다
+    const before = recordById(records, id);
+    const body = before ? inbodyPayload(before) : null;
     try {
       await deleteRecord(id);
-      toast('삭제 완료!');
+      toast('삭제 완료!', 'success', body ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          try {
+            const r = await addRecord(body);
+            // 서버가 날짜를 바꿔 적었으면 그 말을 전한다 — 「되살렸어요」만 띄우면
+            // **날짜가 다른 줄**을 되살린 것이 된다
+            if (r?.dateFixed) toast(`되살렸는데 날짜 ${body.date} 는 적을 수 없어 ${r.date} 로 적었어요`, 'error');
+            else toast('되살렸어요');
+          } catch { toast('되살리지 못했어요', 'error'); }
+        },
+      } : null);
     } catch {
       toast('삭제하지 못했어요', 'error');
     }
-  }, [deleteRecord]);
+  }, [deleteRecord, addRecord, records]);
 
   // 그래프용 데이터 (날짜 오래된순)
   const chartData = useMemo(() => [...records].reverse().map(r => ({

@@ -56,8 +56,15 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
           >✎</button>
         )}
         <button className="delete-btn" onClick={async () => {
-          const ok = await confirmDialog(`"${workout.exercise}" 기록을 삭제할까요?`, { title: '운동 기록 삭제', confirmText: '삭제' });
-          if (ok) onDelete(workout.id);
+          const ok = await confirmDialog(
+            `"${workout.exercise}" 기록을 삭제할까요?
+
+지운 바로 뒤 몇 초 동안만 되돌릴 수 있어요.`,
+            { title: '운동 기록 삭제', confirmText: '삭제' },
+          );
+          // ★ **줄 전체를 넘긴다** (2026-11-11) — 받는 쪽이 되살리려면 `id` 만으로는
+          // 안 된다(지운 뒤에는 그 줄을 어디서도 찾을 수 없다)
+          if (ok) onDelete(workout);
         }}>✕</button>
       </div>
     </div>

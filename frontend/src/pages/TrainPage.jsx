@@ -35,6 +35,7 @@ import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
 import { cannotCount } from '../data/repCount';
+import { rowPayload, rowById, changed, UNDO_MS } from '../data/undoRow';
 import { useWakeLock } from '../data/useWakeLock';
 import GymSetting from '../components/GymSetting';
 import { useGymStore } from '../store/gymStore';
@@ -599,8 +600,20 @@ export default function TrainPage() {
       // 진행표가 한 칸 넘어가면 안 한 운동이 끝난 것이 된다
       // **세트 칸에서 온 것은 새 줄이다** — 쉬는 사이에 옛 줄을 고치던 중일 수 있다
       if (editingId && !over) {
+        // ★ **고치기 전 줄을 들고 있는다** (2026-11-11) — 90 을 910 으로 잘못 치고
+        // 저장하면 옛 값이 사라졌다. 서버 칸을 안 늘리고 **옛 몸통으로 다시 PUT** 한다
+        const before = rowById(workouts, editingId);
         await updateWorkout(editingId, payload);
-        toast('고쳤어요');
+        const undo = before && changed(before, payload) ? {
+          label: '되돌리기', ms: UNDO_MS,
+          run: async () => {
+            const body = rowPayload(before);
+            if (!body) return;
+            try { await updateWorkout(editingId, body); toast('되돌렸어요'); }
+            catch { toast('되돌리지 못했어요', 'error'); }
+          },
+        } : null;
+        toast('고쳤어요', 'success', undo);
         setRecord(null);
         // **고친 날에 그대로 서 있는다** — 어제 것을 고치고 오늘로 돌아가면
         // 방금 고친 줄이 화면에서 사라져서 고쳐졌는지 확인할 자리가 없다
@@ -917,14 +930,23 @@ export default function TrainPage() {
         ? cardioText(w)
         : `${isBodyweight(w.weight) ? '맨몸' : w.weight + 'kg'} × ${w.sets}×${w.reps}`}」 를 지울까요?
 
-지운 기록은 되돌릴 수 없습니다.`,
+지운 바로 뒤 몇 초 동안만 되돌릴 수 있어요.`,
       { title: '이 줄을 지울까요', confirmText: '지웁니다', danger: true },
     );
     if (!ok) return;
     try {
       await deleteWorkout(w.id);
       if (editingId === w.id) stopEditing();
-      toast('지웠어요');
+      // ★ **지운 줄을 그대로 다시 올린다** (2026-11-11). `id` 와 적은 시각은
+      // 새것이 된다 — 그래서 몇 초짜리 되돌리기이고, 「보관함」이라고 말하지 않는다
+      const body = rowPayload(w);
+      toast('지웠어요', 'success', body ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          try { await addWorkout(body); toast('되살렸어요'); }
+          catch { toast('되살리지 못했어요', 'error'); }
+        },
+      } : null);
     } catch {
       toast('지우지 못했어요', 'error');
     }

@@ -1,6 +1,7 @@
 import { useRefreshTick } from '../store/refreshStore';
 // 유산소는 볼륨에 들 수 없다 — 시간 · 거리로 적는다 (2026-11-05)
 import { minuteLabel, kmLabel } from '../data/cardio';
+import { rowPayload, UNDO_MS } from '../data/undoRow';
 import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -358,14 +359,24 @@ export default function HistoryPage() {
   );
 
   // 카드가 memo 라, 이 함수가 매 렌더 새로 만들어지면 memo 가 아무 일도 못 한다
-  const handleDelete = useCallback(async (id) => {
+  const handleDelete = useCallback(async (row) => {
+    // ★ **줄 전체를 받는다** (2026-11-11). 지운 뒤에는 그 줄이 어디에도 없어서
+    // `id` 만으로는 되살릴 수 없다 — 서버 칸은 하나도 안 늘렸다(`data/undoRow.js`)
+    const id = row && typeof row === 'object' ? row.id : row;
+    const body = row && typeof row === 'object' ? rowPayload(row) : null;
     try {
       await deleteWorkout(id);
-      toast('삭제 완료!');
+      toast('삭제 완료!', 'success', body ? {
+        label: '되돌리기', ms: UNDO_MS,
+        run: async () => {
+          try { await addWorkout(body); toast('되살렸어요'); }
+          catch { toast('되살리지 못했어요', 'error'); }
+        },
+      } : null);
     } catch {
       toast('삭제하지 못했어요', 'error');
     }
-  }, [deleteWorkout]);
+  }, [deleteWorkout, addWorkout]);
 
   const loading = wLoading || iLoading;
 
