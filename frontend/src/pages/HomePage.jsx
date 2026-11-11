@@ -15,7 +15,7 @@ import TodayCard from '../components/home/TodayCard';
 import GoalCard from '../components/home/GoalCard';
 import { useGoalStore } from '../store/goalStore';
 import { weekProgress, weekLine, hasGoal } from '../data/goal';
-import { dateKey, upToToday } from '../data/dateKey';
+import { dateKey, upToToday, longDayOf } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildHeat } from '../data/bodyHeat';
@@ -362,7 +362,14 @@ export default function HomePage() {
         <div style={{ minWidth: 0 }}>
           <LogoWord cap={20} />
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+            {/* **아래와 같은 날을 적는다** (2026-11-11). 여기는 기기 시계(`new Date()`)를
+                **따로** 읽고 아래 달력과 「오늘」 카드는 `useToday` 를 봤다 — 같은 날을
+                두 자리가 각자 읽으니 날이 바뀌는 순간 **1분쯤 서로 다른 날**을 말한다
+                (머리가 먼저 새것이 되고 달력이 1분 안에 따라온다).
+                ★ 처음 적을 때 **방향을 거꾸로** 적었다(「머리는 어제」) — 재현 안 하고
+                적은 말이다. 없는 결함을 기록에 남기면 다음 사람이 그것을 근거로 판단한다.
+                고친 것은 **같은 글을 짓는 손을 한 벌로 모은 것**이다 (`longDayOf` 머리글) */}
+            {longDayOf(today)}
           </div>
         </div>
       </div>
@@ -461,12 +468,32 @@ export default function HomePage() {
                 const done = workouts[d]?.length > 0;
                 const isToday = d === today;
                 const future = d > today;
-                return (
+                // ── **눌리는 칸인데 단추가 아니었다** ── (2026-11-11)
+                  //
+                  // 기록이 있는 날은 눌러서 그날 기록으로 가는 칸이다. 그런데 맨
+                  // `div` + `onClick` 이라 **자판으로는 닿을 수가 없었고**(탭이
+                  // 안 멈춘다) 읽어주는 기계에는 그냥 숫자 하나였다 — 이 파일의
+                  // 다른 눌리는 카드들은 이미 `role="button"` 과 Enter·Space 를
+                  // 갖춰 뒀다(「눌리는 카드는 단추처럼 다뤄야 한다」). 이 칸만 빠졌다.
+                  //
+                  // `.tap-tight` 를 붙이는 까닭 — 격자 칸이라 44px 로 늘리면 일곱
+                  // 칸이 서로 밀려 **옆 날짜가 눌린다**(globals.css 의 그 머리글).
+                  // 칸은 이미 6 + 32 + 6 = 44 다.
+                  const goDay = () => { if (done) navigate('/history', { state: { date: d } }); };
+                  return (
                   <div
                     key={d}
-                    onClick={() => { if (done) navigate('/history', { state: { date: d } }); }}
+                    className={done ? 'tap-tight' : undefined}
+                    role={done ? 'button' : undefined}
+                    tabIndex={done ? 0 : undefined}
+                    // 읽어주는 기계는 `2026-11-11` 을 날짜로 안 읽는다 — 말로 적어준다
+                    aria-label={done ? `${longDayOf(d)} 기록 보기` : undefined}
+                    onClick={goDay}
+                    onKeyDown={done ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goDay(); }
+                    } : undefined}
                     style={{ padding: '6px 0', cursor: done ? 'pointer' : 'default' }}
-                    title={done ? `${d} 기록 보기` : undefined}
+                    title={done ? `${longDayOf(d)} 기록 보기` : undefined}
                   >
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{DAYS[i]}</div>
                     <div style={{
@@ -474,7 +501,7 @@ export default function HomePage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 13, fontWeight: isToday ? 700 : 400,
                       background: done ? 'var(--accent)' : isToday ? 'var(--bg-tertiary)' : 'none',
-                      color: done ? 'var(--on-accent)' : isToday ? 'var(--accent)' : future ? 'var(--border-hover)' : 'var(--text-muted)',
+                      color: done ? 'var(--on-accent)' : isToday ? 'var(--accent)' : future ? 'var(--text-faint)' : 'var(--text-muted)',
                       border: isToday && !done ? '1px solid var(--accent)' : 'none',
                     }}>
                       {d.slice(8)}

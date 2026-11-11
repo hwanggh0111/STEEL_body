@@ -89,6 +89,52 @@ console.log('── 같은 기록을 먹이면 같은 수가 나오는가 ──
 }
 
 console.log('');
+console.log('── 날짜를 **적는** 손 — 없는 날을 그럴듯한 날로 바꾸지 않는가 ──');
+{
+  // ★ 11/11 에 여기서 하나 났다. 홈 머리와 점검 예고가 각자 들고 있던
+  // `toLocaleDateString('ko-KR', 긴꼴)` 을 `longDayOf` 한 벌로 합친 것은 맞는데,
+  // 꼴(`\d{4}-\d{2}-\d{2}`)만 보고 통과시켜서 **넘치는 날짜**가 통과했다 —
+  // `new Date(2026, 12, 40)` 은 터지지 않고 2027년 2월 9일이 된다.
+  // 합치기 전의 손은 `'T00:00:00'` 을 붙여 읽어 Invalid Date 가 났고 **받은 글자를
+  // 그대로** 보여줬다. 합치면서 그 성질이 빠졌다 — 거르는 손 못지않게 **적는 손**도
+  // 자가 필요하다. 되짚기(`dateKey(d) === 받은 키`)로 막았다.
+  ok('제 날짜는 적는다', dateKey.longDayOf('2026-11-11'), '2026년 11월 11일 수요일');
+  ok('  윤달 아닌 2월 29일은 안 지어낸다', dateKey.longDayOf('2026-02-29'), '2026-02-29');
+  for (const 없는날 of ['2026-13-40', '2026-02-30', '2026-00-00', '2026-11-00', '2026-11-32']) {
+    ok('  ' + 없는날 + ' 은 그대로 돌려준다', dateKey.longDayOf(없는날), 없는날);
+  }
+  ok('  날짜가 아닌 것도 그대로', [dateKey.longDayOf('zzz'), dateKey.longDayOf(null)], ['zzz', '']);
+
+  // **같은 글을 또 따로 만들지 않았는가** — 이 류의 뿌리다(날짜 손 열세 벌).
+  // `longDayOf` 를 둔 `dateKey.js` 말고 긴꼴을 짓는 자리가 있으면 FAIL.
+  //
+  // **글자 규칙을 한 번 틀렸다** — `toLocaleDateString([^)]*weekday` 로 찾으려 했더니
+  // 0건이 나왔다. 칸을 `KO_LONG` 이라는 이름에 담아두면 부르는 줄에 `weekday` 가 없다.
+  // 그래서 **칸 자체**(`weekday: '…'`)를 센다. `maintForm.js:113` 의 `weekday` 는
+  // 인자 이름이라 콜론+따옴표가 없어 안 걸린다 — 거짓 FAIL 을 내지 않게 거기까지 봤다
+  const 긴꼴 = [];
+  for (const sub of ['src/data', 'src/pages', 'src/components']) {
+    const base = path.join(ROOT, sub);
+    const walk = (p) => {
+      for (const f of fs.readdirSync(p, { withFileTypes: true })) {
+        const full = path.join(p, f.name);
+        if (f.isDirectory()) { walk(full); continue; }
+        if (!/\.(js|jsx)$/.test(f.name)) continue;
+        const src = fs.readFileSync(full, 'utf8');
+        src.split('\n').forEach((line, i) => {
+          if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+          if (/weekday\s*:\s*['"]/.test(line)) {
+            긴꼴.push(path.relative(ROOT, full).replace(/\\/g, '/') + ':' + (i + 1));
+          }
+        });
+      }
+    };
+    walk(base);
+  }
+  ok('★ 긴꼴 날짜를 적는 손은 한 벌뿐이다', 긴꼴, ['src/data/dateKey.js:71']);
+}
+
+console.log('');
 console.log('── today 를 안 주면 어떻게 되는가 (지금은 안 닿는 갈래다) ──');
 {
   // ★ **여기서 갈린다.** 지금은 `useToday()` 가 늘 채우므로 falsy 가 올 길이 없다.

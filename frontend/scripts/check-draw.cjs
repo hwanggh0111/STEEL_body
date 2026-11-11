@@ -190,5 +190,34 @@ const page = codeOf(fs.readFileSync('src/pages/ComparePage.jsx', 'utf-8'));
 ok('비교 화면이 **단위를 같이 넘긴다**', /unit: c\.unit/.test(page), true);
 
 console.log('');
+console.log('── 축에 적히는 날짜가 그 자리에 들어가는가 ── (2026-11-11)');
+//
+// 꺾은선의 날짜 자리는 **46px 간격**이다(`charts/useWidth.js` 의 `labelEvery`).
+// 10px 글씨로 `2026-10-03`(열 글자)은 그만큼을 꽉 채워 **좁은 폰에서 옆 날짜와
+// 맞닿는다.** 그런데 겹침을 보는 자(`check-data.cjs`)는 **`08-14`(다섯 글자)** 를
+// 넣어 재므로 그 겹침을 **영영 못 본다** — 자가 보는 글자와 화면에 적히는 글자가
+// 다른 자리였다. 11/11 에 운동 추이 그림이 실제로 통째로 넘기고 있었고,
+// 같은 그림을 쓰는 인바디 화면은 줄여 넘기고 있었다 (**한 그림, 두 가지**).
+//
+// 그래서 **넘기는 쪽**을 본다 — 날짜 키를 통째로 축에 넘기는 자리가 있으면 FAIL.
+{
+  const 넘기는자리 = [
+    ['운동 추이', 'src/components/LiftTrend.jsx'],
+    ['인바디 추이', 'src/pages/InbodyPage.jsx'],
+  ];
+  const 통째로 = [];
+  for (const [이름, 파일] of 넘기는자리) {
+    const code = codeOf(fs.readFileSync(파일, 'utf-8'));
+    // `date: p.date` 처럼 **자르지 않고** 넘기는 자리. `slice(5)` 가 붙으면 통과
+    for (const m of code.matchAll(/date:\s*([A-Za-z_$][\w$]*)\.date(\.slice\(\d+\))?/g)) {
+      if (!m[2]) 통째로.push(이름 + ' — ' + m[0]);
+    }
+  }
+  ok('날짜를 통째로 축에 넘기는 자리', 통째로, []);
+  console.log('     ↑ 걸리면 좁은 폰에서 축의 날짜가 맞닿는다. `.slice(5)` 로 달·일만');
+  console.log('       넘긴다 — 날짜 통째는 카드의 글줄과 말풍선이 이미 적어준다');
+}
+
+console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('다 통과');

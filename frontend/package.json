@@ -104,7 +104,8 @@
     "datehands": "node scripts/check-datehands.cjs",
     "daygap": "node scripts/check-daygap.cjs",
     "plateau": "node scripts/check-plateau.cjs",
-    "plateaudata": "node scripts/measure-plateau.cjs"
+    "plateaudata": "node scripts/measure-plateau.cjs",
+    "contrast": "node scripts/check-contrast.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

@@ -45,9 +45,23 @@ export default function LiftTrend({ workouts, today }) {
 
   const line = trendLine(points, label);
   const peak = peakOf(points);
+  // 셈이 지은 말. **두 번 부르지 않는다** — 있나 보는 데 한 번, 적는 데 한 번이었다
+  const flatLine = plateauLine(flat);
   // `LineChart` 는 `{ [key]: 값 }` 꼴을 받는다. 축 이름은 운동 이름이 아니라
   // 「무게」다 — 운동 이름은 위의 고르는 줄이 이미 말하고 있다
-  const data = points.map((p) => ({ date: p.date, 무게: p.kg }));
+  // ── **같은 그림에 두 화면이 다른 길이의 날짜를 넘겼다** ── (2026-11-11)
+  //
+  // 인바디 화면은 `r.date.slice(5)`(`10-03`)로 줄여 넘기는데 여기는 날짜 키를
+  // **통째로**(`2026-10-03`) 넘겼다. 축의 날짜 자리는 **46px 간격**으로 잡혀 있고
+  // (`charts/useWidth.js` 의 `labelEvery` 기본값) 10px 글씨로 열 글자는 그만큼을
+  // 꽉 채운다 — 좁은 폰에서 옆 날짜와 **맞닿는다.**
+  //
+  // 자(`check-data.cjs` 의 겹침 검사)가 이것을 못 본 까닭은 **거기 넣는 날짜가
+  // `08-14`(다섯 글자)** 라서다. 짧은 글자로 재면 겹칠 일이 없다.
+  //
+  // 해는 위의 「가장 무거웠던 날」 줄이 날짜를 통째로 적어주고, 짚으면 말풍선도
+  // 그 날짜를 적는다 — 축은 **달·일**이면 된다.
+  const data = points.map((p) => ({ date: p.date.slice(5), 무게: p.kg }));
 
   return (
     <>
@@ -101,29 +115,34 @@ export default function LiftTrend({ workouts, today }) {
                 )}
               </div>
             )}
+            {/* ── **한 줄에 사실과 설명을 같이 넣으면 좁은 폰에서 뭉친다** ── (2026-11-11)
+                「가장 무거웠던 날 2026-10-03 · 92.5kg · 그 날 든 가장 무거운 무게로
+                그렸어요」는 접은 폴더블(280px)에서 11.5px 흐린 글씨 **석 줄**이 되고,
+                그 아래 제자리 상자와 뭉쳐 어디까지가 한 말인지 끊기지 않는다.
+                **사실 한 줄 · 그린 법 한 줄**로 끊는다 — 그린 법은 더 뒤로 물린다
+                (`--text-faint` 는 「있다는 것만 알리는」 자리다). */}
             {peak && (
-              <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
-                가장 무거웠던 날 {peak.date} · {peak.kg}kg
-                {' · '}그 날 든 가장 무거운 무게로 그렸어요
-              </div>
+              <>
+                <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+                  가장 무거웠던 날 {peak.date} · {peak.kg}kg
+                </div>
+                <div style={{ fontSize: 11, marginTop: 2, color: 'var(--text-faint)' }}>
+                  그 날 든 가장 무거운 무게로 그렸어요
+                </div>
+              </>
             )}
             {/* **몇 주째 제자리인가** (2026-11-11). 선이 평평한 것을 **사람이 읽게**
                 두지 않는다 — 다만 늘고 있으면 아무 말도 안 하고(`plateauLine` 이
                 `null` 을 준다), 쉰 것은 「제자리」라고 부르지 않는다. 판정도 꾸중도
                 아니고 **사실 한 줄**이다 */}
-            {plateauLine(flat) && (
-              <div
-                style={{
-                  fontSize: 12.5, marginTop: 12, padding: '8px 10px', lineHeight: 1.6,
-                  // ★ 이 앱은 **모서리를 굴리지 않는다**(`--radius: 2px`). 8px 상자는
-                  // 그 카드 안에서 혼자 둥글어 **다른 앱에서 붙여온 것처럼** 보인다
-                  borderRadius: 'var(--radius)',
-                  background: flat.kind === 'flat' ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
-                  border: `1px solid ${flat.kind === 'flat' ? 'var(--border-accent)' : 'var(--border)'}`,
-                  color: flat.kind === 'flat' ? 'var(--accent)' : 'var(--text-secondary)',
-                }}
-              >
-                {plateauLine(flat)}
+            {/* 꼴은 `.trend-note` 한 자리에 있다 (2026-11-11) — **색 하나로만**
+                제자리와 쉼을 가르고 있어서(금빛 ↔ 흐림) 색을 잘 못 가리는 사람과
+                햇빛 아래에서는 같은 상자였다. 왼쪽 금색 선을 더해 **색이 안 보여도**
+                갈리게 했다. 모서리를 안 굴리는 것도 거기 적혀 있다.
+                ★ 말은 셈이 짓는다 — `plateauLine` 을 **한 번만** 부른다 */}
+            {flatLine && (
+              <div className={`trend-note${flat.kind === 'flat' ? ' is-flat' : ''}`}>
+                {flatLine}
               </div>
             )}
           </>

@@ -5,7 +5,7 @@ import { getSchedules, fetchSchedules, pushSchedules, runningNow } from '../Main
 import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
 import { saveLS } from '../../data/safeStorage';
-import { dateKey } from '../../data/dateKey';
+import { dateKey, longDayOf } from '../../data/dateKey';
 // 줄의 모양을 맞추는 일은 값만 다루는 자리에 있다 (`npm run maint` 로 돌려본다) —
 // 서버는 날짜짜리에 `days` 칸을 안 만드는데 폼은 그 칸이 늘 있다고 보고 그렸다
 import { NEW_FORM, formOf, entryOf, repeats } from '../../data/maintForm';
@@ -47,11 +47,9 @@ function endTimeOf(time, min) {
   return hhmm(Math.floor(end / 60) % 24, end % 60);
 }
 
-function dateLabel(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  if (Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-}
+// 「2026년 11월 11일 수요일」은 `data/dateKey` 의 손을 쓴다 (2026-11-11) —
+// 여기와 홈 머리가 같은 글을 따로 들고 있었다
+const dateLabel = (dateStr) => longDayOf(dateStr);
 
 // 종류 하나를 잡는 폼. 셋이 이걸 같이 쓴다
 function MaintForm({ kind, onSchedule }) {

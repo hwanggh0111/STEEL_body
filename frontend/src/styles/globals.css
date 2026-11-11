@@ -30,6 +30,21 @@
   --text-secondary:#aaa28e;
   --text-muted:    #7a7160;
 
+  /* ── **흐리게 둘 글자** ── (2026-11-11)
+     「아직 오지 않은 날」 · 「기록이 없는 달」처럼 **있다는 것만 알리는** 글자다.
+     그 자리들이 여태 `--border-hover`(#4a3f2c) 를 글자색으로 쓰고 있었다 —
+     테두리 색이다. 바탕과 **1.84 : 1** 이라 숫자가 아예 안 보였다 (홈의 주간 달력에서
+     수요일에 열면 목·금·토·일 날짜가 지워진 것처럼 보이고, 한 해 벽은 기록 없는 달의
+     이름이 안 보였다). 흐린 것과 안 보이는 것은 다르다 — 흐린 것은 읽을 수 있다. */
+  --text-faint:    #756c5c;   /* 바탕 3.67 : 1 · 카드 3.34 : 1 (`npm run contrast` 가 적는 수) */
+
+  /* **눌리는 것의 이름은 흐려도 4.5 를 지킨다** (2026-11-11, 정석 지적).
+     위의 흐린 글자는 「있다는 것만 알리는」 정보다 — 안 눌린다. 그런데 한 해 벽의
+     달 칸은 **기록이 없어도 눌러서** 그 달 달력으로 간다(`YearWall.jsx` 의
+     `onPickMonth`). 눌리는 것의 이름이 안 읽히면 **어디를 누르는지 모른 채** 누른다.
+     그 칸은 바탕이 제 그라디언트(#221d16 → #16120e)라 밝은 쪽에서 재야 한다. */
+  --text-faint-tap:#8f8471;   /* 그 칸 밝은 쪽 4.55 : 1 — 4.49 는 기준선 밑이다 */
+
   /* 포인트 — 금. hover 는 더 밝은 금, dim 은 금빛이 도는 어두운 바탕 */
   --accent:        #eeb77d;
   --accent-hover:  #f7c499;
@@ -283,6 +298,32 @@ body::before {
 .progress-good    { background: var(--success); }
 .progress-warning { background: var(--warning); }
 .progress-danger  { background: var(--danger);  }
+
+/* ─── 그림 아래 한 줄 짚어주는 상자 ─── (2026-11-11)
+
+   추이 그림 밑의 「4주째 제자리입니다」 · 「40일째 안 했어요」가 앉는 자리다.
+   둘은 **다른 말**이고 다르게 보여야 하는데, 처음에는 **색 하나로만** 갈라져
+   있었다(금빛 ↔ 흐림). 색을 잘 못 가리는 사람과 햇빛 아래 폰에서는 **같은 상자**다.
+
+   그래서 **왼쪽 금색 선**으로 가른다 — 이 앱이 제목에 쓰는 그 결(`.accent-bar`)
+   이고, 색이 안 보여도 선은 보인다. 제자리는 선이 있고, 쉰 것은 없다.
+   (글 자체도 둘을 가른다 — 셋 중 하나만 보여도 뜻이 온다) */
+.trend-note {
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.trend-note.is-flat {
+  background: var(--accent-dim);
+  border-color: var(--border-accent);
+  border-left-width: 3px;
+  color: var(--accent);
+}
 
 /* ─── 섹션 타이틀 ──────────────────── */
 .section-title {
