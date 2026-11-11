@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useRestTimerStore, restBarUp } from '../store/restTimerStore';
 
 let showToastFn = null;
 
@@ -36,6 +37,8 @@ export default function Toast() {
   const [action, setAction] = useState(null);
   const timerRef = useRef(null);
   const btnRef = useRef(null);
+  // 쉬는 띠가 떠 있나 — 자리를 비켜야 한다 (아래 `lift`)
+  const barUp = useRestTimerStore(restBarUp);
   // ── **되돌리기가 다른 알림에 밀려났다** ── (2026-11-11, 벼림이 짚었다)
   //
   // 알림 자리가 **하나**다(`showToastFn` 한 벌). 그래서 지운 직후 다른 알림이 뜨면
@@ -106,6 +109,17 @@ export default function Toast() {
 
   if (!visible) return null;
 
+  // ── **알림이 쉬는 띠를 덮었다** ── (2026-11-11, 정석이 「알림이 그 갈래 UI 를
+  // 가리는지 봐 달라」고 한 자리에서 나왔다)
+  //
+  //     한 줄 알림   bottom 80  · z 9999
+  //     쉬는 띠      bottom 60  · z 9998 · 높이 50 쯤   → 80~110 이 겹친다
+  //
+  // 알림이 위라서 **쉬는 동안 기록을 지우면 남은 시간이 가려졌다.** 운동 중에
+  // 보고 있는 것이 그 시간이고, 되돌리기는 8초뿐이라 둘 다 보여야 한다.
+  // 띠가 떠 있으면 알림을 띠 **위로** 올린다 (조건은 `restBarUp` 한 자리에서 온다).
+  const lift = barUp ? { bottom: 142 } : null;
+
   // 빨강은 통째로 칠하는 자리라 진한 쪽을 쓴다 — 밝은 --danger 에 흰 글자는 3.4:1 이다
   const bgColor = type === 'error' ? 'var(--danger-strong)' : type === 'warning' ? 'var(--warning)' : 'var(--accent)';
   const textColor = type === 'error' ? '#fff' : 'var(--on-accent)';
@@ -128,7 +142,7 @@ export default function Toast() {
 
   if (!action) {
     return (
-      <div className="toast" {...live} style={{ background: bgColor, color: textColor }}>{message}</div>
+      <div className="toast" {...live} style={{ background: bgColor, color: textColor, ...lift }}>{message}</div>
     );
   }
   // 단추는 **칠한 바탕 위**에 얹히므로 테두리와 글자를 바탕색(`--on-accent`) 쪽으로
@@ -140,6 +154,7 @@ export default function Toast() {
       style={{
         background: bgColor, color: textColor,
         display: 'flex', alignItems: 'center', gap: 12,
+        ...lift,
       }}
     >
       <span>{message}</span>

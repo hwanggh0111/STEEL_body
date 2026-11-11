@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
+import { useRestTimerStore, formatLeft, restBarUp } from '../store/restTimerStore';
 import { useWorkoutStore } from '../store/workoutStore';
 import { restView, exerciseOfLabel } from '../data/nextSet';
 import { useToday } from '../data/useToday';
@@ -94,7 +94,8 @@ export default function RestBar({ bottom = 58 }) {
   const alarmBody = nextLine(view, label);
   const alarmFired = useRestAlarm(running && (sound || vibrate) ? deadline : null, alarmBody);
 
-  if (!running && !paused && !finished) return null;
+  // 뜨는 조건은 `restBarUp` 한 자리에서 온다 — 한 줄 알림이 같은 것을 본다 (2026-11-11)
+  if (!restBarUp({ deadline, pausedLeft, finished })) return null;
 
   // **지금 도는 휴식이 몇 초짜리인가(`runSec`)로 잰다** (2026-09-19 에 고쳤다).
   //

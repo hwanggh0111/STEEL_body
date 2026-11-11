@@ -219,6 +219,17 @@ export const alertPrefs = () => {
 };
 
 /** 남은 밀리초 → 'M:SS'. */
+// ── **띠가 떠 있는가** ── (2026-11-11)
+//
+// 쉬는 띠(`RestBar`)가 화면 아래에 떠 있는지를 **한 자리에서** 답한다.
+// 띠 자신과 **한 줄 알림**(`Toast`)이 같이 본다 — 알림은 `bottom: 80px` 이고 띠는
+// `bottom: 60px` 에 높이가 50 쯤이라, 둘이 **겹친다.** 알림이 위(z 9999)라서
+// **쉬는 동안 기록을 지우면 알림이 남은 시간을 덮었다.** 운동 중에 보고 있는
+// 것이 그 시간이다.
+//
+// 조건을 두 벌로 두면 한쪽만 고쳐져 **알림이 빈자리 위로 떠오른다.**
+export const restBarUp = (s) => s.deadline != null || s.pausedLeft != null || !!s.finished;
+
 export function formatLeft(ms) {
   const total = Math.max(0, Math.ceil((ms ?? 0) / 1000));
   const m = Math.floor(total / 60);

@@ -179,6 +179,12 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
   // 글 + 단추가 화면보다 넓어지면 단추 절반이 화면 밖으로 나가 **누를 수가 없다**
   const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8');
   ok('  단추 붙은 알림이 화면 밖으로 안 나간다', /\.toast-action[\s\S]{0,200}max-width/.test(css), true);
+  // 쉬는 띠(bottom 60 · 높이 50 쯤)와 알림(bottom 80)이 겹친다 — 알림이 위라서 덮었다
+  ok('  쉬는 띠가 떠 있으면 알림이 위로 비킨다', /restBarUp/.test(t) && /bottom: 142/.test(t), true);
+  const store = fs.readFileSync(path.join(SRC, 'store', 'restTimerStore.js'), 'utf8');
+  ok('    뜨는 조건이 한 자리에 있다', /export const restBarUp/.test(store), true);
+  const bar = fs.readFileSync(path.join(SRC, 'components', 'RestBar.jsx'), 'utf8');
+  ok('    띠도 그 조건을 쓴다 (두 벌로 두면 한쪽만 고쳐진다)', /restBarUp\(/.test(bar), true);
 }
 
 console.log('');
