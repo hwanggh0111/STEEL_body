@@ -102,7 +102,9 @@
     "brand": "node scripts/check-brand.cjs",
     "logo": "node scripts/check-logo.cjs",
     "datehands": "node scripts/check-datehands.cjs",
-    "daygap": "node scripts/check-daygap.cjs"
+    "daygap": "node scripts/check-daygap.cjs",
+    "plateau": "node scripts/check-plateau.cjs",
+    "plateaudata": "node scripts/measure-plateau.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

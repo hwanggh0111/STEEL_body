@@ -3,6 +3,7 @@ import SegRow from './SegRow';
 import LineChart from './charts/LineChart';
 import { CHART } from '../data/chartColors';
 import { SPANS, MIN_POINTS, liftNames, trendOf, trendLine, peakOf } from '../data/liftTrend';
+import { plateauOf, plateauLine } from '../data/plateau';
 
 // **한 운동이 늘어온 길** (2026-11-03) — 「기록 → 통계」.
 //
@@ -30,6 +31,14 @@ export default function LiftTrend({ workouts, today }) {
   const points = useMemo(
     () => (name ? trendOf(workouts, name, { today, days }) : []),
     [workouts, name, today, days],
+  );
+
+  // **제자리인가**는 고른 기간이 아니라 **기록 전체**로 본다 — 「3개월」을 보고
+  // 있다고 해서 넉 달째 안 오른 사실이 바뀌지 않는다. 기간을 좁혔다고 「제자리가
+  // 아니게」 되면 그 글은 창을 움직일 때마다 말을 바꾼다 (`plateau.js` 머리글)
+  const flat = useMemo(
+    () => (name ? plateauOf(workouts, name, today) : null),
+    [workouts, name, today],
   );
 
   if (names.length === 0) return null;
@@ -96,6 +105,25 @@ export default function LiftTrend({ workouts, today }) {
               <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
                 가장 무거웠던 날 {peak.date} · {peak.kg}kg
                 {' · '}그 날 든 가장 무거운 무게로 그렸어요
+              </div>
+            )}
+            {/* **몇 주째 제자리인가** (2026-11-11). 선이 평평한 것을 **사람이 읽게**
+                두지 않는다 — 다만 늘고 있으면 아무 말도 안 하고(`plateauLine` 이
+                `null` 을 준다), 쉰 것은 「제자리」라고 부르지 않는다. 판정도 꾸중도
+                아니고 **사실 한 줄**이다 */}
+            {plateauLine(flat) && (
+              <div
+                style={{
+                  fontSize: 12.5, marginTop: 12, padding: '8px 10px', lineHeight: 1.6,
+                  // ★ 이 앱은 **모서리를 굴리지 않는다**(`--radius: 2px`). 8px 상자는
+                  // 그 카드 안에서 혼자 둥글어 **다른 앱에서 붙여온 것처럼** 보인다
+                  borderRadius: 'var(--radius)',
+                  background: flat.kind === 'flat' ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
+                  border: `1px solid ${flat.kind === 'flat' ? 'var(--border-accent)' : 'var(--border)'}`,
+                  color: flat.kind === 'flat' ? 'var(--accent)' : 'var(--text-secondary)',
+                }}
+              >
+                {plateauLine(flat)}
               </div>
             )}
           </>

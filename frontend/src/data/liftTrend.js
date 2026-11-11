@@ -37,6 +37,16 @@ export const SPANS = [
 /** 선을 그리려면 **점이 둘**은 있어야 한다. 하나면 「늘어온 길」이 아니다 */
 export const MIN_POINTS = 2;
 
+/**
+ * 한 줄에서 **횟수**를 읽는다. 양의 정수만 — 「10회」를 적는 칸은 숫자만 받지만
+ * (`setRange`), 옛 줄과 들여온 줄에는 빈 값 · 0 · 소수가 들어 있다.
+ * 0 을 횟수로 읽으면 **안 한 것을 한 것**으로 그린다.
+ */
+function repsOf(w) {
+  const n = Number(w?.reps);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 /** `today` 에서 `days` 일 전의 날짜 열쇠. 날짜 계산은 `Date` 에 맡긴다 */
 function back(today, days) {
   const d = new Date(`${today}T00:00:00`);
@@ -54,14 +64,16 @@ function back(today, days) {
  *
  * 앞날 기록은 안 센다 (`today` 를 주면 그 뒤를 버린다 — `bestRecords` 와 같은 규칙).
  */
-export function liftNames(workouts, today = null, limit = 12) {
+export function liftNames(workouts, today = null, limit = 12, { metric = 'kg' } = {}) {
   const 날 = new Map();      // 이름 → Set(날짜)
   for (const [date, list] of Object.entries(workouts || {})) {
     if (today && date > today) continue;
     for (const w of list || []) {
       const name = (w?.exercise || '').trim();
       if (!name) continue;
-      if (parseWeight(w?.weight) === null) continue;     // 맨몸 · 밴드는 선이 없다
+      // `metric: 'any'` 는 **맨몸까지** 센다 — 선을 그리는 자리가 아니라
+      // 「제자리인가」를 묻는 자리(`plateau.js`)가 그 사람을 빼면 안 된다
+      if (metric !== 'any' && parseWeight(w?.weight) === null) continue;   // 맨몸 · 밴드는 선이 없다
       if (!날.has(name)) 날.set(name, new Set());
       날.get(name).add(date);
     }
@@ -78,18 +90,25 @@ export function liftNames(workouts, today = null, limit = 12) {
  *
  * 돌려주는 것: `[{ date, kg }]` — **그 운동을 한 날만**, 날짜 오름차순.
  * 안 한 날은 아예 없다(0 을 넣지 않는다 — 0kg 을 든 것이 아니다).
+ *
+ * `metric: 'reps'` 를 주면 무게 대신 **그 날 가장 많이 한 횟수**를 같은 꼴로 준다.
+ * 맨몸 운동은 무게가 없어 선이 안 그려지는데(머리글), **제자리인가를 묻는 자리**
+ * (`plateau.js`)는 그 사람을 그림 밖에 두면 안 된다 — 사전 221개 중 76개(34%)가
+ * 무게를 안 적는 종목이다. 그래서 **읽는 손을 또 만들지 않고** 이 자리에 칸을 하나
+ * 더 뒀다. 날짜를 모으고 고르는 셈은 한 벌이고, 바뀌는 것은 **무엇을 읽나**뿐이다.
  */
-export function trendOf(workouts, exercise, { today = null, days = null } = {}) {
+export function trendOf(workouts, exercise, { today = null, days = null, metric = 'kg' } = {}) {
   const want = String(exercise || '').trim();
   if (!want) return [];
   const from = today && days ? back(today, days) : null;
+  const read = metric === 'reps' ? repsOf : (w) => parseWeight(w?.weight);
   const top = new Map();
   for (const [date, list] of Object.entries(workouts || {})) {
     if (today && date > today) continue;
     if (from && date < from) continue;
     for (const w of list || []) {
       if ((w?.exercise || '').trim() !== want) continue;
-      const kg = parseWeight(w?.weight);
+      const kg = read(w);
       if (kg === null) continue;
       const cur = top.get(date);
       if (cur === undefined || kg > cur) top.set(date, kg);
