@@ -42,7 +42,29 @@ const ROUTINE_NAME_MAX = 100;
 //
 // 담긴 것을 **버리는 쪽이 아니라 받는 쪽**이 맞다 — 지우는 것은 사람이 적은 것이다.
 // `npm run routinerow` 가 서버와 화면이 같은 모양을 받는지 본다.
-const asRow = (ex) => (typeof ex === 'string' ? { name: ex } : ex);
+// ── **아는 칸만 담는다** ── (2026-11-12)
+//
+// 여태 `{ ...ex }` 로 **보낸 칸을 아무것이나** 담았다. `junk: "x"×5000` · `admin: true` 를
+// 실어 보내면 그대로 저장되고 그대로 돌려줬다 — 몸통 한도까지 한 줄에 쌓이고,
+// 내보내기 · 되살리기가 그것을 계속 들고 다닌다.
+//
+// 화면이 읽는 칸은 다섯이다 — `name · sets · reps` 와, 추천 루틴을 담을 때 따라오는
+// `tip · desc`(`RoutinePage.jsx` 가 펼쳐 읽는다). 글자나 수만 받는다. `uid` 는 화면이
+// 보내기 전에 뗀다(같은 파일 「`uid` 는 서버로 안 보낸다」). **이미 담긴 루틴은 그대로
+// 둔다** — 새로 들어오는 것만 고른다(GET 은 담긴 모양 그대로 준다)
+const ROW_KEYS = ['name', 'sets', 'reps', 'tip', 'desc'];
+const ROW_TEXT_MAX = { tip: 200, desc: 1000 };   // 추천 루틴의 설명이 300자 안팎이다
+const asRow = (ex) => {
+  if (typeof ex === 'string') return { name: ex };
+  if (!ex || typeof ex !== 'object' || Array.isArray(ex)) return ex;
+  const out = {};
+  for (const k of ROW_KEYS) {
+    const v = ex[k];
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === 'string') out[k] = ROW_TEXT_MAX[k] ? v.slice(0, ROW_TEXT_MAX[k]) : v;
+  }
+  return out;
+};
 
 // 전체 목록 조회
 router.get('/', auth, (req, res) => {

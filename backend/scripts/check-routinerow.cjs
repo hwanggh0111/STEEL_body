@@ -171,6 +171,21 @@ const names = (ex) => (Array.isArray(ex) ? ex : []).map((e) => (typeof e === 'st
     ok('다시 받아도 그대로다', names(전부글자?.exercises), ['풀업', '친업', '딥스']);
   }
 
+  // ⑹ **아는 칸만 담는다** (2026-11-12) — 여태 보낸 칸을 아무것이나 담았다
+  {
+    const desc = '시트에 등을 밀착하고 가슴 높이에서 손잡이를 잡는다.';
+    const r = await call('POST', '/my-routines', {
+      name: '잡칸',
+      exercises: [{ name: '벤치프레스 머신', sets: '4세트', reps: '10~12회', tip: '천천히', desc,
+        junk: 'x'.repeat(5000), admin: true, uid: 7 }],
+    });
+    const ex = r.body?.exercises?.[0] || {};
+    ok('추천 루틴의 칸 다섯은 남는다', [ex.name, ex.sets, ex.reps, ex.tip, ex.desc], ['벤치프레스 머신', '4세트', '10~12회', '천천히', desc]);
+    ok('  ★ 모르는 칸은 안 담는다', Object.keys(ex).sort(), ['desc', 'name', 'reps', 'sets', 'tip']);
+    const p = await call('PUT', `/my-routines/${r.body?.id}`, { name: '잡칸', exercises: [{ name: '딥스', sets: 3, reps: 10, evil: { a: 1 } }] });
+    ok('  고치기도 같다', Object.keys(p.body?.exercises?.[0] || {}).sort(), ['name', 'reps', 'sets']);
+  }
+
   await stopServer();
   clean();
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
