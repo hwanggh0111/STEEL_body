@@ -109,10 +109,12 @@ const { eun } = require('./particle');
  * @returns {{ ok: true } | { ok: false, why: string }}
  */
 function checkMeasure(type, data) {
-  const table = MEASURE_RANGE[type];
+  // **제 칸만 본다** (2026-11-12) — 칸 이름이 `hasOwnProperty` 면 `table[key]` 가 함수를 집고
+  // 아래 `const [lo, hi] = bound` 에서 500 이 났다(체력 · 어깨 · 스톱워치)
+  const table = Object.hasOwn(MEASURE_RANGE, type) ? MEASURE_RANGE[type] : null;
   if (!table) return { ok: true };            // 테두리를 정한 적 없는 종류는 안 본다
   for (const [key, raw] of Object.entries(data || {})) {
-    const bound = table[key];
+    const bound = Object.hasOwn(table, key) ? table[key] : null;
     if (!bound) continue;                     // 수가 아닌 칸(이름 · 랩 목록)
     if (raw === '' || raw === null || raw === undefined) continue;
     const n = Number(raw);

@@ -292,7 +292,8 @@ router.get('/programs', (req, res) => {
 // 홈페이지(`/site`)에서도 받는다. 여기서 주인을 안 보는 것이 맞고, 그래서
 // `npm run owner` 에 그렇다고 적어둔다(그 검사는 `:id` 길마다 주인을 보는지 센다).
 router.get('/:type', (req, res) => {
-  const data = ROUTINES[req.params.type];
+  // **제 칸만 본다** (2026-11-12) — `/routines/toString` 이 함수를 집어 **200 · `{}`** 를 줬다
+  const data = Object.hasOwn(ROUTINES, req.params.type) ? ROUTINES[req.params.type] : null;
   if (!data) return res.status(400).json({ error: `${Object.keys(ROUTINES).join(' · ')} 중에서 고를 수 있어요` });
   res.json(withParts(data));
 });

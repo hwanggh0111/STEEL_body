@@ -67,7 +67,9 @@ const KINDS = {
 // POST /api/import — { kind, csv }
 router.post('/', auth, (req, res) => {
   const kind = typeof req.body?.kind === 'string' ? req.body.kind : '';
-  const spec = KINDS[kind];
+  // **제 칸만 본다** (2026-11-12) — `KINDS['constructor']` 는 함수라서 아래 `spec.read` 에서
+  // 500 이 났다(`toString` · `hasOwnProperty` · `__proto__` 다 같다)
+  const spec = Object.hasOwn(KINDS, kind) ? KINDS[kind] : null;
   if (!spec) return res.status(400).json({ error: '무엇을 넣는 것인지 알려주세요 (운동 · 인바디 · 측정)' });
 
   const csv = typeof req.body?.csv === 'string' ? req.body.csv : '';

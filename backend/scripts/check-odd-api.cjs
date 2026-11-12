@@ -262,6 +262,30 @@ async function pound(name, method, url, token, fields, cap = 0) {
     await poundOn('루틴 진행표 고치기', 'PATCH', '/routine-session', { index: 0, state: 'done', setsDone: 1 });
   }
 
+  // ── **값이 표의 열쇠로 쓰일 때 — 표가 물려받은 이름** ── (2026-11-12)
+  //
+  // `KINDS[kind]` 처럼 받은 글자로 표를 찾는 자리는 `constructor` · `hasOwnProperty` 를
+  // 받으면 **함수를 집는다.** 「없다」가 아니라 「있다」가 되어 다음 줄에서 터진다 —
+  // 파일 넣기(종류) · 측정(칸 이름)이 500 이었고, 추천 루틴은 `200 · {}` 를 줬다
+  console.log('');
+  console.log('── 표가 물려받은 이름을 보내면 ──');
+  {
+    const PROTO_NAMES = ['constructor', 'hasOwnProperty', 'toString', 'isPrototypeOf', '__defineGetter__', 'toLocaleString'];
+    const fails = [];
+    for (const n of PROTO_NAMES) {
+      const s1 = await call('POST', '/import', { kind: n, csv: 'a,b\n1,2' }, token);
+      if (s1 >= 500 || s1 === 429) fails.push(`파일 넣기 kind=${n} → ${s1}`);
+      for (const type of ['fitness', 'shoulder', 'stopwatch', 'body']) {
+        const s2 = await call('POST', '/measures', { type, date: '2026-11-01', data: { [n]: 5 } }, token);
+        if (s2 >= 500 || s2 === 429) fails.push(`측정 ${type}.${n} → ${s2}`);
+      }
+      const s3 = await call('GET', `/routines/${n}`, undefined, null);
+      if (s3 !== 400) fails.push(`추천 루틴 /${n} → ${s3} (기대 400)`);
+    }
+    if (fails.length) bad += 1;
+    console.log((fails.length ? 'FAIL ' : 'OK   ') + '물려받은 이름' + (fails.length ? ' → ' + fails.slice(0, 3).join(' · ') : ' → 「없다」로 읽는다'));
+  }
+
   await stopServer();
   clean();
   console.log('');
