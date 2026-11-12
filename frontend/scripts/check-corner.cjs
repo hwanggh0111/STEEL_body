@@ -48,6 +48,7 @@ const 둥근것이맞다 = {
   'src/pages/SettingsPage.jsx':        [13],     // 설정함 스위치 (44×25 라 13)
   'src/components/TabBar.jsx':         [8],      // 안 읽은 수 딱지 — 작은 동그라미
   'src/pages/OauthEmailPage.jsx':      [8],      // 28×28 아이콘 자리
+  'src/components/site/AppGuide.jsx':  [22],     // 홈페이지 안내 지도의 **폰 그림** 테두리 — 폰은 둥글다 (2026-11-12)
 };
 // 알약(`999`)은 어디서든 맞다 — 「통째로 둥글게」라는 뜻이고 값이 아니다
 const 알약 = 999;

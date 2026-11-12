@@ -13,6 +13,7 @@ import { PARTS, isPartName } from '../data/partNames';
 import MapPreview from '../components/site/MapPreview';
 import FinishPreview from '../components/site/FinishPreview';
 import WallPreview from '../components/site/WallPreview';
+import AppGuide from '../components/site/AppGuide';
 // 머리 오른쪽에 무엇을 띄울지, 그리고 **앱 안으로 가는 길을 정직하게 적는 데** 쓴다 —
 // 들어와 있으면 「열어보기」, 아직이면 「가입하고 열기」다 (2026-10-20)
 import { useAuthStore } from '../store/authStore';
@@ -443,6 +444,13 @@ export default function SiteHome() {
               </div>
             ))}
           </div>
+        </Band>
+
+        {/* ── 어디에 무엇이 있나 ── (2026-11-12)
+            위 칸은 **무엇을** 하는지 말하고, 이 칸은 **어디 있는지** 보여준다.
+            폰을 한 장 그리고 그 위에서 고르게 한다 (`AppGuide` 머리글) */}
+        <Band id="site-guide" title="어디에 무엇이 있나" style={anchorStyle}>
+          <AppGuide onGo={go} openLabel={openLabel} />
         </Band>
 
         {/* 안 하는 것 — **이쪽이 더 많은 것을 말한다.**
