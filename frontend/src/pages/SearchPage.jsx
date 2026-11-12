@@ -14,7 +14,9 @@ import { euroJosa } from '../data/particle';
 // **줄 = 기록하기**(이 화면의 일이 그것이다) · 오른쪽 「그날」 = 마지막 날 보기.
 // 한 줄짜리로, 많아야 둘 — 자판이 올라와도 사전 결과가 밀려나지 않게(맵시).
 // 이름이 갈린 것(D)은 그 줄 바로 밑에 **한 줄**만 붙는다
-const bestText = (b) => (!b ? '' : b.kind === 'weighted' ? ` · 최고 ${b.kg}kg×${b.reps}` : ` · 최고 ${b.reps}회`);
+// 보이는 글은 **kg 를 뺀다** — 폰 폭에서 「최고 34.5kg×10」이 잘렸다(맵시). 낭독기 이름에는 단위를 둔다
+const bestText = (b, unit = false) => (!b ? '' : b.kind === 'weighted'
+  ? ` · 최고 ${b.kg}${unit ? 'kg' : ''}×${b.reps}${unit ? '회' : ''}` : ` · 최고 ${b.reps}회`);
 
 function MineRows({ rows, today, onRecord, onDay }) {
   if (!rows.length) return null;
@@ -30,7 +32,7 @@ function MineRows({ rows, today, onRecord, onDay }) {
                 type="button"
                 className="card"
                 onClick={() => onRecord(r.name)}
-                aria-label={`${r.name} 기록하기 — ${r.days}일 했어요${bestText(r.best)}, 마지막 ${ago}`}
+                aria-label={`${r.name} 기록하기 — ${r.days}일 했어요${bestText(r.best, true)}, 마지막 ${ago}`}
                 style={{
                   flex: 1, minWidth: 0, minHeight: 44, margin: 0, padding: '10px 12px', textAlign: 'left',
                   cursor: 'pointer', font: 'inherit', color: 'var(--text-secondary)', fontSize: 13,

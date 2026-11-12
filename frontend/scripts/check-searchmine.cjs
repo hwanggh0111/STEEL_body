@@ -71,6 +71,14 @@ ok('D · 사전에 없는 띄어쓴 이름은 사전 이름으로 묶인다', mi
 ok('D · 묶인 이름은 따로 줄로 안 나온다', m('벤치 프레스').filter((x) => x.name === '벤치 프레스').length, 0);
 ok('남의 앞날 · 빈 기록에도 터지지 않는다', mineFor(null, '벤치', TODAY), []);
 
+// **이름으로 맞은 것만** — 사전의 갈래 · 설명으로 걸린 것은 「내 기록에서」가 아니다 (맵시가 잡았다)
+ok('「벤치」로 「인클라인 덤벨프레스」(설명 · 갈래로만 걸린다)는 안 나온다', mineFor({
+  '2026-11-01': [row('인클라인 덤벨프레스', '30', 10)], '2026-11-02': [row('벤치프레스', '80', 5)],
+}, '벤치', TODAY).map((x) => x.name), ['벤치프레스']);
+ok('  초성으로는 찾는다', mineFor({ '2026-11-02': [row('벤치프레스', '80', 5)] }, 'ㅂㅊㅍㄹㅅ', TODAY).map((x) => x.name), ['벤치프레스']);
+ok('  영어 이름으로도', mineFor({ '2026-11-02': [row('벤치프레스', '80', 5)] }, 'bench press', TODAY).map((x) => x.name), ['벤치프레스']);
+ok('  부위로도 (가슴)', mineFor({ '2026-11-01': [row('인클라인 덤벨프레스', '30', 10)] }, '가슴', TODAY).length, 1);
+
 // 화면이 이은 자리
 {
   const page = fs.readFileSync('src/pages/SearchPage.jsx', 'utf-8');
@@ -86,7 +94,10 @@ ok('남의 앞날 · 빈 기록에도 터지지 않는다', mineFor(null, '벤�
   ok('셈은 기록이 바뀔 때만 (useMemo · mineIndex)', /useMemo\(\(\) => \(loggedIn \? mineIndex\(workouts, today\)/.test(page), true);
   ok('  칠 때는 거르기만 (mineQuery)', /rows=\{mineQuery\(mine, query\)\}/.test(page) && !/mineFor\(/.test(page), true);
   // 낭독기 (맵시) — 보이는 것보다 덜 들으면 안 된다
-  ok('낭독기: 줄 이름에 최고 기록도', /기록하기 — \$\{r\.days\}일 했어요\$\{bestText\(r\.best\)\}/.test(page), true);
+  ok('낭독기: 줄 이름에 최고 기록도 (kg · 회까지)', page.includes('했어요${bestText(r.best, true)}, 마지막'), true);
+  ok('  보이는 글은 kg 를 뺀다 (폰 폭에서 잘렸다)', page.includes('{` · ${r.days}일${bestText(r.best)}`}'), true);
+  ok('찾기 부품: 치는 중에는 부위 칩을 접는다 (칩으로 들어온 것은 남긴다)', finder.includes('{(!query.trim() || CATEGORIES.some((c) => c.q === query.trim())) && ('), true);
+  ok('  입력 칸에 이름', /aria-label="운동 이름"/.test(finder), true);
   ok('  D 줄은 보이는 글 그대로 읽힌다 (aria-label 로 안 덮는다)', !/aria-label="그 이름 날 보기"/.test(page), true);
 }
 {

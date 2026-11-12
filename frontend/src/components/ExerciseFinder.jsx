@@ -268,12 +268,18 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
       <input
         className="input"
         value={query}
+        // 자리글만으로는 낭독기가 칸의 이름을 못 읽는 경우가 있다 (맵시)
+        aria-label="운동 이름"
         autoFocus={autoFocus}
         onChange={(e) => setQ(e.target.value)}
         placeholder="벤치프레스 · ㅂㅊㅍㄹㅅ · 가슴 · squat"
         style={{ marginBottom: 10 }}
       />
 
+      {/* **치는 중에는 부위 칩을 접는다** (2026-11-12, 맵시가 폰 폭으로 쟀다). 칩 두 줄이 94px 라
+          자판이 오르면 결과가 하나도 안 보였다. 칩은 빈 칸일 때 「부위로 둘러보기」의 길이다 —
+          **칩을 눌러 들어온 것이면 남긴다**(다른 부위로 바로 옮겨 갈 수 있게) */}
+      {(!query.trim() || CATEGORIES.some((c) => c.q === query.trim())) && (
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: compact ? 12 : 18 }}>
         {CATEGORIES.map((c) => (
           <button
@@ -283,6 +289,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
           >{c.label}</button>
         ))}
       </div>
+      )}
 
       {!typed ? (
         <div className="empty-state" style={{ padding: compact ? '20px 0' : '40px 0' }}>

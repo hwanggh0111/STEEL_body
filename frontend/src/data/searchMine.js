@@ -22,7 +22,7 @@
 //   · 줄 하나에 D 는 하나 — 갈린 이름이 둘 이상이면 「다른 이름 2개로도 6일」
 //   · 「최대 둘」에 D 는 안 센다(그 줄의 딸린 줄이다). 묶인 이름은 따로 줄로 안 나온다
 import { bestRecords } from './personalRecord';
-import { hasExercise, searchExercises } from './exerciseDict';
+import { hasExercise, isPart, searchExercises } from './exerciseDict';
 
 export const MINE_MAX = 2;
 
@@ -125,7 +125,14 @@ export function mineIndex(workouts, today = null) {
 export function mineQuery(index, query) {
   const q = loose(query);
   if (!q || !index?.length) return [];
-  const dictHits = new Set(searchExercises(query).map((e) => e.ko));
+  // **이름으로 맞은 것만** 쓴다 (2026-11-12, 맵시가 화면에서 잡았다). 사전 찾기는 갈래
+  // (`group`)와 설명(`desc`)까지 본다 — 「벤치」를 치면 「인클라인 덤벨프레스」가 설명의
+  // 「인클라인 벤치 + 덤벨」로 걸린다. 사전 목록에서는 그게 맞지만 **「내 기록에서」는 그
+  // 운동을 찾은 것이 아니다.** 이름 · 영어 이름 · 별칭 · 초성 · 부위로 맞은 것만 남긴다
+  const choseong = /^[ㄱ-ㅎ]+$/.test(q);
+  const byName = (e) => choseong || isPart(query)
+    || loose(e.ko).includes(q) || loose(e.en).includes(q) || (e.alias || []).some((x) => loose(x).includes(q));
+  const dictHits = new Set(searchExercises(query).filter(byName).map((e) => e.ko));
   const out = [];
   for (const r of index) {
     if (r.looseNames.some((n) => n.includes(q)) || r.names.some((n) => dictHits.has(n))) {
