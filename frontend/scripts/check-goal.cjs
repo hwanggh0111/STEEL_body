@@ -481,7 +481,8 @@ console.log('── ★★ 인바디 목표도 앞날을 안 집는가 ── (2
   const card = fs.readFileSync('src/components/home/GoalCard.jsx', 'utf-8');
   const gp = fs.readFileSync('src/pages/GoalPage.jsx', 'utf-8');
   ok('홈의 목표 카드가 오늘을 넘긴다', /start: k\.s, today \}/.test(card), true);
-  ok('  목표 화면도 넘긴다', /\n\s*today,\n\s*\}\),/.test(gp), true);
+  // `\r?` — 윈도에서 받으면 줄 끝이 CRLF 다(`core.autocrlf`). `,\n` 으로 적으면 그 창에서만 거짓 FAIL 이 난다
+  ok('  목표 화면도 넘긴다', /\n\s*today,\r?\n\s*\}\),/.test(gp), true);
 }
 
 console.log('');
