@@ -248,5 +248,23 @@ console.log('\n── ★ 받은 것이 JSON 인지 보는가 (2026-11-11) ─�
   ok('  `r.ok` 만 보고 바로 `json()` 하지 않는다', /r\.ok \? r\.json\(\)/.test(code), false);
 }
 
+// ── ★ **사람이 읽는 글에 우리 쪽 표시가 날것으로 안 남는다** ── (2026-11-12)
+//
+// 공지함 40줄 전부가 커밋 제목의 별표 둘 · 백틱 · 머리의 ★ 를 그대로 보여줬다(라이브에서도).
+// 걷는 것은 `gen-feed.mjs` 한 곳이다 — 화면 셋이 다 그 산출물을 읽는다
+{
+  const read = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), 'utf8'));
+  const raw = (s) => /\*\*|`/.test(String(s)) || /^\s*★/.test(String(s));
+  const idx = read('src/data/feedIndex.json');
+  const list = read('src/data/feedList.json');
+  const det = read('public/feed-detail.json');
+  const titles = [...(idx.items || []), ...(list.items || [])].map((r) => r.text).filter(raw);
+  ok('공지 · 소식 제목에 `**` · 백틱 · 머리 ★ 가 없다', titles.slice(0, 3), []);
+  ok('  갈래 뒤의 ★ 도 없다 (「서버 · ★ …」)', (list.items || []).filter((r) => / · ★/.test(r.text)).length, 0);
+  ok('  펼친 본문에 `**` · 백틱이 없다', Object.values(det).filter((s) => /\*\*|`/.test(s)).length, 0);
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-feed.mjs'), 'utf8');
+  ok('  걷는 손은 생성기 한 곳이다', /const plainMd = /.test(gen) && /const plainTitle = /.test(gen), true);
+}
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

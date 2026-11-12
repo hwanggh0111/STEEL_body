@@ -82,17 +82,32 @@ if (!notices && !changelog) {
 
 // **담는 것은 화면이 그리는 것뿐이다.** 날짜 · 한 줄 · 고정 여부.
 // `detail` 은 담지 않는다 — 그것이 이 파일을 만든 까닭이다
+//
+// ── **사람이 읽는 글에서 우리 쪽 표시를 걷는다** ── (2026-11-12)
+//
+// 커밋 제목을 그대로 싣고 화면은 그것을 글자로 그린다(`FeedList.jsx` · 홈페이지 벽).
+// 그래서 공지함 40줄 전부가 별표 둘 · 백틱 · ★ 를 날것으로 보여줬다 — 라이브에서도
+// (정석 전수 점검 — 헤드리스로 화면 글자를 셌다). 굵게 표시 · 코드 표시는 글만 남기고,
+// 머리의 ★(우리 쪽 「아픈 정도」 표시 — 사용자에게 뜻이 없다)는 뺀다.
+//
+// **여기 한 곳에서** 걷는다 — 공지함 · 고객센터 · 홈페이지 벽이 다 이 파일들을 읽는다.
+// 본문(`detail`)도 같은 꼴이라 같이 걷는다. 원본(`changelog.json` · `notices.json`)은
+// 그대로 둔다(검사들이 커밋 제목과 맞춰 본다)
+// 짝 없는 백틱(여러 줄에 걸친 보기 글 — 「`\n가슴 · 등를 권해요 …」)도 남기지 않는다
+const plainMd = (s) => String(s ?? '').replace(/\*\*/g, '').replace(/`([^`\n]*)`/g, '$1').replace(/`/g, '');
+const plainTitle = (s) => plainMd(s).replace(/^\s*★+\s*/, '').trim();
+
 const rows = [
   ...((notices?.items) || []).map((n) => ({
     date: n.date || '',
-    text: n.text || '',
+    text: plainTitle(n.text),
     ...(n.pinned ? { pinned: true } : null),
   })),
   ...((changelog?.items) || []).map((c) => ({
     date: c.date || '',
     // 홈페이지는 「갈래 · 한 줄」로 한 줄에 적는다. 화면에서 또 이어 붙이지 않게
     // **여기서 이어 붙여 둔다** — 그러면 화면이 `scope` 를 몰라도 된다
-    text: `${c.scope ? `${c.scope} · ` : ''}${c.text || ''}`,
+    text: `${c.scope ? `${c.scope} · ` : ''}${plainTitle(c.text)}`,
   })),
 ]
   // 날짜도 글도 없는 줄은 화면이 어차피 걸러낸다. 여기서 걸러서 안 싣는다
@@ -125,7 +140,7 @@ const out = {
 const noticeRows = ((notices?.items) || []).map((n, i) => ({
   key: n.id ?? `notice-${i}`,
   date: n.date || '',
-  text: n.text || '',
+  text: plainTitle(n.text),
   notice: true,
   ...(n.pinned ? { pinned: true } : null),
   ...(n.detail ? { has: true } : null),
@@ -133,7 +148,7 @@ const noticeRows = ((notices?.items) || []).map((n, i) => ({
 const changeRows = ((changelog?.items) || []).map((c, i) => ({
   key: c.hash ?? `change-${i}`,
   date: c.date || '',
-  text: c.text || '',
+  text: plainTitle(c.text),
   label: c.label || '',
   ...(c.scope ? { scope: c.scope } : null),
   ...(c.detail ? { has: true } : null),
@@ -141,10 +156,10 @@ const changeRows = ((changelog?.items) || []).map((c, i) => ({
 
 const details = {};
 ((notices?.items) || []).forEach((n, i) => {
-  if (n.detail) details[n.id ?? `notice-${i}`] = n.detail;
+  if (n.detail) details[n.id ?? `notice-${i}`] = plainMd(n.detail);
 });
 ((changelog?.items) || []).forEach((c, i) => {
-  if (c.detail) details[c.hash ?? `change-${i}`] = c.detail;
+  if (c.detail) details[c.hash ?? `change-${i}`] = plainMd(c.detail);
 });
 
 if (!existsSync(DATA)) mkdirSync(DATA, { recursive: true });
