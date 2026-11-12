@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useBreath } from '../data/useBreath';
+import { useBreath, useBreathLive } from '../data/useBreath';
 import { breathLabel } from '../data/breathRest';
 import { senseOf } from '../store/settingsStore';
 
@@ -27,10 +27,11 @@ export default function BreathCheck({ sense }) {
   // 한 번 더 끄는 것이 눈에 보이는 약속이다)
   useEffect(() => () => breath.stop(), []);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const bars = breath.history.slice(-16);
+  const { level, history } = useBreathLive(breath);
+  const bars = history.slice(-16);
   const top = Math.max(0.02, ...bars);
   // 고른 예민도로 지금 숨이 어느 쪽인지 — 설정을 바꾸면 **여기서 바로 달라진다**
-  const ratio = breath.base && breath.level ? breath.level / Math.max(breath.base, 0.004) : 0;
+  const ratio = breath.base && level ? level / Math.max(breath.base, 0.004) : 0;
   const state = !breath.base ? null : ratio >= th.up ? 'high' : ratio >= th.mid ? 'mid' : 'calm';
 
   return (

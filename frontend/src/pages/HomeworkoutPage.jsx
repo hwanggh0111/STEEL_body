@@ -7,7 +7,7 @@ import { readLS, saveLS, removeLS } from '../data/safeStorage';
 import { HOME_LAST_KEY, HOME_RESUME_KEY, BREATH_LOG_KEY } from '../data/localKeys';
 import { packResume, readResume, resumeLine, leftSeconds } from '../data/homeworkoutResume';
 import { buildPump, programPump, partsOf, toRecords, doneList } from '../data/homeworkoutParts';
-import { useBreath, micSupported } from '../data/useBreath';
+import { useBreath, useBreathLive, micSupported } from '../data/useBreath';
 import { breathLabel, extraFor, hardestOf } from '../data/breathRest';
 import {
   startRecover, recoverTick, endRecover, recoverLine,
@@ -95,6 +95,8 @@ const EMPTY = [];
  * 이것이 없으면 「켰는데 아무 일도 안 일어난다」로 읽힌다.
  */
 function BreathRow({ breath, extraGiven, onSkip }) {
+  // 파형은 **이 줄만** 받는다 — 화면 전체가 1초에 여덟 번 다시 그려지지 않게 (`useBreath` 머리글)
+  const { history } = useBreathLive(breath);
   if (!breath.on) return null;
 
   // 기준선을 재는 중 · 못 쓰는 자리 — **까닭을 적는다.** 조용히 아무 일도 안 하면
@@ -110,7 +112,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
   }
 
   const label = breathLabel(breath.state);
-  const bars = breath.history.slice(-14);
+  const bars = history.slice(-14);
   const top = Math.max(0.02, ...bars);
 
   return (

@@ -63,6 +63,15 @@ import { useSettingsStore } from '../store/settingsStore';
 
 const isBodyweight = (v) => v === '맨몸' || v === 'Bodyweight';
 
+// 머리 휴식 단추의 남은 시간. **이 숫자만 따로 구독한다** (2026-11-12).
+// 여태 화면 맨 위에서 `leftMs` 를 구독해 쉬는 동안 **운동 화면 전체가 1초마다
+// 다시 그려졌다** — 바뀌는 것은 이 글자 넉 자뿐이다. 운동하는 시간의 대부분이
+// 쉬는 시간이라, 그 동안 목록을 내리거나 칸에 적으면 매초 한 번씩 걸렸다
+function RestLeft() {
+  const left = useRestTimerStore((s) => s.leftMs);
+  return formatLeft(left);
+}
+
 // ── 세트 칸 ── (2026-09-14 에 만들었고 9/19 에 화면과 함께 묻혔다. 10/21 에 되살렸다)
 //
 // 몇 세트인지 알면(루틴에 적혀 있거나 지난 기록이 있으면) 그만큼 그린다. 모르면 한
@@ -169,7 +178,7 @@ export default function TrainPage() {
   // 세트마다 체크 (2026-09-14 에 만들고 9/19 에 묻혔다 — 아래 `tapSet` 머리글)
   const checkSet = useRoutineSessionStore((s) => s.checkSet);
 
-  const restLeft = useRestTimerStore((s) => s.leftMs);
+  // 남은 시간(`leftMs`)은 여기서 구독하지 않는다 — 아래 `RestLeft` 머리글
   const restDeadline = useRestTimerStore((s) => s.deadline);
   const restPaused = useRestTimerStore((s) => s.pausedLeft);
 
@@ -1005,7 +1014,7 @@ export default function TrainPage() {
           <span style={{
             fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
             color: restRunning ? 'var(--accent)' : 'var(--text-muted)',
-          }}>{restRunning ? formatLeft(restLeft) : '휴식'}</span>
+          }}>{restRunning ? <RestLeft /> : '휴식'}</span>
         </button>
       </div>
 

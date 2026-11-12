@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { baselineOf, breathState, usable, CALIBRATE_MS, BEEP_BLIND_MS } from './breathRest';
 
 // 마이크를 켜고 **소리 크기만** 재는 자리 (2026-09-22).
@@ -41,8 +41,7 @@ function rmsOf(buf) {
  *   phase     'off' · 'asking'(권한 묻는 중) · 'calibrating'(기준선 재는 중) · 'ready' · 'blocked'
  *   why       못 쓰는 까닭 한 줄 (phase 가 'blocked' 일 때)
  *   state     지금 숨 — 'calm' · 'mid' · 'high' · null
- *   level     지금 크기 (파형을 그리는 데만 쓴다)
- *   history   최근 크기들 (파형)
+ *   live      파형 (지금 크기 · 최근 크기들). 읽을 때는 `useBreathLive(breath)` 로 받는다
  *   base      기준선
  *   start()   켠다 (사용자가 누를 때만 부른다 — 권한 창이 뜬다)
  *   stop()    끈다. 트랙을 바로 멈춘다
@@ -54,8 +53,20 @@ export function useBreath(th) {
   const [phase, setPhase] = useState('off');
   const [why, setWhy] = useState(null);
   const [state, setState] = useState(null);
-  const [level, setLevel] = useState(0);
-  const [history, setHistory] = useState([]);
+  // **파형은 state 로 두지 않는다** (2026-11-12). 1초에 여덟 번 바뀌는 값이라,
+  // state 로 두면 이 훅을 부른 화면이 **통째로** 1초에 여덟 번 다시 그려졌다 —
+  // 1,400줄짜리 홈트 화면이 그 자리였고, 파형 막대 말고는 그 값을 아무도 안 쓴다.
+  // 값은 ref 에 두고 바뀔 때 알린다. 막대를 그리는 조각만 `useBreathLive` 로 받는다
+  const liveRef = useRef(LIVE_EMPTY);
+  const subsRef = useRef(new Set());
+  const pushLive = useCallback((next) => {
+    liveRef.current = next;
+    subsRef.current.forEach((f) => f());
+  }, []);
+  const live = useMemo(() => ({
+    get: () => liveRef.current,
+    subscribe: (f) => { subsRef.current.add(f); return () => { subsRef.current.delete(f); }; },
+  }), []);
   const [base, setBase] = useState(null);
 
   const ctxRef = useRef(null);
@@ -93,11 +104,10 @@ export function useBreath(th) {
     setOn(false);
     setPhase('off');
     setState(null);
-    setLevel(0);
-    setHistory([]);
+    pushLive(LIVE_EMPTY);
     setBase(null);
     setWhy(null);
-  }, []);
+  }, [pushLive]);
 
   const start = useCallback(async () => {
     if (on) return;
@@ -136,8 +146,7 @@ export function useBreath(th) {
         // 알림 소리가 울린 직후는 **앱이 제 소리를 듣는 시간**이라 통째로 버린다
         if (now < blindUntilRef.current) return;
 
-        setLevel(v);
-        setHistory((h) => [...h.slice(-(WINDOW * 2 - 1)), v]);
+        pushLive({ level: v, history: [...liveRef.current.history.slice(-(WINDOW * 2 - 1)), v] });
         marksRef.current.push({ at: now, v });
 
         const cal = calibRef.current;
@@ -173,7 +182,7 @@ export function useBreath(th) {
       streamRef.current?.getTracks?.().forEach((t) => t.stop());
       streamRef.current = null;
     }
-  }, [on]);
+  }, [on, pushLive]);
 
   /** 알림 소리가 울릴 때 부른다. 그 소리를 마이크가 같이 듣는 시간을 버린다. */
   const blind = useCallback(() => {
@@ -198,7 +207,17 @@ export function useBreath(th) {
     ctxRef.current?.close?.();
   }, []);
 
-  return { on, phase, why, state, level, history, base, start, stop, blind, peakSince };
+  return { on, phase, why, state, live, base, start, stop, blind, peakSince };
+}
+
+const LIVE_EMPTY = { level: 0, history: [] };
+
+/**
+ * 파형 — `{ level, history }`. **이것을 부른 조각만** 1초에 여덟 번 다시 그려진다.
+ * `useBreath` 를 부른 화면 전체가 아니다 (위 `liveRef` 머리글).
+ */
+export function useBreathLive(breath) {
+  return useSyncExternalStore(breath.live.subscribe, breath.live.get);
 }
 
 /** 이 브라우저에서 마이크를 쓸 수 있나. 없으면 스위치를 아예 안 그린다. */

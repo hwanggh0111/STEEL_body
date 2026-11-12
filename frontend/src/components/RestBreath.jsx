@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useBreath } from '../data/useBreath';
+import { useBreath, useBreathLive } from '../data/useBreath';
 import { breathLabel, extraFor } from '../data/breathRest';
 import { useSettingsStore, senseOf } from '../store/settingsStore';
 import { useRestTimerStore } from '../store/restTimerStore';
@@ -46,6 +46,7 @@ export default function RestBreath() {
 
   const th = senseOf(sense);
   const breath = useBreath(th);
+  const { level, history } = useBreathLive(breath);
 
   // 이번 휴식에 몇 초를 더 줬나. 휴식이 새로 시작되면 0 으로 돌아간다
   const [given, setGiven] = useState(0);
@@ -65,7 +66,7 @@ export default function RestBreath() {
   // 화면을 떠나면 반드시 끈다 — 마이크가 켜진 채로 남으면 이 기능을 못 믿게 된다
   useEffect(() => () => breath.stop(), []);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ratio = breath.base && breath.level ? breath.level / Math.max(breath.base, 0.004) : 0;
+  const ratio = breath.base && level ? level / Math.max(breath.base, 0.004) : 0;
   const state = !breath.base ? null : ratio >= th.up ? 'high' : ratio >= th.mid ? 'mid' : 'calm';
 
   // 끝나려 할 때 한 번 본다
@@ -84,7 +85,7 @@ export default function RestBreath() {
   if (!breathOn || where !== 'gym') return null;
   if (deadline == null) return null;
 
-  const bars = breath.history.slice(-10);
+  const bars = history.slice(-10);
   const top = Math.max(0.02, ...bars);
 
   return (
