@@ -510,6 +510,13 @@ export function searchExercises(query, limit = 30) {
       else if (chosung(norm(e.ko)).includes(q)) score = 30;
       else if (norm(e.group).includes(q)) score = 20;
       else if (norm(e.desc).includes(q)) score = 10;
+      // **같은 칸이면 그 갈래의 대표가 위다** (2026-11-12, 맵시).
+      // 「벤치」를 치면 「벤치 딥스」와 「벤치프레스」가 둘 다 「앞이 맞음」(60)이라
+      // 가나다로 갈렸고 — 띄어쓰기가 앞서서 — **딥스가 첫째**였다. 「벤치」를 치는
+      // 사람은 거의 다 벤치프레스를 찾는다. 대표는 이름이 갈래 이름과 같은 것이다
+      // (벤치프레스 · 스쿼트 · 데드리프트). +5 는 칸(100/60/40/30/20/10)을 안 넘는다 —
+      // 더 잘 맞은 것을 대표라고 밀어내지는 않는다
+      if (score > 0 && norm(e.ko) === norm(e.group)) score += 5;
       return { e, score };
     })
     .filter(r => r.score > 0)
