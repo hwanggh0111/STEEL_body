@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 시안 넷 — 11/12</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (vite.config.js 의 devPreviewPlugin 머리글).
+     시안은 배포하지 않는다 — claude.ai 에도 안 올린다. 여기 /dev/sian/<날짜>/ 에 둔다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .sub { color:var(--t2); margin:0; max-width:80ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:20px 24px 32px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  .note { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .note b { color:var(--t1); font-weight:600; }
+  .note ul { margin:6px 0 0; padding-left:18px; }
+  a { color:var(--gold); }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 시안 <em>넷</em> · 11/12</h1>
+  <p class="sub">벼림이 고르고(로직·함정) 맵시가 꼴을 뽑은 것. <b>파란 점선</b>이 새로 붙는 자리다. 화면 속 숫자는 예시다.
+    권하는 순서는 <b>B → C+D → A</b>. <a href="/dev">← 개발 미리보기</a></p>
+</header>
+
+<div class="row">
+  <div class="col">
+    <div class="cap">A1 · 기록 — 「루틴으로」<small>그날 목록 맨 아래 (머리줄 「이 달 전체」 옆이 아니다 — 맵시)</small></div>
+    <iframe src="Main.html" title="A1 기록 화면 시안"></iframe>
+  </div>
+  <div class="col">
+    <div class="cap">A2 · 루틴 — 그날 한 대로 채운 폼<small>RoutinePage 가 location.state 로 받는다 (189줄 editId 와 같은 길)</small></div>
+    <iframe src="RoutineFill.html" title="A2 루틴 화면 시안"></iframe>
+    <div class="note"><b>A. 이 날을 루틴으로 · 중간</b>
+      <ul>
+        <li>같은 운동 여러 줄 → 세트는 더하고, 횟수는 드롭이 아닌 첫 줄 값 (평균 내면 아무도 안 한 횟수가 생긴다)</li>
+        <li>드롭 줄 · 유산소 줄은 빼고 「뺐어요」라고 말한다</li>
+        <li>앞날에는 단추를 숨긴다 · 저장은 사람이 누른다</li>
+        <li>루틴 개수 한도에 걸리면 서버 말을 그대로 띄운다</li>
+      </ul></div>
+  </div>
+  <div class="col">
+    <div class="cap">B · 운동 — 같은 무게 최다 횟수<small>TrainPage.jsx:666 — checkRecord 가 null 일 때만 · 최고 기록 배너와 같은 자리 · role="status"</small></div>
+    <iframe src="SameWeight.html" title="B 운동 화면 시안"></iframe>
+    <div class="note"><b>B. 같은 무게 최다 횟수 · 작다</b>
+      <ul>
+        <li>그 무게로 적은 적이 없으면 안 띄운다 (첫 기록을 최고라 부르지 않는다)</li>
+        <li>말은 「80kg 으로 가장 많이 했어요 · 10회」 — 「처음이에요」는 「전에는 9회」와 부딪힌다 (맵시)</li>
+        <li>kg 은 숫자로 견준다 (82.5)</li>
+        <li>드롭 줄 · 맨몸 · 지난 날짜 적기 · 고치기 · 최고 기록 알림 끈 사람에게는 안 띄운다</li>
+      </ul></div>
+  </div>
+  <div class="col">
+    <div class="cap">C · 운동 찾기 — 내 기록에서<small>입력 칸과 사전 결과 사이 — ExerciseFinder 에 선택 prop slot 하나 (위에 두면 칠 때 입력 칸이 밀린다 — 맵시)</small></div>
+    <iframe src="SearchMine.html" title="C 운동 찾기 화면 시안"></iframe>
+    <div class="note"><b>C. 찾기에서 내 기록도 · 작다~중간</b>
+      <ul>
+        <li>내 기록은 최대 2개 · 한 줄. <b>줄을 누르면 그 운동을 기록하러 /train</b> (ExerciseFinder 의 pickLabel="기록하기"와 같은 길) · 「그날」은 오른쪽 곁 단추 — 이 화면의 일은 기록하기다 (맵시·정석)</li>
+        <li>「23일」로 적는다 — 날 수다. 줄 수를 세면 부풀려진다 · 앞날 줄은 안 센다</li>
+        <li>맨몸은 「최고 25회」 · 맞는 게 없으면 칸을 아예 안 그린다</li>
+        <li>로그인 안 한 경우를 막는다 (홈페이지에서도 들어오는 주소)</li>
+        <li>「벤치프레스」와 「벤치 프레스」는 따로 나온다 — 그래서 D 를 같이 본다</li>
+      </ul></div>
+  </div>
+  <div class="col">
+    <div class="cap">D · 운동 찾기 — 이름이 갈렸을 때<small>C 의 한 칸 · 이름 열쇠는 trim 만 한다 (personalRecord.js:155 · HistoryPage.jsx:247)</small></div>
+    <iframe src="NameSplit.html" title="D 이름 갈림 시안"></iframe>
+    <div class="note"><b>D. 이름이 갈린 운동 알려주기 · 작다 (C 를 붙이면 바로 보인다)</b>
+      <ul>
+        <li><b>알려주기만 한다.</b> 합치기(이름 바꿔 담기)는 서버를 한꺼번에 고쳐야 해서 크다 — 이 시안에 없다</li>
+        <li>「같다」는 띄어쓰기·대소문자만 다른 것까지 — 「인클라인 벤치」처럼 다른 운동은 묶지 않는다</li>
+        <li>C 줄 밑에 <b>한 줄로만</b> — 「「벤치 프레스」로도 4일 · 띄어쓰기만 달라요 ›」. 두 줄 설명은 찾기 화면에서 뺀다 · C 의 2개 한도에 안 센다 (맵시)</li>
+        <li>거짓이 되는 길: 사전에 두 이름이 따로 있으면 진짜 다른 운동이다 — 그때는 안 띄운다</li>
+      </ul></div>
+  </div>
+</div>
+</body>
+</html>

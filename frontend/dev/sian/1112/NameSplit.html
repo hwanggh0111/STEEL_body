@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>운동 찾기 — 이름이 갈렸을 때</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0b0a08}
+.ph{width:390px;height:844px;position:relative;overflow:hidden;background:#12100c;background-image:radial-gradient(120% 85% at 50% -5%,#241c14 0%,#181310 50%,#12100c 100%);color:#eae4d6;font-family:'Barlow','IBM Plex Sans KR',sans-serif;font-size:15px;line-height:1.6}
+.ph *{box-sizing:border-box}
+.hd{height:68px;display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #332b1e;background:rgba(18,16,12,.72)}
+.logo{color:#eeb77d;font:21px/1 'Bebas Neue',sans-serif;letter-spacing:1.5px}
+.acc{display:flex;align-items:center;gap:7px;height:44px;padding:3px 10px 3px 8px;border:1px solid #332b1e;border-radius:999px;background:none}
+.av{width:26px;height:26px;border-radius:50%;background:#241a11;color:#eeb77d;font:13px 'Bebas Neue',sans-serif;display:flex;align-items:center;justify-content:center}
+.acc span.n{font:600 13px 'Barlow','IBM Plex Sans KR',sans-serif;color:#aaa28e}
+.crumb{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 20px;border-bottom:1px solid #332b1e;font-size:13px;color:#aaa28e;background:none;border-top:none;border-left:none;border-right:none;width:100%}
+.lbl{font:600 12px/1.6 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:1px;color:#aaa28e;display:block;margin-bottom:6px}
+.srch{display:flex;align-items:center;gap:8px;min-height:48px;background:#1b1712;border:1px solid #eeb77d;border-radius:2px;padding:0 14px;margin-bottom:18px}
+.srch input{flex:1;min-width:0;background:none;border:none;color:#eae4d6;font:15px 'Barlow','IBM Plex Sans KR',sans-serif;outline:none}
+.nw{outline:1.5px dashed #7fa8d9;outline-offset:4px}
+.mine{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.hitc{background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;box-shadow:inset 0 1px 0 rgba(238,183,125,.16);padding:12px 12px 12px 14px;display:flex;align-items:center;gap:10px}
+.hitc .t{font-size:14px;font-weight:600}
+.hitc .m{font-size:12.5px;color:#aaa28e;line-height:1.5}
+.hitc .b{font-size:12.5px;color:#eeb77d}
+.mrow{display:flex;align-items:stretch;gap:0;width:100%;min-height:48px;padding:0;background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;box-shadow:inset 0 1px 0 rgba(238,183,125,.16);color:#eae4d6;font:inherit;text-align:left}
+.mrow .go{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;background:none;border:none;color:#eae4d6;font:inherit;text-align:left}
+.mrow .day{flex-shrink:0;min-width:56px;min-height:48px;background:none;border:none;border-left:1px solid #332b1e;color:#aaa28e;font:13px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1px}
+.mrow .nm{font-size:13.5px;font-weight:600;flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .mt{font-size:12px;color:#aaa28e;white-space:nowrap}
+.mrow .mt b{color:#eeb77d;font-weight:500}
+.mrow .cv{color:#aaa28e;font-size:18px;line-height:1}
+.split{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;padding:4px 10px 4px 12px;background:none;border:none;border-left:1px solid #4a3f2c;margin-left:12px;color:#aaa28e;font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif;text-align:left}
+.split b{color:#eae4d6;font-weight:600}
+.btn2{min-height:44px;flex-shrink:0;background:none;border:1px solid #4a3f2c;color:#aaa28e;font:14px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1.5px;padding:8px 12px;border-radius:2px}
+.dict{display:flex;align-items:center;gap:8px;min-height:48px;padding:6px 12px;background:#1b1712;border:1px solid #332b1e;border-radius:2px}
+.dict .nm{font-size:13.5px;flex-grow:1}
+.part{font-size:11.5px;color:#aaa28e;border:1px solid #4a3f2c;border-radius:2px;padding:1px 7px}
+.tb{position:absolute;left:0;right:0;bottom:0;display:flex;border-top:1px solid #332b1e;background:rgba(18,16,12,.94)}
+.tab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 12px;border:none;background:none;color:#8f8471}
+.tab span{font:11px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1px}
+.tab.on{background:#241a11;color:#eeb77d}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <button class="crumb"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>운동 · <span style="color:#eae4d6">운동 찾기</span></button>
+
+  <main style="padding:16px 20px 90px">
+    <label class="srch" for="q"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#aaa28e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg><input id="q" value="벤치" aria-label="운동 이름"></label>
+
+    <div style="margin-bottom:22px">
+      <div class="lbl">내 기록에서</div>
+      <div class="mine" style="margin:0">
+        <div class="mrow"><button class="go" aria-label="벤치프레스 기록하기 — 31일 적음, 마지막 11월 8일, 최고 100kg 3회"><span class="nm">벤치프레스</span><span class="mt">31일 · 11/8 · <b>최고 100×3</b></span></button><button class="day" aria-label="벤치프레스 마지막 날 보기">그날</button></div>
+        <button class="split nw"><span>「<b>벤치 프레스</b>」로도 4일 · 띄어쓰기만 달라요</span><span aria-hidden="true" style="margin-left:auto;font-size:16px">›</span></button>
+        <div class="mrow"><button class="go" aria-label="인클라인 벤치프레스 기록하기 — 9일 적음, 마지막 11월 5일, 최고 70kg 8회"><span class="nm">인클라인 벤치프레스</span><span class="mt">9일 · 11/5 · <b>최고 70×8</b></span></button><button class="day" aria-label="인클라인 벤치프레스 마지막 날 보기">그날</button></div>
+      </div>
+    </div>
+
+    <div class="lbl">사전에서</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div class="dict"><span class="nm">벤치프레스</span><span class="part">가슴</span></div>
+      <div class="dict"><span class="nm">인클라인 벤치프레스</span><span class="part">가슴</span></div>
+      <div class="dict"><span class="nm">덤벨 벤치프레스</span><span class="part">가슴</span></div>
+    </div>
+  </main>
+
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path><path d="M8.4 11.4 5.6 13M15.6 11.4 18.4 13"></path></svg><span>오늘</span></button>
+    <button class="tab on" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path><path d="M8 13.6h2M14 13.6h2M8 16.6h2M14 16.6h2"></path></svg><span>기록</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>
