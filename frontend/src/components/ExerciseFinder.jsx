@@ -214,10 +214,13 @@ function Card({ ko, en, desc, pickLabel, onPick }) {
  * @param pickLabel   고르는 단추에 적을 말 ('기록하기' · '이 운동으로')
  * @param autoFocus   열자마자 입력칸에 커서를 둘지 (기록 화면에서 펼칠 때 쓴다)
  * @param compact     기록 화면 안에 들어갈 때. 머리 설명을 줄인다
+ * @param above       (선택) `(query) => 노드` — **입력 칸과 사전 결과 사이**에 끼울 것 (2026-11-12).
+ *                    찾기 화면의 「내 기록에서」가 쓴다. 입력 칸 **위**에 두면 결과가 생겼다
+ *                    사라질 때마다 치는 칸이 위아래로 밀린다(맵시). 안 주면 아무것도 안 그린다
  */
 // `initialQuery` — 열자마자 찾아둔 채로 시작한다. 몸 지도에서 「등 운동 찾기」로
 // 들어오는 자리에 쓴다. 처음 값일 뿐이라 사람이 지우면 그대로 지워진다
-export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false, initialQuery = '' }) {
+export default function ExerciseFinder({ onPick, pickLabel = '기록하기', autoFocus = false, compact = false, initialQuery = '', above = null }) {
   const [query, setQuery] = useState(initialQuery);
 
   // 부위 이름은 한 글자여도 찾는다 (「등」 · 「팔」)
@@ -288,6 +291,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
         </div>
       ) : (
         <>
+          {above && above(query)}
           {results.length > 0 && (
             <>
               <div className="label">앱에 있는 운동 {results.length}개</div>

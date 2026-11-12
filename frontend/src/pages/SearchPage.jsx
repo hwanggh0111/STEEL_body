@@ -1,5 +1,77 @@
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ExerciseFinder from '../components/ExerciseFinder';
+import { useAuthStore } from '../store/authStore';
+import { useWorkoutStore } from '../store/workoutStore';
+import { useToday } from '../data/useToday';
+import { mineIndex, mineQuery } from '../data/searchMine';
+import { agoLabel, shortDate } from '../data/lastSets';
+import { daysBetween } from '../data/personalRecord';
+import { euroJosa } from '../data/particle';
+
+// ── 내 기록에서 ── (2026-11-12, 시안 1112 C · D — 셈은 `data/searchMine.js`)
+//
+// **줄 = 기록하기**(이 화면의 일이 그것이다) · 오른쪽 「그날」 = 마지막 날 보기.
+// 한 줄짜리로, 많아야 둘 — 자판이 올라와도 사전 결과가 밀려나지 않게(맵시).
+// 이름이 갈린 것(D)은 그 줄 바로 밑에 **한 줄**만 붙는다
+const bestText = (b) => (!b ? '' : b.kind === 'weighted' ? ` · 최고 ${b.kg}kg×${b.reps}` : ` · 최고 ${b.reps}회`);
+
+function MineRows({ rows, today, onRecord, onDay }) {
+  if (!rows.length) return null;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div className="label">내 기록에서</div>
+      {rows.map((r) => {
+        const ago = agoLabel(daysBetween(r.lastDate, today));
+        return (
+          <div key={r.name} style={{ marginBottom: 6 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                className="card"
+                onClick={() => onRecord(r.name)}
+                aria-label={`${r.name} 기록하기 — ${r.days}일 했어요${bestText(r.best)}, 마지막 ${ago}`}
+                style={{
+                  flex: 1, minWidth: 0, minHeight: 44, margin: 0, padding: '10px 12px', textAlign: 'left',
+                  cursor: 'pointer', font: 'inherit', color: 'var(--text-secondary)', fontSize: 13,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}
+              >
+                <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{r.name}</b>
+                {` · ${r.days}일${bestText(r.best)}`}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => onDay(r.lastDate)}
+                aria-label={`${r.name} 마지막 날 보기 (${shortDate(r.lastDate)})`}
+                style={{ minHeight: 44, minWidth: 56, flexShrink: 0 }}
+              >그날</button>
+            </div>
+            {r.split && (
+              <button
+                type="button"
+                onClick={() => onDay(r.split.lastDate)}
+                // 보이는 글이 이미 다 말한다 — `aria-label` 로 덮으면 낭독기는 이름도 「띄어쓰기만
+                // 달라요」도 못 듣는다(맵시). 글 그대로 읽힌다
+                style={{
+                  display: 'block', width: '100%', minHeight: 32, textAlign: 'left', background: 'none',
+                  border: 'none', padding: '4px 12px', cursor: 'pointer', font: 'inherit',
+                  // 「두 번 세어지고 있다」는 알림이라 흐리면 안 된다 — `--text-muted` 는 카드 위 3.59:1
+                  fontSize: 12, color: 'var(--text-secondary)',
+                }}
+              >
+                {r.split.names.length === 1
+                  ? `「${r.split.names[0]}」${euroJosa(r.split.names[0])}도 ${r.split.days}일 · 띄어쓰기만 달라요 ›`
+                  : `다른 이름 ${r.split.names.length}개로도 ${r.split.days}일 · 띄어쓰기만 달라요 ›`}
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // 운동 검색.
 //
@@ -31,6 +103,14 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const q = (params.get('q') || '').slice(0, MAX_Q).trim();
+  // **로그인 안 한 사람에게는 안 그린다** — 홈페이지에서도 들어오는 주소다(시안 C)
+  const loggedIn = useAuthStore((st) => st.isLoggedIn);
+  const workouts = useWorkoutStore((st) => st.workouts);
+  const fetchWorkouts = useWorkoutStore((st) => st.fetchAll);
+  const today = useToday();
+  useEffect(() => { if (loggedIn) fetchWorkouts(); }, [loggedIn, fetchWorkouts]);
+  // 이름 무리 · 날 · 최고는 **기록이 바뀔 때만** 센다 — 칠 때마다 세지 않는다 (`data/searchMine.js` 머리글)
+  const mine = useMemo(() => (loggedIn ? mineIndex(workouts, today) : []), [loggedIn, workouts, today]);
 
   return (
     <div>
@@ -49,6 +129,14 @@ export default function SearchPage() {
         autoFocus={!q}
         pickLabel="기록하기"
         onPick={(name) => navigate('/train', { state: { exercise: name } })}
+        above={loggedIn ? (query) => (
+          <MineRows
+            rows={mineQuery(mine, query)}
+            today={today}
+            onRecord={(name) => navigate('/train', { state: { exercise: name } })}
+            onDay={(date) => navigate('/history', { state: { date } })}
+          />
+        ) : null}
       />
     </div>
   );
