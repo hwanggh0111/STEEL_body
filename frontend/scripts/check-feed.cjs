@@ -258,10 +258,28 @@ console.log('\n── ★ 받은 것이 JSON 인지 보는가 (2026-11-11) ─�
   const idx = read('src/data/feedIndex.json');
   const list = read('src/data/feedList.json');
   const det = read('public/feed-detail.json');
-  const titles = [...(idx.items || []), ...(list.items || [])].map((r) => r.text).filter(raw);
-  ok('공지 · 소식 제목에 `**` · 백틱 · 머리 ★ 가 없다', titles.slice(0, 3), []);
-  ok('  갈래 뒤의 ★ 도 없다 (「서버 · ★ …」)', (list.items || []).filter((r) => / · ★/.test(r.text)).length, 0);
-  ok('  펼친 본문에 `**` · 백틱이 없다', Object.values(det).filter((s) => /\*\*|`/.test(s)).length, 0);
+  // **코드 표시 안의 별표는 글이다** — 「`**` · 백틱」처럼 별표를 말하는 제목에서는 남는 것이
+  // 맞다. 그래서 **원본의 코드 표시 안에 있던 수만큼만** 남아도 된다. 백틱은 하나도 안 남는다.
+  // 맞대는 열쇠는 화면이 쓰는 그것이다(공지 id · 커밋 hash)
+  const cl = read('src/data/changelog.json').items || [];
+  const nt = read('src/data/notices.json').items || [];
+  const stars = (s) => (String(s ?? '').match(/\*\*/g) || []).length;
+  const codeStars = (s) => (String(s ?? '').match(/`[^`\n]*`/g) || []).reduce((n, c) => n + stars(c), 0);
+  const src = new Map();
+  nt.forEach((n, i) => src.set(n.id ?? `notice-${i}`, n));
+  cl.forEach((c, i) => src.set(c.hash ?? `change-${i}`, c));
+  const badTitle = (idx.items || []).filter((r) => /`/.test(r.text) || /^\s*★/.test(r.text)
+    || stars(r.text) > codeStars(src.get(r.key)?.text)).map((r) => r.text);
+  ok('공지 · 소식 제목에 `**` · 백틱 · 머리 ★ 가 없다 (코드 표시 안의 글은 빼고)', badTitle.slice(0, 3), []);
+  void raw;
+  // 머리 ★ 는 갈래를 붙인 뒤에도 없어야 한다(「서버 · ★ …」). 글 **가운데**의 ★ 는 그 제목의 말이다
+  const headStar = cl.filter((c) => (list.items || []).some((r) => r.text.startsWith(`${c.scope ? `${c.scope} · ` : ''}★`)));
+  ok('  갈래 뒤의 머리 ★ 도 없다 (「서버 · ★ …」)', headStar.length, 0);
+  ok('  홈페이지 벽 목록에도 백틱이 없다', (list.items || []).filter((r) => /`/.test(r.text)).length, 0);
+  ok('  **별표를 말하는 제목은 안 뭉개진다** (「40줄이 ** · 백틱」)',
+    (list.items || []).some((r) => r.text.includes('40줄이 ** · 백틱')), true);
+  const badDet = Object.entries(det).filter(([k, s]) => /`/.test(s) || stars(s) > codeStars(src.get(k)?.detail));
+  ok('  펼친 본문에 `**` · 백틱이 없다 (코드 표시 안의 글은 빼고)', badDet.map(([k]) => k).slice(0, 3), []);
   const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-feed.mjs'), 'utf8');
   ok('  걷는 손은 생성기 한 곳이다', /const plainMd = /.test(gen) && /const plainTitle = /.test(gen), true);
 }

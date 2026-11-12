@@ -93,8 +93,14 @@ if (!notices && !changelog) {
 // **여기 한 곳에서** 걷는다 — 공지함 · 고객센터 · 홈페이지 벽이 다 이 파일들을 읽는다.
 // 본문(`detail`)도 같은 꼴이라 같이 걷는다. 원본(`changelog.json` · `notices.json`)은
 // 그대로 둔다(검사들이 커밋 제목과 맞춰 본다)
-// 짝 없는 백틱(여러 줄에 걸친 보기 글 — 「`\n가슴 · 등를 권해요 …」)도 남기지 않는다
-const plainMd = (s) => String(s ?? '').replace(/\*\*/g, '').replace(/`([^`\n]*)`/g, '$1').replace(/`/g, '');
+// 짝 없는 백틱(여러 줄에 걸친 보기 글 — 「`\n가슴 · 등를 권해요 …」)도 남기지 않는다.
+//
+// **코드 표시부터 푼다** — 그 안의 글은 그대로 둔다. 별표를 먼저 걷으면 「`**` · 백틱」처럼
+// **별표 자체를 말하는 글**이 「 · 백틱」으로 뭉개졌다(이 고침의 제목이 그랬다)
+const plainMd = (s) => String(s ?? '')
+  .split(/(`[^`\n]*`)/g)
+  .map((part) => (/^`[^`\n]*`$/.test(part) ? part.slice(1, -1) : part.replace(/\*\*/g, '').replace(/`/g, '')))
+  .join('');
 const plainTitle = (s) => plainMd(s).replace(/^\s*★+\s*/, '').trim();
 
 const rows = [
