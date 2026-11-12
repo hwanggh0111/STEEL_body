@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useInbodyStore } from '../store/inbodyStore';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
@@ -73,6 +73,7 @@ function Panel({ height = 200 }) {
 
 export default function BodyPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const today = useToday();
   const records = useInbodyStore((s) => s.records);
   const fetchAll = useInbodyStore((s) => s.fetchAll);
@@ -158,6 +159,33 @@ export default function BodyPage() {
           </div>
         </div>
       )}
+
+      {/* ── **몸 지도 · 아픈 곳도 여기서 간다** ── (2026-11-12, 맵시)
+          둘 다 몸 이야기인데 이 탭에 길이 없었다. 몸 지도는 홈의 「오늘 할 곳」 하나로만
+          들어갔고 그 카드는 **최근 기록이 있어야** 뜬다 — 새로 온 사람은 찾기에 이름을
+          치지 않으면 못 갔다. 아픈 곳(`/parts`)은 내 계정 서랍 안에만 있었다.
+          **달라진 것을 먼저** 말하는 위 띠는 그대로 두고, 갈래 줄 바로 위에 둔다 —
+          아래 갈래는 이 화면 안의 것이고, 이 두 칸은 옆 화면으로 가는 길이다 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {[
+          ['/map', '몸 지도', '최근에 자극한 곳'],
+          ['/parts', '아픈 곳', '몸 그림에 짚어두기'],
+        ].map(([to, name, sub]) => (
+          <button
+            key={to}
+            type="button"
+            onClick={() => navigate(to)}
+            className="card clickable"
+            style={{
+              flex: 1, minWidth: 0, minHeight: 44, margin: 0, padding: '9px 12px', textAlign: 'left',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <span style={{ display: 'block', fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 600 }}>{name} ›</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{sub}</span>
+          </button>
+        ))}
+      </div>
 
       {/* ── 갈래 셋 ──
           예전에는 인바디(탭바) · 측정(서랍) · 견주기(인바디 안쪽 탭)로 흩어져 있었다 */}

@@ -61,7 +61,11 @@ export const DRAWER_ITEMS = [
 export const SUBSCREENS = {
   // 탭의 자식 — 그 탭이 켜진다
   '/goal':       { label: '목표',       tab: '/home' },   // 홈의 목표 카드에서만 들어온다
-  '/map':        { label: '몸 지도',    tab: '/home' },
+  // 몸 지도 · 부위는 **「몸」 탭의 자식**이다 (2026-11-12, 맵시) — 「몸」 탭에 들어가는 길을
+  // 두면서 옮겼다. 몸 지도는 「오늘」이, 부위는 아무 탭도 안 켜졌다. 홈에서 들어와도
+  // 뒤로(←)는 들어온 데로 간다(`Layout` 의 `goBackFromCrumb`) — 켜지는 탭만 바뀐다
+  '/map':        { label: '몸 지도',    tab: '/body' },
+  '/parts':      { label: '부위',       tab: '/body' },
   '/search':     { label: '운동 찾기',  tab: '/train' },
   '/homeworkout':{ label: '기능성운동', tab: '/train' },
   '/routine':    { label: '루틴',       tab: '/train' },
@@ -74,7 +78,6 @@ export const SUBSCREENS = {
   '/support/intro':   { label: '앱 소개',   tab: null },
   '/support':         { label: '고객센터',  tab: null },
   '/reminders':       { label: '운동 알림', tab: null },
-  '/parts':           { label: '부위',      tab: null },
   '/admin':           { label: '관리자',    tab: null },
 };
 

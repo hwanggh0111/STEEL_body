@@ -235,7 +235,10 @@ ok('  ← 가 들어온 데로 돌아간다', /location\.key !== 'default'\) nav
 ok('  바로 열렸으면 부모 탭으로 (없으면 홈)', /navigate\(crumb\?\.tab \|\| '\/home'\)/.test(layout), true);
 // 탭바가 짝을 한 벌 더 들고 있으면 머리와 어긋난다
 ok('탭바는 짝을 베껴 적지 않았다', /const PARENT_OF = \{/.test(tabbar), false);
-ok('  「오늘」의 자식 둘 (목표 · 몸 지도)', [parentOf['/goal'], parentOf['/map']], ['/home', '/home']);
+ok('  「오늘」의 자식 (목표)', parentOf['/goal'], '/home');
+// 몸 지도 · 부위는 **「몸」 탭의 자식**이다 (2026-11-12, 맵시 — 「몸」 탭에 두 길을 두면서 옮겼다).
+// 여태 몸 지도는 「오늘」이 켜지고 부위는 아무 탭도 안 켜졌다
+ok('  「몸」의 자식 둘 (몸 지도 · 부위)', [parentOf['/map'], parentOf['/parts']], ['/body', '/body']);
 ok('  「운동」의 자식 둘 (검색 · 기능성운동)', [parentOf['/search'], parentOf['/homeworkout']], ['/train', '/train']);
 
 console.log('');
