@@ -38,7 +38,17 @@ function startServer() {
       VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '',
       // 번호를 응답에 실어 달라고 한다 — 까닭은 `check-shield.cjs` 의 같은 줄에 적어뒀다.
       // SMTP 열쇠가 있는 컴퓨터에서는 이게 없으면 검사가 첫 줄에서 멈춘다
-      DEV_ECHO_CODE: '1' },
+      DEV_ECHO_CODE: '1',
+      // **계정별 분당 100 을 연다** (2026-11-12). 이 검사는 한 계정으로 수백 번 두들긴다 —
+      // 손잡이를 안 열었을 때 **331 번이 429 로 돌아왔고** 라우터에 닿지도 못한 채
+      // 「500 없음」으로 통과했다(401 에서 한 번 밟은 그 모양이다). 운영에는 없는 값이다
+      // (`config/security.js` 의 `RATE_LIMIT_GLOBAL_MAX`)
+      RATE_LIMIT_GLOBAL_MAX: '1000000' },
+      // **`TRUST_PROXY` 는 일부러 안 준다.** 주면 요청이 「바깥」이 되어 계정별 셈
+      // (aiGuard 분당 200 · spamCheck 분당 60)이 켜지고 그쪽에서 또 429 가 난다. 안 주면
+      // 서버가 `X-Forwarded-For` 를 안 믿어 **모든 요청이 127.0.0.1** 이다 — 아래
+      // `nextIp()` 는 그래서 주소를 실제로 바꾸지 못한다. 길마다 따로 선 좁은 제한
+      // (아이디 확인 · 비밀번호 찾기 · 바꾸기 — 열 번)은 `pound` 의 `cap` 으로 맞춘다
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', () => {});
@@ -98,25 +108,37 @@ const ODD = [
 ];
 
 /** 그 자리에 이상한 몸통을 다 넣어본다. 500 이 하나라도 나오면 잡는다 */
-async function pound(name, method, url, token, fields) {
+//
+// `cap` — **그 길에 따로 선 제한이 좁을 때** 그 수만큼만 보낸다 (2026-11-12). 다 보내면
+// 열한 번째부터 429 로 돌아오고, 그것을 「500 없음」으로 세면 안 가본 것을 통과로
+// 적는 것이다. 몸통은 고르게 골라서 칸마다 이상한 값이 골고루 들어가게 한다
+async function pound(name, method, url, token, fields, cap = 0) {
   currentIp = nextIp();   // 자리마다 새 주소로 — 앞에서 막힌 것이 따라오면 안 된다
   const fails = [];
+  let all = [];
   for (const odd of ODD) {
     const v = '__v' in odd ? odd.__v : undefined;
     // 칸마다 이상한 값을 하나씩 넣어본다 (나머지는 비운다)
-    const bodies = fields.length
-      ? fields.map((f) => ({ [f]: v }))
-      : [odd];
-    for (const body of bodies) {
+    all.push(...(fields.length ? fields.map((f) => ({ [f]: v })) : [odd]));
+  }
+  const total = all.length;
+  if (cap && all.length > cap) {
+    const step = all.length / cap;
+    all = Array.from({ length: cap }, (_, i) => all[Math.floor(i * step)]);
+  }
+  {
+    for (const body of all) {
       const status = await call(method, url, body, token);
       if (status >= 500) fails.push(`${JSON.stringify(body).slice(0, 60)} → ${status}`);
       // 토큰을 들고 갔는데 401 이면 라우터에 못 닿은 것이다 — 시험이 헛돈다
       if (token && status === 401) fails.push('401 — 라우터에 닿지 못했습니다');
+      if (status === 429) fails.push('429 — 막혀서 라우터에 닿지 못했습니다');
     }
   }
   const pass = fails.length === 0;
   if (!pass) bad += 1;
-  console.log((pass ? 'OK   ' : 'FAIL ') + name + (pass ? ' → 500 없음' : ' → ' + fails.slice(0, 3).join(' · ')));
+  const part = all.length < total ? ` (${total} 중 ${all.length} — 그 길의 제한이 그만큼이다)` : '';
+  console.log((pass ? 'OK   ' : 'FAIL ') + name + (pass ? ' → 500 없음' + part : ' → ' + fails.slice(0, 3).join(' · ')));
 }
 
 (async () => {
@@ -170,8 +192,8 @@ async function pound(name, method, url, token, fields) {
   console.log('── 로그인 전에 이상한 것을 보내면 ──');
   await pound('회원가입', 'POST', '/auth/register', null, ['email', 'password', 'nickname', 'username']);
   await pound('로그인', 'POST', '/auth/login', null, ['email', 'password']);
-  await pound('아이디 중복 확인', 'POST', '/auth/check-username', null, ['username']);
-  await pound('비밀번호 찾기', 'POST', '/auth/reset-password', null, ['email', 'code', 'password']);
+  await pound('아이디 중복 확인', 'POST', '/auth/check-username', null, ['username'], 10);
+  await pound('비밀번호 찾기', 'POST', '/auth/reset-password', null, ['email', 'code', 'password'], 10);
 
   console.log('');
   console.log('── 로그인한 뒤 쓰는 자리마다 ──');
@@ -187,8 +209,58 @@ async function pound(name, method, url, token, fields) {
   await pound('사진', 'POST', '/photos', token, ['type', 'data']);
   await pound('닉네임', 'PUT', '/auth/nickname', token, ['nickname']);
   await pound('성별', 'PUT', '/auth/sex', token, ['sex']);
-  await pound('비밀번호 바꾸기', 'PUT', '/auth/password', token, ['currentPassword', 'newPassword']);
+  await pound('비밀번호 바꾸기', 'PUT', '/auth/password', token, ['currentPassword', 'newPassword'], 10);
   await pound('못 찾은 말', 'POST', '/faq-gaps', token, ['term']);
+
+  // ── **나머지 칸은 멀쩡하고 한 칸만 이상할 때** ── (2026-11-12)
+  //
+  // 위는 이상한 칸 **하나만** 보내고 나머지를 비운다. 그러면 대개 앞의 「필수에요」
+  // 검사에서 돌아가서 **그 칸을 실제로 읽는 줄까지 못 간다.** 그 자리에 둘이 숨어 있었다 —
+  //
+  //   · `{"toString":1}` 을 숫자 칸에 → `Number(그것)` 이 TypeError → **500** (일곱 자리)
+  //   · 날짜에 `["2026-11-01"]` → 정규식은 지나고 `.split` 에서 → **500** (운동 기록 둘)
+  //
+  // 그래서 **제대로 된 몸통을 깔고** 칸을 하나씩 바꿔 본다. 고치기(PUT)도 여기서 본다
+  console.log('');
+  console.log('── 다른 칸은 멀쩡할 때 한 칸만 이상하면 ──');
+  const made = async (url, body) => {
+    const r = await fetch(BASE + url, {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Forwarded-For': currentIp },
+    });
+    return (await r.json().catch(() => ({})))?.id;
+  };
+  const wid = await made('/workouts', { date: '2026-11-01', exercise: '벤치', weight: 60, sets: 3, reps: 10 });
+  const iid = await made('/inbody', { date: '2026-11-01', height: 175, weight: 70, fat_pct: 15, muscle_kg: 33 });
+  const rid = await made('/my-routines', { name: '시험', exercises: [{ name: '벤치', sets: 3, reps: 10 }] });
+  if (!wid || !iid || !rid) {
+    console.log('FAIL 깔 줄을 못 만들었습니다 — 아래를 돌려도 뜻이 없습니다');
+    bad += 1;
+  } else {
+    const ODD_ON_BASE = [{ toString: 1 }, { valueOf: 1 }, ['2026-11-01'], ['x'], [], {}, null, true];
+    const poundOn = async (name, method, url, base) => {
+      currentIp = nextIp();
+      const fails = [];
+      for (const k of Object.keys(base)) {
+        for (const v of ODD_ON_BASE) {
+          const status = await call(method, url, { ...base, [k]: v }, token);
+          if (status >= 500) fails.push(`${k}=${JSON.stringify(v)} → ${status}`);
+          if (status === 401 || status === 429) fails.push(`${status} — 라우터에 닿지 못했습니다`);
+        }
+      }
+      if (fails.length) bad += 1;
+      console.log((fails.length ? 'FAIL ' : 'OK   ') + name + (fails.length ? ' → ' + fails.slice(0, 3).join(' · ') : ' → 500 없음'));
+    };
+    await poundOn('운동 기록', 'POST', '/workouts', { date: '2026-11-02', exercise: '스쿼트', weight: 80, sets: 3, reps: 5 });
+    await poundOn('유산소 기록', 'POST', '/workouts', { date: '2026-11-02', exercise: '런닝', minutes: 30, distanceKm: 5 });
+    await poundOn('운동 고치기', 'PUT', `/workouts/${wid}`, { date: '2026-11-01', exercise: '벤치', weight: 62, sets: 3, reps: 10 });
+    await poundOn('인바디', 'POST', '/inbody', { date: '2026-11-03', height: 175, weight: 70, fat_pct: 15, muscle_kg: 33 });
+    await poundOn('인바디 고치기', 'PUT', `/inbody/${iid}`, { date: '2026-11-01', height: 175, weight: 71, fat_pct: 15, muscle_kg: 33 });
+    await poundOn('목표', 'PUT', '/goals', { weeklyTarget: 3, weightTarget: 70, weightStart: 75 });
+    await poundOn('별점', 'POST', '/ratings', { score: 5, comment: '좋아' });
+    await poundOn('루틴 진행표', 'POST', '/routine-session', { routineId: rid });
+    await poundOn('루틴 진행표 고치기', 'PATCH', '/routine-session', { index: 0, state: 'done', setsDone: 1 });
+  }
 
   await stopServer();
   clean();

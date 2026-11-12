@@ -142,6 +142,12 @@ app.use(express.json({
   limit: BODY_LIMIT,
   reviver: (key, value) => {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+    // **값으로 바꾸는 손잡이도 뺀다** (2026-11-12). `{"toString":1}` 이 칸에 오면
+    // `Number(그것)` 이 **TypeError 로 터졌다** — 「숫자로 못 읽는다」(400)가 아니라 500.
+    // 운동 · 인바디 · 목표 · 별점 · 루틴 진행표 일곱 자리가 다 그랬다(`npm run odd` 는
+    // 칸 하나만 넣고 나머지를 비워서 앞의 「필수」 검사에서 돌아갔다). 이 이름을 칸으로
+    // 쓰는 자리는 없다 — 빼면 빈 객체가 되고, 받는 자리가 제 말로 거절한다
+    if (key === 'toString' || key === 'valueOf') return undefined;
     return value;
   },
 }));

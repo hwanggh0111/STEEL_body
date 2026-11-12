@@ -130,7 +130,9 @@ router.post('/', auth, spamCheck, (req, res) => {
   }
 
   // 날짜 형식 검증 (YYYY-MM-DD, 실제 존재하는 날짜만)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  // **글자인지 먼저 본다** (2026-11-12) — `["2026-11-01"]` 은 정규식을 지나고(배열이
+  // 글자로 바뀐다) 바로 아래 `.split` 에서 500 이 났다
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: '올바른 날짜 형식이 아니에요 (YYYY-MM-DD)' });
   }
   const [y, m, d] = date.split('-').map(Number);
@@ -212,7 +214,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '날짜, 운동명, 세트, 횟수는 필수에요' });
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  // **글자인지 먼저 본다** (2026-11-12) — `["2026-11-01"]` 은 정규식을 지나고(배열이
+  // 글자로 바뀐다) 바로 아래 `.split` 에서 500 이 났다
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: '올바른 날짜 형식이 아니에요 (YYYY-MM-DD)' });
   }
   const [y, m, d] = date.split('-').map(Number);
