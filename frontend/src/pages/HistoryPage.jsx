@@ -31,6 +31,7 @@ import { TOKEN_KEY } from '../data/localKeys';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 import { upToToday } from '../data/dateKey';
 import { useToday } from '../data/useToday';
+import { routineFromDay } from '../data/dayRoutine';
 // 갈래를 주소에 남긴다 (2026-10-06)
 import { useTabParam } from '../data/useTabParam';
 
@@ -630,6 +631,23 @@ export default function HistoryPage() {
               {filtered.map((w) => (
                 <WorkoutCard key={w.id} workout={w} onDelete={handleDelete} />
               ))}
+              {/* ── 이 날을 루틴으로 ── (2026-11-12, 시안 1112 A · 셈은 `data/dayRoutine.js`)
+                  **그날 목록 맨 아래** — 그날 한 것을 다 읽은 뒤에 고르는 것이 읽는 차례다.
+                  머리줄의 「이 달 전체」(돌아가는 길) 옆에 두면 성격이 다른 작은 단추 둘이
+                  붙는다(맵시). 날을 골랐을 때만 · 거르지 않을 때만 · **앞날에는 안 그린다** ·
+                  담을 근력 줄이 없으면 안 그린다. 폼을 채우기만 하고 저장은 사람이 누른다 */}
+              {date === selectedDate && !filterExercise && date <= today && (() => {
+                const fill = routineFromDay(workouts[date]);
+                if (!fill.exercises.length) return null;
+                return (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => navigate('/routine', { state: { fromDay: { date, ...fill } } })}
+                    style={{ width: '100%', marginTop: 8, minHeight: 44 }}
+                  >이 날을 루틴으로</button>
+                );
+              })()}
             </div>
           );
         })

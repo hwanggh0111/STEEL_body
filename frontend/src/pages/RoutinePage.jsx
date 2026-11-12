@@ -11,6 +11,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { MAX_EXERCISES, REPS_MAX, ROUTINE_NAME_MAX, SETS_MAX } from '../data/limits';
 import { setsRepsError } from '../data/setRange';
+import { fillNote } from '../data/dayRoutine';
 
 // 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
 // 조용히 비어 보인다 — 서버는 200 을 주고 화면은 「데이터 없음」을 띄운다.
@@ -208,6 +209,49 @@ export default function RoutinePage() {
   // 머리의 새로고침 — 다른 기기에서 만든 루틴이 여기서 보여야 한다
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTick, retry]);
+
+  // ── 기록의 「이 날을 루틴으로」가 들고 온 것 ── (2026-11-12, 시안 1112 A)
+  //
+  // 셈은 기록 화면이 이미 했다(`data/dayRoutine.js` — 세트는 더하고 횟수는 드롭 아닌
+  // 첫 줄 · 드롭 · 유산소는 뺀다). 여기서는 **폼을 채워 펴기만** 한다 — 저장은 사람이
+  // 누른다. **한 번만 편다**(`editId` 와 같은 까닭). 읽은 뒤 주소의 state 를 비워
+  // 뒤로 갔다 오거나 새로고침해도 다시 안 펴지게 한다.
+  //
+  // 루틴이 하나도 없는 사람은 목록을 받은 뒤 「추천」 탭으로 옮겨진다(위 `movedRef`).
+  // 그러면 펴 둔 폼이 안 보이므로 **옮기지 않게 표시한다**
+  const fromDay = useLocation().state?.fromDay ?? null;
+  const [fill, setFill] = useState(null);
+  const openedFillRef = useRef(false);
+  useEffect(() => {
+    if (!fromDay || openedFillRef.current || !Array.isArray(fromDay.exercises)) return;
+    openedFillRef.current = true;
+    movedRef.current = true;
+    const note = fillNote(fromDay.date, fromDay);
+    // 루틴 한 개에 담는 운동 수에는 한도가 있다 — 넘으면 앞에서부터 담고 그렇다고 말한다
+    const rows = fromDay.exercises.slice(0, MAX_EXERCISES);
+    setEditingId(null);
+    setNewRoutine({
+      name: note.name.slice(0, ROUTINE_NAME_MAX),
+      exercises: rows.map((ex) => ({ uid: uidRef.current++, name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' })),
+    });
+    setFill({
+      ...note,
+      cut: fromDay.exercises.length > rows.length
+        ? `운동이 ${fromDay.exercises.length}개라 앞의 ${rows.length}개만 담았어요.` : '',
+    });
+    setShowCreate(true);
+    setTab('mine');
+    navigate('/routine', { replace: true, state: null });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromDay]);
+  // 폼을 닫으면(저장 · 취소) 채웠다는 말도 거둔다 — **열렸다가 닫힐 때만.** 그냥 `!showCreate` 로
+  // 보면 첫 그림 뒤에 위의 효과와 같이 돌면서 **방금 채운 말을 바로 지웠다**(그 그림의
+  // `showCreate` 는 아직 거짓이다 — 헤드리스로 돌려보고 잡았다)
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasOpenRef.current && !showCreate) setFill(null);
+    wasOpenRef.current = showCreate;
+  }, [showCreate]);
 
   // 저장 · 수정 · 삭제는 **여기서만 알린다.**
   //
@@ -600,6 +644,17 @@ export default function RoutinePage() {
           <div style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)', marginBottom: 12 }}>
             {editingId ? '루틴 고치기' : '새 루틴 만들기'}
           </div>
+
+          {/* 무엇을 채웠고 무엇을 뺐는지 — **낭독기도 읽는다**(맵시) */}
+          {fill && (
+            <div role="status" style={{
+              fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: 12,
+              padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+            }}>
+              <div style={{ color: 'var(--text-primary)' }}>{fill.head}</div>
+              <div>{fill.tail}{fill.cut ? ` ${fill.cut}` : ''}</div>
+            </div>
+          )}
 
           <label className="label">루틴 이름</label>
           <input
