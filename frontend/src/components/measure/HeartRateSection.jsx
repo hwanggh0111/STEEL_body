@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { AGE_MAX, AGE_MIN, HR_MAX, HR_MIN } from '../../data/measureRange';
 
 // 심박수 존.
@@ -42,6 +42,10 @@ const inRange = (v, lo, hi) => {
 };
 
 export default function HeartRateSection() {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [age, setAge] = useState('');
   const [restHR, setRestHR] = useState('');
   const [ownMax, setOwnMax] = useState('');
@@ -70,13 +74,13 @@ export default function HeartRateSection() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <div style={{ flex: 1 }}>
-          <label className="label">나이</label>
-          <input className="input" type="number" inputMode="numeric" min={AGE_MIN} max={AGE_MAX}
+          <label className="label" htmlFor={`${uid}-age`}>나이</label>
+          <input id={`${uid}-age`} className="input" type="number" inputMode="numeric" min={AGE_MIN} max={AGE_MAX}
             placeholder="25" value={age} onChange={e => setAge(e.target.value)} />
         </div>
         <div style={{ flex: 1 }}>
-          <label className="label">안정시 심박수 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-          <input className="input" type="number" inputMode="numeric" min={HR_MIN} max={HR_MAX}
+          <label className="label" htmlFor={`${uid}-rest`}>안정시 심박수 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+          <input id={`${uid}-rest`} className="input" type="number" inputMode="numeric" min={HR_MIN} max={HR_MAX}
             placeholder="65" value={restHR} onChange={e => setRestHR(e.target.value)} />
         </div>
       </div>
@@ -86,8 +90,8 @@ export default function HeartRateSection() {
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label className="label">직접 잰 최대 심박수 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-        <input className="input" type="number" inputMode="numeric" min={HR_MIN} max={HR_MAX}
+        <label className="label" htmlFor={`${uid}-max`}>직접 잰 최대 심박수 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+        <input id={`${uid}-max`} className="input" type="number" inputMode="numeric" min={HR_MIN} max={HR_MAX}
           placeholder="비워두면 220 − 나이로 계산합니다" value={ownMax} onChange={e => setOwnMax(e.target.value)} />
       </div>
 

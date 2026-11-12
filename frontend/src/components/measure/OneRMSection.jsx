@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from '../Toast';
 import { estimate1RM, RM_MAX_REPS, RM_SANE_MAX, RM_TRUST_REPS } from '../../data/personalRecord';
 import { euro } from '../../data/particle';
@@ -6,6 +6,10 @@ import { euro } from '../../data/particle';
 // 계산 기록도 지울 수 없었다 — 측정 화면에 삭제가 있는데 안 넘겨줬다.
 // 날짜는 안 받는다. 지금 계산해서 그 자리에 저장하는 것이라 오늘이 맞다
 export default function OneRMSection({ records, onSave, onDelete }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   // 믿는 구간(10회)을 넘긴 어림인가 — 결과 카드에 그 말을 남긴다
@@ -53,12 +57,12 @@ export default function OneRMSection({ records, onSave, onDelete }) {
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>무게와 횟수(1~10회)를 입력하면 예상 1RM을 계산합니다 (Brzycki 공식, 10회 이하에서 정확)</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
-          <label className="label">무게 (kg)</label>
-          <input className="input" type="number" min="0" max={RM_SANE_MAX} placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); setOver(false); }} />
+          <label className="label" htmlFor={`${uid}-w`}>무게 (kg)</label>
+          <input id={`${uid}-w`} className="input" type="number" min="0" max={RM_SANE_MAX} placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); setOver(false); }} />
         </div>
         <div style={{ flex: 1 }}>
-          <label className="label">횟수</label>
-          <input className="input" type="number" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
+          <label className="label" htmlFor={`${uid}-r`}>횟수</label>
+          <input id={`${uid}-r`} className="input" type="number" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
         </div>
       </div>
       <button className="btn-primary" onClick={calc1RM} style={{ marginBottom: 10 }}>계산</button>

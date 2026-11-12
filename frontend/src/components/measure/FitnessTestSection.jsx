@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf, bestOf, diffLabel, sinceLabel, mmss, toSeconds } from '../../data/measureChange';
@@ -37,6 +37,10 @@ const FITNESS_TESTS = [
 const show = (f, v) => (f.time ? mmss(v) : `${v}${f.unit}`);
 
 export default function FitnessTestSection({ records, onSave, onDelete }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [values, setValues] = useState({});
   // 1km 는 분 · 초 두 칸으로 받는다
   const [runMin, setRunMin] = useState('');
@@ -63,8 +67,8 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.7 }}>
         적으면 지난번과 견줘서 얼마나 달라졌는지 같이 보여드려요.
       </div>
-      <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={today} min={minDay}
+      <label className="label" htmlFor={`${uid}-date`}>날짜</label>
+      <input id={`${uid}-date`} className="input" type="date" value={date} max={today} min={minDay}
         onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
@@ -73,19 +77,19 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
           const best = bestOf(records, f.key, f.better);
           return (
             <div key={f.key}>
-              <label className="label">{f.label}{f.time ? '' : ` (${f.unit})`}</label>
+              <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.time ? '' : ` (${f.unit})`}</label>
               {f.time ? (
                 // 분 · 초 두 칸. 「5분 12초」로 적고, 저장은 312초로 한다
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <input className="input" type="number" inputMode="numeric" min="0" max="99" placeholder="5"
+                  <input id={`${uid}-${f.key}`} aria-label={`${f.label} 분`} className="input" type="number" inputMode="numeric" min="0" max="99" placeholder="5"
                     value={runMin} onChange={e => setRunMin(e.target.value)} style={{ fontSize: 13 }} />
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>분</span>
-                  <input className="input" type="number" inputMode="numeric" min="0" max="59" placeholder="12"
+                  <input aria-label={`${f.label} 초`} className="input" type="number" inputMode="numeric" min="0" max="59" placeholder="12"
                     value={runSec} onChange={e => setRunSec(e.target.value)} style={{ fontSize: 13 }} />
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>초</span>
                 </div>
               ) : (
-                <input className="input" type="number" min="1" max={f.max}
+                <input id={`${uid}-${f.key}`} className="input" type="number" min="1" max={f.max}
                   placeholder={f.placeholder}
                   value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                   style={{ fontSize: 13 }} />

@@ -760,8 +760,9 @@ export default function SecurityPanel() {
               전부 사라집니다. <b style={{ color: 'var(--danger)' }}>되돌릴 수 없습니다.</b>
             </p>
 
-            <label className="label">확인을 위해 이메일을 그대로 적어주세요</label>
+            <label className="label" htmlFor="sec-del-confirm">확인을 위해 이메일을 그대로 적어주세요</label>
             <input
+              id="sec-del-confirm"
               className="input"
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}

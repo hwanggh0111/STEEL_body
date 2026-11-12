@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useId, useState, useEffect, useRef } from 'react';
 import { toast } from '../Toast';
 import { primeAudio, beepDone } from '../../data/alertSound';
 import { alertPrefs } from '../../store/restTimerStore';
@@ -18,6 +18,10 @@ import { MEASURE_SEC_MAX } from '../../data/measureRange';
 // 누른 사람은 제가 뭘 잘못 적었는지 모른다. 위로도 열려 있어서 `1e21` 을 적으면
 // 끝나지 않는 타이머가 된다. **하루까지**로 둔다 (`data/measureRange.js`)
 export default function StopwatchSection({ onSave }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [mode, setMode] = useState('stopwatch');
   const [running, setRunning] = useState(false);
   const [time, setTime] = useState(0);
@@ -119,8 +123,8 @@ export default function StopwatchSection({ onSave }) {
 
       {mode === 'timer' && !running && time === 0 && (
         <div style={{ marginBottom: 10 }}>
-          <label className="label">시간 (초)</label>
-          <input className="input" type="number" min="1" max={MEASURE_SEC_MAX}
+          <label className="label" htmlFor={`${uid}-sec`}>시간 (초)</label>
+          <input id={`${uid}-sec`} className="input" type="number" min="1" max={MEASURE_SEC_MAX}
             value={timerInput} onChange={e => setTimerInput(e.target.value)} placeholder="60" />
         </div>
       )}

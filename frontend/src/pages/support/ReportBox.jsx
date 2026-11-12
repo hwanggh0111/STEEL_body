@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useId, useState, useMemo, useEffect } from 'react';
 import { onEnterSpace } from '../../data/pressKey';
 import HintHits from './HintHits';
 import client from '../../api/client';
@@ -50,6 +50,10 @@ function useDeviceInfo() {
 //      사람에게 빈 칸만 들이밀고 "못 찾으면 위에서 고르세요" 라고 하면 쫓아내는 말로 읽힌다.
 //      그래서 주제를 눌러서 바로 볼 수 있게 두고, 문장도 여쭙는 말로 바꿨다
 export default function ReportBox({ embedded = false, initialKind = '', pick = 0 }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [kind, setKind] = useState(initialKind);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -208,13 +212,15 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
       </div>
 
       <div className="card" style={{ marginBottom: 28 }}>
-        <label className="label">무엇에 대한 제보인가요</label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: kind ? 20 : 4, flexWrap: 'wrap' }}>
+        <div className="label" id={`${uid}-kind`}>무엇에 대한 제보인가요</div>
+        <div role="group" aria-labelledby={`${uid}-kind`} style={{ display: 'flex', gap: 8, marginBottom: kind ? 20 : 4, flexWrap: 'wrap' }}>
           {KINDS.map(x => {
             const on = kind === x.key;
             return (
               <button
                 key={x.key}
+                type="button"
+                aria-pressed={on}
                 onClick={() => setKind(on ? '' : x.key)}
                 style={{
                   flex: '1 1 100px', textAlign: 'left',
@@ -250,13 +256,14 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                 60자에서 멈췄다** — 치던 글자가 그냥 안 들어가고 까닭이 없다.
                 서버는 100 까지 받지만 제목은 짧은 것이 맞아서 60 을 지킨다.
                 **좁게 두는 것은 괜찮고, 말 없이 멈추는 것이 아니다** */}
-            <label className="label">
+            <label className="label" htmlFor={`${uid}-title`}>
               {k.titleLabel}
               <span style={{ float: 'right', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>
                 {title.length}/{TITLE_MAX}
               </span>
             </label>
             <input
+              id={`${uid}-title`}
               className="input"
               value={title}
               onChange={e => setTitle(e.target.value.slice(0, TITLE_MAX))}
@@ -271,19 +278,19 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             {/* ── 버그 전용 ── */}
             {kind === 'bug' && (
               <>
-                <label className="label">어느 화면에서 그랬나요</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div className="label" id={`${uid}-screen`}>어느 화면에서 그랬나요</div>
+                <div role="group" aria-labelledby={`${uid}-screen`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                   {SCREENS.map(sc => (
-                    <button key={sc} onClick={() => setScreen(screen === sc ? '' : sc)} style={chip(screen === sc)}>
+                    <button key={sc} type="button" aria-pressed={screen === sc} onClick={() => setScreen(screen === sc ? '' : sc)} style={chip(screen === sc)}>
                       {sc}
                     </button>
                   ))}
                 </div>
 
-                <label className="label">다시 해도 그런가요</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div className="label" id={`${uid}-freq`}>다시 해도 그런가요</div>
+                <div role="group" aria-labelledby={`${uid}-freq`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                   {FREQ.map(f => (
-                    <button key={f.key} onClick={() => setFreq(freq === f.key ? '' : f.key)} style={chip(freq === f.key)}>
+                    <button key={f.key} type="button" aria-pressed={freq === f.key} onClick={() => setFreq(freq === f.key ? '' : f.key)} style={chip(freq === f.key)}>
                       {f.label}
                     </button>
                   ))}
@@ -294,10 +301,10 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             {/* ── 건의 전용 ── */}
             {kind === 'idea' && (
               <>
-                <label className="label">지금은 어떻게 하고 계신가요</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div className="label" id={`${uid}-work`}>지금은 어떻게 하고 계신가요</div>
+                <div role="group" aria-labelledby={`${uid}-work`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                   {WORKAROUND.map(w => (
-                    <button key={w.key} onClick={() => setWorkaround(workaround === w.key ? '' : w.key)} style={chip(workaround === w.key)}>
+                    <button key={w.key} type="button" aria-pressed={workaround === w.key} onClick={() => setWorkaround(workaround === w.key ? '' : w.key)} style={chip(workaround === w.key)}>
                       {w.label}
                     </button>
                   ))}
@@ -305,13 +312,14 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
               </>
             )}
 
-            <label className="label">
+            <label className="label" htmlFor={`${uid}-body`}>
               {k.bodyLabel}
               <span style={{ float: 'right', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>
                 {body.length}/{REPORT_BODY_MAX}
               </span>
             </label>
             <textarea
+              id={`${uid}-body`}
               className="input"
               value={body}
               onChange={e => setBody(e.target.value.slice(0, REPORT_BODY_MAX))}

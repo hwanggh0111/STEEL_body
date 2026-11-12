@@ -656,8 +656,9 @@ export default function RoutinePage() {
             </div>
           )}
 
-          <label className="label">루틴 이름</label>
+          <label className="label" htmlFor="routine-name">루틴 이름</label>
           <input
+            id="routine-name"
             className="input"
             value={newRoutine.name}
             onChange={(e) => setNewRoutine({ ...newRoutine, name: e.target.value })}

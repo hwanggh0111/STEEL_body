@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 // 앞날 줄을 빼고 고른다 (2026-11-05)
 import { measuresUpto } from '../../data/measureChange';
 import { toast } from '../Toast';
@@ -32,6 +32,10 @@ import { BODY_CM_MAX } from '../../data/measureRange';
 // 서버도 값의 범위를 안 봤다(10/31 에 `utils/measureRange.js` 로 넣었다).
 
 export default function ShoulderSection({ records, onSave, onDelete }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`). 여기가 2026-09-30에
   // 아래 테두리를 처음 건 자리인데, 그 교훈이 옆 칸 셋에는 안 가 있었다 —
   // 이제 넷이 같은 자리를 지난다
@@ -83,13 +87,14 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
       </div>
 
       <form onSubmit={handleSave} style={{ marginBottom: 24 }}>
-        <label className="label">날짜</label>
+        <label className="label" htmlFor={`${uid}-date`}>날짜</label>
         {/* **테두리를 건다** (2026-09-30). 이 칸만 위아래가 열려 있었다 — 사이즈 ·
             체력 · 유연성 칸은 다 `max` 가 걸려 있는데 여기만 빠져 있었다.
             앞날을 고르거나 연도를 잘못 치면(2026 대신 1026) 서버가 막지만, 사람에게는
             **까닭 없는 실패**로 보인다. 아래 테두리도 같이 건다 —
             `max` 만 걸면 연도는 직접 칠 수 있다(`TrainPage` 에서 겪은 것) */}
         <input
+          id={`${uid}-date`}
           className="input"
           type="date"
           value={date}
@@ -100,13 +105,13 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
         />
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
-            <label className="label">어깨 너비 (cm)</label>
-            <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+            <label className="label" htmlFor={`${uid}-sh`}>어깨 너비 (cm)</label>
+            <input id={`${uid}-sh`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
               placeholder="45" value={shoulderWidth} onChange={(e) => setShoulderWidth(e.target.value)} />
           </div>
           <div style={{ flex: 1 }}>
-            <label className="label">허리둘레 (cm) - 선택</label>
-            <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+            <label className="label" htmlFor={`${uid}-wa`}>허리둘레 (cm) - 선택</label>
+            <input id={`${uid}-wa`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
               placeholder="30" value={waist} onChange={(e) => setWaist(e.target.value)} />
           </div>
         </div>

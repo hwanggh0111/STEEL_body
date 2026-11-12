@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { onEnterSpace } from '../../data/pressKey';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
@@ -29,6 +29,10 @@ const SIZE_FIELDS = [
 // **몸에는 좋고 나쁨을 매기지 않는다** — 허리가 늘었다고 「나쁨」이라 하지 않는다.
 // 늘어난 것과 줄어든 것만 색으로 나눈다 (8/25 에 정한 규칙이다).
 export default function BodySizeSection({ records, onSave, onDelete }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [values, setValues] = useState({});
   const [openIdx, setOpenIdx] = useState(null);
   // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`) — 자정을 넘기면
@@ -46,20 +50,20 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
     <div style={{ marginBottom: 24 }}>
       <div className="section-title"><div className="accent-bar" />전신 사이즈 측정</div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>줄자로 각 부위의 둘레를 측정하세요</div>
-      <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={today} min={minDay}
+      <label className="label" htmlFor={`${uid}-date`}>날짜</label>
+      <input id={`${uid}-date`} className="input" type="date" value={date} max={today} min={minDay}
         onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 6, marginBottom: 10 }}>
         {SIZE_FIELDS.map(f => {
           const ch = changeOf(records, f.key);
           return (
             <div key={f.key}>
-              <label className="label">{f.label}</label>
+              <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}</label>
               {/* **테두리를 건다** (2026-10-31). 아홉 칸 다 위아래가 열려 있었고
                   서버도 값의 범위를 안 봤다 — 음수와 999999cm 가 그대로 들어가
                   「지난번과 견주면」이 그 수로 말을 지었다.
                   수는 `data/measureRange.js` 한 자리에서 온다 */}
-              <input className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+              <input id={`${uid}-${f.key}`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
                 placeholder={f.placeholder}
                 value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                 style={{ fontSize: 13 }} />

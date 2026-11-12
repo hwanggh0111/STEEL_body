@@ -2,7 +2,7 @@ import { ffmiOf, ffmiBand } from '../data/bodyIndex';
 import { inbodyPayload, inbodyChanged, recordById, UNDO_MS } from '../data/undoRow';
 // 「가장 최근」을 고르는 손 — 앞날 줄을 빼고 고른다 (2026-11-05)
 import { latestInbody } from '../data/inbodyLatest';
-import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
+import { useId, useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useInbodyStore } from '../store/inbodyStore';
 import { dayOf } from '../data/dateKey';
@@ -54,6 +54,10 @@ const LIST_SHOWN = 5;
 // 그때는 제목도 갈래 고르개도 「몸」이 들고 있으니 여기서 또 그리지 않는다 —
 // 같은 것이 두 번 그려지면 어느 쪽이 진짜인지 알 수 없게 된다.
 export default function InbodyPage({ embedded = false }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const location = useLocation();
   const [tab, setTab] = useState('record');   // embedded 일 때는 늘 'record' 다 (위 참고)
   // ── 날짜 칸은 **한 곳에서 온다** ── (2026-10-21, `data/useRecordDate.js`)
@@ -531,36 +535,36 @@ export default function InbodyPage({ embedded = false }) {
           )}
 
           <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
-            <label className="label">날짜</label>
-            <input className="input" type="date" value={date} max={today} min={minDay}
+            <label className="label" htmlFor={`${uid}-date`}>날짜</label>
+            <input id={`${uid}-date`} className="input" type="date" value={date} max={today} min={minDay}
               onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 10 }} />
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               {!quickMode && (
                 <div style={{ flex: 1 }}>
-                  <label className="label">키 (cm) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_HEIGHT_MAX} placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
+                  <label className="label" htmlFor={`${uid}-h`}>키 (cm) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                  <input id={`${uid}-h`} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_HEIGHT_MAX} placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} />
                 </div>
               )}
               <div style={{ flex: 1 }}>
-                <label className="label">체중 (kg) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input ref={weightInputRef} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_WEIGHT_MAX} placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                <label className="label" htmlFor={`${uid}-w`}>체중 (kg) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input ref={weightInputRef} id={`${uid}-w`} aria-required="true" className="input" type="number" inputMode="decimal" step="0.1" min="0" max={INBODY_WEIGHT_MAX} placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
               </div>
             </div>
 
             {!quickMode && (
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1 }}>
-                  <label className="label">체지방률 (%) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={FAT_PCT_MAX} placeholder="15" value={fatPct} onChange={(e) => setFatPct(e.target.value)} />
+                  <label className="label" htmlFor={`${uid}-fat`}>체지방률 (%) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                  <input id={`${uid}-fat`} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={FAT_PCT_MAX} placeholder="15" value={fatPct} onChange={(e) => setFatPct(e.target.value)} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label className="label">골격근량 (kg) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={MUSCLE_KG_MAX} placeholder="32" value={muscleKg} onChange={(e) => setMuscleKg(e.target.value)} />
+                  <label className="label" htmlFor={`${uid}-mus`}>골격근량 (kg) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                  <input id={`${uid}-mus`} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={MUSCLE_KG_MAX} placeholder="32" value={muscleKg} onChange={(e) => setMuscleKg(e.target.value)} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label className="label">체수분 (L) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                  <input className="input" type="number" inputMode="decimal" step="0.1" min="0" max={WATER_L_MAX} placeholder="40" value={waterL} onChange={(e) => setWaterL(e.target.value)} />
+                  <label className="label" htmlFor={`${uid}-wat`}>체수분 (L) <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                  <input id={`${uid}-wat`} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={WATER_L_MAX} placeholder="40" value={waterL} onChange={(e) => setWaterL(e.target.value)} />
                 </div>
               </div>
             )}

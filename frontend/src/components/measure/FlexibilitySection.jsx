@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from '../Toast';
 import { useRecordDate } from '../../data/useRecordDate';
 import { changeOf } from '../../data/measureChange';
@@ -23,6 +23,10 @@ const FLEX_FIELDS = [
 //
 // **몸에는 좋고 나쁨을 매기지 않는다** — 방향만 말한다 (`ChangeSummary`).
 export default function FlexibilitySection({ records, onSave, onDelete }) {
+  // **이름표를 칸에 잇는다** (2026-11-12). `<label>` 이 칸 옆에 놓여만 있고
+  // 이어져 있지 않았다 — 낭독기는 칸 이름 대신 자리글(「70」)을 읽고, 이름표를
+  // 눌러도 칸으로 안 간다. 한 화면에 여럿 뜰 수 있어 이름은 `useId` 로 짓는다
+  const uid = useId();
   const [values, setValues] = useState({});
   // 날짜 칸은 **한 곳에서 온다** (`data/useRecordDate.js`)
   const { date, pick: pickDate, today, min: minDay } = useRecordDate();
@@ -38,18 +42,18 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
   return (
     <div style={{ marginBottom: 24 }}>
       <div className="section-title"><div className="accent-bar" />유연성 측정</div>
-      <label className="label">날짜</label>
-      <input className="input" type="date" value={date} max={today} min={minDay}
+      <label className="label" htmlFor={`${uid}-date`}>날짜</label>
+      <input id={`${uid}-date`} className="input" type="date" value={date} max={today} min={minDay}
         onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       {FLEX_FIELDS.map(f => {
         const ch = changeOf(records, f.key);
         return (
           <div key={f.key} style={{ marginBottom: 8 }}>
-            <label className="label">{f.label} ({f.unit})</label>
+            <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label} ({f.unit})</label>
             {/* **테두리를 건다** (2026-10-31). **아래로도 열어 둔다** —
                 손끝이 발끝에 못 닿으면 −10cm 고, 스쿼트 깊이는 0 이 평행이다.
                 음수를 막으면 재는 사람을 막는다 */}
-            <input className="input" type="number" step="0.1"
+            <input id={`${uid}-${f.key}`} className="input" type="number" step="0.1"
               min={-FLEX_CM_MAX} max={FLEX_CM_MAX} placeholder={f.placeholder}
               value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })} />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.6 }}>
