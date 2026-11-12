@@ -25,6 +25,7 @@ import VoiceSet from '../components/VoiceSet';
 import NumberStep from '../components/NumberStep';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
+import SameWeightBanner from '../components/SameWeightBanner';
 import { toast } from '../components/Toast';
 import { showFinish } from '../components/SessionFinish';
 import { buildSummary } from '../data/sessionSummary';
@@ -34,6 +35,7 @@ import { useToday } from '../data/useToday';
 import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey } from '../data/dateKey';
 import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
+import { sameWeightBest } from '../data/sameWeight';
 import { cannotCount } from '../data/repCount';
 import { liftNames } from '../data/liftTrend';
 import { rowPayload, rowById, changed, UNDO_MS } from '../data/undoRow';
@@ -220,6 +222,8 @@ export default function TrainPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [record, setRecord] = useState(null);
+  // 같은 무게 최다 횟수 (2026-11-12, `data/sameWeight.js`) — 최고 기록 띠가 안 뜰 때만
+  const [sameBest, setSameBest] = useState(null);
   // ── 슈퍼세트 · 드롭세트 ── (2026-10-05)
   //
   // 둘 다 **쉬지 않고 이어서** 하는 것이다 — 슈퍼세트는 다른 운동으로, 드롭세트는
@@ -630,6 +634,7 @@ export default function TrainPage() {
         } : null;
         toast('고쳤어요', 'success', undo);
         setRecord(null);
+        setSameBest(null);
         // **고친 날에 그대로 서 있는다** — 어제 것을 고치고 오늘로 돌아가면
         // 방금 고친 줄이 화면에서 사라져서 고쳐졌는지 확인할 자리가 없다
         stopEditing({ keepDay: true });
@@ -654,7 +659,13 @@ export default function TrainPage() {
         : isToday ? '적었어요' : `${dayLabel(date)} 자리에 적었어요`,
       saved?.unsaved ? 'error' : undefined);
       // 최고 기록 알림을 꺼둔 사람에게는 안 띄운다 — 견주는 일은 그대로 한다
-      setRecord(prBanner ? checkRecord(before, payload) : null);
+      const pr = prBanner ? checkRecord(before, payload) : null;
+      setRecord(pr);
+      // ── 같은 무게 최다 횟수 ── 최고 기록 띠가 **안 뜰 때만**, 오늘 적을 때만.
+      // 지난 날짜를 적어 넣는 것은 「오늘 늘었다」가 아니다. 알림을 꺼둔 사람에게도 안 띄운다
+      // (그 손잡이의 이름이 「최고 기록 알림」이다 — 같은 성격의 말이다)
+      setSameBest(prBanner && !pr?.prev && isToday && !asCardio
+        ? sameWeightBest(workouts, payload, today) : null);
 
       // **지난 날짜에 적을 때는 쉬라고 하지 않고 진행표도 안 넘긴다.**
       // 어제 한 운동을 오늘 적어 넣는 중인데 휴식 타이머가 돌면 틀린 말이고,
@@ -903,6 +914,7 @@ export default function TrainPage() {
     setFinding(false);
     setError('');
     setRecord(null);
+    setSameBest(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1788,7 +1800,12 @@ export default function TrainPage() {
 
       {/* 최고 기록을 넘겼을 때만 뜬다. **기록 화면이 쓰던 그 배너를 그대로 쓴다** —
           같은 일을 두 벌로 그리면 한쪽만 고치는 날이 온다 */}
-      <PersonalRecordBanner record={record} onClose={() => setRecord(null)} />
+      {/* **낭독기에도 들리게** (2026-11-12) — 두 띠 다 소리 없이 나타났다. 늘 그려 두는
+          자리에 `role="status"` 를 건다(나타나는 것에 걸면 읽지 않는 낭독기가 있다) */}
+      <div role="status" aria-live="polite">
+        <PersonalRecordBanner record={record} onClose={() => setRecord(null)} />
+        <SameWeightBanner best={sameBest} today={today} onClose={() => setSameBest(null)} />
+      </div>
 
       {/* ── 그 날 적은 것 ── 목록은 위에서 고른 날을 따라간다 */}
       <div className="section-title">
