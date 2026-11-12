@@ -10,7 +10,7 @@ import { routinePayload, routineChanged, UNDO_MS } from '../data/undoRow';
 import { confirmDialog } from '../components/ConfirmModal';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { MAX_EXERCISES, REPS_MAX, ROUTINE_NAME_MAX, SETS_MAX } from '../data/limits';
-import { setsRepsError } from '../data/setRange';
+import { setsRepsError, unitOf, isPlainNum } from '../data/setRange';
 import { fillNote } from '../data/dayRoutine';
 
 // 갈래 이름은 **서버의 routines.js 와 글자까지 같아야 한다.** 다르면 그 칸만
@@ -614,7 +614,8 @@ export default function RoutinePage() {
           </div>
           {r.exercises.map((ex, j) => (
             <div key={j} style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '3px 0' }}>
-              {ex.name} {ex.sets && `· ${ex.sets}세트`} {ex.reps && `· ${ex.reps}회`}
+              {/* 단위는 **맨 숫자일 때만** 붙인다 — 추천에서 담은 줄은 「4세트」 · 「40초」를 이미 든다 */}
+              {ex.name} {unitOf(ex.sets, '세트') && `· ${unitOf(ex.sets, '세트')}`} {unitOf(ex.reps, '회') && `· ${unitOf(ex.reps, '회')}`}
             </div>
           ))}
           {session && session.routineId === (r._id || r.id) ? (
@@ -694,7 +695,9 @@ export default function RoutinePage() {
                     수는 `data/limits.js` 한 자리에서 오고, 서버와 어긋나면
                     `npm run twins` 가 FAIL 한다 */}
                 <input
-                  className="input" placeholder="세트" type="number" inputMode="numeric"
+                  // **글이 담긴 줄은 글 칸으로** (2026-11-12) — 숫자 칸은 「4세트」 · 「8~10회」를 **빈 칸으로**
+                  // 보여줘서, 추천에서 담은 루틴을 고치려 열면 세트 · 횟수가 안 적힌 것처럼 보였다
+                  className="input" placeholder="세트" type={isPlainNum(ex.sets) ? 'number' : 'text'} inputMode="numeric"
                   min="1" max={SETS_MAX}
                   aria-label={`${i + 1}번째 운동 세트 수`}
                   value={ex.sets}
@@ -702,7 +705,7 @@ export default function RoutinePage() {
                   style={{ flex: 1, minWidth: 0, marginBottom: 0 }}
                 />
                 <input
-                  className="input" placeholder="회" type="number" inputMode="numeric"
+                  className="input" placeholder="회" type={isPlainNum(ex.reps) ? 'number' : 'text'} inputMode="numeric"
                   min="1" max={REPS_MAX}
                   aria-label={`${i + 1}번째 운동 횟수`}
                   value={ex.reps}

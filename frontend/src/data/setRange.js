@@ -33,3 +33,22 @@ export function setsRepsError(exercises) {
   }
   return null;
 }
+
+/**
+ * 루틴 줄의 세트 · 횟수를 **보여줄 때** 단위를 붙인다 (2026-11-12).
+ *
+ * 추천 루틴은 `'4세트'` · `'8~10회'` · `'40초'` 처럼 **단위까지 적힌 글자**를 든다. 그것을
+ * 내 루틴으로 담으면 카드가 단위를 또 붙여 **「4세트세트 · 10회회」**, 플랭크는 「40초회」가
+ * 찍혔다(맵시가 360 폭 화면에서 잡았다). **맨 숫자일 때만** 단위를 붙이고, 이미 글이면 그대로.
+ *
+ *   unitOf(4, '세트') → '4세트' · unitOf('4세트', '세트') → '4세트' · unitOf('40초', '회') → '40초'
+ *   unitOf('', '세트') → ''
+ */
+export function unitOf(v, unit) {
+  const t = String(v ?? '').trim();
+  if (!t) return '';
+  return /^\d+$/.test(t) ? `${t}${unit}` : t;
+}
+
+/** 폼 칸이 맨 숫자인가 — 아니면 숫자 칸(`type="number"`)이 그 글을 **빈 칸으로** 보여준다 */
+export const isPlainNum = (v) => /^\d*$/.test(String(v ?? '').trim());
