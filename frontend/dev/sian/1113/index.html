@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 시안 넷 — 11/13</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (vite.config.js 의 devPreviewPlugin 머리글).
+     시안은 배포하지 않는다 — claude.ai 에도 안 올린다. 여기 /dev/sian/<날짜>/ 에 둔다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .sub { color:var(--t2); margin:0; max-width:86ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:20px 24px 32px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  .note { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .note b { color:var(--t1); font-weight:600; }
+  .note ul { margin:6px 0 0; padding-left:18px; }
+  .note code { color:var(--gold); font-size:12px; }
+  a { color:var(--gold); }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 시안 <em>넷</em> · 11/13</h1>
+  <p class="sub">고른 자리는 모두 <b>재료는 이미 있는데 화면이 없는 곳</b>이다 — 서버 칸을 하나도 안 늘린다.
+    <b>파란 점선</b>이 새로 붙는 자리다. 화면 속 숫자는 예시다. 권하는 순서는 <b>A → B → C → D</b>.
+    <a href="/dev">← 개발 미리보기</a> · <a href="../1112/">11/12 시안</a></p>
+</header>
+
+<div class="row">
+  <div class="col">
+    <div class="cap">A · 운동 — 아픈 곳을 적는 자리에서도 안다<small>TrainPage · ExerciseFinder · RoutinePage 에 <code>sore</code> 0건</small></div>
+    <iframe src="Sore.html" title="A 운동 화면 시안"></iframe>
+    <div class="note"><b>A. 아픈 곳이 적는 자리까지 · 가장 급하다</b>
+      <ul>
+        <li><b>왜</b> — 11/03 에 같은 구멍을 홈에서 한 번 메웠다(<code>HomePage.jsx:27</code> 「홈은 그 말을 몰라서 아픈 어깨를 식었다고 권했다」). 그런데 <b>정작 적는 자리</b>는 아직 모른다 — <code>sorePart</code> 를 읽는 화면은 홈과 부위 둘뿐이다</li>
+        <li>운동 이름이 정해지면 그 운동의 부위를 <code>exercisePart</code> 로 받아 아픈 곳과 견준다. <b>부위가 여러 개인 운동</b>이 함정이다 — 벤치프레스는 가슴이지만 어깨도 쓴다</li>
+        <li><b>막지 않는다.</b> 「그래도 적기」가 그대로 있어야 한다 — 아픈데도 가볍게 하는 날이 있고, 이 앱은 진단하지 않는다</li>
+        <li>낫는 날을 묻지 않는다 · 통증에 점수를 안 매긴다 (<code>data/sorePart.js</code> 머리글의 「안 하는 것」 셋을 그대로 지킨다)</li>
+        <li>「어깨 나았어요」는 <b>부위 화면으로 보내기만</b> 한다 — 지우는 손은 한 군데여야 한다</li>
+      </ul></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">B · 운동 — 그 부위를 마지막으로 언제 했나<small><code>bodyHeat</code> 가 이미 아는 값 · 지도와 홈만 쓴다</small></div>
+    <iframe src="PartDays.html" title="B 운동 화면 시안"></iframe>
+    <div class="note"><b>B. 어제도 한 부위 · 작다</b>
+      <ul>
+        <li><b>왜</b> — 몸 지도는 「<b>식은</b> 곳」을 말한다. 그 반대쪽(「아직 달아 있는데 또 한다」)은 아무 데도 없다. 그런데 사람이 헬스장에서 하는 실수는 그쪽이다</li>
+        <li><b>판정하지 않는다.</b> 「과훈련입니다」는 우리가 알 수 없다 — 날 수만 적는다. <code>bodyHeat.js</code> 머리글이 스스로 그렇게 못 박았다(「우리가 아는 것은 날 수뿐이다」)</li>
+        <li>0일(오늘 이미 그 부위를 적었다)은 <b>다른 말</b>이어야 한다 — 「어제도」가 아니라 「오늘 벌써」다</li>
+        <li>유산소 줄은 부위가 없다(<code>cardio.isCardioRow</code>) → 아무 말도 안 한다</li>
+        <li>6일 넘게 식은 곳 한 줄을 같이 둔다 — 「그럼 뭘 하지」의 답이 같은 화면에 있어야 한다</li>
+      </ul></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">C · 찾기 — 이 운동을 못 할 때<small><code>exerciseGear</code>(기구 442개) 는 <b>화면에 한 번도 안 붙었다</b></small></div>
+    <iframe src="Instead.html" title="C 찾기 화면 시안"></iframe>
+    <div class="note"><b>C. 대신 할 것 · 중간</b>
+      <ul>
+        <li><b>왜</b> — 기구가 차 있거나, 그 헬스장에 없거나, A 가 「어깨가 아프다」고 말한 다음에 <b>사람이 바로 묻는 것</b>이 이것이다. 빌드가 뽑아둔 기구 표(<code>gen-parts.mjs → exerciseGear.js</code>)가 있는데 쓰는 화면이 없다</li>
+        <li>고르는 차례 — ① 같은 <code>group</code>(벤치프레스 ← 덤벨 벤치프레스) ② 같은 부위 · 다른 기구 ③ 맨몸. <b>기구 꼬리표를 꼭 적는다</b> — 머신이라 생각하고 갔는데 바벨이면 헛걸음이다</li>
+        <li><b>★ 무게 선이 끊긴다</b>를 먼저 말한다. 덤벨 26kg 과 바벨 80kg 을 한 선에 두면 <code>liftTrend</code> 가 거짓을 그린다. 부위 볼륨(<code>partVolume</code>)에서는 이어진다 — 그 둘을 구분해 적는다</li>
+        <li>후보는 <b>셋까지</b>. 열 줄을 주면 고르기가 또 하나의 일이 된다</li>
+        <li>내 기록에 있는 것을 위로(어제 붙인 <code>searchMine</code> 과 같은 규칙)</li>
+      </ul></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">D · 기록 — 지금까지 들어올린 것<small><code>sessionSummary</code>(오늘) · <code>yearWall</code>(올해) 는 있고 <b>평생이 없다</b></small></div>
+    <iframe src="Lifetime.html" title="D 기록 화면 시안"></iframe>
+    <div class="note"><b>D. 평생 누적 · 작다 (재미 쪽)</b>
+      <ul>
+        <li><b>왜</b> — 결산은 「오늘 12,480kg」을 말하고 벽은 한 해를 보여준다. <b>1월 1일에 0 으로 돌아간다</b> — 2년 쓴 사람에게 그 벽은 절반이다</li>
+        <li>톤으로 접는다(1,284,000kg → 1,284톤). kg 으로 일곱 자리를 적으면 아무도 안 읽는다</li>
+        <li><b>맨몸·유산소는 0 이다</b> — 무게 없는 사람에게 「0톤」을 크게 띄우면 안 된다. 세트 수로 바꿔 센다(<code>sessionSummary</code> 가 이미 그렇게 한다)</li>
+        <li><b>가져온 CSV</b> 가 수를 튀게 한다 — 20,000줄을 한 번에 올린 사람이 있다. 「가져온 것 포함」을 적을지는 주인 결정</li>
+        <li>비유(「경차 N대」)는 <b>안 넣는 쪽</b>을 권한다 — 이 앱 말투가 아니다</li>
+      </ul></div>
+  </div>
+</div>
+</body>
