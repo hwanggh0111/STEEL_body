@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "683e40158d",
+  "detailVersion": "13007e9a65",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "b7fade2",
+      "date": "2026-11-13",
+      "text": "저장소가 서버 말을 버리고 오류를 지어냈다 — 계정 막힘도 429 도 「지우지 못했어요」였다",
+      "label": "고침",
+      "scope": "지우기",
       "has": true
     },
     {
@@ -1130,14 +1138,6 @@
       "text": "루틴으로 운동하면 기록이 한 줄도 안 적혔다 — 진행표가 저장 길을 막았다",
       "label": "고침",
       "scope": "지하",
-      "has": true
-    },
-    {
-      "key": "2c5fd66",
-      "date": "2026-11-04",
-      "text": "앞 사람 얼굴과 몸 사진이 기기에 다시 담겼다 — 화면도 같은 모양이었다",
-      "label": "고침",
-      "scope": "사진",
       "has": true
     }
   ]
