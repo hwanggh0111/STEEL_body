@@ -273,6 +273,49 @@ ok('    ★ 그 자리에서 **끝낸다** — `return` 이 없으면 **지우�
 
 
 console.log('');
+console.log('── 메모 — 사람이 쓴 글 ──');
+const rnotes = codeOf(fs.readFileSync(at('src/pages/routine/RoutineNotes.jsx'), 'utf-8'));
+const 그날메모 = { id: 4, date: '2026-11-13', body: '벤치 5x5 해보기' };
+const 루틴메모 = { id: 5, body: '월요일 가슴 / 벤치 5x5 / 인클라인 3x12' };
+
+ok('그날 메모는 **날짜까지** 보낸다', U.notePayload(그날메모),
+  { body: '벤치 5x5 해보기', date: '2026-11-13' });
+ok('  루틴 메모에는 날짜를 안 붙인다', U.notePayload(루틴메모),
+  { body: '월요일 가슴 / 벤치 5x5 / 인클라인 3x12' });
+ok('  글이 비었으면 단추를 안 준다 (서버가 막는 자리다)',
+  [U.notePayload({ ...루틴메모, body: '   ' }), U.notePayload({ ...루틴메모, body: '' }),
+    U.notePayload({})], [null, null, null]);
+
+// ── ★ 여기가 계획과 **반대**다 ──
+//
+// 계획은 틀려도 서버가 400 으로 막아 줬다. 메모는 **서버가 안 막는다** —
+// `routes/notes.js:76` 이 같은 날짜를 **조용히 덮어쓴다**. 그래서 모를 때의 선이 뒤집힌다
+ok('★ **그 날에 메모가 있으면 단추를 안 준다** (되살리기가 그 글을 덮는다)',
+  U.noteUndoable(그날메모, { '2026-11-13': { body: '그 사이 적은 글' } }, false), false);
+ok('  비어 있으면 준다', U.noteUndoable(그날메모, { '2026-11-13': null }, false), true);
+ok('    그 날짜 칸이 아예 없어도 준다', U.noteUndoable(그날메모, {}, false), true);
+ok('    빈 글만 있는 칸은 **비어 있는 것으로 본다**',
+  U.noteUndoable(그날메모, { '2026-11-13': { body: '  ' } }, false), true);
+ok('  루틴 메모는 덮을 자리가 없다 (날짜가 없다)',
+  [U.noteUndoable(루틴메모, {}, false), U.noteUndoable(루틴메모, null, true)], [true, true]);
+ok('★ **못 받아왔으면 단추를 안 준다** — 계획과 **반대 선**이다',
+  [U.noteUndoable(그날메모, {}, true), U.noteUndoable(그날메모, null, false)], [false, false]);
+
+ok('그날 메모 — 단추를 걸 때 본다',
+  /noteUndoable\(note, st0\.notes, st0\.loadFailed\)/.test(hist), true);
+ok('  ★ **누를 때 다시 본다** (8초 사이에 다른 기기에서 적을 수 있다)',
+  /run: async \(\) => \{[\s\S]{0,200}noteUndoable\(note, st\.notes, st\.loadFailed\)/.test(hist), true);
+ok('  못 지웠으면 되돌리기를 안 보여준다',
+  앞에(hist, "toast('지우지 못했어요. 다시 열면 그대로 있어요', 'error')", 'const body = notePayload(note)'), true);
+ok('    그 자리에서 **끝낸다** (`return` 이 없으면 지우기 실패에도 단추가 뜬다)',
+  /'지우지 못했어요\. 다시 열면 그대로 있어요', 'error'\);[\s\S]{0,60}return;/.test(hist), true);
+ok('루틴 메모 — 못 지웠으면 끝낸다',
+  /'지우지 못했어요\. 다시 열면 그대로 있어요', 'error'\);[\s\S]{0,60}return;/.test(rnotes), true);
+ok('  지운 뒤에야 목록에서 뺀다',
+  앞에(rnotes, 'await client.delete(`/notes/', 'setNotes((prev) => prev.filter'), true);
+
+
+console.log('');
 console.log('── ★ 어디까지 덮었나 — 수로 남긴다 ──');
 // 「⑤ 닫았다」가 느낌으로 남지 않게. 되살릴 길 없이 사람 기록을 다루는 손이
 // `backend/src/db.js` 에 **열여섯**이고(11/11 에 검사 쪽이 전수로 셌다),
@@ -288,13 +331,15 @@ const 덮은것 = [
   ['내 루틴 · 고치기', rout, /routineChanged\(before, routine\)/],
   ['내 루틴 · 지우기', rout, /post\('\/my-routines', body\)/],
   ['그날의 계획 · 빼기', hist, /post\('\/plans', body\)/],
+  ['메모 · 지우기(루틴 메모장)', rnotes, /post\('\/notes', body\)/],
+  ['메모 · 지우기(그날 메모)', hist, /saveNote\(body\.date, body\.body\)/],
 ];
 for (const [name, src, re] of 덮은것) ok('  ' + name, re.test(src), true);
-ok('**덮은 자리 아홉**', 덮은것.length, 9);
+ok('**덮은 자리 열하나**', 덮은것.length, 11);
 // 아직 안 덮은 것 — 이 수가 줄면 이 줄도 같이 고쳐야 한다(그게 이 자의 일이다).
 // 메모 · 계획은 **글**이라 사람이 다시 적을 수 있고, 사진은 되돌리기의 결이 다르다
 // (파일을 다시 올려야 하고 용량·저장 쪽에 닿는다) → 출시 뒤 (11/11 판정)
-ok('  아직 안 덮은 종류 둘 (메모 · 사진)', 2, 2);
+ok('  아직 안 덮은 종류 하나 (사진)', 1, 1);
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

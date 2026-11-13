@@ -6,6 +6,7 @@ import { confirmDialog } from '../../components/ConfirmModal';
 import { dayOf } from '../../data/dateKey';
 import { noteTitle, countExercises, noteToRoutine } from '../../data/routineNote';
 import { MAX_NOTES } from '../../data/limits';
+import { notePayload, UNDO_MS } from '../../data/undoRow';
 
 // 루틴 메모장.
 //
@@ -84,13 +85,35 @@ export default function RoutineNotes({ onToRoutine }) {
     if (!ok) return;
     try {
       await client.delete(`/notes/${note.id}`);
-      setNotes((prev) => prev.filter((n) => n.id !== note.id));
-      if (openId === note.id) close();
-      toast('지웠어요');
     } catch (err) {
       // 「지웠다」가 거짓말이면 안 된다. 다음에 열면 되살아난다
       toast(err.response?.data?.error || '지우지 못했어요. 다시 열면 그대로 있어요', 'error');
+      // 못 지웠으면 되돌릴 것도 없다 — 여기서 끊는다
+      return;
     }
+    setNotes((prev) => prev.filter((n) => n.id !== note.id));
+    if (openId === note.id) close();
+    // ── 되돌리기 ── (2026-11-13)
+    //
+    // 루틴 메모에는 그날 메모의 덮어쓰기 함정이 없다 — 날짜가 없어 덮을 자리가 없다
+    // (`data/undoRow.js` 의 메모 절). 닿는 것은 **서른 장 상한**인데, 그 사이 다른
+    // 메모를 적어 꽉 찼으면 서버가 400 으로 막고 **그 말을 그대로 전한다.**
+    //
+    // 되살린 장은 **맨 위로 온다** — `id` 와 적은 시각이 새것이라 새로 적은 것과
+    // 같은 자리다 (새로 적을 때도 `[data, ...prev]` 다). 원래 자리로는 안 돌아간다.
+    const body = notePayload(note);
+    toast('지웠어요', 'success', body ? {
+      label: '되돌리기', ms: UNDO_MS,
+      run: async () => {
+        try {
+          const { data } = await client.post('/notes', body);
+          setNotes((prev) => (prev.some((n) => n.id === data.id) ? prev : [data, ...prev]));
+          toast('되살렸어요');
+        } catch (e) {
+          toast(e.response?.data?.error || '되살리지 못했어요', 'error');
+        }
+      },
+    } : null);
   };
 
   // 적은 것을 루틴 만들기 폼에 채워 보낸다

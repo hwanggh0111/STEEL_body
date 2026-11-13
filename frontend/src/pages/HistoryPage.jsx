@@ -1,7 +1,7 @@
 import { useRefreshTick } from '../store/refreshStore';
 // 유산소는 볼륨에 들 수 없다 — 시간 · 거리로 적는다 (2026-11-05)
 import { minuteLabel, kmLabel } from '../data/cardio';
-import { rowPayload, planPayload, planUndoable, UNDO_MS } from '../data/undoRow';
+import { rowPayload, planPayload, planUndoable, notePayload, noteUndoable, UNDO_MS } from '../data/undoRow';
 import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -157,10 +157,35 @@ export default function HistoryPage() {
     if (!ok) return;
     try {
       await useNoteStore.getState().removeNote(note);
-      toast('지웠어요');
     } catch {
       toast('지우지 못했어요. 다시 열면 그대로 있어요', 'error');
+      // 지우지 못했으면 되돌릴 것도 없다 — 여기서 끊는다
+      return;
     }
+    // ── 되돌리기 ── (2026-11-13)
+    //
+    // ★ 그날 메모는 **하루 한 장**이라 서버가 같은 날짜를 **덮어쓴다**
+    // (`routes/notes.js:76`). 지운 뒤 그 날에 다시 적었으면 되돌리기가 **그 글을
+    // 지운다** — 서버는 막지 않고 조용히 성공한다. 그래서 **화면이 유일한 막**이다:
+    // 단추를 걸 때 보고, **누를 때 또 본다**(8초 사이에 다른 기기에서 적을 수 있다).
+    const body = notePayload(note);
+    const st0 = useNoteStore.getState();
+    toast('지웠어요', 'success', body && noteUndoable(note, st0.notes, st0.loadFailed) ? {
+      label: '되돌리기', ms: UNDO_MS,
+      run: async () => {
+        const st = useNoteStore.getState();
+        if (!noteUndoable(note, st.notes, st.loadFailed)) {
+          toast('그 날에 메모가 다시 생겨서 되돌리지 않았어요', 'warning');
+          return;
+        }
+        try {
+          await st.saveNote(body.date, body.body);
+          toast('되살렸어요');
+        } catch (e) {
+          toast(e.response?.data?.error || '되살리지 못했어요', 'error');
+        }
+      },
+    } : null);
   };
 
   // ── 그 날에 바로 적는다 ── (5차 리모델링, 2026-09-04)
