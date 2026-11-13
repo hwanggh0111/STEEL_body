@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "aeafb1e835",
+  "detailVersion": "683e40158d",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "97bf684",
+      "date": "2026-11-13",
+      "text": "왜 못 되살렸는지 말하지 않았다 — 다섯 자리가 서버가 적어 보낸 까닭을 버렸다",
+      "label": "고침",
+      "scope": "되돌리기",
       "has": true
     },
     {
@@ -1130,14 +1138,6 @@
       "text": "앞 사람 얼굴과 몸 사진이 기기에 다시 담겼다 — 화면도 같은 모양이었다",
       "label": "고침",
       "scope": "사진",
-      "has": true
-    },
-    {
-      "key": "333ca5e",
-      "date": "2026-11-04",
-      "text": "Enter 가 지우고 있었다 — 취소에 포커스를 줘놓고도 승인됐다",
-      "label": "고침",
-      "scope": "묻는 창",
       "has": true
     }
   ]
