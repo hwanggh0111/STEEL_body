@@ -116,6 +116,14 @@ const kind = (t) => (t.includes('html') ? 'html' : t.includes('javascript') ? 'j
     '/icons/icon-999.png',
     '/없는것.json',
     '/fonts/none-cccccccc.woff2',
+    // ── **여덟 자를 넘는 확장자도 선 안쪽이다** ── (2026-11-13)
+    //
+    // 선을 `{1,8}` 로 **길이로 재던 때**가 있었다. 그래서 이 둘이 라이브에서
+    // `index.html` 을 200 으로 받았다 — `.webmanifest` 는 PWA 가 실제로 조르는
+    // 이름이다. 길이로 재면 또 샌다. 이 자리를 자로 박아 둔다
+    '/manifest.webmanifest',
+    '/x.properties',
+    '/a.b.tar.gz',
   ]) {
     const r = await head(url);
     ok('  ' + url, [r.status, kind(r.type)], [404, 'text']);
