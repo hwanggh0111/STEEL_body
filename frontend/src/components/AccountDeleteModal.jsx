@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useModalFocus } from '../data/useModalFocus';
 import client from '../api/client';
 import NavIcon from './NavIcon';
 
@@ -19,6 +20,10 @@ import NavIcon from './NavIcon';
 // ─────────────────────────────────────────────────────────────
 
 export default function AccountDeleteModal({ onClose, onDeleted }) {
+  // 덮개 안에 자판을 가둔다 — 안 가두면 탭이 뒤 화면으로 새서
+  // **보이지도 않는 단추가 눌린다** (`data/useModalFocus.js`)
+  const boxRef = useRef(null);
+  useModalFocus(boxRef, true, { onClose: onClose });
   const [me, setMe] = useState(null);
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
@@ -42,11 +47,9 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
   // 에는 `Escape` 가 이미 있었고 이 창에만 없었다 — 정석이 전수로 세어 짚었다).
   //
   // 창을 여는 자리마다 적지 않는다 — **창이 제 닫는 길을 안다.**
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  //
+  // 2026-11-13 — 그 손을 위의 `useModalFocus` 가 가져갔다. **두 벌로 두면 한쪽만
+  // 고쳐진다** (오늘 탭 가두기가 딱 그 꼴로 한 자리만 돼 있었다).
 
   const social = !!me?.is_social;
   const days = me?.grace_days ?? 30;
@@ -79,6 +82,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={boxRef}
         role="dialog"
         aria-modal="true"
         aria-label="계정 삭제"

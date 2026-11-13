@@ -65,9 +65,16 @@ for (const 자리 of 파일들) {
 
   const 높이묶음 = /maxHeight:/.test(글);
   const 흐름 = /overflowY:\s*'auto'|overflow:\s*'auto'|overflowY:\s*'scroll'/.test(글);
+  // **자판을 그 안에 가두는가** (2026-11-13 에 더했다).
+  // 안 가두면 탭이 **뒤 화면**으로 새서 보이지도 않는 단추가 눌린다. 덮개 여섯 중
+  // 가두는 것이 하나뿐이었다 — 공용 손(`data/useModalFocus.js`)을 쓰거나,
+  // `ConfirmModal` 처럼 제 손으로 `Tab` 을 받아야 한다
+  // **부르는 줄을 본다.** 처음엔 `useModalFocus` 라는 글자만 봤는데, 그러면 위의
+  // `import` 줄이 걸려서 **정작 부르지 않아도 통과**했다 (되돌려 보다가 잡았다)
+  const 가둠 = /useModalFocus\s*\(/.test(글) || /e\.key === 'Tab'/.test(글);
 
-  if (높이묶음 && 흐름) 통과한것.push(상대);
-  else 걸린것.push({ 상대, 높이묶음, 흐름 });
+  if (높이묶음 && 흐름 && 가둠) 통과한것.push(상대);
+  else 걸린것.push({ 상대, 높이묶음, 흐름, 가둠 });
 }
 
 // 적어둔 예외가 아직 그 파일에 있는가 — 없어진 예외를 들고 있으면 다음 자리가 조용히 샌다
@@ -77,8 +84,9 @@ const 죽은예외 = Object.keys(덮개아닌것).filter(
 
 console.log('── 가운데 뜨는 덮개가 작은 화면에서 잘리지 않는가 ──\n');
 for (const p of 통과한것) console.log(`OK   ${p}`);
-for (const { 상대, 높이묶음, 흐름 } of 걸린것) {
-  const 빠진것 = [!높이묶음 && 'maxHeight', !흐름 && 'overflow'].filter(Boolean).join(' · ');
+for (const { 상대, 높이묶음, 흐름, 가둠 } of 걸린것) {
+  const 빠진것 = [!높이묶음 && 'maxHeight', !흐름 && 'overflow', !가둠 && '탭 가두기']
+    .filter(Boolean).join(' · ');
   console.log(`FAIL ${상대} — ${빠진것} 가 없다`);
 }
 if (죽은예외.length) {
@@ -90,8 +98,10 @@ console.log('');
 if (걸린것.length || 죽은예외.length) {
   console.log('내용이 화면보다 길면 **위아래가 잘린 채 스크롤이 안 되어 단추에 못 닿습니다.**');
   console.log("상자에 `maxHeight: '85vh'` 와 `overflowY: 'auto'` 를 주세요");
+  console.log('자판은 `useModalFocus(boxRef, 열림, { onClose })` 로 가둡니다 — Esc · 첫 포커스 ·');
+  console.log('탭 가두기 · 닫은 뒤 있던 자리로 돌려주기를 그 손 하나가 맡습니다.');
   console.log('(글만 흐르게 하고 단추를 제자리에 두려면 `ConfirmModal.jsx` 를 보세요).');
   console.log('덮개가 아니라 화면이면 이 파일의 `덮개아닌것` 에 까닭과 함께 적습니다.');
   process.exit(1);
 }
-console.log(`덮개 ${통과한것.length} 자리가 작은 화면에서도 닿습니다 (가린 것 ${Object.keys(덮개아닌것).length})`);
+console.log(`덮개 ${통과한것.length} 자리가 작은 화면에서도 닿고, 자판이 그 안에 갇힙니다 (가린 것 ${Object.keys(덮개아닌것).length})`);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useModalFocus } from '../data/useModalFocus';
 import { parseSpoken, spokenLabel, speechSupported } from '../data/voiceLog';
 
 // 목소리로 적기.
@@ -37,6 +38,7 @@ export default function VoiceSet({ onFill }) {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+
   const close = () => {
     try { recRef.current?.abort(); } catch { /* 이미 멎었다 */ }
     recRef.current = null;
@@ -46,6 +48,14 @@ export default function VoiceSet({ onFill }) {
     setResult(null);
     setError('');
   };
+
+  // 말로 적는 장이 떠 있는 동안 자판을 가둔다 — 뒤가 세트를 적는 폼이라
+  // 탭이 새면 **듣는 중에 다른 칸으로 커서가 옮겨간다** (`data/useModalFocus.js`).
+  // **`close` 아래에 둔다** — 위에 두면 `const` 가 아직 안 선 자리라 화면이
+  // 그 자리에서 터진다(`Cannot access 'close' before initialization`).
+  // `npm run screens` 가 잡아줬다
+  const boxRef = useRef(null);
+  useModalFocus(boxRef, open, { onClose: close });
 
   const listen = () => {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -102,6 +112,7 @@ export default function VoiceSet({ onFill }) {
 
       {open && (
         <div
+          ref={boxRef}
           role="dialog"
           aria-modal="true"
           aria-label="말로 적기"

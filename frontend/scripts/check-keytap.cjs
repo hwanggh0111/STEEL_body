@@ -86,7 +86,12 @@ const walk = (dir) => {
     // ★ 처음에는 `role="dialog"` 가 든 파일만 비켰다. 그랬더니 **`Layout` 의 서랍
     //   겉장**이 걸렸다 — 그 서랍은 `Escape` 를 갖췄는데(:370) `role="dialog"` 를
     //   안 쓴다. 겉장은 **화면을 덮는 칸**이라는 것으로 가리는 쪽이 맞다
-    const Esc있다 = /['"]Escape['"]/.test(code);
+    // 2026-11-13 — **Esc 를 제 파일에 적지 않는 길이 생겼다.** 덮개 여섯의 Esc ·
+    // 첫 포커스 · 탭 가두기 · 닫은 뒤 돌려주기를 공용 손(`data/useModalFocus.js`)이
+    // 맡는다. 글자 `Escape` 만 찾으면 **그 손을 쓴 파일이 거짓 FAIL** 이 된다 —
+    // 오늘 넷이 그렇게 걸렸다. 자판으로 빠져나갈 길이 있는지를 보는 자이지
+    // 그 길을 어디에 적었는지를 보는 자가 아니다
+    const Esc있다 = /['"]Escape['"]/.test(code) || /useModalFocus\s*\(/.test(code);
     for (const t of openTags(code)) {
       if (t.tag[0] === t.tag[0].toUpperCase()) continue;   // 남의 컴포넌트 (위 1번)
       if (원래단추.has(t.tag)) continue;
@@ -155,9 +160,13 @@ ok('홈 주간 달력 칸이 자판에 멈춘다', /tabIndex=\{done \? 0 : undef
 
 console.log('');
 console.log('── 창에서 자판으로 빠져나갈 길이 있는가 ──');
+// 2026-11-13 — **「Escape 가 적혀 있나」가 아니라 「빠져나갈 길이 있나」를 묻는다.**
+// 그 길을 공용 손(`data/useModalFocus.js`)이 맡게 되면서 넷 중 셋이 거짓 FAIL 이 됐다.
+// 공용 손은 Esc 에 더해 **탭 가두기와 닫은 뒤 돌려주기**까지 한다 — 더 나은 길이다
 for (const f of ['ConfirmModal.jsx', 'PasswordResetModal.jsx', 'AccountDeleteModal.jsx', 'PasswordChangeModal.jsx']) {
   const code = fs.readFileSync(path.join(SRC, 'components', f), 'utf8');
-  ok('  ' + f + ' 에 Escape 가 있다', /['"]Escape['"]/.test(code), true);
+  const 길 = /['"]Escape['"]/.test(code) || /useModalFocus\s*\(/.test(code);
+  ok('  ' + f + ' 에서 자판으로 빠져나간다 (Esc)', 길, true);
 }
 
 console.log('');

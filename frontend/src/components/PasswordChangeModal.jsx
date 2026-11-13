@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState, useRef } from 'react';
+import { useModalFocus } from '../data/useModalFocus';
 import client from '../api/client';
 import { toast } from './Toast';
 import { passwordError } from '../data/password';
@@ -26,6 +27,10 @@ function checkNew(pw, current) {
 }
 
 export default function PasswordChangeModal({ onClose, onChanged }) {
+  // 덮개 안에 자판을 가둔다 — 안 가두면 탭이 뒤 화면으로 새서
+  // **보이지도 않는 단추가 눌린다** (`data/useModalFocus.js`)
+  const boxRef = useRef(null);
+  useModalFocus(boxRef, true, { onClose });
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
@@ -37,11 +42,10 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
   // 닫는 길이 바깥 누르기와 ✕ 둘뿐이라 자판만 쓰는 사람은 이 창에 **갇혔다.**
   // `ConfirmModal`·`PasswordResetModal` 에는 `Escape` 가 이미 있었고 이 창과
   // 계정 삭제 창에만 없었다 (정석이 전수로 세어 짚었다).
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  //
+  // 2026-11-13 — 그 손을 위의 `useModalFocus` 가 가져갔다. **두 벌로 두면 한쪽만
+  // 고쳐진다**(오늘 탭 가두기가 딱 그 꼴로 한 자리만 돼 있었다). Esc · 첫 포커스 ·
+  // 탭 가두기 · 닫은 뒤 돌려주기를 그 손 하나가 맡는다.
 
   const localError = next ? checkNew(next, current) : '';
   const mismatch = again && next !== again;
@@ -74,6 +78,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={boxRef}
         role="dialog"
         aria-modal="true"
         aria-label="비밀번호 변경"

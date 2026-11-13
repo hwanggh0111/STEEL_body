@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useModalFocus } from '../data/useModalFocus';
 import client from '../api/client';
 import { toast } from './Toast';
 import { dayOf } from '../data/dateKey';
@@ -139,12 +140,14 @@ export default function SecurityPanel() {
   // 닫는 길이 「겉장 누르기」와 「취소」뿐이었다 — 자판만 쓰는 사람은 **가장 위험한
   // 창**에 갇혔다. 지우는 중(`removing`)에는 안 닫는다 — 누르던 것이 날아가면
   // 무엇이 지워졌는지 알 수 없다(겉장 누르기도 같은 조건을 쓴다).
-  useEffect(() => {
-    if (!deleting) return;
-    const onKey = (e) => { if (e.key === 'Escape' && !removing) setDeleting(null); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [deleting, removing]);
+  //
+  // 2026-11-13 — 그 손을 `useModalFocus` 가 가져갔다. Esc 와 **탭 가두기**를 같이
+  // 맡는다: 안 가두면 탭이 **뒤 화면의 「지우기」들** 사이를 돌아다닌다.
+  // 두 벌로 두면 한쪽만 고쳐진다 (오늘 탭 가두기가 딱 그 꼴로 한 자리만 돼 있었다)
+  const boxRef = useRef(null);
+  useModalFocus(boxRef, !!deleting, {
+    onClose: () => { if (!removing) setDeleting(null); },
+  });
   // 찾기 · 역할 거르기 · 서버 설정 접기
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -738,6 +741,7 @@ export default function SecurityPanel() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            ref={boxRef}
             role="dialog"
             aria-modal="true"
             aria-label="계정 삭제"

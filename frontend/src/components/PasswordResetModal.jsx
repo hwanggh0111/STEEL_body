@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useModalFocus } from '../data/useModalFocus';
 // 메일 칸은 **한 손으로** 다듬는다 (2026-11-05 — 가입에서 두 걸음이 어긋났다)
 import { cleanEmailField } from '../data/typedField';
 import client from '../api/client';
@@ -17,6 +18,10 @@ import { PW_MAX, PW_MIN } from '../data/limits';
 // 비밀번호를 새로 두는 자리를 따로 내면 「로그인만 되면 비밀번호를 정할 수 있는 길」이
 // 하나 더 생긴다. 메일로 번호를 받는 그 길을 그대로 쓴다.
 export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
+  // 덮개 안에 자판을 가둔다 — 안 가두면 탭이 뒤 화면으로 새서
+  // **보이지도 않는 단추가 눌린다** (`data/useModalFocus.js`)
+  const boxRef = useRef(null);
+  useModalFocus(boxRef, true, { onClose: onClose });
   // 주소가 정해져 있으면 적을 것이 없다 — 번호를 받는 데서 시작한다
   const making = !!fixedEmail;
   const [step, setStep] = useState(1); // 1: 이메일, 2: 인증번호+새 비번, 3: 완료
@@ -43,11 +48,8 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
   }, []);
 
   // ESC로 닫기
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // 2026-11-13 — Esc 를 받던 손은 위의 `useModalFocus` 가 가져갔다. **두 벌로 두면
+  // 한쪽만 고쳐진다** (오늘 탭 가두기가 딱 그 꼴로 한 자리만 돼 있었다)
 
   const sendCode = async (e) => {
     e?.preventDefault();
@@ -101,6 +103,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={boxRef}
         role="dialog"
         aria-modal="true"
         aria-label={making ? '비밀번호 만들기' : '비밀번호 재설정'}
