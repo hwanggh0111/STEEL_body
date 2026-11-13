@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "233a8e133e",
+  "detailVersion": "9f23ce0253",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "9fedf60",
+      "date": "2026-11-13",
+      "text": "보호장치가 공지 재생성을 영영 막고 있었다 — KEEP 만 올리고 훑는 수를 안 올렸다",
+      "label": "고침",
+      "scope": "공지",
       "has": true
     },
     {
@@ -1130,14 +1138,6 @@
       "text": "나간 뒤에 앞 사람 기록이 다시 꽂혔다 — 비우기와 꽂기의 차례가 뒤집힌다",
       "label": "고침",
       "scope": "저장소",
-      "has": true
-    },
-    {
-      "key": "ac7c3cb",
-      "date": "2026-11-03",
-      "text": "한 운동이 늘어온 길 — 숫자 하나뿐이던 자리에 선을 그린다",
-      "label": "새 기능",
-      "scope": "통계",
       "has": true
     }
   ]
