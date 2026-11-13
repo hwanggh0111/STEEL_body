@@ -24,6 +24,7 @@
     "threestate": "node scripts/check-threestate.cjs",
     "stats": "node scripts/check-stats.cjs",
     "clog": "node scripts/check-changelog.cjs",
+    "devlog": "node scripts/check-devlog.cjs",
     "plate": "node scripts/check-plate.cjs",
     "font": "node scripts/check-font.cjs",
     "settings": "node scripts/check-settings.cjs",
