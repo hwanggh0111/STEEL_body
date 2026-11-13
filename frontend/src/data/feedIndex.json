@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "31c96bdf49",
+  "detailVersion": "378f220305",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "5b1f298",
+      "date": "2026-11-13",
+      "text": "고친 것이 소식에서 사라지는 규칙이 생성기 안에 있었다 — 묶는 손을 걷는다",
+      "label": "고침",
+      "scope": "공지",
       "has": true
     },
     {
@@ -1010,14 +1018,6 @@
       "text": "팔이 발보다 길게 잡히면 손이 잘렸다 — 실루엣 틀이 발까지만 쟀다",
       "label": "고침",
       "scope": "체형",
-      "has": true
-    },
-    {
-      "key": "ff83d12",
-      "date": "2026-11-04",
-      "text": "체성분 도넛이 체중을 넘게 그렸다 — 체수분을 조각으로 또 넣었다",
-      "label": "고침",
-      "scope": "몸",
       "has": true
     }
   ]
