@@ -81,6 +81,62 @@ for (const s of STORES.filter((x) => x.page)) {
 }
 
 console.log('');
+// ── ★ **그 스토어를 쓰는 화면이 하나가 아니다** ── (2026-11-13, 정석)
+//
+// 위의 「화면이 그것을 읽나」는 **스토어마다 화면 하나**만 봤다. 그래서 인바디
+// 스토어를 쓰는 화면이 **여섯**인데 `failed` 를 읽는 것은 `InbodyPage` 하나뿐인
+// 것을 못 봤다 — 11/13 에 전수로 깔다가 `ComparePage` 에서 잡았다.
+//
+// 거기서 나온 것이 이렇다. 못 받으면 `records` 가 빈 채로 `loading` 이 꺼지고,
+// 화면은 **「인바디를 두 번 이상 넣으시면 실제 기록으로 바뀝니다」와 예시 숫자**를
+// 띄웠다. **인바디를 열 번 넣은 사람**이 신호 한 번 나쁜 자리에서 그 화면을 본다 —
+// 없는 것을 없다고 하는 것보다 나쁘다. 가짜 수를 제 기록 자리에 띄우는 것이다.
+//
+// ── 무엇을 조르고 무엇을 넘기나 ──
+//
+// **전부 읽으라고 하지 않는다.** 홈 · 기록 화면은 목록이 비면 **그 칸을 아예 안
+// 그린다** — 거짓말을 하지 않으니 조를 것이 없다. 조르는 것은 **빈 것을 보고
+// 사람에게 말을 거는 화면**이다. 그 말이 「아직 없어요」면 **못 받은 날에 거짓이
+// 된다.** 그래서 `records.length` 로 **글을 띄우는** 화면만 본다.
+console.log('');
+console.log('── ★ 그 스토어를 쓰는 화면이 전부 읽나 ──');
+{
+  const SRC = path.join(__dirname, '..', 'src');
+  const walk = (d, out = []) => {
+    for (const n of fs.readdirSync(d)) {
+      const f = path.join(d, n);
+      if (fs.statSync(f).isDirectory()) walk(f, out);
+      else if (/\.jsx$/.test(f)) out.push(f);
+    }
+    return out;
+  };
+  const rel = (f) => path.relative(SRC, f).split(path.sep).join('/');
+  const files = walk(SRC);
+
+  for (const [store, hook] of [['인바디', 'useInbodyStore'], ['기구', 'useGymStore']]) {
+    const 쓰는것 = files.filter((f) => new RegExp(hook + '\(\)').test(fs.readFileSync(f, 'utf8')));
+    // **빈 것을 보고 글을 띄우는 화면**만 조른다
+    const 말하는것 = 쓰는것.filter((f) => {
+      const t = fs.readFileSync(f, 'utf8');
+      return /\{\s*records\.length\s*(===\s*0|<\s*\d)[\s\S]{0,400}?[가-힣]/.test(t);
+    });
+    // **파일 어디든에서 찾지 않는다 — 스토어에서 꺼내 쓰는 줄을 본다.**
+    // 처음에 파일 전체를 `/\bfailed\b/` 로 봤다가 `ComparePage` 의 주석 한 줄
+    // (「'failed'(iOS 가 손짓 차례를 끊은 경우)」)에 걸려 **되돌려도 안 물었다.**
+    // 자가 보는 것은 주석이 아니라 꺼내 쓰는 줄이다 (오늘 글꼴 자에서도 같은 데 물렸다).
+    const 꺼내썼나 = (t) => {
+      const m = new RegExp('const\\s*\\{([^}]*)\\}\\s*=\\s*' + hook + '\\(\\)').exec(t);
+      return !!m && /\bfailed\b/.test(m[1]);
+    };
+    const 안읽는것 = 말하는것.filter((f) => !꺼내썼나(fs.readFileSync(f, 'utf8')));
+    ok(store + ' — 빈 것을 보고 말을 거는 화면이 failed 를 읽는다',
+      안읽는것.map(rel), []);
+    console.log('       쓰는 화면 ' + 쓰는것.length + ' · 그 중 말을 거는 화면 '
+      + 말하는것.length + ' — ' + 말하는것.map(rel).join(' · '));
+  }
+}
+
+console.log('');
 console.log('── 늦게 받는 조각이 못 왔을 때 ── (2026-10-20)');
 //
 // 무거운 조각을 **눌렀을 때 · 칠 때** 받게 가른 자리가 늘었다(자세 설명 78KB ·

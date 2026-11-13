@@ -283,7 +283,7 @@ const SAMPLE_AFTER = { date: '2026-09-02', weight: 73, fat_pct: 16, muscle_kg: 3
 // 제목은 「몸」이 들고 있다. 아래의 「얼마나 달라졌나」는 **그대로 둔다** —
 // 그건 이 화면의 제목이 아니라 그 덩어리의 이름이다
 export default function ComparePage({ embedded = false }) {
-  const { records, loading, fetchAll } = useInbodyStore();
+  const { records, loading, failed, fetchAll } = useInbodyStore();
   const [beforeIdx, setBeforeIdx] = useState(null);
   const [afterIdx, setAfterIdx] = useState(null);
   // **함수를 넘긴다** (2026-10-21에 고쳤다). `useState(loadPhotos())` 는 괄호를
@@ -486,6 +486,34 @@ export default function ComparePage({ embedded = false }) {
     }
   };
 
+
+  // ── ★ **못 받은 것을 「아직 없다」로 말하지 않는다** ── (2026-11-13, 정석)
+  //
+  // 아래의 「기록이 둘보다 적다」 칸은 **예시 숫자**를 띄우고 「인바디를 두 번 이상
+  // 넣으시면 실제 기록으로 바뀝니다」라고 말한다. 처음 오는 사람에게는 맞는 말이다.
+  //
+  // 그런데 이 화면은 `loading` 만 보고 있었다. **받다가 실패하면** `records` 가
+  // 빈 채로 `loading` 이 꺼지므로, **인바디를 열 번 넣은 사람**이 신호가 나쁜 자리에서
+  // 그 칸을 본다 — 제 기록 대신 **남의 것도 아닌 예시 숫자**를 보면서 「넣으시면
+  // 실제 기록으로 바뀝니다」를 읽는다. 없는 것을 없다고 하는 것보다 나쁘다.
+  //
+  // `inbodyStore` 는 **이미 `failed` 를 들고 있다**(10/? 에 「조용히 삼키던」 것을
+  // 고치면서 세웠다). 읽는 쪽이 `InbodyPage` 하나뿐이었다 — 11/11 에 `goalStore`
+  // 에서 고친 그 자리의 **나머지**다.
+  if (failed && records.length === 0) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 28 }}>
+        <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 6 }}>
+          인바디 기록을 못 받아왔어요
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 14 }}>
+          기록이 없는 것이 아니라 <b>받아오지 못한 것</b>이에요.
+          신호를 확인하고 다시 받아보세요.
+        </div>
+        <button className="btn-primary" onClick={() => fetchAll(true)}>다시 받기</button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
