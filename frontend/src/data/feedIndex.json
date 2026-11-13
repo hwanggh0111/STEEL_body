@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "9568f0c1fa",
+  "detailVersion": "f86036bac3",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "f826268",
+      "date": "2026-11-13",
+      "text": "그날의 계획은 빼면 그냥 사라졌다 — 되돌리기를 달고, 루틴이 지워진 것까지 본다",
+      "label": "새 기능",
+      "scope": "계획",
       "has": true
     },
     {
@@ -1010,14 +1018,6 @@
       "text": "표는 「22%」라고 적고 그림은 「22」라고 적었다 — 그림 자리 넷",
       "label": "고침",
       "scope": "그림",
-      "has": true
-    },
-    {
-      "key": "5fb1af5",
-      "date": "2026-11-04",
-      "text": "만들어 놓고 아무도 안 부르는 길을 쓴다 — npm run alive",
-      "label": "새 기능",
-      "scope": "자",
       "has": true
     }
   ]
