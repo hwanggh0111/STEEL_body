@@ -61,7 +61,10 @@ if (드는종류.length) console.log('       ' + 드는종류.join(' '));
 let 이력 = null;
 try {
   const 얕음 = git(['rev-parse', '--is-shallow-repository']).trim() === 'true';
-  if (얕음) { 이력 = 'shallow'; } else { 이력 = git(['log', '-n20', '--date=short', '--pretty=format:%h%x09%ad%x09%s']); }
+  // `-n20` 에서 `-n40` 으로 (2026-11-13) — 위의 창을 스물로 넓혔으니 **훑는 것이
+  // 스물보다 적으면** 그 창이 채워지지 않는다. 20 을 훑으면 `docs` · `chore` 가
+  // 섞여 실제로 보는 것은 열 남짓이었다(11/12 의 `26b07cd` 가 그래서 안 보였다).
+  if (얕음) { 이력 = 'shallow'; } else { 이력 = git(['log', '-n40', '--date=short', '--pretty=format:%h%x09%ad%x09%s']); }
 } catch { 이력 = null; }
 
 if (이력 === null || 이력 === 'shallow') {
@@ -76,36 +79,32 @@ if (이력 === null || 이력 === 'shallow') {
     return { hash: h, date: d, subject: s, type: t };
   });
   // **HEAD 는 뺀다** — 커밋은 제 해시를 제 안에 담을 수 없다
-  const 봐야할것 = 줄.slice(1).filter((r) => 드는종류.includes(r.type)).slice(0, 8);
+  // **여덟에서 스물로 넓힌다** (2026-11-13) — 11/12 에 빠진 둘 중 `26b07cd` 는 여덟
+  // 창 밖이라 이 자가 **볼 수조차 없었다**(`da893b3` 만 보였다). 하루에 커밋 스무
+  // 개를 올리는 날이 있으니 여덟은 「어제」도 못 덮는다. `KEEP` 이 80 이라 스물은
+  // 넉넉히 그 안이다 — 막이에 밀려난 것을 빠짐으로 읽을 일은 없다.
+  const 봐야할것 = 줄.slice(1).filter((r) => 드는종류.includes(r.type)).slice(0, 20);
 
   const clog = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'changelog.json'), 'utf8'));
   const 담긴것 = new Set((clog.items || []).map((r) => r.hash));
 
   ok('공지에 담긴 줄이 있다', (clog.items || []).length > 0, true);
 
-  // ── **까닭 있는 빠짐은 빠짐이 아니다** ── (2026-11-11, 정석)
+  // ── **예외를 걷었다 — 빠짐은 빠짐이다** ── (2026-11-13, 주인 결정)
   //
-  // 이 줄이 「전부 있어야 한다」였고, 생성기는 「같은 날 같은 scope 는 **무게가 가장
-  // 큰 것들**만 남긴다」였다 — **자와 생성기가 서로 다른 것을 맞다고 했다.** 그래서
-  // `feat(유산소)` 가 같은 날 `fix(유산소)` 를 덮는 **정상 동작**에도 이 자가 울었다
-  // (11/11 에 그 꼴로 FAIL 이 떠서 그 건이 사람 손을 거쳐 넘어왔다).
+  // 여기에 「같은 날 같은 scope 에 더 무거운 줄이 실려 있으면 그 빠짐은 규칙대로다」가
+  // 있었다. 생성기의 묶는 규칙과 짝을 맞추려고 11/11 에 넣은 예외다.
   //
-  // 그래서 **덮은 줄이 공지에 있는지**를 본다. 같은 날 · 같은 scope 에 **더 무거운**
-  // 줄이 실려 있으면 그 빠짐은 규칙대로이고 넘어간다. 아무도 안 덮었는데 빠졌으면
-  // 그건 진짜 빠짐이다 — 대개 **생성한 산출물을 커밋하지 않은 날**이다(48차 교훈).
-  const WEIGHT = { feat: 3, fix: 2, perf: 1 };
-  const 실린것 = clog.items || [];
-  const 덮은줄이있나 = (r) => {
-    const m = /^\w+(?:\(([^)]+)\))?:/.exec(r.subject);
-    const scope = m && m[1] ? m[1] : null;
-    const mine = WEIGHT[r.type] || 0;
-    return 실린것.some((it) => it.scope === scope
-      && it.date === r.date
-      && (WEIGHT[it.type] || 0) > mine);
-  };
-  const 빠진것 = 봐야할것.filter((r) => !담긴것.has(r.hash) && !덮은줄이있나(r));
-  ok('고친 커밋이 공지에 있다 — 더 무거운 줄에 덮인 것만 빠질 수 있다 (HEAD 제외)',
-    빠진것.map((r) => r.hash), []);
+  // **그 짝이 구멍이었다.** 자와 생성기가 **같은 규칙**을 알고 있으면, 그 규칙이 틀린
+  // 날에는 자가 영영 안 운다. 11/12 의 `26b07cd`(자판이 오르면 찾기 결과가 하나도 안
+  // 보였다) · `da893b3` 이 그렇게 소식에서 사라졌고, 이 자는 **통과로 적었다** —
+  // 11/13 에 라이브와 산출물을 **해시로 전수 대조**해서야 보였다.
+  //
+  // 생성기가 더 이상 묶지 않으므로(`gen-changelog.mjs`) 예외도 필요 없다. 다시
+  // **「전부 있어야 한다」** 다. 이 자가 울면 답은 하나다 — `npm run changelog` ·
+  // `npm run feed` 를 돌리고 **산출물 넷을 같이 커밋**하는 것(48차 교훈).
+  const 빠진것 = 봐야할것.filter((r) => !담긴것.has(r.hash));
+  ok('고친 커밋이 **전부** 공지에 있다 (HEAD 제외)', 빠진것.map((r) => r.hash), []);
   if (빠진것.length) {
     console.log('       빠진 것:');
     빠진것.forEach((r) => console.log('         ' + r.hash + '  ' + r.subject.slice(0, 64)));
