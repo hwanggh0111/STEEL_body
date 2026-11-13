@@ -423,8 +423,9 @@ export default function HistoryPage() {
           catch (e) { toast(e.response?.data?.error || '되살리지 못했어요', 'error'); }
         },
       } : null);
-    } catch {
-      toast('삭제하지 못했어요', 'error');
+    } catch (err) {
+      // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-13 — `store/workoutStore.js` 참고)
+      toast(err.response?.data?.error || '삭제하지 못했어요', 'error');
     }
   }, [deleteWorkout, addWorkout]);
 

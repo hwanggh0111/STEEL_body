@@ -563,6 +563,48 @@ const codeOf = (s) => s
     }
     ok('되돌리기가 **왜** 실패했는지 말한다', 까닭버림, []);
 
+    // ── ★ **저장소가 까닭을 지어내지 않는다** ── (2026-11-13, 정석)
+    //
+    // 위의 자는 **화면**을 본다. 그런데 화면이 아무리 잘 받아도 **전할 말이 없는**
+    // 자리가 있었다 — 저장소가 받은 오류를 버리고 `throw new Error('삭제 실패')` 로
+    // **새 오류를 지어냈다**(`workoutStore` · `inbodyStore` 의 지우기). 그래서
+    // 계정 막힘 · 429 「잠시 뒤에」 · 적을 수 없는 날짜가 전부 한 마디로 덮였다.
+    //
+    // **한 자리만 빼준다** — `isSameSession` 이 아닌 길. 나간 뒤에 온 답에 까닭을
+    // 실으면 **다음 사람 화면에 앞사람의 서버 메시지**가 뜬다. 그 길은 되돌리지도
+    // 않으니 전할 말이 없는 것이 맞다. 그래서 **그 줄에만** 지어낸 오류를 허락한다.
+    // **`catch` 안에서 던지는 것만** 본다. 보내기 전에 막는 것(`'이름이 비었다'`)은
+    // 버릴 까닭이 애초에 없다 — 그것까지 조르면 자가 거짓으로 운다.
+    //
+    // 그리고 **날것 줄로 센다.** `codeOf` 는 여러 줄 주석을 **줄째 지워서** 번호가
+    // 밀린다 — 처음에 그것으로 짚었다가 `authStore.js:120`(그냥 `set({…})` 줄)을
+    // 가리켰다. 자가 틀린 자리를 짚으면 보는 사람이 자를 안 믿는다.
+    const 지어낸오류 = [];
+    for (const p of walk('src')) {
+      if (!/[\\/]store[\\/]/.test(p)) continue;
+      const lines = fs.readFileSync(p, 'utf-8').split('\n');
+      let depth = -1;                                  // -1 이면 `catch` 밖이다
+      lines.forEach((raw, i) => {
+        // 주석은 코드가 아니다. **`\r` 을 먼저 떼야 한다** — 윈도 트리는 줄끝이
+        // CRLF 인데 `\r` 은 **줄 끝 문자**라 `.` 에 안 걸린다. 그래서 `/\/\/.*$/`
+        // 가 한 줄도 못 지우고, 이 자가 **제 주석에 적힌 `throw new Error(`** 를
+        // 코드로 읽어 제 자신을 FAIL 시켰다 (11/13 에 그렇게 물렸다).
+        const l = raw.replace(/\r$/, '').replace(/\/\/.*$/, '');
+        if (depth < 0) {
+          if (/\bcatch\s*(\([^)]*\))?\s*\{/.test(l)) depth = 1;
+          return;
+        }
+        if (/throw new Error\(/.test(l)
+          && !/isSameSession/.test(l)                  // 나간 뒤 — 말 없는 것이 맞다
+          && !/throw new Error\(err/.test(l)) {        // 받은 것을 감싼 것은 버린 것이 아니다
+          지어낸오류.push(p.replace('src/', '') + ':' + (i + 1));
+        }
+        depth += (l.match(/\{/g) || []).length - (l.match(/\}/g) || []).length;
+        if (depth <= 0) depth = -1;
+      });
+    }
+    ok('저장소가 서버 말을 버리고 오류를 지어내지 않는다', 지어낸오류, []);
+
     console.log('');
     if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
     console.log('다 통과');

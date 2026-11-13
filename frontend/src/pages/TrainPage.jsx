@@ -983,8 +983,10 @@ export default function TrainPage() {
           catch (e) { toast(e.response?.data?.error || '되살리지 못했어요', 'error'); }
         },
       } : null);
-    } catch {
-      toast('지우지 못했어요', 'error');
+    } catch (err) {
+      // **서버가 적어 보낸 까닭을 그대로 전한다** (2026-11-13) — 저장소가 그것을
+      // 버리고 있어서 계정 막힘 · 429 · 날짜 거부가 전부 이 한 마디로 덮였다
+      toast(err.response?.data?.error || '지우지 못했어요', 'error');
     }
   };
 

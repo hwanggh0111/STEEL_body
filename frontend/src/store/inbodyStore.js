@@ -96,12 +96,16 @@ export const useInbodyStore = create((set, get) => ({
     try {
       await client.delete(`/inbody/${id}`);
       fetchedAt = 0;   // 다음 요청은 새로 받는다
-    } catch {
+    } catch (err) {
       // **되돌리기도 그 사람 자리에서만 한다** — 나간 뒤에 되돌리면
       // 지운 줄이 다음 사람 화면에 되살아난다
+      //
+      // ★ **까닭을 버리지 않는다** (2026-11-13) — `workoutStore` 의 같은 자리에
+      // 까닭을 적어뒀다. 나간 뒤에 온 답만 말 없는 오류로 끊는다(앞사람의 서버
+      // 메시지가 다음 사람 화면에 뜨면 안 된다).
       if (!isSameSession(mine)) throw new Error('삭제 실패');
       set({ records: prev });
-      throw new Error('삭제 실패');
+      throw err;
     }
   },
 }));
