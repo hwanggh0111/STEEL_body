@@ -35,7 +35,7 @@ export default function Donut({ data, total, height = 280, width = 320 }) {
         aria-label={'체성분 ' + slices.map((p) => p.name + ' ' + fmt(p.value) + 'kg').join(', ')}>
         {paths.map((p) => <path key={p.key} d={p.d} fill={p.color} />)}
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="24" fill={CHART.text}
-          fontFamily="'Bebas Neue', 'IBM Plex Sans KR', sans-serif" letterSpacing="1">{fmt(center || sum)}</text>
+          fontFamily="'Bebas Neue', 'BI Sans KR', sans-serif" letterSpacing="1">{fmt(center || sum)}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10.5" fill={CHART.muted}>kg</text>
       </svg>
     </div>

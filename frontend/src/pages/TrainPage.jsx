@@ -108,7 +108,7 @@ function SetChecks({ done, planned, onTap, disabled }) {
               border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
               background: on ? 'var(--accent)' : 'transparent',
               color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 18, letterSpacing: 1,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 1,
             }}
           >
             {on ? (
@@ -1012,7 +1012,7 @@ export default function TrainPage() {
             <circle cx="12" cy="13" r="8" /><path d="M12 9.5V13l2.3 1.6M9 2h6" />
           </svg>
           <span style={{
-            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
             color: restRunning ? 'var(--accent)' : 'var(--text-muted)',
           }}>{restRunning ? <RestLeft /> : '휴식'}</span>
         </button>
@@ -1287,7 +1287,7 @@ export default function TrainPage() {
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0.5 }}>다음 한 걸음</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 3 }}>
                   <span style={{
-                    fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1,
+                    fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", letterSpacing: 1,
                     fontSize: 25, lineHeight: 1.1, color: 'var(--accent)',
                   }}>{step.body ? step.reps : step.kg}</span>
                   <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
@@ -1367,7 +1367,7 @@ export default function TrainPage() {
                       }}>
                         <span style={{
                           width: 18, flexShrink: 0, color: 'var(--text-muted)',
-                          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+                          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
                         }}>{i + 1}</span>
                         <span style={{
                           flexGrow: 1, minWidth: 0,
@@ -1821,7 +1821,7 @@ export default function TrainPage() {
         <div className="accent-bar" />
         {isToday ? '오늘 적은 것' : `${dayLabel(date)} 에 적은 것`}
         {dayList.length > 0 && (
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", letterSpacing: 0 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontFamily: "'Barlow', 'BI Sans KR', sans-serif", letterSpacing: 0 }}>
             {dayList.length}개
           </span>
         )}

@@ -375,7 +375,7 @@ export default function SecurityPanel() {
       {/* 제목. 앱의 다른 모든 화면이 한국어인데 여기만 영문이었다 —
           관리자 화면의 탭 이름도 「보안 관리」다 */}
       <h2 style={{
-        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
         fontSize: 20, letterSpacing: 2, color: 'var(--accent)', marginBottom: 6,
       }}>
         보안 관리
@@ -564,12 +564,12 @@ export default function SecurityPanel() {
       {/* JWT Settings */}
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             JWT 설정
           </span>
           <StatusBadge status={getAlgoStatus(jwt?.algorithm)} label={BADGE[getAlgoStatus(jwt?.algorithm)]} />
         </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap', fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
+        <div style={{ display: 'flex', gap: 16, fontSize: 12, flexWrap: 'wrap', fontFamily: "'Barlow', 'BI Sans KR', sans-serif" }}>
           <div>
             {/* **무엇의 만료인지 적는다** (2026-10-28). 「만료시간」 하나만 있어서
                 액세스 토큰 이야기라는 것이 아무 데도 없었다 */}
@@ -599,12 +599,12 @@ export default function SecurityPanel() {
       {/* Rate Limit */}
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             Rate Limit 설정
           </span>
           <StatusBadge status={getRateLimitStatus(rateLimit?.login)} label={BADGE[getRateLimitStatus(rateLimit?.login)]} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif" }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontFamily: "'Barlow', 'BI Sans KR', sans-serif" }}>
           {rateLimit && Object.entries(rateLimit).map(([key, val]) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>{key}</span>
@@ -621,12 +621,12 @@ export default function SecurityPanel() {
         {/* Helmet */}
         <div className="card" style={{ padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
               Helmet
             </span>
             <StatusBadge status={getHelmetStatus(helmet?.enabled)} label={BADGE[getHelmetStatus(helmet?.enabled)]} />
           </div>
-          <div style={{ fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", color: helmet?.enabled ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, fontFamily: "'Barlow', 'BI Sans KR', sans-serif", color: helmet?.enabled ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
             {helmet?.enabled ? '활성화' : '비활성화'}
           </div>
         </div>
@@ -634,12 +634,12 @@ export default function SecurityPanel() {
         {/* Node Version */}
         <div className="card" style={{ padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 13, letterSpacing: 1, color: 'var(--accent)' }}>
               Node.js 버전
             </span>
             <StatusBadge status={getNodeStatus(nodeVersion)} label={BADGE[getNodeStatus(nodeVersion)]} />
           </div>
-          <div style={{ fontSize: 12, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontWeight: 600 }}>
+          <div style={{ fontSize: 12, fontFamily: "'Barlow', 'BI Sans KR', sans-serif", fontWeight: 600 }}>
             {nodeVersion || '-'}
           </div>
         </div>
@@ -648,7 +648,7 @@ export default function SecurityPanel() {
       {/* CORS */}
       <div className="card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ marginBottom: 6 }}>
-          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             CORS 허용 도메인
           </span>
         </div>
@@ -656,7 +656,7 @@ export default function SecurityPanel() {
           {(cors?.origins || []).map((origin, i) => (
             <span key={i} style={{
               fontSize: 11,
-              fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+              fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
               padding: '3px 10px',
               borderRadius: 'var(--radius)',
               background: 'var(--bg-secondary)',
@@ -680,12 +680,12 @@ export default function SecurityPanel() {
       {keepWarm && (
         <div className="card" style={{ padding: 14, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+            <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
               깨워두기
             </span>
             <span style={{
               fontSize: 13, fontWeight: 600, flexShrink: 0,
-              fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+              fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
               color: keepWarm.running ? 'var(--success)' : 'var(--warning)',
             }}>
               {keepWarm.running ? `돌고 있어요 · ${keepWarm.everyMin}분마다` : '꺼져 있어요'}
@@ -712,10 +712,10 @@ export default function SecurityPanel() {
       {/* Body Limit */}
       <div className="card" style={{ padding: 14, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
             Body 크기 제한
           </span>
-          <span style={{ fontSize: 13, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontWeight: 600 }}>
+          <span style={{ fontSize: 13, fontFamily: "'Barlow', 'BI Sans KR', sans-serif", fontWeight: 600 }}>
             {bodyLimit || '-'}
           </span>
         </div>
@@ -747,7 +747,7 @@ export default function SecurityPanel() {
             }}
           >
             <h3 style={{
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
               color: 'var(--danger)', marginBottom: 10,
             }}>계정 삭제</h3>
 

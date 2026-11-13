@@ -26,85 +26,24 @@
     <!-- X 는 OG 를 읽지만, 큰 그림으로 펴려면 이 한 줄이 있어야 한다 -->
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- 폰트 프리커넥트 (렌더링 빠르게) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- ── **글꼴은 우리 집에서 온다** ── (2026-11-13, 주인 지시)
 
-    <!-- 폰트는 여기서 부른다.
-         globals.css 안의 @import 로 두면 브라우저가 CSS 를 받아 파싱한 뒤에야
-         폰트 CSS 를 요청한다 — 요청이 한 단계 더 늘어 첫 글자가 늦게 뜬다.
+         여기에 구글 글꼴 줄 다섯이 있었다 — preconnect 둘 · preload · stylesheet ·
+         noscript, 그리고 아래 dns-prefetch. 11/13 에 재보니 **CSS 한 장이 gzip
+         40.3KB**(@font-face 303개, IBM Plex Sans KR 혼자 282개)였고, 그것은
+         **글꼴 한 자도 안 그리고 치르는 값**이었다. 집 두 곳(googleapis → gstatic)에
+         왕복도 첫 방문마다 일어났다.
 
-         굵기는 **실제로 쓰는 것만** 부른다. Playfair 는 로고·스플래시에서 굵기 400
-         (보통·이탤릭)만 쓴다 — 안 쓰는 500 두 변형(0,500·1,500)을 받던 것을 뺐다
-         (2026-09-15). Barlow 다섯 굵기는 전부 쓰여서 그대로 둔다.
+         넷을 잘라서 우리 주소에서 내준다(`npm run sans` · `src/styles/fonts.gen.css`).
+         그래서 이 자리에는 **아무 줄도 없다** — 글꼴은 `globals.css` 가 들여오는
+         `fonts.gen.css` 에 적혀 있고, 비테가 해시를 박아 `/assets/` 로 내보내므로
+         **서비스 워커가 담는다**(지하 헬스장에서도 온다. 남의 집 것은 안 담긴다).
 
-         **IBM Plex Sans KR 을 더했다** (2026-10-06) — **앱 본문의 한글이 여태 글꼴이
-         없었다.** `font-family: 'Barlow'` 인데 Barlow 에는 한글이 한 자도 없어서,
-         글자의 거의 전부가 **기기 기본 글꼴**로 떨어졌다(윈도우 맑은 고딕 · 안드로이드
-         Roboto 대체 · 아이폰 Apple SD Gothic). 검정과 금색은 골라뒀는데 글자는 고른
-         것이 아니었고, **기기마다 다른 앱으로 보였다.**
+         명조는 10/20 에 먼저 우리 것이 됐다(`npm run serif`). 이것은 그 나머지다.
 
-         Barlow 와 같은 그로테스크라 한글·영문이 섞인 줄에서 이음매가 안 보인다.
-         굵기 다섯을 다 부르는 까닭은 앱이 **600 을 24곳, 700 을 22곳**에서 쓰기
-         때문이다 — 굵기가 하나인 글꼴을 고르면 그 46곳이 브라우저 가짜 굵게로
-         뭉개진다.
+         미디어파이프의 두 집(wasm · 모델)은 여기 두지 않는다 — 「체형」·「횟수 세기」를
+         연 사람만 가는 집이라, 안 여는 사람까지 값을 치를 이유가 없다. -->
 
-         **Nanum Myeongjo 를 더했다** (2026-09-16) — 새 화면 셋(몸 지도 · 운동 끝 결산 ·
-         1년 기록 벽)의 첫 줄만 명조로 앉힌다(`.serif-display`). 한글 글꼴은 무거운데,
-         구글이 한글을 조각 백여 개로 잘라 내주기 때문에 **화면에 쓴 글자가 든 조각만**
-         내려온다. 굵기는 400 하나만 부른다. -->
-    <!-- **첫 페인트를 막지 않게 받는다** (2026-10-05).
-
-         이 한 줄이 `<head>` 의 보통 stylesheet 이면 **렌더링을 막는다** — 브라우저는
-         이 CSS 가 올 때까지 글자를 한 자도 안 그린다. 폰에서는 그 한 번이 구글 두 곳
-         (`fonts.googleapis.com` → `fonts.gstatic.com`)에 붙는 왕복이라, 신호가 나쁘면
-         **아무것도 없는 검은 화면**이 그만큼 길어진다.
-
-         `media="print"` 로 받으면 브라우저가 「지금 화면에 안 쓰는 것」으로 보고
-         렌더링을 안 막는다. 다 받으면 `onload` 가 `all` 로 바꿔 그때 적용된다.
-         이미 `display=swap` 이라 그때까지는 대체 글꼴로 글이 **보인다** — 안 보이던
-         것이 보이게 되는 것이지, 늦어지는 것이 아니다.
-
-         `preload` 를 같이 두는 까닭: `media="print"` 는 **낮은 순위로** 받는다.
-         preload 가 「곧 쓸 것」이라고 알려줘서 순위를 되돌린다. -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Playfair+Display&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Playfair+Display&display=swap"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Playfair+Display&display=swap"
-      />
-    </noscript>
-
-    <!-- DNS 프리페치 — **실제로 묻는 집만** (2026-10-21에 둘을 걷었다)
-
-         여기에 `wger.de` 와 `api.open-meteo.com` 이 「외부 API」라고 적혀 있었다.
-         10/20 에 그 두 줄이 **아무 일도 안 하고 있던 것**을 찾아 서버 쪽에서 켰는데,
-         오늘 보니 **두 집 다 앱이 묻지 않는 집**이었다 —
-
-           api.open-meteo.com  날씨로 운동을 고르던 화면은 **8/19 에 지웠다**
-                               (`WeatherWorkout.jsx`, 커밋 d2a6cbe). 두 달 동안
-                               CSP 와 이 줄에만 남아 있었다
-           wger.de             외부 운동 DB. 그쪽이 API 를 바꿔서 찾기 길이 **404** 다
-                               (`components/ExerciseFinder.jsx` 머리글)
-
-         즉 10/20 에 켠 것은 **아무도 안 가는 두 집의 주소를 매번 찾아두는 일**이었다.
-
-         남는 것은 글꼴 파일이 오는 집 하나다 — 위의 스타일시트가 `fonts.googleapis.com`
-         을 거쳐 **`fonts.gstatic.com`** 에서 파일을 받는다. 그 둘째 왕복은 **첫 방문마다**
-         일어나므로 미리 찾아두는 값이 있다. 미디어파이프의 두 집(wasm · 모델)은 **여기
-         두지 않는다** — 「체형」·「횟수 세기」를 연 사람만 가는 집이라, 안 여는 사람까지
-         값을 치를 이유가 없다 (조각도 그때 받는다 — `data/poseModel.js`). -->
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
     <!-- ── Favicon — **PNG 다** ── (2026-11-10)
          여태 `icon.svg` 하나였다. 주인이 고른 새 마크는 **받은 그림에서 잘라낸

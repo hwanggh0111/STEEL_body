@@ -29,7 +29,7 @@ export default function FinishPreview({ style }) {
             flex: 1, background: 'var(--bg-secondary)', padding: '12px 6px 11px', textAlign: 'center',
           }}>
             <div style={{
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
               fontSize: 24, letterSpacing: 0.6, lineHeight: 1.1,
               fontVariantNumeric: 'tabular-nums',
               color: gold ? 'var(--accent)' : 'var(--text-primary)',
@@ -42,7 +42,7 @@ export default function FinishPreview({ style }) {
       {/* 각인 — **최고를 넘은 날에만** 붙는다. 그 한 줄만 명조다 */}
       <div style={{ marginTop: 14 }}>
         <div style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
           fontSize: 11.5, letterSpacing: 2.2, color: 'var(--accent-low)', marginBottom: 6,
         }}>새 최고기록</div>
         <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.5 }}>

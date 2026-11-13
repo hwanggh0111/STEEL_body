@@ -36,7 +36,7 @@ export default function SameWeightBanner({ best, today, onClose }) {
       >×</button>
       <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{best.exercise}</div>
       <div style={{
-        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5,
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5,
         color: 'var(--accent)', lineHeight: 1.1,
       }}>{best.reps}회</div>
       <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>

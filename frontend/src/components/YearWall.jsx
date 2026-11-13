@@ -100,7 +100,7 @@ export default function YearWall({ onPickMonth }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4, marginBottom: 8 }}>
               <span style={{
-                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
                 // 기록 없는 달도 **눌리는 칸**이다 — 흐려도 4.5 를 지킨다 (2026-11-11)
                 color: m.count > 0 ? 'var(--text-secondary)' : 'var(--text-faint-tap)',
               }}>{m.name}</span>

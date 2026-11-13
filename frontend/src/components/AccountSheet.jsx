@@ -140,7 +140,7 @@ export default function AccountSheet({
           ) : (
             <>
               <div style={{
-                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 21, letterSpacing: 1.5,
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 21, letterSpacing: 1.5,
                 color: 'var(--text-primary)', lineHeight: 1.15,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{nickname || '이름 없음'}</div>
@@ -282,7 +282,7 @@ function Row({ icon, label, onClick, muted, badge, badgeText }) {
       {badgeText && (
         <span style={{
           marginLeft: 'auto', color: 'var(--accent)',
-          fontSize: 11, lineHeight: 1, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+          fontSize: 11, lineHeight: 1, fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
         }}>{badgeText}</span>
       )}
       {badge > 0 && (
@@ -290,7 +290,7 @@ function Row({ icon, label, onClick, muted, badge, badgeText }) {
           marginLeft: 'auto',
           background: 'var(--warning)', color: 'var(--on-accent)',
           fontSize: 10.5, lineHeight: 1, padding: '3px 6px',
-          borderRadius: 'var(--radius)', fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+          borderRadius: 'var(--radius)', fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
         }}>{badge > 99 ? '99+' : badge}</span>
       )}
     </button>

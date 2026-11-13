@@ -89,7 +89,7 @@ export default function MapPreview({ id, onGo, style }) {
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 17, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 2,
           color: 'var(--text-primary)', margin: 0, fontWeight: 400,
         }}>이렇게 보여줍니다</h2>
         {/* **지어내지 않는다** — 누군가의 실제 기록이 아니라고 그 자리에 적는다 */}
@@ -110,7 +110,7 @@ export default function MapPreview({ id, onGo, style }) {
             <One part={part} level={level} />
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 12.5, letterSpacing: 1.2,
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 12.5, letterSpacing: 1.2,
                 color: level > 0 ? 'var(--text-primary)' : 'var(--accent-low)',
               }}>{part}</div>
               <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 1 }}>{ago}</div>

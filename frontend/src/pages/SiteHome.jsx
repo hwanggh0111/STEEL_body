@@ -79,7 +79,7 @@ function Band({ id, title, note, children, style }) {
     <section id={id} style={{ paddingTop: 26, ...style }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 15, letterSpacing: 2.2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 2.2,
           color: 'var(--accent-low)', margin: 0, fontWeight: 400, whiteSpace: 'nowrap',
         }}>{title}</h2>
         {/* 실선은 **흐려지며 나간다.** 양끝이 또렷한 선은 표의 줄이고, 흐려지는 선은 결이다 */}
@@ -430,7 +430,7 @@ export default function SiteHome() {
                     gap: 8, width: '100%', minHeight: 44, marginTop: 8, padding: '7px 11px',
                     background: 'none', border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)', cursor: 'pointer', textAlign: 'left',
-                    fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                    fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
                   }}
                 >
                   <span style={{
@@ -543,7 +543,7 @@ export default function SiteHome() {
             )}
             <button type="submit" style={{
               flexShrink: 0, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
               padding: '7px 14px', borderRadius: 'var(--radius)', cursor: 'pointer',
             }}>찾기</button>
           </form>

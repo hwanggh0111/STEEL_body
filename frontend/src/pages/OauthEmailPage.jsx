@@ -160,7 +160,7 @@ export default function OauthEmailPage() {
         </div>
 
         <h1 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
           fontSize: 30, lineHeight: 1.1, margin: '0 0 6px', color: 'var(--text-primary)',
         }}>거의 다 됐어요</h1>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 18px', lineHeight: 1.6 }}>

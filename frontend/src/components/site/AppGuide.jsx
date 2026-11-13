@@ -252,7 +252,7 @@ export default function AppGuide({ onGo, openLabel }) {
         {/* 머리 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{
-            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
             color: 'var(--text-secondary)', marginRight: 'auto',
           }}>BLACK IRON</span>
           {heads.map((p) => spotBtn(p, true))}
@@ -344,7 +344,7 @@ function Items({ list, onGo, openLabel }) {
                 marginTop: 6, minHeight: 36, padding: '6px 11px',
                 background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
                 cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
-                fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
               }}
             >{openLabel}</button>
           )}

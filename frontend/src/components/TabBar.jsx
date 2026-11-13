@@ -83,7 +83,7 @@ const NAV_TOKENS = {
   iconSizeSmall: 20,
   labelSize: 11,
   labelLetterSpacing: 1,
-  labelFont: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+  labelFont: "'Bebas Neue', 'BI Sans KR', sans-serif",
   paddingY: 10,
   paddingX: 16,
   activeBarSize: 24,
@@ -228,7 +228,7 @@ export default function TabBar() {
             minWidth: 16, height: 16, padding: '0 4px',
             borderRadius: 8, background: 'var(--danger-strong)', color: '#fff',
             fontSize: 10, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
-            fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+            fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
           }}>{item.badge > 99 ? '99+' : item.badge}</span>
         )}
       </span>
@@ -290,7 +290,7 @@ export default function TabBar() {
             <div>
               <div style={{
                 padding: '8px 20px 4px',
-                fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
                 fontSize: 11, letterSpacing: 1.5,
                 color: 'var(--text-muted)',
               }}>더보기</div>

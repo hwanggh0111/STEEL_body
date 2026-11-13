@@ -145,7 +145,7 @@ function Group({ title, id, children }) {
   return (
     <div className="card" id={id} style={{ marginBottom: 14, scrollMarginTop: 14 }}>
       <div style={{
-        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 11.5, letterSpacing: 1.8,
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11.5, letterSpacing: 1.8,
         color: 'var(--accent)', marginBottom: 10,
       }}>{title}</div>
       {children}

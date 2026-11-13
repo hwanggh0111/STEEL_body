@@ -85,7 +85,7 @@ export function LogoWord({ cap = 19, color = 'var(--accent)', style }) {
   return (
     <span style={{
       // 라틴 전용 — 적히는 글이 `BLACK IRON` 하나다. 한글이 올 자리가 없다
-      fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+      fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
       fontWeight: 400,
       fontSize: cap * 1.18,
       // 대문자는 자간을 벌려야 숨이 트인다 — 소문자에서 하면 흩어져 보이지만
@@ -137,7 +137,7 @@ export default function Logo({
             <span style={{ height: cap * 0.48, flexShrink: 0 }} />
             <span style={{
               // 설명 줄은 **한글이 온다** — Bebas 에는 한글이 없으니 본문 글자체로 받는다
-              fontFamily: "'IBM Plex Sans KR', 'Barlow', sans-serif",
+              fontFamily: "'BI Sans KR', 'Barlow', sans-serif",
               fontWeight: 300,
               fontSize: cap * 0.42,
               letterSpacing: cap * 0.1,

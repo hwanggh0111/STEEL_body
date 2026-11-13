@@ -124,7 +124,7 @@ export default function ConfirmModalHost() {
       >
         {options.title && (
           <h3 style={{
-            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
             fontSize: 20, letterSpacing: 2,
             color: 'var(--text-primary)', marginBottom: 10,
           }}>{options.title}</h3>
@@ -142,7 +142,7 @@ export default function ConfirmModalHost() {
               background: 'none', border: '1px solid var(--border)',
               color: 'var(--text-secondary)', padding: '10px 18px',
               fontSize: 13, borderRadius: 'var(--radius)', cursor: 'pointer',
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.5,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", letterSpacing: 1.5,
             }}
           >{options.cancelText || '취소'}</button>
           <button
@@ -152,7 +152,7 @@ export default function ConfirmModalHost() {
               background: danger ? 'var(--danger-strong)' : 'var(--accent)',
               border: 'none', color: danger ? '#fff' : 'var(--on-accent)', padding: '10px 18px',
               fontSize: 13, borderRadius: 'var(--radius)', cursor: 'pointer',
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", letterSpacing: 1.5, fontWeight: 600,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", letterSpacing: 1.5, fontWeight: 600,
             }}
           >{options.confirmText || '확인'}</button>
         </div>

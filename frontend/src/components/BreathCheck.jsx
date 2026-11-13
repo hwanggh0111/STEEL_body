@@ -42,7 +42,7 @@ export default function BreathCheck({ sense }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
         <span style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.6,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.6,
           color: breath.on ? 'var(--info)' : 'var(--text-muted)',
         }}>
           {breath.on && (

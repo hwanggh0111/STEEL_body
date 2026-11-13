@@ -114,7 +114,7 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
             width: '100%', padding: '12px 16px',
             border: '1px solid #dadce0', borderRadius: 'var(--radius)',
             background: '#ffffff', color: '#3c4043',
-            fontSize: 14, fontWeight: 600, fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+            fontSize: 14, fontWeight: 600, fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
             cursor: disabled ? 'not-allowed' : 'pointer',
           }}
         >
@@ -153,7 +153,7 @@ export default function SocialLoginButtons({ disabled, googleLabel = 'Google 로
                 {only && (
                   <span style={{
                     marginLeft: 8, fontSize: 14, fontWeight: 600,
-                    fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif",
+                    fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
                   }}>{euro(o.label)} 계속하기</span>
                 )}
               </button>

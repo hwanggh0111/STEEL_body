@@ -147,7 +147,7 @@ export default function SessionFinish() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
             <span style={{
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 'clamp(58px, 20vw, 82px)',
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 'clamp(58px, 20vw, 82px)',
               lineHeight: 0.84, letterSpacing: 2, color: 'var(--accent)',
             }}>{weighted ? shown.toLocaleString()
               : bigCardio ? (bigKm ? Number(cardio.km.toFixed(2)) : cardio.minutes)

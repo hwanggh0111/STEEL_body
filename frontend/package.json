@@ -87,6 +87,7 @@
     "block": "node scripts/check-block.cjs",
     "setplan": "node scripts/check-setplan.cjs",
     "serif": "node scripts/gen-serif.mjs",
+    "sans": "node scripts/gen-sans.mjs",
     "wall": "node scripts/gen-wall.mjs",
     "rest": "node scripts/check-rest.cjs",
     "handoff": "node scripts/check-handoff.cjs",

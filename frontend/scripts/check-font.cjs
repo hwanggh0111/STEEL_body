@@ -18,7 +18,10 @@ const path = require('path');
 // 한글이 없는 글꼴들. 이것만 적고 끝내면 한글이 떨어진다
 const LATIN_ONLY = ['Bebas Neue', 'Barlow', 'Playfair Display'];
 // 한글을 받는 글꼴. 라틴 글꼴 뒤 어딘가에 이 중 하나가 있어야 한다
-const KOREAN = ['IBM Plex Sans KR', 'Nanum Myeongjo'];
+// **BI Sans KR 이다** (2026-11-13) — 잘라서 내주면서 OFL 5절대로 이름을 바꿨다
+// (IBM Plex 의 예약 이름은 "Plex" 다). 옛 이름도 남겨 둔다 — 어딘가 남아 있으면
+// 그 줄은 **오지 않는 글꼴**을 가리키는 것이니 잡아야 한다
+const KOREAN = ['BI Sans KR', 'Nanum Myeongjo'];
 
 const ROOT = path.join(__dirname, '..', 'src');
 const EXT = new Set(['.jsx', '.js', '.css']);
@@ -99,14 +102,56 @@ let fontBad = 0;
   };
 
   console.log('\n── 첫 화면에서 받는 글꼴 ──');
-  say('글꼴 주소가 세 군데다 (preload · stylesheet · noscript)', urls.length, 3);
-  // 세 줄이 어긋나면 하나는 옛 목록을 받는다
-  say('세 줄이 모두 같다', new Set(urls).size, 1);
-  const url = urls[0] || '';
-  say('한글은 굵기 셋만 받는다', /IBM\+Plex\+Sans\+KR:wght@400;600;700/.test(url), true);
-  say('한글 굵기 300·500 은 안 받는다 (한 굵기가 150KB 다)',
-    /IBM\+Plex\+Sans\+KR:wght@[^&]*\b(300|500)\b/.test(url), false);
-  say('명조를 구글에서 안 받는다 (236.6KB 였다)', /Nanum/.test(url), false);
+  // ── **구글에서 한 자도 안 받는다** ── (2026-11-13, 주인 지시)
+  //
+  // 여기에 「주소가 세 군데다 · 셋이 같다 · 한글은 굵기 셋만」이 있었다. 이제 구글
+  // 주소가 **하나도 없다** — 넷을 잘라 우리 주소에서 내준다(`npm run sans`).
+  // 재본 값: 구글 CSS 한 장이 **gzip 40.3KB** 였고, 그것은 글꼴 한 자도 안 그리고
+  // 치르는 값이었다. 우리 CSS 는 `unicode-range` 가 붙어 br 2.7KB → 8.2KB 가 됐다.
+  // **−34.8KB** 다. 집 두 곳(googleapis → gstatic) 왕복도 사라졌다.
+  //
+  // 이 자리는 **글꼴을 하나 더 쓰고 싶을 때 조용히 되돌아간다.** `&family=…` 한 줄을
+  // 더하는 일은 쉽고 그 값은 폰에서만 치른다. 그래서 못을 박는다.
+  say('구글 글꼴 주소가 하나도 없다', urls.length, 0);
+  say('  구글 글꼴 집도 안 찾아둔다 (preconnect · dns-prefetch)',
+    /fonts\.(googleapis|gstatic)\.com/.test(html), false);
+
+  const genPath = path.join(__dirname, '..', 'src', 'styles', 'fonts.gen.css');
+  const gen = fs.existsSync(genPath) ? fs.readFileSync(genPath, 'utf-8') : '';
+  say('잘라둔 본문 글꼴이 있다 (npm run sans)', gen.length > 0, true);
+  const gcss = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'globals.css'), 'utf-8');
+  say('  globals.css 가 그것을 들여온다', /@import '\.\/fonts\.gen\.css';/.test(gcss), true);
+
+  // 적힌 벌이 전부 **파일로 있는가** — 하나라도 없으면 그 굵기만 기기 글꼴이 된다
+  const faces = [...gen.matchAll(/url\('\.\.\/assets\/fonts\/([^']+)'\)/g)].map((m) => m[1]);
+  const fontDir = path.join(__dirname, '..', 'src', 'assets', 'fonts');
+  say('  적힌 벌이 다 파일로 있다',
+    faces.filter((f) => !fs.existsSync(path.join(fontDir, f))), []);
+  // **옛 이름이 남으면 그 줄은 오지 않는 글꼴을 가리킨다** (2026-11-13)
+  say('  옛 이름(IBM Plex Sans KR)이 남아 있지 않다',
+    walk(ROOT).filter((f) => /IBM Plex Sans KR/.test(fs.readFileSync(f, 'utf8')))
+      .map((f) => path.relative(path.join(__dirname, '..'), f).split(path.sep).join('/')), []);
+  say('  한글은 굵기 셋이다 (400 · 600 · 700)',
+    [...new Set(faces.map((f) => (/^plex-kr-(\d+)\.woff2$/.exec(f) || [])[1])
+      .filter(Boolean))].sort(), ['400', '600', '700']);
+
+  // ── ★ **차례가 뒤집히면 347KB 를 늘 받는다** ──
+  //
+  // 같은 집안 · 같은 굵기에서 두 줄이 한 글자를 다 덮으면 **나중에 적은 것이**
+  // 이긴다(CSS Fonts 4 §4.5). 그래서 `plex-kr-rest-<굵기>`(나머지 한글 347KB)를
+  // **먼저**, `plex-kr-<굵기>`(앱 글자 59.9KB)를 **뒤에** 적는다. 뒤집히면 앱이
+  // 그리는 글자가 전부 큰 벌에서 와서 **첫 화면이 347KB 를 받는다** — 화면은
+  // 멀쩡해 보이고 눈으로는 영영 안 보인다. 그래서 자가 본다.
+  for (const w of ['400', '600', '700']) {
+    const rest = gen.indexOf('plex-kr-rest-' + w + '.woff2');
+    const app = gen.indexOf('plex-kr-' + w + '.woff2');
+    say('  ' + w + ' — 나머지 벌이 앱 벌보다 먼저다', rest >= 0 && app >= 0 && rest < app, true);
+  }
+  // 나머지 벌은 **한글만** 덮어야 한다 — 범위를 넓히면 라틴까지 거기서 온다
+  say('  나머지 벌은 한글 자리만 덮는다',
+    (gen.match(/unicode-range: U\+AC00-D7A3;/g) || []).length, 3);
+  say('  오는 동안에도 글이 보인다 (font-display: swap)',
+    (gen.match(/font-display: swap/g) || []).length, faces.length);
 
   console.log('');
   console.log('── 명조는 우리 것이다 ── (2026-10-20)');
@@ -132,6 +177,11 @@ let fontBad = 0;
   say('  이름이 Nanum 이 아니다 (OFL 예약 이름)', /font-family: 'BI Myeongjo'/.test(css), true);
   say('  라이선스를 같이 내준다',
     fs.existsSync(path.join(__dirname, '..', 'public', 'fonts', 'OFL.txt')), true);
+  // **잘라서 내주는 글꼴은 전부 라이선스를 같이 내준다** (2026-11-13) — OFL 이 요구한다.
+  // 11/13 에 본문 글꼴 넷이 우리 것이 됐으니 그 셋도 여기 있어야 한다
+  say('  본문 글꼴 라이선스도 같이 내준다',
+    ['OFL-IBM-Plex-Sans-KR.txt', 'OFL-Barlow.txt', 'OFL-Bebas-Neue.txt']
+      .filter((f) => !fs.existsSync(path.join(__dirname, '..', 'public', 'fonts', f))), []);
   // 명조가 아직 안 왔을 때도 한글이 보여야 한다 — `.serif-display` 의 폴백
   say('  오기 전에도 세리프로 보인다', /\.serif-display[\s\S]{0,300}serif;/.test(css), true);
   // 미루는 코드는 걷어냈다. 되살아나면 글꼴을 **두 번** 받는다
@@ -172,7 +222,7 @@ if (bad.length === 0 && fontBad === 0) {
   let guarded = 0;
   for (const file of walk(ROOT)) {
     const txt = fs.readFileSync(file, 'utf8');
-    guarded += (txt.match(/IBM Plex Sans KR/g) || []).length;
+    guarded += (txt.match(/BI Sans KR/g) || []).length;
   }
   console.log(`OK   라틴 글꼴 뒤에 한글 글꼴이 다 있다 → ${guarded} 자리`);
   console.log(`OK   글이 영문으로 박혀 예외로 적어둔 자리 → ${allowed} 자리`);
@@ -188,9 +238,9 @@ console.log('');
 for (const b of bad) {
   console.log(`  ${b.file}:${b.line}`);
   console.log(`    ${b.text}`);
-  console.log(`    → '${b.latin}' 뒤에 'IBM Plex Sans KR' 을 넣으세요`);
+  console.log(`    → '${b.latin}' 뒤에 'BI Sans KR' 을 넣으세요`);
   console.log(`       (글이 영문으로 박힌 자리면 윗줄에 「${OPT_OUT}」 이라고 적으세요)`);
   console.log('');
 }
-console.log("고치는 법: \"'Bebas Neue', sans-serif\" → \"'Bebas Neue', 'IBM Plex Sans KR', sans-serif\"");
+console.log("고치는 법: \"'Bebas Neue', sans-serif\" → \"'Bebas Neue', 'BI Sans KR', sans-serif\"");
 process.exit(1);

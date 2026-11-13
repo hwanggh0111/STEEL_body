@@ -102,7 +102,7 @@ export default function FaqGapAdmin() {
                 padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
               }}>
                 <div style={{
-                  fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
+                  fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
                   color: row.count >= 5 ? 'var(--accent)' : 'var(--text-secondary)',
                   lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0,
                 }}>{row.count}</div>

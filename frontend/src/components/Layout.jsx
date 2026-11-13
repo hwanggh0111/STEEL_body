@@ -464,7 +464,7 @@ export default function Layout() {
         width: size, height: size, borderRadius: '50%',
         background: 'var(--accent)', color: 'var(--on-accent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize, fontWeight: 700,
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize, fontWeight: 700,
       }}>
         {initial}
       </div>
@@ -573,7 +573,7 @@ export default function Layout() {
           >
             <Avatar size={26} fontSize={13} />
             <span style={{
-              fontFamily: "'Barlow', 'IBM Plex Sans KR', sans-serif", fontSize: 13, fontWeight: 600,
+              fontFamily: "'Barlow', 'BI Sans KR', sans-serif", fontSize: 13, fontWeight: 600,
               color: 'var(--text-secondary)', maxWidth: 90,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{nickname}</span>
@@ -613,7 +613,7 @@ export default function Layout() {
             }}
           >←</button>
           <span style={{
-            fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
             fontSize: 14, letterSpacing: 1.4, color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{crumb.label}</span>

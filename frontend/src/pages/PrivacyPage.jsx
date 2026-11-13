@@ -22,7 +22,7 @@ function Sec({ title, children }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11 }}>
         <span style={{ width: 3, height: 15, background: 'var(--accent)', flexShrink: 0 }} />
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5,
           color: 'var(--text-primary)', margin: 0, fontWeight: 400,
         }}>{title}</h2>
       </div>
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
         </button>
 
         <h1 style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", fontSize: 26, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 2,
           color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 400,
         }}>개인정보처리방침</h1>
         <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 30 }}>

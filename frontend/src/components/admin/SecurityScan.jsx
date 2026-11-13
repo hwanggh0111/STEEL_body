@@ -90,7 +90,7 @@ export default function SecurityScan() {
         <div style={{ marginBottom: 24 }}>
           <div className="card" style={{ padding: 20, marginBottom: 16, borderColor: gradeColor(result.grade), textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>보안 등급</div>
-            <div style={{ fontSize: 64, fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif", color: gradeColor(result.grade), lineHeight: 1 }}>{result.grade}</div>
+            <div style={{ fontSize: 64, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", color: gradeColor(result.grade), lineHeight: 1 }}>{result.grade}</div>
             {/* **감싸서 읽는다** (2026-10-27). 여태 `result.summary.safe` 를 바로
                 읽었다 — 서버가 다른 모양을 주면(배포본이 한 판 뒤처졌을 때 · 앞에 선
                 것이 오류 쪽지를 끼워 보낼 때) 그 줄에서 터지고 **관리자 화면이 통째로

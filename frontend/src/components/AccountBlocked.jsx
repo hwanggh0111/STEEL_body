@@ -57,7 +57,7 @@ export default function AccountBlocked() {
         </div>
 
         <div style={{
-          fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
           fontSize: 22, letterSpacing: 2, color: tone, marginBottom: 22,
         }}>
           {block.title}
@@ -72,7 +72,7 @@ export default function AccountBlocked() {
           }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>풀리는 때</div>
             <div style={{
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
               fontSize: 26, letterSpacing: 1, color: tone, lineHeight: 1.2,
             }}>
               {block.untilLabel}

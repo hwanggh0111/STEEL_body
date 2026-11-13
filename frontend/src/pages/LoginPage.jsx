@@ -364,7 +364,7 @@ function oauthErrorText(code) {
               width: 32, height: 32, flexShrink: 0, borderRadius: '50%',
               background: 'var(--accent-dim)', border: '1px solid var(--accent-low)',
               display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--accent)',
-              fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
             }}>{savedNickname.slice(0, 1)}</span>
             <span style={{ minWidth: 0 }}>
               <span style={{

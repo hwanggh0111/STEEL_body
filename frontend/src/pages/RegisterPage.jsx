@@ -375,7 +375,7 @@ export default function RegisterPage() {
       </div>
       <span style={{
         fontSize: 11, letterSpacing: 1.2, color: 'var(--text-muted)', flexShrink: 0,
-        fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
       }}>
         {step === 'mail' ? '1 / 2 메일 확인' : '2 / 2 계정 만들기'}
       </span>

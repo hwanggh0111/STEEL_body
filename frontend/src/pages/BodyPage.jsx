@@ -64,7 +64,7 @@ function Panel({ height = 200 }) {
   return (
     <div style={{
       height, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: 'var(--text-muted)', fontFamily: "'Bebas Neue', 'IBM Plex Sans KR', sans-serif",
+      color: 'var(--text-muted)', fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
       fontSize: 16, letterSpacing: 2,
     }}>LOADING...</div>
   );
