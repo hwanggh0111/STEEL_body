@@ -32,13 +32,23 @@ const {
 const MAX_CHARS = 2 * 1024 * 1024;
 const MAX_ROWS = 20000;
 // 사람 하나가 들고 있을 수 있는 줄 수. 넘어가면 그건 기록이 아니라 딴 것이다
-const MAX_TOTAL = { workouts: 60000, inbody: 6000, measures: 20000 };
+// ★ **줄 수 상한은 갈래 안에 둔다** (2026-11-13) — 여기 `MAX_TOTAL` 이라는 **딴 표**로
+// 두고 `MAX_TOTAL[kind]` 로 찾아 썼다. 지금은 셋이 맞아 돌지만 **짝이라는 보장이
+// 코드에 없었다** — `KINDS` 에 넷째를 더하면서 이 표를 깜빡하면
+//
+//     room = undefined - have.size  →  NaN
+//     NaN <= 0                      →  **false**
+//
+// 가 되어 **줄 수 상한이 조용히 사라진다.** 가득 찼다는 409 도 안 나가고 무한히
+// 들어간다. 그래서 상한을 `KINDS` 의 각 갈래 안(`max`)으로 옮겼다 — 갈래를 적는
+// 바로 그 자리라 깜빡할 자리가 없다.
 // 왜 걸렸는지는 스무 줄까지만 돌려준다 — 화면에 백 줄을 늘어놓으면 아무도 안 읽는다
 const MAX_REASONS = 20;
 
 const KINDS = {
   workouts: {
     label: '운동',
+    max: 60000,
     read: readWorkouts,
     key: workoutKey,
     existing: (userId) => db.getWorkouts(userId),
@@ -50,6 +60,7 @@ const KINDS = {
   },
   inbody: {
     label: '인바디',
+    max: 6000,
     read: readInbody,
     key: inbodyKey,
     existing: (userId) => db.getInbody(userId),
@@ -57,12 +68,22 @@ const KINDS = {
   },
   measures: {
     label: '측정',
+    max: 20000,
     read: readMeasures,
     key: measureKey,
     existing: (userId) => db.getMeasures(userId),
     put: (userId, r) => db.createMeasure(userId, r.type, r.date, r.data),
   },
-};
+};
+
+// **빠진 갈래가 있으면 서버가 안 뜬다.** 위 까닭대로, 상한이 없는 갈래는 상한이
+// 없는 것이 아니라 **상한 검사가 통째로 사라진 것**이다. 사람 기록이 무한히
+// 들어가는 것보다 **배포가 그 자리에서 멎는 것**이 낫다 — 올리기 전에 드러난다
+for (const [kind, spec] of Object.entries(KINDS)) {
+  if (!Number.isInteger(spec.max) || spec.max <= 0) {
+    throw new Error(`[import] 갈래 '${kind}' 에 줄 수 상한(max)이 없습니다`);
+  }
+}
 
 // POST /api/import — { kind, csv }
 router.post('/', auth, (req, res) => {
@@ -94,9 +115,9 @@ router.post('/', auth, (req, res) => {
 
   // 이미 있는 것. **한 번만 읽어 열쇠로 만든다** — 줄마다 다시 훑으면 3만 줄에서 멎는다
   const have = new Set(spec.existing(req.userId).map(spec.key));
-  const room = MAX_TOTAL[kind] - have.size;
+  const room = spec.max - have.size;
   if (room <= 0) {
-    return res.status(409).json({ error: `${spec.label} 기록이 이미 가득해요 (${MAX_TOTAL[kind].toLocaleString()}줄)` });
+    return res.status(409).json({ error: `${spec.label} 기록이 이미 가득해요 (${spec.max.toLocaleString()}줄)` });
   }
 
   let added = 0;
