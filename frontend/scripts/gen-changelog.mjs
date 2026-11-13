@@ -88,6 +88,26 @@ const DETAIL_MAX = 420;
 // 아래는 고치는 사람에게. 구분선이 없으면 예전처럼 본문 전부가 공지로 간다.
 const CUT = /^-{3,}$/;
 
+// ── ★ **보안 갈래는 제목만 싣는다** ── (2026-11-13, 정석)
+//
+// 위의 `---` 는 **커밋을 적는 사람이 손으로 긋는 선**이다. 그어두지 않은 옛 커밋에는
+// 소용이 없다 — 그리고 11/13 에 `KEEP` 을 80 으로, `SCAN` 을 300 으로 올리면서
+// **지난 커밋 마흔이 새로 공개됐다.** 그 안에 `ea80aef`(11/05, `fix(관리자·보안)`)가
+// 있었고, 그 본문은 **권한 상승 경로를 그대로 적고 있다** —
+//
+//     POST /security/make-admin/:id 가 아무 검사 없이 role 을 'admin' 으로 덮어썼다
+//     … 정지된 사람을 관리자로 올리면 정지가 사라지고 관리자 화면까지 열린다
+//
+// 고친 뒤라 당장 지나갈 수 있는 길은 아니지만, **어디를 어떻게 밀면 되는지**를
+// 공지함에 적어둔 셈이다. 10/2 에 「먼저 가입하면 관리자가 된다」가 나갔던 그 자리고,
+// 그때 세운 선이 `---` 였다.
+//
+// 손으로 긋는 선 **하나에만 기대지 않는다.** 갈래에 「보안」이 들어간 커밋은
+// **본문을 통째로 뺀다** — 제목만 싣는다. 사람이 알아야 하는 것은 「고쳤다」이고,
+// **어떻게 뚫렸는지는 알 필요가 없다.** 커밋 본문은 그대로 둔다(다음에 그 자리를
+// 보는 사람에게 가장 필요한 글이다).
+const SECRET_SCOPE = /보안|security/i;
+
 function cleanBody(body) {
   const all = String(body || '').split('\n');
   const cutAt = all.findIndex(l => CUT.test(l.trim()));
@@ -147,7 +167,8 @@ function build() {
     entries.push({
       hash, date, type, label: labelFor(type, text),
       scope: scope || null, text: text.trim(),
-      detail: cleanBody(body),
+      // 보안 갈래는 제목만 (위 `SECRET_SCOPE`)
+      detail: SECRET_SCOPE.test(scope || '') ? '' : cleanBody(body),
     });
   }
 
