@@ -30,6 +30,15 @@ const devPreviewPlugin = () => ({
       if (path === '/dev' || path === '/dev/') {
         req.url = '/dev/preview.html' + req.url.slice(path.length);
       }
+      // ── **슬래시 하나가 빠지면 앱이 뜬다** ── (2026-11-13)
+      //
+      // `/dev/ui/` 는 그 폴더의 `index.html` 을 받는다. 그런데 **`/dev/ui` (끝의 슬래시
+      // 없이)** 는 정적 파일로 안 걸려서 SPA 되돌림에 떨어진다 — 꼴 실험실을 열었는데
+      // **앱 화면이 떠 있다.** 주소를 손으로 치는 자리라(개발 화면) 슬래시를 외우게 둘
+      // 일이 아니다. 확장자가 없고 슬래시로 끝나지 않는 `/dev/...` 는 폴더로 본다.
+      if (/^\/dev\/[^.]*[^/.]$/.test(path)) {
+        req.url = path + '/' + req.url.slice(path.length);
+      }
       // ── 이 PC 의 LAN 주소를 미리보기가 물어볼 수 있게 ── (2026-10-15)
       //
       // **폰으로 직접 보려면 그 주소를 알아야 한다.** vite 가 뜰 때 한 번 찍어주지만
