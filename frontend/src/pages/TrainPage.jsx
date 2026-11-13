@@ -638,7 +638,7 @@ export default function TrainPage() {
             const body = rowPayload(before);
             if (!body) return;
             try { await updateWorkout(editingId, body); toast('되돌렸어요'); }
-            catch { toast('되돌리지 못했어요', 'error'); }
+            catch (e) { toast(e.response?.data?.error || '되돌리지 못했어요', 'error'); }
           },
         } : null;
         toast('고쳤어요', 'success', undo);
@@ -980,7 +980,7 @@ export default function TrainPage() {
         label: '되돌리기', ms: UNDO_MS,
         run: async () => {
           try { await addWorkout(body); toast('되살렸어요'); }
-          catch { toast('되살리지 못했어요', 'error'); }
+          catch (e) { toast(e.response?.data?.error || '되살리지 못했어요', 'error'); }
         },
       } : null);
     } catch {

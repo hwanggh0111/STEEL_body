@@ -539,6 +539,29 @@ const codeOf = (s) => s
       }
     }
     ok('서버가 한 말을 버리는 자리가 없다', dropped, []);
+    // ── **되돌리기가 왜 실패했는지 말하는가** ── (2026-11-13)
+    //
+    // 위 자는 `await client.post/put/patch/delete` 를 **직접** 쓰는 자리만 본다.
+    // 그런데 되돌리기 여섯 자리는 저장소(`store/*.js`)의 손을 거친다 —
+    // `addWorkout` · `addRecord` · `updateWorkout` · `updateRecord` · `saveNote`.
+    //
+    // ★ 그 손들은 **서버가 적어 보낸 까닭을 그대로 던진다**(`throw err` · 오프라인일
+    // 때만 삼킨다). 그런데 **화면이 받아서 버리고 있었다** — 11/13 에 **다섯 자리**가
+    // 그랬다(`TrainPage` 둘 · `InbodyPage` 둘 · `HistoryPage` 하나). 계정이 막혔거나
+    // 서버가 「잠시 뒤에」(429)라고 해도 사람에게는 **「되살리지 못했어요」**만 떴다.
+    //
+    // 그래서 **말 자체로 본다** — 되살리기·되돌리기가 실패했다고 말하는 줄은 반드시
+    // 서버 말을 먼저 써야 한다. 어떤 손을 거치든 걸린다
+    const 까닭버림 = [];
+    for (const p of walk('src')) {
+      const src = codeOf(fs.readFileSync(p, 'utf-8'));
+      src.split('\n').forEach((l, i) => {
+        if (!/되살리지 못했어요|되돌리지 못했어요/.test(l)) return;
+        if (/response\?\.data|response\.data/.test(l)) return;
+        까닭버림.push(p.replace('src/', '') + ':' + (i + 1));
+      });
+    }
+    ok('되돌리기가 **왜** 실패했는지 말한다', 까닭버림, []);
 
     console.log('');
     if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

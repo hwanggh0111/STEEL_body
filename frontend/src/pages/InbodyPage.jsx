@@ -291,7 +291,7 @@ export default function InbodyPage({ embedded = false }) {
             const body = inbodyPayload(before);
             if (!body) return;
             try { await updateRecord(editingId, body); toast('되돌렸어요'); }
-            catch { toast('되돌리지 못했어요', 'error'); }
+            catch (e) { toast(e.response?.data?.error || '되돌리지 못했어요', 'error'); }
           },
         } : null;
         if (r?.dateKept) toast(`날짜 ${date} 는 적을 수 없어 날짜는 그대로 뒀어요`, 'error');
@@ -372,7 +372,7 @@ export default function InbodyPage({ embedded = false }) {
             // **날짜가 다른 줄**을 되살린 것이 된다
             if (r?.dateFixed) toast(`되살렸는데 날짜 ${body.date} 는 적을 수 없어 ${r.date} 로 적었어요`, 'error');
             else toast('되살렸어요');
-          } catch { toast('되살리지 못했어요', 'error'); }
+          } catch (e) { toast(e.response?.data?.error || '되살리지 못했어요', 'error'); }
         },
       } : null);
     } catch {

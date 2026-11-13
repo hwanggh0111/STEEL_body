@@ -420,7 +420,7 @@ export default function HistoryPage() {
         label: '되돌리기', ms: UNDO_MS,
         run: async () => {
           try { await addWorkout(body); toast('되살렸어요'); }
-          catch { toast('되살리지 못했어요', 'error'); }
+          catch (e) { toast(e.response?.data?.error || '되살리지 못했어요', 'error'); }
         },
       } : null);
     } catch {
