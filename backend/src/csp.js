@@ -50,9 +50,14 @@ const DIRECTIVES = {
   'default-src': ["'self'"],
   // wasm 글루 스크립트는 jsdelivr 에서 온다
   'script-src': ["'self'", "'wasm-unsafe-eval'", ...MEDIAPIPE.slice(0, 1)],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-  // 잘라둔 명조는 우리 집 것이다(`/assets/`). 나머지 라틴 글꼴은 구글에서 온다
-  'font-src': ["'self'", 'https://fonts.gstatic.com'],
+  // ★ **구글 글꼴 집 둘을 걷었다** (2026-11-13) — 11/13 에 본문 글꼴 넷까지 잘라
+  // 우리 주소에서 내주면서(`npm run sans`) **앱이 구글에 한 번도 안 묻는다.**
+  // 안 쓰는 집을 허락해 두면 그만큼이 **열린 문**으로 남는다 — 어디선가 주소를
+  // 한 줄 끼워 넣으면 CSP 가 막아주지 않는다. `check-security` 가 「허락했는데
+  // 앱이 안 묻는 집」으로 이 둘을 집어냈다
+  'style-src': ["'self'", "'unsafe-inline'"],
+  // 글꼴은 **전부 우리 집 것이다**(`/assets/` · 명조 10/20 · 본문 넷 11/13)
+  'font-src': ["'self'"],
   'img-src': ["'self'", 'data:', 'blob:'],
   'connect-src': ["'self'", ...MEDIAPIPE],
   // 미디어파이프가 blob 으로 일꾼을 세운다
