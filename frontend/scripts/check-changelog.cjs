@@ -58,6 +58,25 @@ try {
 ok('공지로 드는 종류를 생성기에서 읽었다', 드는종류.length > 0, true);
 if (드는종류.length) console.log('       ' + 드는종류.join(' '));
 
+// ── **빼는 갈래도 생성기에서 읽는다** ── (2026-11-13)
+//
+// 종류(`SHOWN`)만 읽고 **갈래(`SKIP_SCOPE`)는 안 읽고 있었다.** 생성기는
+// `fix(개발)` · `fix(검사)` 처럼 **사용자가 열 수도 돌릴 수도 없는 자리**는 일부러
+// 공지에 안 담는데, 자는 그것을 모르고 「빠졌다」고 울었다 — 11/13 에 맵시의
+// `58eed53`(fix(개발), 개발 서버에서만 도는 고침)에서 그 꼴로 FAIL 이 떴다.
+//
+// 「더 무거운 줄에 덮였다」 예외를 걷은 것과 **다른 자리다.** 그건 생성기 쪽 규칙이
+// **틀려서** 걷은 것이고, 이건 **맞는 규칙**이라 자가 따라가야 한다. 다만 **여기
+// 또 적지 않는다** — 한쪽만 고치는 날이 오기 때문이다. 생성기에서 읽는다.
+let 빼는갈래 = [];
+try {
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-changelog.mjs'), 'utf8');
+  const blk = /const SKIP_SCOPE = \[([^\]]*)\]/.exec(gen);
+  빼는갈래 = blk ? [...blk[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : [];
+} catch { /* 위에서 이미 울었다 */ }
+ok('공지에서 빼는 갈래도 생성기에서 읽었다', 빼는갈래.length > 0, true);
+if (빼는갈래.length) console.log('       ' + 빼는갈래.join(' '));
+
 let 이력 = null;
 try {
   const 얕음 = git(['rev-parse', '--is-shallow-repository']).trim() === 'true';
@@ -75,15 +94,19 @@ if (이력 === null || 이력 === 'shallow') {
     const [h, d, ...rest] = l.split('\t');
     const s = rest.join('\t');
     const t = (/^(\w+)\s*[(:]/.exec(s) || [])[1] || '';
+    // 갈래도 뽑는다 — 생성기가 빼는 갈래는 자도 빼야 한다
+    const sc = (/^\w+\(([^)]+)\):/.exec(s) || [])[1] || '';
     // 날짜를 받는다 — 「덮은 줄이 **같은 날**에 있나」를 보려면 날짜가 있어야 한다
-    return { hash: h, date: d, subject: s, type: t };
+    return { hash: h, date: d, subject: s, type: t, scope: sc };
   });
   // **HEAD 는 뺀다** — 커밋은 제 해시를 제 안에 담을 수 없다
   // **여덟에서 스물로 넓힌다** (2026-11-13) — 11/12 에 빠진 둘 중 `26b07cd` 는 여덟
   // 창 밖이라 이 자가 **볼 수조차 없었다**(`da893b3` 만 보였다). 하루에 커밋 스무
   // 개를 올리는 날이 있으니 여덟은 「어제」도 못 덮는다. `KEEP` 이 80 이라 스물은
   // 넉넉히 그 안이다 — 막이에 밀려난 것을 빠짐으로 읽을 일은 없다.
-  const 봐야할것 = 줄.slice(1).filter((r) => 드는종류.includes(r.type)).slice(0, 20);
+  const 봐야할것 = 줄.slice(1)
+    .filter((r) => 드는종류.includes(r.type) && !빼는갈래.includes(r.scope))
+    .slice(0, 20);
 
   const clog = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'changelog.json'), 'utf8'));
   const 담긴것 = new Set((clog.items || []).map((r) => r.hash));
