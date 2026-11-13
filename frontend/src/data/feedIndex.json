@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "378f220305",
+  "detailVersion": "9568f0c1fa",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "f63280f",
+      "date": "2026-11-13",
+      "text": "구글 글꼴 한 장이 gzip 40.3KB 였다 — 넷을 잘라 우리 주소에서 내준다",
+      "label": "빨라짐",
+      "scope": "글꼴",
       "has": true
     },
     {
@@ -1010,14 +1018,6 @@
       "text": "만들어 놓고 아무도 안 부르는 길을 쓴다 — npm run alive",
       "label": "새 기능",
       "scope": "자",
-      "has": true
-    },
-    {
-      "key": "9b81550",
-      "date": "2026-11-04",
-      "text": "팔이 발보다 길게 잡히면 손이 잘렸다 — 실루엣 틀이 발까지만 쟀다",
-      "label": "고침",
-      "scope": "체형",
       "has": true
     }
   ]
