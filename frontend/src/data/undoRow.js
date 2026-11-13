@@ -214,5 +214,65 @@ export function routineChanged(before, after) {
   return a.name !== b.name || JSON.stringify(a.exercises) !== JSON.stringify(b.exercises);
 }
 
+// ── 그날의 계획 ── (2026-11-13)
+//
+// 계획은 **앞날에 거는 것**이다. 지난 넷(운동·인바디·측정·루틴)은 **이미 한 일**이라
+// 지워도 기억이 남지만, 계획은 **그날 뭘 하려고 했는지**다 — 빼고 나면 근거가 어디에도
+// 없다. 서버가 받는 칸은 넷이다 (`date` · `kind` · `name` · `routineId` ·
+// `routes/plans.js:39`).
+//
+// ★ **`routine_id` 는 살아 있는 번호를 가리킨다.** 서버는 되살릴 때도 「그게 내
+// 루틴인가」를 다시 본다 (`routes/plans.js:61`) — 계획을 뺀 뒤 **그 루틴을 지웠으면
+// 되살리기가 400 으로 막힌다.** 다른 넷에는 없는 함정이다: 저 넷은 자기 값만 들고
+// 있어서 언제 보내도 그대로 들어가는데, **계획만 남의 줄을 가리킨다.**
+//
+// 눌러서 실패하는 단추를 보여주지 않는 것이 이 파일의 규칙이라, 화면이 들고 있는
+// 내 루틴 목록으로 **미리 본다** (`planUndoable`).
+
+/**
+ * 계획 한 줄을 **서버가 받는 몸통**으로.
+ *
+ * 돌려주는 것 — 보낼 수 있으면 몸통, **아니면 `null`**
+ * (날짜 · 갈래 · 이름 중 하나가 없는 줄. 루틴 계획인데 가리키는 번호가 없는 줄도
+ * 마찬가지다 — 서버가 400 으로 막는 그 자리를 여기서 그대로 본다).
+ *
+ * ★ **갈래를 바꾸지 않는다.** 루틴 계획이 되살아날 수 없다고 `exercise` 로 떨어뜨리면
+ * 이름만 같고 **루틴이 안 걸린 다른 계획**이 된다 (그날 눌러서 바로 시작하는 길이
+ * 사라진다). 루틴 절에 적어둔 것과 같은 선이다.
+ */
+export function planPayload(row) {
+  const date = String(row?.date ?? '').trim();
+  const kind = row?.kind === 'routine' || row?.kind === 'exercise' ? row.kind : null;
+  const name = String(row?.name ?? '').trim();
+  if (!date || !kind || !name) return null;
+
+  const body = { date, kind, name };
+  if (kind === 'routine') {
+    const rid = row?.routine_id ?? row?.routineId;
+    if (rid === null || rid === undefined || rid === '') return null;
+    body.routineId = rid;
+  }
+  return body;
+}
+
+/**
+ * 이 계획을 **지금 되살릴 수 있는가** — 단추를 보여줄지 정한다.
+ *
+ * 운동 계획은 언제나 참이다. 루틴 계획은 **그 루틴이 아직 내 목록에 있을 때**만 참이다.
+ *
+ * ★ 목록을 **아직 못 받았으면 참으로 둔다** (`myRoutines` 가 배열이 아니거나 비었을
+ * 때). 화면은 이 목록을 따로 받아오고 **실패하면 빈 배열로 둔다**
+ * (`HistoryPage` 의 `.catch(() => {})`) — 그것을 「루틴이 없다」로 읽으면 멀쩡한
+ * 계획의 단추까지 사라진다. **모를 때는 가리지 않고**, 눌렀을 때 서버가 적어 보낸
+ * 까닭을 그대로 전한다. 가리는 것은 **아는 때**만이다.
+ */
+export function planUndoable(row, myRoutines) {
+  const body = planPayload(row);
+  if (!body) return false;
+  if (body.kind !== 'routine') return true;
+  if (!Array.isArray(myRoutines) || myRoutines.length === 0) return true;
+  return myRoutines.some((r) => String(r?.id ?? r?._id) === String(body.routineId));
+}
+
 /** 되돌리기 단추가 떠 있는 시간(ms). 보통 토스트(4초)보다 길게 둔다 */
 export const UNDO_MS = 8000;

@@ -231,6 +231,48 @@ ok('  지우기 **전에도** 뜬다',
 ok('  달라졌을 때만 단추를 건다', /routineChanged\(before, routine\)/.test(rout), true);
 
 console.log('');
+console.log('── 그날의 계획 — 앞날에 건 것 ──');
+// 다른 넷과 다른 점 하나: **계획만 남의 줄(내 루틴)을 가리킨다.** 그 루틴이 지워지면
+// 되살리기가 서버에서 400 으로 막힌다 — 그래서 화면이 **미리 보고 단추를 가린다**
+const 계획루틴 = { id: 7, date: '2026-11-20', kind: 'routine', name: '월요일 가슴', routine_id: 3 };
+const 계획운동 = { id: 8, date: '2026-11-20', kind: 'exercise', name: '벤치프레스', routine_id: null };
+
+ok('루틴 계획은 **가리키는 번호까지** 보낸다', U.planPayload(계획루틴),
+  { date: '2026-11-20', kind: 'routine', name: '월요일 가슴', routineId: 3 });
+ok('  운동 계획에는 번호를 안 붙인다', U.planPayload(계획운동),
+  { date: '2026-11-20', kind: 'exercise', name: '벤치프레스' });
+ok('  날짜·갈래·이름이 없으면 단추를 안 준다',
+  [U.planPayload({ ...계획운동, date: '' }), U.planPayload({ ...계획운동, name: '  ' }),
+    U.planPayload({ ...계획운동, kind: 'xx' })], [null, null, null]);
+ok('  ★ 루틴 계획인데 가리키는 번호가 없으면 안 준다 (서버가 400 으로 막는 자리다)',
+  U.planPayload({ ...계획루틴, routine_id: null }), null);
+ok('  ★ 갈래를 바꾸지 않는다 — 루틴 계획이 운동 계획으로 떨어지지 않는다',
+  U.planPayload(계획루틴).kind, 'routine');
+
+ok('★ **가리키던 루틴이 지워졌으면 단추를 안 준다**',
+  U.planUndoable(계획루틴, [{ id: 9, name: '다른 루틴' }]), false);
+ok('  살아 있으면 준다', U.planUndoable(계획루틴, [{ id: 3, name: '월요일 가슴' }]), true);
+ok('    `_id` 로 오는 줄도 본다 (서버가 둘 다 쓴다)',
+  U.planUndoable(계획루틴, [{ _id: 3, name: '월요일 가슴' }]), true);
+ok('    번호가 글자로 와도 본다', U.planUndoable({ ...계획루틴, routine_id: '3' },
+  [{ id: 3, name: '월요일 가슴' }]), true);
+ok('  운동 계획은 루틴과 무관하다', U.planUndoable(계획운동, []), true);
+// ★ 목록을 **못 받았을 때**(화면이 `.catch(() => {})` 로 빈 배열을 둔다) 그것을
+// 「루틴이 없다」로 읽으면 멀쩡한 계획의 단추까지 사라진다 — 모를 때는 가리지 않는다
+ok('  ★ 목록을 못 받았으면 가리지 않는다 (빈 배열은 「없다」가 아니다)',
+  [U.planUndoable(계획루틴, []), U.planUndoable(계획루틴, null)], [true, true]);
+
+ok('기록 화면이 **빼기 전에** 줄을 뜬다',
+  앞에(hist, 'const row = prev.find((p) => p.id === id)', 'await client.delete(`/plans/'), true);
+ok('  되살릴 수 있는지 보고 단추를 건다', /planUndoable\(row, myRoutines\)/.test(hist), true);
+ok('  ★ 되돌리기가 `try` 밖에 있다 — 안에 두면 그 안의 실수를 **지우기 실패로 읽는다**',
+  앞에(hist, "toast(err.response?.data?.error || '빼지 못했어요', 'error')",
+    "const body = planUndoable(row, myRoutines)"), true);
+ok('    ★ 그 자리에서 **끝낸다** — `return` 이 없으면 **지우기가 실패했는데도** 「뺐어요」와 되돌리기가 뜬다',
+  /'빼지 못했어요', 'error'\);[\s\S]{0,140}return;/.test(hist), true);
+
+
+console.log('');
 console.log('── ★ 어디까지 덮었나 — 수로 남긴다 ──');
 // 「⑤ 닫았다」가 느낌으로 남지 않게. 되살릴 길 없이 사람 기록을 다루는 손이
 // `backend/src/db.js` 에 **열여섯**이고(11/11 에 검사 쪽이 전수로 셌다),
@@ -245,13 +287,14 @@ const 덮은것 = [
   ['측정 · 지우기 (고치는 길이 없다)', meas, /post\('\/measures', body\)/],
   ['내 루틴 · 고치기', rout, /routineChanged\(before, routine\)/],
   ['내 루틴 · 지우기', rout, /post\('\/my-routines', body\)/],
+  ['그날의 계획 · 빼기', hist, /post\('\/plans', body\)/],
 ];
 for (const [name, src, re] of 덮은것) ok('  ' + name, re.test(src), true);
-ok('**덮은 자리 여덟**', 덮은것.length, 8);
+ok('**덮은 자리 아홉**', 덮은것.length, 9);
 // 아직 안 덮은 것 — 이 수가 줄면 이 줄도 같이 고쳐야 한다(그게 이 자의 일이다).
 // 메모 · 계획은 **글**이라 사람이 다시 적을 수 있고, 사진은 되돌리기의 결이 다르다
 // (파일을 다시 올려야 하고 용량·저장 쪽에 닿는다) → 출시 뒤 (11/11 판정)
-ok('  아직 안 덮은 종류 셋 (메모 · 계획 · 사진)', 3, 3);
+ok('  아직 안 덮은 종류 둘 (메모 · 사진)', 2, 2);
 
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }

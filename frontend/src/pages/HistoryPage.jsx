@@ -1,7 +1,7 @@
 import { useRefreshTick } from '../store/refreshStore';
 // 유산소는 볼륨에 들 수 없다 — 시간 · 거리로 적는다 (2026-11-05)
 import { minuteLabel, kmLabel } from '../data/cardio';
-import { rowPayload, UNDO_MS } from '../data/undoRow';
+import { rowPayload, planPayload, planUndoable, UNDO_MS } from '../data/undoRow';
 import ImportCsv from '../components/ImportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -203,6 +203,8 @@ export default function HistoryPage() {
   // 지운 줄 알았는데 새로고침하면 살아 있는 것이 제일 나쁘다
   const removePlan = async (id) => {
     const prev = plans;
+    // ★ **빼기 전에 줄을 떠야 한다** (2026-11-13) — 뺀 뒤에는 목록 어디에도 없다
+    const row = prev.find((p) => p.id === id) || null;
     setPlans(prev.filter(p => p.id !== id));
     try {
       await client.delete(`/plans/${id}`);
@@ -214,7 +216,29 @@ export default function HistoryPage() {
       setPlans(prev);
       // 서버가 적어 보낸 까닭을 그대로 전한다 (2026-11-04)
       toast(err.response?.data?.error || '빼지 못했어요', 'error');
+      // ★ **여기서 끝낸다** — 아래 되돌리기는 지우기가 된 자리에만 있다
+      return;
     }
+    // ── 되돌리기 ── (2026-11-13)
+    //
+    // 계획은 **앞날에 거는 것**이라 빼고 나면 그날 무엇을 하려 했는지가 사라진다.
+    // ★ 루틴 계획은 **그 루틴이 아직 살아 있을 때만** 단추를 보여준다 — 지워진
+    // 루틴을 가리키면 서버가 400 으로 막는다 (`data/undoRow.js` 의 계획 절).
+    const body = planUndoable(row, myRoutines) ? planPayload(row) : null;
+    toast('뺐어요', 'success', body ? {
+      label: '되돌리기', ms: UNDO_MS,
+      run: async () => {
+        try {
+          const { data } = await client.post('/plans', body);
+          setPlans((cur) => (cur.some((p) => p.id === data.id) ? cur : [...cur, data]));
+          toast('되돌렸어요');
+        } catch (e) {
+          // 8초 사이에 **루틴이 지워졌거나** · 하루 상한에 닿았거나 · 같은 이름을
+          // 다시 담았을 수 있다. 서버가 적어 보낸 까닭을 그대로 전한다
+          toast(e.response?.data?.error || '되돌리지 못했어요', 'error');
+        }
+      },
+    } : null);
   };
 
   const handleExportCSV = (type = 'workouts') => {
