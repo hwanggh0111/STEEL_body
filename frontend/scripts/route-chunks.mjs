@@ -154,3 +154,24 @@ fs.writeFileSync(
 
 const counts = Object.entries(map).map(([r, f]) => `${r} ${f.length}`).join(' · ');
 console.log(`[route-chunks] 주소 ${wrote}개에 미리 받을 조각을 적어 넣었습니다 — ${counts}`);
+
+// ── **빌드 메모는 내보내지 않는다** ── (2026-11-13, 정석)
+//
+// `dist/.vite/manifest.json` 은 비테가 **빌드 때 쓰라고** 적어주는 메모다. 바로 위에서
+// 우리가 읽는 그 파일이고, 읽고 나면 쓸 일이 없다. 그런데 `dist` 안에 있으니
+// `express.static` 이 그대로 내준다 — **라이브에서 `/.vite/manifest.json` 이 200 으로
+// 32KB** 를 돌려줬다(11/13 에 라이브에서 확인).
+//
+// 값이 둘이다 —
+//   · 쓰는 사람에게 32KB 를 내줄 길이 사라진다 (아무도 안 받지만, 조르면 받아진다)
+//   · **소스 파일 이름이 통째로 적힌 메모**다 — `src/pages/AdminPage.jsx` 같은 줄이
+//     전부 들어 있다. 숨길 것은 아니지만 내보낼 것도 아니다
+//
+// 지우는 자리는 **여기**다. 이 손이 그 메모의 마지막 독자다 (`npm run build` 의
+// 차례: `vite build` → `route-chunks` → `precompress`). 지우지 않고 두면
+// `precompress` 가 그것까지 br·gz 로 싸서 **셋을 내보낸다.**
+const VITE_DIR = path.join(DIST, '.vite');
+if (fs.existsSync(VITE_DIR)) {
+  fs.rmSync(VITE_DIR, { recursive: true, force: true });
+  console.log('[route-chunks] 빌드 메모(dist/.vite)를 지웠습니다 — 내보낼 것이 아닙니다');
+}

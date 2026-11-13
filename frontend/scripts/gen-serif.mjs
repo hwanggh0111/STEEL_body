@@ -31,8 +31,18 @@
 //
 //   pip install fonttools
 //
-// `woff2` 가 아니라 `woff` 인 까닭: woff2 로 싸려면 파이썬 `brotli` 가 더 필요하다.
-// 58.7KB 와 47KB 쯤의 차이라서, 남의 컴퓨터에 설치를 더 요구하지 않는 쪽을 골랐다.
+// ── **woff2 로 싼다** ── (2026-11-13, 정석)
+//
+// 10/20 에는 `woff` 였다 — woff2 는 파이썬 `brotli` 가 더 필요해서 「남의 컴퓨터에
+// 설치를 더 요구하지 않는 쪽」을 골랐다. 그런데 재보니 **같은 474자가 59.5KB →
+// 44.4KB**(-25%)다. 이 글꼴은 첫 화면의 큰 글씨가 쓰는 것이고, 미리 압축해 두는
+// 길(`precompress`)도 woff 에는 거의 안 먹는다(안이 이미 눌려 있다). 15.1KB 를
+// 매번 더 받는 값이 설치 한 줄보다 크다 —
+//
+//   pip install fonttools brotli
+//
+// woff2 를 못 읽는 브라우저는 `.serif-display` 의 뒷줄(기기 명조 · serif)로 떨어진다.
+// 그 줄은 처음부터 있었고 받으러 가지도 않는다.
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -47,7 +57,7 @@ const ROOT = path.resolve('.');
 // `/assets/` 로 내보내고, 그러면 서비스 워커가 **캐시를 먼저 보는 쪽**으로 다룬다
 // (`public/sw.js` 의 4번). 이름이 내용으로 정해지니 낡을 걱정도 없다.
 const OUT_DIR = path.join(ROOT, 'src', 'assets', 'fonts');
-const WOFF = path.join(OUT_DIR, 'bi-myeongjo.woff');
+const WOFF = path.join(OUT_DIR, 'bi-myeongjo.woff2');
 // 담은 글자 목록은 **내주지 않는다** — 검사만 읽는다. public 에 두면 서버가 집어 준다
 const CHARS = path.join(ROOT, 'scripts', 'bi-myeongjo-chars.txt');
 const LICENSE = path.join(ROOT, 'public', 'fonts', 'OFL.txt');
@@ -92,7 +102,7 @@ from fontTools.ttLib import TTFont
 src, out, text = sys.argv[1], sys.argv[2], sys.argv[3]
 
 opts = subset.Options()
-opts.flavor = 'woff'
+opts.flavor = 'woff2'
 opts.layout_features = []
 opts.hinting = False
 opts.desubroutinize = True

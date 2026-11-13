@@ -115,14 +115,17 @@ let fontBad = 0;
   // 부위 이름) **잘라서 우리 주소에서 내준다.** 그러면 구글 왕복이 없고, 같은
   // 출신이라 **서비스 워커가 담는다** — 지하 헬스장에서도 온다.
   const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'globals.css'), 'utf-8');
-  const woff = path.join(__dirname, '..', 'src', 'assets', 'fonts', 'bi-myeongjo.woff');
+  const woff = path.join(__dirname, '..', 'src', 'assets', 'fonts', 'bi-myeongjo.woff2');
   say('잘라둔 글꼴이 있다', fs.existsSync(woff), true);
   const size = fs.existsSync(woff) ? fs.statSync(woff).size : 0;
   // 100KB 를 넘으면 자르는 규칙이 느슨해진 것이다 (구글에서 받던 236.6KB 로 가는 길)
   say('  100KB 아래다', size > 0 && size < 100 * 1024, true);
   // **src 에서 가리킨다** — 비테가 해시를 박아 /assets/ 로 내보내야 서비스 워커가
   // 캐시를 먼저 본다(public/ 에 두면 이름이 그대로라 네트워크를 먼저 친다, 2026-10-20)
-  say('  CSS 가 그것을 가리킨다', /src: url\('\.\.\/assets\/fonts\/bi-myeongjo\.woff'\)/.test(css), true);
+  say('  CSS 가 그것을 가리킨다', /src: url\('\.\.\/assets\/fonts\/bi-myeongjo\.woff2'\) format\('woff2'\)/.test(css), true);
+  // **woff 로 되돌아가지 않게 못을 박는다** (2026-11-13) — 같은 글자로 15.1KB 더 받는다
+  say('  옛 woff 는 남아 있지 않다',
+    fs.existsSync(path.join(__dirname, '..', 'src', 'assets', 'fonts', 'bi-myeongjo.woff')), false);
   say('  오는 동안에도 글이 보인다 (font-display: swap)',
     /@font-face[\s\S]{0,400}?font-display: swap/.test(css), true);
   // OFL 5절 — 고친 판(= 잘라낸 판)은 예약된 이름(Nanum)을 쓸 수 없다
