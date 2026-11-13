@@ -44,6 +44,16 @@ function walk(dir, out = []) {
 // 왜 예외인지가 고치는 사람 눈앞에 있다.
 const OPT_OUT = '라틴 전용';
 
+/** 폴더 아래 **모든** 파일. 위의 `walk` 는 src 전용이라 확장자를 가린다 */
+function walkAll(dir, out = []) {
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) walkAll(full, out);
+    else out.push(full);
+  }
+  return out;
+}
+
 const bad = [];
 let allowed = 0;
 
@@ -152,6 +162,55 @@ let fontBad = 0;
     (gen.match(/unicode-range: U\+AC00-D7A3;/g) || []).length, 3);
   say('  오는 동안에도 글이 보인다 (font-display: swap)',
     (gen.match(/font-display: swap/g) || []).length, faces.length);
+
+  // ── **개발 화면도 같은 글꼴을 부르는가** ── (2026-11-13, 정석 · 맵시)
+  //
+  // 11/13 에 한글 글꼴을 `BI Sans KR` 로 개명하면서 `src` 194 자리는 갈았는데
+  // **`dev/` 아래가 남았다.** 처음에 「69 자리가 깨졌다」고 적었는데 **반만 맞았다** —
+  // 가르는 선은 **폴더가 아니라 「누가 글꼴을 받아오나」** 다(맵시가 바로잡았다).
+  //
+  //   앱 화면에 얹히는 CSS   `src/**` · `dev/skin/**`
+  //        앱이 내주는 이름을 불러야 한다. 옛 이름만 있으면 **그 줄은 오지 않는
+  //        글꼴을 가리킨다** — 겉꼴을 켠 앱 화면에서 한글이 기기 글꼴로 떨어진다
+  //   제 `<link>` 로 받는 독립 페이지   `dev/sian/**` · `dev/ui/**`
+  //        구글에서 직접 받으니 옛 이름이 **살아 있다** — 통과다.
+  //        대신 **`<link>` 가 아예 없으면 FAIL** 한다. 지금 열한 장은 다 있지만
+  //        다음에 한 장 더 만들 때 빠지면 그때는 진짜로 한글이 떨어진다
+  console.log('');
+  console.log('── 개발 화면의 글꼴 ──');
+  const devDir = path.join(__dirname, '..', 'dev');
+  // **길을 빗금으로 맞춰 둔다** — 윈도는 역빗금이라 길로 가르는 자가 조용히 0건이 된다
+  const rel = (f) => path.relative(path.join(__dirname, '..'), f).split(path.sep).join('/');
+  const devFiles = fs.existsSync(devDir)
+    ? walkAll(devDir).filter((f) => /\.(css|html)$/.test(rel(f))) : [];
+
+  // ⑴ 앱 화면에 얹히는 꼴 — 새 이름을 불러야 한다
+  //
+  // **파일 전체가 아니라 `font-family` 줄만 본다.** 처음에 파일 전체에서 찾게 짰다가
+  // 되돌려 보고 알았다 — 머리글 주석에 「`BI Sans KR` 로 개명했다」라고 적어둔 것이
+  // 걸려서, **정작 줄은 옛 이름뿐인데 통과**했다. 자가 보는 것은 주석이 아니라 줄이다.
+  const 얹히는것 = devFiles.filter((f) => rel(f).startsWith('dev/skin/'));
+  const 옛이름줄 = [];
+  얹히는것.forEach((f) => {
+    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (!/font-family/i.test(line)) return;
+      if (!/IBM Plex Sans KR/.test(line)) return;
+      if (/BI Sans KR/.test(line)) return;
+      옛이름줄.push(rel(f) + ':' + (i + 1));
+    });
+  });
+  say('겉꼴은 앱이 내주는 이름을 부른다 (dev/skin)', 옛이름줄, []);
+
+  // ⑵ 독립 페이지 — 제 글꼴을 제가 받아와야 한다
+  //
+  // **`font-family` 가 적혔는지로 가르지 않는다.** 그것도 되돌려 보고 알았다 —
+  // 시안 대부분은 글꼴을 `_s.css` 에서 받아 제 장에는 `font-family` 가 한 줄도 없다.
+  // 그래서 「글꼴을 적은 장만 본다」로 두면 **`<link>` 를 빼먹어도 안 걸린다.**
+  // 이 폴더의 장은 전부 **제 발로 서는 장**이다 — 그러니 전부 제 `<link>` 가 있어야 한다.
+  const 독립 = devFiles.filter((f) => /^dev\/(sian|ui)\/.*\.html$/.test(rel(f)));
+  say('시안은 제 글꼴을 제가 받아온다 (<link> 가 있다)',
+    독립.filter((f) => !/fonts\.googleapis\.com/.test(fs.readFileSync(f, 'utf8'))).map(rel), []);
+  console.log('     겉꼴 ' + 얹히는것.length + '장 · 독립 시안 ' + 독립.length + '장');
 
   console.log('');
   console.log('── 명조는 우리 것이다 ── (2026-10-20)');
