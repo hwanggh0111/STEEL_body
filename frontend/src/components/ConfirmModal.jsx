@@ -120,6 +120,22 @@ export default function ConfirmModalHost() {
           maxWidth: 360,
           width: '100%',
           boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          // ── ★ **긴 알림이 작은 폰에서 잘리고 스크롤도 안 됐다** ── (2026-11-13)
+          //
+          // 설정 되돌리기 알림은 **541자 · 줄바꿈 19개**다(`SettingsPage.jsx` 의 그 자리 —
+          // 「묶음 이름으로 뭉개지 않는다」로 스위치 이름을 다 적은 뒤 그만큼 길어졌다).
+          // 14px · 줄높이 1.6 으로 재면 글만 490px, 제목 · 단추 · 여백까지 **670px** 다.
+          // 그런데 이 상자에 `maxHeight` 도 `overflow` 도 없었다 — **세로 640 이하 기기
+          // (iPhone SE 568 · 375×667)와 가로로 돌린 모든 폰에서 「되돌리기」 단추가 화면
+          // 밖**이고, 덮개가 스크롤되지 않으니 **닿을 길이 없다.**
+          //
+          // `AccountDeleteModal:88` 이 이미 같은 손(`85vh` + `overflowY`)을 쓰고 있었다 —
+          // **한 자리만 고쳐져 있었다.** 여기서는 거기서 한 걸음 더 간다: 상자째 스크롤하면
+          // 단추도 같이 흘러가 **「확인이 어디 있지」**가 된다. 그래서 **글만 스크롤하고
+          // 제목과 단추는 늘 제자리**에 둔다 (아래 `flex` + `minHeight: 0`).
+          maxHeight: 'calc(100vh - 32px)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {options.title && (
@@ -131,10 +147,15 @@ export default function ConfirmModalHost() {
         )}
         {/* 줄바꿈을 그대로 살린다 — 「무엇을 합니다」와 「그러면 이렇게 됩니다」를
             한 줄로 이어붙이면 두 번째 문장을 안 읽는다 */}
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+        {/* `minHeight: 0` 이 없으면 flex 칸은 **안 줄어든다** — `overflowY` 를 적어둬도
+            상자가 글 길이만큼 늘어나 스크롤이 안 생긴다 (flex 기본값이 `min-height:auto`) */}
+        <p style={{
+          fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6,
+          whiteSpace: 'pre-line', overflowY: 'auto', minHeight: 0,
+        }}>
           {message}
         </p>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
           <button
             ref={cancelBtnRef}
             onClick={() => close(false)}

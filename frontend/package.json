@@ -113,6 +113,7 @@
     "contrast": "node scripts/check-contrast.cjs",
     "cardiohands": "node scripts/check-cardiohands.cjs",
     "corner": "node scripts/check-corner.cjs",
+    "modal": "node scripts/check-modal.cjs",
     "keytap": "node scripts/check-keytap.cjs"
   },
   "dependencies": {

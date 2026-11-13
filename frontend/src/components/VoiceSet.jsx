@@ -115,6 +115,12 @@ export default function VoiceSet({ onFill }) {
             width: '100%', maxWidth: 420, background: 'var(--bg-secondary)',
             borderTop: '1px solid var(--accent)', padding: '22px 22px 28px',
             display: 'flex', flexDirection: 'column', gap: 16,
+            // **바닥에 붙는 장은 넘치면 위로 넘친다** (2026-11-13).
+            // 가운데 뜨는 상자는 위아래로 잘리는데, 이 장은 아래가 고정이라 **머리가
+            // 화면 밖으로 밀린다** — 「말로 적기」와 「이렇게 들었어요」가 사라지고
+            // 사람은 무엇을 보고 있는지 모른 채 단추만 본다. 가로로 돌린 폰(높이 360)과
+            // 자판이 올라온 자리에서 그렇다. `npm run modal` 이 잡아준 자리다
+            maxHeight: '85vh', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span className="label" style={{ marginBottom: 0, letterSpacing: 2 }}>말로 적기</span>

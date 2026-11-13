@@ -80,6 +80,10 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
         style={{
           background: 'var(--bg-secondary)', border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)', padding: 24, maxWidth: 380, width: '100%',
+          // **작은 폰 · 가로 모드에서 잘리던 자리** (2026-11-13). `maxHeight` 와
+          // `overflow` 가 없으면 내용이 화면보다 길 때 위아래가 잘린 채 **스크롤이
+          // 안 되어 단추에 못 닿는다.** `AccountDeleteModal:88` 이 쓰던 손과 같다
+          maxHeight: '85vh', overflowY: 'auto',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
