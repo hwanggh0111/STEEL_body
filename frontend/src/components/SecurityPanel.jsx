@@ -759,7 +759,12 @@ export default function SecurityPanel() {
               color: 'var(--danger)', marginBottom: 10,
             }}>계정 삭제</h3>
 
-            <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.8, margin: '0 0 6px' }}>
+            {/* 별명과 메일 **둘 다 사람이 친 것**이다 — 끊을 자리가 없는 한 덩이가
+                오면 덮개가 가로로 넘친다 (2026-11-16 · 맵시) */}
+            <p style={{
+              fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.8, margin: '0 0 6px',
+              wordBreak: 'break-all',
+            }}>
               <b>{deleting.nickname}</b>
               <span style={{ color: 'var(--text-muted)' }}> · {deleting.email}</span>
             </p>

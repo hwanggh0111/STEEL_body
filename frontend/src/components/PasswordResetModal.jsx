@@ -181,7 +181,16 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
 
         {step === 2 && (
           <form onSubmit={submitReset}>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
+            {/* ── **메일 주소는 끊을 자리가 없다** ── (2026-11-16 · 맵시)
+                한글 문장 안에 `a.very.long.address@subdomain.example.co.kr` 가 들어가면
+                브라우저가 **끊을 데를 못 찾아** 그 한 덩이가 상자를 밀어낸다 —
+                덮개가 가로로 넘치고, 이 앱은 몸통에 `overflow-x` 를 안 걸어 **화면
+                전체가 옆으로 밀린다.** 메일은 사람이 치는 것이라 길이를 우리가 정할 수
+                없다. 집안 꼴대로 `break-all` 로 끊는다(`MonthCalendar.jsx:171` 과 같다) */}
+            <p style={{
+              fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6,
+              wordBreak: 'break-all',
+            }}>
               <strong style={{ color: 'var(--accent)' }}>{email}</strong>로 발송된 6자리 인증번호와 새 비밀번호를 입력해주세요.
             </p>
             {info && (

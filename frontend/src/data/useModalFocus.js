@@ -1,5 +1,59 @@
 import { useEffect, useRef } from 'react';
 
+// ── **덮개를 열면 뒤가 그대로 밀렸다** ── (2026-11-16 · 맵시)
+//
+// 11/13 에 이 손이 자판을 가뒀는데 **스크롤은 안 가뒀다.** 전수로 세니 덮개 열하나
+// 중 뒤를 가두는 것은 `AppLock` 하나였다. 나머지는 떠 있는 동안 손가락을 움직이면
+// **뒤 화면이 밀리고**, 닫은 뒤 **엉뚱한 자리에 서 있다** — 긴 목록(기록 · 루틴 ·
+// 설정) 위에서 확인 창을 띄우면 매번 일어난다.
+//
+// ── 가두는 법 ──
+//
+// `body` 의 `overflow` 만 끄면 **아이폰 사파리가 안 멈춘다**(고무줄처럼 튕기며
+// 밀린다). `documentElement` 까지 끄고 `overscroll-behavior` 로 당겨서 새로고침과
+// 튕김을 함께 끊는다. 스크롤 **자리는 건드리지 않는다** — `position: fixed` 로 몸통을
+// 띄우는 흔한 수는 이 앱에서 더 위험하다(탭바 · 휴식 띠가 `position: fixed` 다).
+//
+// ── 겹쳐 뜰 때 ──
+//
+// 잠금 화면 위에 확인 창이 뜬다. 각자 열고 닫으면 **안쪽이 닫힐 때 바깥쪽이 아직
+// 떠 있는데 가둠이 풀린다.** 그래서 **센다** — 처음 하나가 걸고 마지막 하나가 푼다.
+
+let 가둔수 = 0;
+let 되돌릴값 = null;
+
+/**
+ * 떠 있는 동안 **뒤 화면이 안 밀리게** 한다. 자판을 가둘 것까지 없는 덮개
+ * (제 Esc·Tab 규칙을 이미 가진 것들 — `ConfirmModal` · `AppLock` 같은)는
+ * 이것만 따로 쓴다. `useModalFocus` 는 이 손을 안에서 부른다.
+ */
+export function useScrollLock(open) {
+  useEffect(() => {
+    if (!open) return undefined;
+    가둔수 += 1;
+    if (가둔수 === 1) {
+      const b = document.body.style;
+      const h = document.documentElement.style;
+      되돌릴값 = { 몸통: b.overflow, 뿌리: h.overflow, 튕김: b.overscrollBehavior };
+      b.overflow = 'hidden';
+      h.overflow = 'hidden';
+      b.overscrollBehavior = 'none';
+    }
+    return () => {
+      가둔수 -= 1;
+      // 음수로 내려가면 **다음 덮개가 안 걸린다** (닫히는 순서가 어긋날 때)
+      if (가둔수 < 0) 가둔수 = 0;
+      if (가둔수 > 0 || !되돌릴값) return;
+      const b = document.body.style;
+      const h = document.documentElement.style;
+      b.overflow = 되돌릴값.몸통;
+      h.overflow = 되돌릴값.뿌리;
+      b.overscrollBehavior = 되돌릴값.튕김;
+      되돌릴값 = null;
+    };
+  }, [open]);
+}
+
 /**
  * 덮개가 떠 있는 동안 **자판을 그 안에 가둔다** (2026-11-13 · 맵시).
  *
@@ -26,6 +80,9 @@ import { useEffect, useRef } from 'react';
  * (`ConfirmModal` 은 Enter 규칙까지 함께 본다)는 그쪽을 그대로 두라는 뜻이다.
  */
 export function useModalFocus(boxRef, open, { onClose, initialFocus } = {}) {
+  // 뒤 화면을 가두는 것도 같이 한다 — 덮개마다 따로 적으면 그중 하나는 꼭 빠진다
+  useScrollLock(open);
+
   // 덮개를 열기 **직전에** 어디에 서 있었는지. 닫을 때 그 자리로 돌려준다
   const 왔던자리 = useRef(null);
 

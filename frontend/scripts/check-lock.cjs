@@ -141,8 +141,25 @@ ok('보던 것을 걷는다', /removeEventListener\('visibilitychange'/.test(ove
 // **덮을 뿐이라 뒤의 것들은 그대로 있다** — 탭을 누르면 초점이 가려진 화면의 단추로
 // 넘어가고, 거기서 엔터를 치면 잠긴 앱이 일을 한다 (2026-09-18 에 막았다)
 ok('탭이 뒤로 새지 않는다', /e\.key === 'Tab'/.test(overlay) && /box\.contains\(on\)/.test(overlay), true);
-ok('  덮은 동안 뒤가 안 밀린다', /document\.body\.style\.overflow = 'hidden'/.test(overlay), true);
-ok('  풀면 되돌린다 (안 하면 영영 못 내려간다)', /document\.body\.style\.overflow = before/.test(overlay), true);
+// ── 자가 **옛 모습을 글자로** 보고 있었다 ── (2026-11-16 · 맵시)
+//
+// 여기 두 줄은 `document.body.style.overflow = 'hidden'` 이라는 **그 파일의 그 글자**를
+// 찾고 있었다. 11/16 에 가둠을 `data/useModalFocus.js` 의 세는 한 벌(`useScrollLock`)로
+// 옮기니 — 몸통만 끄던 것을 `documentElement` 까지 끄고 겹쳐 뜰 때도 안 어긋나게
+// 고친 것인데 — **자가 빨개졌다.** 좋아졌는데 자가 아니라고 한 셈이다.
+//
+// 오늘 셋이 같이 세운 규칙이 그대로 들어맞는 자리다: **자가 「지금」을 베끼면 그
+// 「지금」이 지나는 순간 거짓이 된다.** 그래서 **손이 있는 자리까지 따라가서** 본다 —
+// 잠금이 그 손을 부르나 · 그 손이 걸고 되돌리나. 가두는 법이 또 바뀌어도 이 자는 선다.
+{
+  const hook = read('src/data/useModalFocus.js');
+  ok('  덮은 동안 뒤가 안 밀린다', /useScrollLock\(locked && enabled\)/.test(overlay)
+    && /overflow = 'hidden'/.test(hook), true);
+  // 되돌림을 빠뜨리면 **풀고 나서도 화면이 안 내려간다**. 그리고 겹쳐 뜰 때
+  // 안쪽이 닫히며 바깥쪽의 가둠을 풀어버리지 않아야 한다 — 그래서 **센다**
+  ok('  풀면 되돌린다 (안 하면 영영 못 내려간다)', /되돌릴값\.몸통/.test(hook)
+    && /가둔수 > 0/.test(hook), true);
+}
 // 방금 비밀번호를 댄 사람에게 네 자리를 또 묻지 않는다 — 로그인은 더 센 자물쇠다
 {
   const auth = read('src/store/authStore.js');

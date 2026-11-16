@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useBlockStore } from '../store/blockStore';
 import { useAuthStore } from '../store/authStore';
 import NavIcon from './NavIcon';
@@ -7,6 +7,7 @@ import { SUPPORT_EMAIL } from '../data/contact';
 import Logo from './Logo';
 import Emphasis from './Emphasis';
 import { euroJosa } from '../data/particle';
+import { useModalFocus } from '../data/useModalFocus';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
 //
@@ -18,6 +19,7 @@ import { euroJosa } from '../data/particle';
 // **점검 화면(`MaintenanceScreen`)과 같은 결로 덮는다** — 반쯤 가리면 그 틈으로
 // 「불러오지 못했어요」가 섞여 보이고, 그게 바로 여태의 모습이다.
 export default function AccountBlocked() {
+  const boxRef = useRef(null);
   const block = useBlockStore((s) => s.block);
   const clear = useBlockStore((s) => s.clear);
   const logout = useAuthStore((s) => s.logout);
@@ -34,6 +36,17 @@ export default function AccountBlocked() {
     return () => clearTimeout(timer);
   }, [until, clear]);
 
+  // 떠 있는 동안 ⑴ 뒤가 안 밀리게 ⑵ 탭이 뒤로 안 새게 한다 (2026-11-16 · 맵시).
+  //
+  // 이 화면은 `App.jsx:126` 에서 **라우터와 나란히** 그려진다 — 덮기만 하고
+  // **뒤에 앱이 그대로 서 있다.** 그래서 탭을 누르면 가려진 화면의 단추로 초점이
+  // 넘어가고, 거기서 엔터를 치면 **막아둔 사람이 앱을 쓴다.** 잠금이 2026-09-18 에
+  // 막은 것과 같은 구멍이고, 여기만 안 막혀 있었다.
+  //
+  // **`onClose` 는 안 준다** — Esc 로 닫을 수 있으면 막은 것이 막은 것이 아니다.
+  // 갈고리는 이른 되돌림보다 위에 둔다
+  useModalFocus(boxRef, !!block);
+
   if (!block) return null;
 
   // **기한이 있나로 가른다** (2026-10-26). 여태 `kind === 'suspended'` 만 경고색이었다 —
@@ -42,14 +55,28 @@ export default function AccountBlocked() {
   const tone = block.forever ? 'var(--danger)' : 'var(--warning)';
 
   return (
-    <div style={{
+    // **읽어주는 기계에 「덮개가 떴다」고 알린다** (2026-11-16 · 맵시).
+    // 덮개 열하나 중 `role` 이 없는 둘 중 하나였다. `alertdialog` 로 적는다 —
+    // 사람이 부른 창이 아니라 **막혔다고 알리는** 창이다. **Esc 는 안 준다**:
+    // 닫을 수 있으면 막은 것이 막은 것이 아니다
+    <div role="alertdialog" aria-modal="true" aria-label="계정이 막혔습니다" style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 999998, padding: 20, overflow: 'auto',
     }}>
-      <div style={{ textAlign: 'center', maxWidth: 380, width: '100%' }}>
+      {/* ── **내용이 길면 위가 잘린 채 못 내려간다** ── (2026-11-16 · 맵시)
+          겉은 `align-items: center` 로 가운데 세우는 칸이다. 그 안의 것이 화면보다
+          길어지면 **넘치는 쪽이 위로 밀려나고, 위로 밀려난 자리는 스크롤로 닿지
+          않는다**(flex 가운데 정렬의 오래된 함정이다). 「정지 기한 · 푸는 길」이
+          적힌 윗줄이 그렇게 사라질 수 있었다.
+          `role` 을 달면서 `check-modal.cjs` 가 이 자리를 보기 시작해 잡혔다 —
+          집안 꼴대로 **속 상자가 제 안에서 내려간다** */}
+      <div ref={boxRef} style={{
+        textAlign: 'center', maxWidth: 380, width: '100%',
+        maxHeight: '85vh', overflowY: 'auto',
+      }}>
         <Logo cap={16} style={{ marginBottom: 28 }} />
 
         <div style={{ marginBottom: 14, color: tone, display: 'flex', justifyContent: 'center' }} aria-hidden="true">

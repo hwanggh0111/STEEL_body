@@ -38,6 +38,7 @@ import { useRefreshStore } from '../store/refreshStore';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { sessionEpoch, isSameSession } from '../store/session';
 import NavIcon from './NavIcon';
+import { useScrollLock } from '../data/useModalFocus';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
@@ -202,6 +203,11 @@ export default function Layout() {
     s => s.deadline != null || s.pausedLeft != null || s.finished,
   );
   const [showTopBtn, setShowTopBtn] = useState(false);
+
+  // 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시).
+  // 곁 메뉴는 **밀려 나오는 서랍**이라 그 위에서 쓸어 넘기면 뒤 목록이 움직였다 —
+  // 닫고 보면 엉뚱한 자리다. 사진 확대도 같다. 세는 한 벌이라 둘이 겹쳐도 안 어긋난다
+  useScrollLock(sideMenu || !!zoomImg);
 
   // 새로고침. 누르면 여럿이 같이 쓰는 목록을 다시 받고, 화면들이 자기 것을 다시 받는다.
   // **왜 여기 하나만 두는지**는 `store/refreshStore.js` 에 적어뒀다

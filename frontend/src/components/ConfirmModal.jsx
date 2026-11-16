@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { enterChoice, focusKind } from '../data/askKeys';
+import { useScrollLock } from '../data/useModalFocus';
 
 let _showConfirm = null;
 const _pendingQueue = [];
@@ -58,6 +59,11 @@ export default function ConfirmModalHost() {
       setState(null);
     }
   }, [state]);
+
+  // 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시).
+  // 자판 규칙은 이 파일이 이미 제 것을 가지고 있다(Enter 가 무엇을 누를지까지 본다)
+  // — 그래서 `useModalFocus` 가 아니라 가둠만 가져온다
+  useScrollLock(!!state);
 
   useEffect(() => {
     if (!state) return;

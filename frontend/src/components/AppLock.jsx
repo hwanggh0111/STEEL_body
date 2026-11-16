@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { LogoMark } from './Logo';
 import { PIN_LEN, MAX_TRIES } from '../data/appLock';
 import { confirmDialog } from './ConfirmModal';
+import { useScrollLock } from '../data/useModalFocus';
 
 // 잠금 화면.
 //
@@ -110,12 +111,17 @@ export default function AppLock() {
   }, [locked, pin, left]);
 
   // 덮은 동안 뒤가 안 밀리게. **되돌리는 것을 빠뜨리면 풀고 나서도 화면이 안 내려간다**
+  //
+  // 여기 있던 손을 **세는 한 벌로 옮겼다** (2026-11-16 · 맵시). 몸통만 끄고 있어서
+  // 아이폰에서는 고무줄처럼 밀렸고, 더 나쁜 것은 **겹쳐 뜰 때**였다 — 잠금 위에
+  // 확인 창(「네 자리를 잊으셨으면…」)이 뜨고 그것이 닫히면, 잠금이 아직 떠 있는데
+  // 그 창의 되돌림이 가둠을 풀었다. 이제 처음 하나가 걸고 **마지막 하나가** 푼다
+  useScrollLock(locked && enabled);
+
   useEffect(() => {
     if (!locked || !enabled) return undefined;
-    const before = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     boxRef.current?.focus();
-    return () => { document.body.style.overflow = before; };
+    return undefined;
   }, [locked, enabled]);
 
   // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 —

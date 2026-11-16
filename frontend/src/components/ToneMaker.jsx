@@ -111,9 +111,15 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
               <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {t.desc}
               </span>
+              {/* **읽어주는 기계에는 이름이 없는 단추였다** (2026-11-16 · 맵시).
+                  속이 `▶` 한 글자뿐이라 「검은 오른쪽 삼각형」이라고 읽거나 아무 말도
+                  안 한다 — 같은 줄에 그런 단추가 둘이니 **어느 것이 무엇인지 모른다.**
+                  단추 이름 없는 자리를 전수로 훑어 **진짜로 없는 것은 이 하나**였다
+                  (나머지는 `{t.name}` 처럼 값이 곧 이름인 자리다) */}
               <button
                 onClick={() => { setExtraTones(tones); previewTone(t.id, volume); }}
                 className="btn-secondary"
+                aria-label={`${t.name} 들어보기`}
                 style={{ width: 'auto', marginLeft: 'auto', flexShrink: 0, padding: '4px 9px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
               >▶</button>
               <button

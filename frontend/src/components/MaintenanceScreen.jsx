@@ -11,6 +11,7 @@ import { dateKey } from '../data/dateKey';
 // 「그 날 도는가」는 **한 곳에만 적는다** — 고객센터가 같은 판단을 따로 적어뒀더니
 // 돌지 않는 찌꺼기를 「점검 예정」으로 띄우고 있었다 (2026-10-24)
 import { runsOn } from '../data/maintForm';
+import { useScrollLock } from '../data/useModalFocus';
 
 // 서버가 진짜다. localStorage 는 마지막으로 받아온 것을 담아두는 자리일 뿐이다 —
 // 첫 화면을 그리는 순간과 네트워크가 없을 때 쓴다.
@@ -187,6 +188,16 @@ export default function MaintenanceScreen({ children }) {
     return () => clearInterval(timer);
   }, [kicked, admin, info.active]);
 
+  // 점검 화면이 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시).
+  // 이 덮개는 **앱 전체를 감싼다**(`children` 을 대신 그린다) — 뒤에 앱이 그대로
+  // 서 있으니, 가두지 않으면 점검 중에 앱을 쓸어 넘겨 볼 수 있었다.
+  //
+  // **관리자일 때는 안 가둔다** — 관리자는 점검 중에도 앱을 쓰고, 아래 `if (admin)`
+  // 은 띠만 얹어 `children` 을 그대로 그린다. 가두면 그 앱을 못 쓴다.
+  // 갈고리는 **되돌림 둘보다 위에** 둔다(`if (admin)` 안쪽에도 되돌림이 있다) —
+  // 아래에 적으면 리액트가 갈고리 수가 달라졌다고 터진다
+  useScrollLock(!!info.active && !admin);
+
   // 관리자는 점검 중에도 앱을 쓴다. 다만 **지금 막혀 있다는 것을 알아야 한다** —
   // 예전에는 관리자에게 아무 표시가 없어서, 점검을 걸어두고 잊으면 자기만 멀쩡한 앱을
   // 보면서 사용자는 막혀 있는 상태가 이어졌다
@@ -222,14 +233,26 @@ export default function MaintenanceScreen({ children }) {
     : 0;
 
   return (
-    <div style={{
+    // `role` 이 없는 덮개 둘 중 나머지였다. 사람이 부른 창이 아니라 **알리는** 창이라
+    // `alertdialog` 다. Esc 로 닫을 길을 안 주는 것도 같은 까닭이다 (2026-11-16 · 맵시)
+    <div role="alertdialog" aria-modal="true" aria-label="점검 중입니다" style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 999999, padding: 20, overflow: 'auto',
     }}>
-      <div style={{ textAlign: 'center', maxWidth: 380, width: '100%' }}>
+      {/* ── **내용이 길면 위가 잘린 채 못 내려간다** ── (2026-11-16 · 맵시)
+          겉은 `align-items: center` 로 가운데 세우는 칸이다. 그 안의 것이 화면보다
+          길어지면 **넘치는 쪽이 위로 밀려나고, 위로 밀려난 자리는 스크롤로 닿지
+          않는다**(flex 가운데 정렬의 오래된 함정이다). 「정지 기한 · 푸는 길」이
+          적힌 윗줄이 그렇게 사라질 수 있었다.
+          `role` 을 달면서 `check-modal.cjs` 가 이 자리를 보기 시작해 잡혔다 —
+          집안 꼴대로 **속 상자가 제 안에서 내려간다** */}
+      <div style={{
+        textAlign: 'center', maxWidth: 380, width: '100%',
+        maxHeight: '85vh', overflowY: 'auto',
+      }}>
         {/* 앱 이름은 작게. 여기 온 사람은 어느 앱인지 안다 */}
         <Logo cap={16} style={{ marginBottom: 28 }} />
 

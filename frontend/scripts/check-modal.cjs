@@ -35,6 +35,13 @@ const 덮개아닌것 = {
   'components/OverlayCamera.jsx': '카메라 미리보기 — 화면을 통째로 쓴다. 상자가 없다',
   'components/RepCounter.jsx': '횟수 세기 — 카메라 위에 겹치는 화면이다',
   'pages/SiteHome.jsx': '소개 쪽의 안내 — 제 화면 안에서 흐른다',
+  // 11/16 에 `role="alertdialog"` 를 달면서 이 자에 처음 걸렸다. **머리말이 이미
+  // 「점검 화면」을 뺀다고 적어뒀는데** 표에 없었다 — 그때는 `role` 이 없어서
+  // 애초에 안 걸렸기 때문이다. 탭을 가둘 것이 없다: 점검 중에는 이 화면이
+  // `children` 을 **대신** 그려서(`App.jsx:121` 이 앱 전체를 감싼다) **뒤에 아무것도
+  // 없다.** 가둘 상대가 없는데 가두는 손을 넣으면 그 손이 거짓이 된다.
+  // `maxHeight` · `overflowY` 는 따로 넣어뒀다(가운데 정렬이라 긴 글의 위가 잘렸다)
+  'components/MaintenanceScreen.jsx': '점검 화면 — 앱 전체를 대신 그린다. 뒤에 아무것도 없다',
 };
 
 const 파일들 = [];

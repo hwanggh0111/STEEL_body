@@ -4,6 +4,7 @@ import {
   jointFor, jointAngle, startReps, repTick, repsLine, cannotCount, JOINTS,
 } from '../data/repCount';
 import { eul } from '../data/particle';
+import { useScrollLock } from '../data/useModalFocus';
 
 // 횟수 세기 — **폰을 옆에 두면 대신 센다** (2026-09-30).
 //
@@ -121,6 +122,9 @@ export default function RepCounter({ exercise, onDone, onClose }) {
     shutdown();
     onDone?.(got);
   };
+
+  // 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시)
+  useScrollLock(true);
 
   return (
     <div

@@ -3,6 +3,7 @@ import {
   SHOT_RATIO, OPACITY_MIN, OPACITY_MAX, OPACITY_DEFAULT,
   clampOpacity, coverCrop, shotSize,
 } from '../data/overlayShot';
+import { useScrollLock } from '../data/useModalFocus';
 
 // 겹쳐 찍기 — 카메라 화면.
 //
@@ -69,6 +70,11 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
     open();
     return () => { dead = true; stop(); };
   }, [facing]);
+
+  // 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시).
+  // 카메라를 띄운 채 손가락을 움직이면 뒤 화면이 밀렸다 — 몸을 맞추려고 폰을
+  // 들고 움직이는 자리라 **화면을 쓸어 넘기는 일이 제일 많이 일어나는 덮개**다
+  useScrollLock(true);
 
   // Esc 로 닫는다 — 자판만 쓰는 사람에게 나갈 길이 있어야 한다
   useEffect(() => {

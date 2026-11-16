@@ -497,7 +497,12 @@ export default function RegisterPage() {
                         borderColor: code.length === 6 ? 'var(--success)' : 'var(--border)',
                       }}
                     />
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.6 }}>
+                    {/* 메일 주소는 **끊을 자리가 없다** — 긴 주소 한 덩이가 칸을 밀어내
+                        화면이 옆으로 넘친다 (2026-11-16 · 맵시) */}
+                    <div style={{
+                      fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.6,
+                      wordBreak: 'break-all',
+                    }}>
                       <strong style={{ color: 'var(--accent)' }}>{email}</strong> 로 보냈어요.
                       안 왔으면{' '}
                       <button
