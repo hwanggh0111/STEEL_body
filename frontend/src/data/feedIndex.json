@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "152b947d26",
+  "detailVersion": "0490f42910",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "298924f",
+      "date": "2026-11-16",
+      "text": "「요 이레」가 한 달 전 줄을 섞어 보여줬다 · 빈 칸이 모르는 것을 안다고 말했다",
+      "label": "고침",
+      "scope": "관리자",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "아직 하지도 않은 운동으로 목표가 미리 채워졌다 — 세 자리",
       "label": "고침",
       "scope": "앞날",
-      "has": true
-    },
-    {
-      "key": "f66213b",
-      "date": "2026-11-05",
-      "text": "같은 말로 다른 수 둘 — 「주 연속」과 「최고 N kg」",
-      "label": "고침",
-      "scope": "말",
       "has": true
     }
   ]
