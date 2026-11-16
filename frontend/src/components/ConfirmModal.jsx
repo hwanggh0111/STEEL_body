@@ -139,7 +139,12 @@ export default function ConfirmModalHost() {
           // **한 자리만 고쳐져 있었다.** 여기서는 거기서 한 걸음 더 간다: 상자째 스크롤하면
           // 단추도 같이 흘러가 **「확인이 어디 있지」**가 된다. 그래서 **글만 스크롤하고
           // 제목과 단추는 늘 제자리**에 둔다 (아래 `flex` + `minHeight: 0`).
-          maxHeight: 'calc(100vh - 32px)',
+          /* 폰 주소창이 접히면 `100vh` 가 화면보다 커서 **덮개 밑이 잘린다**
+             (`globals.css` 의 `.page-wrapper` 가 적어둔 그 규칙이다 · 2026-11-16).
+             **인라인 꼴에는 두 줄 되돌림을 적을 수 없다** — 한 칸에 한 값이다.
+             `dvh` 를 모르는 브라우저는 이 줄을 버려 높이 제한이 아예 없어지는데,
+             그쪽은 2022년 이전 판이고 지금 잘리는 쪽은 **쓰는 사람의 폰 전부**다 */
+          maxHeight: 'calc(100dvh - 32px)',
           display: 'flex',
           flexDirection: 'column',
         }}

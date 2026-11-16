@@ -106,12 +106,12 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <label className="label" htmlFor={`${uid}-sh`}>어깨 너비 (cm)</label>
-            <input id={`${uid}-sh`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+            <input id={`${uid}-sh`} className="input" type="number" inputMode="decimal" step="0.1" min="1" max={BODY_CM_MAX}
               placeholder="45" value={shoulderWidth} onChange={(e) => setShoulderWidth(e.target.value)} />
           </div>
           <div style={{ flex: 1 }}>
             <label className="label" htmlFor={`${uid}-wa`}>허리둘레 (cm) - 선택</label>
-            <input id={`${uid}-wa`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+            <input id={`${uid}-wa`} className="input" type="number" inputMode="decimal" step="0.1" min="1" max={BODY_CM_MAX}
               placeholder="30" value={waist} onChange={(e) => setWaist(e.target.value)} />
           </div>
         </div>

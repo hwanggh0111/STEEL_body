@@ -89,7 +89,7 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>초</span>
                 </div>
               ) : (
-                <input id={`${uid}-${f.key}`} className="input" type="number" min="1" max={f.max}
+                <input id={`${uid}-${f.key}`} className="input" type="number" inputMode="numeric" min="1" max={f.max}
                   placeholder={f.placeholder}
                   value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                   style={{ fontSize: 13 }} />

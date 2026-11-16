@@ -58,11 +58,11 @@ export default function OneRMSection({ records, onSave, onDelete }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
           <label className="label" htmlFor={`${uid}-w`}>무게 (kg)</label>
-          <input id={`${uid}-w`} className="input" type="number" min="0" max={RM_SANE_MAX} placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); setOver(false); }} />
+          <input id={`${uid}-w`} className="input" type="number" inputMode="decimal" step="0.1" min="0" max={RM_SANE_MAX} placeholder="80" value={weight} onChange={e => { setWeight(e.target.value); setResult(null); setOver(false); }} />
         </div>
         <div style={{ flex: 1 }}>
           <label className="label" htmlFor={`${uid}-r`}>횟수</label>
-          <input id={`${uid}-r`} className="input" type="number" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
+          <input id={`${uid}-r`} className="input" type="number" inputMode="numeric" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
         </div>
       </div>
       <button className="btn-primary" onClick={calc1RM} style={{ marginBottom: 10 }}>계산</button>

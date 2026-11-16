@@ -64,7 +64,12 @@ export default function PrivacyPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '24px 16px 56px' }}>
+    /* 높이는 **`globals.css` 의 `.full-height` 를 쓴다** (2026-11-16).
+       폰에서 `100vh` 는 주소창이 펼쳐진 높이라 접히면 아래가 잘린다. 그 자리에
+       `100vh` → `100dvh` **두 줄**이 이미 적혀 있다 — 옛 브라우저는 뒤 줄을 버려
+       앞 줄이 남는다. 코드 안에 `100dvh` 한 줄만 적으면 그 되돌림이 없어진다
+       (「껍데기 밖에서 쓰는 같은 높이」가 그 칸의 뜻이다) */
+    <div className="full-height" style={{ background: 'var(--bg)', padding: '24px 16px 56px' }}>
       <div style={{ maxWidth: MAX, margin: '0 auto' }}>
 
         <button

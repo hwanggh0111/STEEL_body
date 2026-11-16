@@ -124,7 +124,7 @@ export default function StopwatchSection({ onSave }) {
       {mode === 'timer' && !running && time === 0 && (
         <div style={{ marginBottom: 10 }}>
           <label className="label" htmlFor={`${uid}-sec`}>시간 (초)</label>
-          <input id={`${uid}-sec`} className="input" type="number" min="1" max={MEASURE_SEC_MAX}
+          <input id={`${uid}-sec`} className="input" type="number" inputMode="numeric" min="1" max={MEASURE_SEC_MAX}
             value={timerInput} onChange={e => setTimerInput(e.target.value)} placeholder="60" />
         </div>
       )}

@@ -63,7 +63,7 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
                   서버도 값의 범위를 안 봤다 — 음수와 999999cm 가 그대로 들어가
                   「지난번과 견주면」이 그 수로 말을 지었다.
                   수는 `data/measureRange.js` 한 자리에서 온다 */}
-              <input id={`${uid}-${f.key}`} className="input" type="number" step="0.1" min="1" max={BODY_CM_MAX}
+              <input id={`${uid}-${f.key}`} className="input" type="number" inputMode="decimal" step="0.1" min="1" max={BODY_CM_MAX}
                 placeholder={f.placeholder}
                 value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })}
                 style={{ fontSize: 13 }} />

@@ -53,7 +53,7 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
             {/* **테두리를 건다** (2026-10-31). **아래로도 열어 둔다** —
                 손끝이 발끝에 못 닿으면 −10cm 고, 스쿼트 깊이는 0 이 평행이다.
                 음수를 막으면 재는 사람을 막는다 */}
-            <input id={`${uid}-${f.key}`} className="input" type="number" step="0.1"
+            <input id={`${uid}-${f.key}`} className="input" type="number" inputMode="decimal" step="0.1"
               min={-FLEX_CM_MAX} max={FLEX_CM_MAX} placeholder={f.placeholder}
               value={values[f.key] || ''} onChange={e => setValues({ ...values, [f.key]: e.target.value })} />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.6 }}>
