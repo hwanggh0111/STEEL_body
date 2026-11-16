@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "f50874128a",
+  "detailVersion": "152b947d26",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "503da82",
+      "date": "2026-11-16",
+      "text": "오류가 떠도 낭독기는 아무 말도 안 했다 — 열셋 중 다섯만 알리고 있었다",
+      "label": "고침",
+      "scope": "UI",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "같은 말로 다른 수 둘 — 「주 연속」과 「최고 N kg」",
       "label": "고침",
       "scope": "말",
-      "has": true
-    },
-    {
-      "key": "6acb9da",
-      "date": "2026-11-05",
-      "text": "같은 수를 두 손으로 셌다 · 루틴 머리의 「0 / 4세트」",
-      "label": "고침",
-      "scope": "유산소",
       "has": true
     }
   ]
