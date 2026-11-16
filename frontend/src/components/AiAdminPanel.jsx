@@ -189,6 +189,15 @@ export default function AiAdminPanel() {
   const suspensions = Array.isArray(data?.suspensions) ? data.suspensions : [];
   // 날마다 한 줄. **가까운 날이 앞**으로 온다 (`db.getAiDays`)
   const aiDays = Array.isArray(data?.aiDays) ? data.aiDays : [];
+  // ── **「없다」와 「조용했다」를 가르는 값** ── (2026-11-16 · 정석)
+  //
+  // 하루 줄은 **요청이 하나라도 적혔을 때** 생긴다. 그러니 줄이 없는 것은 그 자체로는
+  // 「조용했다」가 아니라 **「적힌 것이 없다」** 다. 둘을 가르는 값이 손에 있다 —
+  // `since`(이 프로세스가 뜬 시각)다. 하루를 넘겨 떠 있는데도 줄이 없으면 그것은
+  // 진짜로 조용한 것이고, 방금 떴다면 **그 전을 우리가 모른다**.
+  // (Render 무료 판은 15분만 놀아도 내려간다 — 이 기능이 생긴 그 까닭이다.)
+  const sinceMs = data?.since ? new Date(data.since).getTime() : NaN;
+  const hasSlept = !Number.isFinite(sinceMs) || (Date.now() - sinceMs) < 24 * 60 * 60000;
 
   const Num = ({ label, value, color }) => (
     <div className="card" style={{ padding: '12px 14px' }}>
@@ -255,10 +264,37 @@ export default function AiAdminPanel() {
         <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 떠도 남습니다</b> — 날마다 한 줄씩 적어둡니다.
         서울 날짜로 끊고, 서른 날까지 남습니다.
       </div>
-      {aiDays.length === 0 || aiDays.every((d) => !d.requests && !d.blocked && !d.level2 && !d.level3 && !d.level4) ? (
+      {/* ── **「없다」와 「조용했다」는 다른 말이다** ── (2026-11-16 고침 · 정석)
+
+          여기 한 가지로 「자동 판정이 한 번도 안 돌았습니다 — 이 칸이 비어 있는 것이
+          정상입니다」라고 적혀 있었다. 그런데 하루 줄은 **요청이 하나라도 적혔을 때**
+          생긴다(`flushAiDay` 는 넘길 것이 없으면 아무것도 안 쓴다). 즉 —
+
+            줄이 아예 없다        요청이 **하나도 안 적혔다**. 라이브에서 그건 대개
+                                 「조용했다」가 아니라 **그동안 서버가 안 떠 있었거나
+                                 적지 못했다** 는 뜻이다 (Render 무료 판은 15분 놀면
+                                 내려간다 — 위 머리글이 적어둔 그 까닭이다)
+            줄은 있고 판정만 0    이쪽이 진짜 **「조용했다」** 다
+
+          앞쪽을 「정상입니다」로 말하면 관리자가 **확인을 안 한다.** 모르는 것은
+          모른다고 적는다 — 이 앱이 지켜온 선이다 */}
+      {aiDays.length === 0 ? (
         <div className="card" style={{ padding: '12px 14px', marginBottom: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          요 이레에 <b style={{ color: 'var(--text-primary)' }}>자동 판정이 한 번도 안 돌았습니다.</b>
-          {' '}막은 것도 잠근 것도 없습니다 — 이 칸이 비어 있는 것이 정상입니다.
+          {hasSlept ? (
+            <>
+              요 이레 <b style={{ color: 'var(--text-primary)' }}>적힌 줄이 없습니다.</b>
+              {' '}요청이 하나도 안 적혔다는 뜻인데, 이 서버는{' '}
+              <b style={{ color: 'var(--text-secondary)' }}>{sinceText(data.since)}</b> 떠 있습니다 —{' '}
+              <b style={{ color: 'var(--warning)' }}>조용했던 것인지 그 전에 내려가 있었던 것인지는
+              이 칸만으로 알 수 없습니다.</b> 아래 로그를 같이 보세요.
+            </>
+          ) : (
+            <>
+              요 이레에 <b style={{ color: 'var(--text-primary)' }}>자동 판정이 한 번도 안 돌았습니다.</b>
+              {' '}막은 것도 잠근 것도 없습니다 — 서버가 하루 넘게 떠 있었으니
+              이 칸이 비어 있는 것이 정상입니다.
+            </>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>

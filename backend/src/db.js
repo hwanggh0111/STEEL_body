@@ -5,6 +5,9 @@ const crypto = require('crypto');
 const storage = require('./storage');
 // 알림 기본값 — 판단하는 쪽이 들고 있는 그 값을 그대로 쓴다
 const { DEFAULTS: REMINDER_DEFAULTS } = require('./utils/reminderSchedule');
+// 하루 줄은 **서울 날짜**로 끊는다 — 적는 쪽(`aiGuard`)과 읽는 쪽이 같은 자를 써야
+// 한다. UTC 로 끊으면 한국 자정~오전 아홉 시가 어제로 밀린다 (`utils/seoulDay`)
+const { seoulDay } = require('./utils/seoulDay');
 // 보안 기록을 몇 건까지 들고 있나 (화면은 100건을 보여준다)
 const SECURITY_LOG_KEEP = 500;
 // 자동 판정 일지를 며칠 둘까. 화면이 이레를 그리고, 「지난달과 견주기」까지 쓸 수
@@ -2516,11 +2519,31 @@ const db = {
     return row;
   },
 
-  /** 최근 며칠. 가까운 날이 앞이다 — 화면이 그 차례로 그린다 */
+  /**
+   * 최근 며칠. 가까운 날이 앞이다 — 화면이 그 차례로 그린다.
+   *
+   * ── **줄 수로 자르지 않는다** ── (2026-11-16 고침 · 정석)
+   *
+   * 여기가 `rows.slice(-n)` 이었다. 그런데 줄은 **일이 있었던 날만** 생기고
+   * 서른 날까지 남는다(`AI_DAY_KEEP`). 조용한 주가 지나면 이렇게 된다 —
+   *
+   *     저장된 줄  10/20 · 10/25 · 11/01 · 11/16
+   *     slice(-7)  11/16 11/01 10/25 10/20
+   *     화면 제목   「요 이레」            ★ 10/20 줄이 요 이레에 섞인다
+   *
+   * 관리자가 **한 달 전 사고를 이번 주 일로 읽는다.** 바로 위 칸에 「서른 날까지
+   * 남습니다」가 적혀 있어 더 헷갈린다. 그래서 **날짜 창으로** 자른다 — 날 수를
+   * 물었으니 날 수로 답한다. 일이 없던 날은 줄이 없으니 **줄 수는 n 보다 적을 수
+   * 있다**(그것이 「조용했다」는 뜻이고, 화면이 그렇게 읽는다).
+   */
   getAiDays(n = 7) {
     const data = load();
     const rows = Array.isArray(data.aiDays) ? data.aiDays : [];
-    return rows.slice(-Math.max(1, n)).reverse();
+    const days = Math.max(1, Number(n) || 1);
+    // 오늘을 1일로 세어 n 일 창 — 서울 날짜로 끊는다(적을 때와 같은 자)
+    const 창시작 = seoulDay(Date.now() - (days - 1) * 86400000);
+    return rows.filter((r) => r && typeof r.day === 'string' && r.day >= 창시작)
+      .slice(-days).reverse();
   },
 
   /** 적힌 순서대로 (오래된 것이 앞). 화면 쪽이 세운다 */
