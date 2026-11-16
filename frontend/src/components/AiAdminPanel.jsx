@@ -409,6 +409,10 @@ export default function AiAdminPanel() {
           onChange={(e) => setBlockMin(e.target.value)}
           placeholder="분"
           aria-label="몇 분 막을지"
+          /* 폰에서 **숫자 자판**이 바로 뜨게 한다 (2026-11-16 · 정석의 `check-phone` 자리).
+             `type="number"` 만으로는 안드로이드 크롬이 글자 자판을 내미는 판이 있다 —
+             관리자가 폰으로 급히 주소를 막는 자리라 자판을 한 번 더 바꾸게 하면 안 된다 */
+          inputMode="numeric"
           min="1"
           max={BLOCK_MIN_MAX}
           style={{ width: 90 }}
