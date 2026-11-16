@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "70fc0a3421",
+  "detailVersion": "fde7df3793",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "a845274",
+      "date": "2026-11-16",
+      "text": "폰에서 소수점을 못 치고, 주소창이 접히면 아래가 잘렸다 — 숫자 칸 여덟 · 높이 둘",
+      "label": "고침",
+      "scope": "UI",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "오늘 한 세트를 적자마자 「3판 채웠어요 — 올려볼 자리예요」가 떴다",
       "label": "고침",
       "scope": "기록",
-      "has": true
-    },
-    {
-      "key": "daf4fc6",
-      "date": "2026-11-05",
-      "text": "메일에 대문자가 하나라도 있으면 가입이 안 됐다",
-      "label": "고침",
-      "scope": "가입",
       "has": true
     }
   ]
