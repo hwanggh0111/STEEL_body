@@ -18,7 +18,20 @@
 
     <div class="card nw" style="text-align:center;padding:20px 16px">
       <div class="lbl" style="margin-bottom:2px">지금까지 들어올린 무게</div>
-      <div style="font:54px/1 'Bebas Neue',sans-serif;letter-spacing:2px;color:#eeb77d">1,284<span style="font-size:22px;letter-spacing:1px"> 톤</span></div>
+      <!-- 54px 는 360 폭에서 가로로는 여유가 있다(다섯 자리 「12,840 톤」까지).
+       깨지는 자리는 **폰 글자 크게**다 — `clamp` 로 좁은 폰에서 내려앉게 한다.
+
+       ★ **여기 적었던 근거 한 토막이 거짓이었다** (바로잡음: 2026-11-16 · 맵시).
+       「Bebas 는 폭이 흔들려 1,284 → 1,290 에서 줄이 움직인다」고 적어뒀는데,
+       11/16 에 글꼴 파일을 열어 재니 **Bebas 숫자는 0~9 전부 400/1000 고정폭**이다.
+       흔들릴 수 없다. 흔들리는 쪽은 **Barlow**(350~565 · 21.5% em)이고 그것이
+       앱의 본문 글꼴이다 — 자리를 거꾸로 짚었다. 눈으로 보고 적은 값이었다.
+
+       `tabular-nums` 는 남겨둔다. 여기서는 **하는 일이 없지만**(Bebas 는 이미
+       고정폭이다) 아래 작은 줄은 Barlow 라 그쪽에서 일한다. 앱에서는 11/16 에
+       `globals.css` 의 `body` 한 줄로 세웠다 — 자리마다 붙이면 다음에 빠진다
+       (2026-11-13 · 맵시) -->
+      <div style="font:clamp(40px,13vw,54px)/1 'Bebas Neue',sans-serif;letter-spacing:2px;color:#eeb77d;font-variant-numeric:tabular-nums;white-space:nowrap">1,284<span style="font-size:22px;letter-spacing:1px"> 톤</span></div>
       <div style="font-size:12.5px;color:#aaa28e;margin-top:8px">운동한 날 <b style="color:#cfc6b2">103일</b> · 첫 기록 <b style="color:#cfc6b2">2026-01-14</b> · 세트 <b style="color:#cfc6b2">4,120</b>개</div>
       <div style="font-size:12px;color:#8f8471;margin-top:7px;border-top:1px solid #332b1e;padding-top:9px">무게를 안 적은 세트는 톤에 안 들어갑니다 — 맨몸만 한 날은 <b style="color:#aaa28e">세트 수</b>로 셉니다</div>
     </div>

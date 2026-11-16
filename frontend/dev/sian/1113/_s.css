@@ -17,8 +17,15 @@ body{margin:0;background:#0b0a08}
 .btn1{width:100%;min-height:48px;background:#282219;border:1px solid #eeb77d;color:#eeb77d;font:17px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:2px;padding:13px 24px;border-radius:2px}
 .btn2{min-height:44px;background:none;border:1px solid #4a3f2c;color:#cfc6b2;font:600 13px 'Barlow','IBM Plex Sans KR',sans-serif;padding:9px 14px;border-radius:2px}
 .nw{outline:1.5px dashed #7fa8d9;outline-offset:4px}
-.say{display:flex;gap:11px;align-items:flex-start;background:#241a11;border:1px solid #d29a5f;border-radius:2px;padding:12px 14px;margin-bottom:16px}
-.say .ic{flex-shrink:0;color:#eeb77d;margin-top:2px}
+/* ── **축하와 사실은 같은 옷을 입으면 안 된다** ── (2026-11-13 · 맵시)
+   `#241a11` + 금 테두리는 **최고 기록 배너가 입는 옷**이다(`PersonalRecordBanner.jsx:23`
+   — `--accent-dim` 바탕 + `--accent` 테두리). 그 옷을 아픈 곳 알림이 입으면,
+   운동하다 금색 칸이 뜬 순간 **잘했다는 줄 알고 넘긴다.**
+   사실을 말하는 칸은 **중립 바탕 + 왼쪽 금실 한 줄**로 둔다 — 눈에는 걸리되
+   축하로는 안 읽힌다. 금은 테두리 네 변이 아니라 **한 변**만 쓴다. */
+.say{display:flex;gap:11px;align-items:flex-start;background:#1b1712;border:1px solid #332b1e;
+  border-left:2px solid #d29a5f;border-radius:2px;padding:12px 14px;margin-bottom:16px}
+.say .ic{flex-shrink:0;color:#d29a5f;margin-top:2px}
 .flat{background:#1b1712;border:1px solid #332b1e;border-radius:2px;padding:11px 13px;margin-bottom:16px;font-size:13px;color:#aaa28e}
 .log{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;box-shadow:inset 0 1px 0 rgba(238,183,125,.16)}
 .log .nm{font-size:13px;flex-grow:1}
