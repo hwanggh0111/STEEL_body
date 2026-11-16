@@ -96,9 +96,25 @@ const fontPreloadPlugin = () => ({
     if (!ctx.bundle) return html;
     const tags = [];
     for (const name of PRELOAD_FONTS) {
-      const hit = Object.keys(ctx.bundle).find(
-        (f) => f.endsWith('.woff2') && f.includes(`/${name}-`),
+      // ── **나머지 한글 조각은 절대 미리받지 않는다** ── (2026-11-16)
+      //
+      // `plex-kr-rest-<굵기>-<번호>.woff2` 가 굵기당 21장, 모두 63장이다. 그것들은
+      // **사람이 1,067자 밖의 음절을 실제로 칠 때만** 받는 벌이고, 한 장이 25KB 다.
+      // 하나만 섞여 들어가도 첫 화면이 25KB 를 헛받는다 — 그러면 미리받기가
+      // **느려지게 하는 수**가 된다. 이름으로 끊어 둔다. 지금 이름 꼴로는
+      // `plex-kr-400-` 과 `plex-kr-rest-400-01-` 이 안 겹치지만, **이름 꼴이 바뀌는
+      // 날에도 섞이지 않게** 뜻을 적어 못으로 둔다.
+      const matches = Object.keys(ctx.bundle).filter(
+        (f) => f.endsWith('.woff2')
+          && !f.includes('plex-kr-rest-')
+          && f.includes(`/${name}-`),
       );
+      // 둘 이상 걸리면 **어느 것을 당길지 내가 모른다** — 아무것이나 꽂지 않고 비운다
+      if (matches.length > 1) {
+        console.warn(`[preload] ${name} 에 ${matches.length}장이 걸렸다 — 줄을 안 넣는다`);
+        continue;
+      }
+      const hit = matches[0];
       // **못 찾으면 줄을 안 넣는다.** 이름이 바뀌었는데 옛 주소를 꽂으면 404 를
       // 미리받는 셈이고, 브라우저는 그것을 조용히 버린다 — 고장이 안 보인다
       if (!hit) {
