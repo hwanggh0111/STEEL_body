@@ -365,6 +365,78 @@ function addLog(type, message, ip, userId) {
   if (aiLogs.length > 500) aiLogs.shift();
 }
 
+// ── **날마다 한 줄은 남긴다** ── (2026-11-16, 주인 「AI 관리자 보강」 지시)
+//
+// 위 `totalRequests` · `blockedRequests` · `threats` · `aiLogs` 는 **전부 램에 있다.**
+// 8/31 에 차단을 파일로 옮긴 그 까닭이 이 숫자들에도 그대로 선다 — **Render 무료 판은
+// 15분만 놀아도 프로세스가 내려간다**(`db.js` 의 `blocks` 머리글). 그래서 관리자가
+// 화면을 열면 거의 언제나 **방금 뜬 뒤 몇 분치**를 본다. 화면은 그것을 정직하게
+// 적고 있었지만(「언제부터 센 것인지」) **정직하게 쓸모가 없었다** — 어제 자동 판정이
+// 열두 번 돌았는지 한 번도 안 돌았는지 알 길이 없다.
+//
+// ── 요청마다 적지 않는다 ──
+//
+// 이 DB 는 바뀔 때마다 **통째로 다시 쓴다**(`db.save`). 요청 한 건마다 적으면 그때마다
+// 파일(배포본은 Postgres)을 다시 쓰는 셈이고, 그건 지켜야 할 것을 지키려고 서버를
+// 넘어뜨리는 일이다. 그래서 **램에 모아 두고 넘긴다** —
+//
+//   판정이 났을 때      그 자리에서 곧바로 (`block` · 정지 · 영구 정지는 드물고 중요하다)
+//   그 밖에는 2분마다   요청 수 · 막은 요청 수
+//
+// 지는 것도 적어둔다: **프로세스가 갑자기 죽으면 요청 수 몇 분치가 떨어진다.**
+// 판정과 막은 것은 그 자리에서 적으니 안 떨어진다 — 떨어져도 되는 쪽만 미룬다.
+//
+// ── 세는 자리를 **새로 만들지 않았다** ──
+//
+// 올리는 자리가 열 곳이 넘는다(`blockedRequests++` 가 여섯 곳). 거기에 한 줄씩 더
+// 끼우면 **다음에 한 곳이 빠진다.** 대신 **지난번에 넘긴 값을 기억해 두고 그 차이**만
+// 넘긴다 — 세는 자리를 하나도 안 건드리므로 빠질 자리가 없다.
+const { seoulDay } = require('../utils/seoulDay');
+
+/** 지난번에 넘긴 데까지. 차이만 넘긴다 */
+let sent = { requests: 0, blocked: 0, level2: 0, level3: 0, level4: 0 };
+/** 아직 안 넘긴 **까닭별 수**. 이것만 따로 모은다 (셈이 아니라 이름이라 차이로 못 낸다) */
+let pendingReasons = {};
+
+/**
+ * 램에 쌓인 것을 하루 줄에 넘긴다.
+ *
+ * 넘길 것이 없으면 **아무것도 안 쓴다** — 2분마다 빈 쓰기를 하면 그만큼 DB 를
+ * 통째로 다시 쓴다. 쓰다가 터져도 **지키는 일은 계속한다**(일지는 곁두리다).
+ */
+function flushAiDay() {
+  const now = { requests: totalRequests, blocked: blockedRequests, ...threats };
+  const deltas = {};
+  let any = false;
+  for (const k of ['requests', 'blocked', 'level2', 'level3', 'level4']) {
+    const d = (Number(now[k]) || 0) - (Number(sent[k]) || 0);
+    // 서버가 다시 뜨면 램은 0 인데 `sent` 도 같이 0 이 된다 — 음수가 날 자리가 없다.
+    // 그래도 0 보다 작으면 **적지 않는다**(세는 자리가 뒤로 간 것이니 믿을 값이 아니다)
+    if (d > 0) { deltas[k] = d; any = true; }
+  }
+  const reasons = pendingReasons;
+  if (Object.keys(reasons).length > 0) { deltas.reasons = reasons; any = true; }
+  if (!any) return;
+  try {
+    db.bumpAiDay(seoulDay(Date.now()), deltas);
+    sent = now;
+    pendingReasons = {};
+  } catch {
+    // 못 적었으면 `sent` 를 그대로 둔다 — 다음 번에 그 차이가 같이 넘어간다.
+    // 까닭도 그대로 들고 있는다
+  }
+}
+
+/** 판정이 났다 — 까닭을 적어두고 **그 자리에서** 넘긴다 */
+function noteJudgement(why) {
+  if (why) pendingReasons[why] = (pendingReasons[why] || 0) + 1;
+  flushAiDay();
+}
+
+// 2분마다. `unref` 를 걸어 **이 타이머가 프로세스를 붙잡지 않게** 한다
+const aiDayTimer = setInterval(flushAiDay, 2 * 60 * 1000);
+if (aiDayTimer.unref) aiDayTimer.unref();
+
 addLog('system', 'AI Guard v2 (제로 톨러런스) 활성화', null);
 
 // ── LEVEL 4: 영구 정지 ──
@@ -377,6 +449,9 @@ addLog('system', 'AI Guard v2 (제로 톨러런스) 활성화', null);
 // 자동으로 하되, 없애는 것은 사람이 한다.
 function executeLevel4(userId, ip, triggerType, details) {
   threats.level4++;
+  // 하루 줄에 **그 자리에서** 적는다 — 영구 정지는 드물고, 프로세스가 죽기 전에
+  // 남아야 하는 쪽이다 (`flushAiDay` 머리글)
+  noteJudgement('영구정지:' + triggerType);
   const aiReason = generateAiReason(4, triggerType, details);
   addLog('CRITICAL', `LEVEL 4 — ${triggerType}: 영구 정지 (userId=${userId})`, ip, userId);
 
@@ -420,6 +495,7 @@ function executeLevel4(userId, ip, triggerType, details) {
 // 관리자는 건너뛰고, 쌓이면 영구로 올라간다 — 셋이 다른 답이다.
 function executeLevel3(userId, ip, triggerType, details, days) {
   threats.level3++;
+  noteJudgement('정지:' + triggerType);
   const aiReason = generateAiReason(3, triggerType, details);
 
   // 관리자는 자동 처벌 대상이 아니다 (LEVEL 4 와 같은 이유)
@@ -452,6 +528,7 @@ function executeLevel3(userId, ip, triggerType, details, days) {
 // ── LEVEL 2: 잠금 ──
 function executeLevel2(ip, triggerType, details, hours) {
   threats.level2++;
+  noteJudgement('잠금:' + triggerType);
   const until = Date.now() + hours * 60 * 60 * 1000;
   const aiReason = generateAiReason(2, triggerType, details);
   addLog('ALERT', `LEVEL 2 — ${triggerType}: ${hours}시간 잠금`, ip);
@@ -1099,6 +1176,9 @@ module.exports.getStats = () => ({
   spamTracking: spamCounts.size,
 });
 module.exports.getSuspiciousIPs = () => [...blockedIPs.keys()];
+// 하루 줄 — **화면이 부르기 전에 한 번 넘긴다.** 안 그러면 방금 난 판정이 아직 램에만
+// 있어서, 관리자가 「오늘」을 열었는데 그 수가 빠져 있다 (`/ai-dashboard` 가 부른다)
+module.exports.flushAiDay = flushAiDay;
 // 손으로 풀 때는 **파일에서도** 지운다. 램에서만 지우면 다음에 서버가 뜰 때 되살아난다
 module.exports.unblockIP = (ip) => {
   const inRam = blockedIPs.delete(ip);

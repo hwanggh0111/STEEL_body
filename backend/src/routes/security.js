@@ -475,6 +475,13 @@ const START_AT = new Date().toISOString();
 
 // GET /api/security/ai-dashboard - AI 관리 현황 (강화)
 router.get('/ai-dashboard', adminAuth, (req, res) => {
+  // ── **화면을 열기 전에 램에 쌓인 것을 넘긴다** ── (2026-11-16)
+  //
+  // 하루 줄은 2분마다 적힌다(`aiGuard.flushAiDay`). 그 사이에 관리자가 화면을 열면
+  // **방금 난 판정이 아직 램에만 있어서** 「오늘」 줄에서 빠진다 — 사람이 보는 순간이
+  // 바로 그 수를 알고 싶은 순간이다. 열 때 한 번 넘기고 읽는다.
+  // 못 넘겨도 화면은 뜬다 — 일지는 곁두리고, 아래 숫자들은 램에서 바로 온다
+  try { aiGuard.flushAiDay(); } catch { /* 일지를 못 적어도 현황은 보여준다 */ }
   const stats = aiGuard.getStats();
   const blockedIPsRaw = aiGuard.getBlockedIPs();
   const aiLogs = aiGuard.getAiLogs();
@@ -530,6 +537,16 @@ router.get('/ai-dashboard', adminAuth, (req, res) => {
     // 이 서버가 언제 떴는지. 아래 숫자들은 **그때부터 센 것**이라 이게 없으면
     // 「총 요청 12건」이 하루치인지 방금 뜬 뒤 1분치인지 알 수가 없다
     since: START_AT,
+    // ── **재시작을 넘어 남는 유일한 수** ── (2026-11-16)
+    //
+    // 위 `since` 는 정직하지만 쓸모가 없었다 — Render 무료 판은 15분만 놀아도
+    // 프로세스가 내려가서, 관리자가 보는 것은 거의 언제나 **방금 뜬 뒤 몇 분치**다.
+    // 「어제 자동 판정이 몇 번 돌았나」에 답할 수가 없었다.
+    //
+    // 하루 줄은 **DB 에 있다** — 재시작해도 남고, 배포본에서는 Postgres 다.
+    // 가까운 날이 앞이다. 이레를 보내는 까닭은 화면이 묻는 질문이 「지난 이레에
+    // 무슨 일이 있었나」 하나이기 때문이다(서른 날까지 쌓지만 다 보내지는 않는다)
+    aiDays: db.getAiDays(7),
     // 지금 막혀 있는 것 (파일에 남는다 — 재시작해도 그대로)
     shield: {
       blocks: db.listBlocks().length,

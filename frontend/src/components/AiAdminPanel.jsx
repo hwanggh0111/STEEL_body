@@ -187,6 +187,8 @@ export default function AiAdminPanel() {
   const logs = Array.isArray(data?.logs) ? data.logs : [];
   const blacklist = Array.isArray(data?.blacklist) ? data.blacklist : [];
   const suspensions = Array.isArray(data?.suspensions) ? data.suspensions : [];
+  // 날마다 한 줄. **가까운 날이 앞**으로 온다 (`db.getAiDays`)
+  const aiDays = Array.isArray(data?.aiDays) ? data.aiDays : [];
 
   const Num = ({ label, value, color }) => (
     <div className="card" style={{ padding: '12px 14px' }}>
@@ -234,6 +236,67 @@ export default function AiAdminPanel() {
         <Num label="정지 중인 사람" value={threats.activeSuspensions} color="var(--danger)" />
         <Num label="영구 정지" value={threats.bannedUsers} color="var(--danger)" />
       </div>
+
+      {/* ── 요 이레 ── (2026-11-16, 주인 「AI 관리자 보강」 지시)
+
+          **재시작을 넘어 남는 유일한 수다.** 아래 「서버가 뜬 뒤로」는 램이라
+          Render 무료 판에서 거의 언제나 몇 분치다 — 그 칸은 정직했지만
+          **「어제 자동 판정이 몇 번 돌았나」에 답할 수가 없었다.**
+
+          **막대를 안 그린다.** 이 수는 대개 0 이고(아무 일도 안 일어나는 것이
+          정상이다), 0 인 막대 일곱 개는 보는 사람에게 아무 말도 안 한다.
+          **일이 있었던 날만 줄로 적고**, 하나도 없으면 그렇다고 한 줄로 말한다 —
+          「조용했다」도 관리자가 알아야 하는 답이다.
+
+          까닭은 **그 날 줄 아래 작게** 적는다. 「막음 12건」만으로는 무엇을
+          막았는지 모르고, 그걸 알려면 로그 100줄을 읽어야 했다 */}
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>요 이레</div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+        <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 떠도 남습니다</b> — 날마다 한 줄씩 적어둡니다.
+        서울 날짜로 끊고, 서른 날까지 남습니다.
+      </div>
+      {aiDays.length === 0 || aiDays.every((d) => !d.requests && !d.blocked && !d.level2 && !d.level3 && !d.level4) ? (
+        <div className="card" style={{ padding: '12px 14px', marginBottom: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          요 이레에 <b style={{ color: 'var(--text-primary)' }}>자동 판정이 한 번도 안 돌았습니다.</b>
+          {' '}막은 것도 잠근 것도 없습니다 — 이 칸이 비어 있는 것이 정상입니다.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+          {aiDays.map((d) => {
+            const judged = (Number(d.level2) || 0) + (Number(d.level3) || 0) + (Number(d.level4) || 0);
+            const reasons = d.reasons && typeof d.reasons === 'object' ? Object.entries(d.reasons) : [];
+            return (
+              <div key={d.day} className="card" style={{ padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.2,
+                    color: 'var(--text-secondary)', minWidth: 74,
+                  }}>{d.day?.slice(5)}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    요청 <b style={{ color: 'var(--text-primary)' }}>{Number(d.requests || 0).toLocaleString()}</b>
+                  </span>
+                  {Number(d.blocked) > 0 && (
+                    <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                      되돌려 보냄 <b style={{ color: 'var(--danger)' }}>{Number(d.blocked).toLocaleString()}</b>
+                    </span>
+                  )}
+                  {judged > 0 && (
+                    <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                      판정 <b style={{ color: 'var(--warning)' }}>{judged}</b>
+                    </span>
+                  )}
+                </div>
+                {/* 까닭. 없으면 줄을 안 만든다 — 빈 줄은 자리만 먹는다 */}
+                {reasons.length > 0 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.7 }}>
+                    {reasons.map(([why, n]) => `${why} ${n}`).join(' · ')}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── 서버가 뜬 뒤로 센 것 (램 · 재시작하면 0) ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>서버가 뜬 뒤로</div>

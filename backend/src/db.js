@@ -7,6 +7,10 @@ const storage = require('./storage');
 const { DEFAULTS: REMINDER_DEFAULTS } = require('./utils/reminderSchedule');
 // 보안 기록을 몇 건까지 들고 있나 (화면은 100건을 보여준다)
 const SECURITY_LOG_KEEP = 500;
+// 자동 판정 일지를 며칠 둘까. 화면이 이레를 그리고, 「지난달과 견주기」까지 쓸 수
+// 있게 서른이다. 한 줄이 수 몇 개라 서른 줄은 2KB 안쪽이다 —
+// DB 는 바뀔 때마다 통째로 다시 쓰므로 길게 두면 그만큼 비싸다(`securityLogs` 와 같은 판단)
+const AI_DAY_KEEP = 30;
 
 // 검사에서는 진짜 DB 를 건드리면 안 된다. 그때만 다른 파일을 가리킬 수 있게 열어둔다
 // (`DB_FILE=.tmp.json node ...`). 안 주면 늘 쓰던 자리다
@@ -118,6 +122,18 @@ const DEFAULT_DATA = {
   verifyCodes: [],   // { email, hash, expires, attempts }
   suspensions: [],   // { id, user_id, level, reason, ai_reason, expires_at, created_at }
   blacklist: [],     // { id, type, value, reason, created_at } — type: 'email'|'ip'|'ip_range'|'ua'
+  // ── 자동 판정이 **날마다 무슨 일을 했나** ── (2026-11-16)
+  //
+  // 「AI 관리자」 화면의 숫자가 **전부 램에 있었다**(`aiGuard` 의 `totalRequests` ·
+  // `blockedRequests` · `threats` · `aiLogs`). 바로 위 `blocks` 주석에 적어둔 그 까닭이
+  // 여기에도 그대로 선다 — **Render 무료 판은 15분만 놀아도 프로세스가 내려간다.**
+  // 그래서 관리자가 화면을 열면 거의 언제나 **방금 뜬 뒤 몇 분치**를 본다.
+  // 화면은 그것을 정직하게 적고 있었다(「언제부터 센 것인지」) — 그런데 **정직하게
+  // 쓸모가 없었다.** 어제 자동 판정이 열두 번 돌았는지 한 번도 안 돌았는지 알 길이 없다.
+  //
+  // 그래서 **날마다 한 줄**만 남긴다. 사람이 보는 질문은 「지난 이레에 무슨 일이
+  // 있었나」 하나고, 그 답에 요청 한 건 한 건은 필요 없다.
+  aiDays: [],        // { day, requests, blocked, level2, level3, level4, reasons: { 까닭: 수 } }
   _nextId: { users: 1, workouts: 1, inbody: 1, measures: 1, myRoutines: 1, reports: 1, abuseLogs: 1, photos: 1, ratings: 1, faqGaps: 1, pushSubs: 1, suspensions: 1, blacklist: 1, plans: 1, gymSettings: 1 },
 };
 
@@ -2457,6 +2473,54 @@ const db = {
       data.securityLogs.splice(0, data.securityLogs.length - SECURITY_LOG_KEEP);
     }
     save(data);
+  },
+
+  // ── 자동 판정 일지 — **날마다 한 줄에 쌓는다** ── (2026-11-16)
+  //
+  // `day` 는 **서울 날짜**다(`utils/seoulDay`). 서버는 UTC 로 도는데 이 수를 보는
+  // 사람은 한국에 있다 — UTC 로 끊으면 한국 자정부터 오전 아홉 시까지가 어제로 밀려
+  // 「오늘 막은 것」이 어제 줄에 적힌다.
+  //
+  // **부르는 쪽이 모아서 한 번에 준다.** 요청 한 건마다 부르면 그때마다 파일(또는
+  // Postgres)을 **통째로 다시 쓴다** — 이 DB 는 그런 모양이다. 그래서 `aiGuard` 가
+  // 램에 모아 두고 **판정이 났을 때**와 **몇 분마다** 한 번씩만 넘긴다.
+  bumpAiDay(day, deltas) {
+    if (!day || !deltas) return null;
+    const data = load();
+    if (!Array.isArray(data.aiDays)) data.aiDays = [];
+    let row = data.aiDays.find((r) => r.day === day);
+    if (!row) {
+      row = { day, requests: 0, blocked: 0, level2: 0, level3: 0, level4: 0, reasons: {} };
+      data.aiDays.push(row);
+      // 날짜순으로 둔다 — 화면이 다시 세우지 않아도 되고, 잘라낼 때 앞에서 자른다
+      data.aiDays.sort((a, b) => (a.day < b.day ? -1 : 1));
+    }
+    for (const k of ['requests', 'blocked', 'level2', 'level3', 'level4']) {
+      const n = Number(deltas[k]) || 0;
+      if (n > 0) row[k] = (Number(row[k]) || 0) + n;
+    }
+    // 까닭별로도 센다 — 「막음 12건」만으로는 **무엇을 막았는지** 모른다.
+    // 까닭 글자는 `aiGuard` 가 정하는 몇 가지뿐이라 칸이 불어나지 않는다
+    if (deltas.reasons && typeof deltas.reasons === 'object') {
+      if (!row.reasons || typeof row.reasons !== 'object') row.reasons = {};
+      for (const [why, n] of Object.entries(deltas.reasons)) {
+        const add = Number(n) || 0;
+        if (!why || add <= 0) continue;
+        row.reasons[why] = (Number(row.reasons[why]) || 0) + add;
+      }
+    }
+    if (data.aiDays.length > AI_DAY_KEEP) {
+      data.aiDays.splice(0, data.aiDays.length - AI_DAY_KEEP);
+    }
+    save(data);
+    return row;
+  },
+
+  /** 최근 며칠. 가까운 날이 앞이다 — 화면이 그 차례로 그린다 */
+  getAiDays(n = 7) {
+    const data = load();
+    const rows = Array.isArray(data.aiDays) ? data.aiDays : [];
+    return rows.slice(-Math.max(1, n)).reverse();
   },
 
   /** 적힌 순서대로 (오래된 것이 앞). 화면 쪽이 세운다 */
