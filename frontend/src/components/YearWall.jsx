@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
 import { buildYear, yearsWithRecords } from '../data/yearWall';
+// **1월 1일에 0 으로 돌아가던 것** (2026-11-16) — 벽은 한 해를 새기고, 이 수는
+// 첫 기록부터 전부를 센다. 셈은 `data/lifetime.js` 가 한다
+import { buildLifetime } from '../data/lifetime';
 
 // 1년 기록 벽.
 //
@@ -41,6 +44,9 @@ export default function YearWall({ onPickMonth }) {
 
   // **앞날은 아직 새길 것이 없다** (2026-11-09) — 셈에 오늘을 같이 넘긴다
   const wall = useMemo(() => (shown ? buildYear(workouts, shown, today) : null), [workouts, shown, today]);
+  // **고른 해와 상관없다** — 2024년 판을 보고 있어도 이 수는 전부다.
+  // 그래서 `shown` 이 바뀌어도 다시 세지 않는다
+  const life = useMemo(() => buildLifetime(workouts, today), [workouts, today]);
 
   if (!wall || wall.total.days === 0) return null;
 
@@ -48,6 +54,54 @@ export default function YearWall({ onPickMonth }) {
 
   return (
     <div>
+      {/* ── 지금까지 들어올린 것 ── (2026-11-16)
+
+          벽은 **한 해**를 새긴다. 해가 바뀌면 그 벽은 1월 1일에 비고, 2년 쓴 사람은
+          자기가 쌓은 것의 절반을 못 본다. 그 수를 벽 **위에** 둔다 — 벽이 주인공이고
+          이것은 벽이 가리키는 세월이라, 아래에 두면 범례 밑에 묻힌다.
+
+          **이 자리의 큰 수는 금이다.** 아래 「한 해의 숫자」 줄과 달리 이것은
+          축하하는 수고(사실을 알리는 줄이 아니다), 수 하나만 크게 적는 결산의 결을
+          따른다. 대신 수는 **고정폭**으로 세우고(`tabular-nums`) 좁은 폰에서는
+          `clamp` 로 내려앉게 한다 — 맵시가 시안 주석에 적어둔 두 가지다. 360px 에서
+          다섯 자리(「12,840 톤」)까지 한 줄로 선다 */}
+      {life.any && (
+        <div className="card" style={{ textAlign: 'center', padding: '18px 16px', marginBottom: 16 }}>
+          <div className="label" style={{ marginBottom: 2 }}>
+            {life.unit === 'set' ? '지금까지 한 세트' : '지금까지 들어올린 무게'}
+          </div>
+          <div style={{
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
+            fontSize: 'clamp(38px, 13vw, 54px)', lineHeight: 1, letterSpacing: 2,
+            color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+          }}>
+            {life.value.toLocaleString()}
+            <span style={{ fontSize: 22, letterSpacing: 1 }}>
+              {life.unit === 'ton' ? ' 톤' : life.unit === 'kg' ? ' kg' : ' 세트'}
+            </span>
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.7 }}>
+            운동한 날 <b style={{ color: 'var(--text-primary)' }}>{life.days.toLocaleString()}일</b>
+            {life.first && <> &middot; 첫 기록 <b style={{ color: 'var(--text-primary)' }}>{life.first}</b></>}
+            {/* 세트 수를 크게 적은 사람에게는 **같은 수를 두 번** 적지 않는다 */}
+            {life.unit !== 'set' && (
+              <> &middot; 세트 <b style={{ color: 'var(--text-primary)' }}>{life.sets.toLocaleString()}</b>개</>
+            )}
+          </div>
+          {/* **무게를 안 적은 세트는 톤에 안 든다** — 그 사람의 체중을 모르니 셀 수가
+              없다(`volumeOf`). 조용히 빼면 「나는 이만큼 했는데 수가 안 는다」가 된다 */}
+          {life.unit !== 'set' && life.bodyweightSets > 0 && (
+            <div style={{
+              fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.65,
+              borderTop: '1px solid var(--border)', paddingTop: 8,
+            }}>
+              맨몸 <b style={{ color: 'var(--text-secondary)' }}>{life.bodyweightSets.toLocaleString()}세트</b>는
+              톤에 안 들어가요 — 체중을 안 받고 있어서 셀 수가 없어요.
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
         <div className="serif-display" style={{ fontSize: 22, lineHeight: 1.5 }}>
           {shown}년 <span style={{ color: 'var(--accent)' }}>{total.days}일</span>을<br />새겼습니다
