@@ -134,15 +134,24 @@ function git(args) {
 function build() {
   // 본문(%b)까지 가져온다 — 화면에서 펼쳐 볼 '자세히' 가 된다.
   // 본문에 줄바꿈이 있으므로 레코드는  로, 항목은 탭으로 가른다
-  const raw = git(['log', `-n${SCAN}`, '--date=short', '--pretty=format:%h%x09%ad%x09%s%x09%b%x1e']);
+  //
+  // **바뀐 파일 목록도 같이 받는다** (2026-11-16 · 맵시). 까닭은 아래
+  // `사용자화면밖` 에 적었다. `--name-only` 가 붙이는 목록은 **본문 뒤에** 오므로,
+  // 레코드 가름표를 **머리로** 옮기고 본문 끝에 `%x02` 를 세워 가른다 —
+  // 가름표를 꼬리에 두면 파일 목록이 다음 레코드로 넘어가 전부 어긋난다
+  const raw = git(['log', `-n${SCAN}`, '--date=short', '--name-only',
+    '--pretty=format:%x1e%h%x09%ad%x09%s%x09%b%x02']);
 
   const entries = [];
   for (const rec of raw.split('')) {
-    const line = rec.trim();
+    if (!rec.trim()) continue;
+    const [head, tail = ''] = rec.split('\x02');
+    const line = head.trim();
     if (!line) continue;
     const [hash, date, subject, ...rest] = line.split('	');
     if (!subject) continue;
     const body = rest.join('	').trim();
+    const files = tail.split('\n').map((f) => f.trim()).filter(Boolean);
 
     // "type(scope): 제목" 또는 "type: 제목"
     const m = subject.match(/^(\w+)(?:\(([^)]+)\))?:\s*(.+)$/);
@@ -163,6 +172,31 @@ function build() {
     // (화면이 안 바뀌는 변경은 안 올린다 — 8/20 에 정한 선)
     const SKIP_SCOPE = ['dev', '개발', '검사', 'test', 'ci'];
     if (SKIP_SCOPE.includes(scope) || /^\(?dev\)?/.test(scope || '')) continue;
+
+    // ── **꼬리표는 잊히고 파일은 안 잊힌다** ── (2026-11-16 · 맵시)
+    //
+    // 위 목록은 **같은 사고를 두 번 겪고 두 번 늘린 것**이다(10/05 `개발` ·
+    // 10/27 `검사`). 셋째가 올 자리였다 — 11/16 에 내가 시안 셋을 `fix(꼴)` 로
+    // 올렸는데, 그 시안은 `frontend/dev/` 안이라 **배포에 안 끼고 사용자 화면은
+    // 한 자도 안 바뀐다.** 꼬리표가 `꼴` 이니 위 목록에 안 걸려서 **소식에
+    // 올라갈 참이었다**(집안 결은 `chore(시안)` 이었는데 내가 틀리게 달았다).
+    // 꼬리표를 하나 더 적어두는 것으로는 **넷째가 또 온다.**
+    //
+    // 그래서 **바뀐 파일을 본다.** 사람이 열 수 없는 자리만 건드린 커밋은
+    // 알릴 것이 없다 — 꼬리표를 무엇으로 달았든 그렇다.
+    //
+    // 파일 목록이 비면(병합 커밋) **거르지 않는다.** 모를 때는 남기는 쪽으로
+    // 틀린다 — 빠뜨린 공지는 아무도 못 보고, 잘못 올린 공지는 보인다.
+    // **`scripts/` 를 넣었다가 뺐다** — 처음에 `frontend/scripts/` 까지 걸렀더니
+    // 공지함 고침 셋이 조용히 사라졌다(`5b1f298` · `fd0bfe6` · `436e20c`).
+    // 그 셋은 생성기(`gen-feed` · `gen-changelog`)를 고친 것이고, **생성기의 결과가
+    // 바로 사람이 읽는 공지함**이다 — 자리가 `scripts/` 라서 안 보이는 것이 아니다.
+    // 앞뒤 목록을 견주다가 잡았다. 거르는 자리는 **배포에 아예 못 끼는 것만** 둔다.
+    const 사용자화면밖 = (f) => f.startsWith('frontend/dev/')
+      || f.startsWith('agents/')
+      || f.startsWith('docs/')
+      || f === 'README.md';
+    if (files.length > 0 && files.every(사용자화면밖)) continue;
 
     entries.push({
       hash, date, type, label: labelFor(type, text),
