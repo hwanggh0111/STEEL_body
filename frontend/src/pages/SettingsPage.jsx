@@ -748,6 +748,8 @@ export default function SettingsPage() {
           {nickEdit ? (
             <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
               <input
+                /* 위의 「이름」은 `<div>` 라 **묶인 이름표가 아니다** (2026-11-16) */
+                aria-label="이름"
                 value={nickDraft}
                 onChange={(e) => setNickDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNick(); }}
@@ -800,6 +802,7 @@ export default function SettingsPage() {
               <>
                 <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
                   <input
+                    aria-label="새 아이디"
                     value={idDraft}
                     onChange={(e) => typeId(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveId(); }}

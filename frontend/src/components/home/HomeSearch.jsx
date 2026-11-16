@@ -152,6 +152,7 @@ export default function HomeSearch() {
       <input
         type="text"
         className="input"
+        aria-label="화면 찾기"
         placeholder="어디로 갈까요? (예: 1RM, 어깨 측정, 고객센터)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}

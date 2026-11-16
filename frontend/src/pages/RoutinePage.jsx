@@ -669,7 +669,10 @@ export default function RoutinePage() {
             style={{ marginBottom: 12 }}
           />
 
-          <label className="label">운동 목록</label>
+          {/* **이름표가 아니라 묶음 제목이다** (2026-11-16) — `<label>` 로 적어두면
+              낭독기가 「이름표」라고 읽고 가리키는 칸을 찾는데, 가리키는 칸이 없다.
+              아래 줄들은 칸이 저마다 제 이름을 든다 */}
+          <div className="label">운동 목록</div>
           {newRoutine.exercises.map((ex, i) => {
             const setEx = (patch) => {
               const updated = [...newRoutine.exercises];

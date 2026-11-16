@@ -515,6 +515,7 @@ export default function ReportAdmin() {
                         수는 `data/limits.js` 에서 온다 */}
                     <textarea
                       className="input"
+                      aria-label="답장 글"
                       value={draft}
                       onChange={e => setDraft(e.target.value)}
                       maxLength={BODY_MAX}

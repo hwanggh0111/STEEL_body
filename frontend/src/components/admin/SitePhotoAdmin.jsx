@@ -176,6 +176,7 @@ export default function SitePhotoAdmin() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input
                     className="input"
+                    aria-label="사진 한 줄 설명"
                     value={editing.caption}
                     maxLength={60}
                     autoFocus

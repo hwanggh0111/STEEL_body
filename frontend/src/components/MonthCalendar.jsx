@@ -228,6 +228,7 @@ export default function MonthCalendar({
                     <>
                       <textarea
                         ref={areaRef}
+                        aria-label="이 날의 한마디"
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         maxLength={2000}

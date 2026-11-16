@@ -356,6 +356,7 @@ export default function RestTimer() {
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               className="input"
+              aria-label="쉬는 시간 (초)"
               type="number"
               inputMode="numeric"
               min={MIN_SEC}

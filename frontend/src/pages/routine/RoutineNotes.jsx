@@ -171,6 +171,7 @@ export default function RoutineNotes({ onToRoutine }) {
         <div className="card" style={{ padding: 14, marginBottom: 14 }}>
           <textarea
             ref={areaRef}
+            aria-label="루틴 메모"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={2000}

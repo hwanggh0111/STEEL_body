@@ -426,6 +426,7 @@ export default function SecurityPanel() {
       <div style={{ position: 'relative', marginBottom: 8 }}>
         <input
           className="input"
+          aria-label="사람 찾기"
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}

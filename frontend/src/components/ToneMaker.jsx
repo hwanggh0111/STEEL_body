@@ -168,6 +168,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
 
           <div style={{ display: 'flex', gap: 7, marginTop: 13 }}>
             <input
+              aria-label="소리 이름"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value.slice(0, NAME_MAX) })}
               placeholder="이름 (없으면 「내 소리」)"

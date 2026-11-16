@@ -67,6 +67,7 @@ export default function AskFirst() {
 
         <input
           className="input"
+          aria-label="궁금한 것 찾기"
           value={q}
           onChange={e => { setQ(e.target.value.slice(0, 40)); setOpen(null); }}
           placeholder="어떤 게 궁금하신가요?"

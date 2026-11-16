@@ -30,7 +30,10 @@ import { EXERCISE_NAME_MAX } from '../data/limits';
 const MAX = 6;
 
 export default function ExerciseNameInput({
-  value, onChange, placeholder = '운동명', style, inputStyle, autoFocus,
+  // **`placeholder` 는 이름이 아니다** — 글자를 치면 사라지고, 그때부터 낭독기는
+  // 이 칸을 「편집 칸」이라고만 읽는다. 그래서 이름을 따로 받는다 (2026-11-16).
+  // 부르는 쪽이 안 주면 「운동 이름」이다 — 그것이 이 칸이 하는 일이다
+  value, onChange, placeholder = '운동명', style, inputStyle, autoFocus, ariaLabel = '운동 이름',
 }) {
   const [open, setOpen] = useState(false);
   // 자판으로 짚고 있는 줄. -1 은 **아무것도 안 짚은 상태**다 —
@@ -90,6 +93,7 @@ export default function ExerciseNameInput({
     <div ref={wrapRef} style={{ position: 'relative', ...style }}>
       <input
         className="input"
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => { onChange(e.target.value); setOpen(true); setCursor(-1); }}
         onFocus={() => setOpen(true)}

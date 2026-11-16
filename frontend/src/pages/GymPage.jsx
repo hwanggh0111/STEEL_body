@@ -280,6 +280,7 @@ export default function GymPage() {
               <div style={{ display: 'flex', gap: 7, marginBottom: 10 }}>
                 <input
                   className="input"
+                  aria-label="헬스장 이름"
                   value={gymInput}
                   onChange={(e) => setGymInput(e.target.value)}
                   placeholder="예: 강남점 · 집 앞"

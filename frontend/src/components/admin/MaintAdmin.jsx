@@ -74,28 +74,34 @@ function MaintForm({ kind, onSchedule }) {
         </div>
       </div>
 
+      {/* ── **이름표를 칸과 묶는다** ── (2026-11-16 · 정석)
+          여기 아홉 자리가 `<label className="label" htmlFor="maint-date">날짜</label>` 를 칸 **옆에만**
+          적어뒀다. 눈에는 이름표인데 묶인 것이 아니라서, 낭독기는 이 칸들을
+          「편집 칸」이라고만 읽고 **이름표를 눌러도 칸으로 안 들어간다.**
+          `htmlFor` + `id` 로 묶는다 — 묶는 길은 이것과 「품는 것」 둘뿐이다 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
         <div>
-          <label className="label">날짜</label>
-          <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: 150 }} />
+          <label className="label" htmlFor="maint-date">날짜</label>
+          <input className="input" id="maint-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: 150 }} />
         </div>
         <div>
-          <label className="label">시작 시간</label>
-          <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 110 }} />
+          <label className="label" htmlFor="maint-time">시작 시간</label>
+          <input className="input" id="maint-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 110 }} />
         </div>
         <div>
-          <label className="label">소요 (분)</label>
-          <input className="input" type="number" min="1" max="480" value={min} onChange={(e) => setMin(e.target.value)} style={{ width: 70 }} />
+          <label className="label" htmlFor="maint-min">소요 (분)</label>
+          <input className="input" id="maint-min" type="number" inputMode="numeric" min="1" max="480" value={min} onChange={(e) => setMin(e.target.value)} style={{ width: 70 }} />
         </div>
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <label className="label">사유</label>
+        <label className="label" htmlFor="maint-reason">사유</label>
         {/* **서버가 말없이 자르던 자리** (2026-10-28). 이 글은 점검 안내 화면에
             그대로 떠서 **쓰는 사람 모두가 읽는다** — 잘리면 잘린 문장이 그대로 간다.
             수는 `data/limits.js` 에서 온다 */}
         <input
           className="input"
+          id="maint-reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={REASON_MAX}
@@ -308,25 +314,25 @@ export default function MaintAdmin() {
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
-              <label className="label">시작 시간 (시)</label>
+              <label className="label" htmlFor="maint-sched-hour">시작 시간 (시)</label>
               <input
-                className="input" type="number" min="0" max="23"
+                className="input" id="maint-sched-hour" type="number" inputMode="numeric" min="0" max="23"
                 value={form.startHour}
                 onChange={(e) => setForm({ ...form, startHour: e.target.value })}
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label className="label">시작 분</label>
+              <label className="label" htmlFor="maint-sched-min">시작 분</label>
               <input
-                className="input" type="number" min="0" max="59"
+                className="input" id="maint-sched-min" type="number" inputMode="numeric" min="0" max="59"
                 value={form.startMin}
                 onChange={(e) => setForm({ ...form, startMin: e.target.value })}
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label className="label">소요 시간 (분)</label>
+              <label className="label" htmlFor="maint-sched-dur">소요 시간 (분)</label>
               <input
-                className="input" type="number" min="1" max="480"
+                className="input" id="maint-sched-dur" type="number" inputMode="numeric" min="1" max="480"
                 value={form.durationMin}
                 onChange={(e) => setForm({ ...form, durationMin: e.target.value })}
               />
@@ -346,7 +352,8 @@ export default function MaintAdmin() {
               <br />다른 날로 옮기려면 지우고 위에서 다시 잡아주세요.
             </div>
           ) : (<>
-          <label className="label">요일 선택</label>
+          {/* **단추 묶음 제목이다** — 가리킬 칸이 없으니 `<label>` 이 아니다 */}
+          <div className="label">요일 선택</div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             {DAY_LABELS.map((label, i) => (
               <button
@@ -367,9 +374,10 @@ export default function MaintAdmin() {
           </div>
           </>)}
 
-          <label className="label">점검 사유</label>
+          <label className="label" htmlFor="maint-sched-reason">점검 사유</label>
           <input
             className="input"
+            id="maint-sched-reason"
             value={form.reason}
             onChange={(e) => setForm({ ...form, reason: e.target.value })}
             placeholder="예: 정기 시스템 점검, DB 마이그레이션 등"

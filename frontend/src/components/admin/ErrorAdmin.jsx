@@ -192,6 +192,7 @@ export default function ErrorAdmin() {
 
           {dump && (
             <textarea
+              aria-label="오류 묶음 글 (읽기만)"
               readOnly
               value={dump}
               onFocus={(e) => e.target.select()}

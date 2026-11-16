@@ -284,6 +284,9 @@ export default function DaySheet({
             <div style={{ display: 'flex', gap: 7 }}>
               <input
                 className="input"
+                /* **`placeholder` 는 이름이 아니다** — 글자를 치면 사라진다.
+                   낭독기는 그때부터 이 칸을 「편집 칸」이라고만 읽는다 (11/16) */
+                aria-label="담을 운동 이름"
                 value={name}
                 onChange={(e) => { setName(e.target.value.slice(0, PLAN_NAME_MAX)); if (planError) setPlanError(''); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExercise(); } }}
@@ -316,6 +319,7 @@ export default function DaySheet({
           <div style={{ display: 'flex', gap: 6 }}>
             <input
               className="input"
+              aria-label="적을 운동 이름"
               value={ex}
               /* **다른 화면과 같은 선을 든다** (2026-10-31). 여기만 60 이었다 —
                  운동 이름은 서버가 100 까지 받고(`EXERCISE_NAME_MAX`) 「운동」

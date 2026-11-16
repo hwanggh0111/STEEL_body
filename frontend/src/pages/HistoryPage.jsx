@@ -596,6 +596,10 @@ export default function HistoryPage() {
           {allExercises.length > 1 && (
             <select
               className="input"
+              /* 고르는 칸에 **이름이 하나도 없었다** (2026-11-16) — 낭독기가
+                 「목록 상자」라고만 읽었다. 첫 칸이 「전체 운동」이라 눈에는
+                 무엇을 고르는지 보이지만 그것은 **값**이고 이름이 아니다 */
+              aria-label="운동으로 거르기"
               value={filterExercise}
               onChange={e => setFilterExercise(e.target.value)}
               style={{ flex: 1, minWidth: 130, fontSize: 13, padding: '8px 11px' }}

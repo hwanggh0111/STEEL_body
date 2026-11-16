@@ -20,7 +20,7 @@ const BOX = {
   borderRadius: 'var(--radius)', padding: 13, marginBottom: 12,
 };
 
-function Chips({ options, value, onPick, allowFree }) {
+function Chips({ options, value, onPick, allowFree, label }) {
   // 직접 칸에 친 것. **칩을 누르면 비운다** — 칩으로 고른 뒤에도 칸에 옛 글자가
   // 남아 있으면 무엇이 저장될지 두 곳이 서로 다른 말을 한다
   const [typed, setTyped] = useState(options.includes(value) ? '' : (value || ''));
@@ -56,6 +56,9 @@ function Chips({ options, value, onPick, allowFree }) {
       {allowFree && (
         <input
           className="input"
+          /* **`placeholder` 는 이름이 아니다** — 치면 사라진다 (2026-11-16).
+             「직접」만으로는 무엇을 직접 적는지도 모른다 */
+          aria-label={`${label} 직접 적기`}
           value={typed}
           onChange={(e) => { setTyped(e.target.value); onPick(e.target.value); }}
           placeholder="직접"
@@ -138,6 +141,7 @@ export default function GymSetting({ exercise }) {
         <div style={{ display: 'flex', gap: 7 }}>
           <input
             className="input"
+            aria-label="헬스장 이름"
             value={gymInput}
             onChange={(e) => setGymInput(e.target.value)}
             placeholder="예: 강남점 · 집 앞"
@@ -211,6 +215,8 @@ export default function GymSetting({ exercise }) {
               value={form[slot.key]}
               onPick={(v) => setForm((f) => ({ ...f, [slot.key]: v }))}
               allowFree={slot.key !== 'grip'}
+              /* 직접 적는 칸의 이름이 된다 — 「직접」만으로는 무엇을 적는지 모른다 */
+              label={slot.label}
             />
           </div>
         ))}
@@ -218,6 +224,7 @@ export default function GymSetting({ exercise }) {
         <div className="label" style={{ marginBottom: 7 }}>한마디 (안 적어도 됩니다)</div>
         <input
           className="input"
+          aria-label="한마디 (안 적어도 됩니다)"
           value={form.note}
           onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
           placeholder="가슴 살짝 열고 팔꿈치로 당긴다"

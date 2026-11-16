@@ -262,6 +262,7 @@ function oauthErrorText(code) {
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 32 }}>닉네임을 설정해주세요</p>
           <input
             className="input"
+            aria-label="사용할 닉네임"
             type="text"
             value={oauthNick}
             onChange={(e) => { setOauthNick(e.target.value); setNickError(''); }}

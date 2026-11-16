@@ -117,6 +117,7 @@ export default function NoticeArchive({ embedded = false }) {
       <div style={{ position: 'relative', marginBottom: 14 }}>
         <input
           className="input"
+          aria-label="소식 찾기"
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}

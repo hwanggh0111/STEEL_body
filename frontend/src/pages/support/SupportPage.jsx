@@ -298,6 +298,7 @@ export default function SupportPage() {
         <div style={{ position: 'relative', marginBottom: 10 }}>
           <input
             className="input"
+            aria-label="궁금한 것 찾기"
             type="text"
             value={faqQ}
             onChange={(e) => setFaqQ(e.target.value)}
