@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "3b5181ba77",
+  "detailVersion": "53a98c23e1",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "8f1c204",
+      "date": "2026-11-16",
+      "text": "이름표가 칸과 묶이지 않아 낭독기가 「편집 칸」이라고만 읽었다 — 보이는 칸 셋에 하나가 그랬다",
+      "label": "고침",
+      "scope": "UI",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "그날의 가장 큰 변경이 공지에서 사라졌다 — 접을 때 마지막 것을 남겼다",
       "label": "고침",
       "scope": "공지",
-      "has": true
-    },
-    {
-      "key": "996da1f",
-      "date": "2026-11-05",
-      "text": "매일 적는 사람의 위젯에 「첫 기록을 적어보세요」가 떠 있었다",
-      "label": "고침",
-      "scope": "유산소",
       "has": true
     }
   ]
