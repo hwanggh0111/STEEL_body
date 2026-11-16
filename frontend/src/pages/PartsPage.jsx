@@ -3,13 +3,11 @@ import SegRow from '../components/SegRow';
 import PumpBody, { MARK_WARNING } from '../components/PumpBody';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useToday } from '../data/useToday';
-import { readLS } from '../data/safeStorage';
-import { SORE_KEY } from '../data/localKeys';
-import { keepLocal } from '../data/keepLocal';
+import { readSore, writeSore } from '../data/soreLocal';
 import { MAP_PARTS, buildHeat } from '../data/bodyHeat';
 import { searchExercises } from '../data/exerciseDict';
 import {
-  cleanSore, addSore, removeSore, isSore, soreList, soreLine, askLine,
+  addSore, removeSore, isSore, soreList, soreLine, askLine,
   restAdvice, adviceLine,
 } from '../data/sorePart';
 import { previewPart, previewLine, soreWarn } from '../data/partPreview';
@@ -39,15 +37,11 @@ const TABS = [
   { key: 'preview', label: '미리보기' },
 ];
 
-function loadSore() {
-  try { return cleanSore(JSON.parse(readLS(SORE_KEY) || 'null')); } catch { return []; }
-}
-
 export default function PartsPage() {
   const today = useToday();
   const workouts = useWorkoutStore((s) => s.workouts);
   const [tab, setTab] = useState('sore');
-  const [sore, setSore] = useState(loadSore);
+  const [sore, setSore] = useState(readSore);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(null);
 
@@ -59,7 +53,9 @@ export default function PartsPage() {
   // 아픈 곳은 **기기에만** 있고, 그 값으로 이 화면이 **추천을 바꾼다** —
   // 담기지 않으면 다시 열 때 사라져서 **아픈 부위를 또 권한다.**
   // 10/27 ⑯ 과 같은 꼴이다(기능이 조용히 없는 것이 됐다)
-  const put = (next) => { setSore(next); keepLocal(SORE_KEY, JSON.stringify(next), '아픈 곳'); };
+  // 읽고 쓰는 손은 **한 벌**이다 (`data/soreLocal.js`, 2026-11-16) — 홈 · 적는 자리도
+  // 같은 손을 쓴다. 베껴 두면 어느 날 한 벌만 고쳐진다
+  const put = (next) => { setSore(next); writeSore(next); };
   const toggle = (part) => put(isSore(sore, part) ? removeSore(sore, part) : addSore(sore, part, today));
 
   const found = useMemo(() => (query.trim().length ? searchExercises(query.trim(), 8) : []), [query]);

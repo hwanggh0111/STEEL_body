@@ -1,6 +1,6 @@
 import { bodyPartOf } from './bodyPart';
 import { heatLevel, MAP_PARTS } from './bodyHeat';
-import { isSore } from './sorePart';
+import { isSore, restAdvice } from './sorePart';
 import { eun } from './particle';
 
 // 이 운동을 하면 어디가 달아오르나 — **하기 전에** 본다 (2026-09-30).
@@ -77,4 +77,38 @@ export function soreWarn(p) {
   if (!p || !p.sore) return null;
   // 조사는 앞말에 맞춘다 — 「등는」이 아니라 「등은」이다 (2026-10-21)
   return `${eun(p.part)} 아프다고 적어두셨어요. 하실 거면 하셔도 되지만, 적어둔 건 알려드려요.`;
+}
+
+/**
+ * **「그럼 뭘 하지」의 답.** 고른 부위가 아직 달아 있을 때만 한 줄.
+ *
+ * 몸 지도는 식은 곳을 말하지만 그것은 **다른 화면**이다. 적는 자리에서 「오늘 이미
+ * 했어요」만 보여주고 끝내면, 사람은 그 말을 듣고도 갈 곳을 모른 채 그 운동을 적는다.
+ * 그 답이 **같은 화면에 있어야** 한다.
+ *
+ * ── 언제 안 적는가 ──
+ *
+ * 1. 고른 부위가 **이미 식어 있으면** 안 적는다 — 하려는 것이 맞는 자리인데 다른
+ *    곳을 권하면 잔소리다. 아직 달아 있을 때(0~2일)만 말한다.
+ * 2. **식은 곳이 없으면** 안 적는다. 「그럼 뭘 하지」에 댈 답이 없는데 억지로
+ *    가장 덜 달아오른 곳을 권하면, 엿새 전이 아니라 **사흘 전**인 곳을 식었다고
+ *    말하는 셈이 된다 (`bodyHeat.js` 가 그 선을 `COLD_DAYS` 로 그어뒀다).
+ * 3. **아프다고 적어둔 곳은 권하지 않는다** — `restAdvice` 가 그 일을 한다.
+ *
+ * heat 는 `buildHeat` 가 준 것, sore 는 아픔 목록. 할 말이 없으면 `null`.
+ */
+export function elsewhereLine(p, heat, sore) {
+  if (!p || !p.known || p.days === null || p.days > 2) return null;
+  const { picks } = restAdvice(sore, heat, 2);
+  const cold = picks
+    .map((part) => heat?.byPart?.[part])
+    .filter((slot) => slot && (slot.days === null || slot.days >= COLD_DAYS));
+  if (cold.length === 0) return null;
+  // 조사는 앞말에 맞춘다 (`data/particle.js`) — 「등는」이 아니라 「등은」이다
+  const said = cold
+    .map((slot) => (slot.days === null
+      ? `${eun(slot.part)} 한 번도`
+      : `${eun(slot.part)} ${slot.days}일째`))
+    .join(' · ');
+  return `${said} 식어 있어요.`;
 }

@@ -30,9 +30,8 @@ import { buildHeat } from '../data/bodyHeat';
 // **권하는 자를 새로 만들지 않는다** — 그 화면이 쓰는 것을 그대로 부른다.
 // 아픈 곳을 빼고 **식은 차례는 몸 지도와 같은 것**을 쓰고, **뺀 것을 같이 돌려준다**
 // (「왜 어깨가 안 보이는지 화면이 말해야 한다」 — 그 자리에 그렇게 적혀 있다).
-import { cleanSore, restAdvice } from '../data/sorePart';
-import { SORE_KEY } from '../data/localKeys';
-import { readLS } from '../data/safeStorage';
+import { restAdvice } from '../data/sorePart';
+import { readSore } from '../data/soreLocal';
 import { buildSummary } from '../data/sessionSummary';
 import { showFinish } from '../components/SessionFinish';
 import { mondayOf, weekKeys } from '../data/weeklyReport';
@@ -329,9 +328,9 @@ export default function HomePage() {
   const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
   // 아픈 곳은 **그 기기에만** 담긴다(「부위」 화면이 적어둔 그 자리를 읽는다).
   // 못 읽으면 빈 목록으로 본다 — 홈이 그 때문에 안 뜨면 안 된다
-  const sore = useMemo(() => {
-    try { return cleanSore(JSON.parse(readLS(SORE_KEY) || 'null')); } catch { return []; }
-  }, [refreshTick]);
+  // 읽는 손은 **한 벌**이다 (`data/soreLocal.js`, 2026-11-16) — 부위 화면 · 적는
+  // 자리도 같은 손을 쓴다
+  const sore = useMemo(readSore, [refreshTick]);
   // **아픈 곳을 뺀 것 중 가장 식은 곳.** 여섯이 다 아프면 `picks` 가 비는데,
   // 그때는 여태처럼 가장 식은 곳을 그린다 — 권할 곳이 없다고 홈을 비우지 않는다
   const advice = useMemo(() => restAdvice(sore, heat, 1), [sore, heat]);

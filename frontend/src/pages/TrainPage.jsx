@@ -40,6 +40,11 @@ import { cannotCount } from '../data/repCount';
 import { liftNames } from '../data/liftTrend';
 import { rowPayload, rowById, changed, UNDO_MS } from '../data/undoRow';
 import { useWakeLock } from '../data/useWakeLock';
+// ── 적는 자리가 **아픈 곳과 식은 날**을 몰랐다 ── (2026-11-16)
+// 셈은 하나도 새로 만들지 않는다 — 부위 화면이 쓰는 그 손을 그대로 쓴다
+import { buildHeat } from '../data/bodyHeat';
+import { previewPart, previewLine, soreWarn, elsewhereLine } from '../data/partPreview';
+import { readSore } from '../data/soreLocal';
 import GymSetting from '../components/GymSetting';
 import { useGymStore } from '../store/gymStore';
 import { useSettingsStore } from '../store/settingsStore';
@@ -363,6 +368,41 @@ export default function TrainPage() {
   // 아니다. 그래서 처음 온 사람에게는 **빈 배열**이고, 화면은 그 칸을 안 그린다
   // (「기록이 쌓이면 저절로 나타난다」가 이 앱의 결이다).
   const often = useMemo(() => liftNames(workouts, today, 8, { metric: 'any' }), [workouts, today]);
+
+  // ── **아픈 곳과 식은 날이 적는 자리에는 없었다** ── (2026-11-16)
+  //
+  // 11/03 에 같은 구멍을 홈에서 한 번 메웠다(`HomePage.jsx` — 「홈은 그 말을 몰라서
+  // 아픈 어깨를 식었다고 권했다」). 그런데 **정작 적는 자리**는 아직 몰랐다 —
+  // `sorePart` 를 읽는 화면이 홈과 부위 둘뿐이었다. 권하는 자리는 메웠는데
+  // **하기 직전**은 안 메운 셈이다.
+  //
+  // **셈을 하나도 새로 만들지 않는다.** 부위는 사전에 있고(`exercisePart`),
+  // 식은 날수는 몸 지도가 센다(`bodyHeat`), 둘을 잇는 손은 `partPreview` 가
+  // 이미 들고 있다 — 여태 `PartsPage` 한 곳에서만 쓰고 있었다.
+  //
+  // 말은 **부위 화면이 하는 그 말 그대로** 쓴다(`previewLine` · `soreWarn`).
+  // 여기서 새로 지어 적으면 같은 사실을 두 화면이 다르게 말하게 된다.
+  const heat = useMemo(() => buildHeat(workouts, today), [workouts, today]);
+  // 아픈 곳은 **그 기기에만** 담긴다. 읽는 손은 한 벌이다 (`data/soreLocal.js`)
+  const sore = useMemo(readSore, [refreshTick]);
+  // **고르기 전에는 아무 말도 안 한다** — 빈 화면에 「무엇을 달굴지 몰라요」를
+  // 띄우면 적기 전에 잔소리부터 읽는다.
+  //
+  // ── 그리지 않는 자리 ──
+  //
+  // 1. **유산소 · 사전이 모르는 이름** — `known: false` 다. 부위가 없으니 식은
+  //    날수도 아픔도 말할 것이 없다(「런닝머신은 어디를 달굴지 몰라요」는 틀린
+  //    말이 아니라 **쓸모 없는 말**이다). 부위 화면은 고르러 간 자리라 그 말을
+  //    하지만, 여기는 적으러 온 자리다
+  // 2. **지난 날에 적을 때** — 셈은 오늘을 기준으로 센다. 어제 것을 적는 중에
+  //    「오늘 이미 했어요」가 뜨면 **그 「오늘」이 어느 날인지** 알 수 없는 말이 된다
+  // 3. **고치는 중** — 그 자리는 지난 기록을 다루는 자리다(바로 아래 둘과 같은 선)
+  const view = useMemo(
+    () => (date === today && !editingId ? previewPart(exercise, heat, sore) : null),
+    [exercise, heat, sore, date, today, editingId],
+  );
+  const soreSay = view ? soreWarn(view) : null;
+  const elsewhere = view ? elsewhereLine(view, heat, sore) : null;
 
   const step = useMemo(() => nextStep(workouts, exercise, today, date), [workouts, exercise, today, date]);
   const lastPlay = useMemo(() => lastSession(workouts, exercise, today, date), [workouts, exercise, today, date]);
@@ -1275,6 +1315,40 @@ export default function TrainPage() {
                 </span></>
               )}
             </div>
+
+            {/* ── 이 부위를 마지막으로 언제 했나 · 아프다고 적어둔 곳인가 ── (2026-11-16)
+
+                **축하가 아니라 사실이다.** 그래서 최고 기록 띠가 입는 옷
+                (`--accent-dim` 바탕 + `--accent` 네 변 — `PersonalRecordBanner`)을
+                입히지 않는다. 운동하다 금색 칸이 뜨면 사람은 **잘했다는 줄 알고
+                넘긴다.** 중립 바탕에 **왼쪽 금실 한 줄**만 둔다 — 눈에는 걸리되
+                축하로는 안 읽힌다 (11/13 에 맵시가 시안에서 그은 선이다).
+
+                아픈 곳은 **막지 않는다.** 아픈데도 가볍게 하는 날이 있고 이 앱은
+                진단하지 않는다(`sorePart.js` 의 「안 하는 것」 넷). 적어둔 것을
+                알려줄 뿐이고, 「이 운동 적기」는 그 자리에 그대로 있다 */}
+            {view && view.known && (
+              <div style={{
+                marginBottom: 12, padding: '10px 12px', borderRadius: 'var(--radius)',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)', borderLeft: '2px solid var(--accent-low)',
+              }} role="status">
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {previewLine(view)}
+                </div>
+                {/* 「그럼 뭘 하지」의 답을 **같은 화면에** 둔다 — 아직 달아 있을 때만 */}
+                {elsewhere && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                    {elsewhere}
+                  </div>
+                )}
+                {soreSay && (
+                  <div style={{ fontSize: 12, color: 'var(--warning)', marginTop: 6, lineHeight: 1.65 }}>
+                    {soreSay}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── 다음 한 걸음 ── (2026-11-05)
                 **권하는 것일 뿐이다.** 등급도 점수도 아니다 — 이 앱은 몸에 등급을
