@@ -37,7 +37,7 @@ const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'globals
 console.log('── 전역 규칙이 살아 있는가 ──');
 
 // 주석을 걷어낸 알맹이만 본다 — 주석에 적힌 글자에 속으면 안 된다
-const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+const bare = css.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1');
 const block = (() => {
   const at = bare.indexOf('@media (pointer: coarse)');
   if (at < 0) return '';

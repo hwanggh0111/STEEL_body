@@ -420,7 +420,7 @@ console.log('── ★ 인바디의 「가장 최근」도 앞날을 안 집는
   ok('화면 둘이 그 손을 쓴다',
     /latestInbody\(records\)/.test(home) && /latestInbody\(records\)/.test(inb), true);
   // **코드만 본다** — 까닭을 적어둔 주석에 그 글자가 들어 있다
-  const noComment = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const noComment = (t) => t.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
   ok('  제 손으로 records[0] 을 집지 않는다',
     /records\[0\]/.test(noComment(home)) || /records\[0\]/.test(noComment(inb)), false);
   ok('  앞날 줄이 있으면 화면이 말해준다', /앞날 날짜로 적힌 기록이/.test(inb), true);

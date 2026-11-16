@@ -91,7 +91,7 @@ if (list) {
 console.log('');
 console.log('── 홈페이지가 그것만 받나 ──');
 const site = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'SiteHome.jsx'), 'utf8')
-  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')
   .split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
 ok('feedList 를 받는다', /import\('\.\.\/data\/feedList\.json'\)/.test(site), true);
 // 큰 파일을 다시 받으면 이 일이 없던 것이 된다

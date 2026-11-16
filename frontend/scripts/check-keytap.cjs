@@ -203,7 +203,7 @@ console.log('── 닿은 다음 — 포커스가 보이는가 ── (2026-11-
       for (const t of openTags(code)) {
         // ★ **주석에 적힌 글자에 걸렸다** (처음 돌렸을 때 내가 적어둔 「`outline: 'none'`
         //    이었다」는 주석이 그대로 FAIL 로 나왔다). 속성에서 주석을 걷고 본다
-        const attrs = t.attrs.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\r\n]*/g, ' ');
+        const attrs = t.attrs.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1 ').replace(/\/\/[^\r\n]*/g, ' ');
         if (!/outline:\s*['"]none['"]/.test(attrs)) continue;
         if (겉칸이있다 && t.tag === 'input') continue;
         if (/tabIndex=\{-1\}/.test(attrs)) continue;        // 프로그램이 옮기는 자리

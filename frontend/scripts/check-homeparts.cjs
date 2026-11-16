@@ -218,7 +218,7 @@ console.log('── **머리글이 「운동기구 없이」라고 적어놓고 
   // 사람에게 보이는 글만 봐야 한다 (아까 원판 쪽에서도 같은 함정을 밟았다)
   const noComments = page
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')      // JSX 주석
-    .replace(/\/\*[\s\S]*?\*\//g, '')            // 여러 줄 주석
+    .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1')            // 여러 줄 주석
     .replace(/^\s*\/\/.*$/gm, '');                // 한 줄 주석
   ok('머리글이 「운동기구 없이」라고 안 적는다', /운동기구 없이/.test(noComments), false);
   ok('  대신 세서 적는다', /PROGRAM_NAMES\.filter\(needsTool\)/.test(page), true);

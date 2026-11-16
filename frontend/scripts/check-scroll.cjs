@@ -47,7 +47,7 @@ const ok = (label, pass, detail) => {
 // 주석에 옛 코드가 적히는 일은 앞으로도 생긴다. 걷어내고 본다.
 function stripComments(src) {
   return src
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')   // /* … */
+    .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1 ')   // /* … */
     .replace(new RegExp('(^|[^:])//[^\n]*', 'g'), '$1');  // 줄 주석 (`https://` 는 안 건드린다)
 }
 

@@ -40,7 +40,7 @@ const bundle = (entry, out) => {
 // 주석을 걷고 본다 — 머리말에 옛 모습을 적어두는 것이 이 앱의 방식이라,
 // 안 걷으면 주석에 적힌 옛 코드를 살아 있는 코드로 본다
 const codeOf = (src) => src
-  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1 ')
   .split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
 
 let bad = 0;

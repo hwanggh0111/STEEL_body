@@ -37,7 +37,7 @@ const ok = (name, got, want) => {
 };
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 // 주석을 뗀 알맹이. 머리글에 적어둔 말이 자를 통과시키면 안 된다
-const codeOf = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const codeOf = (s) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
 
 // ── 셈을 묶어 들인다 ──
 // `src/data` 는 ESM 이고 이 자는 cjs 다. 집안 다른 자들이 쓰는 그 방법을 쓴다

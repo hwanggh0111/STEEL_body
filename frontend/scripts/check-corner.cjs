@@ -36,7 +36,7 @@ const ROOT = path.join(__dirname, '..');
 
 // 토큰이 그대로 있는가 — 이 검사의 바닥이다
 const css = fs.readFileSync(path.join(ROOT, 'src', 'styles', 'globals.css'), 'utf8')
-  .replace(/\/\*[\s\S]*?\*\//g, '');
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1');
 console.log('── 토큰이 그대로인가 ──');
 ok('--radius 가 2px 다', /--radius:\s*2px/.test(css), true);
 ok('  --radius-lg 가 4px 다', /--radius-lg:\s*4px/.test(css), true);

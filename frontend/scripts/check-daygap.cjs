@@ -77,7 +77,7 @@ const files = [];
 }(path.join(ROOT, 'src')));
 
 // 주석은 뗀다 — 오늘만 세 번 거짓 FAIL 을 낸 자리다(`brand` · `logo` · `check-data`)
-const codeOf = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const codeOf = (s) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
 
 const 자리 = [];
 for (const f of files) {

@@ -34,7 +34,7 @@ const ok = (name, got, want) => {
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 // 주석을 뗀 알맹이 — 머리글에 적어둔 말이 자를 통과시키면 안 된다
-const codeOf = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const codeOf = (s) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
 // ★ HTML 주석도 떼야 한다. 첫 판이 **내가 `index.html` 주석에 적어둔
 // 「`icon.svg` 는 지웠다」는 말**을 잡아 거짓 FAIL 을 냈다 — 코드가 아니라 자를 고쳤다.
 // 오늘 `npm run brand` 에서도 같은 자리를 밟았다(옛 이름을 설명하는 줄을 잡았다)

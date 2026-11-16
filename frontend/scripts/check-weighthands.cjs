@@ -81,7 +81,7 @@ const walk = (dir, out = []) => {
 // 그래서 지우는 대신 **줄바꿈만 남긴다.**
 const blank = (m) => m.replace(/[^\n]/g, ' ');
 const codeOf = (t) => t
-  .replace(/\/\*[\s\S]*?\*\//g, blank)
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, (m, p) => p + blank(m.slice(p.length)))
   .replace(/^(\s*)\/\/.*$/gm, '$1')
   .replace(/([^:])\/\/.*$/gm, '$1');
 

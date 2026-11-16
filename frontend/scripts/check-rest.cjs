@@ -88,7 +88,7 @@ console.log('── 쉬는 중에는 쉬는 것만 남는가 ── (2026-10-06)
 // 안 걷으면 **주석에 적힌 옛 코드를 살아 있는 코드로** 본다
 // (오늘 `check-scroll` 에서 그렇게 한 번 멀쩡한 파일을 실패로 만들었다)
 const timer = read('src/components/RestTimer.jsx')
-  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1 ')
   .split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
 ok('쉬는 중이면 정하는 것을 접는다', /const prefsOpen = !active \|\| openPrefs/.test(timer), true);
 // **숨기지 않고 접는다.** 한 번 누르면 그 자리에서 펴진다

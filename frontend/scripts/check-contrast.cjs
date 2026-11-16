@@ -56,7 +56,7 @@ const ratio = (a, b) => {
 
 /** `:root` 에 적힌 토큰 값. 주석은 걷어낸다 — 주석의 색 글자에 속으면 안 된다 */
 const tokens = {};
-for (const m of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+for (const m of css.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
   if (!(m[1] in tokens)) tokens[m[1]] = m[2].toLowerCase();
 }
 

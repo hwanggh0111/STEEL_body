@@ -139,10 +139,18 @@ console.log('── 출처를 말하지 않는다 ──');
   const 출처칸 = Object.keys(r).filter((k) => /import|csv|source|가져/i.test(k));
   ok('셈이 출처 칸을 내놓지 않는다', 출처칸, []);
   // 주석은 뺀다 — 머리글은 **왜 안 적는지**를 적는 자리다(거기 있어야 맞다).
-  // 코드에 남아 있으면 그때가 말을 지어내기 시작한 때다
-  const 코드 = fs.readFileSync('src/data/lifetime.js', 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '').split('\n')
-    .filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  // 코드에 남아 있으면 그때가 말을 지어내기 시작한 때다.
+  //
+  // 걷는 손은 **줄 단위**다. `/\*[\s\S]*?\*\//` 로 걷으면 문자열 안의 `/*`
+  // (`accept="image/*"` 같은 자리)에서 주석이 시작된 것으로 읽혀 **다음 `*/` 까지
+  // 코드를 먹는다** — 먹힌 자리는 자가 못 보니 **조용한 거짓 통과**가 된다
+  // (11/16 에 내 훑기가 그렇게 5,077자를 먹었다)
+  let 주석안 = false;
+  const 코드 = fs.readFileSync('src/data/lifetime.js', 'utf8').split('\n').filter((l) => {
+    if (주석안) { if (/\*\//.test(l)) 주석안 = false; return false; }
+    if (/^\s*\/\*/.test(l)) { 주석안 = !/\*\//.test(l); return false; }
+    return !/^\s*\/\//.test(l);
+  }).join('\n');
   ok('  셈 코드에 출처를 말하는 글자가 없다', /가져온|가져오기|imported/i.test(코드), false);
   // 대신 **첫 기록 날짜**를 내놓는다 — 한 번에 올린 사람은 그 날짜를 보고 스스로 안다
   ok('  첫 기록 날짜로 대신한다', r.first, '2026-11-15');

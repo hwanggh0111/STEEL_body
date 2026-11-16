@@ -30,7 +30,7 @@ const ok = (name, got, want) => {
 
 // 주석과 글자열을 지운다. 「예전에는 useRef 를 썼다」 같은 기록까지 잡으면 안 된다
 const stripped = (src) => src
-  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1 ')
   .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
   .replace(/'(?:[^'\\]|\\.)*'/g, "''")
   .replace(/"(?:[^"\\]|\\.)*"/g, '""')
