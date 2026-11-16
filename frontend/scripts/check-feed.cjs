@@ -276,8 +276,25 @@ console.log('\n── ★ 받은 것이 JSON 인지 보는가 (2026-11-11) ─�
   const headStar = cl.filter((c) => (list.items || []).some((r) => r.text.startsWith(`${c.scope ? `${c.scope} · ` : ''}★`)));
   ok('  갈래 뒤의 머리 ★ 도 없다 (「서버 · ★ …」)', headStar.length, 0);
   ok('  홈페이지 벽 목록에도 백틱이 없다', (list.items || []).filter((r) => /`/.test(r.text)).length, 0);
-  ok('  **별표를 말하는 제목은 안 뭉개진다** (「40줄이 ** · 백틱」)',
-    (list.items || []).some((r) => r.text.includes('40줄이 ** · 백틱')), true);
+  // ── **표본을 박아두지 않는다** ── (2026-11-16 고침 · 정석)
+  //
+  // 여기에 「목록에 `40줄이 ** · 백틱` 이라는 줄이 있어야 한다」가 박혀 있었다.
+  // 그런데 `feedList.json` 은 **최근 스물**만 담는다 — 커밋이 쌓이면 그 줄이 창
+  // 밖으로 밀려나고, **아무것도 안 깨졌는데 자가 운다.** 11/16 에 실제로 났고
+  // `npm run check` 가 그 상태로 빨갛게 서 있었다(11/13 이후 밀려났다).
+  // 표본을 박는 자는 날짜가 지나면 거짓이 된다 — **규칙으로 바꾼다.**
+  //
+  // 규칙: 원본 제목의 **코드 표시 안에 별표가 있던 줄**은, 걷은 뒤에도 그 수만큼
+  // 별표가 남아 있어야 한다. 창이 아니라 **사전 전수**(`feedIndex`)에서 본다.
+  const 별표말하는줄 = (idx.items || [])
+    .map((r) => ({ r, v: src.get(r.key) }))
+    .filter(({ v }) => v && codeStars(v.text) > 0);
+  const 뭉개진것 = 별표말하는줄.filter(({ r, v }) => stars(r.text) !== codeStars(v.text)).map(({ r }) => r.key);
+  if (!별표말하는줄.length) {
+    console.log('건너뜀 별표를 말하는 제목이 사전에 없다 — 볼 것이 없다');
+  } else {
+    ok(`  **별표를 말하는 제목은 안 뭉개진다** (사전 ${별표말하는줄.length}건 전수)`, 뭉개진것, []);
+  }
   const badDet = Object.entries(det).filter(([k, s]) => /`/.test(s) || stars(s) > codeStars(src.get(k)?.detail));
   ok('  펼친 본문에 `**` · 백틱이 없다 (코드 표시 안의 글은 빼고)', badDet.map(([k]) => k).slice(0, 3), []);
   const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-feed.mjs'), 'utf8');

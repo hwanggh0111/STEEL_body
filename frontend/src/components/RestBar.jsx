@@ -148,8 +148,12 @@ export default function RestBar({ bottom = 58 }) {
             fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5,
             color, lineHeight: 1,
           }}>{finished ? '휴식 끝' : formatLeft(leftMs)}</span>
+          {/* `minWidth: 0` 이 없어 **말줄임이 안 들었다** — 가로 flex 자식의
+              `min-width` 기본값이 `auto` 다. 사람이 지은 긴 종목 이름이 들어오면
+              바닥 바 밖으로 삐져나갔다. 운동하는 동안 계속 보이는 자리다
+              (2026-11-16 · 맵시) */}
           <span style={{
-            fontSize: 12, color: 'var(--text-secondary)',
+            fontSize: 12, color: 'var(--text-secondary)', minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{paused ? '멈춤'
             : finished ? '다음 세트 하세요'

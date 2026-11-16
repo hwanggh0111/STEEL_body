@@ -44,9 +44,13 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          {/* **`minWidth: 0` 이 없으면 말줄임이 안 듣는다** — 가로 flex 자식의
+              `min-width` 기본값이 `auto` 라 글 길이 아래로 안 줄어든다. 루틴 이름을
+              길게 지으면 옆의 「진행 중」 꼬리표(`flexShrink: 0`)를 밀어내고 카드를
+              넘어갔다. 360px 폭에서 터진다 (2026-11-16 · 맵시) */}
           <div style={{
             fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{session.name}</div>
           <span className="badge badge-accent" style={{ flexShrink: 0 }}>진행 중</span>
         </div>
@@ -56,12 +60,15 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
               건너뛰면 「8 / 8 완료」였다 — 「운동」 화면은 그 칸을 「건너뜀」이라고
               줄 그어 적는데, 홈만 다르게 말하고 있었다.
               **한 것과 넘긴 것은 서버가 갈라서 보낸다** (세는 자리를 둘로 두지 않는다) */}
-          <div className="label" style={{ marginBottom: 0 }}>
+          {/* 같은 줄의 둘 **다** 안 줄어들고 있었다 — 세는 쪽은 짧으니 안 깎이게
+              `flexShrink: 0` 으로 지키고, 사람이 지은 운동 이름이 들어오는 쪽만
+              `minWidth: 0` 으로 줄여 말줄임을 살린다 (2026-11-16 · 맵시) */}
+          <div className="label" style={{ marginBottom: 0, flexShrink: 0 }}>
             {session.completed} / {session.total} 완료
             {session.skipped > 0 && <> · {session.skipped} 건너뜀</>}
           </div>
           {current && (
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               다음 · {current.name}
             </div>
           )}

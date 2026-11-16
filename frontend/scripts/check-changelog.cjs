@@ -86,6 +86,49 @@ try {
   if (얕음) { 이력 = 'shallow'; } else { 이력 = git(['log', '-n40', '--date=short', '--pretty=format:%h%x09%ad%x09%s']); }
 } catch { 이력 = null; }
 
+// ── ★ 아래 넷은 **git 이력과 상관없이** 돈다 ── (2026-11-16, 정석)
+//
+// 전에는 보안 본문 누출 자가 `else` 안, 즉 **git 이력을 볼 수 있을 때만** 돌았다.
+// Render 는 **얕은 클론**이라 거기서는 「건너뜀」 한 줄만 찍고 **아예 안 섰다** —
+// 정작 공지가 지어지는 자리에서 자가 없었다. 산출물만 있으면 볼 수 있는 것은
+// 밖으로 꺼낸다. git 이 필요한 것(빠진 커밋 찾기)만 아래 `else` 에 남긴다.
+const clog = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'changelog.json'), 'utf8'));
+const 담긴것 = new Set((clog.items || []).map((r) => r.hash));
+
+ok('공지에 담긴 줄이 있다', (clog.items || []).length > 0, true);
+
+// ── ★ **보안 갈래는 본문을 안 싣는다** ── (2026-11-13, 정석)
+//
+// 11/13 에 `KEEP` 40 → 80 · `SCAN` 120 → 300 으로 올리면서 **지난 커밋 마흔이
+// 새로 공개됐고**, 그 안에 `ea80aef`(`fix(관리자·보안)`)의 본문이 있었다 —
+// **권한 상승 경로를 그대로 적은 글**이다(어느 길을 어떻게 밀면 정지가 풀리는지).
+// 10/2 에 「먼저 가입하면 관리자가 된다」가 나갔던 그 자리다.
+//
+// 그때 세운 선은 `---`(커밋 적는 사람이 손으로 긋는 선)였는데, **그어두지 않은
+// 옛 커밋에는 소용이 없다.** 그래서 생성기가 갈래로 한 번 더 막는다. 여기서는
+// **막혔는지**를 본다 — 손으로 긋는 선 하나에 기대지 않는다.
+//
+// 갈래 규칙은 **여기에 베껴 적지 않는다** — `gen-changelog.mjs` 의 `SECRET_SCOPE`
+// 를 그 파일에서 읽어 쓴다. 베껴 적으면 갈래가 하나 늘 때 **자만 옛 규칙을 본다**
+// (11/13 `a42b1b6` 「갈래를 하나 더하면 상한이 조용히 사라진다」와 같은 류다).
+const genSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-changelog.mjs'), 'utf8');
+const m비밀 = /const\s+SECRET_SCOPE\s*=\s*\/(.+?)\/([a-z]*)\s*;/.exec(genSrc);
+ok('`gen-changelog.mjs` 에서 SECRET_SCOPE 를 읽는다', !!m비밀, true);
+const 비밀갈래 = m비밀 ? new RegExp(m비밀[1], m비밀[2]) : /보안|security/i;
+const 본문샌것 = (clog.items || [])
+  .filter((it) => 비밀갈래.test(it.scope || '') && String(it.detail || '').trim())
+  .map((it) => it.hash);
+ok('보안 갈래 공지는 본문을 안 싣는다 (제목만)', 본문샌것, []);
+
+// 본문 묶음(`feed-detail.json`)에도 보안 갈래가 들어가면 안 된다 —
+// 위는 **목록**을 보고, 여기는 **사람이 실제로 받는 본문**을 본다 (11/16, 정석)
+const detP = path.join(ROOT, 'public', 'feed-detail.json');
+const det = fs.existsSync(detP) ? JSON.parse(fs.readFileSync(detP, 'utf8')) : {};
+const 본문에있는보안 = (clog.items || [])
+  .filter((it) => 비밀갈래.test(it.scope || '') && (it.hash in det))
+  .map((it) => it.hash);
+ok('보안 갈래는 본문 묶음에도 없다', 본문에있는보안, []);
+
 if (이력 === null || 이력 === 'shallow') {
   console.log('건너뜀 git 이력을 못 본다 (' + (이력 === 'shallow' ? '얕은 클론' : 'git 없음')
     + ') — 생성기와 같은 선이다');
@@ -108,25 +151,7 @@ if (이력 === null || 이력 === 'shallow') {
     .filter((r) => 드는종류.includes(r.type) && !빼는갈래.includes(r.scope))
     .slice(0, 20);
 
-  const clog = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'changelog.json'), 'utf8'));
-  const 담긴것 = new Set((clog.items || []).map((r) => r.hash));
 
-  ok('공지에 담긴 줄이 있다', (clog.items || []).length > 0, true);
-
-  // ── ★ **보안 갈래는 본문을 안 싣는다** ── (2026-11-13, 정석)
-  //
-  // 11/13 에 `KEEP` 40 → 80 · `SCAN` 120 → 300 으로 올리면서 **지난 커밋 마흔이
-  // 새로 공개됐고**, 그 안에 `ea80aef`(`fix(관리자·보안)`)의 본문이 있었다 —
-  // **권한 상승 경로를 그대로 적은 글**이다(어느 길을 어떻게 밀면 정지가 풀리는지).
-  // 10/2 에 「먼저 가입하면 관리자가 된다」가 나갔던 그 자리다.
-  //
-  // 그때 세운 선은 `---`(커밋 적는 사람이 손으로 긋는 선)였는데, **그어두지 않은
-  // 옛 커밋에는 소용이 없다.** 그래서 생성기가 갈래로 한 번 더 막는다. 여기서는
-  // **막혔는지**를 본다 — 손으로 긋는 선 하나에 기대지 않는다.
-  const 본문샌것 = (clog.items || [])
-    .filter((it) => /보안|security/i.test(it.scope || '') && String(it.detail || '').trim())
-    .map((it) => it.hash);
-  ok('보안 갈래 공지는 본문을 안 싣는다 (제목만)', 본문샌것, []);
 
   // ── **예외를 걷었다 — 빠짐은 빠짐이다** ── (2026-11-13, 주인 결정)
   //

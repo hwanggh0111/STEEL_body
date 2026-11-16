@@ -47,6 +47,74 @@ const git = (...args) => {
   try { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 }); }
   catch { return null; }
 };
+// `gen-changelog.mjs` 의 `SECRET_SCOPE` 를 **그 파일에서 읽어** 쓴다.
+// 자에 상수를 베끼면 갈래가 늘 때 자만 모른다 (2026-11-16 · 벼림 지적).
+let _비밀갈래 = undefined;
+function 비밀갈래() {
+  if (_비밀갈래 !== undefined) return _비밀갈래;
+  _비밀갈래 = null;
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'frontend/scripts/gen-changelog.mjs'), 'utf8');
+    const m = /const\s+SECRET_SCOPE\s*=\s*\/(.+?)\/([a-z]*)\s*;/.exec(src);
+    if (m) _비밀갈래 = new RegExp(m[1], m[2]);
+  } catch { /* 못 읽으면 보안 줄 판정을 건너뛴다 — 거짓 FAIL 보다 낫다 */ }
+  return _비밀갈래;
+}
+// 묶음 조각의 목록 줄을 끊어 읽는다 — **열쇠를 긁는 것이 아니다**.
+//
+// 전에는 `key:"…"` 를 전부 긁어 「본문 없음」을 셌다. 그런데 11/13 부터
+// **갈래에 「보안」이 든 커밋은 본문을 통째로 뺀다** (`gen-changelog.mjs` 의
+// `SECRET_SCOPE`). 그런 줄은 묶음에도 `has` 가 아예 안 붙는다 — 눌러도 본문을
+// 안 받는다. `has` 를 안 보면 **없는 것이 당연한 줄**을 FAIL 로 낸다
+// (11/16 에 `bbe7372`·`ea80aef` 로 실제로 났다 — 내 자의 거짓이었다).
+//
+// 그래서 **`has` 가 붙은 줄만** 본문을 요구하고, 거꾸로 **보안 줄에 본문이
+// 있으면** 그것을 FAIL 로 낸다 — 그쪽이 진짜 사고다 (11/13 뿌리 `85783ec`).
+function 묶음줄(조각글, 비밀) {
+  const 줄 = [...조각글.matchAll(/key:"([^"]+)"((?:(?!key:")[\s\S]){0,800})/g)]
+    .map((m) => ({ key: m[1], 뒤: m[2] }));
+  return {
+    줄,
+    열쇠: [...new Set(줄.filter((r) => /has:(?:!0|true)/.test(r.뒤)).map((r) => r.key))],
+    보안줄: !비밀 ? [] : 줄.filter((r) => {
+      const m = /scope:"([^"]*)"/.exec(r.뒤);
+      return m && 비밀.test(m[1]);
+    }).map((r) => r.key),
+  };
+}
+
+// ── 되돌려-FAIL ── `--되돌려` 로 돈다.
+// 고쳐 놓고 「PASS 가 떴다」로 끝내면 자가 장식이 된다. 일부러 어긋난 묶음을
+// 먹여 **FAIL 이 보이는지**까지 본다 (2026-11-16 · 벼림 요청).
+function 되돌려() {
+  const 비밀 = 비밀갈래();
+  if (!비밀) { console.log('되돌려: SECRET_SCOPE 를 못 읽었다 — 자부터 고쳐라'); return 1; }
+  const 보안줄글 = 'key:"aaa1111",date:"2026-11-13",text:"t",label:"고침",scope:"보안"';
+  const 보통줄글 = 'key:"bbb2222",date:"2026-11-13",text:"t",label:"고침",scope:"가져오기",has:!0';
+  const 본문없는보통 = 'key:"ccc3333",date:"2026-11-13",text:"t",label:"고침",scope:"꼴",has:!0';
+  const 판 = [];
+  const 보다 = (이름, 조건) => { 판.push([이름, 조건]); console.log(`  ${조건 ? 'OK  ' : 'FAIL'} ${이름}`); };
+
+  // ① 보안 줄은 본문이 없어야 PASS — `has` 가 없으니 「빠진」에도 안 들어간다
+  let r = 묶음줄([보안줄글, 보통줄글].join(','), 비밀);
+  보다('보안 줄은 본문을 요구하지 않는다', !r.열쇠.includes('aaa1111') && r.보안줄.includes('aaa1111'));
+  보다('보안 줄 없는 본문이 FAIL 을 안 만든다', r.열쇠.filter((k) => !(k in { bbb2222: 1 })).length === 0);
+
+  // ② 보안 줄에 본문이 **있으면** FAIL 이어야 한다 (11/13 뿌리)
+  보다('보안 줄 본문이 실리면 잡는다', r.보안줄.filter((k) => k in { aaa1111: 1 }).length === 1);
+
+  // ③ 보통 줄이 본문을 잃으면 FAIL 이어야 한다 — 자가 눈 감으면 안 된다
+  r = 묶음줄([보통줄글, 본문없는보통].join(','), 비밀);
+  보다('has 붙은 줄이 본문을 잃으면 잡는다', r.열쇠.filter((k) => !(k in { bbb2222: 1 })).join() === 'ccc3333');
+
+  // ④ 갈래가 늘어도 자가 따라간다 — 상수를 베끼지 않았는지
+  보다('SECRET_SCOPE 를 원본에서 읽는다', 비밀.test('관리자·보안') && !비밀.test('가져오기'));
+
+  const 진 = 판.filter(([, ok]) => !ok);
+  console.log(진.length ? `되돌려: ${진.length}건이 안 잡힌다 — 자가 거짓이다` : `되돌려: ${판.length}건 전부 잡는다`);
+  return 진.length ? 1 : 0;
+}
+
 const readJSON = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const live = async (p) => {
   if (OFFLINE) return null;
@@ -166,12 +234,30 @@ async function 실물() {
     const 주소 = 판 ? `/feed-detail.json?v=${판}` : '/feed-detail.json';
     const det = await live(주소);
     const detJ = det && det.status === 200 ? readJSON(det.text) : null;
-    const 열쇠 = [...new Set((목록조각.t.match(/key:"([^"]+)"/g) || []).map((x) => x.slice(5, -1)))];
+    // ── 열쇠를 **줄 단위로** 끊어 읽는다 ── (2026-11-16 고침 · 정석)
+    // 전에는 `key:"…"` 를 전부 긁어 「본문 없음」을 셌다. 그런데 11/13 부터
+    // **갈래에 「보안」이 든 커밋은 본문을 통째로 뺀다** (`gen-changelog.mjs:109`
+    // SECRET_SCOPE). 그런 줄은 묶음에도 `has` 가 아예 안 붙는다 — 눌러도 본문을
+    // 안 받는다. 그래서 `has` 를 안 보면 **없는 것이 당연한 둘**을 FAIL 로 낸다
+    // (11/16 에 `bbe7372`·`ea80aef` 로 실제로 났다 — 내 자의 거짓이었다).
+    // 이제 **`has` 가 붙은 줄만** 본문을 요구하고, 거꾸로 **보안 줄에 본문이
+    // 있으면** 그것을 FAIL 로 낸다 — 그쪽이 진짜 사고다(11/13 뿌리).
+    const 비밀 = 비밀갈래();
+    const { 열쇠, 보안줄 } = 묶음줄(목록조각.t, 비밀);
     if (!detJ) {
       add('실물', '라이브 본문', 'FAIL', `${주소} 이 ${det ? det.status : '무응답'}`);
       say(`  FAIL ${주소} — ${det ? det.status : '무응답'}`);
     } else {
       const 빠진 = 열쇠.filter((k) => !(k in detJ));
+      const 새어나온것 = [...new Set(보안줄.filter((k) => k in detJ))];
+      const 보안판정 = !비밀 ? 'SKIP' : (새어나온것.length ? 'FAIL' : 'PASS');
+      add('실물', '보안 갈래는 본문이 없어야 한다', 보안판정,
+        !비밀 ? '`gen-changelog.mjs` 에서 SECRET_SCOPE 를 못 읽었다 — 규칙이 바뀌었나'
+          : 새어나온것.length ? `라이브 본문에 보안 커밋 본문이 실렸다 — ${새어나온것.join(' ')}`
+            : `보안 줄 ${보안줄.length}건 전부 제목만 (${비밀})`);
+      say(`  ${보안판정 === 'SKIP' ? '건너뜀' : 보안판정 === 'FAIL' ? 'FAIL' : 'OK  '} 보안 갈래는 제목만 — `
+        + (!비밀 ? 'SECRET_SCOPE 를 못 읽었다' : `보안 줄 ${보안줄.length}건`)
+        + (새어나온것.length ? ` · **본문 실림 ${새어나온것.length}** [${새어나온것.join(' ')}]` : ''));
       add('실물', '묶음 목록 ↔ 라이브 본문', 빠진.length ? 'FAIL' : 'PASS',
         `조각 ${목록조각.c} · 판 ${판 || '없음'} · 목록 열쇠 ${열쇠.length} · 본문 ${Object.keys(detJ).length}`
         + (빠진.length ? ` · **본문 없음 ${빠진.length}** — ${빠진.slice(0, 8).join(' ')}` : ' · 어긋남 0'));
@@ -280,6 +366,10 @@ const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
 
 // ─── 달리기 ───────────────────────────────────────────────────────────────
 (async () => {
+  if (process.argv.includes('--되돌려') || process.argv.includes('--selftest')) {
+    say('정석 자 되돌려-FAIL — 일부러 어긋난 묶음을 먹인다');
+    process.exit(되돌려());
+  }
   say('정석 검사소 — ' + new Date().toISOString().slice(0, 16).replace('T', ' ') +
     (OFFLINE ? ' · offline' : ' · ' + LIVE));
   대조();
