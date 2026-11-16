@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "79a07bc044",
+  "detailVersion": "78084e6a28",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "a265e2a",
+      "date": "2026-11-16",
+      "text": "AI 관리자의 숫자가 전부 램에 있었다 — 날마다 한 줄은 남긴다",
+      "label": "새 기능",
+      "scope": "관리자",
       "has": true
     },
     {
@@ -1127,14 +1135,6 @@
       "date": "2026-11-05",
       "text": "「undefined · 세트 · 회」 — 세트 없는 줄을 그대로 그리던 자리 다섯",
       "label": "고침",
-      "scope": "유산소",
-      "has": true
-    },
-    {
-      "key": "b033aa4",
-      "date": "2026-11-05",
-      "text": "런닝머신 30분을 적을 칸이 없었다 — 시간·거리로 적는다 (A안)",
-      "label": "새 기능",
       "scope": "유산소",
       "has": true
     }
