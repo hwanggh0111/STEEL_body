@@ -382,12 +382,22 @@ export default function AiAdminPanel() {
         막은 것은 「해킹 보안」 목록에 뜨고, 거기서 풀 수 있습니다.
         <b style={{ color: 'var(--text-secondary)' }}> 대역(/24)은 통째로 막지 않습니다</b> — 통신사 NAT 뒤에서는 수만 명이 같은 주소로 나옵니다.
       </div>
+      {/* ── **이름표가 없었다** ── (2026-11-16 · 정석의 `check-label` 이 잡았다)
+
+          칸 둘이 `placeholder` 만 들고 있었다. 눈에는 이름처럼 보이지만 **글자를
+          치면 사라지고**, 읽어주는 기계는 「편집 칸」이라고만 읽는다 — 관리자가
+          낭독기로 이 화면을 쓰면 **어느 칸이 주소고 어느 칸이 분인지 알 수 없다.**
+
+          보이는 이름표를 새로 깔지 않고 `aria-label` 로 묶는다 — 이 칸은 둘이
+          나란히 있고 `placeholder` 가 보기에는 충분하다. **보는 사람에게 모자란
+          것이 아니라 듣는 사람에게 없던 것**이라, 없던 쪽만 채운다 */}
       <form onSubmit={handleBlock} className="card" style={{ padding: 14, display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
         <input
           className="input"
           value={blockIp}
           onChange={(e) => setBlockIp(e.target.value)}
           placeholder="주소 (예: 203.0.113.7)"
+          aria-label="손으로 막을 주소"
           style={{ flex: '1 1 160px', minWidth: 0 }}
         />
         {/* **테두리를 건다** (2026-10-31) — `max` 가 없어서 큰 수를 적으면
@@ -398,6 +408,7 @@ export default function AiAdminPanel() {
           value={blockMin}
           onChange={(e) => setBlockMin(e.target.value)}
           placeholder="분"
+          aria-label="몇 분 막을지"
           min="1"
           max={BLOCK_MIN_MAX}
           style={{ width: 90 }}

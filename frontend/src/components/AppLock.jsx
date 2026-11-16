@@ -193,16 +193,20 @@ export default function AppLock() {
             이 줄은 Barlow(본문 기본 글꼴)로 그리는데 Barlow 숫자는 폭이
             350~565 로 **21.5% em** 벌어진다. 가운데 정렬이라 30 → 29 → 9 로
             줄어드는 동안 문장 전체가 매초 움직였다.
-            `tabular-nums` 로는 **못 막는다** — 글꼴을 자급으로 바꿀 때
-            (`scripts/gen-sans.mjs:151` 의 `layout_features = []`) `tnum` 까지
-            떼어내서 다섯 글꼴 전부 OpenType 기능이 0개다. 그래서 수 칸에
-            **자리를 미리 비워 둔다.** 쉬는 시간은 30초(`data/appLock.js:41`)라
-            두 자리면 넉넉하고, 10 → 9 로 자릿수가 바뀌어도 안 움직인다. */}
+            ── **땜질을 걷었다** ── (2026-11-16)
+
+            처음에는 수 칸에 `minWidth: '2ch'` 로 자리를 미리 비웠다. `tabular-nums`
+            가 **그때는 안 듣는 줄**이었기 때문이다 — 11/13 에 글꼴을 자급하면서
+            `layout_features = []` 로 `tnum` 까지 떼어내 열셋 전부 OpenType 기능이
+            0개였다. `3d7106c` 로 되살렸고, 이제 `body` 한 줄이 모든 수를 고정폭으로
+            세운다(`globals.css` 의 `font-variant-numeric`).
+
+            `2ch` 를 남겨둘 까닭이 없다 — 자릿수를 사람이 미리 알아야 하고, 글꼴을
+            바꾸면 `ch` 가 같이 움직인다. 글꼴 기능이 그 셋을 다 없앤다. */}
         <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
           {left > 0 ? (
             <>
-              <span style={{ display: 'inline-block', minWidth: '2ch', textAlign: 'right' }}>{secs}</span>
-              초 뒤에 다시 치실 수 있어요
+              {secs}초 뒤에 다시 치실 수 있어요
             </>
           ) : '네 자리를 쳐주세요'}
         </div>
