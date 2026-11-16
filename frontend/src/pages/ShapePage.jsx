@@ -327,7 +327,7 @@ export default function ShapePage({ embedded = false }) {
           </div>
         )}
         {error && (
-          <div style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.65 }}>
+          <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.65 }}>
             {error}
           </div>
         )}

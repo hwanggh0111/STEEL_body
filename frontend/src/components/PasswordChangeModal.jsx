@@ -153,7 +153,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
           </div>
 
           {error && (
-            <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>{error}</div>
+            <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>{error}</div>
           )}
 
           <button className="btn-primary" type="submit" disabled={!canSubmit}>

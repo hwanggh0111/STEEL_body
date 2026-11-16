@@ -371,7 +371,7 @@ export default function DaySheet({
             )}
           </div>
 
-          {error && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
+          {error && <div role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
 
           <button
             className="btn-primary"

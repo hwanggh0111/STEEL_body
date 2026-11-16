@@ -1744,7 +1744,7 @@ export default function TrainPage() {
             )}
 
             {error && (
-              <div style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 10 }}>{error}</div>
+              <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 10 }}>{error}</div>
             )}
 
             {/* 지금 적는 줄이 앞 줄과 이어진 것이라는 표시. 눌러놓고 잊지 않게 띄워둔다 */}

@@ -165,7 +165,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
           </div>
 
           {error && (
-            <div style={{
+            <div role="alert" style={{
               position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
               justifyContent: 'center', padding: 24, textAlign: 'center',
               fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.8,

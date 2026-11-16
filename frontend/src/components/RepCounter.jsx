@@ -196,7 +196,7 @@ export default function RepCounter({ exercise, onDone, onClose }) {
                   style={{ width: 'auto', padding: '11px 22px', fontFamily: 'inherit', cursor: 'pointer' }}
                 >{stage ? (STAGE[stage] || '여는 중…') : '카메라 켜기'}</button>
                 {error && (
-                  <div style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
+                  <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
                     {error}
                   </div>
                 )}

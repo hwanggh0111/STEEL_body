@@ -599,7 +599,7 @@ export default function InbodyPage({ embedded = false }) {
               </div>
             )}
 
-            {error && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
+            {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
             <button className="btn-primary" type="submit" disabled={saving}>
               {saving ? (editingId ? '수정 중...' : '저장 중...') : (editingId ? '수정 완료' : '기록 저장')}

@@ -176,8 +176,12 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
               </>
             )}
 
+            {/* **낭독기에 알린다** — 오류 글이 떠도 초점은 단추·칸에 그대로 있어서,
+                  `role="alert"` 가 없으면 **아무 말도 안 하고 그냥 안 된다.**
+                  `LoginPage` · `RegisterPage` 등 다섯은 이미 이 꼴이고 여덟 자리가
+                  빠져 있었다 (2026-11-16 · 맵시) */}
             {error && (
-              <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>{error}</div>
+              <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>{error}</div>
             )}
 
             <button
