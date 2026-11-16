@@ -14,6 +14,7 @@
 // 그래서 못을 박는다. 라틴 글꼴 뒤에 한글 글꼴이 없으면 실패한다.
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 // 한글이 없는 글꼴들. 이것만 적고 끝내면 한글이 떨어진다
 const LATIN_ONLY = ['Bebas Neue', 'Barlow', 'Playfair Display'];
@@ -145,21 +146,121 @@ let fontBad = 0;
     [...new Set(faces.map((f) => (/^plex-kr-(\d+)\.woff2$/.exec(f) || [])[1])
       .filter(Boolean))].sort(), ['400', '600', '700']);
 
-  // ── ★ **차례가 뒤집히면 347KB 를 늘 받는다** ──
+  // ── ★ **나머지 한글을 조각으로 갈랐다** ── (2026-11-16, 벼림 · 자는 정석)
   //
-  // 같은 집안 · 같은 굵기에서 두 줄이 한 글자를 다 덮으면 **나중에 적은 것이**
-  // 이긴다(CSS Fonts 4 §4.5). 그래서 `plex-kr-rest-<굵기>`(나머지 한글 347KB)를
-  // **먼저**, `plex-kr-<굵기>`(앱 글자 59.9KB)를 **뒤에** 적는다. 뒤집히면 앱이
-  // 그리는 글자가 전부 큰 벌에서 와서 **첫 화면이 347KB 를 받는다** — 화면은
-  // 멀쩡해 보이고 눈으로는 영영 안 보인다. 그래서 자가 본다.
-  for (const w of ['400', '600', '700']) {
-    const rest = gen.indexOf('plex-kr-rest-' + w + '.woff2');
-    const app = gen.indexOf('plex-kr-' + w + '.woff2');
-    say('  ' + w + ' — 나머지 벌이 앱 벌보다 먼저다', rest >= 0 && app >= 0 && rest < app, true);
+  // 전에는 나머지 한글이 굵기마다 **한 장(347KB)** 이었다. 앱 글자 1,067자 밖의
+  // 음절 **하나**만 쳐도(운동 이름 · 메모 · 별명이 전부 그 길이다) 347KB 를 통째로
+  // 받았다. 이제 **조각 21개/굵기**로 갈라 한 조각 평균 25.5KB 를 받는다.
+  //
+  // 조각이 늘어나며 **자가 봐야 하는 것도 늘었다** —
+  //
+  //   ① **차례** — 조각 벌이 앱 벌보다 **먼저** 와야 한다. 같은 집안·같은 굵기에서
+  //      둘이 한 글자를 다 덮으면 **나중에 적은 것이 이긴다**(CSS Fonts 4 §4.5).
+  //      뒤집히면 앱이 그리는 글자가 큰 조각에서 와서 **첫 화면이 조각을 받는다** —
+  //      화면은 멀쩡해 보이고 눈으로는 영영 안 보인다
+  //   ② **빈틈 0** — `AC00`~`D7A3` 을 조각들이 빈틈없이 덮는가. 한 글자라도 안
+  //      걸리면 **그 글자만** 기기 글꼴로 떨어진다. 조각 스물한 개의 경계를 눈으로
+  //      볼 길은 없다
+  //   ③ **한글 밖으로 안 나간다** — 넓히면 라틴까지 거기서 온다(옛 자의 뜻)
+  //
+  // **수를 글자로 박지 않는다.** 조각 수는 `gen-sans.mjs` 의 `REST_CHUNK_CHARS` 에
+  // 따라 변한다 — CSS 에서 센다 (11/16 에 옛 자가 「3개」로 박아둬서 FAIL 넷을 냈다)
+
+  // CSS 를 **벌 단위로** 끊어 읽는다 — 차례가 뜻을 가지므로 순서를 지킨다
+  const 벌들 = [...gen.matchAll(/@font-face\s*\{([\s\S]*?)\}/g)].map((m, i) => {
+    const b = m[1];
+    const 파일 = (/url\('\.\.\/assets\/fonts\/([^']+)'\)/.exec(b) || [])[1] || null;
+    const 굵기 = (/font-weight:\s*(\d+)/.exec(b) || [])[1] || null;
+    const 범위 = [...b.matchAll(/U\+([0-9A-Fa-f]+)(?:-([0-9A-Fa-f]+))?/g)]
+      .map((r) => [parseInt(r[1], 16), parseInt(r[2] || r[1], 16)]);
+    return { i, 파일, 굵기, 범위, swap: /font-display:\s*swap/.test(b) };
+  });
+  const 조각 = 벌들.filter((f) => /^plex-kr-rest-\d+(?:-\d+)?\.woff2$/.test(f.파일 || ''));
+  const 앱벌 = 벌들.filter((f) => /^plex-kr-\d+\.woff2$/.test(f.파일 || ''));
+  const 굵기들 = [...new Set(앱벌.map((f) => f.굵기))].sort();
+  say('  한글 굵기마다 조각이 있다', 굵기들.filter((w) => !조각.some((f) => f.굵기 === w)), []);
+
+  for (const w of 굵기들) {
+    const r = 조각.filter((f) => f.굵기 === w);
+    const a = 앱벌.filter((f) => f.굵기 === w);
+    // ① 차례 — **마지막 조각**이 **첫 앱 벌**보다 앞이어야 한다
+    const 마지막조각 = r.length ? Math.max(...r.map((f) => f.i)) : -1;
+    const 첫앱벌 = a.length ? Math.min(...a.map((f) => f.i)) : -1;
+    say('  ' + w + ' — 조각 벌이 앱 벌보다 먼저다 (조각 ' + r.length + '벌)',
+      r.length > 0 && a.length > 0 && 마지막조각 < 첫앱벌, true);
+
+    // ② 빈틈 0 — 조각들의 범위를 이어 붙여 AC00~D7A3 을 **전부** 덮는지 본다.
+    // 덮지 못한 자리를 **글자 수로** 적는다 — 「몇 자가 기기 글꼴로 떨어지나」다
+    const 칸 = r.flatMap((f) => f.범위).sort((x, y) => x[0] - y[0]);
+    const 빈틈 = [];
+    let 자리 = 0xAC00;
+    for (const [from, to] of 칸) {
+      if (from > 자리) 빈틈.push([자리, Math.min(from - 1, 0xD7A3)]);
+      자리 = Math.max(자리, to + 1);
+    }
+    if (자리 <= 0xD7A3) 빈틈.push([자리, 0xD7A3]);
+    const 빠진글자수 = 빈틈.reduce((n, [from, to]) => n + (to - from + 1), 0);
+    say('  ' + w + ' — 음절 11,172자에 빈틈이 없다', 빠진글자수, 0);
+    if (빠진글자수) {
+      console.log('       빈 자리: ' + 빈틈.slice(0, 4)
+        .map(([from, to]) => 'U+' + from.toString(16).toUpperCase() + '-' + to.toString(16).toUpperCase()).join(' '));
+    }
+
+    // ③ 한글 밖으로 안 나간다
+    const 넘은것 = r.filter((f) => f.범위.some(([from, to]) => from < 0xAC00 || to > 0xD7A3))
+      .map((f) => f.파일);
+    say('  ' + w + ' — 조각이 한글 자리 밖으로 안 나간다', 넘은것, []);
   }
-  // 나머지 벌은 **한글만** 덮어야 한다 — 범위를 넓히면 라틴까지 거기서 온다
-  say('  나머지 벌은 한글 자리만 덮는다',
-    (gen.match(/unicode-range: U\+AC00-D7A3;/g) || []).length, 3);
+
+  // ── **이긴 벌이 그 글자를 실제로 드는가** ── `--깊게` 로만 돈다
+  //
+  // 위의 셋은 **CSS 가 적은 말**을 본다. 이것은 **woff2 안을 열어** 본다 —
+  // CSS 차례대로 마지막에 걸린 벌을 고르고, 그 파일의 `cmap` 에 그 음절이 있는지.
+  // 이것이 거꾸로면 글자가 **더 큰 조각에서 온다**(첫 화면이 조각을 받는 그 꼴).
+  // 음절 11,172 × 굵기 셋이라 몇 초 걸린다 — 그래서 갈래로 뺀다. CSS 만 읽는
+  // 「빈틈 0」은 **매번** 선다
+  if (process.argv.includes('--깊게') || process.argv.includes('--deep')) {
+    console.log('');
+    console.log('── 이긴 벌이 그 글자를 드는가 (--깊게) ──');
+    const 쓸벌 = [...조각, ...앱벌];
+    const py = [
+      'import json,sys',
+      'from fontTools.ttLib import TTFont',
+      'out={}',
+      'for f in sys.argv[1:]:',
+      '    t=TTFont(f)',
+      '    out[f.replace(chr(92),"/").split("/")[-1]]=sorted(t.getBestCmap().keys())',
+      'print(json.dumps(out))',
+    ].join('\n');
+    let cmap = null;
+    try {
+      cmap = JSON.parse(execFileSync('python',
+        ['-c', py, ...쓸벌.map((f) => path.join(fontDir, f.파일))],
+        { encoding: 'utf-8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }));
+    } catch { cmap = null; }
+    if (!cmap) {
+      console.log('건너뜀 woff2 를 열 손이 없다 (python fontTools — 생성기가 쓰는 그 손이다)');
+    } else {
+      const 가진것 = {};
+      Object.entries(cmap).forEach(([f, cps]) => { 가진것[f] = new Set(cps); });
+      for (const w of 굵기들) {
+        const 줄 = 쓸벌.filter((f) => f.굵기 === w).sort((a, b) => a.i - b.i);
+        const 안드는것 = [];
+        for (let cp = 0xAC00; cp <= 0xD7A3; cp += 1) {
+          let 이긴것 = null;
+          // **나중에 적힌 것이 이긴다** — 앞에서 뒤로 훑으며 덮어쓴다
+          for (const f of 줄) if (f.범위.some(([a, b]) => cp >= a && cp <= b)) 이긴것 = f;
+          if (!이긴것) { 안드는것.push(cp); continue; }
+          if (!가진것[이긴것.파일]?.has(cp)) 안드는것.push(cp);
+        }
+        say('  ' + w + ' — 이긴 벌이 그 음절을 든다 (안 드는 글자 수)', 안드는것.length, 0);
+        if (안드는것.length) {
+          console.log('       ' + 안드는것.slice(0, 8).map((cp) => String.fromCodePoint(cp)).join(' '));
+        }
+      }
+    }
+  }
+
   say('  오는 동안에도 글이 보인다 (font-display: swap)',
     (gen.match(/font-display: swap/g) || []).length, faces.length);
 

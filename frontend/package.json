@@ -64,6 +64,8 @@
     "cut": "node scripts/check-cut.cjs",
     "reps": "node scripts/check-reps.cjs",
     "sore": "node scripts/check-sore.cjs",
+    "lifetime": "node scripts/check-lifetime.cjs",
+    "partdays": "node scripts/check-partdays.cjs",
     "tone": "node scripts/check-tone.cjs",
     "weight": "node scripts/check-weight.cjs",
     "score": "node scripts/check-score.cjs",

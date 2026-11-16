@@ -238,15 +238,47 @@ console.log('\n── 집의 손으로 읽고 적는다 ──');
 // 일은 사람이 정할 일이지만, **적어둔 자리가 조용해지면** 그때 FAIL 한다
 console.log('');
 console.log('── 못 담으면 말하는가 ──');
-const 말해야하는자리 = {
-  'pages/PartsPage.jsx': '아픈 곳 — 담기지 않으면 아픈 부위를 또 추천한다',
-  'pages/HomeworkoutPage.jsx': '하던 자리 — 없으면 멈춘 적이 없는 것처럼 보인다',
+// ── **파일이 아니라 열쇠를 적는다** ── (2026-11-16 고침 · 정석)
+//
+// 여기에 `'pages/PartsPage.jsx'` 처럼 **화면 파일 이름**이 박혀 있었다. 그런데
+// 11/16 에 아픈 곳을 읽고 쓰는 손이 `data/soreLocal.js` **한 벌로 묶이자**
+// (화면 셋이 같은 세 줄을 베껴 쓰고 있었다) 그 화면에는 `keepLocal(` 글자가
+// 없어졌고 — **아무것도 안 깨졌는데 자가 FAIL 로 울었다.**
+//
+// 자가 물어야 하는 것은 「이 화면 파일에 그 글자가 있나」가 아니라
+// **「그 열쇠를 적는 손이 `keepLocal` 을 지나나」** 다. 손을 모을 때마다 거짓이
+// 나는 자는 손을 모으는 것을 말리는 자다. 그래서 **열쇠로 바꾼다** — 적는 자리가
+// 어느 파일로 옮겨가도 자가 따라간다.
+//
+// 세 가지를 본다 —
+//   ① 그 열쇠를 적는 손이 **하나라도 있나** (없으면 기능이 사라진 것이다)
+//   ② 적는 손이 **전부** `keepLocal` 을 지나나 (`saveLS` 로 적으면 조용히 잃는다)
+//   ③ 적는 손이 **두 벌 이상**이면 알린다 (한 벌만 고쳐지는 날이 온다)
+const 말해야하는열쇠 = {
+  SORE_KEY: '아픈 곳 — 담기지 않으면 아픈 부위를 또 추천한다',
+  HOME_RESUME_KEY: '하던 자리 — 없으면 멈춘 적이 없는 것처럼 보인다',
 };
 const 조용한자리 = [];
-for (const [f, why] of Object.entries(말해야하는자리)) {
-  if (!fs.readFileSync(path.join(SRC, f), 'utf-8').includes('keepLocal(')) 조용한자리.push(`${f} — ${why}`);
+const 쓰는손없음 = [];
+const 여러벌 = [];
+for (const [열쇠, why] of Object.entries(말해야하는열쇠)) {
+  const 지남 = []; const 조용 = [];
+  for (const f of walk(SRC)) {
+    const rel = path.relative(SRC, f).replace(/\\/g, '/');
+    if (rel === 'data/localKeys.js' || rel.startsWith('dev/')) continue;
+    codeLines(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      // 열쇠를 **적는** 손만 본다 — 읽는 손(`readLS`)은 못 읽어도 할 말이 없다
+      if (new RegExp(`keepLocal\\s*\\(\\s*${열쇠}\\b`).test(line)) 지남.push(`${rel}:${i + 1}`);
+      else if (new RegExp(`(?:saveLS|localStorage\\.setItem)\\s*\\(\\s*${열쇠}\\b`).test(line)) 조용.push(`${rel}:${i + 1}`);
+    });
+  }
+  if (!지남.length && !조용.length) 쓰는손없음.push(`${열쇠} — ${why}`);
+  조용.forEach((자리) => 조용한자리.push(`${자리} (${열쇠}) — ${why}`));
+  if (지남.length + 조용.length > 1) 여러벌.push(`${열쇠}: ${[...지남, ...조용].join(' ')}`);
 }
+ok('적는 손이 있다 (열쇠가 버려지지 않았다)', 쓰는손없음, []);
 ok('못 담아도 조용한 자리', 조용한자리, []);
+ok('  적는 손이 한 벌이다 (베낀 손은 한 벌만 고쳐진다)', 여러벌, []);
 // **잠금과 체형은 제 자리에서 적는다** (토스트가 아니라 화면에 남는 말이다)
 ok('잠금은 담은 뒤 읽어서 확인한다',
   fs.readFileSync(path.join(SRC, 'data/appLock.js'), 'utf-8').includes('!readLock()'), true);
