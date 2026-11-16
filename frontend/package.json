@@ -67,6 +67,7 @@
     "sore": "node scripts/check-sore.cjs",
     "lifetime": "node scripts/check-lifetime.cjs",
     "label": "node scripts/check-label.cjs",
+    "onphone": "node scripts/check-phone.cjs",
     "partdays": "node scripts/check-partdays.cjs",
     "tone": "node scripts/check-tone.cjs",
     "weight": "node scripts/check-weight.cjs",
