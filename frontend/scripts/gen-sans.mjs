@@ -147,7 +147,23 @@ const PY = [
   'cps = [int(x) for x in open(sys.argv[3], encoding="utf-8").read().split(",")]',
   'opts = subset.Options()',
   "opts.flavor = 'woff2'",
-  'opts.layout_features = []',
+  // ── **떼는 목록이 너무 넓었다** ── (2026-11-16)
+  //
+  // 11/13 에 글꼴을 자급하면서(구글 CSS gzip 40.3KB → 0) `layout_features = []` 로
+  // 뒀다. 그 한 줄이 **GSUB · GPOS 의 기능을 하나도 안 남겼다** — 뽑아둔 글꼴 열셋을
+  // 열어 세보면 기능 수가 전부 **0** 이다. 그래서 날아간 것이 둘이다:
+  //
+  //   `kern`  글자 사이 간격. 구글이 내주던 판에는 있었다 — 자급하면서 **조용히**
+  //           빠졌고, 라틴 글자(「BLACK IRON」 같은 Bebas 제목)가 그만큼 성기다
+  //   `tnum`  고정폭 숫자. `font-variant-numeric: tabular-nums` 가 **앱 전체에서
+  //           안 듣는 줄**이 됐다 — 수가 바뀌는 자리에서 옆 글이 좌우로 뛴다
+  //           (11/16 에 맵시가 fontTools 로 다섯 파일을 열어 세어 찾았다)
+  //
+  // **자급 자체는 옳다.** 떼는 목록만 좁힌다 — 쓰는 것 셋만 남기고 나머지
+  // (`smcp` · `frac` · `ss01` …)는 그대로 뗀다. 한글 글꼴(Plex KR)에는 `tnum` 이
+  // 아예 없고(`kern` 만 있다), `fontTools` 는 없는 기능을 적어둬도 조용히 넘어간다.
+  // `liga` 는 11/13 **앞에 구글이 내주던 것**이라 되돌리는 쪽이다.
+  "opts.layout_features = ['kern', 'liga', 'tnum']",
   'opts.hinting = False',
   'opts.desubroutinize = True',
   "opts.name_IDs = ['*']",

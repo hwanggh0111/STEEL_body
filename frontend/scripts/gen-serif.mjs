@@ -103,7 +103,13 @@ src, out, text = sys.argv[1], sys.argv[2], sys.argv[3]
 
 opts = subset.Options()
 opts.flavor = 'woff2'
-opts.layout_features = []
+# ── 떼는 목록이 너무 넓었다 ── (2026-11-16)
+# 자급하면서 기능을 하나도 안 남겼다 — 산 글꼴(gen-sans.mjs:166)과 같은 구멍이다.
+# 명조는 큰 제목을 그리는 글꼴이라 kern 이 없으면 글자 사이가 성긴 것이 제목에서
+# 제일 잘 보인다. 쓰는 것만 남기고 나머지는 그대로 뗀다 (한글에는 커닝 짝이 거의
+# 없어 fontTools 가 알아서 추려낸다 — 남길 것이 없으면 조용히 빠진다)
+# ※ 이 글은 템플릿 글자 안이라 백틱을 쓰지 않는다 — 쓰면 파일이 아예 안 읽힌다
+opts.layout_features = ['kern', 'liga']
 opts.hinting = False
 opts.desubroutinize = True
 opts.name_IDs = ['*']          # 저작권 · 라이선스 글귀를 남긴다 (OFL 이 요구한다)
