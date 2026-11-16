@@ -68,6 +68,59 @@ const devPreviewPlugin = () => ({
   },
 });
 
+// ── **첫 화면 글꼴을 CSS 보다 늦게 찾고 있었다** ── (2026-11-16)
+//
+// 11/13 에 구글 글꼴 줄 다섯을 걷어내고 글꼴을 우리 집에서 내주기로 했다. 그때
+// `index.html` 에서 글꼴 줄이 **전부** 사라졌다 — 글꼴은 `globals.css` 가 들여오는
+// `fonts.gen.css` 에만 적혀 있다. 그래서 받는 순서가 이렇게 된다:
+//
+//     index.html → index-*.css 받고 **파싱까지** → 그제서야 woff2 셋을 발견 → 받는다
+//
+// 글꼴 셋이 **왕복 하나만큼 통째로 뒤로 밀린다.** 첫 글자가 기기 글꼴로 뜨다가
+// (`font-display: swap`) 나중에 바뀌는 그 깜빡임이 이 자리에서 나온다.
+//
+// 해시가 박힌 이름(`plex-kr-400-Tbu4zVkl.woff2`)이라 `index.html` 에 손으로 적을 수가
+// 없다. 그래서 **빌드가 끝난 묶음에서 해시를 읽어** 줄을 꽂는다.
+//
+// 미리받는 것은 **첫 그림에 확실히 쓰이는 셋만**이다. `plex-kr-600`(62KB)은
+// **일부러 뺐다** — 굵은 한글이 첫 그림에 꼭 있다고 단정할 수 없고, 어림으로 62KB 를
+// 당기면 안 쓰는 사람에게는 그냥 손해다. 미리받기는 **틀리면 손해가 되는 수**다.
+const PRELOAD_FONTS = ['bebas-neue-400', 'barlow-400', 'plex-kr-400'];
+
+const fontPreloadPlugin = () => ({
+  name: 'font-preload',
+  apply: 'build',
+  enforce: 'post',
+  transformIndexHtml(html, ctx) {
+    // `/site` 같은 다른 html 도 이 자리를 지난다. 묶음이 없으면(개발) 아무것도 안 한다
+    if (!ctx.bundle) return html;
+    const tags = [];
+    for (const name of PRELOAD_FONTS) {
+      const hit = Object.keys(ctx.bundle).find(
+        (f) => f.endsWith('.woff2') && f.includes(`/${name}-`),
+      );
+      // **못 찾으면 줄을 안 넣는다.** 이름이 바뀌었는데 옛 주소를 꽂으면 404 를
+      // 미리받는 셈이고, 브라우저는 그것을 조용히 버린다 — 고장이 안 보인다
+      if (!hit) {
+        console.warn(`[preload] ${name} 을 묶음에서 못 찾았다 — 그 줄은 안 넣는다`);
+        continue;
+      }
+      tags.push({
+        tag: 'link',
+        attrs: {
+          rel: 'preload', as: 'font', type: 'font/woff2',
+          href: `/${hit}`,
+          // 글꼴은 **crossorigin 이 없으면 두 번 받는다** (미리받은 것을 못 쓴다)
+          crossorigin: '',
+        },
+        injectTo: 'head',
+      });
+    }
+    if (tags.length) console.log(`[preload] 글꼴 ${tags.length}개를 머리에 꽂았다`);
+    return { html, tags };
+  },
+});
+
 // 폰 앱 시험용 터널을 열 때만 그 주소를 허락한다 (`cloudflared tunnel --url http://localhost:5173`).
 // **리포에는 주소를 안 박는다.** 개발 서버를 밖에 내놓는 설정이라, `.trycloudflare.com` 을
 // 통째로 박아두면 아무 데서나 켜둔 개발 서버에 그 도메인 호스트 헤더로 들어올 수 있다.
@@ -78,9 +131,24 @@ const tunnelHosts = (process.env.TUNNEL_HOSTS || '')
   .filter(Boolean);
 
 export default defineConfig({
-  plugins: [react(), swVersionPlugin(), devPreviewPlugin()],
+  plugins: [react(), swVersionPlugin(), devPreviewPlugin(), fontPreloadPlugin()],
   server: {
     host: true,
+    // ── 늘 쓰는 파일은 **요청을 기다리지 말고 미리 데운다** ── (2026-11-16)
+    //
+    // 화면 23개가 `lazy()` 라(`App.jsx`) 개발 서버는 주소를 받고서야 그 줄기를
+    // 변환한다. 첫 화면에 **반드시** 들어가는 것들은 기다릴 이유가 없다.
+    // 개발에만 산다 — 빌드에는 아무 영향이 없다
+    warmup: {
+      clientFiles: [
+        './src/main.jsx',
+        './src/App.jsx',
+        './src/styles/globals.css',
+        './src/components/Layout.jsx',
+        './src/components/TabBar.jsx',
+        './src/pages/HomePage.jsx',
+      ],
+    },
     // 아무것도 안 주면 localhost/LAN 만. 터널을 열 때만 TUNNEL_HOSTS 로 그 주소를 더한다
     allowedHosts: tunnelHosts,
     proxy: {
@@ -110,14 +178,32 @@ export default defineConfig({
     // dist/.vite/manifest.json 으로 나가고, 화면에서 받아 쓰는 파일이 아니다
     manifest: true,
     cssMinify: true,
+    // ── **글꼴이 화면을 막는 CSS 안에 base64 로 박혀 있었다** ── (2026-11-16)
+    //
+    // 비테는 `assetsInlineLimit` 기본값 **4096 B** 아래 자산을 CSS 안에 박는다.
+    // 11/13 판 `bebas-neue-400.woff2` 가 3,692 B 라 그 한계 밑으로 들어갔고,
+    // 라이브 CSS 를 받아 재니 이랬다 —
+    //
+    //     지금 라이브 CSS       raw 38,512  br 8,336 B   ← 화면을 막는 짐
+    //     그 덩어리를 빼면       raw 33,619  br 4,615 B   ← -3,721 B (-44.6%)
+    //
+    // **화면을 막는 CSS 의 45%가 글꼴 한 장**이었다. base64 는 **이미 압축된 woff2 를
+    // 다시 글자로 풀어 쓴 것**이라 brotli 가 더 줄일 것이 없고, CSS 를 한 줄만 고쳐도
+    // 그 4.9KB 를 **같이 다시 받게** 된다(글꼴은 안 바뀌는데도).
+    //
+    // 11/13 에 글꼴 기능(`kern`·`liga`·`tnum`)을 되살리면서 bebas 가 4,360 B 로
+    // 커져 **지금은 안 박힌다.** 고친 줄 모르고 고쳐진 것이고, 다음에 누가 자막을
+    // 다시 뽑아 4,096 B 아래로 내려가면 **조용히 돌아온다.** 그래서 못을 박는다 —
+    // 글꼴은 크기와 무관하게 **늘 제 파일로** 나간다(해시가 박혀 영구 캐시가 된다).
+    assetsInlineLimit: (filePath) => (filePath.endsWith('.woff2') ? false : undefined),
     sourcemap: false,
     target: 'es2020',
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        // recharts 는 직접 묶지 않는다.
-        // 한 덩어리로 묶어두면 선 그래프만 있는 화면에서도 레이더 차트 코드까지 같이 받는다.
-        // 나눠두면 각 화면이 자기가 쓰는 것만 받는다 (비교 탭의 레이더는 비교 탭에서만).
+        // 그래프는 **우리가 그린다**(`components/charts/`) — `recharts` 는 의존에서
+        // 빠진 지 오래다. 여기 적혀 있던 「recharts 는 직접 묶지 않는다」는 그 시절
+        // 주석이라 걷었다 (2026-11-16). 묶는 것은 어느 화면에서나 쓰는 둘뿐이다.
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           state: ['zustand', 'axios'],
