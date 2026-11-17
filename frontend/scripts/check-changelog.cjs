@@ -77,6 +77,39 @@ try {
 ok('공지에서 빼는 갈래도 생성기에서 읽었다', 빼는갈래.length > 0, true);
 if (빼는갈래.length) console.log('       ' + 빼는갈래.join(' '));
 
+// ── **거르는 자리도 생성기에서 읽는다** ── (2026-11-17 · 벼림)
+//
+// 11/16 에 생성기가 **꼬리표에서 파일로** 옮겨갔다(`ed671bf`) — 사람이 열 수 없는
+// 자리만 건드린 커밋은 꼬리표가 무엇이든 공지에 안 담는다. 그런데 **자는 꼬리표만
+// 보고 있었다**: `d850610`(`fix(꼴)`, 바뀐 것이 `frontend/dev/sian/` 뿐)이
+// 규칙대로 안 담긴 것을 자가 「빠졌다」고 울었다 — **거짓 FAIL** 이다. 11/13 에
+// `SKIP_SCOPE` 를 읽게 한 것과 **같은 자리, 같은 까닭**이다.
+//
+// 여기 또 적지 않는다 — 생성기의 `사용자화면밖` 에서 **자리 목록을 읽는다.**
+// `startsWith` 와 `===` 를 갈라 읽으므로 `README.md` 가 `README.md.bak` 을
+// 끌고 들어오지 않는다. 읽지 못하면 **거르지 않는다** — 모를 때는 우는 쪽으로
+// 틀린다(빠진 공지는 아무도 못 보고, 거짓 FAIL 은 보인다).
+let 밖자리 = [];
+try {
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-changelog.mjs'), 'utf8');
+  const blk = /const\s+사용자화면밖\s*=\s*\(f\)\s*=>([\s\S]*?);\n/.exec(gen);
+  밖자리 = blk ? [...blk[1].matchAll(/(startsWith|===)\s*\(?\s*'([^']+)'/g)]
+    .map((m) => [m[1], m[2]]) : [];
+} catch { /* 아래 ok 가 잡는다 */ }
+ok('공지에서 거르는 **자리**도 생성기에서 읽었다', 밖자리.length > 0, true);
+if (밖자리.length) console.log('       ' + 밖자리.map((r) => r[1]).join(' '));
+const 밖인가 = (f) => 밖자리.some(([op, v]) => (op === 'startsWith' ? f.startsWith(v) : f === v));
+// 파일 목록이 비면(병합 커밋) **거르지 않는다** — 생성기와 같은 선이다
+const 화면밖커밋 = (hash) => {
+  if (!밖자리.length) return false;
+  let files = [];
+  try {
+    files = git(['show', '--name-only', '--pretty=format:', hash])
+      .split('\n').map((f) => f.trim()).filter(Boolean);
+  } catch { return false; }
+  return files.length > 0 && files.every(밖인가);
+};
+
 let 이력 = null;
 try {
   const 얕음 = git(['rev-parse', '--is-shallow-repository']).trim() === 'true';
@@ -149,6 +182,8 @@ if (이력 === null || 이력 === 'shallow') {
   // 넉넉히 그 안이다 — 막이에 밀려난 것을 빠짐으로 읽을 일은 없다.
   const 봐야할것 = 줄.slice(1)
     .filter((r) => 드는종류.includes(r.type) && !빼는갈래.includes(r.scope))
+    // 바뀐 파일이 전부 사람 밖인 커밋은 생성기가 안 담는다 → 자도 안 본다 (위)
+    .filter((r) => !화면밖커밋(r.hash))
     .slice(0, 20);
 
 
