@@ -1,5 +1,6 @@
 import { useMemo, memo } from 'react';
 import { buildWeekly } from '../data/weeklyReport';
+import { atDay } from '../data/dateKey';
 // 유산소는 볼륨에 들 수 없다 (2026-11-05)
 import { minuteLabel, kmLabel } from '../data/cardio';
 
@@ -28,8 +29,19 @@ function Bar({ label, ratio, warn }) {
   );
 }
 
-function WeeklyReport({ workouts }) {
-  const r = useMemo(() => buildWeekly(workouts), [workouts]);
+// ── ★ **이 카드는 날이 바뀌어도 어제를 말하고 있었다** ── (2026-11-17)
+//
+// `buildWeekly(workouts)` 는 둘째 인자가 없으면 **그 순간의 기기 시계**를 읽고,
+// memo 는 `[workouts]` 만 봤다. 그래서 이 카드는 **기록이 바뀔 때만** 다시 셌다 —
+// 폰에 띄워둔 채 자정을 넘기면 위의 「이번 주 운동」 띠는 새 주로 넘어가는데
+// (`useToday`) 이 카드만 **지난 주를 적고 있었다**: 같은 화면 위아래가 다른 주를
+// 말한다. 일요일 밤 → 월요일 아침이 그 자리다 (`useToday` 머리글의 그 말이다).
+//
+// 그래서 **홈이 보는 오늘을 받는다.** 날짜 키를 Date 로 되돌리는 손은 한 벌이다
+// (`data/dateKey.js` 의 `atDay`). 안 받았으면 여태처럼 시계를 본다 —
+// 다른 화면이 이 카드를 쓸 때 **갑자기 빈 카드가 되지 않게** 한다.
+function WeeklyReport({ workouts, today }) {
+  const r = useMemo(() => buildWeekly(workouts, atDay(today) || new Date()), [workouts, today]);
 
   if (r.empty) return null;
 

@@ -16,7 +16,7 @@ import TodayCard from '../components/home/TodayCard';
 import GoalCard from '../components/home/GoalCard';
 import { useGoalStore } from '../store/goalStore';
 import { weekProgress, weekLine, hasGoal } from '../data/goal';
-import { dateKey, upToToday, longDayOf } from '../data/dateKey';
+import { dateKey, upToToday, longDayOf, atDay } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { daysBetween } from '../data/personalRecord';
 import { buildHeat } from '../data/bodyHeat';
@@ -291,7 +291,19 @@ export default function HomePage() {
   // 매 렌더 새 배열을 만들면 아래 useMemo 의 deps 가 늘 달라져 memo 가 무의미해진다.
   // deps 를 비워두면 마운트할 때의 주를 붙들고 있어 일요일 밤을 못 넘긴다 —
   // `today` 를 본다 (하루 안에서는 같은 값이라 memo 는 그대로 유지된다)
-  const weekDates = useMemo(() => weekKeys(mondayOf()), [today]);
+  //
+  // ── ★ **주 경계도 `today` 에서 나온다 — 시계를 또 읽지 않는다** ── (2026-11-17)
+  //
+  // `mondayOf()` 는 인자가 없으면 **그 순간의 기기 시계**를 읽는다. 그래서 이 띠는
+  // 「우리가 아는 오늘」(`useToday` 의 `today`)이 아니라 **다른 시계**를 보고 있었다 —
+  // 바로 아래 `isToday` · `future` · `weekDone` 은 `today` 를 본다. 두 시계가
+  // 어긋나는 순간(자정 무렵 · 화면을 가린 동안 멈춰 있던 `today` · 기기 시간대가
+  // 바뀐 뒤)에 **같은 띠에서 칸은 이번 주인데 「오늘」 테가 어제에 있는** 꼴이 된다.
+  //
+  // 날짜 키를 Date 로 되돌리는 손은 **한 벌**이다 — `data/dateKey.js` 의 `atDay`
+  // (`goal.js` 의 `at` · `sessionSummary.js` 의 `T00:00:00` 과 같은 일을 하던 것을
+  // 거기로 모았다). 못 읽는 키면 `null` 이 오므로 그때만 시계를 본다.
+  const weekDates = useMemo(() => weekKeys(mondayOf(atDay(today) || new Date())), [today]);
   // ★ **이 줄도 앞날을 셌다** (2026-11-10). 바로 밑 주간 목표 고리는 `weekProgress` 가
   // 오늘까지만 세는데(`data/goal.js` 의 `doneIn`), 이 줄은 안 걸렀다 — 목요일에 토요일
   // 줄을 적어둔 사람에게 **같은 화면에서** 「이번 주 2일」 · 고리는 「1회 했어요」가 됐다.
@@ -515,7 +527,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <WeeklyReport workouts={workouts} />
+          <WeeklyReport workouts={workouts} today={today} />
 
           {/* ── 홈페이지로 ── (2026-09-16 에 다시 썼다)
               **새 화면으로 연다.** 앱 안에 탭으로 끼워 넣었다가 걷었다 — 운동을 적다가

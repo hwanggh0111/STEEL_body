@@ -111,6 +111,7 @@
     "brand": "node scripts/check-brand.cjs",
     "logo": "node scripts/check-logo.cjs",
     "datehands": "node scripts/check-datehands.cjs",
+    "dayflip": "node scripts/check-dayflip.cjs",
     "daygap": "node scripts/check-daygap.cjs",
     "plateau": "node scripts/check-plateau.cjs",
     "plateaudata": "node scripts/measure-plateau.cjs",

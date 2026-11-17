@@ -117,3 +117,24 @@ export function upToToday(keys, today) {
   if (!Array.isArray(keys)) return [];
   return today ? keys.filter((k) => typeof k === 'string' && k <= today) : keys;
 }
+
+// ── **날짜 키를 Date 로 되돌리는 손** ── (2026-11-17)
+//
+// 「이번 주」를 세는 자리마다 날짜 키에서 Date 를 만들고 있었다 — `goal.js` 의
+// `at()`(한낮) · `sessionSummary.js` 의 `new Date(`${today}T00:00:00`)`(자정) ·
+// 그리고 홈의 주간 띠는 **아무것도 안 주고 기기 시계를 그대로 읽었다**. 셋이 다른
+// 손이면 어느 날 한쪽만 고쳐진다 (이 파일 머리글의 그 말이다).
+//
+// **한낮으로 만든다.** 자정으로 두면 서머타임이 자정에 시작하는 곳에서 **없는
+// 시각**이 되어 기기가 한 시간을 밀고, 그 바람에 하루가 밀린다 (`goal.js` 가
+// 적어둔 까닭이 그것이다 — 이 앱은 한국만 쓰지만 여행 중에도 돈다).
+//
+// **못 읽는 값은 `null`** 이다. 지어내지 않는다 — `new Date('2026-13-40')` 은
+// 조용히 2027년 2월로 넘치고, 그 날짜가 「이번 주」가 되면 아무도 못 알아챈다
+// (`longDayOf` 가 되짚어 보는 그 까닭이다).
+export function atDay(key) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key || ''));
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  return Number.isNaN(d.getTime()) || dateKey(d) !== m[0] ? null : d;
+}
