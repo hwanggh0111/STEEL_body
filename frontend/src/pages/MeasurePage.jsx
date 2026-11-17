@@ -15,8 +15,7 @@ import StopwatchSection from '../components/measure/StopwatchSection';
 import FlexibilitySection from '../components/measure/FlexibilitySection';
 import ShoulderSection from '../components/measure/ShoulderSection';
 import { dateKey } from '../data/dateKey';
-import { readLS } from '../data/safeStorage';
-import { TOKEN_KEY } from '../data/localKeys';
+import { exportCsv } from '../data/exportCsv';
 
 // 일곱 가지 도구.
 //
@@ -91,25 +90,21 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
   // 히스토리의 CSV 내보내기와 같은 방식이다 — 쿠키 인증이라 fetch 로 받아
   // blob 으로 내려받는다. 문서에 붙이지 않은 링크는 클릭해도 아무 일이 안 일어나는
   // 브라우저가 있고, 곧바로 revoke 하면 내려받기 전에 주소가 사라져 빈 파일이 된다
+  // ── **받는 손은 `data/exportCsv.js` 한 벌이다** ── (2026-11-17 · 정석)
+  //
+  // 여기와 `HistoryPage` 에 **같은 손이 두 벌** 있었다(fetch · blob · a.click ·
+  // revoke 지연까지 글자 그대로). 복붙한 손은 갈리고, **실제로 갈려 있었다** —
+  // 파일 이름이 서버와 어긋났다:
+  //
+  //     서버  steelbody_measures.csv   ← `Content-Disposition` 으로 준다
+  //     화면  blackiron_measures.csv   ← `a.download` 가 **헤더를 이긴다**
+  //
+  // 그래서 사람은 **옛 이름으로 받고**, 서버가 정한 이름은 죽은 글자였다. 셋 다
+  // 그랬다(`workouts` · `inbody` · `measures`). 이름은 **서버 한 자리**에만 둔다 —
+  // 공용 손이 헤더를 읽고, 못 읽을 때만 아래 뒷이름으로 떨어진다
   const exportMeasures = () => {
-    const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = readLS(TOKEN_KEY);
-    fetch(`${baseURL}/export/measures`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: 'include',
-    })
-      .then(res => { if (!res.ok) throw new Error('export failed'); return res.blob(); })
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'blackiron_measures.csv';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-        toast('측정 기록 CSV 내보내기 완료!');
-      })
+    exportCsv('measures', 'steelbody_measures.csv')
+      .then(() => toast('측정 기록 CSV 내보내기 완료!'))
       .catch(() => toast('내보내기에 실패했어요', 'error'));
   };
 

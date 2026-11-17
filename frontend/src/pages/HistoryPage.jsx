@@ -3,6 +3,7 @@ import { useRefreshTick } from '../store/refreshStore';
 import { minuteLabel, kmLabel } from '../data/cardio';
 import { rowPayload, planPayload, planUndoable, notePayload, noteUndoable, UNDO_MS } from '../data/undoRow';
 import ImportCsv from '../components/ImportCsv';
+import { exportCsv } from '../data/exportCsv';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -26,8 +27,6 @@ import client from '../api/client';
 import { plansByDate, upcoming, missedCount, dayLabel, untilLabel } from '../data/plans';
 import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
-import { readLS } from '../data/safeStorage';
-import { TOKEN_KEY } from '../data/localKeys';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
 import { upToToday, atDay } from '../data/dateKey';
 import { useToday } from '../data/useToday';
@@ -266,31 +265,19 @@ export default function HistoryPage() {
     } : null);
   };
 
+  // ── **받는 손을 `data/exportCsv.js` 로 꺼냈다** ── (2026-11-17 · 정석)
+  //
+  // 이 안에 있어서 **측정 화면에서는 쓸 수가 없었다.** 서버에는 길이 셋인데
+  // (`/export/workouts` · `/inbody` · `/measures`) 여기서 둘만 불렸고,
+  // 설정의 「측정 내려받기」는 **단추가 없는 화면**으로 사람을 보냈다.
+  //
+  // 파일 이름도 거기서 정하지 않는다 — 서버가 준 `Content-Disposition` 을 읽는다.
+  // 여기 적어둔 `blackiron_…` 이 서버의 `steelbody_…` 를 **이기고 있었다**
+  // (`a.download` 가 헤더보다 세다). 아래 이름은 헤더를 못 읽을 때만 쓰는 뒷받침이다
   const handleExportCSV = (type = 'workouts') => {
-    const filename = type === 'inbody' ? 'blackiron_inbody.csv' : 'blackiron_workouts.csv';
-    const baseURL = import.meta.env.VITE_API_URL || '/api';
-    const token = readLS(TOKEN_KEY);
-    fetch(`${baseURL}/export/${type}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: 'include',
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Export failed');
-        return res.blob();
-      })
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        // 문서에 붙이지 않은 링크는 클릭해도 아무 일이 안 일어나는 브라우저가 있다.
-        // 그리고 곧바로 revoke 하면 내려받기가 시작되기 전에 주소가 사라져 빈 파일이 된다
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-        toast(`${type === 'inbody' ? '인바디' : '운동'} CSV 내보내기 완료!`);
-      })
+    const 뒷이름 = type === 'inbody' ? 'steelbody_inbody.csv' : 'steelbody_workouts.csv';
+    exportCsv(type, 뒷이름)
+      .then(() => toast(`${type === 'inbody' ? '인바디' : '운동'} CSV 내보내기 완료!`))
       .catch(() => toast('내보내기에 실패했어요', 'error'));
   };
 
