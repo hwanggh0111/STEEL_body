@@ -66,7 +66,8 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
   // **앞날 줄은 「최근」이 아니다** (2026-11-05) — 서버는 측정 날짜도 하루 넉넉하게
   // 받고(시차 · 자정 무렵) 목록은 날짜 내림차순이라, 첫 줄이 **아직 재지도 않은
   // 값**이 될 수 있었다. 그러면 「어깨가 +1.5cm 늘었어요」가 거짓이 된다
-  const upto = measuresUpto(records);
+  // 앞날 줄을 거르는 손도 이 화면의 오늘을 본다 (2026-11-17)
+  const upto = measuresUpto(records, today);
   const latest = upto[0];
   const oldest = upto.length >= 2 ? upto[upto.length - 1] : null;
   const latestShoulder = latest?.data?.shoulder;

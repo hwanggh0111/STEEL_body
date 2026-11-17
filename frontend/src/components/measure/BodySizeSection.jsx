@@ -55,7 +55,9 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
         onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 6, marginBottom: 10 }}>
         {SIZE_FIELDS.map(f => {
-          const ch = changeOf(records, f.key);
+          // 셈도 **이 화면이 보는 오늘**을 본다 (2026-11-17) — 안 넘기면 그 손이
+          // 제 시계를 읽어, 자정 무렵에 날짜 칸과 다른 날 기준으로 견준다
+          const ch = changeOf(records, f.key, today);
           return (
             <div key={f.key}>
               <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}</label>
@@ -80,7 +82,7 @@ export default function BodySizeSection({ records, onSave, onDelete }) {
       </div>
       <button className="btn-primary" onClick={handleSave} style={{ marginBottom: 12 }}>측정 저장</button>
 
-      <ChangeSummary records={records} fields={SIZE_FIELDS} />
+      <ChangeSummary records={records} fields={SIZE_FIELDS} today={today} />
 
       {records.map((r, i) => (
         <div key={r.id} className="card" style={{ marginBottom: 6, cursor: 'pointer', borderColor: openIdx === i ? 'var(--accent)' : 'var(--border)' }}

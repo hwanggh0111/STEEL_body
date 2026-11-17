@@ -49,8 +49,17 @@ export default function MonthCalendar({
   // 못 올린 메모를 **이 기기에도 담지 못했나** (2026-10-24). 받아서 쓰기만 한다 —
   // 이 컴포넌트는 스토어를 모르고 그린다(부르는 쪽이 넘긴다)
   noteUnsaved = false,
+  // ── ★ **오늘을 제 시계로 읽지 않는다** ── (2026-11-17)
+  //
+  // 여기는 `dateKey()` 를 **그릴 때마다** 불렀다. 부르는 쪽(`HistoryPage`)은
+  // `useToday` 로 자정을 따라가는데 이 칸만 **다른 시계**를 봤다 — 둘이 어긋나는
+  // 순간 달력의 「오늘」 테는 새 날에 가 있고 그 화면의 통계·목록은 어제 기준이
+  // 된다(같은 화면이 두 날을 말한다). 받아서 쓴다.
+  //
+  // **안 받으면 여태처럼 시계를 본다** — 다른 화면이 이 달력을 쓸 때 「오늘」 테가
+  // 아무 날에도 없는 것보다는 낫다.
+  today = dateKey(),
 }) {
-  const today = dateKey();
   const weeks = useMemo(() => monthGrid(year, month), [year, month]);
 
   const [draft, setDraft] = useState('');

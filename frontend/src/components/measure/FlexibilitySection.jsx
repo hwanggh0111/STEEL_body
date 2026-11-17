@@ -46,7 +46,8 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
       <input id={`${uid}-date`} className="input" type="date" value={date} max={today} min={minDay}
         onChange={(e) => pickDate(e.target.value)} style={{ marginBottom: 12 }} />
       {FLEX_FIELDS.map(f => {
-        const ch = changeOf(records, f.key);
+        // 셈도 이 화면의 오늘을 본다 (2026-11-17)
+        const ch = changeOf(records, f.key, today);
         return (
           <div key={f.key} style={{ marginBottom: 8 }}>
             <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label} ({f.unit})</label>
@@ -67,7 +68,7 @@ export default function FlexibilitySection({ records, onSave, onDelete }) {
       })}
       <button className="btn-primary" onClick={handleSave} style={{ marginBottom: 12 }}>기록 저장</button>
 
-      <ChangeSummary records={records} fields={FLEX_FIELDS} />
+      <ChangeSummary records={records} fields={FLEX_FIELDS} today={today} />
 
       {(all ? records : records.slice(0, 3)).map(r => (
         <div key={r.id} className="card" style={{ marginBottom: 4 }}>

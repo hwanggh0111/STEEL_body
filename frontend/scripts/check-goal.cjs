@@ -417,8 +417,12 @@ console.log('── ★ 인바디의 「가장 최근」도 앞날을 안 집는
 
   const home = fs.readFileSync('src/pages/HomePage.jsx', 'utf-8');
   const inb = fs.readFileSync('src/pages/InbodyPage.jsx', 'utf-8');
+  // **인자까지 박지 않는다** (2026-11-17). 여기는 `latestInbody(records)` 를 글자로
+  // 박아뒀는데, 그 손은 둘째 인자로 **오늘**을 받는다(`today = dateKey()`). 화면이
+  // 그 오늘을 넘기도록 고치자 **자가 그것을 막았다** — 뜻은 「그 손을 쓴다」지
+  // 「인자를 하나만 넘긴다」가 아니다. 넘기는 쪽은 `check-dayflip.cjs` 6번이 본다
   ok('화면 둘이 그 손을 쓴다',
-    /latestInbody\(records\)/.test(home) && /latestInbody\(records\)/.test(inb), true);
+    /latestInbody\(records/.test(home) && /latestInbody\(records/.test(inb), true);
   // **코드만 본다** — 까닭을 적어둔 주석에 그 글자가 들어 있다
   const noComment = (t) => t.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
   ok('  제 손으로 records[0] 을 집지 않는다',
@@ -446,7 +450,8 @@ console.log('── ★ 측정도 앞날을 안 집는가 ──');
   ok('  날을 넘기지 않으면 오늘로 본다', typeof MC.changeOf(recs, 'shoulder').last, 'number');
   ok('  오늘까지만 돌려주는 손이 있다', MC.measuresUpto(recs, TODAY).length, 2);
   const sh = fs.readFileSync('src/components/measure/ShoulderSection.jsx', 'utf-8');
-  ok('어깨 측정 화면이 그 손을 쓴다', /measuresUpto\(records\)/.test(sh), true);
+  // 인자까지 박지 않는다 (위와 같은 까닭, 2026-11-17)
+  ok('어깨 측정 화면이 그 손을 쓴다', /measuresUpto\(records/.test(sh), true);
 }
 
 console.log('');

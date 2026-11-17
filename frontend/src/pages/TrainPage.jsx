@@ -33,7 +33,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
 import { MIN_RECORD_DAY } from '../data/useRecordDate';
-import { dateKey } from '../data/dateKey';
+import { dateKey, atDay } from '../data/dateKey';
 import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
 import { sameWeightBest } from '../data/sameWeight';
 import { cannotCount } from '../data/repCount';
@@ -288,8 +288,13 @@ export default function TrainPage() {
     setDate((prev) => (prev === today ? prev : today));
   }, [today, editingId]);
 
+  // **「어제」도 이 화면이 보는 오늘에서 센다** (2026-11-17). 여기는 `new Date()` 로
+  // **또 다른 시계**를 읽었다 — `today` 는 `useToday` 가 들고 있고 화면 가림 중에는
+  // 멈춰 있을 수 있으니, 둘이 어긋나면 **단추에 적힌 「어제」가 실제 어제가 아니다**
+  // (그 단추를 누르면 그 날짜로 기록이 들어간다 — 틀리면 기록이 틀린 날에 꽂힌다).
+  // 날짜 키를 Date 로 되돌리는 손은 한 벌이다 (`dateKey.atDay`)
   const yesterday = useMemo(() => {
-    const d = new Date();
+    const d = atDay(today) || new Date();
     d.setDate(d.getDate() - 1);
     return dateKey(d);
   }, [today]);   // 자정을 넘기면 어제도 하루 밀린다

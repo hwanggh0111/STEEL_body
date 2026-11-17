@@ -395,7 +395,9 @@ export default function InbodyPage({ embedded = false }) {
   // **앞날 줄은 「가장 최근」이 아니다** (2026-11-05) — 체성분 도넛과 읽는 표가
   // 아직 안 잰 값으로 그려졌다. 목록(아래 줄들)에는 그대로 보인다 —
   // 잘못 적은 앞날 줄을 **사람이 찾아 고칠 자리**가 거기뿐이다
-  const { latest: latestRecord, prev: prevRecord, ahead } = latestInbody(records);
+  // **이 화면의 오늘을 넘긴다** (2026-11-17) — 안 넘기면 그 손이 제 시계를 읽어,
+  // 자정 무렵에 날짜 칸(`max={today}`)과 **다른 날**을 앞날의 경계로 삼는다
+  const { latest: latestRecord, prev: prevRecord, ahead } = latestInbody(records, today);
 
   const composition = useMemo(() => compositionOf(latestRecord), [latestRecord]);
 

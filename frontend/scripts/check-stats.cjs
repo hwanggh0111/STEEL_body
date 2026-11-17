@@ -51,10 +51,12 @@ function bundle(entry, out) {
 }
 
 const TMP = [];
-let dateKey; let yearWall;
+let dateKey; let yearWall; let weekly;
 try {
   dateKey = bundle('src/data/dateKey.js', '.stats-datekey.cjs'); TMP.push('.stats-datekey.cjs');
   yearWall = bundle('src/data/yearWall.js', '.stats-yearwall.cjs'); TMP.push('.stats-yearwall.cjs');
+  // 주를 세는 자 — 아래 「칸이 일곱」을 **글자가 아니라 불러서** 본다 (2026-11-17)
+  weekly = bundle('src/data/weeklyReport.js', '.stats-weekly.cjs'); TMP.push('.stats-weekly.cjs');
 } catch (e) {
   console.log('FAIL 셈을 묶지 못했다 → ' + String(e.message || e).slice(0, 200));
   process.exit(1);
@@ -153,11 +155,21 @@ console.log('── ★ 고객센터의 수 셋도 같은 선인가 ── (2026
   ok('인바디 건수도 거른다', /r\.date <= today/.test(intro), true);
   ok('  records.length 로 바로 세지 않는다', /const totalInbody = records\.length/.test(intro), false);
   ok('이번 주 깃발이 앞날에 안 켜진다', /done: key <= today/.test(intro), true);
-  // ★ 이름이 겹치면 날짜 객체와 글자를 견주어 **늘 참**이 된다 — 조용히 안 걸러진다
-  ok('★ 주 안쪽이 today 를 가리지 않는다 (now 로 둔다)',
-    /const now = new Date\(\)/.test(intro) && !/const today = new Date\(\)/.test(intro), true);
-  // 칸은 일곱 개 그대로 — 주간 달력이다
-  ok('주 칸은 일곱 개 그대로', /length: 7/.test(intro), true);
+  // ── **자가 「지금」을 베끼고 있던 자리** ── (2026-11-17 에 고쳤다)
+  //
+  // 여기 둘은 이 파일의 **그때 모양**을 글자로 박아뒀다 — 「`const now = new Date()`
+  // 가 있어야 한다」 · 「`length: 7` 이 적혀 있어야 한다」. 그런데 11/17 에 그 안쪽
+  // 셈이 **없어졌다**: 제 손으로 월요일을 세면서 **기기 시계를 또 읽던** 자리라
+  // 주를 세는 자 하나(`weekKeys(mondayOf(...))`)로 바꿨고, 거기에 `today` 를 먹인다.
+  // 그러자 **더 나은 꼴이 이 자에 막혔다** — 자가 뜻이 아니라 모양을 지키고 있었다.
+  //
+  // 뜻은 둘이다: ⑴ 주 경계를 **제 손으로 세지 않는다** ⑵ 칸은 **일곱 개**다.
+  // 그대로 본다 — ②는 글자가 아니라 **불러서** 센다.
+  ok('주 경계를 제 손으로 세지 않는다', /getDay\(\) \+ 6\) % 7/.test(intro), false);
+  ok('  주를 세는 자를 부른다', /weekKeys\(mondayOf\(/.test(intro), true);
+  ok('  그 자에 today 를 먹인다', /mondayOf\(atDay\(today\)/.test(intro), true);
+  ok('주 칸은 일곱 개 그대로',
+    weekly.weekKeys(weekly.mondayOf(dateKey.atDay('2026-11-17'))).length, 7);
 }
 
 for (const f of TMP) { try { fs.unlinkSync(path.join(ROOT, f)); } catch { /* 남아도 해롭지 않다 */ } }

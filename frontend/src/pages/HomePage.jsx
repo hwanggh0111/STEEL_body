@@ -86,14 +86,18 @@ function SectionTitle({ id, children }) {
 //
 // 예전에는 36px 통계 상자에 「최근 체중」 하나가 들어 있었고, 기록이 없으면 `-` 를
 // 크게 띄웠다. 없는 것을 크게 띄우는 자리는 없앤다 — 기록이 없으면 안 그린다.
-function BodyLine({ records, onGo }) {
+// `today` 를 **받는다** (2026-11-17) — 아래 `gap` 이 `dateKey()` 로 **또 다른
+// 시계**를 읽었다. 이 화면은 `useToday` 로 자정을 따라가므로, 어긋나는 순간
+// 「오늘 잰 체중」이 「1일 전」으로 적힌다 (셈이 `daysBetween(잰 날, 오늘)` 이다)
+function BodyLine({ records, onGo, today = dateKey() }) {
   if (!records || records.length === 0) return null;
   // **앞날 줄은 「최근」이 아니다** (2026-11-05). 서버는 인바디 날짜를 하루 넉넉하게
   // 받고(시차 · 자정 무렵) 목록은 날짜 내림차순이라, `records[0]` 이 **아직 안 잰
   // 값**이 될 수 있었다 — 그러면 이 카드가 그 값을 크게 적고 날 수가 「-1일 전」이 된다
-  const { latest, prev } = latestInbody(records);
+  // 앞날의 경계도 이 화면의 오늘이다 (2026-11-17)
+  const { latest, prev } = latestInbody(records, today);
   if (!latest) return null;
-  const gap = daysBetween(latest.date, dateKey());
+  const gap = daysBetween(latest.date, today);
   const delta = prev != null && latest.weight != null && prev.weight != null
     ? Number((latest.weight - prev.weight).toFixed(1))
     : null;
@@ -439,6 +443,7 @@ export default function HomePage() {
               보내면 탭바에 아무 칸도 안 켜진 화면에 서서 옆 갈래로 건너갈 수 없다 */}
           <BodyLine
             records={records}
+            today={today}
             onGo={(stale) => navigate('/body', { state: { tab: 'inbody', ...(stale ? { write: true } : null) } })}
           />
 

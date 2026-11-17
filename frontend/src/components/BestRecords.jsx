@@ -22,9 +22,12 @@ function ago(days) {
   return `${months}개월 전`;
 }
 
-export default function BestRecords({ workouts }) {
+// `today` 를 **받는다** (2026-11-17) — 여기는 `dateKey()` 를 그릴 때마다 불렀다.
+// 부르는 쪽(`HistoryPage`)은 `useToday` 로 자정을 따라가는데 이 칸만 다른 시계를
+// 봤다: 어긋나는 순간 「오늘」·「어제」로 적히는 줄과 그 화면의 수가 다른 날을
+// 가리킨다. 안 받으면 여태처럼 시계를 본다
+export default function BestRecords({ workouts, today = dateKey() }) {
   const [open, setOpen] = useState(false);
-  const today = dateKey();
 
   // **기록 전부를 한 번만 훑는다** (2026-09-19).
   //

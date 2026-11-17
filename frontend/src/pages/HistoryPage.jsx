@@ -29,7 +29,7 @@ import { confirmDialog } from '../components/ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { TOKEN_KEY } from '../data/localKeys';
 import { shiftMonth, monthSummary, monthsWithRecords } from '../data/monthGrid';
-import { upToToday } from '../data/dateKey';
+import { upToToday, atDay } from '../data/dateKey';
 import { useToday } from '../data/useToday';
 import { routineFromDay } from '../data/dayRoutine';
 // 갈래를 주소에 남긴다 (2026-10-06)
@@ -309,7 +309,10 @@ export default function HistoryPage() {
   // 홈의 주간 달력에서 날짜를 눌러 오면 그 날을 들고 온다 (`state.date`).
   // 데려다 놓고 이번 달 전체를 펴주면 무엇을 눌렀는지가 사라진다
   const incoming = location.state?.date || null;
-  const now = incoming ? new Date(`${incoming}T00:00:00`) : new Date();
+  // 열 달을 정하는 날. **날짜 키에서 만든다** (2026-11-17) — `T00:00:00` 은
+  // 서머타임이 자정에 시작하는 곳에서 하루가 밀리고, `new Date()` 는 이 화면이 보는
+  // 오늘(`useToday`)과 **다른 시계**다. 손은 한 벌이다 (`dateKey.atDay`)
+  const now = atDay(incoming) || atDay(today) || new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
 
   // ── 갈래 셋 ── (2026-09-16, 6차)
@@ -465,6 +468,9 @@ export default function HistoryPage() {
         year={ym.year}
         month={ym.month}
         workouts={workouts}
+        /* 달력의 「오늘」 테도 **이 화면이 보는 오늘**이다 (2026-11-17) — 그 칸이
+           제 시계를 읽으면 같은 화면이 두 날을 말한다 */
+        today={today}
         plans={planMap}
         notes={dayNotes}
         notesFailed={notesFailed}
@@ -805,7 +811,8 @@ export default function HistoryPage() {
 
           「기록 → 통계」가 제 자리다. 되짚는 자리이고, 여기 있던 것은 체중 그래프
           하나뿐이라 **인바디를 안 적은 사람에게는 이 갈래가 통째로 비어 있었다.** */}
-      <BestRecords workouts={workouts} />
+      {/* 「오늘」·「어제」로 적히는 줄도 같은 오늘을 본다 (2026-11-17) */}
+      <BestRecords workouts={workouts} today={today} />
 
       {/* ── **늘어온 길** ── (2026-11-03)
           바로 위 표는 **숫자 하나**다(최고 기록 92.5kg). 이 앱 홈페이지의 첫 줄이

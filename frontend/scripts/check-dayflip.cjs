@@ -61,6 +61,29 @@ const 식 = {
     .filter((e) => !src.includes(`removeEventListener('${e}', check)`)),
   분자_그대로: (src) => /setInterval\(check, 60 \* 1000\)/.test(src),
   떠날때_거둔다: (src) => /clearTimeout\(/.test(src) && /clearInterval\(/.test(src),
+
+  // ── 아래 둘은 **전수(5번)** 가 쓴다 ── (2026-11-17 · 벼림)
+  //
+  // 주석은 안 센다 — 이 집은 까닭을 길게 적고 그 주석에 **옛 꼴을 그대로** 적어둔다.
+  // JSX 주석(`{/* … */}`)도 주석이다 (그것 때문에 거짓 자리가 하나 떴다).
+  주석줄: (l) => /^\s*(\{?\s*\/\*|\/\/|\*)/.test(l),
+  // **두 번째 시계인가** — 「지금」을 그 자리에서 또 읽는 줄.
+  //
+  //   센다        `dateKey()` · `new Date()` 를 **값으로 쓰는** 줄
+  //   안 센다     `today = dateKey()` · `ref = new Date()` — **받는 손의 기본값**이다
+  //               (부르는 쪽이 넘기면 그것을 쓴다. 넘길 데가 없을 때의 선이다)
+  //   안 센다     `atDay(today) || new Date()` — 날짜 키가 깨졌을 때의 **폴백**이다
+  //
+  // ★ **기본값만 빼고 보통 대입은 센다.** 처음에 `=` 앞에 무엇이 있든 다 뺐더니
+  // `const t = dateKey();` 가 **조용히 통과했다** — 자를 세우고 되돌려 보다가 잡았다.
+  // 기본값은 **괄호나 쉼표 뒤**에 온다(인자 자리) — 그것만 뺀다. 인자가 여러 줄로
+  // 풀린 곳에서는 **그 줄에 기본값 하나만** 있다(`  today = dateKey(),`) — 그 꼴도 뺀다.
+  둘째시계_줄: (l) => {
+    const 기본값 = (f) => new RegExp('[,({]\\s*[\\w$]+\\s*=\\s*' + f).test(l)
+      || new RegExp('^\\s*[\\w$]+\\s*=\\s*' + f + '\\s*,?\\s*$').test(l);
+    return (/dateKey\(\)/.test(l) && !기본값('dateKey\\(\\)'))
+      || (/new Date\(\)/.test(l) && !기본값('new Date\\(\\)') && !/\|\|\s*new Date\(\)/.test(l));
+  },
 };
 
 const TMP = [];
@@ -181,6 +204,161 @@ console.log('── 4. 자정을 **1분 뒤**가 아니라 그 자리에서 넘�
   ok('  떠날 때 거둔다', 식.떠날때_거둔다(src), true);
 }
 
+console.log('');
+console.log('── 5. 앱 전수: **두 번째 시계가 또 생기지 않았는가** ──');
+//
+// ── 왜 전수로 보는가 ── (2026-11-17 · 벼림)
+//
+// 홈 둘을 고치고 **같은 류로 앱을 훑었더니 여섯 자리가 더 나왔다** —
+//
+//   `introData.js`           고객센터가 `dateKey()` 로 오늘을 읽어 **자정을 아예 안
+//                            따라갔다.** 게다가 그 안에 **월요일을 찾는 셈이 따로**
+//                            적혀 있었고(`(now.getDay()+6)%7` — `mondayOf` 와 글자
+//                            그대로 같다) 그것이 **또 다른 시계**를 읽었다
+//   `MonthCalendar.jsx`      달력의 「오늘」 테가 제 시계를 읽었다 (부르는 쪽은
+//                            `useToday` 를 들고 있었다)
+//   `BestRecords.jsx`        「오늘」·「어제」로 적히는 줄이 제 시계를 읽었다
+//   `HistoryPage.jsx`        여는 달을 `new Date()` 와 `T00:00:00` 으로 정했다
+//   `HomePage` 의 체중 줄    「며칠 전」을 제 시계로 셌다 — 어긋나면 오늘 잰 것이
+//                            「1일 전」이 된다
+//   `TrainPage` 의 「어제」   단추에 적히는 어제를 제 시계로 셌다. **그 단추를 누르면
+//                            그 날짜로 기록이 들어간다** — 틀리면 기록이 틀린 날에 꽂힌다
+//
+// 꼬리표 하나씩 고쳐도 **일곱째가 또 온다**(11/16 의 그 교훈이다 — 「꼬리표는 잊히고
+// 파일은 안 잊힌다」). 그래서 **자리를 센다.** 새 자리가 생기면 FAIL 이고, 맞는
+// 자리는 아래 `허락` 에 **까닭과 함께** 적는다 (`check-isoday.cjs` 와 같은 꼴).
+{
+  // ★ 맞는 자리 — **까닭이 없으면 여기 적지 않는다**
+  const 허락 = {
+    'src/data/dateKey.js': '오늘을 만드는 자리 그 자체다',
+    'src/data/useToday.js': '자정을 보는 자리다 — 여기가 시계를 읽어야 한다',
+    'src/data/useRecordDate.js': '`reset` 은 자정을 막 넘긴 순간에 불릴 수 있어 그 자리에서 다시 본다',
+    'src/pages/MeasurePage.jsx': '**저장하는 순간**의 날이다 (칸이 날짜를 안 보냈을 때의 선)',
+    'src/pages/RemindersPage.jsx': '시간대 차(`getTimezoneOffset`)를 재는 자리 — 날짜가 아니다',
+    'src/data/appLock.js': '잠금을 세운 **시각**을 적는다',
+    'src/data/homeWidget.js': '위젯을 넘긴 **시각**을 적는다',
+    'src/components/AiAdminPanel.jsx': '읽은 **시각**을 적는다',
+    'src/components/admin/ErrorAdmin.jsx': '본 **시각**을 적는다',
+    'src/components/admin/BackupAdmin.jsx': '내보내는 파일 이름에 **시각**을 박는다',
+    'src/components/admin/MaintAdmin.jsx': '점검을 **앞날로** 거는 자리다 (`min` 이 오늘, `max` 가 없다)',
+    'src/components/MaintenanceScreen.jsx': '점검이 **지금** 도는 중인지 본다 — 날짜가 아니라 시각이다',
+    'src/data/healthLink.js': '건강앱에 **최근 30일**을 달라고 하는 자리 (시각 구간)',
+  };
+  const 자리 = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!/\.(jsx|js)$/.test(e.name)) continue;
+      const rel = p.split(path.sep).join('/').replace(/^.*?src\//, 'src/');
+      if (허락[rel]) continue;
+      fs.readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
+        if (식.주석줄(l)) return;
+        if (식.둘째시계_줄(l)) 자리.push(`${rel}:${i + 1}`);
+      });
+    }
+  })(path.join(ROOT, 'src'));
+  ok('두 번째 시계를 읽는 새 자리가 없다', 자리, []);
+  console.log('       허락한 자리 ' + Object.keys(허락).length + '개 (까닭은 소스에)');
+}
+
+console.log('');
+console.log('── 6. 앱 전수: **오늘을 넘기는 자리가 빠지지 않았는가** ──');
+//
+// ── 5번만으로는 절반이다 ── (2026-11-17 · 벼림)
+//
+// 5번은 **받는 쪽**을 본다. 그런데 이 류의 자리는 **「안 받으면 제 시계를 본다」**
+// 로 짜여 있다(`today = dateKey()`) — 그렇게 두는 까닭은 다른 화면이 그 조각을 쓸 때
+// 「오늘」이 아무 날에도 없는 것보다 낫기 때문이다. 그 말은 **부르는 쪽이 안 넘기면
+// 5번은 조용하다**는 뜻이다. 되돌려 보다가 바로 그것이 드러났다 — `today={today}` 를
+// 지웠는데 5번이 통과했다.
+//
+// 그래서 **넘기는 쪽도 센다.** 아래 부름에 `today` 가 빠지면 FAIL 이다.
+{
+  // 날짜를 **셈의 기준**으로 받는 손들 (`src/data` 의 정의는 뺀다 — 거기가 기본값 자리다)
+  const 부름 = ['latestInbody', 'inbodyUpto', 'measuresUpto', 'changeOf', 'bestOf',
+    'bestRecords', 'weekProgress', 'weekStreak', 'weekHistory', 'weightEta', 'buildWeekly'];
+  // 오늘을 **받아 쓰는 조각들** — 부르는 쪽이 `today={today}` 로 넘겨야 한다.
+  //
+  // ★ **목록을 손으로 적지 않는다** (되돌려 보다가 고쳤다). 처음에 다섯을 적어뒀는데
+  // `TodayCard` 의 `today` 를 지워도 자가 **조용했다** — 적어둔 목록에 없어서다.
+  // 목록은 늘 늦는다(11/16 의 「꼬리표는 잊히고 파일은 안 잊힌다」와 같은 자리다).
+  // 그래서 **소스에서 뽑는다** — `today` 를 받는 조각이면 그것이 곧 목록이다.
+  //
+  // ★ **괄호를 세며 읽는다.** 처음에 `{` 부터 첫 `}` 까지로 잡았더니 `notes = {}`
+  // 같은 기본값에서 **일찍 끊겨** `MonthCalendar` · `WeeklyReport` 가 목록에서
+  // 빠졌다 — 뽑는 자가 빠뜨리면 자가 조용하다. 깊이를 세면 그 일이 없다.
+  const 조각 = [];
+  const 묶음 = (src, at) => {   // `{` 자리에서 짝 맞는 `}` 까지
+    let 깊이 = 0;
+    for (let i = at; i < src.length; i += 1) {
+      if (src[i] === '{') 깊이 += 1;
+      else if (src[i] === '}') { 깊이 -= 1; if (깊이 === 0) return src.slice(at, i + 1); }
+    }
+    return src.slice(at);
+  };
+  (function 모으기(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { 모으기(p); continue; }
+      if (!e.name.endsWith('.jsx')) continue;
+      const src = fs.readFileSync(p, 'utf8');
+      // `function Cards({ a, today, b })` · `const Cards = ({ today }) =>` 둘 다
+      const re = /(?:function\s+([A-Z][\w$]*)\s*\(\s*|const\s+([A-Z][\w$]*)\s*=\s*(?:memo\()?\s*\(\s*)\{/g;
+      let m = re.exec(src);
+      while (m) {
+        const 이름 = m[1] || m[2];
+        const 받는것 = 묶음(src, m.index + m[0].length - 1);
+        if (/(^|[\s,{])today\s*[,=}]/.test(받는것) && !조각.includes(이름)) 조각.push(이름);
+        m = re.exec(src);
+      }
+    }
+  })(path.join(ROOT, 'src'));
+
+  /** `이름(` 부터 짝 맞는 닫는 괄호까지. 인자 안의 괄호를 세며 간다 */
+  const 인자 = (src, at) => {
+    let 깊이 = 0;
+    for (let i = at; i < src.length; i += 1) {
+      if (src[i] === '(') 깊이 += 1;
+      else if (src[i] === ')') { 깊이 -= 1; if (깊이 === 0) return src.slice(at, i + 1); }
+    }
+    return src.slice(at);
+  };
+
+  const 빠진것 = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!/\.(jsx|js)$/.test(e.name)) continue;
+      const rel = p.split(path.sep).join('/').replace(/^.*?src\//, 'src/');
+      // 정의가 사는 자리는 안 본다 — 거기 기본값이 있어야 한다
+      if (rel.startsWith('src/data/')) continue;
+      const 코드 = fs.readFileSync(p, 'utf8').split('\n')
+        .filter((l) => !식.주석줄(l)).join('\n');
+      for (const 이름 of 부름) {
+        const re = new RegExp('(?<![\\w$.])' + 이름 + '\\s*\\(', 'g');
+        let m = re.exec(코드);
+        while (m) {
+          const 안 = 인자(코드, m.index + m[0].length - 1);
+          if (!/\btoday\b/.test(안)) 빠진것.push(`${rel} — ${이름}${안.slice(0, 44)}`);
+          m = re.exec(코드);
+        }
+      }
+      for (const 이름 of 조각) {
+        const re = new RegExp('<' + 이름 + '(\\s[^>]*)?/?>', 'g');
+        let m = re.exec(코드);
+        while (m) {
+          if (!/today=\{/.test(m[0])) 빠진것.push(`${rel} — <${이름}> 에 today 가 없다`);
+          m = re.exec(코드);
+        }
+      }
+    }
+  })(path.join(ROOT, 'src'));
+  ok('셈에 오늘을 안 넘긴 자리가 없다', 빠진것, []);
+  console.log('       본 부름 ' + 부름.length + '가지 · 조각 ' + 조각.length + '가지');
+}
+
 clean();
 
 // ── ★ **되돌려-FAIL** ── (2026-11-17 · 정석)
@@ -227,6 +405,24 @@ if (process.argv.includes('--되돌려')) {
       'const t = setTimeout(check, 1000);', false],
     ['걸어둔 것을 안 거두면', 식.떠날때_거둔다,
       'clearTimeout(t);', false],
+    // ── 5번(전수)이 쓰는 식 ── (2026-11-17 · 벼림)
+    ['새 자리에서 시계를 또 읽으면', 식.둘째시계_줄,
+      'const t = dateKey();', true],
+    ['  `new Date()` 를 값으로 쓰면', 식.둘째시계_줄,
+      'const m = mondayOf(new Date());', true],
+    ['  받는 손의 기본값은 자리가 아니다', 식.둘째시계_줄,
+      'export function weekProgress(workouts, goal, today = dateKey()) {', false],
+    ['  `|| new Date()` 폴백도 자리가 아니다', 식.둘째시계_줄,
+      'const d = atDay(today) || new Date();', false],
+    // 인자가 여러 줄로 풀린 곳 — 그 줄에는 기본값 하나만 있다
+    ['  여러 줄로 풀린 기본값도 자리가 아니다', 식.둘째시계_줄,
+      '  today = dateKey(),', false],
+    ['주석은 세지 않는다', 식.주석줄,
+      '// 여기는 `new Date()` 를 쓰던 자리다', true],
+    ['  JSX 주석도 주석이다', 식.주석줄,
+      '{/* 기기 시계(`new Date()`)를 안 읽는다 */}', true],
+    ['  코드 줄은 주석이 아니다', 식.주석줄,
+      'const today = useToday();', false],
   ];
   for (const [이름, 식하나, 소스, 어긋난값] of 꼴) {
     const 받은것 = 식하나(소스);

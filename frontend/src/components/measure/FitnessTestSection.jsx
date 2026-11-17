@@ -73,8 +73,9 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
         {FITNESS_TESTS.map(f => {
-          const ch = changeOf(records, f.key);
-          const best = bestOf(records, f.key, f.better);
+          // 셈도 **이 화면이 보는 오늘**을 본다 (2026-11-17)
+          const ch = changeOf(records, f.key, today);
+          const best = bestOf(records, f.key, f.better, today);
           return (
             <div key={f.key}>
               <label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.time ? '' : ` (${f.unit})`}</label>
@@ -117,7 +118,7 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
             지난번과 견주면
           </div>
           {FITNESS_TESTS.map(f => {
-            const ch = changeOf(records, f.key);
+            const ch = changeOf(records, f.key, today);
             if (!ch || ch.prev === null) return null;
             // 좋아진 쪽은 금색, 나빠진 쪽은 파랑. **빨강을 안 쓴다** —
             // 체력이 준 날에 경고색을 주면 다음에 안 적게 된다

@@ -6,10 +6,12 @@ import { changeOf, diffLabel, sinceLabel } from '../../data/measureChange';
 // 하지 않는다. **늘어난 것과 줄어든 것만** 색으로 나눈다 — 비교 화면과 같은 규칙이다.
 //
 // 체력 테스트는 이걸 안 쓴다. 거기는 **기록**이라 최고를 말하고, 좋아진 쪽을 따로 칠한다.
-export default function ChangeSummary({ records, fields }) {
+// `today` 를 **받는다** (2026-11-17) — 안 받으면 `changeOf` 가 제 시계를 읽어
+// 같은 화면의 날짜 칸과 다른 날 기준으로 견준다. 안 넘기면 여태처럼 시계를 본다
+export default function ChangeSummary({ records, fields, today }) {
   if (!records || records.length < 2) return null;
   const rows = fields
-    .map((f) => ({ f, ch: changeOf(records, f.key) }))
+    .map((f) => ({ f, ch: changeOf(records, f.key, today) }))
     .filter(({ ch }) => ch && ch.prev !== null);
   // 견줄 것이 하나도 없으면 빈 카드를 남기지 않는다
   if (rows.length === 0) return null;

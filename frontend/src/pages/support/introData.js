@@ -3,7 +3,11 @@ import { useEffect, useMemo } from 'react';
 import { latestInbody } from '../../data/inbodyLatest';
 import { useWorkoutStore } from '../../store/workoutStore';
 import { useInbodyStore } from '../../store/inbodyStore';
-import { dateKey, upToToday } from '../../data/dateKey';
+// `dateKey` 를 안 부른다 — 이 파일이 보는 오늘은 `useToday` 하나뿐이다 (2026-11-17)
+import { upToToday, atDay } from '../../data/dateKey';
+// 자정을 따라가는 오늘 · 주를 세는 자 — 홈과 **같은 손**을 쓴다 (2026-11-17)
+import { useToday } from '../../data/useToday';
+import { mondayOf, weekKeys } from '../../data/weeklyReport';
 
 // 고객센터가 보여주는 숫자를 한 군데서 만든다.
 // 화면마다 따로 계산하면 어느 순간 한 곳만 옛날 값을 보여주게 된다.
@@ -51,7 +55,13 @@ export function useIntroStats() {
   //
   // 「지금까지」 · 「나왔다」는 **한 것**을 말하는 말이다. 앞날에 담아둔 계획이 거기
   // 세어지면 그 문장이 거짓이 된다. 주는 `data/goal.js` 의 `doneIn` 과 같은 선을 쓴다
-  const today = dateKey();
+  // ── ★ **이 화면은 날이 바뀌어도 어제를 셌다** ── (2026-11-17)
+  //
+  // `dateKey()` 는 **부를 때의 기기 시계**다. 이 훅은 기록이 바뀔 때만 다시 도므로,
+  // 고객센터를 띄워둔 채 자정을 넘기면 「이번 주만 N일 나왔다」와 주간 칸이 **어제
+  // 기준**으로 남는다. 홈은 `useToday` 로 자정을 따라가는데 **여기만 안 따라갔다** —
+  // 같은 앱이 두 날을 말한다(11/17 에 홈의 띠·요약에서 고친 그 류다).
+  const today = useToday();
   const totalWorkouts = useMemo(
     () => upToToday(Object.keys(workouts), today)
       .reduce((n, k) => n + ((workouts && workouts[k]) || []).length, 0),
@@ -62,27 +72,28 @@ export function useIntroStats() {
     [records, today],
   );
 
-  const week = useMemo(() => {
-    // 바깥의 `today`(글자 열쇠)와 **이름이 겹치면 안 된다** — 겹치면 아래 `key <= today`
-    // 가 날짜 객체와 글자를 견주게 되어 **늘 참**이 된다(조용히 안 걸러진다)
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const key = dateKey(d);
-      // ★ 칸은 일곱 개 그대로 그린다(주간 달력이다). **앞날 칸만 「했다」로 안 켠다** —
-      // 아래 `weekDays` 가 이 깃발을 세므로, 여기서 켜면 그 수가 미리 채워진다
-      return { key, done: key <= today && !!workouts[key]?.length };
-    });
-  }, [workouts, today]);
+  // ── ★ **주 경계를 제 손으로 세지 않는다** ── (2026-11-17)
+  //
+  // 여기에 **월요일을 찾는 셈이 따로 적혀 있었다** — `(now.getDay() + 6) % 7` 까지
+  // `weeklyReport.mondayOf` 와 글자 그대로 같은 것이다. 그런데 그 셈이 읽는 것은
+  // **또 다른 시계**(`new Date()`)였다: 위의 `today` 와 어긋나는 순간 **칸은 이번
+  // 주인데 세는 수는 어제 기준**이 된다. 홈의 띠가 11/17 에 바로 그 꼴이었다.
+  //
+  // 그래서 **주를 세는 자 하나**를 부른다(`mondayOf`·`weekKeys` — 홈 띠 · 주간
+  // 요약 · 목표가 쓰는 그것) 그리고 그것에 **`today` 를 먹인다.**
+  const week = useMemo(() => weekKeys(mondayOf(atDay(today) || new Date())).map((key) => (
+    // ★ 칸은 일곱 개 그대로 그린다(주간 달력이다). **앞날 칸만 「했다」로 안 켠다** —
+    // 아래 `weekDays` 가 이 깃발을 세므로, 여기서 켜면 그 수가 미리 채워진다
+    { key, done: key <= today && !!workouts[key]?.length }
+  )), [workouts, today]);
 
   return {
     totalWorkouts, totalInbody,
     // 앞날 줄은 「가장 최근」이 아니다 (2026-11-05)
-    latest: latestInbody(records).latest,
+    latest: latestInbody(records, today).latest,
     week, weekDays: week.filter(d => d.done).length,
-    todayDone: !!workouts[dateKey()]?.length,
+    // `dateKey()` 를 또 부르지 않는다 — 위 `today` 와 어긋나면 「오늘 했다」가
+    // 주간 칸과 다른 날을 가리킨다 (2026-11-17)
+    todayDone: !!workouts[today]?.length,
   };
 }
