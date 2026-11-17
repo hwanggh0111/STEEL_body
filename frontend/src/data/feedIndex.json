@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "891f068c8c",
+  "detailVersion": "54c54cea96",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "dfd0c2c",
+      "date": "2026-11-17",
+      "text": "미는 것과 당기는 것 — 몸 지도 아래에 치우침을 둔다",
+      "label": "새 기능",
+      "scope": "몸",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "1차 검토에서 둘 더 — 앞날 줄 하나로 「오래 안 재셨어요」가 영영 안 떴다 · 목록 파일이 컴포넌트만 내보내게",
       "label": "고침",
       "scope": "몸·고객센터",
-      "has": true
-    },
-    {
-      "key": "ead3f3b",
-      "date": "2026-11-09",
-      "text": "공지를 눌러도 영영 「불러오는 중…」 — 뿌리는 캐시였다 · 상태 넷으로 가른다",
-      "label": "고침",
-      "scope": "고객센터",
       "has": true
     }
   ]
