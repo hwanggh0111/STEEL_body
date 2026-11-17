@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "6b56d8202f",
+  "detailVersion": "7a85fc3ec5",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -549,7 +549,7 @@
       "has": true
     },
     {
-      "key": "f11e22d",
+      "key": "31d84dc",
       "date": "2026-11-16",
       "text": "적는 칸 94곳이 44px 자에서 빠져 있었다 — 폰에서 39.2px 였다",
       "label": "고침",

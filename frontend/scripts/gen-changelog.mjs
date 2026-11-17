@@ -198,8 +198,38 @@ function build() {
       || f === 'README.md';
     if (files.length > 0 && files.every(사용자화면밖)) continue;
 
+    // ── ★ **빈 커밋은 본문이 가리키는 코드 커밋으로 적는다** ── (2026-11-17 · 정석)
+    //
+    // 11/16 의 `f11e22d`(`fix(UI)`: 적는 칸 94곳이 44px 자에서 빠져 있었다)는
+    // **바꾼 파일이 하나도 없다.** 맵시가 **일부러** 올린 커밋이다 — 고침은
+    // `31d84dc` 에 들어 있는데 그 커밋의 제목이 **다른 창의 `--amend` 에 덮여**
+    // `fix(…)` 로 시작하지 않게 됐고(원래는 `b032fa0`), 그러면 위의 `subject.match`
+    // 가 걸러 **94곳을 고쳐두고 소식에는 안 올라간다.** 이미 push 된 것을 다시 쓰지
+    // 않으려고 **제목 한 줄을 세우는 빈 커밋**을 올린 것이고, 그 본문에 코드가 있는
+    // 해시를 적어뒀다.
+    //
+    // 사람에게 가는 제목은 그렇게 살았지만 **공지의 해시가 코드를 안 가리켰다** —
+    // 소식에서 커밋을 짚어도 아무것도 안 나오고, 되돌릴 때 그 해시를 되돌리면
+    // **아무 일도 안 일어난다.** 그래서 **본문이 가리키는 해시**를 되물어, 파일을
+    // 실제로 바꾼 것이 있으면 **그것을 적는다**(주인 결정, 11/17).
+    //
+    // 손으로 박는 표는 두지 않는다 — 까닭은 커밋 본문에 이미 있다. 가리키는 것이
+    // 없거나 그것도 비었으면 **해시를 그대로 둔다**: 조용히 빼지 않고
+    // `check-changelog` 가 울게 둔다(모를 때는 우는 쪽, 생성기는 남기는 쪽).
+    let 적을해시 = hash;
+    if (files.length === 0) {
+      for (const h of (body.match(/\b[0-9a-f]{7,40}\b/g) || [])) {
+        if (h === hash) continue;
+        let 바뀐것 = '';
+        try {
+          바뀐것 = git(['diff-tree', '--no-commit-id', '--name-only', '-r', h]).trim();
+        } catch { 바뀐것 = ''; }   // 사라진 해시(amend 로 덮인 것)는 넘긴다
+        if (바뀐것) { 적을해시 = h; break; }
+      }
+    }
+
     entries.push({
-      hash, date, type, label: labelFor(type, text),
+      hash: 적을해시, date, type, label: labelFor(type, text),
       scope: scope || null, text: text.trim(),
       // 보안 갈래는 제목만 (위 `SECRET_SCOPE`)
       detail: SECRET_SCOPE.test(scope || '') ? '' : cleanBody(body),

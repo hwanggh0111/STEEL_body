@@ -56,7 +56,7 @@
       "detail": "UI 전수 둘째·셋째 류다.\n\n**① 숫자 칸에 자판 지정이 없었다 — 여덟 자리**\n`type=\"number\"` 만 적어두면 안드로이드 자판이 **소수점을 안 내주는 일이 있다.**\n집 안의 다른 칸들은 이미 `inputMode=\"decimal\"` 을 함께 적고 있었다(`InbodyPage` 의\n다섯 칸이 그 꼴이다) — **측정 화면 여덟 자리만 빠져 있었다.**\n\n    BodySize · Flexibility · Shoulder(2)   cm 를 0.1 단위로 적는 칸 → decimal\n    FitnessTest · Stopwatch · OneRM 횟수    정수 칸 → numeric\n\n★ **그중 하나는 자판이 아니라 셈이 막는 자리였다** — `OneRMSection` 의 무게 칸에\n`step` 이 아예 없었다. …"
     },
     {
-      "hash": "f11e22d",
+      "hash": "31d84dc",
       "date": "2026-11-16",
       "type": "fix",
       "label": "고침",
