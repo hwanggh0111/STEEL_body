@@ -43,7 +43,12 @@ export const MAX_NOTES = 30;
  * 특히 고객센터 글은 **사람이 그 수를 믿고 적는다**: 서버만 늘리거나 줄이면
  * 안내가 거짓이 되고, 거짓인 안내는 **그 수에 걸려본 사람만** 안다.
  *
- *   NOTE_BODY_MAX → backend/src/routes/notes.js (`MAX_LEN`)
+ *   NOTE_BODY_MAX → backend/src/routes/notes.js
+ *
+ * 서버 쪽 이름이 `MAX_LEN` 이었는데 정석이 **`NOTE_BODY_MAX` 로 맞췄다**
+ * (11/17 · `6f48f68`). `check-twins` 는 **이름이 같은 상수**를 찾아 값을 맞대므로,
+ * 짝표에 적는 것보다 이름을 맞추는 쪽이 낫다 — 그 자가 알아서 본다. 되돌려 확인도
+ * 됐다: 서버만 1500 으로 바꾸면 「다르다 NOTE_BODY_MAX = 1500 / 2000」로 FAIL 한다.
  */
 export const NOTE_BODY_MAX = 2000;
 
