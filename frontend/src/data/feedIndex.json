@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "316a46c2bd",
+  "detailVersion": "6b56d8202f",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "519acfc",
+      "date": "2026-11-17",
+      "text": "이름이 길어지면 말줄임 대신 칸을 밀어내던 세 자리를 고친다",
+      "label": "고침",
+      "scope": "꼴",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "앞날 줄이 「지난번」이 되어 아직 재지도 않은 값으로 「+1.5cm 늘었어요」",
       "label": "고침",
       "scope": "측정",
-      "has": true
-    },
-    {
-      "key": "174b2fd",
-      "date": "2026-11-05",
-      "text": "홈의 「최근 체중」이 아직 안 잰 값을 적고 「-1일 전」이라고 했다",
-      "label": "고침",
-      "scope": "인바디",
       "has": true
     }
   ]
