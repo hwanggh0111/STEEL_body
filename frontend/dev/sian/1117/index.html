@@ -34,17 +34,40 @@
   <h1>새 기능 시안 <em>넷</em> · 11/17</h1>
   <p class="sub">고르는 자리를 <b>세어서</b> 찾았다 — 서버가 지어둔 길 중 화면이 안 부르는 것, DB 에 비어 있는 칸,
     한 곳에서만 불리는 손. <b>파란 점선</b>이 새로 붙는 자리다. 화면 속 숫자는 예시다.
-    권하는 순서는 <b>A → B → C</b>이고 <b>D 는 출시 뒤</b>를 권한다.
+    권하는 순서는 <b>C → D(출시 뒤)</b>다.</p>
+  <p class="sub" style="margin-top:10px;border-left:2px solid #d29a5f;padding-left:12px">
+    <b style="color:#d29a5f">★ 11/17 정정 — A 와 B 를 철회한다.</b>
+    붙이려고 코드를 열었더니 <b style="color:#eae4d6">A 는 이미 있는 기능</b>이었다.
+    <code>client.js</code> 에 <code>/export</code> 가 없는 것을 보고 「아무도 안 부른다」고 읽었는데,
+    세 화면이 <b style="color:#eae4d6">axios 가 아니라 fetch 로 직접</b> 부르고 있었다 —
+    이름도 「내려받기」가 아니라 「CSV 로 내보내기」·<code>exportMeasures</code> 여서 글자로 찾을 때 또 놓쳤다.
+    <b style="color:#eae4d6">두 번 틀렸다.</b>
+    B 도 <code>LiftTrend</code>(한 운동이 늘어온 길, 11/03)와 많이 겹친다.
+    <b style="color:#eae4d6">C 만 남는다</b> — 부위 <b>간</b> 비교는 정말로 없다.
+    다만 A 를 파다가 <b style="color:#eae4d6">진짜 버그 둘</b>이 나와 그 자리에서 고쳤다(<code>afec9a7</code>).
     <a href="/dev">← 개발 미리보기</a> · <a href="../1113/">11/13 시안</a> · <a href="../1112/">11/12 시안</a></p>
 </header>
 
 <div class="row">
   <div class="col">
-    <div class="cap">A · 설정 — 내 기록 내보내기
-      <small>서버는 이미 다 지어놓았고 <b>부르는 화면만 없다</b></small></div>
+    <div class="cap" style="color:#8f8471;text-decoration:line-through">A · 설정 — 내 기록 내보내기
+      <small style="text-decoration:none;color:#d29a5f">철회 — <b style="color:#eae4d6">이미 있는 기능이었다</b></small></div>
     <iframe src="Export.html" title="A · 내보내기"></iframe>
     <div class="note">
-      <b>왜 이것이 첫째인가</b> — 새로 짓는 것이 거의 없다.
+      <b style="color:#d29a5f">★ 철회했다 (11/17).</b> 내보내기는 <b>세 길 다 이미 있다</b> —
+      <code>HistoryPage</code>(운동·인바디) · <code>MeasurePage</code>(측정, 「CSV 로 내보내기」).
+      아래 근거는 <b>틀린 것</b>이고, 틀린 자리를 지우지 않고 남긴다.
+      <br><br><b>그런데 파다가 진짜 버그 둘이 나왔다</b>(고쳐서 올렸다 · <code>afec9a7</code>) —
+      <ul>
+        <li><b>파일 이름이 서버와 화면에서 갈려 있었다.</b> 서버는 <code>steelbody_*.csv</code> 를
+          <code>Content-Disposition</code> 으로 주는데 화면은 <code>a.download = 'blackiron_*.csv'</code> 를
+          적었고, <b>a.download 가 헤더를 이긴다</b> — 셋 다 그랬다. 서버가 정한 이름은 죽은 글자였다</li>
+        <li><b>같은 손이 두 벌이었다</b> — 두 화면에 fetch·blob·revoke 지연까지 글자 그대로.
+          복붙한 손은 갈리고, 위가 그 결과다. <code>data/exportCsv.js</code> 한 벌로 꺼냈다</li>
+        <li>자를 세웠다(<code>npm run export</code>) — 길 목록을 <code>export.js</code> 에서 읽는다.
+          <b>그 자가 세우자마자 거짓 FAIL 셋을 냈고</b> 그 셋을 되돌려-FAIL 꼴로 박아뒀다</li>
+      </ul>
+      <b>아래는 철회된 근거다</b> — 새로 짓는 것이 거의 없다.
       <ul>
         <li><code>backend/src/routes/export.js</code> 에 <code>/export/workouts</code> ·
           <code>/inbody</code> · <code>/measures</code> 세 길이 <b>auth 까지 걸려 서 있다</b></li>
@@ -58,11 +81,16 @@
   </div>
 
   <div class="col">
-    <div class="cap">B · 운동 — 이 운동, 처음과 지금
-      <small>재료는 <b>날짜·무게·횟수</b>뿐이다 — 서버 칸을 안 늘린다</small></div>
+    <div class="cap" style="color:#8f8471;text-decoration:line-through">B · 운동 — 이 운동, 처음과 지금
+      <small style="text-decoration:none;color:#d29a5f">철회 — <b style="color:#eae4d6">LiftTrend 와 겹친다</b></small></div>
     <iframe src="FirstVsNow.html" title="B · 처음과 지금"></iframe>
     <div class="note">
-      <b>「1년 전 오늘」은 일부러 접었다</b> — 첫 기록이 <code>2026-01-14</code> 라
+      <b style="color:#d29a5f">★ 철회했다 (11/17).</b> <code>LiftTrend</code>(「한 운동이 늘어온 길」,
+      11/03 · 기록 → 통계)가 이미 그 운동의 무게가 온 길을 선으로 그린다. 「처음과 지금」의
+      큰 수 두 개는 그 선의 <b>양 끝</b>이다 — 카드를 하나 더 세울 값이 안 된다.
+      <b>붙이기 전에 그 화면을 안 열어본 것이 잘못이다.</b>
+      <br><br><b>아래는 철회된 근거다.</b>
+      <br><br><b>「1년 전 오늘」은 일부러 접었다</b> — 첫 기록이 <code>2026-01-14</code> 라
       그 화면은 <b>2027년 1월까지 아무에게도 안 보인다.</b> 붙여도 빈 칸이다.
       <ul>
         <li>「처음과 지금」은 <b>기록이 두 번만 있으면</b> 보인다. 지금 155건으로 바로 뜬다</li>
@@ -83,6 +111,9 @@
       <ul>
         <li><code>partVolume.js</code> 가 부위별 양을 이미 센다 — 그런데
           <code>PartTrend.jsx</code> <b>한 곳에서만</b> 불린다</li>
+        <li><b style="color:#d29a5f">근거 한 줄을 바로잡는다 (11/17)</b> — 「양을 보여주는 화면이 없다」가
+          아니다. <code>PartTrend</code> 가 <b>한 부위의 주간 추이</b>를 이미 그린다.
+          없는 것은 <b>부위 <u>간</u> 비교</b>다 — 가슴 24 와 등 6 을 <b>나란히</b> 놓고 보는 자리</li>
         <li>밀기/당기기는 <code>exercisePart.js</code> 가 아는 부위에서 갈린다</li>
         <li><b>좋다/나쁘다를 앱이 말하지 않는다</b> — 비율만 보여주고 판단은 사람이 한다.
           숫자에 평가를 붙이면 그것은 코치 노릇이고, 틀리면 사람이 다친다</li>
