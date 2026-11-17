@@ -6,6 +6,14 @@ const { csvCell } = require('../utils/csv');
 // 이름표는 **가져오기와 같은 표를 쓴다** (2026-09-18 에 `utils/measureLabels.js` 로 옮겼다) —
 // 두 벌로 두면 항목 하나를 더할 때 한쪽만 고쳐지고, 그러면 내보낸 파일을 앱이 다시 못 읽는다
 const { MEASURE_LABEL, FIELD_LABEL } = require('../utils/measureLabels');
+// ── ★ **머리줄은 가져오기와 한 자리에서 온다** ── (2026-11-17)
+//
+// 여기 세 머리줄이 **생글자로** 박혀 있었고, 그것을 되읽는 쪽(`utils/csvRows.js`)에도
+// **같은 이름이 또** 적혀 있었다 — 한 쌍인데 두 벌이다. 한쪽에서 「무게」를
+// 「무게(kg)」로 다듬으면 되읽는 쪽이 그 칸을 **못 찾고 조용히 빈 값**으로 넣는다
+// (날짜 · 운동명만 거절로 걸린다). 그 파일을 넣은 사람은 수가 비는 것을 나중에 안다.
+// `measureLabels` 를 한 자리로 모은 것과 **같은 까닭**이다.
+const { headerOf } = require('../utils/csvRows');
 
 // CSV export - workouts
 router.get('/workouts', auth, (req, res) => {
@@ -22,7 +30,7 @@ router.get('/workouts', auth, (req, res) => {
   const LINK_KO = { drop: '드롭', super: '슈퍼' };
   // 유산소 칸 둘을 더한다 (2026-11-05). **되읽는 쪽과 짝이다** —
   // 내보낸 것을 못 되읽으면 「챙겨 나갈 수는 있는데 들고 들어올 수는 없다」가 된다
-  const header = '날짜,운동명,무게,세트,횟수,묶음,시간(분),거리(km)';
+  const header = headerOf('workouts');
   const rows = workouts.map(w =>
     `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''}`
   );
@@ -37,7 +45,7 @@ router.get('/workouts', auth, (req, res) => {
 router.get('/inbody', auth, (req, res) => {
   const records = db.getInbody(req.userId);
 
-  const header = '날짜,키(cm),체중(kg),체지방률(%),골격근량(kg),체수분(L),BMI';
+  const header = headerOf('inbody');
   const rows = records.map(r =>
     `${r.date},${r.height || ''},${r.weight || ''},${r.fat_pct || ''},${r.muscle_kg || ''},${r.water_l || ''},${r.bmi || ''}`
   );
@@ -67,7 +75,7 @@ router.get('/measures', auth, (req, res) => {
   // 여태 내보낸 파일에는 그 둘을 가를 것이 없었다 — 되읽을 때 (날짜 · 종류)로 묶으면
   // **있지도 않던 한 줄로 합쳐진다**(가슴은 아침 것, 허리는 저녁 것). 지우는 것보다 나쁘다.
   // 그래서 그 날 그 종류의 **몇 번째 줄인지**를 적는다.
-  const header = '날짜,종류,번호,항목,값';
+  const header = headerOf('measures');
   const rows = [];
   // 그 날 그 종류의 몇 번째 줄인가. 받아온 차례를 그대로 쓴다
   const seen = new Map();

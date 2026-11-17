@@ -11,6 +11,7 @@
 const rows = require('../src/utils/csvRows');
 const { MEASURE_LABEL, FIELD_LABEL, MEASURE_TYPE_OF, FIELD_KEY_OF } = require('../src/utils/measureLabels');
 
+const LF = String.fromCharCode(10);
 let bad = 0;
 const ok = (name, got, want) => {
   const pass = JSON.stringify(got) === JSON.stringify(want);
@@ -350,6 +351,70 @@ console.log('── 엑셀이 바꿔 쓴 날짜 ──');
   const m2 = rows.readMeasures('날짜,종류,번호,항목,값'
     + String.fromCharCode(10) + '2026/11/03,"전신 사이즈",1,"가슴둘레","100"');
   ok('측정도 같은 자', m2.rows[0] && m2.rows[0].date, '2026-11-03');
+}
+
+console.log('');
+console.log('── ★ 내보내기의 **실제 머리줄**로 왕복하는가 ── (2026-11-17)');
+//
+// ── 이 자가 왜 모자랐나 ──
+//
+// 위의 왕복들은 머리줄을 **이 파일에 글자로 적어** 돌렸다(`'날짜,운동명,무게,세트,횟수'`).
+// 그래서 `routes/export.js` 가 내보내는 머리줄을 **한 번도 보지 않았다** — 그쪽에서
+// 「무게」를 「무게(kg)」로 다듬으면 되읽는 쪽은 그 칸을 못 찾아 **빈 값**으로 넣고,
+// 이 자는 제 글자로 돌려서 **그대로 통과한다.** 지키겠다고 적어둔 것을 못 지킨다.
+// (「자가 지금을 베끼면 거짓이 된다」류 — 11/17 에 `check-goal` · `check-stats` 에서
+//  같은 꼴을 둘 고쳤다.)
+//
+// 이제 이름은 `csvRows.COLS` 한 자리에 있고, **내보내기가 그것으로 머리줄을 짓는다.**
+// 여기서는 ⑴ 내보내기가 정말 그 손을 쓰는지 ⑵ 그 머리줄로 돌린 왕복이 **모든 칸을
+// 채우는지** ⑶ 옛 파일(별명 이름)도 여전히 읽히는지를 본다.
+{
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'export.js'), 'utf8');
+  const 코드 = src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  ok('내보내기가 머리줄을 공용 손에서 받는다', /headerOf\('workouts'\)/.test(코드)
+    && /headerOf\('inbody'\)/.test(코드) && /headerOf\('measures'\)/.test(코드), true);
+  // 생글자로 되돌아가면 이 줄이 먼저 운다
+  ok('  머리줄을 생글자로 적지 않는다', /const header = '[^']*,/.test(코드), false);
+
+  // ⑵ **그 머리줄 그대로** 한 바퀴 — 칸이 하나라도 안 걸리면 값이 빈다
+  const h = rows.headerOf('workouts');
+  const r1 = rows.readWorkouts(h + '\n' + TODAY + ',벤치프레스,60,4,8,드롭,,\n');
+  ok('운동: 실제 머리줄로 읽은 줄', r1.rows[0] && [r1.rows[0].exercise, r1.rows[0].weight,
+    r1.rows[0].sets, r1.rows[0].reps, r1.rows[0].link], ['벤치프레스', '60', 4, 8, 'drop']);
+  ok('  걸린 줄이 없다', r1.bad, []);
+  // 유산소 줄 — 시간 · 거리 칸까지 걸려야 한다
+  const r2 = rows.readWorkouts(h + '\n' + TODAY + ',러닝,,,,,30,5\n');
+  ok('  유산소의 시간 · 거리도 걸린다', r2.rows[0]
+    && [r2.rows[0].minutes, r2.rows[0].distanceKm], [30, 5]);
+
+  const hi = rows.headerOf('inbody');
+  const r3 = rows.readInbody(hi + '\n' + TODAY + ',175,72.5,15,33,50,23.7\n');
+  ok('인바디: 실제 머리줄로 읽은 줄', r3.rows[0]
+    && [r3.rows[0].height, r3.rows[0].weight, r3.rows[0].fat_pct,
+      r3.rows[0].muscle_kg, r3.rows[0].water_l], [175, 72.5, 15, 33, 50]);
+  ok('  걸린 줄이 없다', r3.bad, []);
+
+  const hm = rows.headerOf('measures');
+  const r4 = rows.readMeasures(hm + '\n' + TODAY + ',"전신 사이즈",1,"가슴둘레","100"\n');
+  ok('측정: 실제 머리줄로 읽은 줄', r4.rows[0] && [r4.rows[0].type, Object.keys(r4.rows[0].data).length],
+    ['bodySize', 1]);
+  ok('  걸린 줄이 없다', r4.bad, []);
+
+  // ★ **못 찾은 칸은 비는 것이 아니라 뜻이 바뀐다** — 이 건이 조용했던 까닭이다.
+  // 무게 칸을 못 찾으면 빈 무게가 되고, 빈 무게는 이 앱에서 **「맨몸」**이다:
+  // 60kg 벤치가 **맨몸 벤치**로 복원되고 **거절 줄은 0** 이다(파일은 멀쩡해 보인다).
+  // 그 값을 최고 기록 · 몸 지도 · 「지난번」이 그대로 쓴다. 적어두고 센다
+  const 못찾음 = rows.readWorkouts('날짜,운동명,무게(kg),세트,횟수' + LF + TODAY + ',벤치프레스,60,4,8' + LF);
+  ok('칸을 못 찾으면 무게가 「맨몸」이 된다 (조용하다)',
+    [못찾음.rows[0] && 못찾음.rows[0].weight, 못찾음.bad.length], ['맨몸', 0]);
+
+  // ⑶ **옛 파일은 영영 읽혀야 한다** — 별명(영어 · 괄호 없는 옛 이름)
+  const old1 = rows.readWorkouts('date,exercise,weight,sets,reps\n' + TODAY + ',스쿼트,100,5,5\n');
+  ok('옛 파일(영어 이름)도 읽는다', old1.rows[0] && old1.rows[0].exercise, '스쿼트');
+  const old2 = rows.readInbody('날짜,키,체중,체지방률,골격근량,체수분\n' + TODAY + ',175,72.5,15,33,50\n');
+  ok('  괄호 없는 옛 이름도 읽는다', old2.rows[0] && old2.rows[0].weight, 72.5);
 }
 
 console.log(bad ? bad + '건 실패' : '전부 통과');

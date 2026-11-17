@@ -258,10 +258,17 @@ ok('  담긴 줄도 같은 자로 본다', [
 
 console.log('');
 console.log('── CSV — 내보낸 것을 되읽을 수 있는가 ──');
-const exp = fs.readFileSync(path.join(__dirname, '..', '..', 'backend', 'src', 'routes', 'export.js'), 'utf-8');
-ok('내보내기에 칸 둘이 있다', /시간\(분\),거리\(km\)/.test(exp), true);
+// **머리줄을 글자로 베끼지 않는다** (2026-11-17 에 고쳤다) — 여기는 `export.js` 의
+// 생글자 머리줄을 글자로 찾고 있었다. 11/17 에 그 머리줄이 **가져오기와 같은 한
+// 자리**(`csvRows.COLS`)에서 오게 되자 이 줄이 FAIL 했다 — 뜻은 「내보내기 머리줄에
+// 유산소 칸 둘이 든다」지 「그 글자가 그 파일에 적혀 있다」가 아니다. **불러서** 본다
+// (`check-goal` · `check-stats` 에서 같은 꼴을 둘 고쳤다 — 자가 그때 모양을 베낀 자리)
 const csvRows = require('../../backend/src/utils/csvRows');
-const csv = '날짜,운동명,무게,세트,횟수,묶음,시간(분),거리(km)\n'
+ok('내보내기에 칸 둘이 있다',
+  ['시간(분)', '거리(km)'].filter((c) => !csvRows.COLS.workouts.includes(c)), []);
+ok('  머리줄은 가져오기와 같은 한 자리에서 온다',
+  csvRows.headerOf('workouts').endsWith('시간(분),거리(km)'), true);
+const csv = csvRows.headerOf('workouts') + String.fromCharCode(10)
   + '2026-11-03,런닝머신,맨몸,,,,32,5.2\n'
   + '2026-11-03,벤치프레스,80,4,8,,,\n'
   + '2026-11-03,달리기,맨몸,,,,,10\n';

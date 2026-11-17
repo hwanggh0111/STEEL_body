@@ -97,6 +97,31 @@ function parseCsv(text) {
 }
 
 // 엑셀에서 열을 지우거나 순서를 바꿔놓고 넣는 사람이 있다. **머리글을 보고 자리를 찾는다** —
+// ── ★ **내보내기 머리줄과 가져오기가 찾는 이름을 한 자리에 둔다** ── (2026-11-17)
+//
+// 이 파일 머리글이 지키겠다고 적어둔 것이 「내보낸 것을 그 앱이 다시 읽을 수 있는가」다.
+// 그런데 **머리줄은 `routes/export.js` 에 생글자로** 있고, 찾는 이름은 **여기에 또
+// 생글자로** 있었다 — 한 쌍인데 두 벌이다. 한쪽에서 「무게」를 「무게(kg)」로 다듬으면
+// 아래 `at()` 가 그 칸을 **못 찾고 조용히 -1** 이 된다: 날짜 · 운동명만 거절로 걸리고
+// **무게 · 세트 · 횟수는 빈 값으로 들어간다.** 파일은 멀쩡해 보이고 수만 비어 있다.
+//
+// (같은 결의 자리를 오늘 셋 고쳤다 — 받는 파일 이름이 서버와 화면에서 갈린 것 ·
+//  「오늘」을 그 자리에서 또 읽던 열두 자리. **한쪽이 정하는 값을 다른 쪽이 또 들고
+//  있으면 반드시 갈린다.**)
+//
+// 그래서 **열 이름을 여기 한 벌만** 둔다. `export.js` 가 이것으로 머리줄을 짓고,
+// 아래 `at()` 이 **첫 후보로** 같은 이름을 본다. 옛 파일을 위한 별명(`date` ·
+// `weight` 처럼 영어로 적힌 것, 괄호 없는 옛 이름)은 뒤에 그대로 남긴다 —
+// 내보낸 적 있는 파일은 **영영 읽혀야 한다.**
+const COLS = {
+  workouts: ['날짜', '운동명', '무게', '세트', '횟수', '묶음', '시간(분)', '거리(km)'],
+  inbody: ['날짜', '키(cm)', '체중(kg)', '체지방률(%)', '골격근량(kg)', '체수분(L)', 'BMI'],
+  measures: ['날짜', '종류', '번호', '항목', '값'],
+};
+
+/** 그 갈래의 머리줄 한 줄. 내보내기가 이것을 쓴다 */
+const headerOf = (kind) => COLS[kind].join(',');
+
 // 자리를 숫자로 박아두면 열 하나가 밀렸을 때 무게 칸에 세트 수가 들어간다
 const at = (header, ...names) => {
   for (const n of names) {
@@ -124,16 +149,18 @@ function readWorkouts(text) {
   if (rows.length === 0) return { rows: [], bad: [{ line: 1, why: '빈 파일이에요' }] };
 
   const header = rows[0];
-  const iDate = at(header, '날짜', 'date');
-  const iName = at(header, '운동명', '운동', 'exercise');
-  const iWeight = at(header, '무게', 'weight');
-  const iSets = at(header, '세트', 'sets');
-  const iReps = at(header, '횟수', 'reps');
+  // 첫 후보는 **내보내기가 적는 이름**이다 (위 `COLS`) — 뒤는 옛 파일 별명
+  const C = COLS.workouts;
+  const iDate = at(header, C[0], 'date');
+  const iName = at(header, C[1], '운동', 'exercise');
+  const iWeight = at(header, C[2], 'weight');
+  const iSets = at(header, C[3], 'sets');
+  const iReps = at(header, C[4], 'reps');
   // 2026-10-05 — 슈퍼세트 · 드롭세트 표시. 옛 파일에는 이 칸이 없다(그러면 -1)
-  const iLink = at(header, '묶음', 'link');
+  const iLink = at(header, C[5], 'link');
   // 2026-11-05 — 유산소의 시간 · 거리. 옛 파일에는 이 칸이 없다(그러면 -1)
-  const iMin = at(header, '시간(분)', '시간', 'minutes');
-  const iKm = at(header, '거리(km)', '거리', 'distance_km', 'distance');
+  const iMin = at(header, C[6], '시간', 'minutes');
+  const iKm = at(header, C[7], '거리', 'distance_km', 'distance');
   if (iDate < 0 || iName < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜」와 「운동명」 칸이 있어야 해요' }] };
   }
@@ -205,12 +232,13 @@ function readInbody(text) {
   if (rows.length === 0) return { rows: [], bad: [{ line: 1, why: '빈 파일이에요' }] };
 
   const header = rows[0];
-  const iDate = at(header, '날짜', 'date');
-  const iH = at(header, '키(cm)', '키', 'height');
-  const iW = at(header, '체중(kg)', '체중', 'weight');
-  const iF = at(header, '체지방률(%)', '체지방률', 'fat_pct');
-  const iM = at(header, '골격근량(kg)', '골격근량', 'muscle_kg');
-  const iL = at(header, '체수분(L)', '체수분', 'water_l');
+  const C = COLS.inbody;
+  const iDate = at(header, C[0], 'date');
+  const iH = at(header, C[1], '키', 'height');
+  const iW = at(header, C[2], '체중', 'weight');
+  const iF = at(header, C[3], '체지방률', 'fat_pct');
+  const iM = at(header, C[4], '골격근량', 'muscle_kg');
+  const iL = at(header, C[5], '체수분', 'water_l');
   if (iDate < 0 || iW < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜」와 「체중(kg)」 칸이 있어야 해요' }] };
   }
@@ -284,11 +312,12 @@ function readMeasures(text) {
   if (rows.length === 0) return { rows: [], bad: [{ line: 1, why: '빈 파일이에요' }] };
 
   const header = rows[0];
-  const iDate = at(header, '날짜', 'date');
-  const iType = at(header, '종류', 'type');
-  const iNo = at(header, '번호', 'no');
-  const iField = at(header, '항목', 'field');
-  const iValue = at(header, '값', 'value');
+  const C = COLS.measures;
+  const iDate = at(header, C[0], 'date');
+  const iType = at(header, C[1], 'type');
+  const iNo = at(header, C[2], 'no');
+  const iField = at(header, C[3], 'field');
+  const iValue = at(header, C[4], 'value');
   if (iDate < 0 || iType < 0 || iField < 0 || iValue < 0) {
     return { rows: [], bad: [{ line: 1, why: '「날짜 · 종류 · 항목 · 값」 칸이 있어야 해요' }] };
   }
@@ -408,4 +437,6 @@ const measureKey = (m) => {
 module.exports = {
   parseCsv, readWorkouts, readInbody, readMeasures,
   workoutKey, inbodyKey, measureKey,
+  // 내보내기가 머리줄을 짓는 데 쓴다 — 이름은 **한 자리**에만 있다 (2026-11-17)
+  COLS, headerOf,
 };
