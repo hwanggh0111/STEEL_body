@@ -244,9 +244,9 @@ export default function SessionFinish() {
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
           {weighted && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{sets}세트</span>}
-          {weighted && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
+          {weighted && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
           <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>운동 {count}개</span>
-          {weeks > 0 && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
+          {weeks > 0 && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
           {weeks > 0 && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{weeks}주 연속</span>}
         </div>
 

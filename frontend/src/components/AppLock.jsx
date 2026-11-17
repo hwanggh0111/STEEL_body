@@ -219,7 +219,7 @@ export default function AppLock() {
       }}>
         {Array.from({ length: PIN_LEN }, (_, i) => (
           <span key={i} style={{
-            width: 13, height: 13, borderRadius: '50%',
+            flexShrink: 0, width: 13, height: 13, borderRadius: '50%',
             background: i < pin.length ? 'var(--accent)' : 'transparent',
             border: `1px solid ${i < pin.length ? 'var(--accent)' : 'var(--border-hover)'}`,
             transition: 'background 0.12s ease',
@@ -244,7 +244,11 @@ export default function AppLock() {
             disabled={left > 0}
             aria-label={k === '←' ? '지우기' : k}
             style={{
-              height: 62, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 2,
+              // `height` 가 아니라 `minHeight` 다 — 폰에서 글자를 크게 쓰면
+              // `fontSize: 24` 가 48 까지 자라는데, 높이를 묶어두면 **눌러야 하는
+              // 숫자가 잘린다.** 잠금 화면은 숫자를 못 읽으면 앱에 못 들어온다
+              // (2026-11-17 · 맵시). 기본 크기에서는 지금과 같은 62 다
+              minHeight: 62, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 2,
               background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius)', color: 'var(--text-primary)',
               cursor: left > 0 ? 'default' : 'pointer',

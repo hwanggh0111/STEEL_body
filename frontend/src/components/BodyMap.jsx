@@ -220,12 +220,12 @@ export default function BodyMap() {
             범례만 옛 색으로 남는다 (2026-10-20) */}
         {[3, 2, 1].map((lv, i) => ({ ...heatPaint(lv), t: ['오늘', '이틀 전', '닷새 전'][i] })).map((d) => (
           <span key={d.t} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.fill, opacity: d.opacity }} />
+            <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: d.fill, opacity: d.opacity }} />
             {d.t}
           </span>
         ))}
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', border: `1px dashed ${GOLD_LOW}` }} />
+          <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', border: `1px dashed ${GOLD_LOW}` }} />
           식었음
         </span>
       </div>

@@ -223,11 +223,23 @@ export default function TabBar() {
       }}>
         <NavIcon name={item.icon} size={NAV_TOKENS.iconSize} />
         {item.badge > 0 && (
+          // ── **글자를 크게 쓰는 사람에게는 수가 잘렸다** ── (2026-11-17 · 맵시)
+          //
+          // `height: 16` · `lineHeight: '16px'` 로 **칸을 못 자라게 묶어뒀다.**
+          // 크롬(안드로이드)의 「글자 크기」는 `px` 로 적은 글자도 같이 키운다 —
+          // 글자 크기 200% 면 `fontSize: 10` 이 20 이 되는데 칸은 **16 에 그대로
+          // 있어** 수가 위아래로 잘린다. 알림 수는 **놓치면 안 되는 수**다.
+          //
+          // `minHeight` 로 바꾸고 줄 높이를 1 로 둔 뒤 가운데 맞춤은 flex 에 맡긴다 —
+          // 기본 글자 크기에서는 **지금과 한 픽셀도 다르지 않고**(10px 글자 + 위아래
+          // 여백 3 = 16), 글자가 커지면 알약이 따라 자란다. `borderRadius: 999` 로
+          // 두면 자란 뒤에도 알약 꼴이 유지된다(8 로 두면 네모에 가까워진다)
           <span style={{
             position: 'absolute', top: -4, right: -8,
-            minWidth: 16, height: 16, padding: '0 4px',
-            borderRadius: 8, background: 'var(--danger-strong)', color: '#fff',
-            fontSize: 10, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
+            minWidth: 16, minHeight: 16, padding: '0 4px',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 999, background: 'var(--danger-strong)', color: '#fff',
+            fontSize: 10, fontWeight: 700, lineHeight: 1, textAlign: 'center',
             fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
           }}>{item.badge > 99 ? '99+' : item.badge}</span>
         )}

@@ -47,7 +47,7 @@ export default function BreathCheck({ sense }) {
         }}>
           {breath.on && (
             <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: 'var(--info)',
+              flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: 'var(--info)',
               boxShadow: '0 0 0 3px rgba(127,168,217,0.16)',
             }} />
           )}

@@ -120,7 +120,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)' }}>
           {/* 듣고 있다는 표시는 **늘 켜둔다** — 마이크가 켜진 것을 모르는 채로 두지 않는다 */}
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', boxShadow: '0 0 0 3px rgba(127,168,217,0.16)' }} />
+          <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', boxShadow: '0 0 0 3px rgba(127,168,217,0.16)' }} />
           숨
         </span>
         {label && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>}

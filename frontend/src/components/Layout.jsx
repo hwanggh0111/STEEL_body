@@ -462,14 +462,23 @@ export default function Layout() {
   const Avatar = ({ size, fontSize }) => (
     profilePhoto ? (
       <img src={profilePhoto} alt="프로필" style={{
+        // **동그라미는 줄어들면 안 된다** — flex 자식의 `flex-shrink` 기본값이 1 이라
+        // 자리가 빠듯하면 폭만 눌려 `border-radius: 50%` 가 **달걀**이 된다
+        // (2026-11-17 · 맵시). 높이는 그대로니 눌린 것이 바로 눈에 보인다
+        flexShrink: 0,
         width: size, height: size, borderRadius: '50%', objectFit: 'cover',
         border: '2px solid var(--accent)',
       }} />
     ) : (
       <div style={{
+        flexShrink: 0,
         width: size, height: size, borderRadius: '50%',
         background: 'var(--accent)', color: 'var(--on-accent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        // 글자를 크게 쓰는 폰에서 머리글자가 **동그라미 밖으로 삐져나갔다** —
+        // 칸은 `size` 로 묶여 있는데 글자만 자란다. 안에서 자르고 줄 높이를 1 로
+        // 둔다(가운데 맞춤은 위의 flex 가 한다)
+        overflow: 'hidden', lineHeight: 1,
         fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize, fontWeight: 700,
       }}>
         {initial}

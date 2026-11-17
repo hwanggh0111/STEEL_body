@@ -206,9 +206,9 @@ export default function YearWall({ onPickMonth }) {
       {/* 한 해의 숫자 — 상자로 키우지 않는다. 벽이 주인공이다 */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         {total.tons > 0 && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{total.tons.toLocaleString()}톤</span>}
-        {total.tons > 0 && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
+        {total.tons > 0 && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
         <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>최장 {total.longest}일 연속</span>
-        {total.bestMonth && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
+        {total.bestMonth && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
         {total.bestMonth && (
           <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
             가장 뜨거웠던 달 {total.bestMonth.name}

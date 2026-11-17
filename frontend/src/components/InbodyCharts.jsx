@@ -25,7 +25,7 @@ export function CompositionChart({ composition }) {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap', marginTop: 4 }}>
         {parts.map((entry, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: entry.color }} />
+            <div style={{ flexShrink: 0, width: 10, height: 10, borderRadius: '50%', background: entry.color }} />
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               {entry.name} {entry.value}kg{entry.pct != null ? ` (${entry.pct}%)` : ''}
             </span>

@@ -150,6 +150,15 @@ function 훑기(code, file, 가로클래스) {
     // 아예 flex 자식이 아니게 띄워놓은 것
     || s.값.position === 'absolute' || s.값.position === 'fixed';
 
+  // **눌리지 않게 박아뒀나.** `flexShrink: 0` 이거나 `flex` 의 둘째 값이 0 이거나,
+  // 아예 flex 자식이 아니게 띄워놓은 것. 변수로 넣은 것은 **센다** — 여기서는
+  // 「모르면 안 울린다」가 맞다(동그라미는 셈이 아니라 꼴이고, 거짓 FAIL 이 스무
+  // 자리에 깔리면 자를 아무도 안 본다)
+  const 안줄어드나 = (s) => s.값.flexShrink === 0 || s.값.flexShrink === '0'
+    || s.모름.has('flexShrink') || s.퍼짐
+    || /^0\s+0\b/.test(String(s.값.flex || '')) || s.모름.has('flex')
+    || s.값.position === 'absolute' || s.값.position === 'fixed';
+
   // 조상 줄기를 들고 내려간다
   const stack = [];
   function walk(node) {
@@ -186,7 +195,31 @@ function 훑기(code, file, 가로클래스) {
           break; // 가장 가까운 가로 flex 통 하나만 본다
         }
 
-        결과.push({ file, line: node.loc.start.line, 빠진것 });
+        결과.push({ file, line: node.loc.start.line, 빠진것, 류: '말줄임' });
+      }
+
+      // ── ⑶ **크기가 박힌 동그라미는 눌리면 달걀이 된다** ── (2026-11-17 · 맵시)
+      //
+      // 같은 뿌리의 반대쪽이다. 말줄임은 「줄어들어야 하는데 안 줄어든다」이고
+      // 이쪽은 「**줄어들면 안 되는데 줄어든다**」다 — flex 자식의 `flex-shrink`
+      // 기본값이 **1** 이라 자리가 빠듯하면 폭만 눌린다. 높이는 `height` 로 묶여
+      // 있으니 `border-radius: 50%` 가 **달걀**이 되고, 그것은 바로 눈에 보인다.
+      // 머리띠의 프로필 동그라미(`Layout.jsx`)가 그 꼴이었다.
+      //
+      // 글이 드는 칸 옆에 선 작은 점(`width: 6`)도 같다 — 글이 길어지는 날에
+      // 점이 **타원**이 된다. `flexShrink: 0` 한 줄이면 영영 안 난다.
+      const 동그라미 = s.값.borderRadius === '50%';
+      const 크기박힘 = typeof s.값.width === 'number' && s.값.width === s.값.height;
+      if (동그라미 && 크기박힘) {
+        const 빠진것 = [];
+        for (let i = stack.length - 2; i >= 0; i -= 1) {
+          const 조상 = stack[i];
+          if (!가로flex통(조상.s, 조상.cls)) continue;
+          const 직접자식 = stack[i + 1];
+          if (!안줄어드나(직접자식.s)) 빠진것.push('flexShrink:0@' + 직접자식.line);
+          break; // 가장 가까운 가로 flex 통 하나만 본다
+        }
+        if (빠진것.length) 결과.push({ file, line: node.loc.start.line, 빠진것, 류: '동그라미' });
       }
     }
     for (const k of Object.keys(node)) {
@@ -288,6 +321,35 @@ const 되돌려꼴 = [
 );`,
     기대: [],
   },
+  {
+    이름: '글 옆에 선 동그라미가 `flexShrink: 0` 을 안 들었다',
+    code: `const A = () => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)' }} />
+    <span>{긴글}</span>
+  </div>
+);`,
+    기대: ['flexShrink:0'],
+  },
+  {
+    이름: '`flexShrink: 0` 을 들었으면 울지 않는다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%' }} />
+    <span>{긴글}</span>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '세로로 쌓은 동그라미는 눌리지 않는다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <span style={{ width: 6, height: 6, borderRadius: '50%' }} />
+  </div>
+);`,
+    기대: [],
+  },
 ];
 
 if (process.argv.includes('--되돌려')) {
@@ -324,11 +386,14 @@ for (const f of files) {
 }
 ok('모든 화면 파일이 파싱됐다', 터진파일, []);
 
-// **볼 것이 없으면 PASS 가 아니다** — 파서가 자리를 못 찾은 것일 수 있다
-ok('말줄임을 적은 자리를 찾았다', 모두.length > 0, true);
-console.log('       말줄임 자리 ' + 모두.length + '곳');
+const 말줄임 = 모두.filter((r) => r.류 === '말줄임');
+const 동그라미 = 모두.filter((r) => r.류 === '동그라미');
 
-const 안드는것 = 모두.filter((r) => r.빠진것.length);
+// **볼 것이 없으면 PASS 가 아니다** — 파서가 자리를 못 찾은 것일 수 있다
+ok('말줄임을 적은 자리를 찾았다', 말줄임.length > 0, true);
+console.log('       말줄임 자리 ' + 말줄임.length + '곳');
+
+const 안드는것 = 말줄임.filter((r) => r.빠진것.length);
 ok('적어둔 말줄임이 **전부** 실제로 든다', 안드는것.map((r) => r.file + ':' + r.line), []);
 if (안드는것.length) {
   console.log('       안 드는 자리:');
@@ -337,6 +402,16 @@ if (안드는것.length) {
   }
   console.log('       → 가로 flex 자식에는 `minWidth: 0` 을 같이 적으세요.');
   console.log('         `min-width` 기본값이 `auto` 라 글 길이 아래로 안 줄어듭니다.');
+}
+
+console.log('\n── 눌려서 달걀이 되는 동그라미가 없는가 ──');
+ok('크기가 박힌 동그라미는 가로 flex 안에서 `flexShrink: 0` 을 든다',
+  동그라미.map((r) => r.file + ':' + r.line), []);
+if (동그라미.length) {
+  console.log('       눌릴 수 있는 자리:');
+  for (const r of 동그라미) console.log('         ' + r.file + ':' + r.line);
+  console.log('       → `flexShrink: 0` 을 적으세요. `flex-shrink` 기본값이 **1** 이라');
+  console.log('         자리가 빠듯하면 폭만 눌리고 높이는 그대로여서 **달걀**이 됩니다.');
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

@@ -361,7 +361,7 @@ export default function MaintAdmin() {
                 type="button"
                 onClick={() => toggleDay(i)}
                 style={{
-                  width: 36, height: 36, borderRadius: '50%',
+                  flexShrink: 0, width: 36, height: 36, borderRadius: '50%',
                   border: '1px solid',
                   borderColor: form.days.includes(i) ? 'var(--accent)' : 'var(--border)',
                   background: form.days.includes(i) ? 'var(--accent)' : 'transparent',

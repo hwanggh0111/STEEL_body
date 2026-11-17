@@ -46,7 +46,10 @@ const 둥근것이맞다 = {
   'src/components/RestTimer.jsx':      [11, 8],  // 쉬는 소리 스위치 — 알약과 손잡이
   'src/pages/RemindersPage.jsx':       [11, 8],  // 알림 스위치 — 같은 꼴
   'src/pages/SettingsPage.jsx':        [13],     // 설정함 스위치 (44×25 라 13)
-  'src/components/TabBar.jsx':         [8],      // 안 읽은 수 딱지 — 작은 동그라미
+  // 안 읽은 수 딱지는 **알약(`999`)으로 옮겼다** (2026-11-17 · 맵시) — 높이를
+  // `height: 16` 에서 `minHeight` 로 풀면서(폰 글자 크게에서 수가 잘렸다) 칸이
+  // 자랄 수 있게 됐고, `8` 로 두면 자란 뒤에 **네모에 가까워진다**. 알약은
+  // 아래 「어디서든 맞다」로 통과하므로 여기서 들 값이 없다
   'src/pages/OauthEmailPage.jsx':      [8],      // 28×28 아이콘 자리
   'src/components/site/AppGuide.jsx':  [22],     // 홈페이지 안내 지도의 **폰 그림** 테두리 — 폰은 둥글다 (2026-11-12)
 };
