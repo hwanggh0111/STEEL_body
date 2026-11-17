@@ -1,4 +1,5 @@
 import BodyMap from '../components/BodyMap';
+import PartBalance from '../components/PartBalance';
 
 // 몸 지도 — 제 화면.
 //
@@ -16,6 +17,11 @@ export default function BodyMapPage() {
         몸 지도
       </div>
       <BodyMap />
+      {/* **미는 것과 당기는 것** (2026-11-17, 시안 C). 지도 **아래**다 —
+          지도는 「오늘 뭘 하지」에 답하고, 이 칸은 「요즘 치우쳤나」에 답한다.
+          위에 두면 오늘 갈 곳을 고르는 길이 한 칸 멀어진다.
+          셀 것이 없으면 이 칸은 아무것도 안 그린다(`PartBalance` 머리글) */}
+      <PartBalance />
     </div>
   );
 }

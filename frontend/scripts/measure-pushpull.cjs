@@ -43,11 +43,17 @@ const bundle = (rel, out) => {
 const BP = bundle('src/data/bodyPart.js', '.mpp-bp.cjs');
 const DX = bundle('src/data/exerciseDict.js', '.mpp-dx.cjs');
 
-// 묶음 → 어느 쪽인가. **사전에 운동을 더할 때 묶음만 적으면 저절로 들어온다**
-const PUSH = new Set(['벤치프레스', '프레스', '머신프레스', '푸시업', '딥스', '플라이', '머신플라이', '삼두', '케이블']);
-const PULL = new Set(['로우', '풀다운', '풀업', '컬', '승모근']);
-const LEG = new Set(['스쿼트', '런지', '하체머신', '둔근', '종아리', '햄스트링', '데드리프트']);
-const CORE = new Set(['코어']);
+// ── **표는 이제 앱이 들고 있다** ── (2026-11-17 · 맵시)
+//
+// 이 넷은 11/09 에 여기서 지은 것인데, 11/17 에 **화면이 같은 셈을 쓰게 되면서**
+// (`components/PartBalance.jsx`) `src/data/pushPull.js` 로 옮겼다. 여기서 읽는다 —
+// 두 벌로 두면 **화면과 재는 자가 다른 말을 하는 날**이 온다(11/16 의 「자가 「지금」을
+// 베끼면 거짓이 된다」 류). 사전에 운동을 더할 때 묶음만 적으면 저절로 들어오는 것은 그대로다
+const PP = bundle('src/data/pushPull.js', '.mpp-pp.cjs');
+const PUSH = new Set(PP.PUSH_GROUPS);
+const PULL = new Set(PP.PULL_GROUPS);
+const LEG = new Set(PP.LEG_GROUPS);
+const CORE = new Set(PP.CORE_GROUPS);
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
 
