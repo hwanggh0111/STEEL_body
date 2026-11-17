@@ -33,8 +33,11 @@ export function orderPick(beforeIdx, afterIdx) {
 
 /** 두 날짜 사이가 며칠인가. 못 읽으면 null (화면은 그 줄을 안 그린다) */
 export function daysBetween(from, to) {
-  const a = Date.parse(`${from}T00:00:00`);
-  const b = Date.parse(`${to}T00:00:00`);
+  // **날짜 키는 한낮으로 읽는다** (2026-11-17) — 자정은 서머타임이 자정에 시작하는
+  // 곳에서 **없는 시각**이라 기기가 한 시간을 밀고, 그 바람에 날짜와 일수가 하루
+  // 어긋난다. 날짜만 쓰는 자리는 다 한낮이다 (`dateKey.atDay` 와 같은 선)
+  const a = Date.parse(`${from}T12:00:00`);
+  const b = Date.parse(`${to}T12:00:00`);
   if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
   return Math.round((b - a) / 86400000);
 }

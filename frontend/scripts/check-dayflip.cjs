@@ -78,6 +78,8 @@ const 식 = {
   // `const t = dateKey();` 가 **조용히 통과했다** — 자를 세우고 되돌려 보다가 잡았다.
   // 기본값은 **괄호나 쉼표 뒤**에 온다(인자 자리) — 그것만 뺀다. 인자가 여러 줄로
   // 풀린 곳에서는 **그 줄에 기본값 하나만** 있다(`  today = dateKey(),`) — 그 꼴도 뺀다.
+  // **날짜 키를 자정으로 읽는 줄인가** (7번이 쓴다) — 날짜만 쓰는 자리는 한낮이다
+  자정으로_읽는줄: (l) => /T00:00:00/.test(l),
   둘째시계_줄: (l) => {
     const 기본값 = (f) => new RegExp('[,({]\\s*[\\w$]+\\s*=\\s*' + f).test(l)
       || new RegExp('^\\s*[\\w$]+\\s*=\\s*' + f + '\\s*,?\\s*$').test(l);
@@ -359,6 +361,66 @@ console.log('── 6. 앱 전수: **오늘을 넘기는 자리가 빠지지 않
   console.log('       본 부름 ' + 부름.length + '가지 · 조각 ' + 조각.length + '가지');
 }
 
+console.log('');
+console.log('── 7. 날짜 키를 **자정으로 읽는 자리**가 없는가 ──');
+//
+// ── 왜 한낮인가 ── (2026-11-17 · 벼림)
+//
+// `new Date('2026-11-17T00:00:00')` 은 **서머타임이 자정에 시작하는 곳**에서 없는
+// 시각이다 — 기기가 한 시간을 밀고, 그 바람에 **요일과 일수가 하루 어긋난다.**
+// 이 집은 그 까닭을 이미 적어뒀다(`goal.js` 의 `at` — 「이 앱은 한국만 쓰지만
+// **여행 중에도 돈다**」). 그런데 **`src/data` 열아홉 자리가 자정으로 읽고 있었다.**
+//
+// 한국에서는 차이가 **영영 없다**(서머타임이 없다). 그래서 눈으로는 못 잡고, 쓰는
+// 사람이 그런 곳에 갔을 때만 하루가 틀어진다 — `check-isoday` 가 「오전 9시가 지나면
+// 맞게 보인다」고 적어둔 것과 **같은 종류**의 함정이다.
+//
+// ★ **지금 값이 바뀌지 않는 것**은 아래 ⑵ 에서 불러서 못 박는다.
+{
+  // 자정이 **뜻이 있는** 자리 — 날짜가 아니라 **시각**을 만드는 곳
+  const 허락 = {
+    'src/data/maintForm.js': '점검 시작 자정에 분을 더해 **끝나는 때**를 만든다 (시각이다)',
+  };
+  const 자리 = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!/\.(jsx|js)$/.test(e.name)) continue;
+      const rel = p.split(path.sep).join('/').replace(/^.*?src\//, 'src/');
+      if (허락[rel]) continue;
+      fs.readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
+        if (식.주석줄(l)) return;
+        if (식.자정으로_읽는줄(l)) 자리.push(`${rel}:${i + 1}`);
+      });
+    }
+  })(path.join(ROOT, 'src'));
+  ok('날짜 키를 자정으로 읽는 자리가 없다', 자리, []);
+
+  // ⑵ **한낮으로 바꿔도 지금 값은 한 자도 안 바뀐다** — 한국에서 돌리는 이 자가
+  // 그것을 못 박는다(바뀌면 이 자가 먼저 운다). 날짜만 쓰는 손 넷을 불러 본다
+  let cmp; let plans; let pr;
+  try {
+    cmp = bundle('src/data/compare.js', '.df-compare.cjs');
+    plans = bundle('src/data/plans.js', '.df-plans.cjs');
+    pr = bundle('src/data/personalRecord.js', '.df-pr.cjs');
+  } catch (e) {
+    ok('날짜 손을 묶었다', String(e.message || e).slice(0, 80), '묶었다');
+  }
+  if (cmp && plans && pr) {
+    ok('며칠 사이인가', cmp.daysBetween('2026-11-10', '2026-11-17'), 7);
+    ok('  거꾸로도 센다', cmp.daysBetween('2026-11-17', '2026-11-10'), -7);
+    ok('  못 읽는 키는 null', cmp.daysBetween('2026-13-40', '2026-11-17'), null);
+    ok('며칠 남았나', [plans.untilLabel('2026-11-18', '2026-11-17'),
+      plans.untilLabel('2026-11-17', '2026-11-17'),
+      plans.untilLabel('2026-11-10', '2026-11-17')], ['내일', '오늘', '7일 전']);
+    ok('최고 기록이 며칠 전인가', pr.daysBetween('2026-11-10', '2026-11-17'), 7);
+    ok('  주 경계는 그대로', [weekly.weekKeys(weekly.mondayOf(dateKey.atDay('2026-11-17')))[0],
+      weekly.weekKeys(weekly.mondayOf(dateKey.atDay('2026-11-23')))[0]],
+    ['2026-11-16', '2026-11-23']);
+  }
+}
+
 clean();
 
 // ── ★ **되돌려-FAIL** ── (2026-11-17 · 정석)
@@ -417,6 +479,11 @@ if (process.argv.includes('--되돌려')) {
     // 인자가 여러 줄로 풀린 곳 — 그 줄에는 기본값 하나만 있다
     ['  여러 줄로 풀린 기본값도 자리가 아니다', 식.둘째시계_줄,
       '  today = dateKey(),', false],
+    // ── 7번(자정)이 쓰는 식 ──
+    ['날짜 키를 자정으로 읽으면', 식.자정으로_읽는줄,
+      'const d = new Date(`${key}T00:00:00`);', true],
+    ['  한낮은 자리가 아니다', 식.자정으로_읽는줄,
+      'const d = new Date(`${key}T12:00:00`);', false],
     ['주석은 세지 않는다', 식.주석줄,
       '// 여기는 `new Date()` 를 쓰던 자리다', true],
     ['  JSX 주석도 주석이다', 식.주석줄,

@@ -56,7 +56,10 @@ const num = (v) => {
 };
 
 const dayStart = (s) => {
-  const t = Date.parse(`${s}T00:00:00`);
+  // **날짜 키는 한낮으로 읽는다** (2026-11-17) — 자정은 서머타임이 자정에 시작하는
+  // 곳에서 **없는 시각**이라 기기가 한 시간을 밀고, 그 바람에 날짜와 일수가 하루
+  // 어긋난다. 날짜만 쓰는 자리는 다 한낮이다 (`dateKey.atDay` 와 같은 선)
+  const t = Date.parse(`${s}T12:00:00`);
   return Number.isFinite(t) ? t : null;
 };
 

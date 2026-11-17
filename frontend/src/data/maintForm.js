@@ -132,7 +132,9 @@ export function isPast(schedule, ref = new Date()) {
 export function whenLabel(schedule, ref = new Date()) {
   if (!schedule) return '';
   if (schedule.date) {
-    const d = new Date(`${schedule.date}T00:00:00`);
+    // 라벨은 날짜만 쓴다 → 한낮으로 읽는다 (2026-11-17). **위 `isPast` 는 그대로**
+    // 자정이다 — 거기는 그 시각에 분을 더해 **점검이 끝나는 때**를 만든다
+    const d = new Date(`${schedule.date}T12:00:00`);
     if (Number.isNaN(d.getTime())) return schedule.date;
     const today = dayKey(ref);
     if (schedule.date === today) return '오늘';

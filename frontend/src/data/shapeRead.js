@@ -40,7 +40,10 @@ const MIN_PARTS = 2;
 
 /** 'YYYY-MM-DD' 에서 며칠 뒤로. */
 function shiftBack(key, days) {
-  const d = new Date(`${key}T00:00:00`);
+  // **날짜 키는 한낮으로 읽는다** (2026-11-17) — 자정은 서머타임이 자정에 시작하는
+  // 곳에서 **없는 시각**이라 기기가 한 시간을 밀고, 그 바람에 날짜와 일수가 하루
+  // 어긋난다. 날짜만 쓰는 자리는 다 한낮이다 (`dateKey.atDay` 와 같은 선)
+  const d = new Date(`${key}T12:00:00`);
   if (Number.isNaN(d.getTime())) return null;
   d.setDate(d.getDate() - days);
   const p = (n) => String(n).padStart(2, '0');
@@ -49,7 +52,7 @@ function shiftBack(key, days) {
 
 function daysApart(a, b) {
   if (!a || !b) return null;
-  const ms = new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`);
+  const ms = new Date(`${b}T12:00:00`) - new Date(`${a}T12:00:00`);
   return Number.isFinite(ms) ? Math.round(ms / 86400000) : null;
 }
 

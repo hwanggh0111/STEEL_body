@@ -24,7 +24,10 @@ import { buildPace } from './pace';
 
 /** 'YYYY-MM-DD' 에서 며칠 뒤로. 지난주 같은 요일을 찾는 데 쓴다. */
 function shiftDate(key, delta) {
-  const d = new Date(`${key}T00:00:00`);
+  // **날짜 키는 한낮으로 읽는다** (2026-11-17) — 자정은 서머타임이 자정에 시작하는
+  // 곳에서 **없는 시각**이라 기기가 한 시간을 밀고, 그 바람에 날짜와 일수가 하루
+  // 어긋난다. 날짜만 쓰는 자리는 다 한낮이다 (`dateKey.atDay` 와 같은 선)
+  const d = new Date(`${key}T12:00:00`);
   if (Number.isNaN(d.getTime())) return null;
   d.setDate(d.getDate() + delta);
   return dateKey(d);
@@ -81,7 +84,7 @@ export function buildSummary(workouts, today, routineName) {
     if (!record || gain > record.gain) record = { ...hit, gain };
   });
 
-  const weekly = buildWeekly(workouts, new Date(`${today}T00:00:00`));
+  const weekly = buildWeekly(workouts, new Date(`${today}T12:00:00`));
 
   return {
     date: today,

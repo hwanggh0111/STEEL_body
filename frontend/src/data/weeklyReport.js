@@ -92,7 +92,10 @@ function streakWeeks(workouts, monday, today) {
     if (!list || list.length === 0) return;
     // 앞날 줄로 주를 세우지 않는다 — 내일 것을 적어두면 **이어온 주가 하나 늘어난다**
     if (today && key > today) return;
-    const d = new Date(`${key}T00:00:00`);
+    // **날짜 키는 한낮으로 읽는다** (2026-11-17) — 자정은 서머타임이 자정에 시작하는
+    // 곳에서 **없는 시각**이라 기기가 한 시간을 밀고, 그 바람에 날짜와 일수가 하루
+    // 어긋난다. 날짜만 쓰는 자리는 다 한낮이다 (`dateKey.atDay` 와 같은 선)
+    const d = new Date(`${key}T12:00:00`);
     if (Number.isNaN(d.getTime())) return;
     weeks.add(dateKey(mondayOf(d)));
   });

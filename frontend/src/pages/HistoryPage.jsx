@@ -355,8 +355,11 @@ export default function HistoryPage() {
   useEffect(() => {
     const date = location.state?.date;
     if (!date) return;
-    const d = new Date(`${date}T00:00:00`);
-    if (Number.isNaN(d.getTime())) return;
+    // 위 「여는 달」과 **같은 손**으로 읽는다 (2026-11-17) — 여기만 `T00:00:00` 로
+    // 남겨두면 한 화면에서 날짜를 읽는 손이 두 벌이 되고, 서머타임이 자정에
+    // 시작하는 곳에서 **달이 하루치 어긋난다.** 못 읽는 키는 `null` 이라 그대로 나간다
+    const d = atDay(date);
+    if (!d) return;
     setYm({ year: d.getFullYear(), month: d.getMonth() + 1 });
     setSelectedDate(date);
   }, [location.state?.date]);
