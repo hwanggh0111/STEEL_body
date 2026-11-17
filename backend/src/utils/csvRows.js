@@ -16,6 +16,8 @@
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
 // 무게 · 운동명을 다듬는 자는 저장하는 쪽과 **같은 것**을 쓴다 (2026-10-22)
 const { normalizeWeight, cleanExerciseName } = require('./workoutFields');
+// 이름이 조용히 잘리는 것을 막는 자 — 까닭도 그 자리에서 가져온다 (2026-11-17)
+const { tagLike, ANGLE_WHY } = require('./sanitize');
 // 유산소 줄의 시간 · 거리 — **손으로 적는 길과 같은 자**를 쓴다 (2026-11-05).
 // 무게에서 한 번 어긋났던 자리라(이 파일 머리글) 처음부터 한 곳에서 든다
 const { normalizeCardio } = require('./cardioFields');
@@ -199,6 +201,10 @@ function readWorkouts(text) {
     // 여태 여기서는 「비었나」만 봤고, 가져오는 라우트가 뒤에서 `cleanName` 을 불러
     // **`null` 이 되면 그대로 넣었다** — `<<<>>>` 처럼 새니타이즈하면 아무것도 안
     // 남는 이름이 그렇다. 손으로 적는 길은 같은 값을 400 으로 막는다
+    // **조용히 잘리지 않는다** (2026-11-17) — 꺾쇠 뒤에 글자가 붙은 이름은 그 뒤가
+    // 통째로 사라진다(`utils/sanitize.js` 의 `tagLike`). 파일로 들어오는 길도 같은
+    // 선이다: 그 줄만 거절하고 **몇째 줄이 왜 걸렸는지** 적는다(나머지는 들어간다)
+    if (tagLike(cells[iName])) { bad.push({ line, why: ANGLE_WHY }); continue; }
     const exercise = cleanExerciseName(cells[iName]);
     const sets = num(iSets >= 0 ? cells[iSets] : '');
     const reps = num(iReps >= 0 ? cells[iReps] : '');

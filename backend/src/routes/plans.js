@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
-const { cleanName } = require('../utils/sanitize');
+const { cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 const { isPlanDay } = require('../utils/dayRange');
 
 // 앞으로 할 것 — 달력에서 날짜를 골라 미리 정해둔다.
@@ -45,6 +45,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 이름은 다른 자리와 같은 규칙으로 씻는다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이
   // 되는데, 길이만 재고 넘기면 **이름 없는 계획**이 달력에 뜬다
+  // **조용히 잘리지 않는다** — 꺾쇠 뒤에 글자가 붙으면 그 뒤가 통째로 사라진다
+  // (`utils/sanitize.js` 의 `tagLike` 머리글). 거절하고 까닭을 말한다 (2026-11-17)
+  if (tagLike(name)) return res.status(400).json({ error: ANGLE_WHY });
   const safeName = cleanName(name, PLAN_NAME_MAX);
   if (!safeName) return res.status(400).json({ error: '무엇을 할지 적어주세요' });
 

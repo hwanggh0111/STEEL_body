@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
-const { sanitize, cleanName } = require('../utils/sanitize');
+const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 
 // 운동 이름의 글자 수. **이름을 준다** (2026-10-28) — 다듬는 자리 둘에 생글자로
 // 박혀 있었고 화면에는 제한이 없어서 **말없이 잘렸다.** 화면도 같은 이름으로
@@ -149,6 +149,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 운동명. 고치는 쪽(PUT)에는 있던 검사가 여기에는 없어서 공백만 친 것도,
   // 문자열이 아닌 것도 그대로 통과해 **이름 없는 기록**이 남았다
+  // **조용히 잘리지 않는다** — 꺾쇠 뒤에 글자가 붙으면 그 뒤가 통째로 사라진다
+  // (`utils/sanitize.js` 의 `tagLike` 머리글). 거절하고 까닭을 말한다 (2026-11-17)
+  if (tagLike(exercise)) return res.status(400).json({ error: ANGLE_WHY });
   const safeExercise = cleanName(exercise, EXERCISE_NAME_MAX);
   if (!safeExercise) {
     return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });
@@ -231,6 +234,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 오늘까지)' });
   }
 
+  if (tagLike(exercise)) return res.status(400).json({ error: ANGLE_WHY });
   const safeExercisePut = cleanName(exercise, EXERCISE_NAME_MAX);
   if (!safeExercisePut) {
     return res.status(400).json({ error: `운동명을 적어주세요 (${EXERCISE_NAME_MAX}자 이하)` });

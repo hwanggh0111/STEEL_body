@@ -269,8 +269,12 @@ const call = async (method, p, body) => {
     // **태그만 걷는다** (2026-11-03). 여태 꺾쇠를 글자째 지웠는데, 그것이 사람이
     // 적은 글을 조용히 다른 뜻으로 바꾸고 있었다(「무게 60>65」 → 「무게 6065」).
     // 이제 태그 꼴만 걷고 홀로 쓰인 꺾쇠는 남긴다
+    // ★ **이제는 걷지 않고 거절한다** (2026-11-17, 주인 결정) — 걷는 쪽으로 두면
+    // 꺾쇠 뒤에 글자가 붙은 이름(「L<R」)이 조용히 잘려 담긴다. 까닭 글은 서버가
+    // 쓰는 자리에서 **읽는다**(베끼지 않는다)
+    const { ANGLE_WHY } = require('../src/utils/sanitize');
     const gs2 = await call('PUT', '/gym-settings', { gym: '<b>집앞</b>', exercise: '벤치프레스', seat: '2' });
-    ok('  태그는 걷어서 돌려준다', gs2.data?.gym, '집앞');
+    ok('  태그가 붙은 이름은 거절한다', [gs2.status, gs2.data?.error], [400, ANGLE_WHY]);
     const gs3 = await call('PUT', '/gym-settings', { gym: '집앞 <2층>', exercise: '스쿼트', seat: '1' });
     ok('  사람이 적은 꺾쇠는 남긴다', gs3.data?.gym, '집앞 <2층>');
     // **화면이 그 이름을 쓰는가** (글자로 본다 — 스토어를 띄우는 자리가 아니다)

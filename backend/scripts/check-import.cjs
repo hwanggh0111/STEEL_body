@@ -281,11 +281,20 @@ console.log('── 손으로 적는 길과 **같은 자**를 쓰는가 ── (
   // 사람이 그 글자를 적었으면 그것이 이름이다(말없이 바꾸지 않는다).
   //
   // **막아야 하는 것은 그대로 막는다**: 태그만 적어서 **남는 글자가 없는** 이름.
+  // ★ **이제는 걷지 않고 거절한다** (2026-11-17, 주인 결정). 걷는 쪽으로 두면
+  // 꺾쇠 뒤에 글자가 붙은 이름(「L<R 불균형」)이 **조용히 「L」로** 들어간다 —
+  // 운동 이름이면 사전에 없는 이름이 되어 몸 지도에서 영영 빠진다.
+  // 까닭 글은 **베껴 적지 않는다** — 서버가 쓰는 자리에서 읽는다
+  const { ANGLE_WHY } = require('../src/utils/sanitize');
   const onlyTag = read(`${TODAY},<b></b>,60,3,10`);
   ok('태그만 적은 이름은 안 들어온다', onlyTag.rows.length, 0);
-  ok('  이름이 비었다고 말한다', onlyTag.bad[0] && onlyTag.bad[0].why, '운동명이 비어 있어요');
+  ok('  꺾쇠 까닭을 말한다', onlyTag.bad[0] && onlyTag.bad[0].why, ANGLE_WHY);
   const tagged = read(`${TODAY},<b>벤치프레스</b>,60,3,10`);
-  ok('태그는 걷고 남은 글자로 이름을 짓는다', tagged.rows[0] && tagged.rows[0].exercise, '벤치프레스');
+  ok('태그가 붙은 이름은 거절한다', tagged.rows.length, 0);
+  ok('  까닭과 줄 수를 말한다', tagged.bad[0] && [tagged.bad[0].why, tagged.bad[0].line], [ANGLE_WHY, 2]);
+  const 잘릴것 = read(`${TODAY},L<R 불균형,60,3,10`);
+  ok('★ 조용히 잘리던 이름도 거절한다 (「L」로 안 들어간다)',
+    [잘릴것.rows.length, 잘릴것.bad[0] && 잘릴것.bad[0].why], [0, ANGLE_WHY]);
   const 꺾쇠 = read(`${TODAY},"벤치 60>65",60,3,10`);
   ok('사람이 적은 꺾쇠는 남는다 (뜻이 바뀌면 안 된다)', 꺾쇠.rows[0] && 꺾쇠.rows[0].exercise, '벤치 60>65');
 

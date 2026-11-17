@@ -43,9 +43,15 @@ const ok = (name, got, want) => {
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
 
-// 지저분하게 적어본다 — 앞뒤 공백 · 가운데 겹공백 · 꺾쇠
+// 지저분하게 적어본다 — 앞뒤 공백 · 가운데 겹공백.
+//
+// ★ **태그는 이제 이름 칸에서 거절된다** (2026-11-17, 주인 결정). 여기 `MESSY_EX` 가
+// `' 벤치 <b>프레스</b> '` 였다 — 그 꼴은 태그를 걷어 담겼다. 그런데 같은 걷기가
+// **사람이 적은 이름을 조용히 자르고 있었다**(「L<R 불균형」 → 「L」). 그래서 이름
+// 칸은 **거절하고 까닭을 말한다**. 이 자리는 「다듬은 것을 그대로 돌려주는가」를
+// 보는 자리라 **태그 없이** 지저분한 이름으로 본다 — 태그 거절은 아래에서 따로 본다.
 const MESSY_NAME = '  월요일   가슴 ';
-const MESSY_EX = ' 벤치 <b>프레스</b> ';
+const MESSY_EX = ' 벤치   프레스 ';
 // 메모는 날짜마다 한 장이라 글을 바꿀 때마다 날짜도 바꾼다 (같은 날이면 고쳐진다)
 const 오늘 = new Date().toISOString().slice(0, 10);
 
@@ -55,6 +61,9 @@ app.use('/api/my-routines', require('../src/routes/myRoutines'));
 app.use('/api/plans', require('../src/routes/plans'));
 // 메모는 **사람이 글을 길게 적는 자리**다 — 꺾쇠·따옴표·&가 뜻을 지는 곳이다
 app.use('/api/notes', require('../src/routes/notes'));
+// 운동 이름도 같은 선이다 — 이름이 조용히 잘리면 그 줄은 사전에 없는 이름이 되어
+// 몸 지도에서 빠진다 (2026-11-17)
+app.use('/api/workouts', require('../src/routes/workouts'));
 
 db.createUser('echo@test.local', 'x', '나', 'echoman');
 const me = db.findUserByEmail('echo@test.local');
@@ -86,7 +95,8 @@ async function run() {
     console.log('── 내 루틴: 고칠 때 ──');
     const put = await send('/my-routines/' + made.body.id, 'PUT', {
       name: '  화요일   등 ',
-      exercises: [{ name: ' 랫 <i>풀다운</i> ', sets: 4, reps: 12 }],
+      // 태그는 이제 거절된다(아래에서 따로 본다) — 여기는 **다듬어 돌려주는가**를 본다
+      exercises: [{ name: ' 랫   풀다운 ', sets: 4, reps: 12 }],
     });
     ok('고쳐진다', put.status, 200);
     const list2 = (await fetch(base + '/my-routines', { headers: H }).then((r) => r.json()));
@@ -139,6 +149,34 @@ async function run() {
       const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
       ok(`  ${JSON.stringify(글)} 는 거절`, [r.status, r.body?.error], [400, '메모 내용을 적어주세요']);
     }
+    console.log('');
+    console.log('── ★ 이름 칸의 태그는 거절하고 까닭을 말하는가 ── (2026-11-17)');
+    //
+    // 까닭 글은 **베껴 적지 않는다** — 서버가 쓰는 그 자리에서 읽는다
+    // (베끼면 글을 다듬는 날 자만 옛 글을 본다)
+    const { ANGLE_WHY } = require('../src/utils/sanitize');
+    for (const [길, 몸] of [
+      ['/my-routines', { name: '<b>월요일</b>', exercises: [{ name: '벤치프레스', sets: 3, reps: 10 }] }],
+      ['/my-routines', { name: '월요일', exercises: [{ name: 'L<R 불균형', sets: 3, reps: 10 }] }],
+      ['/plans', { name: 'L<R 불균형', date: '2026-10-29', kind: 'exercise' }],
+    ]) {
+      const r = await send(길, 'POST', 몸);
+      ok(`  ${길} ${JSON.stringify(몸.name || 몸.exercise)}`, [r.status, r.body?.error], [400, ANGLE_WHY]);
+    }
+    // ── 운동 기록은 **사람 UA 로** 두드린다 ──
+    // `POST /workouts` 에는 `spamCheck` 가 걸려 있어 도구 UA 를 막는다
+    // (`check-range.cjs` 가 같은 까닭으로 UA 를 달고 있다)
+    const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36';
+    const 기록 = (몸) => fetch(base + '/workouts', {
+      method: 'POST', headers: { ...H, 'User-Agent': UA }, body: JSON.stringify(몸),
+    }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }));
+    const 잘릴것 = await 기록({ date: 오늘, exercise: 'L<R 불균형', weight: '60', sets: 3, reps: 10 });
+    ok('  /workouts "L<R 불균형"', [잘릴것.status, 잘릴것.body?.error], [400, ANGLE_WHY]);
+    // **사람이 적은 꺾쇠는 그대로 담긴다** — 띄어 쓰거나 숫자가 오는 꼴
+    const 꺾 = await 기록({ date: 오늘, exercise: '벤치 60>65', weight: '60', sets: 3, reps: 10 });
+    ok('  「벤치 60>65」는 담긴다',
+      [꺾.status, 꺾.body?.workout?.exercise || 꺾.body?.exercise], [201, '벤치 60>65']);
+
   } catch (err) {
     bad += 1;
     console.error(err);

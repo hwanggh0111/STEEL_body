@@ -153,7 +153,7 @@ const LOGIN_LOCK_TIME = LOGIN_LOCK.lockMs;
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
 
 const { REFRESH_REUSE_GRACE_MS } = require('../config/security');
-const { sanitize, cleanName } = require('../utils/sanitize');
+const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 // 쿠키를 심는 것도 지우는 것도 한 곳에서 한다 (`utils/tokens.js` 머리글)
 const { issueTokens, clearAuthCookies } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED, warmMailer } = require('../utils/mailer');
@@ -338,6 +338,8 @@ router.post('/register', async (req, res) => {
   // 새니타이즈까지 끝낸 뒤에 본다. `'   '` 도 `'<<<>>>'` 도 여기서는 빈 이름이 되는데,
   // 길이만 재고 넘기면 **이름 없는 계정**이 만들어진다 — 닉네임은 홈 인사부터
   // 관리자 사용자 목록까지 온 앱에 나오는 이름이다
+  // 조용히 잘리지 않는다 (`sanitize.js` 의 `tagLike`, 2026-11-17)
+  if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
   const safeNickname = cleanName(nickname, NICKNAME_MAX);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
@@ -629,6 +631,8 @@ router.put('/sex', require('../middleware/auth'), (req, res) => {
 router.put('/nickname', require('../middleware/auth'), (req, res) => {
   const { nickname } = req.body;
   // 배열이 오면 `.trim()` 이 없어서 여기서 500 이 났다 — 사용자 잘못인데 서버 잘못처럼 답했다
+  // 조용히 잘리지 않는다 (`sanitize.js` 의 `tagLike`, 2026-11-17)
+  if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
   const safeNickname = cleanName(nickname, NICKNAME_MAX);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });

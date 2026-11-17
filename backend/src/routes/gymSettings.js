@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const db = require('../db');
-const { cleanName } = require('../utils/sanitize');
+const { cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 
 // ─────────────────────────────────────────────────────────────
 // 기구 세팅.
@@ -89,6 +89,13 @@ router.get('/', auth, (req, res) => {
 
 // PUT /api/gym-settings — 세우거나 고친다
 router.put('/', auth, (req, res) => {
+  // **조용히 잘리지 않는다** — 꺾쇠 뒤에 글자가 붙으면 그 뒤가 통째로 사라진다
+  // (`utils/sanitize.js` 의 `tagLike`, 2026-11-17). 세우는 길에서만 막는다 —
+  // 읽는 길(`GET`)과 지우는 길은 **이미 담긴 것을 찾는** 자리라 거절하면 못 지운다
+  if ([req.body?.gym, req.body?.exercise, req.body?.note, req.body?.seat,
+    req.body?.foot, req.body?.grip].some(tagLike)) {
+    return res.status(400).json({ error: ANGLE_WHY });
+  }
   const gym = nameOf(req.body?.gym, GYM_MAX);
   const exercise = nameOf(req.body?.exercise, EXERCISE_MAX);
   if (!gym) return res.status(400).json({ error: '어느 헬스장인지 적어주세요' });

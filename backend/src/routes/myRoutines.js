@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
-const { sanitize, cleanName } = require('../utils/sanitize');
+const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 
 // 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
 // 여기는 여태 sets · reps 를 **아예 안 봤다** — `{ ...ex }` 로 받은 것을 그대로 담았다.
@@ -82,6 +82,9 @@ router.post('/', auth, spamCheck, (req, res) => {
 
   // 배열도 `.length` 가 있어서 길이 검사를 통과했다. 공백만 친 것도 통과했다.
   // 둘 다 새니타이즈 뒤에는 빈 문자열이라 **이름 없는 루틴**으로 남았다
+  // **조용히 잘리지 않는다** — 꺾쇠 뒤에 글자가 붙으면 그 뒤가 통째로 사라진다
+  // (`utils/sanitize.js` 의 `tagLike` 머리글). 거절하고 까닭을 말한다 (2026-11-17)
+  if (tagLike(name)) return res.status(400).json({ error: ANGLE_WHY });
   const safeName = cleanName(name, ROUTINE_NAME_MAX);
   if (!safeName) {
     return res.status(400).json({ error: `루틴명을 적어주세요 (${ROUTINE_NAME_MAX}자 이하)` });
@@ -107,6 +110,12 @@ router.post('/', auth, spamCheck, (req, res) => {
   for (const ex of validExercises) {
     const r = checkSetsReps(ex);
     if (!r.ok) return res.status(400).json({ error: r.why });
+  }
+
+  // 루틴 **안의 운동 줄 이름**도 같은 선이다 — 조용히 잘려 들어가면 그 줄은
+  // 사전에 없는 이름이 되어 몸 지도에서 빠진다 (2026-11-17)
+  for (const ex of validExercises) {
+    if (tagLike(ex.name)) return res.status(400).json({ error: ANGLE_WHY });
   }
 
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
@@ -138,6 +147,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const fields = {};
 
   if (name !== undefined) {
+    if (tagLike(name)) return res.status(400).json({ error: ANGLE_WHY });
     const clean = cleanName(name, ROUTINE_NAME_MAX);
     if (!clean) {
       return res.status(400).json({ error: `루틴명을 적어주세요 (${ROUTINE_NAME_MAX}자 이하)` });
@@ -160,6 +170,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     for (const ex of valid) {
       const r = checkSetsReps(ex);
       if (!r.ok) return res.status(400).json({ error: r.why });
+    }
+    for (const ex of valid) {
+      if (tagLike(ex.name)) return res.status(400).json({ error: ANGLE_WHY });
     }
     fields.exercises = valid.map(ex => ({ ...ex, name: sanitize(ex.name) }));
   }
