@@ -41,7 +41,31 @@ const SKIP = {
   'check-routinerow.cjs': '**진짜 서버를 띄운다** · 포트를 쓴다 — 따로 돌린다 (`npm run routinerow`)',
 };
 
-const files = fs.readdirSync(DIR).filter((f) => /^check-.*\.cjs$/.test(f)).sort();
+const files = fs.existsSync(DIR)
+  ? fs.readdirSync(DIR).filter((f) => /^check-.*\.cjs$/.test(f)).sort()
+  : [];
+
+// ── ★ **자를 하나도 못 찾았으면 그것이 실패다** ── (2026-11-17 · 정석)
+//
+// `DIR` 은 `cwd/scripts` 다. 자는 `backend/scripts`(57) · `frontend/scripts`(121)
+// 에 있고, `npm run check` 는 그 두 곳에서 `../scripts/run-checks.cjs` 를 부른다.
+// 그런데 **저장소 뿌리에서 `node scripts/run-checks.cjs` 를 그냥 돌리면**
+// `C:/hgh/scripts` 에는 `check-*.cjs` 가 없다 — 돌린 검사 0개, FAIL 0, 터진 것 0,
+// 그리고 **「모두 통과」 · exit 0** 이다. 11/17 에 내가 그렇게 한 바퀴 돌았다.
+//
+// 이 파일이 10/28 에 생긴 까닭이 **바로 그 꼴**이다(「FAIL 은 0 이었다 — 나는
+// 그것을 통과로 읽고 커밋했다」). 돌 것이 없는 것과 돌려서 다 통과한 것은
+// 다른 일이고, **말이 같으면 안 된다.**
+if (files.length === 0) {
+  console.log('');
+  console.log('─'.repeat(58));
+  console.log('**자를 하나도 못 찾았다** — ' + DIR);
+  console.log('  이것은 통과가 아니다. 자는 `backend/scripts` · `frontend/scripts` 에 있다 —');
+  console.log('  그 두 곳에서 `npm run check` 로 돌리세요(뿌리에서 돌리면 돌 것이 없다).');
+  console.log('─'.repeat(58));
+  process.exit(1);
+}
+
 const ran = [];
 const failed = [];
 const crashed = [];
