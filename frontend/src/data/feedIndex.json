@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "df4476ab84",
+  "detailVersion": "5c1e3ff095",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "1a7f154",
+      "date": "2026-11-17",
+      "text": "날짜 키를 자정으로 읽던 열아홉 자리를 한낮으로 — 여행 중에 하루가 밀렸다",
+      "label": "고침",
+      "scope": "날짜",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "「목표까지 0.2kg 남았어요 · 도달!」이 아직 안 잰 값으로 떴다 — 앞날 쓸기 셋",
       "label": "고침",
       "scope": "목표·몸 변화",
-      "has": true
-    },
-    {
-      "key": "6054618",
-      "date": "2026-11-09",
-      "text": "앞날에 적어둔 줄이 「지난번」이 되어 칸까지 채웠다 · 지난 날짜에 적으면 뒷날 것을 집었다",
-      "label": "고침",
-      "scope": "기록",
       "has": true
     }
   ]
