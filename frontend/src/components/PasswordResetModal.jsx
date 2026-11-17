@@ -55,7 +55,9 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
   const sendCode = async (e) => {
     e?.preventDefault();
     setError(''); setInfo('');
-    if (!email.trim()) { setError('이메일을 입력해주세요'); return; }
+    // 칸에서 이미 공백을 떼었으니 **여기서 또 다듬지 않는다** — 다듬는 손이 두
+    // 벌이면 한쪽만 고치는 날이 온다(`npm run typed` 가 그것을 본다)
+    if (!email) { setError('이메일을 입력해주세요'); return; }
     if (mailReady === false) { setError('지금은 메일을 보낼 수 없어요. 관리자에게 문의해주세요'); return; }
     setLoading(true);
     try {
@@ -160,7 +162,11 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
               // 되지만, 애초에 그런 칸을 보여줄 이유가 없다)
               readOnly={making}
               placeholder="user@email.com" value={email}
-              onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+              // 가입 · 로그인 · 구글 메일 등록과 **같은 손**으로 다듬는다
+              // (`data/typedField.js` · 11/03 에 세운 선). 이 창만 값을 그대로
+              // 담고 있었고, 보낼 때만 `cleanEmailField` 를 지났다 — 그러면
+              // **화면에 적힌 주소와 보낸 주소가 다르다** (2026-11-17 · 맵시)
+              onChange={(e) => { setEmail(cleanEmailField(e.target.value)); if (error) setError(''); }}
               style={{ marginBottom: 12, opacity: making ? 0.75 : 1 }}
             />
             {mailReady === false && (

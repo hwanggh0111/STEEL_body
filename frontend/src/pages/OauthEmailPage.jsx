@@ -79,7 +79,23 @@ export default function OauthEmailPage() {
   const [mailReady, setMailReady] = useState(null);
   const codeRef = useRef(null);
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // ── **이 화면만 칸에서 다듬지 않고 있었다** ── (2026-11-17 · 맵시)
+  //
+  // 11/03 에 `data/typedField.js` 를 세워 **칸이 받는 그 순간** 공백을 떼기로 했다.
+  // 까닭은 그 파일 머리글에 있다 — 눈에는 멀쩡한 ` kim@a.com ` 이 형식 자(`[^\s@]`)에
+  // 걸려 「올바른 이메일 형식이 아니에요」를 듣고, 사람은 **보이지 않는 글자를
+  // 의심할 수 없다.** 가입 · 로그인 · 아이디 바꾸기 셋에 그 손을 붙였다.
+  //
+  // **이 화면은 빠져 있었다.** 구글로 들어온 사람이 메일을 등록하는 자리인데
+  // `onChange` 가 값을 **그대로** 담고, 아래 형식 자는 `trim()` 만 했다. 그래서 —
+  //
+  //   · 안쪽 공백(`kim @a.com` — 붙여넣기에 섞여 온다)은 **영영 안 떨어지고**
+  //     단추가 죽은 채로 남는다. 가입 화면에서는 같은 값이 통과한다
+  //   · 보내는 값은 `cleanEmailField(email)`(소문자 · 공백 없음)인데 화면은
+  //     「`Kim@A.com` 로 보냈어요」라고 적었다 — **화면과 서버가 다른 말**을 했다
+  //
+  // 칸에서 다듬으면 셋이 한 값을 본다 (아래 `emailOk` · 「로 보냈어요」 · 보내는 값).
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   useEffect(() => {
     // 제공자 없이 이 주소를 직접 열면 할 수 있는 일이 없다 — 로그인으로 돌려보낸다
@@ -214,7 +230,8 @@ export default function OauthEmailPage() {
               placeholder="example@email.com"
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                // 가입 · 로그인과 **같은 손**이다 (`data/typedField.js`)
+                setEmail(cleanEmailField(e.target.value));
                 // 주소를 고치면 받아둔 번호는 **그 주소의 것이 아니다**
                 if (sent) { setSent(false); setCode(''); setInfo(''); }
                 if (error) setError('');
@@ -261,7 +278,9 @@ export default function OauthEmailPage() {
                   }}
                 />
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.6 }}>
-                  <strong style={{ color: 'var(--accent)' }}>{email.trim()}</strong> 로 보냈어요.
+                  {/* 칸에서 이미 다듬었으니 **보낸 값 그대로**다 — `trim()` 을 또
+                      하면 「다듬기가 여기도 있다」로 읽혀 다음 사람이 한쪽만 고친다 */}
+                  <strong style={{ color: 'var(--accent)' }}>{email}</strong> 로 보냈어요.
                   안 왔으면{' '}
                   <button
                     type="button"
