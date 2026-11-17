@@ -8,6 +8,7 @@ import Logo from './Logo';
 import Emphasis from './Emphasis';
 import { euroJosa } from '../data/particle';
 import { useModalFocus } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
 //
@@ -64,7 +65,7 @@ export default function AccountBlocked() {
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 999998, padding: 20, overflow: 'auto',
+      zIndex: LAYER.막힘, padding: 20, overflow: 'auto',
     }}>
       {/* ── **내용이 길면 위가 잘린 채 못 내려간다** ── (2026-11-16 · 맵시)
           겉은 `align-items: center` 로 가운데 세우는 칸이다. 그 안의 것이 화면보다

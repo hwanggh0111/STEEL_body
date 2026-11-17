@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
+import { LAYER } from '../data/layers';
 
 export default function MiniSplash({ onDone }) {
   const [phase, setPhase] = useState(0);
@@ -17,7 +18,7 @@ export default function MiniSplash({ onDone }) {
       top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
-      zIndex: 99999,
+      zIndex: LAYER.스플래시,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

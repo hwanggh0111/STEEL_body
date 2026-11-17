@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
+import { LAYER } from '../data/layers';
 
 // 로그인하고 **들어올 때** 보는 화면. 이 앱에서 로고가 가장 크게 서는 자리다.
 //
@@ -41,7 +42,7 @@ export default function SplashScreen({ onDone }) {
       top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
-      zIndex: 99999,
+      zIndex: LAYER.스플래시,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

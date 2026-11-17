@@ -4,6 +4,7 @@ import {
   clampOpacity, coverCrop, shotSize,
 } from '../data/overlayShot';
 import { useScrollLock } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 // 겹쳐 찍기 — 카메라 화면.
 //
@@ -108,7 +109,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
       aria-modal="true"
       aria-label="겹쳐 찍기"
       style={{
-        position: 'fixed', inset: 0, zIndex: 9996, background: '#080705',
+        position: 'fixed', inset: 0, zIndex: LAYER.모달, background: '#080705',
         display: 'flex', flexDirection: 'column',
       }}
     >

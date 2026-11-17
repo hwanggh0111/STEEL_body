@@ -34,6 +34,7 @@
     "scroll": "node scripts/check-scroll.cjs",
     "shrink": "node scripts/check-shrink.cjs",
     "pushpull": "node scripts/check-pushpull.cjs",
+    "layer": "node scripts/check-layer.cjs",
     "signup": "node scripts/check-signup.cjs",
     "checkfeed": "node scripts/check-feed.cjs",
     "checkalert": "node scripts/check-alert.cjs",

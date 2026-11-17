@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { enterChoice, focusKind } from '../data/askKeys';
 import { useScrollLock } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 let _showConfirm = null;
 const _pendingQueue = [];
@@ -111,7 +112,7 @@ export default function ConfirmModalHost() {
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 99998, padding: 16,
+        zIndex: LAYER.확인창, padding: 16,
       }}
     >
       <div

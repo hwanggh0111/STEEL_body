@@ -7,6 +7,7 @@ import { isAdmin } from '../data/admin';
 import { useIsPC } from './useIsPC';
 import { usePendingReports } from './usePendingReports';
 import { DRAWER_ITEMS, PARENT_OF } from '../data/navItems';
+import { LAYER } from '../data/layers';
 
 // 아이콘은 이모지가 아니라 직접 그린 선이다 (NavIcon.jsx). 이모지 그림은 폰 만든
 // 회사 것이라 남의 것이고, 폰마다 다르게 나온다 — 금색 화면에 파란 종이 뜬다
@@ -268,7 +269,7 @@ export default function TabBar() {
           backdropFilter: 'var(--surface-blur)',
           WebkitBackdropFilter: 'var(--surface-blur)',
           borderRight: '1px solid var(--border)',
-          zIndex: 9999,
+          zIndex: LAYER.탭바,
           display: 'flex', flexDirection: 'column',
           overflowY: 'auto',
         }}>
@@ -334,7 +335,7 @@ export default function TabBar() {
         backdropFilter: 'var(--surface-blur)',
         WebkitBackdropFilter: 'var(--surface-blur)',
         borderTop: '1px solid var(--border)',
-        zIndex: 9999,
+        zIndex: LAYER.탭바,
         display: 'flex', justifyContent: 'center',
         // 아이폰 홈바 · 안드로이드 제스처 바가 탭을 덮지 않게 (2026-10-05).
         // 지금은 대개 0 이라 아무 일도 안 한다

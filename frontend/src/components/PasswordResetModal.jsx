@@ -5,6 +5,7 @@ import { cleanEmailField } from '../data/typedField';
 import client from '../api/client';
 import { passwordError } from '../data/password';
 import { PW_MAX, PW_MIN } from '../data/limits';
+import { LAYER } from '../data/layers';
 
 // ── 두 가지로 쓴다 ── (`fixedEmail`, 2026-10-02)
 //
@@ -97,7 +98,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
       onClick={onClose}
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+        background: 'rgba(0,0,0,0.7)', zIndex: LAYER.모달,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >

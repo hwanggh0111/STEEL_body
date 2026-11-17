@@ -17,6 +17,7 @@ import AppGuide from '../components/site/AppGuide';
 // 머리 오른쪽에 무엇을 띄울지, 그리고 **앱 안으로 가는 길을 정직하게 적는 데** 쓴다 —
 // 들어와 있으면 「열어보기」, 아직이면 「가입하고 열기」다 (2026-10-20)
 import { useAuthStore } from '../store/authStore';
+import { LAYER } from '../data/layers';
 // 소식 목록(`feedList.json`)은 **여기서 바로 안 들여온다.**
 // 아래 `useEffect` 가 화면이 뜬 뒤에 받아온다 — 까닭은 그 자리에 적어뒀다
 
@@ -674,7 +675,7 @@ export default function SiteHome() {
           aria-label={shot.caption || '사진'}
           onClick={() => setShot(null)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 9997, background: 'rgba(8,7,5,0.92)',
+            position: 'fixed', inset: 0, zIndex: LAYER.뒤판, background: 'rgba(8,7,5,0.92)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             padding: 20, cursor: 'zoom-out',
           }}

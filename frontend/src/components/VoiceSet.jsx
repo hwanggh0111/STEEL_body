@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useModalFocus } from '../data/useModalFocus';
 import { parseSpoken, spokenLabel, speechSupported } from '../data/voiceLog';
+import { LAYER } from '../data/layers';
 
 // 목소리로 적기.
 //
@@ -118,7 +119,7 @@ export default function VoiceSet({ onFill }) {
           aria-label="말로 적기"
           onClick={(e) => { if (e.target === e.currentTarget) close(); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 9996, background: 'rgba(8,7,5,0.94)',
+            position: 'fixed', inset: 0, zIndex: LAYER.모달, background: 'rgba(8,7,5,0.94)',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           }}
         >

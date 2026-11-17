@@ -4,6 +4,7 @@ import client from '../api/client';
 import { toast } from './Toast';
 import { passwordError } from '../data/password';
 import { PW_MIN } from '../data/limits';
+import { LAYER } from '../data/layers';
 
 // ─────────────────────────────────────────────────────────────
 // 비밀번호 변경 — 로그인한 채로 바꾼다.
@@ -72,7 +73,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
       onClick={onClose}
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.7)', zIndex: 99999,
+        background: 'rgba(0,0,0,0.7)', zIndex: LAYER.모달,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >

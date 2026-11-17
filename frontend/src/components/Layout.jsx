@@ -39,6 +39,7 @@ import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { sessionEpoch, isSameSession } from '../store/session';
 import NavIcon from './NavIcon';
 import { useScrollLock } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 const PROFILE_KEY = PROFILE_PHOTO_KEY;
 
@@ -734,7 +735,7 @@ export default function Layout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 99999,
+            zIndex: LAYER.모달,
             cursor: 'zoom-out',
           }}
         >
@@ -768,14 +769,14 @@ export default function Layout() {
       {sideMenu && (
         <div
           onClick={() => setSideMenu(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'rgba(0,0,0,0.35)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: LAYER.뒤판, background: 'rgba(0,0,0,0.35)' }}
         />
       )}
       <div ref={sideRef} style={{
         position: 'fixed',
         top: 58,
         right: 12,
-        zIndex: 9998,
+        zIndex: LAYER.서랍,
         display: sideMenu ? 'flex' : 'none',
         flexDirection: 'column', alignItems: 'flex-end',
       }}>

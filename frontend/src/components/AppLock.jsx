@@ -6,6 +6,7 @@ import { LogoMark } from './Logo';
 import { PIN_LEN, MAX_TRIES } from '../data/appLock';
 import { confirmDialog } from './ConfirmModal';
 import { useScrollLock } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 // 잠금 화면.
 //
@@ -180,7 +181,7 @@ export default function AppLock() {
       aria-label="앱 잠금"
       style={{
         outline: 'none',
-        position: 'fixed', inset: 0, zIndex: 9000,
+        position: 'fixed', inset: 0, zIndex: LAYER.잠금,
         background: 'var(--bg-primary)',
         backgroundImage: 'var(--bg-glow)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

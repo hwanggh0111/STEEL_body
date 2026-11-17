@@ -12,6 +12,7 @@ import { dateKey } from '../data/dateKey';
 // 돌지 않는 찌꺼기를 「점검 예정」으로 띄우고 있었다 (2026-10-24)
 import { runsOn } from '../data/maintForm';
 import { useScrollLock } from '../data/useModalFocus';
+import { LAYER } from '../data/layers';
 
 // 서버가 진짜다. localStorage 는 마지막으로 받아온 것을 담아두는 자리일 뿐이다 —
 // 첫 화면을 그리는 순간과 네트워크가 없을 때 쓴다.
@@ -207,7 +208,9 @@ export default function MaintenanceScreen({ children }) {
     return (
       <>
         <div style={{
-          position: 'sticky', top: 0, zIndex: 99999,
+          // 이 덮개 **안에서만** 서는 머리다 — 덮개가 제 쌓임 맥락을 만들므로
+          // 밖의 층과 겨루지 않는다 (그래서 표를 안 쓴다)
+          position: 'sticky', top: 0, zIndex: 1,
           background: kind.color, color: 'var(--on-accent)',
           padding: '7px 14px', fontSize: 12.5, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
@@ -240,7 +243,7 @@ export default function MaintenanceScreen({ children }) {
       background: 'var(--bg-primary)',
       backgroundImage: 'var(--bg-glow)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 999999, padding: 20, overflow: 'auto',
+      zIndex: LAYER.점검, padding: 20, overflow: 'auto',
     }}>
       {/* ── **내용이 길면 위가 잘린 채 못 내려간다** ── (2026-11-16 · 맵시)
           겉은 `align-items: center` 로 가운데 세우는 칸이다. 그 안의 것이 화면보다

@@ -7,6 +7,7 @@ import { useToday } from '../data/useToday';
 import { beepDone } from '../data/alertSound';
 import { useWakeLock } from '../data/useWakeLock';
 import { useRestAlarm } from '../data/useRestAlarm';
+import { LAYER } from '../data/layers';
 
 // 휴식 중일 때 탭 바 바로 위에 뜨는 띠.
 //
@@ -113,7 +114,7 @@ export default function RestBar({ bottom = 58 }) {
     <div
       style={{
         position: 'fixed', left: 0, right: 0, bottom,
-        zIndex: 9998,
+        zIndex: LAYER.휴식띠,
         borderTop: `1px solid ${color}`,
         background: finished ? 'var(--success-dim)' : 'var(--accent-dim)',
         padding: '9px 14px',

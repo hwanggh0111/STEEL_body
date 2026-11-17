@@ -6,6 +6,7 @@ import { dayOf } from '../data/dateKey';
 import { confirmDialog } from './ConfirmModal';
 import { readLS } from '../data/safeStorage';
 import { EMAIL_KEY } from '../data/localKeys';
+import { LAYER } from '../data/layers';
 
 // ── 말 사전을 걷었다 ── (2026-10-28)
 //
@@ -736,7 +737,7 @@ export default function SecurityPanel() {
           onClick={() => !removing && setDeleting(null)}
           style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.75)', zIndex: 99999,
+            background: 'rgba(0,0,0,0.75)', zIndex: LAYER.모달,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
           }}
         >
