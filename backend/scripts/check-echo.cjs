@@ -134,27 +134,38 @@ async function run() {
       const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
       ok(`  ${JSON.stringify(글)}`, r.body?.body, 글);
     }
-    console.log('── 태그는 걷는가 ──');
-    for (const [글, 남을것] of [['<b>어깨</b> 아픔', '어깨 아픔'],
-                               ['<script>alert(1)</script>끝', '1)끝'],
-                               ['<img src=x onerror=alert(1)>메모', '메모'],
-                               ['<b>x</b>', 'x']]) {
+    // ── ★ **메모의 태그는 걷지 않고 거절한다** ── (2026-11-17, 주인 결정)
+    //
+    // 여기는 「걷어서 남는 글자」를 기대하고 있었다 — `<b>어깨</b> 아픔` → 「어깨 아픔」.
+    // 그 선으로는 **`L<R 불균형` 이 「L」로 조용히 잘려** 담겼다. 이름 칸은 11/17 에
+    // 거절로 바뀌었는데 메모만 옛 선이라, 주인에게 갈래로 올려 **「이름 칸과 같게
+    // 거절한다」**를 받았다.
+    //
+    // **대가를 알고 고른 것이다** — 걷어서 담던 넷도 이제 거절된다. 그 대신
+    // **조용히 잘리는 일이 없어진다.** 아래 「사람이 적은 글」 묶음이 그대로 통과하는
+    // 것이 짝이다(11/03 의 선) — 홀로 쓰인 꺾쇠는 지우지도 거절하지도 않는다.
+    //
+    // 까닭 글은 **베껴 적지 않는다** — 서버가 쓰는 그 자리에서 읽는다
+    const { ANGLE_WHY: 꺾쇠까닭 } = require('../src/utils/sanitize');
+    console.log('── 태그 모양은 거절하는가 ──');
+    for (const 글 of ['<b>어깨</b> 아픔', '<script>alert(1)</script>끝',
+                      '<img src=x onerror=alert(1)>메모', '<b>x</b>',
+                      '<<script>alert(1)</script>', '<b></b>', '<div><span></span></div>']) {
       const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
-      ok(`  ${JSON.stringify(글)}`, r.body?.body, 남을것);
-      ok('    태그 꼴이 안 남는다', /<\s*[/!?a-zA-Z]/.test(String(r.body?.body || '')), false);
+      ok(`  ${JSON.stringify(글)} 는 거절`, [r.status, r.body?.error], [400, 꺾쇠까닭]);
     }
-    // **글이 통째로 태그면 안 담는다** — 걷고 나면 남는 글자가 없다.
-    // 겹쳐 쓴 꼴(`<<script>…`)도 고리를 돌려 다 걷으므로 여기로 떨어진다
-    for (const 글 of ['<<script>alert(1)</script>', '<b></b>', '<div><span></span></div>']) {
+    // ★ **띄어 쓴 꺾쇠는 담긴다** — 거절 문구가 가리키는 길이다. 이 줄이 없으면
+    // 「전부 거절」로 조여도 자가 조용하다 (`check-angle` 이 식 쪽을 따로 본다)
+    for (const 글 of ['L < R 불균형', '허리 각도 < 45도']) {
       const r = await send('/notes', 'POST', { date: 오늘, body: 글 });
-      ok(`  ${JSON.stringify(글)} 는 거절`, [r.status, r.body?.error], [400, '메모 내용을 적어주세요']);
+      ok(`  ${JSON.stringify(글)} 는 그대로 담긴다`, r.body?.body, 글);
     }
     console.log('');
     console.log('── ★ 이름 칸의 태그는 거절하고 까닭을 말하는가 ── (2026-11-17)');
     //
     // 까닭 글은 **베껴 적지 않는다** — 서버가 쓰는 그 자리에서 읽는다
     // (베끼면 글을 다듬는 날 자만 옛 글을 본다)
-    const { ANGLE_WHY } = require('../src/utils/sanitize');
+    const ANGLE_WHY = 꺾쇠까닭;
     for (const [길, 몸] of [
       ['/my-routines', { name: '<b>월요일</b>', exercises: [{ name: '벤치프레스', sets: 3, reps: 10 }] }],
       ['/my-routines', { name: '월요일', exercises: [{ name: 'L<R 불균형', sets: 3, reps: 10 }] }],

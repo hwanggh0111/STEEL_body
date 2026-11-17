@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
-const { sanitizeMultiline } = require('../utils/sanitize');
+const { sanitizeMultiline, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 // ── **메모만 날짜 테두리가 없었다** ── (2026-11-03)
 //
 // 모양만 보고 있었다(`/^\d{4}-\d{2}-\d{2}$/`) — 그래서 `2099-01-01` · `1026-05-05`
@@ -35,6 +35,25 @@ const MAX_LEN = 2000;     // 한 장의 길이
 const isMonth = (v) => typeof v === 'string' && /^\d{4}-\d{2}$/.test(v);
 
 // 적은 것을 받는다. **글자만 본다** — 이 앱의 다른 자리와 같은 규칙으로 씻는다
+//
+// ── ★ **메모도 이름 칸과 같은 자로 막는다** ── (2026-11-17, 주인 결정)
+//
+// 11/17 에 이름 칸이 `L<R` 을 **거절하고 까닭을 말하게** 됐다(`tagLike`·`ANGLE_WHY`).
+// 그런데 메모는 여태처럼 **조용히 잘라서** 담았다 — 「L<R 불균형」이 **「L」** 이 된다.
+// 주인에게 갈래로 올려 **「이름 칸과 같게 거절한다」**를 받았다.
+//
+// **대가를 알고 고른 것이다** — 지금 걷어서 담던 것도 막힌다:
+//
+//     <b>어깨</b> 아픔   → 여태: 「어깨 아픔」으로 담김 / 이제: **거절**
+//
+// 그 대신 **조용히 잘리는 일이 없어진다.** 11/03 의 선은 그대로 산다 —
+// `tagLike` 는 `<` **바로 뒤**에 글자가 올 때만 참이므로 「무게 60>65」 ·
+// 「허리 각도 < 45도」 · 「<3」 · 「3 <- 4」 · 「L < R」 은 **통과한다.**
+//
+// **보내는 길에만 건다.** 받는 길(목록)에는 안 건다 — 이미 담긴 옛 글은 읽혀야 한다.
+// **제보(`routes/reports.js`)에는 안 걸었다**(정석 판정, 11/17): 그것은 고객센터로
+// 들어오는 글이고, 거기서 막히면 **사람이 도움을 청할 길이 막힌다.** 메모는 제 기록
+// 이라 다시 적을 수 있지만 제보는 그렇지 않다 — 무게가 다르다.
 function cleanBody(raw) {
   if (typeof raw !== 'string') return null;
   const clean = sanitizeMultiline(raw).slice(0, MAX_LEN);
@@ -65,6 +84,8 @@ router.get('/', auth, (req, res) => {
 
 router.post('/', auth, spamCheck, (req, res) => {
   const { body: raw, date } = req.body || {};
+  // 태그 모양은 걷지 않고 거절한다 (위 `cleanBody` 머리글 · 주인 결정)
+  if (tagLike(raw)) return res.status(400).json({ error: ANGLE_WHY });
   const body = cleanBody(raw);
   if (!body) return res.status(400).json({ error: '메모 내용을 적어주세요' });
 
@@ -89,6 +110,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: '잘못된 ID에요' });
 
+  // 태그 모양은 걷지 않고 거절한다 (위 `cleanBody` 머리글 · 주인 결정)
+  if (tagLike((req.body || {}).body)) return res.status(400).json({ error: ANGLE_WHY });
   const body = cleanBody((req.body || {}).body);
   if (!body) return res.status(400).json({ error: '메모 내용을 적어주세요' });
 
