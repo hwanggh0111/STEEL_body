@@ -6,6 +6,7 @@
     "start": "node --max-old-space-size=256 --optimize-for-size src/index.js",
     "dev": "nodemon src/index.js",
     "check": "node ../scripts/run-checks.cjs",
+    "angle": "node scripts/check-angle.cjs",
     "storage": "node scripts/check-storage.cjs",
     "owner": "node scripts/check-owner.cjs",
     "backup": "node scripts/backup.cjs",
