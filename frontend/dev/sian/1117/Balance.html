@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>몸 — 치우쳤는지 본다</title>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>몸 · 지도</div>
+
+    <!-- **몸 지도는 「최근에 했나」만 말한다**(`bodyHeat.js` — 열). 그런데 사람이
+         치우치는 것은 **얼마나 했나**다. 가슴만 스물, 등은 셋 — 그 둘은 열로는
+         똑같이 「달아 있다」로 보인다.
+         재료는 이미 있다: `partVolume.js` 가 부위별 양을 센다. 그런데 그 손은
+         `PartTrend.jsx` **한 곳에서만** 불린다 — 지도 옆에는 없다.
+         서버 칸을 하나도 안 늘린다. -->
+    <div class="card nw">
+      <div class="lbl" style="margin-bottom:11px">최근 4주, 어디에 몰렸나</div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#cfc6b2">가슴</span><span style="color:#aaa28e;font-variant-numeric:tabular-nums">24세트</span></div>
+          <div style="height:7px;background:#1b1712;border:1px solid #332b1e;border-radius:1px;overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,#8f6b45,#eeb77d)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#cfc6b2">어깨</span><span style="color:#aaa28e;font-variant-numeric:tabular-nums">16세트</span></div>
+          <div style="height:7px;background:#1b1712;border:1px solid #332b1e;border-radius:1px;overflow:hidden"><div style="width:67%;height:100%;background:linear-gradient(90deg,#8f6b45,#d29a5f)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#cfc6b2">팔</span><span style="color:#aaa28e;font-variant-numeric:tabular-nums">12세트</span></div>
+          <div style="height:7px;background:#1b1712;border:1px solid #332b1e;border-radius:1px;overflow:hidden"><div style="width:50%;height:100%;background:#8f6b45"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#cfc6b2">등</span><span style="color:#aaa28e;font-variant-numeric:tabular-nums">6세트</span></div>
+          <div style="height:7px;background:#1b1712;border:1px solid #332b1e;border-radius:1px;overflow:hidden"><div style="width:25%;height:100%;background:#5c4c31"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#cfc6b2">하체</span><span style="color:#aaa28e;font-variant-numeric:tabular-nums">4세트</span></div>
+          <div style="height:7px;background:#1b1712;border:1px solid #332b1e;border-radius:1px;overflow:hidden"><div style="width:17%;height:100%;background:#4a3f2c"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:#8f8471">코어</span><span style="color:#8f8471;font-variant-numeric:tabular-nums">0세트</span></div>
+          <div style="height:7px;background:#17130f;border:1px dashed #332b1e;border-radius:1px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 밀기/당기기는 **운동 이름에서 갈린다**(`exercisePart.js` 가 이미 부위를 안다).
+         1:1 이 좋다는 말을 앱이 하지 않는다 — **비율만 보여주고 판단은 사람이** 한다.
+         숫자에 좋다/나쁘다를 붙이면 그것은 코치 노릇이고, 틀리면 사람이 다친다 -->
+    <div class="lbl" style="margin-bottom:6px">미는 것과 당기는 것</div>
+    <div class="card nw" style="padding:14px 16px">
+      <div style="display:flex;height:30px;border:1px solid #332b1e;border-radius:2px;overflow:hidden;font:13px 'Barlow','IBM Plex Sans KR',sans-serif">
+        <div style="flex:0 0 71%;background:linear-gradient(90deg,#3a301f,#4a3b22);display:flex;align-items:center;padding-left:11px;color:#eeb77d">밀기 <b style="margin-left:5px;font-variant-numeric:tabular-nums">52</b></div>
+        <div style="flex:1;background:#1b1712;display:flex;align-items:center;justify-content:flex-end;padding-right:11px;color:#aaa28e">당기기 <b style="margin-left:5px;font-variant-numeric:tabular-nums">21</b></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#8f8471;margin-top:7px">
+        <span>상체 <b style="color:#aaa28e">58</b> · 하체 <b style="color:#aaa28e">4</b></span>
+        <span style="font-variant-numeric:tabular-nums">2.5 : 1</span>
+      </div>
+    </div>
+
+    <div class="say">
+      <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5"></path><circle cx="12" cy="16.4" r=".9" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="8.5"></circle></svg>
+      <div style="font-size:13px;color:#cfc6b2">부위를 못 알아본 기록은 <b>어디에도 안 셉니다</b> — 아래에 몇 건인지 적습니다.</div>
+    </div>
+
+    <div class="flat">세트 수로 셉니다. <b style="color:#cfc6b2">무게로 세면</b> 하체가 늘 이깁니다 — 스쿼트 한 세트가 컬 열 세트보다 무겁습니다. 부위를 못 알아본 기록 <b style="color:#cfc6b2">2건</b>.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button>
+    <button class="tab on" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>

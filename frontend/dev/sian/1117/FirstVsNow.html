@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>운동 — 이 운동, 처음과 지금</title>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 · 벤치프레스</div>
+
+    <!-- **1년 전 오늘은 일부러 안 골랐다.** 첫 기록이 2026-01-14 라 그 화면은
+         **2027년 1월까지 아무에게도 안 보인다** — 지금 붙여도 빈 칸이다.
+         「처음과 지금」은 **기록이 두 번만 있으면 보인다.** 재료는 같다
+         (`date` · `weight` · `reps` — 서버 칸을 하나도 안 늘린다). -->
+    <div class="card nw">
+      <div class="lbl" style="margin-bottom:12px">처음과 지금</div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <div style="flex:1;text-align:center">
+          <div style="font-size:11.5px;color:#8f8471;letter-spacing:.5px">처음</div>
+          <div style="font:30px/1.1 'Bebas Neue',sans-serif;color:#aaa28e;font-variant-numeric:tabular-nums;margin-top:3px">40<span style="font-size:15px">kg</span></div>
+          <div style="font-size:11.5px;color:#8f8471;margin-top:2px">10회 · 1/14</div>
+        </div>
+        <div style="flex:0 0 auto;padding-bottom:16px;color:#d29a5f">
+          <svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 7h22"></path><path d="M18.5 2.5 23.5 7l-5 4.5"></path></svg>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:11.5px;color:#eeb77d;letter-spacing:.5px">지금</div>
+          <div style="font:38px/1.1 'Bebas Neue',sans-serif;color:#eeb77d;font-variant-numeric:tabular-nums;margin-top:3px">65<span style="font-size:17px">kg</span></div>
+          <div style="font-size:11.5px;color:#aaa28e;margin-top:2px">8회 · 11/17</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid #332b1e;margin-top:14px;padding-top:11px;font-size:13px;color:#cfc6b2;text-align:center">
+        <b style="color:#eeb77d">+25kg</b> · <b style="color:#cfc6b2">307일</b> 동안 <b style="color:#cfc6b2">42번</b> 했습니다
+      </div>
+    </div>
+
+    <!-- 한 줄 눈금: 첫 기록 → 지금을 **날짜 간격대로** 찍는다. 점이 뜸해진 구간이
+         쉰 자리다. 재료는 그 운동의 날짜 목록뿐이다 -->
+    <div class="lbl" style="margin-bottom:6px">걸어온 자리</div>
+    <div class="card nw" style="padding:14px 16px 11px">
+      <svg width="100%" height="64" viewBox="0 0 310 64" fill="none" aria-label="무게 변화" style="display:block">
+        <line x1="4" y1="56" x2="306" y2="56" stroke="#332b1e" stroke-width="1"></line>
+        <polyline points="8,48 42,46 74,42 108,38 140,30 158,34 186,26 218,22 250,18 282,12 302,10" stroke="#eeb77d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        <circle cx="8" cy="48" r="2.6" fill="#aaa28e"></circle>
+        <circle cx="302" cy="10" r="3.2" fill="#eeb77d"></circle>
+        <line x1="140" y1="30" x2="158" y2="34" stroke="#8f6b45" stroke-width="1.8" stroke-dasharray="3 3"></line>
+      </svg>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:#8f8471;margin-top:2px">
+        <span>1월 14일</span><span style="color:#8f6b45">← 3주 쉼</span><span>오늘</span>
+      </div>
+    </div>
+
+    <div class="say">
+      <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5"></path><circle cx="12" cy="16.4" r=".9" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="8.5"></circle></svg>
+      <div style="font-size:13px;color:#cfc6b2">드롭세트로 적은 줄은 <b>세지 않습니다</b> — 그 운동의 무게가 아니라 마무리입니다.</div>
+    </div>
+
+    <div class="flat">기록이 <b style="color:#cfc6b2">한 번뿐</b>이면 이 칸은 안 뜹니다. 견줄 것이 없으면 「처음」이 곧 「지금」입니다.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button>
+    <button class="tab on" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>

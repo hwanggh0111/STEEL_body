@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>오늘 한 줄 — 커뮤니티 첫 걸음</title>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>오늘 한 줄</div>
+
+    <!-- **DB 칸 넷이 이미 비어 있다** — `blackiron.json` 에 `posts` · `postComments` ·
+         `postLikes` · `postReports` 가 **0건**으로 서 있다. 라우트도 화면도 없다
+         (`backend/src/routes/` 에 `posts` 가 없다). 언젠가 짜려고 자리만 잡아둔 것이다.
+
+         **거르개는 이미 다 있다** — `abuseLogs` · `suspensions` · `blacklist` ·
+         `reports` 와 욕설 자(`check-block`)가 돈다. 커뮤니티에서 제일 비싼 것이
+         그것이고, 이 앱은 그것을 **이미 치렀다.**
+
+         그래서 **가장 작은 꼴**로 그렸다 — 글을 쓰는 곳이 아니라 **오늘 기록 한 줄에
+         한 마디 붙이는 곳**이다. 제목 · 본문 · 사진 · 댓글 타래가 없다. -->
+    <div class="card nw" style="padding:14px 16px">
+      <div class="lbl" style="margin-bottom:8px">내 오늘을 한 줄로</div>
+      <div class="log" style="padding:9px 12px;margin-bottom:9px">
+        <span class="nm">벤치프레스 65kg<span style="display:block;font-size:11.5px;color:#8f8471">5세트 8회 · 오늘</span></span>
+        <span class="gear">기록에서</span>
+      </div>
+      <input class="in" style="text-align:left;padding:11px 12px" value="3주 쉬고 돌아왔는데 안 줄었다" aria-label="한 마디">
+      <div style="display:flex;gap:7px;margin-top:9px">
+        <button class="btn2" style="flex:1">안 올림</button>
+        <button class="btn1" style="flex:1.4;min-height:44px;padding:10px">올린다</button>
+      </div>
+    </div>
+
+    <div class="lbl" style="margin:18px 0 7px">오늘</div>
+
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div class="card" style="margin:0;padding:13px 15px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span class="av" style="width:22px;height:22px;font-size:11px">ㄱ</span>
+          <span style="font:600 12.5px 'Barlow','IBM Plex Sans KR',sans-serif;color:#aaa28e;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">근호</span>
+          <span style="font-size:11.5px;color:#8f8471;margin-left:auto;flex-shrink:0">2시간 전</span>
+        </div>
+        <div style="font-size:13.5px;color:#eae4d6;margin-bottom:8px">데드 120 처음 들었다</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#8f8471">
+          <span style="border:1px solid #4a3f2c;border-radius:999px;padding:2px 9px;color:#aaa28e">데드리프트 120kg · 3×5</span>
+          <button class="btn2" style="margin-left:auto;min-height:36px;padding:5px 11px;font-size:12px">↑ 7</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin:0;padding:13px 15px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span class="av" style="width:22px;height:22px;font-size:11px">ㅈ</span>
+          <span style="font:600 12.5px 'Barlow','IBM Plex Sans KR',sans-serif;color:#aaa28e;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">정석</span>
+          <span style="font-size:11.5px;color:#8f8471;margin-left:auto;flex-shrink:0">5시간 전</span>
+        </div>
+        <div style="font-size:13.5px;color:#eae4d6;margin-bottom:8px">하체 빼먹은 지 2주째</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#8f8471">
+          <span style="border:1px solid #4a3f2c;border-radius:999px;padding:2px 9px;color:#aaa28e">스쿼트 80kg · 4×6</span>
+          <button class="btn2" style="margin-left:auto;min-height:36px;padding:5px 11px;font-size:12px">↑ 3</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="say" style="margin-top:16px">
+      <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5"></path><circle cx="12" cy="16.4" r=".9" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="8.5"></circle></svg>
+      <div style="font-size:13px;color:#cfc6b2">댓글은 <b>없습니다</b>. 누르는 것 하나(↑)와 신고뿐입니다 — 말이 오가면 그때부터 지켜야 할 것이 늘어납니다.</div>
+    </div>
+
+    <div class="flat"><b style="color:#d29a5f">치르는 값</b>: 라우트와 화면을 새로 짭니다(넷 중 가장 큽니다). <b style="color:#cfc6b2">출시 12/24 전에는 안 권합니다</b> — 사람 글이 오르는 자리는 하루라도 안 보면 안 됩니다. 넣더라도 <b style="color:#cfc6b2">출시 뒤</b>가 맞습니다.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab on" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>
