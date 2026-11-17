@@ -261,7 +261,9 @@ export default function AdminPage() {
         </button>
         <div style={{
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 1.5,
-          color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          // 가로 flex 자식이라 `minWidth: 0` 이 없으면 말줄임이 안 든다 (11/17 · 맵시)
+          color: 'var(--accent)', minWidth: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{current?.label}</div>
       </div>
 

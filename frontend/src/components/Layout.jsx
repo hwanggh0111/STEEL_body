@@ -621,6 +621,11 @@ export default function Layout() {
           <span style={{
             fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
             fontSize: 14, letterSpacing: 1.4, color: 'var(--text-primary)',
+            // `minWidth: 0` 이 **말줄임의 짝**이다 — 가로 flex 자식의 `min-width`
+            // 기본값은 `auto` 라 글 길이 아래로 안 줄어들고, 그러면 아래 세 줄이
+            // 적혀 있어도 점셋이 영영 안 뜬다. 지금 드는 글은 앱이 정한 짧은
+            // 이름이지만 길어질 날에 **눈으로만 보인다** (2026-11-17 · 맵시)
+            minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{crumb.label}</span>
         </div>
