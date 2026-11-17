@@ -127,10 +127,35 @@ ok('모든 화면 파일이 파싱됐다', 터진것, []);
 // 글자로 `true` 라고 적힌 것과 값 없는 것(`readOnly`)만 숨은 칸이다
 const 늘읽기전용 = (v) => v === 'true';
 const 숨은것 = (a) => 늘읽기전용(a.readOnly) || 늘읽기전용(a['aria-hidden']) || a.type === 'hidden';
-const 메일칸 = 칸.filter((r) => !숨은것(r.attrs)
-  && (r.attrs.type === 'email' || r.attrs.inputMode === 'email' || r.attrs.name === 'email'));
-const 아이디칸 = 칸.filter((r) => !숨은것(r.attrs)
-  && r.attrs.name === 'username' && !(r.attrs.type === 'email' || r.attrs.inputMode === 'email'));
+// ── ★ **`autoComplete` 도 본다 — 모집단이 작으면 「전부 지난다」가 거짓이 된다** ──
+// (2026-11-17 · 정석)
+//
+// 이 식이 `name` 만 보고 있었다. 그래서 **아이디 칸을 1곳만** 셌다 — 실제로 사람이
+// 치는 아이디 칸은 셋이다(`LoginPage:408` 은 `readOnly` 라 빼는 것이 맞다):
+//
+//     RegisterPage.jsx:588    name="username"        ← 셌다
+//     SettingsPage.jsx:811    autoComplete="username" · **`name` 이 없다**  ← 안 셌다
+//
+// `SettingsPage` 의 그 칸은 `typeId` → `cleanIdField` 를 **지난다.** 그러니 지금
+// 사람에게 가는 피해는 없다. 문제는 **자가 그 칸을 아예 안 본다**는 것이다 —
+// 다음에 누가 아이디 칸을 붙이고 다듬지 않으면 그 칸은 **조용히 통과한다.**
+// 「치는 칸이 **전부** 공용 손을 지난다 → []」는 **세는 모집단이 맞을 때만** 참이다.
+//
+// 오늘 같은 자리를 세 번 만났다 — 자 0개인데 「모두 통과」 · 없는 깃발을 삼킴 ·
+// 손상을 기대값으로 박음. **셈이 작은 것과 다 통과한 것은 말이 같아 보인다.**
+//
+// `autoComplete` 는 브라우저 자동완성 때문에 **빠뜨리기 어려운 속성**이라(빠지면
+// 바로 눈에 띈다) `name` 보다 촘촘하다. 둘 중 하나라도 있으면 센다.
+const 메일표 = (a) => a.type === 'email' || a.inputMode === 'email'
+  || a.name === 'email' || a.autoComplete === 'email';
+const 아이디표 = (a) => !메일표(a)
+  && (a.name === 'username' || a.autoComplete === 'username');
+// **아래 되돌려-FAIL 이 이 손을 부른다** — 베껴 적으면 식을 넓힐 때 **되돌려만 옛
+// 식을 본다.** 실제로 그랬다: 11/17 에 `autoComplete` 를 더했는데 되돌려 쪽은
+// `name` 만 보는 식을 제 안에 적어두고 있어서, 새로 박은 꼴 둘이 **안 걸렸다**
+const 치는칸 = (r) => !숨은것(r.attrs) && (메일표(r.attrs) || 아이디표(r.attrs));
+const 메일칸 = 칸.filter((r) => !숨은것(r.attrs) && 메일표(r.attrs));
+const 아이디칸 = 칸.filter((r) => !숨은것(r.attrs) && 아이디표(r.attrs));
 
 console.log('\n── 메일 · 아이디 칸이 그 손을 지나는가 ──');
 ok('사람이 치는 메일 칸을 찾았다 (못 찾으면 자가 아무것도 안 본 것이다)', 메일칸.length >= 3, true);
@@ -217,6 +242,16 @@ if (process.argv.includes('--되돌려')) {
       기대: ['(되돌려):1'],
     },
     {
+      이름: '`name` 없이 `autoComplete` 만 붙은 아이디 칸도 센다 (11/17 에 안 세던 자리)',
+      code: `const A = () => (<input autoComplete="username" value={id} onChange={(e) => setId(e.target.value)} />);`,
+      기대: ['(되돌려):1'],
+    },
+    {
+      이름: '`autoComplete` 만 붙은 메일 칸도 센다',
+      code: `const A = () => (<input autoComplete="email" value={m} onChange={(e) => setM(e.target.value)} />);`,
+      기대: ['(되돌려):1'],
+    },
+    {
       이름: '아이디 칸도 같은 자로 본다',
       code: `const A = () => (<input name="username" value={id} onChange={(e) => setId(e.target.value)} />);`,
       기대: ['(되돌려):1'],
@@ -224,9 +259,8 @@ if (process.argv.includes('--되돌려')) {
   ];
   for (const t of 꼴) {
     const rows = 칸모으기(t.code, '(되돌려)');
-    const 볼것 = rows.filter((r) => !숨은것(r.attrs)
-      && (r.attrs.type === 'email' || r.attrs.inputMode === 'email'
-        || r.attrs.name === 'email' || r.attrs.name === 'username'));
+    // **위 `치는칸` 을 부른다** — 식을 여기 또 적으면 되돌려만 옛 식을 본다
+    const 볼것 = rows.filter(치는칸);
     const 난것 = 볼것
       .filter((r) => !손.some((n) => (r.attrs.onChange || '').includes(n)))
       .map((r) => r.file + ':' + r.line);
