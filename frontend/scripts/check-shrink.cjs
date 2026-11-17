@@ -55,6 +55,32 @@ const ok = (name, got, want) => {
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
 
+/**
+ * **이 자가 못 보는 자리가 CSS 에 생겼나.**
+ *
+ * 돌려주는 것 — `{ 말줄임: [...], 동그라미: [...] }` (둘 다 비어 있어야 한다)
+ *
+ * ★ **식을 여기 한 자리에 둔다.** 본 검사와 되돌려-FAIL 이 **같은 손을 부른다** —
+ * 되돌려가 제 안에 식을 또 적으면, 식을 넓히는 날 **되돌려만 옛 식을 본다.**
+ * 2026-11-17 에 정석이 `check-typedfield` 에서 실제로 그 꼴을 밟았다(본 검사를
+ * 넓혔는데 새로 박은 되돌려 꼴 둘이 안 걸렸다 — 되돌려가 `name` 만 보는 식을
+ * 베껴 적고 있었다). **자 안에서 일어난 「자가 「지금」을 베끼면 거짓이 된다」**다.
+ */
+function cssMoJib(cssRaw) {
+  const css = cssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+  const 말줄임 = [...css.matchAll(/text-overflow:\s*ellipsis|-webkit-line-clamp/g)].map((m) => m[0]);
+  // 크기가 박힌 동그라미가 CSS 에 생기면 그것도 flex 자식일 수 있다.
+  // `position: absolute|fixed` 인 것은 flex 자식이 아니라 눌리지 않는다
+  // (`.finish-mote` — 금가루 다섯 알이 그 꼴이다)
+  const 동그라미 = [];
+  for (const m of css.matchAll(/([.#][\w-]+)\s*\{([^}]*)\}/g)) {
+    if (!/border-radius:\s*50%/.test(m[2])) continue;
+    if (/position:\s*(absolute|fixed)/.test(m[2])) continue;
+    동그라미.push(m[1]);
+  }
+  return { 말줄임, 동그라미 };
+}
+
 // ── 클래스로 가로 flex 가 되는 것을 `globals.css` 에서 읽는다 ──
 function flex클래스(cssText) {
   const out = new Set();
@@ -360,6 +386,15 @@ if (process.argv.includes('--되돌려')) {
     const 난것 = r.flatMap((x) => x.빠진것).map((s) => s.replace(/@\d+$/, ''));
     ok(t.이름, 난것, t.기대);
   }
+
+  // ── 모집단 자도 되돌려 본다 ── **본 검사와 같은 손**(`cssMoJib`)에 먹인다
+  ok('CSS 에 말줄임 클래스가 생기면 걸린다 (내가 안 보는 자리다)',
+    cssMoJib('.cut { overflow: hidden; text-overflow: ellipsis; }').말줄임,
+    ['text-overflow: ellipsis']);
+  ok('  CSS 에 뜨지 않은 동그라미가 생기면 걸린다',
+    cssMoJib('.dot { width: 6px; height: 6px; border-radius: 50%; }').동그라미, ['.dot']);
+  ok('  떠 있는 동그라미는 안 걸린다 (거짓 FAIL 막이 · 금가루)',
+    cssMoJib('.finish-mote { position: absolute; border-radius: 50%; }').동그라미, []);
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
 }
@@ -402,6 +437,22 @@ if (안드는것.length) {
   }
   console.log('       → 가로 flex 자식에는 `minWidth: 0` 을 같이 적으세요.');
   console.log('         `min-width` 기본값이 `auto` 라 글 길이 아래로 안 줄어듭니다.');
+}
+
+// ── ★ **내가 못 보는 모집단이 생겼나** ── (2026-11-17 · 정석의 지적을 받아 세웠다)
+//
+// 이 자는 **인라인 `style={{…}}` 만** 본다. 이 앱의 꼴은 거의 다 인라인이라
+// 지금은 그것으로 전수가 되는데, **CSS 클래스로 말줄임을 걸기 시작하면 그 자리를
+// 아예 안 본다.** 그러면 「적어둔 말줄임이 전부 든다 → []」가 **셈이 작아서 참**이
+// 된다 — 아무것도 안 봤는데 말이 통과와 같다.
+//
+// 오늘 정석이 `check-typedfield` 에서 같은 꼴을 잡았다(아이디 칸을 셋 중 하나만
+// 셌다). 그래서 **못 보는 자리가 생기면 자가 울게** 둔다 — 그날 자를 넓히면 된다.
+console.log('\n── 내가 못 보는 자리가 생겼나 ──');
+{
+  const r = cssMoJib(fs.readFileSync(cssPath, 'utf8'));
+  ok('CSS 에 말줄임이 없다 (이 자는 인라인 `style` 만 본다)', r.말줄임, []);
+  ok('  CSS 의 동그라미는 flex 자식이 아니다 (떠 있는 것만 있다)', r.동그라미, []);
 }
 
 console.log('\n── 눌려서 달걀이 되는 동그라미가 없는가 ──');

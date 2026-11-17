@@ -46,6 +46,24 @@ export const PULL_GROUPS = ['로우', '풀다운', '풀업', '컬', '승모근']
 export const LEG_GROUPS = ['스쿼트', '런지', '하체머신', '둔근', '종아리', '햄스트링', '데드리프트'];
 export const CORE_GROUPS = ['코어'];
 
+/**
+ * **묶음이 축이 아니라 기구 이름인 것.**
+ *
+ * `밴드` 묶음 여덟(`밴드 로우` · `밴드 체스트프레스` · `밴드 바이셉컬` · `밴드
+ * 스쿼트` …)은 「밴드로 한다」만 말한다 — 미는지 당기는지는 **운동 이름에 들어
+ * 있다.** 자를 세우고 사전 쪽에서 거꾸로 세어보니(2026-11-17, 정석이 「모집단이
+ * 작으면 전부 통과가 거짓이 된다」를 지적한 뒤) 이 여덟이 통째로 **못 가림**으로
+ * 떨어지고 있었다. 집에서 밴드로 하는 사람의 기록이 전부 어디에도 안 셌다.
+ *
+ * **부위로 가르지 않는다** — `밴드 풀어파트` · `밴드 페이스풀` 은 부위가 어깨인데
+ * **당기는** 것이다(어깨 = 밀기로 두면 틀린다). 그래서 이름 안에 **다른 묶음
+ * 이름이 들어 있나**로 본다: `밴드 로우` → 로우(당기기) · `밴드 체스트프레스` →
+ * 프레스(밀기) · `밴드 바이셉컬` → 컬(당기기) · `밴드 스쿼트` → 스쿼트(하체).
+ * 나머지 넷(`트라이셉 익스텐션` · `풀어파트` · `페이스풀` · `몬스터 워크`)은 걸릴
+ * 이름이 없어 **그대로 못 가림**이다 — 모르는 것을 지어서 고르지 않는다.
+ */
+export const GEAR_GROUPS = ['밴드'];
+
 const SET_PUSH = new Set(PUSH_GROUPS);
 const SET_PULL = new Set(PULL_GROUPS);
 const SET_LEG = new Set(LEG_GROUPS);
@@ -116,6 +134,29 @@ function 줄임후보쪽(exercise) {
   return sides;
 }
 
+/**
+ * 운동 이름 안에 **다른 묶음 이름**이 들어 있나 → 그 쪽. (`GEAR_GROUPS` 전용)
+ *
+ * 긴 이름이 센 증거다 — 「데드리프트」가 「데드」보다 먼저 걸려야 한다.
+ * 걸리는 것이 둘 이상인데 쪽이 갈리면 **고르지 않는다**(`데드` 와 같은 선).
+ */
+function 이름속묶음(exercise) {
+  const n = norm(exercise);
+  const 걸린쪽 = new Set();
+  for (const [g, 쪽] of 묶음차례) {
+    if (n.includes(norm(g))) 걸린쪽.add(쪽);
+  }
+  return 걸린쪽.size === 1 ? [...걸린쪽][0] : null;
+}
+
+/** 묶음 이름을 **긴 것부터** — 짧은 이름이 긴 이름 안에 들어 있다 */
+const 묶음차례 = [
+  ...PUSH_GROUPS.map((g) => [g, 'push']),
+  ...PULL_GROUPS.map((g) => [g, 'pull']),
+  ...LEG_GROUPS.map((g) => [g, 'leg']),
+  ...CORE_GROUPS.map((g) => [g, 'core']),
+].sort((a, b) => b[0].length - a[0].length);
+
 /** 묶음 하나 → 쪽. 모르는 묶음은 null */
 function groupSide(group) {
   if (SET_PUSH.has(group)) return 'push';
@@ -141,7 +182,13 @@ export function sideOf(exercise) {
   const e = entryOf(exercise);
   if (e && e.cardio) return 'cardio';
   if (bodyPartOf(exercise) === '기타') return 'other';
-  if (e) return groupSide(e.group) || 'nosplit';
+  if (e) {
+    const s = groupSide(e.group);
+    if (s) return s;
+    // 묶음이 **기구 이름**이면 축은 운동 이름 안에 있다 (`GEAR_GROUPS`)
+    if (GEAR_GROUPS.includes(e.group)) return 이름속묶음(exercise) || 'nosplit';
+    return 'nosplit';
+  }
 
   // 사전 이름을 품지 않았다 — **줄여 적은 것**일 수 있다 (「벤치」 · 「랫풀」)
   const 후보 = 줄임후보쪽(exercise);
