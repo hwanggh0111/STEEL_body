@@ -29,6 +29,24 @@ export const MAX_PER_DAY = 10;
 /** 루틴 메모(날짜 없는 것) 장수. */
 export const MAX_NOTES = 30;
 
+/**
+ * 루틴 메모 **한 장의 길이.**
+ *
+ * 장수(`MAX_NOTES`)는 이름을 받았는데 **길이는 안 받아** 네 자리에 `2000` 이
+ * 흩어져 있었다 (2026-11-17 · 맵시) —
+ *
+ *     RoutineNotes.jsx   `maxLength={2000}` · 「{draft.length}/2000」
+ *     support/faq.js     「메모는 30장까지, 한 장에 2000자까지예요」
+ *     backend/src/routes/notes.js   `MAX_LEN = 2000`
+ *
+ * 이 파일 머리글이 적어둔 그 꼴이다 — **넷 중 하나만 다른 자리는 잊은 자리다.**
+ * 특히 고객센터 글은 **사람이 그 수를 믿고 적는다**: 서버만 늘리거나 줄이면
+ * 안내가 거짓이 되고, 거짓인 안내는 **그 수에 걸려본 사람만** 안다.
+ *
+ *   NOTE_BODY_MAX → backend/src/routes/notes.js (`MAX_LEN`)
+ */
+export const NOTE_BODY_MAX = 2000;
+
 /** 적어둘 헬스장 수. */
 export const MAX_GYMS = 12;
 

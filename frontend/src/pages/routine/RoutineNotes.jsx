@@ -5,7 +5,7 @@ import { toast } from '../../components/Toast';
 import { confirmDialog } from '../../components/ConfirmModal';
 import { dayOf } from '../../data/dateKey';
 import { noteTitle, countExercises, noteToRoutine } from '../../data/routineNote';
-import { MAX_NOTES } from '../../data/limits';
+import { MAX_NOTES, NOTE_BODY_MAX } from '../../data/limits';
 import { notePayload, UNDO_MS } from '../../data/undoRow';
 
 // 루틴 메모장.
@@ -174,7 +174,7 @@ export default function RoutineNotes({ onToRoutine }) {
             aria-label="루틴 메모"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            maxLength={2000}
+            maxLength={NOTE_BODY_MAX}
             placeholder={'월요일 가슴 · 삼두\n벤치프레스 5x10\n인클라인 덤벨 3세트 12회\n케이블 푸시다운 4x15'}
             style={box}
           />
@@ -182,7 +182,7 @@ export default function RoutineNotes({ onToRoutine }) {
             {/* 몇 줄이 운동으로 읽히는지 **적는 동안** 보여준다.
                 누르고 나서야 빈 루틴이 나오면 무엇이 잘못됐는지 알 길이 없다 */}
             <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-              운동 {countExercises(draft)}개로 읽혀요 · {draft.length}/2000
+              운동 {countExercises(draft)}개로 읽혀요 · {draft.length}/{NOTE_BODY_MAX}
             </span>
             <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
               <button onClick={close} style={ghost}>취소</button>

@@ -178,7 +178,7 @@ function oauthErrorText(code) {
     const restored = searchParams.get('restored') === '1';
 
     if (oauthSuccess === 'success' && nick) {
-      const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, 30);
+      const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, NICKNAME_MAX);
       const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
       // **들어온 뒤 처리는 스토어 한 곳에서** (2026-09-18). 여기서 직접 `setState` 를
       // 하고 있었더니, 「로그인하면 잠금을 놓는다」가 이 길만 비껴갔다 —
@@ -239,7 +239,7 @@ function oauthErrorText(code) {
     const saveOauthNick = async () => {
       const nick = oauthNick.trim();
       if (!nick) { setNickError('닉네임을 입력해주세요'); return; }
-      if (nick.length > 30) { setNickError('닉네임은 30자 이하여야 해요'); return; }
+      if (nick.length > NICKNAME_MAX) { setNickError(`닉네임은 ${NICKNAME_MAX}자 이하여야 해요`); return; }
       setNickSaving(true);
       setNickError('');
       try {
@@ -273,7 +273,7 @@ function oauthErrorText(code) {
             style={{ textAlign: 'center', fontSize: 18, marginBottom: 8 }}
           />
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
-            {oauthNick.length}/30자
+            {oauthNick.length}/{NICKNAME_MAX}자
           </div>
           {nickError && (
             <div style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>{nickError}</div>
