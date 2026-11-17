@@ -30,7 +30,18 @@ const { isRealDate, isPlanDay } = require('../utils/dayRange');
 // 여러 장이면 달력 칸에 몇 장인지를 또 그려야 한다. 같은 날에 또 보내면 고쳐준다.
 
 const MAX_NOTES = 30;     // 루틴 메모(날짜 없는 것) 장수
-const MAX_LEN = 2000;     // 한 장의 길이
+// ── ★ **이름을 화면과 맞춘다 — 그래야 자가 두 쪽을 맞댄다** ── (2026-11-17 · 정석)
+//
+// 이 값은 `MAX_LEN` 이었다. 화면 쪽은 `data/limits.js` 의 `NOTE_BODY_MAX` 이고,
+// 그 파일 머리글이 짝을 **주석으로** 적어뒀다 — `NOTE_BODY_MAX → routes/notes.js
+// (MAX_LEN)`. 그런데 `check-twins` 는 **이름이 같은 상수**를 찾아 값을 맞댄다.
+// 이름이 다르면 **짝이 아예 안 잡히고**, 그 파일 머리글이 적어둔 그대로
+// 「한쪽에만 남은 이름은 **덫**이다」가 된다.
+//
+// 한쪽만 고치는 날 **고객센터 글이 거짓이 된다** — 「메모는 30장까지, 한 장에
+// 2000자까지예요」는 사람이 그 수를 믿고 적는 자리다. 이름을 맞추면 자가 알아서
+// 본다(값이 갈리면 `npm run twins` 가 그 자리에서 FAIL 한다).
+const NOTE_BODY_MAX = 2000;     // 한 장의 길이 — 화면은 `data/limits.js` 의 같은 이름
 
 const isMonth = (v) => typeof v === 'string' && /^\d{4}-\d{2}$/.test(v);
 
@@ -56,7 +67,7 @@ const isMonth = (v) => typeof v === 'string' && /^\d{4}-\d{2}$/.test(v);
 // 이라 다시 적을 수 있지만 제보는 그렇지 않다 — 무게가 다르다.
 function cleanBody(raw) {
   if (typeof raw !== 'string') return null;
-  const clean = sanitizeMultiline(raw).slice(0, MAX_LEN);
+  const clean = sanitizeMultiline(raw).slice(0, NOTE_BODY_MAX);
   return clean.trim() ? clean : null;
 }
 
