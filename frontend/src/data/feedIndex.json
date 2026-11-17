@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "02aa4030a2",
+  "detailVersion": "5ac7b75f7e",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "ebf86c9",
+      "date": "2026-11-17",
+      "text": "거절도 않고 조용히 자르던 길이 남아 있었다 — 긴 글의 꺾쇠를 남긴다",
+      "label": "고침",
+      "scope": "제보",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "「올려보세요」만 있고 「넉 주째 안 올랐다」는 아무도 안 말했다 — 붙이기 전에 쟀다",
       "label": "새 기능",
       "scope": "제자리",
-      "has": true
-    },
-    {
-      "key": "1cf53e1",
-      "date": "2026-11-10",
-      "text": "안 쓰는 그림과 글자꼴 갈래를 걷었다 — 재보니 첫 화면은 이미 최적이었다",
-      "label": "빨라짐",
-      "scope": "짐",
       "has": true
     }
   ]
