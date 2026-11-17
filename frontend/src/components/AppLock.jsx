@@ -4,7 +4,7 @@ import { useLockStore } from '../store/lockStore';
 import { useAuthStore } from '../store/authStore';
 import { LogoMark } from './Logo';
 import { PIN_LEN, MAX_TRIES } from '../data/appLock';
-import { confirmDialog } from './ConfirmModal';
+import { confirmDialog, dismissConfirm } from './ConfirmModal';
 import { useScrollLock } from '../data/useModalFocus';
 import { LAYER } from '../data/layers';
 
@@ -125,6 +125,26 @@ export default function AppLock() {
     return undefined;
   }, [locked, enabled]);
 
+  // ── ★ **잠기면 떠 있던 물음을 거둔다** ── (2026-11-17 · 정석)
+  //
+  // 11/17 에 층을 한 자리로 모으면서(`data/layers.js`) 확인창을 잠금 **위**에 뒀다.
+  // 까닭은 맞다 — 위의 「네 자리를 잊으셨나요」가 눌려야 한다. 그런데 그러면
+  // **아무 확인창이나** 잠금 위가 된다. 확인창을 띄운 채 폰을 내려놓으면 잠금 시간이
+  // 지나 잠금이 뜨고, **그 창이 잠금 위에 그대로 남는다.**
+  //
+  // 그 창에는 기록이 적혀 있다 — `"{메모 앞머리}" 메모를 지울까요` ·
+  // `{헬스장}의 {운동 이름} 세팅을 지울까요` · `{날짜} 메모를 지울까요`.
+  // **이 화면이 가리려는 것이 바로 그것이다**(위 머리글: 「반쯤 가리면 그 틈으로
+  // 오늘 한 운동과 몸 사진 미리보기가 보인다」). 글이 보이는 데 그치지 않고
+  // **「지울까요」 단추가 살아 있어** 잠근 채로 기록을 지울 수 있었다.
+  //
+  // 층은 잠금이 그 둘(확인창 · 토스트)보다 위로 가게 고쳤다. 여기서 한 번 더
+  // 거두는 까닭은 **덮은 창이 사라진 것이 아니기 때문**이다 — 포커스가 그 안에
+  // 남고 낭독기는 그것을 읽는다. 제가 띄운 물음(`잠금위`)은 남는다
+  useEffect(() => {
+    if (locked && enabled) dismissConfirm();
+  }, [locked, enabled]);
+
   // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 —
   // 잊었을 때 푸는 길이 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고
   // 그 위에서는 아무것도 할 수 없다. 잠금이 가리려는 것은 **들어와 있는 사람의
@@ -158,7 +178,9 @@ export default function AppLock() {
 이 기기에서 기록을 치우고 로그인 화면으로 갑니다. 서버의 기록은 그대로이니
 다시 로그인하시면 전부 돌아옵니다. **잠금도 함께 풀립니다** — 다시 걸고 싶으면
 내 계정에서 새 네 자리를 정하시면 됩니다.`,
-      { title: '네 자리를 잊으셨나요', confirmText: '로그아웃', danger: true },
+      // `잠금위`: 이 물음만 잠금 위에 그린다 (`data/layers.js` 의 `잠금확인창`).
+      // 이것이 없으면 잠금이 제 물음까지 덮어 **누를 수 없다**
+      { title: '네 자리를 잊으셨나요', confirmText: '로그아웃', danger: true, 잠금위: true },
     );
     if (yes) {
       // **건 것까지 잊는다** (2026-10-24). 여태 잠긴 것만 놓고 **건 것은 남겼다** —

@@ -4,7 +4,21 @@ import { useScrollLock } from '../data/useModalFocus';
 import { LAYER } from '../data/layers';
 
 let _showConfirm = null;
+let _dismissConfirm = null;
 const _pendingQueue = [];
+
+// ── ★ **잠금이 뜨면 떠 있던 물음을 거둔다** ── (2026-11-17 · 정석)
+//
+// `AppLock` 이 부른다. 층을 올려 잠금이 확인창을 **덮게** 했지만, 덮은 창은
+// **사라진 것이 아니다** — 포커스가 그 안에 남고 낭독기는 그것을 읽는다. 그리고
+// 그 창에는 기록이 적혀 있다(`"{메모 앞머리}" 메모를 지울까요`). 잠금이 가리려는
+// 것이 그것이므로 **닫는다.**
+//
+// 잠금이 **제가 띄운** 것(`options.잠금위`)은 남긴다 — 「네 자리를 잊으셨나요」다.
+// 줄에 서 있던 것도 **취소로 풀어준다**: 안 풀면 그것을 기다리는 `await` 가 영영
+// 멎고(이 파일이 막으려고 쓴 그 일이다), 풀지 않고 두면 잠금을 푼 뒤 **묻지도
+// 않은 물음이 갑자기** 뜬다. 잠금이 걸릴 만큼 손을 놓았으면 **취소가 맞는 답**이다.
+export function dismissConfirm() { if (_dismissConfirm) _dismissConfirm(); }
 
 // 사용: const ok = await confirmDialog('삭제할까요?', { danger: true }); if (ok) { ... }
 export function confirmDialog(message, options = {}) {
@@ -66,6 +80,28 @@ export default function ConfirmModalHost() {
   // — 그래서 `useModalFocus` 가 아니라 가둠만 가져온다
   useScrollLock(!!state);
 
+  // 바깥(`AppLock`)이 거둘 수 있게 걸어둔다 — 위 `dismissConfirm` 머리글 참고.
+  // `state` 가 바뀔 때마다 다시 거는 것은 그 값을 보고 가려야 하기 때문이다
+  useEffect(() => {
+    const 거두기 = () => {
+      const 풀기 = (it) => { if (it && !it.done) { it.done = true; it.resolve(false); } };
+      if (state && !state.options?.잠금위) 풀기(state);
+      // 줄에 선 것은 잠금 것만 남긴다
+      const 남길것 = [];
+      while (_pendingQueue.length) {
+        const it = _pendingQueue.shift();
+        if (it.options?.잠금위) 남길것.push(it); else 풀기(it);
+      }
+      _pendingQueue.push(...남길것);
+      setState((prev) => {
+        if (prev && prev.options?.잠금위) return prev;      // 잠금 것은 그대로
+        return _pendingQueue.length ? _pendingQueue.shift() : null;
+      });
+    };
+    _dismissConfirm = 거두기;
+    return () => { if (_dismissConfirm === 거두기) _dismissConfirm = null; };
+  }, [state]);
+
   useEffect(() => {
     if (!state) return;
     const onKey = (e) => {
@@ -112,7 +148,8 @@ export default function ConfirmModalHost() {
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: LAYER.확인창, padding: 16,
+        // 잠금이 띄운 물음만 잠금 위다 — 나머지는 잠금이 덮는다 (`data/layers.js`)
+        zIndex: state.options?.잠금위 ? LAYER.잠금확인창 : LAYER.확인창, padding: 16,
       }}
     >
       <div

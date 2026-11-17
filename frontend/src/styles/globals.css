@@ -448,7 +448,7 @@ body::before {
   /* **덮개들보다 위다** — 모달 · 확인 창 위에서도 「저장했어요」는 보여야 한다.
      전에는 9999 라 **모든 모달 뒤에 깔렸다** (2026-11-17 · 맵시).
      층수는 `data/layers.js` 의 `토스트` 와 같아야 한다 — `npm run layer` 가 맞대 본다 */
-  z-index: 100500;
+  z-index: 100400;
   white-space: nowrap;
   animation: toastIn 0.3s ease;
 }
