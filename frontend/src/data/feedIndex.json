@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "15f5cedba4",
+  "detailVersion": "9985f56e1f",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "816112b",
+      "date": "2026-11-17",
+      "text": "「L < R 처럼 띄어 주세요」라고 안내하면서 띄어 쓴 것도 거절했다",
+      "label": "고침",
+      "scope": "이름",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "주인이 고른 안을 UI 로 옮겼다 — 세로 잠금 · 화면과 파일 다섯 벌 전부",
       "label": "바뀜",
       "scope": "로고",
-      "has": true
-    },
-    {
-      "key": "7f49584",
-      "date": "2026-11-10",
-      "text": "앱은 BLACK IRON 인데 로그인 동의 화면에는 STEEL BODY 가 뜰 참이었다",
-      "label": "고침",
-      "scope": "이름",
       "has": true
     }
   ]
