@@ -480,7 +480,12 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center' }}>
+            {/* ── **접은 폴더블(280px)에서 일요일이 카드 밖으로 5px 나갔다** ── (2026-11-18 · 맵시)
+                `repeat(7, 1fr)` 의 `1fr` 는 **내용 폭 아래로 안 줄어든다**(`minmax(auto, 1fr)`).
+                32 동그라미 일곱 + 틈 여섯 = 248 인데 280 화면에서 칸에 남는 자리가 그보다
+                좁아 문서 전체가 285 로 벌어지고 탭바까지 같이 밀렸다. 칸은 `minmax(0, 1fr)`,
+                동그라미는 「32 까지, 칸이 좁으면 칸만큼」— 360 이상에서는 그대로 32 다 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4, textAlign: 'center' }}>
               {weekDates.map((d, i) => {
                 const done = workouts[d]?.length > 0;
                 const isToday = d === today;
@@ -514,7 +519,7 @@ export default function HomePage() {
                   >
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{DAYS[i]}</div>
                     <div style={{
-                      width: 32, height: 32, borderRadius: '50%', margin: '0 auto',
+                      width: '100%', maxWidth: 32, aspectRatio: '1', borderRadius: '50%', margin: '0 auto',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 13, fontWeight: isToday ? 700 : 400,
                       background: done ? 'var(--accent)' : isToday ? 'var(--bg-tertiary)' : 'none',

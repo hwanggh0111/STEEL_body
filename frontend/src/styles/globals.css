@@ -128,6 +128,10 @@ button:active:not(:disabled),
    열여섯 자리가 `minHeight: 38` 처럼 44 아래를 직접 적어뒀다. 인라인은 바깥 CSS 를
    이긴다. 그 열여섯을 손으로 고치면 **PC 에서도 같이 커진다** — PC 는 마우스라
    키울 이유가 없다. 여기서만 덮어쓰는 것이 맞는 자리다. */
+/* `.tap-round` 의 테두리(`::after`, 아래 묶음 안)가 단추에 붙도록. 인라인으로
+   `position: fixed` 를 적은 단추(위로 가기)는 인라인이 이겨 그대로 떠 있고, 그것도
+   `::after` 의 기준이 된다. 묶음 **밖**에 두는 것은 이 한 줄뿐이다 — 44 는 묶음 안에만 */
+.tap-round { position: relative; }
 @media (pointer: coarse) {
   button:not(.tap-tight),
   [role="button"]:not(.tap-tight),
@@ -137,6 +141,21 @@ button:active:not(:disabled),
   /* 글 안에 섞여 있는 글자 단추는 줄 높이를 밀어내지 않게 둔다 */
   .link-inline:not(.tap-tight) {
     min-height: 0 !important;
+  }
+  /* ── **동그란 단추가 폰에서만 달걀이 됐다** ── (2026-11-18 · 맵시)
+     위 줄은 **높이만** 44 로 키운다. 크기를 박은 동그라미(새로고침 · 설정 34 ·
+     위로 가기 40 · 점검 요일 36)는 폭은 그대로라 34×44 의 **세로 달걀**이 됐다.
+     PC 는 마우스라 안 걸리고, `/dev` 틀도 손가락 기기가 아니라 **폰에서만** 보였다
+     (손가락 기기로 띄워 찍어서 잡았다).
+     꼴은 두고 **닿는 자리만** 넓힌다 — 안 보이는 테두리(`::after`)가 사방으로
+     뻗어 44 를 채운다. 34 면 5씩, 40 이면 2씩이다 */
+  button.tap-round {
+    min-height: 0 !important;
+  }
+  .tap-round::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc((100% - 44px) / 2));
   }
   /* ── **적는 칸은 이 자에서 빠져 있었다** ── (2026-11-16 · 맵시)
      위 세 줄은 `button` · `[role=button]` · `summary` 만 건다. 그런데 적는 칸도
@@ -183,6 +202,18 @@ body {
    * `tabular-nums` 는 전부 안 듣는 줄이었다. `3d7106c` 로 되살렸다.
    * Bebas · Plex KR 은 숫자가 이미 고정폭이라 이 줄이 바꾸는 것이 없다 */
   font-variant-numeric: tabular-nums;
+  /* ── **「생깁 / 니다」 — 한글 낱말이 칸 끝에서 두 동강 났다** ── (2026-11-18 · 맵시)
+   *
+   * `word-break` 기본값(`normal`)은 한글을 **글자마다** 끊는다. 그래서 줄 끝에 걸린
+   * 낱말이 「생깁 / 니다」 · 「연 / 속」으로 갈렸다 — 360px 에서 화면 열두 곳 중
+   * 아홉에 **마흔한 자리**(실제 화면을 띄워 낱말마다 줄 상자를 셌다).
+   *
+   * `keep-all` 은 한글도 **띄어쓰기에서만** 끊는다. 그러면 띄어쓰기 없는 긴 덩이
+   * (메일 · 주소 · 긴 이름)가 칸을 넘을 수 있어 `overflow-wrap` 이 받친다 — 칸보다
+   * 긴 덩이일 때만 그 안에서 끊는다. `break-all` 을 따로 적은 자리(메일 · 주소 ·
+   * 로그)는 그 자리 값이 이긴다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 위에서 드는 빛은 **화면에 한 번만** 깔린다.
@@ -430,6 +461,26 @@ body::before {
   color: var(--text-muted);
   font-weight: 600;
   margin-top: 4px;
+}
+/* 접은 폴더블(280px)에서 셋이 나란한 칸은 글 자리가 42px 뿐이라 「운동한」이
+   **낱말 안에서** 갈렸다 (2026-11-18 · 맵시). 좁은 화면에서만 옆 여백을 줄인다 —
+   위아래 16 은 그대로라 칸 높이는 같다 */
+@media (max-width: 320px) {
+  .stat-box { padding-left: 6px; padding-right: 6px; }
+}
+
+/* 머리띠 로고 칸 — **받은 자리가 마크 + 글자(117px)보다 좁으면 글자를 걷는다**
+   (2026-11-18 · 맵시 · 까닭은 Layout.jsx 의 그 자리). 화면 폭으로 가르지 않는 것은
+   옆의 닉네임 알약 길이가 사람마다 달라서다. 컨테이너 쿼리를 모르는 옛 웹뷰는
+   이 줄을 버리고 지금처럼 글자를 보인다 */
+.head-logo-slot { container-type: inline-size; }
+@container (max-width: 116px) {
+  .head-logo-slot .logo-word { display: none !important; }
+}
+/* 닉네임 칸 상한 — 280 에서 쓸 수 있는 자리가 68 이다 (Layout.jsx `head-nick`).
+   인라인 `maxWidth: 90` 을 이기려고 `!important` 를 쓴다 */
+@media (max-width: 340px) {
+  .head-nick { max-width: 60px !important; }
 }
 
 /* ─── 토스트 알림 ──────────────────── */

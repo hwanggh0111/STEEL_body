@@ -513,18 +513,30 @@ export default function Layout() {
               눌러서 홈으로 가는 자리다(`goHome`). 맨 `div` 라 자판 탭이 멈추지 않고,
               읽어주는 기계에는 그림 하나였다 — **「홈으로」라고 말해줘야** 누를 생각을
               한다. 하단 탭바와 같은 류다(그쪽은 `<button>` 으로 바꿨다). */}
-          <button
-            type="button"
-            onClick={goHome}
-            aria-label="홈으로"
-            style={{
-              cursor: 'pointer', display: isPC ? 'none' : 'flex',
-              alignItems: 'center', gap: 8, minWidth: 0,
-              background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
-            }}
-          >
-            <Logo cap={18} />
-          </button>
+          {/* ── **좁은 폰에서 「BLACK IRON」이 새로고침 단추 밑으로 들어갔다** ── (2026-11-18 · 맵시)
+              로고 단추는 `minWidth: 0` 으로 줄어드는데 글자는 `nowrap` 이라 **단추 밖으로
+              넘쳐** 옆 단추에 깔렸다 — 재 보니 280 에서 42px · 300 에서 22px · 320 에서 2px.
+              닉네임 알약이 90 까지 자라므로 **긴 닉네임이면 360 폰에서도** 겹친다.
+              그래서 화면 폭이 아니라 **로고가 받은 자리**로 가른다 — 이 칸을 컨테이너로
+              두고, 마크 + 글자(117px)가 안 들어가면 글자를 걷고 마크만 남긴다(globals.css
+              `.head-logo-slot`). 워드마크는 잘려 보이면 로고가 아니다. 누르는 자리는 단추
+              그대로다 — 빈 칸까지 「홈으로」가 되면 엉뚱한 데를 눌러 홈으로 간다 */}
+          {/* `minWidth: 20` — 마크 자리. 30자 닉네임을 280 에 넣어 보니 이 칸이 **0** 이 되어
+              마크까지 사라졌다. 마크는 남기고, 모자라는 몫은 닉네임 칸이 줄여 낸다(아래 `head-nick`) */}
+          <div className="head-logo-slot" style={{ display: isPC ? 'none' : 'flex', flex: '1 1 0', minWidth: 20 }}>
+            <button
+              type="button"
+              onClick={goHome}
+              aria-label="홈으로"
+              style={{
+                cursor: 'pointer', display: 'flex',
+                alignItems: 'center', gap: 8, minWidth: 0,
+                background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
+              }}
+            >
+              <Logo cap={18} />
+            </button>
+          </div>
 
           {/* ── 새로고침 ── (2026-09-17)
               **앱으로 쓰는 사람에게는 다시 받을 길이 하나도 없었다.** 목록은 30초
@@ -534,6 +546,7 @@ export default function Layout() {
               **화면을 다시 띄우지는 않는다** — 무게 칸에 80 을 쳐놓고 세트를 세는
               중일 수 있다. 데이터만 다시 받고 적던 값은 그대로 둔다 */}
           <button
+            className="tap-round"
             onClick={doRefresh}
             disabled={refreshing}
             aria-label="새로고침"
@@ -557,6 +570,7 @@ export default function Layout() {
               **끌 길이 아예 없었다.** 새로고침 옆에 둔다 — 둘 다 「화면이 아니라 앱에
               대한 것」이라 같은 자리가 맞다 */}
           <button
+            className="tap-round"
             onClick={toggleSettings}
             aria-label={onSettings ? '설정 닫기' : '설정'}
             title={onSettings ? '설정 닫기' : '설정'}
@@ -589,7 +603,10 @@ export default function Layout() {
             }}
           >
             <Avatar size={26} fontSize={13} />
-            <span style={{
+            {/* `head-nick` — 340px 이하에서는 상한이 60 으로 내려간다(globals.css).
+                알약 전체는 동그라미 · 여백까지 136 이라, 280 에서는 90 을 다 주면 로고 몫이
+                0 아래로 떨어진다 (2026-11-18 · 맵시) */}
+            <span className="head-nick" style={{
               fontFamily: "'Barlow', 'BI Sans KR', sans-serif", fontSize: 13, fontWeight: 600,
               color: 'var(--text-secondary)', maxWidth: 90,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -814,6 +831,7 @@ export default function Layout() {
 
       {showTopBtn && (
         <button
+          className="tap-round"
           onClick={() => {
             // 글자 움직임을 줄여둔 사람에게는 **스르륵 없이** 바로 올린다 —
             // 멀미가 나는 움직임이다 (오늘 설정함 칩 줄과 같은 판단)

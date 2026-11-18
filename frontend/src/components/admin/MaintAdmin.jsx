@@ -359,6 +359,7 @@ export default function MaintAdmin() {
               <button
                 key={i}
                 type="button"
+                className="tap-round"
                 onClick={() => toggleDay(i)}
                 style={{
                   flexShrink: 0, width: 36, height: 36, borderRadius: '50%',

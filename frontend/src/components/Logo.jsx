@@ -154,8 +154,12 @@ export default function Logo({
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', ...style }} {...rest}>
       <LogoMark size={cap * 1.12} color={color} />
-      <span style={{ width: cap * 0.44, flexShrink: 0 }} />
-      <LogoWord cap={cap} color={color} />
+      {/* `logo-word` — 자리가 모자란 화면에서 **글자만** 걷어낼 손잡이 (2026-11-18 · 맵시).
+          워드마크는 잘라 보이면 로고가 아니다 — 모자라면 마크만 남긴다(globals.css) */}
+      <span className="logo-word" style={{ display: 'inline-flex', alignItems: 'center' }}>
+        <span style={{ width: cap * 0.44, flexShrink: 0 }} />
+        <LogoWord cap={cap} color={color} />
+      </span>
     </span>
   );
 }

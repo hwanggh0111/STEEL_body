@@ -87,7 +87,14 @@ function cssMoJib(cssRaw) {
   for (const m of css.matchAll(/([.#][\w-]+)\s*\{([^}]*)\}/g)) {
     if (/(^|[;\s{])height:\s*[\d.]+px/.test(m[2]) && /line-height:\s*[\d.]+px/.test(m[2])) 글묶음.push(m[1]);
   }
-  return { 말줄임, 동그라미, 글묶음 };
+  // `body` 가 한글을 **띄어쓰기에서만** 끊나 (2026-11-18) — 빠지면 「생깁 / 니다」로
+  // 돌아간다. 브라우저 없이는 끊긴 자리를 셀 수 없어 **그 한 줄을 지킨다**
+  const body = /(^|\})\s*body\s*\{([^}]*)\}/.exec(css);
+  const 낱말 = {
+    keepAll: !!body && /word-break:\s*keep-all/.test(body[2]),
+    받침: !!body && /overflow-wrap:\s*(break-word|anywhere)/.test(body[2]),
+  };
+  return { 말줄임, 동그라미, 글묶음, 낱말 };
 }
 
 // ── 클래스로 가로 flex 가 되는 것을 `globals.css` 에서 읽는다 ──
@@ -294,6 +301,24 @@ function 훑기(code, file, 가로클래스) {
       if (높이박힘 && 줄박힘 && 글이드나(node)) {
         결과.push({ file, line: node.loc.start.line, 빠진것: ['minHeight'], 류: '글묶음' });
       }
+
+      // ── ⑸ **크기를 박은 동그란 단추는 폰에서 달걀이 된다** ── (2026-11-18 · 맵시)
+      //
+      // 손가락 기기(`pointer: coarse`)에서는 globals.css 가 단추마다 `min-height: 44px`
+      // 를 건다 — **높이만**이다. 34×34 동그라미가 34×44 세로 달걀이 됐다(머리띠의
+      // 새로고침 · 설정). PC 와 `/dev` 틀에서는 안 보이고 폰에서만 보인다.
+      // `tap-round` 를 들면 높이는 두고 안 보이는 테두리로 닿는 자리만 44 로 넓힌다.
+      // 44 이상이면 늘어날 것이 없어 안 센다
+      const 태그 = node.openingElement.name && node.openingElement.name.name;
+      const 역할 = (node.openingElement.attributes || []).find((a) => a.type === 'JSXAttribute'
+        && a.name && a.name.name === 'role');
+      const 누르는것 = 태그 === 'button' || 태그 === 'summary'
+        || (역할 && 역할.value && 역할.value.value === 'button');
+      const 둥근 = ['50%', 999, '999px', '9999px'].includes(s.값.borderRadius);
+      if (누르는것 && 둥근 && typeof s.값.width === 'number' && s.값.width === s.값.height
+        && s.값.width < 44 && !cls.includes('tap-round') && !cls.includes('tap-tight')) {
+        결과.push({ file, line: node.loc.start.line, 빠진것: ['tap-round'], 류: '달걀단추' });
+      }
     }
     for (const k of Object.keys(node)) {
       if (k === 'loc' || k === 'start' || k === 'end' || k === 'leadingComments'
@@ -452,9 +477,39 @@ const 되돌려꼴 = [
     기대: [],
   },
   {
-    이름: '  글자 하나를 flex 로 앉힌 동그라미는 안 센다 (거짓 FAIL 막이 · 요일)',
+    // 글묶음(⑷)으로는 안 센다 — 줄 높이를 박지 않았다. 그런데 **누르는 36 동그라미**라
+    // 11/18 에 세운 ⑸ 가 운다. 그것이 맞다: 점검 요일이 실제로 이 꼴로 달걀이었다
+    이름: '  글자 하나를 flex 로 앉힌 동그라미는 글묶음이 아니다 · 누르는 것이면 달걀로만 운다 (요일)',
     code: `const A = () => (
   <button style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', fontSize: 13 }}>{day}</button>
+);`,
+    기대: ['tap-round'],
+  },
+  {
+    이름: '11/18 의 새로고침 꼴 — 34 동그라미 단추가 `tap-round` 를 안 들었다',
+    code: `const A = () => (
+  <button style={{ width: 34, height: 34, borderRadius: 999 }}>↻</button>
+);`,
+    기대: ['tap-round'],
+  },
+  {
+    이름: '  `tap-round` 를 들었으면 울지 않는다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button className="tap-round" style={{ width: 34, height: 34, borderRadius: '50%' }}>↻</button>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  44 이상 동그라미는 늘어날 것이 없다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button style={{ width: 52, height: 52, borderRadius: '50%' }} />
+);`,
+    기대: [],
+  },
+  {
+    이름: '  누르지 않는 동그라미는 안 센다 (거짓 FAIL 막이 · 날짜 동그라미)',
+    code: `const A = () => (
+  <div style={{ width: 32, height: 32, borderRadius: '50%' }}>18</div>
 );`,
     기대: [],
   },
@@ -481,6 +536,12 @@ if (process.argv.includes('--되돌려')) {
     cssMoJib('.pill { height: 16px; line-height: 16px; }').글묶음, ['.pill']);
   ok('  `min-height` 는 묶음이 아니다 (거짓 FAIL 막이)',
     cssMoJib('.pill { min-height: 16px; line-height: 16px; }').글묶음, []);
+  ok('  `body` 에서 `keep-all` 이 빠지면 걸린다',
+    cssMoJib('body { color: red; overflow-wrap: break-word; }').낱말, { keepAll: false, 받침: true });
+  ok('  `keep-all` 만 있고 받침이 없으면 걸린다 (긴 메일이 칸을 넘는다)',
+    cssMoJib('body { word-break: keep-all; }').낱말, { keepAll: true, 받침: false });
+  ok('  `.notbody` 의 `keep-all` 을 `body` 로 읽지 않는다 (거짓 PASS 막이)',
+    cssMoJib('.notbody { word-break: keep-all; overflow-wrap: break-word; }').낱말, { keepAll: false, 받침: false });
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
 }
@@ -540,6 +601,11 @@ console.log('\n── 내가 못 보는 자리가 생겼나 ──');
   ok('CSS 에 말줄임이 없다 (이 자는 인라인 `style` 만 본다)', r.말줄임, []);
   ok('  CSS 의 동그라미는 flex 자식이 아니다 (떠 있는 것만 있다)', r.동그라미, []);
   ok('  CSS 에 `height` 와 px 줄 높이로 글을 묶는 클래스가 없다', r.글묶음, []);
+
+  // 11/18 실제 화면을 띄워 낱말마다 줄 상자를 셌을 때 360px 에서 **마흔한 자리**가
+  // 낱말 가운데서 갈렸다(「생깁 / 니다」). 그 한 줄이 빠지면 그대로 돌아간다
+  ok('한글을 띄어쓰기에서만 끊는다 (`body` 의 `keep-all` + 긴 덩이 받침)',
+    r.낱말, { keepAll: true, 받침: true });
 }
 
 console.log('\n── 글자를 크게 쓰면 잘리는 칸이 없는가 ──');
@@ -552,6 +618,17 @@ console.log('\n── 글자를 크게 쓰면 잘리는 칸이 없는가 ──'
     for (const r of 글묶음) console.log('         ' + r.file + ':' + r.line);
     console.log('       → `height` 를 `minHeight` 로, 줄 높이를 비율(예: 18 / 11.5)로 푸세요.');
     console.log('         폰의 「글자 크기」는 px 글자도 키우는데 묶인 칸과 줄은 그대로입니다.');
+  }
+}
+
+console.log('\n── 폰에서 세로로 늘어 달걀이 되는 동그란 단추가 없는가 ──');
+{
+  const 달걀 = 모두.filter((r) => r.류 === '달걀단추');
+  ok('크기를 박은 44 미만 동그란 단추는 `tap-round` 를 든다',
+    달걀.map((r) => r.file + ':' + r.line), []);
+  if (달걀.length) {
+    for (const r of 달걀) console.log('         ' + r.file + ':' + r.line);
+    console.log('       → `className="tap-round"` 를 붙이세요. 폰은 단추 **높이만** 44 로 키웁니다.');
   }
 }
 
