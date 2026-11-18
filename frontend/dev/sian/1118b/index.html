@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 시안 열 · 11/18</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (vite.config.js 의 devPreviewPlugin 머리글).
+     시안은 배포하지 않는다 — /dev/sian/<날짜>/ 에 둔다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .sub { color:var(--t2); margin:0; max-width:90ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:20px 24px 32px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  .note { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .note b { color:var(--t1); font-weight:600; }
+  .note code { color:var(--gold); font-size:12px; }
+  .cost { color:var(--warn); }
+  .fb { border-left:2px solid var(--new); padding-left:10px; margin-top:8px; }
+  a { color:var(--gold); }
+  @media (max-width:440px) { header, .row { padding-left:16px; padding-right:16px; } .col { flex-basis:100%; } iframe { width:100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 시안 <em>열</em> · 11/18</h1>
+  <p class="sub">주인: 「전부 새 기능을 넣게 시안으로 열 가지」. 11/17 에 <b>이미 있는 것을 없다고 읽어</b> 둘을 철회했다 —
+    그래서 열 개 모두 <b>코드에서 먼저 세고</b> 골랐다(각 칸 아래 「센 것」). <b>파란 점선</b>이 새로 붙는 자리, 화면 속 숫자는 예시다.
+    옆으로 넘겨 본다. <a href="/dev">← 개발 미리보기</a> · <a href="../1118/">11/18 이름 시안</a> · <a href="../1117/">11/17 시안</a></p>
+  <p class="sub" style="margin-top:10px;border-left:2px solid #d29a5f;padding-left:12px">
+    <b style="color:#d29a5f">★ 정석 피드백 반영 (11/18).</b>
+    <b style="color:#eae4d6">② 는 이미 있었다</b> — 결산(<code>SessionFinish.jsx</code> 「늘어졌나」, 09/16)이 「헬스장에 1시간 12분 · 기록 사이 보통 2분」을 띄운다.
+    또 셌는데 또 놓쳤다: 「운동 시간」으로 찾았고 그 화면은 「헬스장에」라고 적는다. ② 는 <b style="color:#eae4d6">「있는 것이 기록 화면에 안 보인다」</b>로 바꿨다.
+    ⑤ ④ ⑨ ⑩ 은 <b style="color:#eae4d6">반쯤 있다</b> — 있는 손을 넓히는 일로 고쳐 적었다.<br>
+    권하는 순서(정석, 최종): <b>출시 전 — ③ 순서(편집 화면만, 서버 0줄) → ⑧ 세트 메모 + ① 여유 횟수(같은 칸 공사라 한 번에).</b>
+    <b style="color:#eae4d6">출시 뒤 — ④ 이정표(띠 자리) · ⑤ 홈트 타이머 넓히기 · ⑥ ⑦ ⑨ ⑩.</b> ② 는 「보이게」 작은 일.</p>
+</header>
+
+<div class="row">
+  <div class="col">
+    <div class="cap">① 세트 — 몇 개 더 할 수 있었나<small>여유 횟수(RIR)를 세트에 붙인다</small></div>
+    <iframe src="Rir.html" title="① 여유 횟수"></iframe>
+    <div class="note"><b>센 것:</b> <code>RPE</code> · <code>RIR</code> 0곳. 「여유」는 심박 화면에만 있다.<br>
+      같은 60kg × 8 이라도 끝까지 간 것과 두 개 남긴 것은 다른 날이다 — 지금은 그 차이가 기록에 안 남는다.
+      <div class="fb"><b>정석: 없는 게 맞다</b>(사전 글에만 있다). <b>⑧ 세트 메모와 같은 칸 공사</b> — 묶으면 한 번에 끝난다.</div>
+      <div class="cost">값: 세트에 칸 하나(0 · 1~2 · 3+ · 비움) · 서버 칸 하나 · 기본은 「안 적기」</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">② 운동한 시간 — <span style="color:#d29a5f">이미 있다 · 안 보일 뿐</span><small>결산에만 있고 기록 화면에는 없다</small></div>
+    <iframe src="Duration.html" title="② 운동한 시간"></iframe>
+    <div class="note"><b style="color:#d29a5f">★ 틀렸다.</b> 「운동 시간」으로만 세서 놓쳤다. <code>SessionFinish.jsx:253</code> 「늘어졌나」가
+      첫 기록~마지막 기록(<code>created_at</code>)으로 이미 잰다 · 기록이 둘 이하이거나 한꺼번에 적은 날은 말하지 않는다.<br>
+      <b>남는 일:</b> 그 값이 <b>결산을 닫으면 다시 볼 곳이 없다.</b> 기록 화면의 그날 줄에 같은 손(<code>pace</code>)을 불러 한 줄로 둔다 — 새로 재지 않는다.
+      <div class="cost">값: 서버 0줄 · 기록 화면 한 줄 · 결산과 같은 손 하나를 부른다</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">③ 루틴 — 순서 바꾸기<small>↑ ↓ 단추</small></div>
+    <iframe src="Reorder.html" title="③ 순서 바꾸기"></iframe>
+    <div class="note"><b>정석: 없는 게 맞다.</b> <code>pages/RoutinePage.jsx</code> · <code>pages/routine/</code> 에 순서를 옮기는 손이 없다
+      (「순서를 따라가며 기록」 안내 한 줄뿐). 드래그 0곳.<br>
+      지금은 순서를 바꾸려면 지우고 다시 넣어야 한다.
+      <div class="fb"><b>정석:</b> 운동 중 세션 큐(<code>routineSessionStore</code>, <code>startedAt</code> 키)와 어긋나니 <b>편집 화면에서만</b> 바꾼다. 진행 중인 판에는 단추를 안 보인다.</div>
+      <div class="cost">값: 화면 단추 둘 · 저장은 지금 쓰는 루틴 저장 길 그대로 · <b>권하는 첫째</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">④ 기록 — 이정표<small>100번째 운동 · 첫 100kg · 누적 무게</small></div>
+    <iframe src="Milestone.html" title="④ 이정표"></iframe>
+    <div class="note"><b>센 것:</b> 「업적」 · 「달성」 0곳. 최고 기록 배너(<code>PersonalRecordBanner</code>)는 <b>한 운동의 무게</b>만 본다.<br>
+      있었던 일만 적고 칭찬 말은 안 붙인다 — 11/13 「축하와 사실은 같은 옷을 입으면 안 된다」 선을 따른다.
+      <div class="fb"><b>정석: 반쯤 있다.</b> 최고 기록 띠(<code>PersonalRecordBanner</code>, 첫 기록엔 안 뜨는 규칙)와 <b>같은 자리를 쓸지 · 한 날 둘이 겹치면 무엇을 먼저</b> 둘지 정해야 한다.</div>
+      <div class="cost">값: 서버 0줄(기록에서 센다) · 화면 한 카드 · 띠 자리 정리</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑤ 타이머 — 매 분 · 정해진 시간 안에 많이<small>EMOM · AMRAP</small></div>
+    <iframe src="Emom.html" title="⑤ EMOM"></iframe>
+    <div class="note"><b>센 것:</b> <code>EMOM</code> · <code>AMRAP</code> 0곳. 타바타는 홈트 판(<code>homeworkoutPrograms.js</code>)에 있다.<br>
+      휴식 타이머 옆에 두 갈래를 더한다. 소리 · 잠금화면 알림은 휴식 타이머가 이미 쓰는 손을 쓴다.
+      <div class="fb"><b>정석: 새 타이머를 만들지 않는다.</b> 홈트(<code>HomeworkoutPage</code>)에 운동 30초 · 휴식 15초 단계 타이머가 있다 — 따로 만들면 타이머가 둘이 된다. <b>그 틀에 「매 분」 · 「시간 안에 많이」 꼴을 더한다.</b></div>
+      <div class="cost">값: 홈트 단계 틀에 꼴 둘 · 서버 0줄</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑥ 결산 — 마무리 스트레칭<small>오늘 한 부위에서 고른다</small></div>
+    <iframe src="Cooldown.html" title="⑥ 마무리 스트레칭"></iframe>
+    <div class="note"><b>센 것:</b> 「쿨다운」 0곳. 「스트레칭」은 사전 낱말과 유연성 측정 검색어뿐 — 하는 동작 목록이 없다.<br>
+      <b>새 자료가 든다</b>(부위별 스트레칭 동작 · 자세 글). 아픈 곳 기록과 맞대야 한다.
+      <div class="fb"><b style="color:#d29a5f">정석: 출시 전에는 뺀다.</b> 어느 스트레칭을 몇 초 하라는 것은 <b>코치 노릇이고 다치는 자리</b>다.</div>
+      <div class="cost">값: 자료 파일 하나(동작 열댓 개) · 결산 화면 한 칸 · <b>12/24 뒤</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑦ 기록 — 가볍게 간 주 표시<small>디로드 주를 내가 표시</small></div>
+    <iframe src="Deload.html" title="⑦ 가볍게 간 주"></iframe>
+    <div class="note"><b>센 것:</b> 「디로드」 0곳.<br>
+      일부러 가볍게 간 주에 그래프 · 요약이 「줄었어요」라고 말한다. 앱이 정하지 않고 <b>사람이 표시</b>한다 — 코치 노릇을 안 한다.
+      <div class="fb"><b>정석:</b> 앱이 「가볍게 간 주」로 <b>판정하면</b> 결산의 「좋다 나쁘다를 매기지 않는다」 선과 부딪힌다. <b>사람이 표시하는 꼴만</b> 괜찮다(이 시안이 그 꼴이다).</div>
+      <div class="cost">값: 주마다 깃발 하나(서버 칸) · 그래프 · 요약 문구 몇 곳 · <b>12/24 뒤</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑧ 세트 — 한 줄 메모<small>다음에 같은 운동을 열면 위에 뜬다</small></div>
+    <iframe src="SetNote.html" title="⑧ 세트 메모"></iframe>
+    <div class="note"><b>센 것:</b> 「세트 메모」 0곳. 메모(<code>RoutineNotes</code> · <code>routes/notes.js</code>)는 <b>장 단위</b>로 따로 있다 — 세트에 붙는 줄이 아니다.<br>
+      「왼무릎이 모임」은 그 세트 옆에 있어야 다음에 읽힌다.
+      <div class="fb"><b>정석: 넓지만 값이 크다.</b> 서버 칸이 새로 생기니 <code>workoutFields</code> · 가져오기 · 내보내기(CSV) · <code>odd</code> · <code>probe</code> 검사까지 같이 넓힌다. 메모에 <code>tagLike</code> 선과 길이 선. <b>① 과 같은 칸 공사라 묶는다.</b></div>
+      <div class="cost">값: 세트에 글 칸 하나(40자) · 서버 칸 하나 · 검사 넷 넓히기</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑨ 결산 — 이미지로 보내기<small>이름 · 몸무게 · 사진 없이</small></div>
+    <iframe src="ShareCard.html" title="⑨ 이미지로 보내기"></iframe>
+    <div class="note"><b>센 것:</b> <code>SessionFinish.jsx</code> 에 공유 · 저장 0곳. 공유 창 손은 사진 쪽(<code>data/sharePhotos.js</code>)에 이미 있다.<br>
+      밖으로 나가는 그림이라 <b>무엇이 안 들어가는지</b>가 먼저다.
+      <div class="fb"><b>정석:</b> 공유 창 손(<code>sharePhotos.js</code>, 파일 공유가 안 되는 기기 판별까지)을 <b>다시 쓴다.</b> 보내기 전에 <b>무엇이 실리는지 미리 보여 주고</b>, 기본은 무게 · 세트만 — 몸무게 · 인바디 · 사진은 개인정보다.</div>
+      <div class="cost">값: 그림 그리는 손(canvas) 하나 · 서버 0줄 · <b>12/24 뒤</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑩ 운동 — 내가 부르는 이름<small>개인 이름표</small></div>
+    <iframe src="MyName.html" title="⑩ 내 이름표"></iframe>
+    <div class="note"><b>센 것:</b> 별명(<code>alias</code>)은 <code>exerciseDict.js</code> 에 <b>모두가 같이 쓰는 것</b>으로만 있다(11/03).
+      사람마다 붙이는 이름표는 없다.<br>
+      오늘 닉네임에서 정한 선(「친 그대로」)을 운동 이름에도 — 보이는 이름은 내 것, 세는 이름은 사전 것.
+      <div class="fb"><b>정석:</b> 사전 별명은 <b>검색용이고 「이름이 아니다」</b>가 그 파일의 선 — 섞지 않는다. 이름을 바꾸면 기록 묶음(<code>exercisePart</code> · 최고 기록 대조)이 갈라질 수 있어 <b>표시만 바꾸고 저장 키는 사전 이름</b>으로 둔다.</div>
+      <div class="cost">값: 이름표 표 하나(서버) · 화면 하나 · 보이는 자리 여럿 · <b>12/24 뒤</b></div></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>기록 — 그날 헬스장에 있던 시간</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.ln{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>기록 · 11/18 (화)</div>
+    <!-- 결산(`SessionFinish.jsx` 「늘어졌나」)이 이미 재는 값이다. 결산을 닫으면 다시 볼 곳이 없어서
+         기록 화면의 그날 머리에 **같은 손(`pace`)을 불러** 한 줄로 둔다. 새로 재지 않는다 -->
+    <div class="card">
+      <div class="lbl">5종목 · 18세트</div>
+      <div class="nw" style="font-size:14px;padding:2px 4px">헬스장에 1시간 12분 · 기록 사이 보통 2분</div>
+      <div class="mut" style="margin-top:6px">결산에서 본 그 줄이에요 — 이제 지나서도 여기 남아요</div>
+    </div>
+    <div class="card" style="padding:6px 14px">
+      <div class="ln"><span>벤치프레스</span><span class="mut">4세트 · 60kg</span></div>
+      <div class="ln"><span>인클라인 덤벨프레스</span><span class="mut">4세트 · 22kg</span></div>
+      <div class="ln"><span>랫풀다운</span><span class="mut">4세트 · 55kg</span></div>
+      <div class="ln"><span>케이블 플라이</span><span class="mut">3세트 · 15kg</span></div>
+      <div class="ln"><span>트라이셉스 푸시다운</span><span class="mut">3세트 · 25kg</span></div>
+    </div>
+    <div class="flat">기록이 둘 이하이거나 한꺼번에 적은 날은 결산처럼 <b style="color:#cfc6b2">아무 말도 안 해요.</b></div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션"><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button><button class="tab on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button></nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>결산 — 이미지로 보내기</title>
+<style>
+.chip{min-height:36px;padding:0 12px;border:1px solid #4a3f2c;border-radius:999px;background:none;color:#cfc6b2;font:600 12.5px 'Barlow','IBM Plex Sans KR',sans-serif}
+.chip.on{border-color:#eeb77d;color:#eeb77d;background:#241a11}
+.row{display:flex;align-items:center;gap:8px}
+.mut{color:#aaa28e;font-size:12.5px}
+.big{font:34px/1 'Bebas Neue',sans-serif;letter-spacing:1px;color:#eae4d6}
+.ln{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+.mv{display:flex;gap:4px}.mv button{width:36px;height:36px;background:#241a11;border:1px solid #4a3f2c;color:#eeb77d;border-radius:2px;font-size:15px}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>오늘 끝 · 결산</div>
+
+    <div class="card" style="text-align:center;padding:22px 16px;border-color:#4a3f2c">
+      <div class="logo" style="font-size:16px">BLACK IRON</div>
+      <div class="big" style="font-size:44px;margin:10px 0 4px">12,480<span style="font-size:20px"> kg</span></div>
+      <div class="mut">11/18 · 5종목 18세트 · 1:12</div>
+      <div class="mut" style="margin-top:8px">가슴 · 어깨 · 팔</div>
+    </div>
+    <div class="row nw" style="gap:8px"><button class="btn1" style="flex:1">이미지로 보내기</button><button class="btn2">저장</button></div>
+    <div class="flat" style="margin-top:14px">이름 · 몸무게 · 사진은 안 들어가요. 보내기는 폰의 공유 창(사진 공유와 같은 손 — <code>sharePhotos.js</code>)을 씁니다.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션"><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button><button class="tab on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button></nav>
+</div>
+</body>
+</html>
