@@ -28,6 +28,14 @@ function WorkoutCard({ workout, onDelete, onEdit }) {
             ? cardioText(workout)
             : `${workout.weight} · ${workout.sets}세트 · ${workout.reps}회`}
         </div>
+        {/* 여유 횟수 · 한 줄 메모 (2026-11-18). 없으면 줄이 안 생긴다 */}
+        {(workout.rir || workout.note) && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3, overflowWrap: 'anywhere' }}>
+            {workout.rir && <span>여유 {workout.rir}</span>}
+            {workout.rir && workout.note && ' · '}
+            {workout.note && <span>{workout.note}</span>}
+          </div>
+        )}
         {/* 아직 서버에 못 올린 것. **적은 사람에게는 이미 한 운동**이라 목록에
             그대로 보여주되, 어디까지 갔는지는 숨기지 않는다 */}
         {(workout.pending || workout.failed) && (

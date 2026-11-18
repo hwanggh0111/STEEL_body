@@ -1,9 +1,9 @@
 import { warmupSets, percentOf1RM, zoneOf, dropSets } from '../data/setPlan';
 import { BAR_KEY } from '../data/localKeys';
-import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX } from '../data/limits';
+import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX, WORKOUT_NOTE_MAX, RIR_VALUES } from '../data/limits';
 // 지난 판을 읽는 셈 — 「다음 한 걸음」과 「지난 판」 (2026-11-05, `npm run nextstep`)
 import {
-  nextStep, lastSession, stepReason, stepExcluded, shortDate, lastRecordOf, plannedSetsOf,
+  nextStep, lastSession, stepReason, stepExcluded, shortDate, lastRecordOf, plannedSetsOf, lastNoteOf,
 } from '../data/lastSets';
 // 유산소는 **시간 · 거리로** 적는다 (2026-11-05, `npm run cardio`)
 import {
@@ -230,6 +230,12 @@ export default function TrainPage() {
   // 것인지는 **사전이 든다**(`cardio: true`)
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
+  // ── 한 줄 메모 · 여유 횟수 ── (2026-11-18 · 시안 1118b ⑧ ①)
+  // **고르지 않아도 된다** — 비우면 서버가 칸을 안 만든다. 한 줄을 적으면 비운다(세트마다 다른 말이다).
+  // 칸은 접어 둔다: 매 세트 묻는 칸이 늘면 적는 손이 느려진다 — 쓰는 사람만 연다
+  const [rowNote, setRowNote] = useState('');
+  const [rir, setRir] = useState('');
+  const [moreOpen, setMoreOpen] = useState(false);
   // 횟수를 세어주는 카메라 (2026-09-30). **고른 운동이 있을 때만 열린다** —
   // 어느 관절을 볼지는 이름으로 정한다(`data/repCount.js`)
   const [countOpen, setCountOpen] = useState(false);
@@ -345,6 +351,8 @@ export default function TrainPage() {
   // 바로 아래 두 줄(`nextStep` · `lastSession`)은 11/05 부터 날짜를 가려 받는데
   // 이 줄만 안 가려서, **같은 화면에서 셋이 서로 다른 날을 보고 있었다.**
   // 드롭세트를 건너뛰는 까닭도 그 파일에 옮겨 적었다 — `npm run nextstep` 이 값으로 본다
+  // 지난번 이 운동에 적어둔 한 줄 (그 날 것은 뺀다 — `lastNoteOf` 머리글)
+  const lastNote = useMemo(() => lastNoteOf(workouts, exercise, today, date), [workouts, exercise, today, date]);
   const lastRecord = useMemo(
     () => lastRecordOf(workouts, exercise, today, date),
     [workouts, exercise, today, date],
@@ -545,6 +553,9 @@ export default function TrainPage() {
       setMinutes('');
       setDistance('');
     }
+    // 다른 운동으로 넘어가면 메모 · 여유도 비운다 — 앞 운동에 하려던 말이 다음 운동에 붙으면 안 된다
+    setRowNote('');
+    setRir('');
     setError('');
   }, [exercise, lastRecord, current, session, picked, editingId]);
 
@@ -665,6 +676,15 @@ export default function TrainPage() {
       // 이어가기로 들어온 줄이면 표시를 단다. 고치는 중에는 안 단다 —
       // 고치는 것은 새로 이어 한 세트가 아니다
       if (nextLink && !editingId) payload.link = nextLink;
+      // 한 줄 메모 · 여유 횟수. **세트 칸에서 온 것(`over`)에는 안 싣는다** — 그 줄은 폼이 아니라
+      // 진행표에서 왔고, 폼에 남은 말은 다른 세트 것일 수 있다.
+      // 고칠 때는 **비운 것도 보낸다**(`null`) — 안 보내면 서버가 옛 메모를 그대로 둔다
+      if (!over) {
+        const n = rowNote.trim();
+        const rv = !asCardio && rir ? rir : '';
+        if (editingId) { payload.note = n || null; payload.rir = rv || null; }
+        else { if (n) payload.note = n; if (rv) payload.rir = rv; }
+      }
 
       // ── 고치는 중이면 그 줄을 고친다 ──
       //
@@ -734,6 +754,7 @@ export default function TrainPage() {
         sets: Number(useSets),
       });
       setNextLink(null);
+      if (!over) { setRowNote(''); setRir(''); }
 
       if (isToday) {
         // 세트를 저장했으니 휴식이 시작된다. 타이머를 안 쓰는 제일 큰 이유는 부정확해서가
@@ -957,6 +978,10 @@ export default function TrainPage() {
     setWeight(isBodyweight(w.weight) ? '' : String(w.weight ?? ''));
     setSets(String(w.sets ?? ''));
     setReps(String(w.reps ?? ''));
+    setRowNote(w.note ? String(w.note) : '');
+    setRir(w.rir ? String(w.rir) : '');
+    // 적힌 것이 있으면 펼쳐서 보인다 — 접혀 있으면 고치는 사람이 그 칸이 있는 줄 모른다
+    setMoreOpen(!!(w.note || w.rir));
     // **유산소 줄도 고칠 수 있어야 한다** (2026-11-05). 이 줄이 없으면 고치려고
     // 열었을 때 시간 · 거리가 비어 있고, 그대로 저장하면 「시간이나 거리를
     // 적어주세요」가 뜬다 — 사람은 **고치지도 못하고 왜인지도 모른다**
@@ -990,6 +1015,8 @@ export default function TrainPage() {
       setWeight('');
       setSets('');
       setReps('');
+      setRowNote('');
+      setRir('');
       setError('');
       return;
     }
@@ -1001,6 +1028,8 @@ export default function TrainPage() {
     setReps('');
     setMinutes('');
     setDistance('');
+    setRowNote('');
+    setRir('');
     setError('');
   };
 
@@ -1748,6 +1777,67 @@ export default function TrainPage() {
               </div>
             )}
 
+            {/* ── 한 줄 메모 · 여유 횟수 ── (2026-11-18 · 시안 1118b ⑧ ①)
+                지난번 메모는 **늘 보인다**(다음에 읽히라고 적은 말이다). 적는 칸은 접어 둔다 */}
+            {lastNote && !editingId && (
+              <div style={{
+                fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8,
+                borderLeft: '2px solid var(--accent)', paddingLeft: 9, lineHeight: 1.5,
+              }}>
+                <span style={{ color: 'var(--text-muted)' }}>지난번 메모 · {shortDate(lastNote.date)}</span>
+                <div style={{ overflowWrap: 'anywhere' }}>{lastNote.note}</div>
+              </div>
+            )}
+            {!moreOpen ? (
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                aria-expanded={false}
+                style={{
+                  background: 'none', border: 'none', padding: 0, marginBottom: 10,
+                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                }}
+              >{cardio ? '+ 메모' : '+ 메모 · 몇 개 더 할 수 있었나'}</button>
+            ) : (
+              <div style={{ marginBottom: 10 }}>
+                {/* 유산소 줄에는 여유 횟수가 없다 — 세트가 없다 */}
+                {!cardio && (
+                  <>
+                    <div className="label" id="rir-label">몇 개 더 할 수 있었나요?</div>
+                    <div role="radiogroup" aria-labelledby="rir-label" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 9 }}>
+                      {RIR_VALUES.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={rir === v}
+                          className="btn-secondary"
+                          // 한 번 더 누르면 푼다 — 「안 적기」 단추를 따로 두지 않는다
+                          onClick={() => setRir((cur) => (cur === v ? '' : v))}
+                          style={{
+                            width: 'auto', padding: '6px 13px', fontSize: 12.5,
+                            ...(rir === v ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)' } : null),
+                          }}
+                        >{v === '0' ? '0 · 끝까지' : v === '1~2' ? '1~2개' : '3개 이상'}</button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <input
+                  className="input"
+                  value={rowNote}
+                  onChange={(e) => setRowNote(e.target.value)}
+                  maxLength={WORKOUT_NOTE_MAX}
+                  placeholder="한 줄 메모 (예: 그립 넓게)"
+                  aria-label="이 줄 메모"
+                  style={{ marginBottom: 4 }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {rowNote.length}/{WORKOUT_NOTE_MAX}자 · 다음에 이 운동을 열면 위에 떠요
+                </div>
+              </div>
+            )}
+
             {error && (
               <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 10 }}>{error}</div>
             )}
@@ -1940,7 +2030,17 @@ export default function TrainPage() {
                   {w.link === 'drop' ? '드롭' : '슈퍼'}
                 </span>
               )}
-              <span style={{ fontSize: 13, color: 'var(--text-primary)', flexGrow: 1 }}>{w.exercise}</span>
+              {/* 이름 아래에 **여유 · 메모** 한 줄 (2026-11-18). 없으면 줄 모양이 그대로다 */}
+              <div style={{ flexGrow: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{w.exercise}</div>
+                {(w.rir || w.note) && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
+                    {w.rir && <span>여유 {w.rir}</span>}
+                    {w.rir && w.note && ' · '}
+                    {w.note && <span>{w.note}</span>}
+                  </div>
+                )}
+              </div>
               {w.failed && (
                 <span style={{ fontSize: 11, color: 'var(--danger)' }}>못 올림</span>
               )}

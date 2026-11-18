@@ -56,7 +56,9 @@ const KINDS = {
     // **빠뜨리면 내려받아 다시 올린 기록에서 묶음이 사라진다** (2026-10-05)
     // 유산소 줄의 시간 · 거리도 같이 넘긴다 (2026-11-05)
     put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps, null, r.link,
-      { minutes: r.minutes ?? null, distanceKm: r.distanceKm ?? null }),
+      { minutes: r.minutes ?? null, distanceKm: r.distanceKm ?? null },
+      // 한 줄 메모 · 여유 횟수도 같이 (2026-11-18) — 빠뜨리면 되넣은 기록에서 사라진다
+      { note: r.note ?? null, rir: r.rir ?? null }),
   },
   inbody: {
     label: '인바디',

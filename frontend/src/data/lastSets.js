@@ -439,3 +439,32 @@ export function plannedSetsOf(workouts, exercise, today = null, writing = null, 
   }
   return fb;
 }
+
+/**
+ * **이 운동에 지난번 적어둔 한 줄 메모** (2026-11-18 · 시안 1118b ⑧).
+ *
+ * 「왼무릎이 안쪽으로 모임」은 **다음에 같은 운동을 열 때** 읽혀야 쓸모가 있다.
+ * 그래서 적는 날 **앞날까지만** 본다(`lastRecordOf` 와 달리 그 날 것은 뺀다) —
+ * 오늘 둘째 세트에 붙인 메모가 셋째 세트를 적을 때 「지난번 메모」로 뜨면 지난번이 아니다.
+ * 메모가 붙은 줄을 만날 때까지 거슬러 간다(메모는 가끔만 붙는다).
+ *
+ * @returns `{ note, date }` 또는 `null`
+ */
+export function lastNoteOf(workouts, exercise, today = null, writing = null) {
+  const name = String(exercise ?? '').trim();
+  if (!name) return null;
+  const cut = [today, writing].filter(Boolean).sort()[0] || null;
+  const dates = Object.keys(workouts || {})
+    .filter((d) => d && (!cut || d < cut))
+    .sort()
+    .reverse();
+  for (const date of dates) {
+    const list = workouts[date] || [];
+    // 그 날 안에서는 **나중에 적은 줄이 먼저** — 마지막 세트에 붙인 말이 제일 새것이다
+    for (let i = list.length - 1; i >= 0; i--) {
+      const w = list[i];
+      if (String(w?.exercise ?? '').trim() === name && w?.note) return { note: String(w.note), date };
+    }
+  }
+  return null;
+}

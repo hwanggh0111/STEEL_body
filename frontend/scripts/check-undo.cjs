@@ -70,16 +70,23 @@ const 유산소 = {
 
 console.log('── 다시 보낼 몸통 ──');
 ok('**근력 줄은 무게·세트·횟수로**', U.rowPayload(근력),
-  { date: '2026-11-11', exercise: '벤치프레스', weight: '80', sets: 4, reps: 8 });
+  { date: '2026-11-11', exercise: '벤치프레스', weight: '80', sets: 4, reps: 8, note: null, rir: null });
 ok('  ★ `id` · `user_id` · 적은 시각은 안 보낸다 (서버가 매긴다)',
   Object.keys(U.rowPayload(근력)).filter((k) => ['id', 'user_id', 'created_at'].includes(k)), []);
 ok('**유산소 줄은 시간·거리로**', U.rowPayload(유산소),
-  { date: '2026-11-11', exercise: '런닝머신', minutes: 32, distance_km: 4.2 });
+  { date: '2026-11-11', exercise: '런닝머신', minutes: 32, distance_km: 4.2, note: null, rir: null });
 ok('  ★ 두 모양을 섞지 않는다 (세트·횟수가 안 붙는다)',
   Object.keys(U.rowPayload(유산소)).some((k) => ['sets', 'reps', 'weight'].includes(k)), false);
 ok('  거리를 안 적은 유산소도 그대로 (런닝머신은 거리를 안 적어도 된다)',
   U.rowPayload({ date: '2026-11-11', exercise: '런닝머신', minutes: 40 }),
-  { date: '2026-11-11', exercise: '런닝머신', minutes: 40, distance_km: null });
+  { date: '2026-11-11', exercise: '런닝머신', minutes: 40, distance_km: null, note: null, rir: null });
+// ── 한 줄 메모 · 여유 횟수 (2026-11-18) ──
+// 서버는 **안 보낸 칸을 그대로 둔다.** 그래서 메모를 새로 붙인 고치기를 되돌릴 때 몸통에
+// `note: null` 이 없으면 **붙인 메모가 남는다** — 비어 있던 것도 `null` 로 실어야 한다
+ok('**메모 · 여유는 그대로 싣는다**', (({ note, rir }) => ({ note, rir }))(U.rowPayload({ ...근력, note: '그립 넓게', rir: '1~2' })),
+  { note: '그립 넓게', rir: '1~2' });
+ok('  ★ 없던 줄은 `null` 로 싣는다 (되돌리면 붙인 메모가 지워진다)', [U.rowPayload(근력).note, U.rowPayload(근력).rir], [null, null]);
+ok('  메모만 바꾼 것도 「바뀌었다」로 본다 (되돌리기 단추가 뜬다)', U.changed(근력, { ...근력, note: '그립 넓게' }), true);
 ok('  서버가 쓰는 이름(`distance_km`)으로 보낸다 — 카멜로 들어온 줄도',
   U.rowPayload({ date: '2026-11-11', exercise: '사이클', minutes: 20, distanceKm: 8 }).distance_km, 8);
 

@@ -76,6 +76,20 @@ export const ROUTINE_NAME_MAX = 100;
 export const EXERCISE_NAME_MAX = 100;
 
 /**
+ * 운동 한 줄에 붙이는 메모의 글자 수 (2026-11-18 · 시안 1118b ⑧).
+ * 헬스장에서 한 손으로 치는 한 줄이다 — 장 단위 메모(`NOTE_BODY_MAX`)와 다른 칸이다.
+ *
+ *   WORKOUT_NOTE_MAX → backend/src/utils/workoutFields.js
+ */
+export const WORKOUT_NOTE_MAX = 40;
+
+/**
+ * 여유 횟수(몇 개 더 할 수 있었나)에서 고르는 셋 (2026-11-18 · 시안 1118b ①).
+ * 서버도 **이 말만 받는다**(`RIR_VALUES`). `1-2` 로 적지 않는다 — CSV 로 나가면 엑셀이 날짜로 읽는다
+ */
+export const RIR_VALUES = ['0', '1~2', '3+'];
+
+/**
  * 점검 사유의 글자 수 · 제보 답장의 글자 수 (관리자 화면).
  *
  * 둘 다 서버가 **말없이 자르던** 자리다. 관리자 화면이라도 그 글은 **쓰는 사람이

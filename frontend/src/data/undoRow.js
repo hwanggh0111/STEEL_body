@@ -82,6 +82,10 @@ export function rowPayload(row) {
   }
   // 이어가기 표시는 지킨다 — 없으면 그 줄이 「이어 한 세트」인 것을 잃는다
   if (row?.link) body.link = String(row.link);
+  // 한 줄 메모 · 여유 횟수 (2026-11-18) — **없으면 `null` 로 보낸다.** 서버는 안 보낸 칸을
+  // 그대로 두므로, 메모를 새로 붙인 고치기를 되돌릴 때 `null` 이 없으면 **붙인 메모가 남는다**
+  body.note = row?.note ? String(row.note) : null;
+  body.rir = row?.rir ? String(row.rir) : null;
   return body;
 }
 

@@ -15,7 +15,7 @@
 
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
 // 무게 · 운동명을 다듬는 자는 저장하는 쪽과 **같은 것**을 쓴다 (2026-10-22)
-const { normalizeWeight, cleanExerciseName } = require('./workoutFields');
+const { normalizeWeight, cleanExerciseName, normalizeNote, normalizeRir } = require('./workoutFields');
 // 이름이 조용히 잘리는 것을 막는 자 — 까닭도 그 자리에서 가져온다 (2026-11-17)
 const { tagLike, ANGLE_WHY } = require('./sanitize');
 // 유산소 줄의 시간 · 거리 — **손으로 적는 길과 같은 자**를 쓴다 (2026-11-05).
@@ -116,7 +116,8 @@ function parseCsv(text) {
 // `weight` 처럼 영어로 적힌 것, 괄호 없는 옛 이름)은 뒤에 그대로 남긴다 —
 // 내보낸 적 있는 파일은 **영영 읽혀야 한다.**
 const COLS = {
-  workouts: ['날짜', '운동명', '무게', '세트', '횟수', '묶음', '시간(분)', '거리(km)'],
+  // `메모` · `여유` 는 2026-11-18 — 끝에 붙인다. 옛 파일은 두 칸이 없고(-1), 그래도 읽힌다
+  workouts: ['날짜', '운동명', '무게', '세트', '횟수', '묶음', '시간(분)', '거리(km)', '메모', '여유'],
   inbody: ['날짜', '키(cm)', '체중(kg)', '체지방률(%)', '골격근량(kg)', '체수분(L)', 'BMI'],
   measures: ['날짜', '종류', '번호', '항목', '값'],
 };
@@ -163,6 +164,9 @@ function readWorkouts(text) {
   // 2026-11-05 — 유산소의 시간 · 거리. 옛 파일에는 이 칸이 없다(그러면 -1)
   const iMin = at(header, C[6], '시간', 'minutes');
   const iKm = at(header, C[7], '거리', 'distance_km', 'distance');
+  // 2026-11-18 — 한 줄 메모 · 여유 횟수. 옛 파일에는 없다(-1)
+  const iNote = at(header, C[8], 'note');
+  const iRir = at(header, C[9], 'rir');
   // ── ★ **무게 칸이 「없는 것」과 「빈 것」은 다르다** ── (2026-11-17 · 정석)
   //
   // 위 머리글이 막은 것은 **머리줄이 갈리는 것**이고, 그것은 `COLS` 한 벌로 막혔다.
@@ -246,12 +250,22 @@ function readWorkouts(text) {
     const link = linkRaw === '드롭' || linkRaw === 'drop' ? 'drop'
       : linkRaw === '슈퍼' || linkRaw === 'super' ? 'super' : null;
 
+    // 메모 · 여유 — **손으로 적는 길과 같은 자**(`utils/workoutFields.js`). 걸리면 그 줄만 거절
+    const n = normalizeNote(iNote >= 0 ? (cells[iNote] || '') : '');
+    if (!n.ok) { bad.push({ line, why: n.why }); continue; }
+    const rr = normalizeRir(iRir >= 0 ? (cells[iRir] || '') : '');
+    if (!rr.ok) { bad.push({ line, why: rr.why }); continue; }
+
     const weight = w.value;
     // 유산소 줄은 **세트 · 횟수를 담지 않는다** (지어낸 「1세트 1회」가 그 거짓이다)
     const row = c.cardio
       ? { date, exercise, weight, sets: null, reps: null, minutes: c.minutes, distanceKm: c.distanceKm }
       : { date, exercise, weight, sets, reps };
-    out.push(link ? { ...row, link } : row);
+    // 없으면 칸을 안 만든다 — 옛 파일에서 읽은 줄과 모양이 같아야 한다
+    if (link) row.link = link;
+    if (n.value) row.note = n.value;
+    if (rr.value) row.rir = rr.value;
+    out.push(row);
   }
   return { rows: out, bad };
 }

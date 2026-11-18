@@ -267,7 +267,8 @@ const csvRows = require('../../backend/src/utils/csvRows');
 ok('내보내기에 칸 둘이 있다',
   ['시간(분)', '거리(km)'].filter((c) => !csvRows.COLS.workouts.includes(c)), []);
 ok('  머리줄은 가져오기와 같은 한 자리에서 온다',
-  csvRows.headerOf('workouts').endsWith('시간(분),거리(km)'), true);
+  // 끝에 칸이 더 붙을 수 있다(11/18 메모 · 여유) — 보는 것은 **그 둘이 그 차례로 있는가**다
+  csvRows.headerOf('workouts').includes('시간(분),거리(km)'), true);
 const csv = csvRows.headerOf('workouts') + String.fromCharCode(10)
   + '2026-11-03,런닝머신,맨몸,,,,32,5.2\n'
   + '2026-11-03,벤치프레스,80,4,8,,,\n'

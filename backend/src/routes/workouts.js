@@ -8,7 +8,7 @@ const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize')
 // 박혀 있었고 화면에는 제한이 없어서 **말없이 잘렸다.** 화면도 같은 이름으로
 // 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
 const EXERCISE_NAME_MAX = 100;
-const { normalizeWeight } = require('../utils/workoutFields');
+const { normalizeWeight, normalizeNote, normalizeRir } = require('../utils/workoutFields');
 // 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
 // 여태 아래 두 자리에 `100` · `1000` 이 생글자로 박혀 있었고, `routineSession.js` 는
 // 옆에 `MAX_SETS = 100` 을 따로 적고 **주석으로** 「기록 화면이 100 까지 받는다」고
@@ -85,6 +85,9 @@ const slim = (w) => {
   // 유산소 줄의 시간 · 거리 — 있을 때만 (옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다)
   if (w.minutes != null) o.minutes = w.minutes;
   if (w.distance_km != null) o.distance_km = w.distance_km;
+  // 한 줄 메모 · 여유 횟수 (2026-11-18) — 있을 때만
+  if (w.note) o.note = w.note;
+  if (w.rir) o.rir = w.rir;
   if (w.updated_at) o.updated_at = w.updated_at;
   return o;
 };
@@ -104,7 +107,7 @@ router.get('/', auth, (req, res) => {
 
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
-  const { date, exercise, weight, sets, reps, clientKey, link, minutes } = req.body;
+  const { date, exercise, weight, sets, reps, clientKey, link, minutes, note, rir } = req.body;
   // 파일로 넣는 길과 옛 앱이 `distance_km` 으로 보낼 수 있다 — 둘 다 받는다
   const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
   // 오프라인 줄에서 올라온 것만 이 키를 달고 온다 (`local-...`). 재전송돼도 서버가
@@ -183,8 +186,14 @@ router.post('/', auth, spamCheck, (req, res) => {
   // **아는 말만 받는다.** 아무 문자열이나 받으면 화면이 모르는 표시를 만나 빈 칸을 그린다
   const safeLink = link === 'super' || link === 'drop' ? link : null;
 
+  // 한 줄 메모 · 여유 횟수 (2026-11-18) — 자는 `utils/workoutFields.js` 한 곳 (파일 길과 같은 자)
+  const n = normalizeNote(note);
+  if (!n.ok) return res.status(400).json({ error: n.why });
+  const r = normalizeRir(rir);
+  if (!r.ok) return res.status(400).json({ error: r.why });
+
   const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink,
-    { minutes: c.minutes, distanceKm: c.distanceKm });
+    { minutes: c.minutes, distanceKm: c.distanceKm }, { note: n.value, rir: r.value });
   // **담은 줄을 같이 보낸다** (2026-10-31) — 화면이 그것을 제자리에 꽂고 목록
   // 전체를 다시 받지 않는다. `GET /workouts` 가 주는 줄과 **같은 모양**이어야 한다
   // (화면이 둘을 섞어 쓴다) — 그래서 다듬거나 고르지 않고 그대로 보낸다
@@ -204,7 +213,7 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     return res.status(400).json({ error: '잘못된 ID에요' });
   }
 
-  const { date, exercise, weight, sets, reps, minutes } = req.body;
+  const { date, exercise, weight, sets, reps, minutes, note, rir } = req.body;
   const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
   // 고치면서 유산소 줄로 바뀔 수 있다 (세트·횟수로 적어둔 런닝머신을 고치는 길이다)
   const cp = normalizeCardio(minutes, distanceKm);
@@ -254,6 +263,13 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const w = normalizeWeight(weight);
   if (!w.ok) return res.status(400).json({ error: w.why });
 
+  // 안 보낸 칸(`undefined`)은 **건드리지 않는다** — 옛 화면이 이 둘을 안 들고 와도
+  // 적어둔 메모가 지워지면 안 된다. `null` · 빈 글은 지운다 (2026-11-18)
+  const np = normalizeNote(note);
+  if (!np.ok) return res.status(400).json({ error: np.why });
+  const rp = normalizeRir(rir);
+  if (!rp.ok) return res.status(400).json({ error: rp.why });
+
   // **두 모양을 섞어 담지 않는다** — 유산소 줄로 고치면 세트 · 횟수를 비우고,
   // 근력 줄로 되돌리면 시간 · 거리를 비운다. 둘 다 적혀 있으면 읽는 쪽마다
   // 다른 것을 보고 다른 말을 한다
@@ -265,6 +281,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     reps: numReps,
     minutes: cp.minutes,
     distance_km: cp.distanceKm,
+    note: np.value,
+    rir: rp.value,
   });
 
   if (result.changes === 0) {

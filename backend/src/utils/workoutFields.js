@@ -79,4 +79,53 @@ function cleanExerciseName(raw) {
   return cleanName(raw, NAME_MAX);
 }
 
-module.exports = { normalizeWeight, cleanExerciseName, WEIGHT_MAX, WEIGHT_KG_MAX, NAME_MAX };
+// ── 한 줄 메모 · 여유 횟수 ── (2026-11-18 · 시안 1118b ⑧ ①)
+//
+// 같은 60kg × 8 이라도 **끝까지 간 날과 두 개 남긴 날은 다른 날**이고, 「왼무릎이
+// 안쪽으로 모임」은 **그 줄 옆에** 있어야 다음에 읽힌다. 메모장(`routes/notes.js`)은
+// 장 단위라 줄에 안 붙는다.
+//
+// 둘 다 **고르지 않아도 된다** — 비우면 칸을 안 만든다(옛 줄과 모양이 같아야 섞어 읽을 때
+// 안 갈린다, `link` 와 같은 결). 받는 값은 셋으로 나뉜다:
+//   `undefined` — 안 보냈다. 고치는 길에서 **건드리지 않는다**
+//   `null` · 빈 글 — 지운다
+//   그 밖 — 다듬어 담거나, **거절하고 까닭을 말한다**(조용히 자르지 않는다)
+
+/** 메모 한도(글자 수). 화면 `data/limits.js` 와 같은 이름 — `check-twins` 가 맞댄다 */
+const WORKOUT_NOTE_MAX = 40;
+/**
+ * 여유 횟수 — **아는 말만 받는다**(`link` 와 같은 선). 사람이 고르는 세 칸과 같다.
+ * `1-2` 로 적지 않는다: 엑셀이 「1월 2일」로 바꿔 읽는다(CSV 로 나간다)
+ */
+const RIR_VALUES = ['0', '1~2', '3+'];
+
+// 닉네임과 같은 자로 **보이지 않는 글자**만 걷는다 — 메모도 화면이 글자로 그린다
+const { NICK_INVISIBLE } = require('./nickname');
+const { tagLike, ANGLE_WHY } = require('./sanitize');
+
+function normalizeNote(raw) {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw === null || raw === '') return { ok: true, value: null };
+  if (typeof raw !== 'string') return { ok: false, why: '메모는 글로 적어주세요' };
+  // 꺾쇠 뒤에 글자가 붙으면 거절한다 — 닉네임 · 운동명과 같은 선 (11/17)
+  if (tagLike(raw)) return { ok: false, why: ANGLE_WHY };
+  const v = raw.replace(NICK_INVISIBLE, '').replace(/[\t\r\n]+/g, ' ').trim();
+  if (!v) return { ok: true, value: null };
+  if (v.length > WORKOUT_NOTE_MAX) return { ok: false, why: `메모는 ${WORKOUT_NOTE_MAX}자까지 적을 수 있어요` };
+  return { ok: true, value: v };
+}
+
+function normalizeRir(raw) {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw === null || raw === '') return { ok: true, value: null };
+  const v = typeof raw === 'number' ? String(raw) : raw;
+  if (typeof v !== 'string' || !RIR_VALUES.includes(v.trim())) {
+    return { ok: false, why: '여유 횟수는 0 · 1~2 · 3+ 중에서 골라주세요' };
+  }
+  return { ok: true, value: v.trim() };
+}
+
+module.exports = {
+  normalizeWeight, cleanExerciseName, WEIGHT_MAX, WEIGHT_KG_MAX, NAME_MAX,
+  normalizeNote, normalizeRir, WORKOUT_NOTE_MAX, RIR_VALUES,
+};
