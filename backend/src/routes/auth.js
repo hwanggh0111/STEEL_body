@@ -153,7 +153,29 @@ const LOGIN_LOCK_TIME = LOGIN_LOCK.lockMs;
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
 
 const { REFRESH_REUSE_GRACE_MS } = require('../config/security');
-const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
+const { sanitize, tagLike, ANGLE_WHY } = require('../utils/sanitize');
+
+// ── 닉네임은 **친 그대로** 남긴다 ── (2026-11-18 · 주인 결정)
+//
+// 여태 닉네임도 `cleanName`(= `sanitize`)을 지났다. 그 손은 **조용히 다른 이름**을 만들었다 —
+//
+//   「철수%41」      → 「철수A」     (URL 디코딩이 돈다)
+//   「A  B」         → 「A B」       (사이 공백을 눌렀다)
+//   「eval(철)」     → 「철)」       (공격 꼴 낱말을 지웠다)
+//   「base href」    → 거절인데 까닭은 「1~30자여야 해요」
+//
+// 닉네임이 HTML 로 들어가는 자리는 없다 — 화면은 React 가 글자로 그리고
+// (`dangerouslySetInnerHTML` 0곳), 메일은 이스케이프하고, 링크·속성에 안 들어간다.
+// 그래서 지우는 것은 **보이지 않는 글자**뿐이다: 제어 문자와 방향을 뒤집는 글자
+// (남의 이름 옆에서 글을 거꾸로 보이게 꾸밀 수 있다 — `sanitize.js` 의 `INVISIBLE` 과 같은 선).
+// 줄바꿈·탭은 한 칸으로, 앞뒤 공백만 걷는다. 태그 꼴은 `tagLike` 가 **거절하고 까닭을 말한다.**
+const NICK_INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/g;
+function keepNickname(raw) {
+  if (typeof raw !== 'string') return null;
+  const v = raw.replace(NICK_INVISIBLE, '').replace(/[\t\r\n]/g, ' ').trim();
+  if (!v || v.length > NICKNAME_MAX) return null;
+  return v;
+}
 // 쿠키를 심는 것도 지우는 것도 한 곳에서 한다 (`utils/tokens.js` 머리글)
 const { issueTokens, clearAuthCookies } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED, warmMailer } = require('../utils/mailer');
@@ -340,7 +362,7 @@ router.post('/register', async (req, res) => {
   // 관리자 사용자 목록까지 온 앱에 나오는 이름이다
   // 조용히 잘리지 않는다 (`sanitize.js` 의 `tagLike`, 2026-11-17)
   if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
-  const safeNickname = cleanName(nickname, NICKNAME_MAX);
+  const safeNickname = keepNickname(nickname);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
@@ -633,7 +655,7 @@ router.put('/nickname', require('../middleware/auth'), (req, res) => {
   // 배열이 오면 `.trim()` 이 없어서 여기서 500 이 났다 — 사용자 잘못인데 서버 잘못처럼 답했다
   // 조용히 잘리지 않는다 (`sanitize.js` 의 `tagLike`, 2026-11-17)
   if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
-  const safeNickname = cleanName(nickname, NICKNAME_MAX);
+  const safeNickname = keepNickname(nickname);
   if (!safeNickname) {
     return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
   }
