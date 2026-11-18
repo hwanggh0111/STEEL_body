@@ -39,6 +39,18 @@ function keepNickname(raw, max) {
 }
 
 /**
+ * `keepNickname` 이 `null` 을 낸 **까닭**. 「ㅤ」 같은 이름은 눈에는 한 글자인데
+ * 「1~30자여야 해요」라고 답하면 사람은 무엇이 틀렸는지 모른다 (2026-11-18 · 정석, bb0ed7a 검사).
+ * 소셜 첫 화면은 건너뛰기가 없어서 **까닭이 틀리면 나갈 길을 못 찾는다.**
+ */
+function nicknameWhy(raw, max) {
+  if (typeof raw === 'string' && raw.trim() && !tidy(raw)) {
+    return '보이지 않는 글자만으로는 이름을 쓸 수 없어요';
+  }
+  return `닉네임은 1~${max}자여야 해요`;
+}
+
+/**
  * 제공자(구글 · 네이버 …)가 준 이름. **거절할 수 없다** — 사람이 친 것이 아니라서
  * 되물을 길이 없다. 그래서 태그 꺾쇠만 떼고, 길면 **글자 단위로** 자르고,
  * 비면 `fallback` 을 쓴다.
@@ -53,4 +65,4 @@ function socialNickname(raw, max, fallback) {
   return out.trim() || fallback;
 }
 
-module.exports = { keepNickname, socialNickname, NICK_INVISIBLE };
+module.exports = { keepNickname, nicknameWhy, socialNickname, NICK_INVISIBLE };

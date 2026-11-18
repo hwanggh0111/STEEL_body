@@ -359,7 +359,7 @@ router.post('/register', async (req, res) => {
   if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
   const safeNickname = keepNickname(nickname);
   if (!safeNickname) {
-    return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
+    return res.status(400).json({ error: nickRules.nicknameWhy(nickname, NICKNAME_MAX) });
   }
   // ── 이미 가입된 메일인지 **번호보다 먼저** 본다 ── (2026-10-06)
   //
@@ -652,7 +652,7 @@ router.put('/nickname', require('../middleware/auth'), (req, res) => {
   if (tagLike(nickname)) return res.status(400).json({ error: ANGLE_WHY });
   const safeNickname = keepNickname(nickname);
   if (!safeNickname) {
-    return res.status(400).json({ error: '닉네임은 1~30자여야 해요' });
+    return res.status(400).json({ error: nickRules.nicknameWhy(nickname, NICKNAME_MAX) });
   }
   const result = db.updateUserNickname(req.userId, safeNickname);
   if (result.changes === 0) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
