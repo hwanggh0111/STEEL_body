@@ -29,7 +29,7 @@ const axios = () => (_axios || (_axios = require('axios')));
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { BCRYPT_ROUNDS } = require('../config/security');
-const { sanitize } = require('../utils/sanitize');
+const { socialNickname } = require('../utils/nickname');
 const { issueTokens } = require('../utils/tokens');
 // 번호 확인은 가입 쪽에 한 벌만 있다 — 여기에 또 적으면 한쪽만 고치는 날이 온다
 const { checkCode, isValidEmail } = require('./auth');
@@ -127,8 +127,9 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     throw new Error('OAUTH_NO_EMAIL');
   }
-  // 외부 제공자가 준 닉네임 sanitize + 길이 제한 (XSS 방어)
-  const safeNickname = (sanitize(String(rawNickname || '')).slice(0, 30) || (provider + '_user'));
+  // 제공자가 준 이름도 **가입과 같은 손**이다 (`utils/nickname.js`, 2026-11-18 · 정석).
+  // 옛 `sanitize().slice(0, 30)` 은 「I'm 강철」을 다르게 남기고 이모지를 반으로 잘랐다
+  const safeNickname = socialNickname(rawNickname, 30, provider + '_user');
   let user = db.findUserByEmail(email);
   const created = !user;
   if (!user) {
@@ -179,14 +180,14 @@ async function finishSocial(res, frontendUrl, provider, got, to) {
     // 같은 사람이 다시 들어왔을 때 알아보려고 적어둔다 (지금은 적어두기만 한다)
     providerUserId: got.providerUserId ? String(got.providerUserId) : '',
     // 제공자가 준 이름. 메일만 받으면 이걸로 계정을 만든다 — **이름을 또 묻지 않는다**
-    nickname: sanitize(String(got.nickname || '')).slice(0, 30),
+    nickname: socialNickname(got.nickname, 30, ''),
   }, PENDING_TTL_MS);
   setPendingCookie(res, token);
   const q = new URLSearchParams({ provider });
   // 메일을 묻는 걸음을 거쳐도 **가려던 자리는 잃지 않는다** (2026-10-20)
   if (to) q.set('to', to);
   // 화면이 「@누구로 들어왔어요」를 띄운다 — 왜 메일을 묻는지가 설명 없이 읽힌다
-  if (got.nickname) q.set('name', sanitize(String(got.nickname)).slice(0, 30));
+  if (got.nickname) q.set('name', socialNickname(got.nickname, 30, ''));
   return res.redirect(`${frontendUrl}/oauth/email?${q}`);
 }
 

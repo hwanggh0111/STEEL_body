@@ -391,7 +391,8 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', onKey);
   }, [zoomImg]);
 
-  const initial = nickname ? nickname.charAt(0).toUpperCase() : '?';
+  // 첫 **글자**다 — `charAt(0)` 은 이모지를 반으로 잘라 깨진 네모를 그렸다 (2026-11-18 · 정석)
+  const initial = nickname ? Array.from(nickname)[0].toUpperCase() : '?';
 
   // **한도를 지키라고 말하는 대신 우리가 줄인다.**
   // 요즘 폰 사진은 3~8MB 라, 예전에는 앨범에서 고른 것이 거의 다 거절당했다

@@ -166,16 +166,11 @@ const { sanitize, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 //
 // 닉네임이 HTML 로 들어가는 자리는 없다 — 화면은 React 가 글자로 그리고
 // (`dangerouslySetInnerHTML` 0곳), 메일은 이스케이프하고, 링크·속성에 안 들어간다.
-// 그래서 지우는 것은 **보이지 않는 글자**뿐이다: 제어 문자와 방향을 뒤집는 글자
-// (남의 이름 옆에서 글을 거꾸로 보이게 꾸밀 수 있다 — `sanitize.js` 의 `INVISIBLE` 과 같은 선).
-// 줄바꿈·탭은 한 칸으로, 앞뒤 공백만 걷는다. 태그 꼴은 `tagLike` 가 **거절하고 까닭을 말한다.**
-const NICK_INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/g;
-function keepNickname(raw) {
-  if (typeof raw !== 'string') return null;
-  const v = raw.replace(NICK_INVISIBLE, '').replace(/[\t\r\n]/g, ' ').trim();
-  if (!v || v.length > NICKNAME_MAX) return null;
-  return v;
-}
+// 그래서 지우는 것은 **보이지 않는 글자**뿐이다. 그 손은 `utils/nickname.js` 한 자리에 있고
+// 소셜 첫 이름(`oauth.js`)도 같은 손을 부른다 (정석 2차, 같은 날).
+// 태그 꼴은 `tagLike` 가 **거절하고 까닭을 말한다.**
+const nickRules = require('../utils/nickname');
+const keepNickname = (raw) => nickRules.keepNickname(raw, NICKNAME_MAX);
 // 쿠키를 심는 것도 지우는 것도 한 곳에서 한다 (`utils/tokens.js` 머리글)
 const { issueTokens, clearAuthCookies } = require('../utils/tokens');
 const { sendVerificationCode, SMTP_CONFIGURED, warmMailer } = require('../utils/mailer');

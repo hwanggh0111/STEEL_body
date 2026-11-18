@@ -178,7 +178,10 @@ function oauthErrorText(code) {
     const restored = searchParams.get('restored') === '1';
 
     if (oauthSuccess === 'success' && nick) {
-      const sanitizedNick = nick.replace(/[<>"'&`\\\/\(\)\[\]\{\}]/g, '').slice(0, NICKNAME_MAX);
+      // 이름은 **서버가 다듬어 보낸 그대로**다 (`utils/nickname.js`, 2026-11-18 · 정석).
+      // 여기서 괄호·따옴표를 또 떼면 「I'm 강철」이 이 기기에서만 「Im 강철」로 보였다 —
+      // 화면은 React 가 글자로 그리니 뗄 까닭이 없다. 길이 선만 남긴다
+      const sanitizedNick = nick.slice(0, NICKNAME_MAX);
       const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
       // **들어온 뒤 처리는 스토어 한 곳에서** (2026-09-18). 여기서 직접 `setState` 를
       // 하고 있었더니, 「로그인하면 잠금을 놓는다」가 이 길만 비껴갔다 —
