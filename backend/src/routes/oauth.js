@@ -129,7 +129,11 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   }
   // 제공자가 준 이름도 **가입과 같은 손**이다 (`utils/nickname.js`, 2026-11-18 · 정석).
   // 옛 `sanitize().slice(0, 30)` 은 「I'm 강철」을 다르게 남기고 이모지를 반으로 잘랐다
-  const safeNickname = socialNickname(rawNickname, 30, provider + '_user');
+  // 제공자가 이름을 안 주면 **메일 앞부분**을 쓴다 (2026-11-18 · 주인 결정).
+  // 여태는 `google_user` · `naver_user` 였다 — 사람이 고른 적도, 알아볼 수도 없는 이름이다.
+  // 메일 앞부분도 같은 손을 지난다. 첫 화면 「닉네임 정하기」에서 고쳐 쓴다
+  const fromMail = socialNickname(email.split('@')[0], 30, provider + '_user');
+  const safeNickname = socialNickname(rawNickname, 30, fromMail);
   let user = db.findUserByEmail(email);
   const created = !user;
   if (!user) {

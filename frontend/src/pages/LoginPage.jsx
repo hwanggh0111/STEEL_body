@@ -246,9 +246,10 @@ function oauthErrorText(code) {
       setNickSaving(true);
       setNickError('');
       try {
-        await client.put('/auth/nickname', { nickname: nick });
-        saveLS(NICKNAME_KEY, nick);
-        useAuthStore.setState({ nickname: nick });
+        // **담는 일은 스토어 한 자리** (`authStore.rename`) — 서버가 돌려준 이름과
+        // 로그인 화면이 인사할 이름(`SAVED_NICKNAME_KEY`)까지 같이 담는다.
+        // 여기서 손으로 적던 때는 그 둘을 빠뜨렸다
+        await useAuthStore.getState().rename(nick);
         toast('닉네임이 저장됐어요!');
         setOauthNickStep(false);
         setShowSplash(true);
@@ -281,17 +282,15 @@ function oauthErrorText(code) {
           {nickError && (
             <div style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>{nickError}</div>
           )}
+          {/* 문구는 제공자를 안 가린다 — 네이버로 들어와도 「구글 이름」이라고 적혀 있었다 */}
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
-            구글 이름이 기본 설정됩니다. 원하는 닉네임으로 변경하세요.
+            가입한 곳의 이름(없으면 메일 앞부분)을 넣어뒀어요. 원하는 이름으로 고쳐 쓰세요.
           </p>
+          {/* **건너뛰기를 걷었다** (2026-11-18 · 주인 결정) — 이름은 시작할 때 쓴 것으로 간다.
+              「기본 이름으로 시작」이 있으면 사람이 본 적도 없는 이름(`naver_user`)이 붙은 채로 앱이 열렸다.
+              칸에 미리 넣어둔 이름을 그대로 쓰려면 「시작하기」만 누르면 된다 */}
           <button className="btn-primary" onClick={saveOauthNick} disabled={nickSaving} style={{ width: '100%' }}>
             {nickSaving ? '저장 중...' : '시작하기'}
-          </button>
-          <button
-            onClick={() => { setOauthNickStep(false); setShowSplash(true); }}
-            style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
-          >
-            기본 이름으로 시작
           </button>
         </div>
       </div>
