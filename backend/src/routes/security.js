@@ -783,8 +783,9 @@ router.post('/scan', adminAuth, async (req, res) => {
   // 쓰지 않은 채 for 안에서 무조건 `pass` 를 불렀다 — 필터를 통째로 떼어내도
   // SAFE 가 셋 찍힌다. 재는 척하는 검사는 없는 검사보다 나쁘다.
   //
-  // 게다가 적혀 있던 셋은 **이 앱에 없는 공격**이었다. SQL 도 MongoDB 도 없고
-  // 저장소는 JSON 파일 하나다. 그래서 aiGuard 는 SQL·몽고 패턴을 일부러 안 본다
+  // 게다가 적혀 있던 셋은 **이 앱에 없는 공격**이었다. MongoDB 는 없고, 운영의
+  // Postgres(2026-10-14~)는 판 한 장을 통째로 `$1` 자리에만 넣는다(`storage.js`) —
+  // 사람이 친 값이 SQL 글이 되는 자리가 없다. 그래서 aiGuard 는 SQL·몽고 패턴을 일부러 안 본다
   // (오탐만 남아서다 — `middleware/aiGuard.js` 의 INJECTION_PATTERNS 주석).
   // 안 보는 것을 「감지 가능」이라 적던 셈이다.
   //
@@ -803,7 +804,8 @@ router.post('/scan', adminAuth, async (req, res) => {
     else fail(cat6, '인젝션 통과', 'CRITICAL', label + ' 를 aiGuard 가 못 잡는다');
   }
   // 안 보는 것은 **안 본다고 적는다.** SAFE 로 적으면 다음 사람이 믿고 만다
-  pass(cat6, 'SQL·NoSQL 패턴은 보지 않음 (DB 가 없다 — JSON 파일 하나)');
+  // 「DB 가 없다」라고 적혀 있었다 — 10/14 에 Postgres 가 들어온 뒤로 거짓이었다 (2026-11-18 · 정석)
+  pass(cat6, 'SQL·NoSQL 패턴은 보지 않음 (Postgres 는 판 한 장을 $1 로만 쓴다 — 사람 값이 SQL 이 되지 않는다)');
   // 7. 파일 시스템 보안
   const cat7 = 'FILES';
   const fss = require('fs');

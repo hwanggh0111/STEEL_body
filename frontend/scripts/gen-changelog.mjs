@@ -108,6 +108,19 @@ const CUT = /^-{3,}$/;
 // 보는 사람에게 가장 필요한 글이다).
 const SECRET_SCOPE = /보안|security/i;
 
+// ── **메일 주소는 공지에 안 싣는다** ── (2026-11-18 · 정석)
+//
+// bb0ed7a 의 본문이 예시로 **주인의 실제 메일 앞부분**을 적었고, 그것이 그대로 공지함
+// (`changelog.json` → `feed-detail.json`)에 실려 앱을 쓰는 누구나 볼 수 있게 됐다.
+// 커밋 기록은 다시 쓰지 않기로 했다(주인 결정) — 그래서 **싣는 자리에서** 막는다.
+//
+//   1. 본문 속 메일 꼴(`누구@어디.com` · `누구@…`)은 「(메일 주소)」로 바꾼다
+//   2. 앞부분만 떨어져 적힌 것은 꼴로 못 알아본다 — 그런 커밋은 **본문을 통째로 뺀다**.
+//      표에는 해시만 둔다. 가릴 글자를 여기 적으면 이 파일이 그 글자를 퍼뜨린다
+const MAIL = /[A-Za-z0-9._%+-]+@(?:(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}|…|\.\.\.)/g;
+const BODY_WITHHELD = ['bb0ed7a'];
+const withheld = (hash) => BODY_WITHHELD.some((h) => String(hash).startsWith(h));
+
 function cleanBody(body) {
   const all = String(body || '').split('\n');
   const cutAt = all.findIndex(l => CUT.test(l.trim()));
@@ -115,7 +128,7 @@ function cleanBody(body) {
     .filter(l => !TRAILER.test(l.trim()));
   // 꼬리표를 걷어내면 끝에 빈 줄이 남는다
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-  const out = lines.join('\n').trim();
+  const out = lines.join('\n').replace(MAIL, '(메일 주소)').trim();
   if (out.length <= DETAIL_MAX) return out || null;
   // 자를 때는 문단 경계에서 자른다. 문장 가운데서 끊으면 읽다 만 것처럼 보인다
   const cut = out.slice(0, DETAIL_MAX);
@@ -232,7 +245,8 @@ function build() {
       hash: 적을해시, date, type, label: labelFor(type, text),
       scope: scope || null, text: text.trim(),
       // 보안 갈래는 제목만 (위 `SECRET_SCOPE`)
-      detail: SECRET_SCOPE.test(scope || '') ? '' : cleanBody(body),
+      // 메일이 실린 커밋은 본문을 뺀다 (위 `BODY_WITHHELD`)
+      detail: SECRET_SCOPE.test(scope || '') || withheld(hash) ? '' : cleanBody(body),
     });
   }
 
