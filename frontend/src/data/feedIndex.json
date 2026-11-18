@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "bf6869e88a",
+  "detailVersion": "8348331c3b",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,22 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "bb0ed7a",
+      "date": "2026-11-18",
+      "text": "소셜로 처음 들어오면 본 적도 없는 이름이 붙었다 — 이름은 시작할 때 쓴 것으로 간다",
+      "label": "고침",
+      "scope": "가입",
+      "has": true
+    },
+    {
+      "key": "5a00ed0",
+      "date": "2026-11-18",
+      "text": "보이지 않는 이름이 통과했다 — 정석 2차(e25fc05), 세 길을 한 손으로",
+      "label": "고침",
+      "scope": "이름",
       "has": true
     },
     {
@@ -1121,22 +1137,6 @@
       "text": "하단 탭바가 <div onClick> 이라 자판만 쓰는 사람은 화면을 하나도 옮길 수 없었다",
       "label": "고침",
       "scope": "자판",
-      "has": true
-    },
-    {
-      "key": "4590314",
-      "date": "2026-11-11",
-      "text": "없는 조각을 조르면 index.html 을 200 으로 줬고, 서비스워커가 그 HTML 을 .js 주소로 영구히 담았다",
-      "label": "고침",
-      "scope": "자산·캐시",
-      "has": true
-    },
-    {
-      "key": "d9136fa",
-      "date": "2026-11-11",
-      "text": "같은 단추가 화면마다 다르게 둥글었다 — 한 자리를 잡아도 다음 사람이 또 8을 적는다",
-      "label": "고침",
-      "scope": "꼴",
       "has": true
     }
   ]
