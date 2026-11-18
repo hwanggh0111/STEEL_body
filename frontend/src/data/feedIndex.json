@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5ac7b75f7e",
+  "detailVersion": "a4e1bac558",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "e25fc05",
+      "date": "2026-11-18",
+      "text": "닉네임이 친 그대로 남지 않았다 — 「철수%41」이 「철수A」로 붙었다",
+      "label": "고침",
+      "scope": "이름",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "테두리 색을 글자색으로 쓴 자리가 둘, 1.84 : 1 이었다 — 흐린 것과 안 보이는 것은 다르다",
       "label": "고침",
       "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "2f36fc2",
-      "date": "2026-11-11",
-      "text": "「올려보세요」만 있고 「넉 주째 안 올랐다」는 아무도 안 말했다 — 붙이기 전에 쟀다",
-      "label": "새 기능",
-      "scope": "제자리",
       "has": true
     }
   ]
