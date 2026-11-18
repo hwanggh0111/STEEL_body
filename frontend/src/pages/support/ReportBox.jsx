@@ -343,7 +343,11 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                 border: `1px solid ${attach ? 'var(--accent)' : 'var(--border-hover)'}`,
                 background: attach ? 'var(--accent)' : 'transparent',
                 borderRadius: 'var(--radius)', color: 'var(--on-accent)',
-                fontSize: 11, lineHeight: '15px', textAlign: 'center',
+                // ✓ 를 `lineHeight: '15px'` 로 세로에 맞춰뒀었다 (2026-11-18 · 맵시) —
+                // 글자를 크게 쓰면 ✓ 만 자라고 15 는 그대로라 **아래로 밀려 칸을 벗어났다.**
+                // 네모는 체크칸 꼴이라 16 으로 두고, ✓ 는 flex 가 가운데에 앉힌다
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, lineHeight: 1,
               }}>{attach ? '✓' : ''}</div>
               <div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 3 }}>

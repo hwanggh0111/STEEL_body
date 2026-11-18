@@ -29,6 +29,9 @@
 //   ⑵ **가로 flex 안의 말줄임 칸은 `minWidth: 0` 을 든다.** 말줄임 칸이 flex 통의
 //      직접 자식이 아니면 **그 사이의 직접 자식**이 들어야 한다 — 거기서 막히면
 //      아래로 아무리 적어도 안 줄어든다
+//   ⑶ **크기가 박힌 동그라미는 가로 flex 안에서 `flexShrink: 0` 을 든다** (11/17)
+//   ⑷ **글이 든 칸을 `height` 와 px 줄 높이로 묶지 않는다** (11/18) — 폰에서 글자를
+//      크게 쓰면 글자만 자라 잘리거나 옆을 덮는다
 //
 // flex 통인지는 `style` 의 `display: 'flex'` 로 보고, **클래스로 flex 가 되는 것은
 // `globals.css` 에서 읽는다** — 여기 베껴 적으면 클래스가 하나 늘 때 자만 옛 목록을
@@ -78,7 +81,13 @@ function cssMoJib(cssRaw) {
     if (/position:\s*(absolute|fixed)/.test(m[2])) continue;
     동그라미.push(m[1]);
   }
-  return { 말줄임, 동그라미 };
+  // `height` 와 `line-height` 를 둘 다 px 로 박은 클래스 — 인라인 ⑷ 와 같은 류인데
+  // 이 자는 클래스 안의 글을 못 본다. 생기면 자를 넓히라고 운다 (2026-11-18)
+  const 글묶음 = [];
+  for (const m of css.matchAll(/([.#][\w-]+)\s*\{([^}]*)\}/g)) {
+    if (/(^|[;\s{])height:\s*[\d.]+px/.test(m[2]) && /line-height:\s*[\d.]+px/.test(m[2])) 글묶음.push(m[1]);
+  }
+  return { 말줄임, 동그라미, 글묶음 };
 }
 
 // ── 클래스로 가로 flex 가 되는 것을 `globals.css` 에서 읽는다 ──
@@ -185,6 +194,24 @@ function 훑기(code, file, 가로클래스) {
     || /^0\s+0\b/.test(String(s.값.flex || '')) || s.모름.has('flex')
     || s.값.position === 'absolute' || s.값.position === 'fixed';
 
+  // **이 칸에 글이 직접 드는가.** `{…}` 은 값을 모르니 글일 수 있는 것은 **센다** —
+  // `.map(…)` 이나 JSX 만 내는 식은 요소를 그리는 것이라 글이 아니다
+  // (막대 그래프 · 로고 단추가 그 꼴이다)
+  const 글식 = (e) => {
+    if (!e) return false;
+    switch (e.type) {
+      case 'JSXElement': case 'JSXFragment': case 'JSXEmptyExpression': return false;
+      case 'StringLiteral': return e.value.trim() !== '';
+      case 'ConditionalExpression': return 글식(e.consequent) || 글식(e.alternate);
+      case 'LogicalExpression': return 글식(e.right);
+      case 'CallExpression':
+        return !(e.callee.type === 'MemberExpression' && e.callee.property.name === 'map');
+      default: return true;
+    }
+  };
+  const 글이드나 = (el) => (el.children || []).some((c) => (c.type === 'JSXText' ? c.value.trim() !== ''
+    : c.type === 'JSXExpressionContainer' && 글식(c.expression)));
+
   // 조상 줄기를 들고 내려간다
   const stack = [];
   function walk(node) {
@@ -246,6 +273,26 @@ function 훑기(code, file, 가로클래스) {
           break; // 가장 가까운 가로 flex 통 하나만 본다
         }
         if (빠진것.length) 결과.push({ file, line: node.loc.start.line, 빠진것, 류: '동그라미' });
+      }
+
+      // ── ⑷ **글이 든 칸을 `height` 와 px 줄 높이로 묶었다** ── (2026-11-18 · 맵시)
+      //
+      // 크롬(안드로이드)·앱 안 웹뷰의 「글자 크기」는 `px` 로 적은 `fontSize` 도
+      // 키운다. 칸이 `height` 에 묶여 있고 줄 높이까지 `'16px'` 로 박혀 있으면
+      // **글자만 자라고 칸과 줄은 그대로**라 글이 잘리거나 옆 칸을 덮는다.
+      // 11/17 에 손으로 둘을 풀었는데(`8638e86` · 탭바 딱지와 잠금 자판) 이 류를
+      // 지키는 자가 없었고, 11/18 에 셋째(`LineChart` 의 짚은 값)가 그대로 있었다 —
+      // 그날 셈에서는 글이 `{hoverText(…)}` 로 들어와 **눈으로 글자리로 안 읽혔다.**
+      //
+      // 줄 높이를 `px` 로 박는 것은 **묶인 칸 안에서 글을 세로로 맞출 때뿐**이라
+      // 그 셋이 겹치면 이 류다. `height` 만 박고 글자 한둘을 flex 로 가운데 앉힌
+      // 동그라미·네모(요일 · 날짜 · 머리글자)는 글자가 커져도 **잘리지 않고 고르게
+      // 넘친다** — 그것은 안 센다. 값이 변수인 `height` 는 막대 그래프 같은 것이라
+      // 안 센다(줄 높이까지 변수로 박는 자리는 없다).
+      const 높이박힘 = typeof s.값.height === 'number' || /^[\d.]+px$/.test(String(s.값.height ?? ''));
+      const 줄박힘 = /^[\d.]+px$/.test(String(s.값.lineHeight ?? ''));
+      if (높이박힘 && 줄박힘 && 글이드나(node)) {
+        결과.push({ file, line: node.loc.start.line, 빠진것: ['minHeight'], 류: '글묶음' });
       }
     }
     for (const k of Object.keys(node)) {
@@ -376,6 +423,41 @@ const 되돌려꼴 = [
 );`,
     기대: [],
   },
+  {
+    이름: '11/17 의 탭바 딱지 꼴 — `height` 와 px 줄 높이에 수가 묶였다',
+    code: `const A = () => (
+  <span style={{ height: 16, lineHeight: '16px', fontSize: 10, padding: '0 4px' }}>{badge}</span>
+);`,
+    기대: ['minHeight'],
+  },
+  {
+    이름: '  삼항으로 들어온 글도 글이다 (11/18 의 체크칸 ✓)',
+    code: `const A = () => (
+  <div style={{ width: 16, height: 16, fontSize: 11, lineHeight: '15px' }}>{on ? '✓' : ''}</div>
+);`,
+    기대: ['minHeight'],
+  },
+  {
+    이름: '  `minHeight` 와 비율 줄 높이로 풀었으면 울지 않는다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <div style={{ minHeight: 18, fontSize: 11.5, lineHeight: 18 / 11.5 }}>{hoverText(rows)}</div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  `.map` 으로 막대를 그리는 칸은 글이 아니다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <div style={{ height: 30, lineHeight: '30px' }}>{bars.map((v) => <span key={v} />)}</div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  글자 하나를 flex 로 앉힌 동그라미는 안 센다 (거짓 FAIL 막이 · 요일)',
+    code: `const A = () => (
+  <button style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', fontSize: 13 }}>{day}</button>
+);`,
+    기대: [],
+  },
 ];
 
 if (process.argv.includes('--되돌려')) {
@@ -395,6 +477,10 @@ if (process.argv.includes('--되돌려')) {
     cssMoJib('.dot { width: 6px; height: 6px; border-radius: 50%; }').동그라미, ['.dot']);
   ok('  떠 있는 동그라미는 안 걸린다 (거짓 FAIL 막이 · 금가루)',
     cssMoJib('.finish-mote { position: absolute; border-radius: 50%; }').동그라미, []);
+  ok('  CSS 에 글을 묶는 클래스가 생기면 걸린다',
+    cssMoJib('.pill { height: 16px; line-height: 16px; }').글묶음, ['.pill']);
+  ok('  `min-height` 는 묶음이 아니다 (거짓 FAIL 막이)',
+    cssMoJib('.pill { min-height: 16px; line-height: 16px; }').글묶음, []);
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
   process.exit(bad ? 1 : 0);
 }
@@ -453,6 +539,20 @@ console.log('\n── 내가 못 보는 자리가 생겼나 ──');
   const r = cssMoJib(fs.readFileSync(cssPath, 'utf8'));
   ok('CSS 에 말줄임이 없다 (이 자는 인라인 `style` 만 본다)', r.말줄임, []);
   ok('  CSS 의 동그라미는 flex 자식이 아니다 (떠 있는 것만 있다)', r.동그라미, []);
+  ok('  CSS 에 `height` 와 px 줄 높이로 글을 묶는 클래스가 없다', r.글묶음, []);
+}
+
+console.log('\n── 글자를 크게 쓰면 잘리는 칸이 없는가 ──');
+{
+  const 글묶음 = 모두.filter((r) => r.류 === '글묶음');
+  ok('글이 든 칸을 `height` 와 px 줄 높이로 묶지 않는다',
+    글묶음.map((r) => r.file + ':' + r.line), []);
+  if (글묶음.length) {
+    console.log('       묶인 자리:');
+    for (const r of 글묶음) console.log('         ' + r.file + ':' + r.line);
+    console.log('       → `height` 를 `minHeight` 로, 줄 높이를 비율(예: 18 / 11.5)로 푸세요.');
+    console.log('         폰의 「글자 크기」는 px 글자도 키우는데 묶인 칸과 줄은 그대로입니다.');
+  }
 }
 
 console.log('\n── 눌려서 달걀이 되는 동그라미가 없는가 ──');

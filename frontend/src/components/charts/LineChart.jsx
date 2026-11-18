@@ -103,9 +103,15 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '',
         )))}
       </svg>
 
-      {/* 말풍선 — 짚은 자리의 값. 그래프 밖에 두면 손가락에 안 가린다 */}
+      {/* 말풍선 — 짚은 자리의 값. 그래프 밖에 두면 손가락에 안 가린다
+
+          `height: 18` · `lineHeight: '18px'` 로 **줄을 못 자라게 묶어뒀다** (2026-11-18 · 맵시).
+          폰에서 글자를 크게 쓰면 `fontSize` 만 자라고 18 은 그대로라, 읽어주는 값이
+          **아래 범례를 덮었다** — 어제 탭바 딱지(`TabBar.jsx`)와 같은 꼴이다.
+          `minHeight` 와 **비율** 줄 높이로 푼다: 기본 크기에서는 11.5 × (18 / 11.5) = 18
+          로 한 픽셀도 안 달라지고, 짚을 때 높이가 출렁이지 않는 것도 그대로다 */}
       <div style={{
-        height: 18, fontSize: 11.5, textAlign: 'center', lineHeight: '18px',
+        minHeight: 18, fontSize: 11.5, textAlign: 'center', lineHeight: 18 / 11.5,
         color: hover == null ? CHART.muted : CHART.text2,
       }}>
         {hoverText(rows, hover, shown, xKey, unit)}
