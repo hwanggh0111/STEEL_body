@@ -118,6 +118,21 @@ export default function RoutinePage() {
   const [showCreate, setShowCreate] = useState(false);
   // 고치는 중인 루틴 id. null 이면 새로 만드는 중
   const [editingId, setEditingId] = useState(null);
+  // ── 순서 바꾸기 ── (2026-11-18 · 시안 1118b ③)
+  //
+  // 여태 루틴의 순서를 바꾸는 길이 없었다 — 지우고 다시 넣어야 했다(세트 · 횟수도 다시 친다).
+  // **끌어 옮기기가 아니라 ↑ ↓ 단추다.** 땀 난 손가락으로도 잘못 안 놓이고, 화면 읽기로도 된다.
+  // 단추는 폰에서 전부 44px 가 되므로(`globals.css`, `check-tap`) 한 줄에 칸 넷과 같이 두면
+  // 이름 칸이 눌린다 — 그래서 **켰을 때만** 줄이 「이름 + ↑ ↓」로 바뀐다.
+  //
+  // 진행 중인 판과는 안 엉킨다 — 서버가 시작할 때 운동 목록을 **베껴 둔다**
+  // (`routes/routineSession.js` 의 `POST /`). 바꾼 순서는 다음에 시작할 때부터다
+  const [ordering, setOrdering] = useState(false);
+  // 옮긴 뒤 **어디로 갔는지** 낭독기에 알린다 (2026-11-18 · 정석 2차). 눈으로는 줄이 움직이는 게
+  // 보이지만 화면 읽기로는 단추 이름만 다시 들린다 — 몇 번째가 됐는지를 모른다
+  const [orderSaid, setOrderSaid] = useState('');
+  // 칸을 닫으면 끈다 — 다음에 열었을 때 「이름 + ↑ ↓」 꼴로 열리면 세트 칸이 사라진 줄 안다
+  useEffect(() => { if (!showCreate) setOrdering(false); }, [showCreate]);
   // 저장 중 두 번째 누름을 버린다. 안 막으면 같은 루틴이 두 개 생긴다
   const [savingRoutine, setSavingRoutine] = useState(false);
   // 프로그램을 내 루틴으로 옮기는 중. 두 번 눌러 두 벌이 생기는 것을 막는다
@@ -170,6 +185,7 @@ export default function RoutinePage() {
           : { uid: uidRef.current++, name: ex.name || '', sets: ex.sets ?? '', reps: ex.reps ?? '' }
       )),
     });
+    setOrdering(false);
     setShowCreate(true);
     setTab('mine');
   };
@@ -239,6 +255,7 @@ export default function RoutinePage() {
       cut: fromDay.exercises.length > rows.length
         ? `운동이 ${fromDay.exercises.length}개라 앞의 ${rows.length}개만 담았어요.` : '',
     });
+    setOrdering(false);
     setShowCreate(true);
     setTab('mine');
     navigate('/routine', { replace: true, state: null });
@@ -636,7 +653,7 @@ export default function RoutinePage() {
 
       {!showCreate ? (
         <button
-          onClick={() => { setEditingId(null); setNewRoutine({ name: '', exercises: [blankRow()] }); setShowCreate(true); }}
+          onClick={() => { setEditingId(null); setNewRoutine({ name: '', exercises: [blankRow()] }); setOrdering(false); setShowCreate(true); }}
           className="btn-primary"
           style={{ width: '100%', marginTop: 8 }}
         >+ 새 루틴 만들기</button>
@@ -672,13 +689,71 @@ export default function RoutinePage() {
           {/* **이름표가 아니라 묶음 제목이다** (2026-11-16) — `<label>` 로 적어두면
               낭독기가 「이름표」라고 읽고 가리키는 칸을 찾는데, 가리키는 칸이 없다.
               아래 줄들은 칸이 저마다 제 이름을 든다 */}
-          <div className="label">운동 목록</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div className="label" style={{ marginBottom: 0 }}>운동 목록</div>
+            {(newRoutine.exercises.length > 1 || ordering) && (
+              <button
+                type="button"
+                className="btn-secondary"
+                aria-pressed={ordering}
+                onClick={() => setOrdering((v) => !v)}
+                style={{ padding: '6px 12px', fontSize: 12.5, flexShrink: 0 }}
+              >{ordering ? '다 옮겼어요' : '순서 바꾸기'}</button>
+            )}
+          </div>
+          <div style={{ height: 8 }} />
+          {ordering && editingId != null && session?.routineId === editingId && (
+            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 8 }}>
+              지금 하고 있는 판은 그대로예요 — 바꾼 순서는 다음에 시작할 때부터예요.
+            </div>
+          )}
+          {ordering && (
+            <div role="status" aria-live="polite" style={{
+              position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+              clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
+            }}>{orderSaid}</div>
+          )}
           {newRoutine.exercises.map((ex, i) => {
             const setEx = (patch) => {
               const updated = [...newRoutine.exercises];
               updated[i] = { ...updated[i], ...patch };
               setNewRoutine({ ...newRoutine, exercises: updated });
             };
+            const last = newRoutine.exercises.length - 1;
+            const move = (d) => {
+              const j = i + d;
+              if (j < 0 || j > last) return;
+              const updated = [...newRoutine.exercises];
+              [updated[i], updated[j]] = [updated[j], updated[i]];
+              setNewRoutine({ ...newRoutine, exercises: updated });
+              setOrderSaid(`${ex.name.trim() || '이름 없는 운동'}, ${j + 1}번째로 옮겼어요`);
+            };
+            const who = ex.name.trim() || `${i + 1}번째 운동`;
+            if (ordering) {
+              const arrow = (dis) => ({
+                // 높이도 적는다 — 폰은 전역 규칙이 44px 로 키우지만 PC 에서는 글자 높이(22px)로 눌려 줄끼리 붙었다
+                width: 44, minHeight: 40, flexShrink: 0, padding: 0, fontSize: 16, lineHeight: 1,
+                background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+                color: dis ? 'var(--text-muted)' : 'var(--accent)', borderRadius: 'var(--radius)',
+                opacity: dis ? 0.4 : 1, cursor: dis ? 'default' : 'pointer', fontFamily: 'inherit',
+              });
+              return (
+                // 열쇠는 그대로 `uid` — 줄이 옮겨가도 **누른 단추가 그 줄을 따라간다**(포커스가 남는다)
+                <div key={ex.uid} style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+                  <div style={{
+                    flex: 1, minWidth: 0, fontSize: 14, color: ex.name.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{i + 1} · {ex.name.trim() || '(이름 없음)'}</div>
+                  {/* **`disabled` 가 아니라 `aria-disabled`** (2026-11-18 · 정석 2차).
+                      키보드로 ↓ 를 눌러 줄을 끝까지 내리면 그 단추가 막히는데, 막힌 단추는
+                      포커스를 놓는다 — 다음 Tab 이 맨 위에서 다시 시작했다. 막힘은 `move` 가 지킨다 */}
+                  <button type="button" aria-label={`${who} 위로`} aria-disabled={i === 0}
+                    onClick={() => move(-1)} style={arrow(i === 0)}>↑</button>
+                  <button type="button" aria-label={`${who} 아래로`} aria-disabled={i === last}
+                    onClick={() => move(1)} style={arrow(i === last)}>↓</button>
+                </div>
+              );
+            }
             return (
               // **열쇠를 자리 번호로 두지 않는다** (2026-10-06).
               // 가운데 줄을 지우면 그 아래 줄들이 한 칸씩 당겨지는데, 열쇠가 자리
@@ -737,7 +812,8 @@ export default function RoutinePage() {
               그 자리에서 어느 줄을 지워야 하는지는 아무 말도 없다.
               수는 `data/limits.js` 한 자리에서 오고, 서버와 어긋나면
               `npm run twins` 가 FAIL 한다 */}
-          <button
+          {/* 순서를 옮기는 동안은 줄을 더하지 않는다 — 새 줄은 이름 칸이 없는 꼴로 들어와 비어 보인다 */}
+          {!ordering && <button
             onClick={() => setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, blankRow()] })}
             disabled={newRoutine.exercises.length >= MAX_EXERCISES}
             style={{
@@ -748,8 +824,10 @@ export default function RoutinePage() {
               cursor: newRoutine.exercises.length >= MAX_EXERCISES ? 'default' : 'pointer',
               opacity: newRoutine.exercises.length >= MAX_EXERCISES ? 0.45 : 1,
             }}
-          >+ 운동 추가</button>
-          {newRoutine.exercises.length >= MAX_EXERCISES && (
+          >+ 운동 추가</button>}
+          {/* 줄을 더하는 단추가 들고 있던 아래 틈(12px)을 대신 든다 — 없으면 「고치기」가 마지막 줄에 붙는다 */}
+          {ordering && <div style={{ height: 12 }} />}
+          {!ordering && newRoutine.exercises.length >= MAX_EXERCISES && (
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
               한 루틴에는 운동을 <b style={{ color: 'var(--text-secondary)' }}>{MAX_EXERCISES}개</b>까지
               담을 수 있어요. 더 넣으려면 루틴을 나눠 주세요.
@@ -822,6 +900,7 @@ export default function RoutinePage() {
                 : [blankRow()],
             });
             setTab('mine');
+            setOrdering(false);
             setShowCreate(true);
             toast(routine.name
               ? `메모에서 운동 ${routine.exercises.length}개를 옮겼어요. 확인하고 저장하세요`
