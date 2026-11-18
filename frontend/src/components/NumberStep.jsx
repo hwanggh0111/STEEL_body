@@ -89,7 +89,10 @@ export default function NumberStep({
   const plus = useHoldRepeat((isRepeat) => bump(1, isRepeat));
 
   const btn = {
-    flexShrink: 0, width: 42, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    // 폭 36 (2026-11-18 · 정석). 42 일 때 390px 폰의 기록 화면에서 칸 셋이 나란하면
+    // 무게 칸 글 자리가 **0px** 이 됐다(칸 120 − 단추 84 − 틈 10 − 안쪽 여백 28) —
+    // 72.5 를 넣어도 빈 칸으로 보였다. 높이는 폰에서 전역 규칙이 44 로 키운다
+    flexShrink: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--accent-dim)', border: '1px solid var(--border-hover)',
     borderRadius: 'var(--radius)', color: 'var(--accent)',
     fontSize: 19, lineHeight: 1, fontFamily: 'inherit', cursor: 'pointer',
@@ -100,7 +103,7 @@ export default function NumberStep({
   return (
     <div>
       {label && <label className="label" htmlFor={id}>{label}</label>}
-      <div style={{ display: 'flex', gap: 5 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
         <button
           type="button"
           aria-label={`${label || ''} ${step} 줄이기`}
@@ -115,7 +118,8 @@ export default function NumberStep({
           // 직접 치면 적어둔 값은 버린다 — 사람이 친 것이 맞다
           onChange={(e) => { mine.current = null; onChange(e.target.value); }}
           placeholder={placeholder}
-          style={{ flex: 1, minWidth: 0, textAlign: 'center' }}
+          // 가운데 맞춘 숫자 칸이라 옆 여백(`.input` 의 14)이 할 일이 없다 — 글 자리로 돌린다
+          style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 2, paddingRight: 2 }}
         />
         <button
           type="button"
