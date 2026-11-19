@@ -52,8 +52,15 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(재기);
     if (ro) ro.observe(el);
     // cleanup 에서 0 을 적지 않는다 — 매 렌더마다 0 → 실제값이 되면서 **알림이 깜빡인다.**
-    // 띠가 사라지는 렌더에서는 `ref` 가 비므로 위의 `적기(0)` 이 그 일을 한다
-    return () => { if (ro) ro.disconnect(); };
+    // 띠가 사라지는 렌더에서는 `ref` 가 비므로 위의 `적기(0)` 이 그 일을 한다.
+    // 다만 **이 칸이 통째로 없어질 때**(로그아웃)는 치운다 — 남겨두면 다음 사람의
+    // 알림이 있지도 않은 띠 높이만큼 떠 있다
+    return () => {
+      if (ro) ro.disconnect();
+      if (typeof document !== 'undefined' && !띠ref.current) {
+        document.documentElement.style.removeProperty('--restbar-h');
+      }
+    };
   });
 
   // 띠에도 **다음에 들 것**을 적는다 (2026-10-01).

@@ -109,6 +109,13 @@ const 탭바높이알리기 = (px) => {
   if (typeof document === 'undefined') return;
   document.documentElement.style.setProperty('--tabbar-h', px + 'px');
 };
+// 탭바가 사라질 때는 **치운다.** `Layout` 은 로그인한 사람만 쓰므로 로그아웃하면
+// 이 바가 통째로 없어지는데, 적어둔 높이가 뿌리에 남으면 **탭바가 없는 로그인
+// 화면에서도 알림이 그만큼 떠 있다**(글자를 크게 쓰는 사람은 100px 넘게 뜬다)
+const 탭바높이치우기 = () => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.removeProperty('--tabbar-h');
+};
 
 export default function TabBar() {
   const [splash, setSplash] = useState(false);
@@ -124,15 +131,15 @@ export default function TabBar() {
   // `ResizeObserver` 를 쓰는 까닭은 **글자 크기 바뀜에는 이벤트가 없다**는 것이다
   // (`resize` 는 창 크기만 알려준다)
   useEffect(() => {
-    if (isPC) { 탭바높이알리기(0); return undefined; }
+    if (isPC) { 탭바높이알리기(0); return 탭바높이치우기; }
     const el = navRef.current;
-    if (!el) return undefined;
+    if (!el) return 탭바높이치우기;
     const 재기 = () => 탭바높이알리기(Math.round(el.getBoundingClientRect().height));
     재기();
-    if (typeof ResizeObserver === 'undefined') return undefined;
+    if (typeof ResizeObserver === 'undefined') return 탭바높이치우기;
     const ro = new ResizeObserver(재기);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); 탭바높이치우기(); };
   }, [isPC]);
 
   // 관리자 권한 변경 감지 (다른 탭에서 로그인/로그아웃 시)
