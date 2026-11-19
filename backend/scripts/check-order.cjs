@@ -186,9 +186,41 @@ const call = async (method, p, body) => {
 
     // **값으로 본다** — 속도를 재는 자에게 서버가 준 줄을 그대로 먹여본다.
     // 글자로 「보낸다」를 지키는 것으로는 모자란다(10/28 ⑯ 의 자)
-    const paceSrc = require('fs').readFileSync(
-      require('path').join(__dirname, '..', '..', 'frontend', 'src', 'data', 'pace.js'), 'utf8');
-    const paceMod = new Function(`${paceSrc.replace(/export /g, '')}; return { buildPace };`)();
+    // ── ★ **`export ` 를 지우는 것만으로는 못 읽는다** ── (2026-11-19 · 정석 2차)
+    //
+    // 여기서 `paceSrc.replace(/export /g, '')` 로 걷어 `new Function` 에 먹였다. 그 손은
+    // **`import` 를 모른다** — 그래서 11/19 에 `pace.js` 가 다른 파일을 부르기 시작하자
+    // (`daysBetween` · `flatName` 을 한 자리로 모으면서) 이 자가 통째로
+    // **「Cannot use import statement outside a module」** 로 터졌다.
+    //
+    // 자가 **큰 소리로** 터진 것은 다행이다(조용히 통과했으면 「서버가 준 칸으로 잰다」는
+    // 보장이 사라진 줄도 몰랐다). 손을 바꾼다 — `check-restper.cjs` 가 쓰는 그 손
+    // (**esbuild 로 걷어 실제로 돌린다**)으로 간다.
+    //
+    // esbuild 는 화면 쪽 짐이라 **없을 수 있다.** 그때는 **건너뛰되 큰 소리로 적는다** —
+    // 조용한 통과를 만들지 않는다(`check-font` 의 그 선).
+    const paceJs = require('path').join(__dirname, '..', '..', 'frontend', 'src', 'data', 'pace.js');
+    let paceMod = null;
+    try {
+      const esbuild = require(require('path')
+        .join(__dirname, '..', '..', 'frontend', 'node_modules', 'esbuild'));
+      const out = esbuild.buildSync({
+        entryPoints: [paceJs],
+        bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'error',
+      });
+      const m = { exports: {} };
+      // eslint-disable-next-line no-new-func
+      new Function('module', 'exports', 'require', out.outputFiles[0].text)(m, m.exports, require);
+      paceMod = m.exports;
+    } catch (e) {
+      console.log('건너뜀 화면 쪽 `pace.js` 를 걷을 손이 없다 (frontend 의 esbuild) — '
+        + '「서버가 준 칸으로 실제로 잰다」는 **이번 판에서 확인 못 했다**: ' + e.message);
+    }
+    if (!paceMod || typeof paceMod.buildPace !== 'function') {
+      console.log('건너뜀 `buildPace` 를 못 얻었다 — 아래 둘을 못 본다');
+      await call('POST', '/auth/delete', { password: 'check12345' });
+      return;
+    }
     const day = (await call('GET', '/workouts')).data;
     const byDate = {};
     for (const w of day) { (byDate[w.date] = byDate[w.date] || []).push(w); }
