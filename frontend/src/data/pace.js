@@ -58,7 +58,9 @@ export function median(nums) {
  *   count     기록 수
  */
 export function paceOf(list) {
-  const stamps = (list || []).map(at).filter((t) => t !== null).sort((a, b) => a - b);
+  // **모양을 믿지 않는다** — 날짜 칸에 배열이 아닌 것이 들어오면 `.map` 에서 터진다.
+  // 이 파일 101행이 이미 `Array.isArray` 로 막고 있었는데 여기만 약했다 (2026-11-19 · 정석 2차)
+  const stamps = (Array.isArray(list) ? list : []).map(at).filter((t) => t !== null).sort((a, b) => a - b);
   if (stamps.length < MIN_RECORDS) return { usable: false, why: 'few', count: stamps.length };
 
   const spanMs = stamps[stamps.length - 1] - stamps[0];
@@ -167,7 +169,9 @@ export function 운동별평소(workouts, name, today, days = BASELINE_DAYS) {
     const 거리 = daysBetween(date, today);
     if (!Number.isFinite(거리) || 거리 < 0 || 거리 > days) continue;
 
-    const stamps = (list || [])
+    // 위와 같다 — **모양을 믿지 않는다**(2026-11-19 · 정석 2차). 새 함수가 이 파일의
+    // 약한 쪽(61행)을 베꼈는데, 101행은 이미 `Array.isArray` 로 막고 있었다
+    const stamps = (Array.isArray(list) ? list : [])
       .filter((r) => flatName(r?.exercise) === 나)
       .map(at)
       .filter((t) => t !== null)
