@@ -179,6 +179,12 @@ export const SETTINGS_KEYS = {
 // **그 기기의 것**이고 로그아웃해도 남긴다.
 export const REST_PER_EXERCISE_KEY = 'steelbody_rest_per_exercise';
 
+// 그 짐에 **없는 것** (`data/altExercise.js`, 2026-11-19 · 시안 1119 ③).
+//
+// 강남점에 레그 익스텐션이 없다는 것은 **그 헬스장 이야기**다 — 바 무게를 기기에 두는 것과
+// 같은 까닭이다(위 `BAR_KEY` 머리글). 짐 이름 → 없는 운동 이름들 의 표를 한 줄(JSON)로 담는다.
+export const GYM_MISSING_KEY = 'steelbody_gym_missing';
+
 // 휴식 알림 권한을 **물어본 적이 있나** (`data/restAlarm.js`).
 // 세트마다 묻지 않으려고 이 기기에 적어둔다 — 그 기기의 것이라 로그아웃해도 남긴다.
 // **여기 없었다** (2026-10-27): 이름을 모으는 파일인데 이 하나가 밖에만 있었다

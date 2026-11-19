@@ -6,6 +6,10 @@ import { toast } from '../components/Toast';
 import { confirmDialog } from '../components/ConfirmModal';
 import NavIcon from '../components/NavIcon';
 import { filledSlots, GYM_MAX } from '../data/gymSetting';
+// ③ 여기 없는 것 → 같은 부위로 (2026-11-19 · 시안 1119 ③)
+import { 없는것, 없다고적는다, 대체후보, SHOW as ALT_SHOW } from '../data/altExercise';
+import { useWorkoutStore } from '../store/workoutStore';
+import { useToday } from '../data/useToday';
 import { eul } from '../data/particle';
 import { MAX_GYMS } from '../data/limits';
 
@@ -95,10 +99,24 @@ export default function GymPage() {
 
   const [adding, setAdding] = useState(false);
   const [gymInput, setGymInput] = useState('');
+  // ③ 여기 없는 것 (2026-11-19). **기기에 둔다** — 「그 헬스장에 무엇이 없나」라서
+  // 바 무게와 같은 결이다(`localKeys.js` 의 `BAR_KEY` 머리글)
+  const [missInput, setMissInput] = useState('');
+  const [missVer, setMissVer] = useState(0);      // 표가 바뀌면 다시 그린다 (기기 저장이라 스토어가 안 본다)
+  const [altFor, setAltFor] = useState('');       // 무엇을 대신할지 — 사람이 누른 그것
 
   // 지금 고른 헬스장 것과 나머지를 가른다.
   // **다른 곳 것도 보여준다** — 「저쪽에서는 몇 번이었지」가 실제로 궁금한 순간이 있다
   const here = useMemo(() => all.filter((s) => s.gym === gym), [all, gym]);
+  // ③ 차례는 **그 사람의 기록**에서 받는다 (`liftTrend.liftNames` — 통계가 쓰는 그 손).
+  // 기록이 바뀔 때만 다시 센다 — 사전 221개를 매번 훑을 자리가 아니다
+  const workouts = useWorkoutStore((s) => s.workouts);
+  const today = useToday();
+  const missing = useMemo(() => 없는것(gym), [gym, missVer]);
+  const alts = useMemo(
+    () => (altFor ? 대체후보(altFor, { gym, workouts, today }) : []),
+    [altFor, gym, workouts, today, missVer],
+  );
 
   // 칩 줄에 그릴 곳. **지금 고른 곳이 서버 목록에 없으면 더한다** —
   // 방금 만들어 세팅이 0개인 곳이 그렇다(위 머리 주석 1번)
@@ -303,6 +321,122 @@ export default function GymPage() {
                 : '고르면 「운동」 화면에서 그곳 세팅이 뜹니다'}
             </div>
           </div>
+
+          {/* ── ③ 여기 없는 것 ── (2026-11-19 · 시안 1119 ③)
+              기구 쪽에 있던 것은 **조절값**뿐이었다(시트 · 발판 · 그립) — 「그 짐에 무엇이
+              없나」는 아무 데도 없었다. 그래서 루틴에 적어둔 것이 그 헬스장에 없으면
+              그 자리에서 폰으로 「허벅지 앞 운동」을 검색한다.
+              ★ **코치 노릇을 안 한다** — 「같은 부위 · 없다고 적지 않은 것」만 늘어놓고
+              고르는 것은 사람이다. 횟수 · 무게 · 몇 세트는 말하지 않는다 */}
+          {gym && (
+            <div className="card" style={{ marginBottom: 18 }}>
+              <div className="label" style={{ marginBottom: 7 }}>여기 없는 것</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
+                <span style={{ color: 'var(--accent)' }}>{gym}</span> 에 없는 기구·운동을 적어두면,
+                그걸 하려 할 때 <b style={{ color: 'var(--text-secondary)' }}>같은 부위로 할 수 있는 것</b>을 늘어놓습니다.
+                이 기기에만 남습니다.
+              </div>
+
+              {missing.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  {missing.map((name) => (
+                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      <button
+                        type="button"
+                        onClick={() => setAltFor(name)}
+                        style={{
+                          minHeight: 36, padding: '0 11px', fontFamily: 'inherit', fontSize: 12.5,
+                          background: altFor === name ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
+                          border: `1px solid ${altFor === name ? 'var(--accent)' : 'var(--border)'}`,
+                          color: altFor === name ? 'var(--accent)' : 'var(--text-secondary)',
+                          borderRadius: 'var(--radius)', cursor: 'pointer',
+                        }}
+                      >{name}</button>
+                      {/* 같은 것을 다시 적으면 **지운다**(있게 됐다는 뜻이다) —
+                          「다시 생겼어요」 단추를 따로 두지 않는다.
+                          **보이는 꼴은 작고 닿는 자리는 44** (`tap-box` · 11/19 맵시) */}
+                      <button
+                        type="button"
+                        className="tap-box"
+                        aria-label={`${name} 은 여기 있다고 되돌리기`}
+                        onClick={() => {
+                          없다고적는다(gym, name);
+                          if (altFor === name) setAltFor('');
+                          setMissVer((v) => v + 1);
+                          toast(`${name} 을 되돌렸어요`);
+                        }}
+                        style={{
+                          width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+                        }}
+                      >{/* NavIcon 에 「닫기」 그림이 없다 — 글자로 둔다 (지어내서 이름을 부르면
+                           그 자리가 빈 칸으로 그려진다 · `check-name` 이 못 잡는 류다) */}
+                        <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>&times;</span>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 7 }}>
+                <input
+                  className="input"
+                  aria-label="여기 없는 기구·운동"
+                  value={missInput}
+                  onChange={(e) => setMissInput(e.target.value)}
+                  placeholder="예: 레그 익스텐션"
+                  maxLength={60}
+                  style={{ flexGrow: 1, minWidth: 0 }}
+                />
+                <button
+                  className="btn-secondary"
+                  disabled={!missInput.trim()}
+                  onClick={() => {
+                    const name = missInput.trim();
+                    없다고적는다(gym, name);
+                    setMissInput('');
+                    setAltFor(name);
+                    setMissVer((v) => v + 1);
+                  }}
+                  style={{ flexShrink: 0, width: 'auto', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                >없다고 적기</button>
+              </div>
+
+              {/* 고른 것에 대한 대체 후보. **빈 배열이면 아무것도 안 그린다** —
+                  부위를 모르는 이름(사람이 지어 적은 것)에는 아무것도 권하지 않는다 */}
+              {altFor && (
+                <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 11 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                    <b>{altFor}</b> 대신 같은 부위로
+                  </div>
+                  {alts.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                      사전에서 부위를 못 알아봤어요 — 그래서 아무것도 권하지 않습니다.
+                      사전에 있는 이름으로 적으면 같은 부위를 늘어놓습니다.
+                    </div>
+                  ) : (
+                    <>
+                      {alts.map((a) => (
+                        <div key={a.이름} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0',
+                          borderBottom: '1px solid var(--border)', fontSize: 13,
+                        }}>
+                          <span style={{ overflowWrap: 'anywhere' }}>{a.이름}</span>
+                          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+                            {a.부위}{a.기구 ? ` · ${a.기구}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
+                        많이 하신 순입니다 · 많아야 {ALT_SHOW}개 · <b style={{ color: 'var(--text-secondary)' }}>고르는 것은 본인</b>입니다
+                        (횟수 · 무게는 말하지 않습니다)
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── 여기 세팅 ── */}
           {all.length === 0 ? (
