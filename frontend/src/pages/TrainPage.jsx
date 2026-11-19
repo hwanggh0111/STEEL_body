@@ -68,6 +68,29 @@ import { useSettingsStore } from '../store/settingsStore';
 
 const isBodyweight = (v) => v === '맨몸' || v === 'Bodyweight';
 
+/**
+ * **한쪽씩 적은 줄의 오른쪽 값을 글로.** 없으면 `''`.
+ *
+ * 오른쪽 칸은 **왼쪽과 다를 때만** 담기므로(서버가 같으면 안 만든다) 이 글이 뜨는
+ * 것 자체가 「좌우가 달랐다」는 뜻이다. 그런데 그것을 **값 칸에 같이 넣으면 안 된다** —
+ * 320px 폰에서 `22.5/20 × 3×10/8 왼/우` 가 그 칸에서 124px 을 가져가고, 고치기·지우기
+ * 단추 둘(60)과 틈(24)을 빼면 **이름에 46px** 만 남아 「벤치프레스」(65px)가 두 줄로
+ * 접힌다(2026-11-19 · 맵시가 폭을 재고 옮겼다). 그래서 **이름 아래 줄**에 적고,
+ * 자리가 넉넉하니 `왼/우` 같은 축약 없이 **사람 말로** 적는다.
+ *
+ * 한쪽만 다른 경우를 가른다 — 무게만 다르면 횟수를 또 적지 않는다(같은 수를 두 번
+ * 보면 다른 뜻인 줄 읽는다).
+ */
+function 오른쪽글(w) {
+  const 무게 = w.weight_r != null && String(w.weight_r) !== '';
+  const 횟수 = w.reps_r != null && String(w.reps_r) !== '';
+  if (!무게 && !횟수) return '';
+  const 쪽 = [];
+  if (무게) 쪽.push(isBodyweight(w.weight_r) ? '맨몸' : `${w.weight_r}kg`);
+  if (횟수) 쪽.push(`${w.reps_r}회`);
+  return '오른쪽 ' + 쪽.join(' × ');
+}
+
 // 머리 휴식 단추의 남은 시간. **이 숫자만 따로 구독한다** (2026-11-12).
 // 여태 화면 맨 위에서 `leftMs` 를 구독해 쉬는 동안 **운동 화면 전체가 1초마다
 // 다시 그려졌다** — 바뀌는 것은 이 글자 넉 자뿐이다. 운동하는 시간의 대부분이
@@ -806,7 +829,7 @@ export default function TrainPage() {
         // 틀린 말이고, 그 타이머가 아래 띠를 차지한다
         const started = asCardio
           ? false
-          : useRestTimerStore.getState().autoStartAfterSet(`${name} ${payload.sets}세트`);
+          : useRestTimerStore.getState().autoStartAfterSet(`${name} ${payload.sets}세트`, name);
         if (started) setShowTimer(true);
 
         await advance('done', name);
@@ -921,7 +944,7 @@ export default function TrainPage() {
       return;
     }
     primeAudio();
-    const started = useRestTimerStore.getState().autoStartAfterSet(`${item.name} ${next}세트`);
+    const started = useRestTimerStore.getState().autoStartAfterSet(`${item.name} ${next}세트`, item.name);
     if (started) setShowTimer(true);
   };
 
@@ -1353,7 +1376,7 @@ export default function TrainPage() {
             </span>
             <button
               onClick={stopEditing}
-              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', font: 'inherit' }}
+              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
             >그만두기</button>
           </div>
         )}
@@ -1620,7 +1643,7 @@ export default function TrainPage() {
               onClick={() => navigate('/gym')}
               style={{
                 background: 'none', border: 0, padding: '0 0 12px', marginTop: -4,
-                color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
@@ -1736,12 +1759,29 @@ export default function TrainPage() {
                 aria-expanded={false}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >+ 오른쪽이 다릅니다 (한쪽씩 하는 운동)</button>
             ) : (
               <div style={{ marginBottom: 10 }}>
-                <div className="label">오른쪽 — 비우면 왼쪽과 같아요</div>
+                {/* ── **펼친 뒤 닫는 길이 없었다** ── (2026-11-19 · 맵시)
+                    여는 단추는 펼치면 사라지고 접는 길이 아무 데도 없었다 — 잘못
+                    누른 사람은 **칸 둘을 계속 보며 적어야** 한다. 그리고 닫을 때는
+                    적은 것을 **비워야** 한다: 칸만 숨기고 값을 들고 있으면 안 보이는
+                    값이 저장되고, 그것은 **화면이 거짓말을 하는 것**이다 */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <div className="label" style={{ marginBottom: 5 }}>오른쪽 — 비우면 왼쪽과 같아요</div>
+                  <button
+                    type="button"
+                    onClick={() => { setSideOpen(false); setWeightR(''); setRepsR(''); }}
+                    aria-expanded
+                    style={{
+                      marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
+                      padding: '2px 0', color: 'var(--text-muted)', fontSize: 11.5,
+                      cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
+                    }}
+                  >접기</button>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: stepFloor(숫자칸자릿수), minWidth: 0 }}>
                     <NumberStep
@@ -1843,7 +1883,7 @@ export default function TrainPage() {
                 onClick={() => setPickDay(true)}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >지난 날짜에 적기</button>
             ) : (
@@ -1911,7 +1951,7 @@ export default function TrainPage() {
                 aria-expanded={false}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >{cardio ? '+ 메모' : '+ 메모 · 몇 개 더 할 수 있었나'}</button>
             ) : (
@@ -2149,8 +2189,16 @@ export default function TrainPage() {
               {/* 이름 아래에 **여유 · 메모** 한 줄 (2026-11-18). 없으면 줄 모양이 그대로다 */}
               <div style={{ flexGrow: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{w.exercise}</div>
-                {(w.rir || w.note) && (
+                {(w.rir || w.note || 오른쪽글(w)) && (
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
+                    {/* ── **오른쪽 값은 이름 줄이 아니라 이 줄에 적는다** ── (2026-11-19 · 맵시)
+                        값 칸(오른쪽 끝)에 `22.5/20 × 3×10/8 왼/우` 로 넣으면 320px 폰에서
+                        그 칸이 **124px** 을 가져가고, 단추 둘(60) · 틈(24) 을 빼면 **이름에
+                        46px** 만 남는다 — 「벤치프레스」(65px)가 **두 줄로 접힌다.**
+                        이 줄은 이미 긴 글을 받게 만들어 둔 자리다(`overflowWrap: anywhere`).
+                        여기서는 **짧은 꼬리표(`왼/우`) 없이 제대로** 적을 수 있다 */}
+                    {오른쪽글(w) && <span>{오른쪽글(w)}</span>}
+                    {오른쪽글(w) && (w.rir || w.note) && ' · '}
                     {w.rir && <span>여유 {w.rir}</span>}
                     {w.rir && w.note && ' · '}
                     {w.note && <span>{w.note}</span>}
@@ -2166,21 +2214,10 @@ export default function TrainPage() {
               <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
                 {isCardioRow(w)
                   ? cardioText(w)
-                  /* ── 한쪽씩 적은 줄은 **좌우를 다 보인다** ── (2026-11-19 · 시안 1119 ①)
-                     적어둔 것을 못 읽으면 적은 일이 헛것이 된다 — 11/19 오전의 그 중대(좁은
-                     폰에서 무게 칸이 비어 보였다)와 **같은 류**다. 오른쪽 칸은 **왼쪽과 다를
-                     때만** 담기므로(서버가 같으면 안 만든다), 이 줄이 보이는 것 자체가
-                     「좌우가 달랐다」는 뜻이다. 왼쪽/오른쪽은 **`왼 · 우` 로 짧게** 적는다 —
-                     폰 폭에서 「왼쪽 22.5kg × 3세트 × 10회 / 오른쪽 …」은 한 줄에 안 든다 */
-                  : <>
-                    {isBodyweight(w.weight) ? '맨몸' : `${w.weight}`}
-                    {w.weight_r != null && <>{'/'}{isBodyweight(w.weight_r) ? '맨몸' : `${w.weight_r}`}</>}
-                    {' '}&times; {w.sets}&times;{w.reps}
-                    {w.reps_r != null && <>{'/'}{w.reps_r}</>}
-                    {(w.weight_r != null || w.reps_r != null) && (
-                      <span style={{ color: 'var(--text-muted)' }}> 왼/우</span>
-                    )}
-                  </>}
+                  /* 한쪽씩 적은 줄의 **오른쪽 값은 이름 아래 줄**에 있다 (위 `오른쪽글`).
+                     이 칸에 같이 넣으면 이름 자리가 46px 로 줄어 **이름이 접힌다**
+                     (2026-11-19 · 맵시가 폭을 재고 옮겼다) */
+                  : <>{isBodyweight(w.weight) ? '맨몸' : `${w.weight}`} &times; {w.sets}&times;{w.reps}</>}
               </span>
 
               {/* ── 고치기 · 지우기 ── (2026-09-18)

@@ -150,7 +150,7 @@ function 훑기(code, file, 가로클래스) {
   // `null` 로 둔다 — 모르는 것을 「없다」로 읽으면 거짓 FAIL 이 난다
   function 스타일(el) {
     const attrs = el.openingElement ? el.openingElement.attributes : [];
-    const out = { 있나: false, 값: {}, 모름: new Set(), 퍼짐: false };
+    const out = { 있나: false, 값: {}, 모름: new Set(), 퍼짐: false, 순서: [] };
     for (const a of attrs) {
       if (a.type !== 'JSXAttribute' || !a.name || a.name.name !== 'style') continue;
       const v = a.value;
@@ -163,6 +163,7 @@ function 훑기(code, file, 가로클래스) {
         if (p.type !== 'ObjectProperty') continue;
         const k = p.key.name || p.key.value;
         const val = p.value;
+        out.순서.push(k);
         if (val.type === 'StringLiteral') out.값[k] = val.value;
         else if (val.type === 'NumericLiteral') out.값[k] = val.value;
         else out.모름.add(k);
@@ -319,6 +320,26 @@ function 훑기(code, file, 가로클래스) {
       const 줄박힘 = /^[\d.]+px$/.test(String(s.값.lineHeight ?? ''));
       if (높이박힘 && 줄박힘 && 글이드나(node)) {
         결과.push({ file, line: node.loc.start.line, 빠진것: ['minHeight'], 류: '글묶음' });
+      }
+
+      // ── ⑹ **단축 `font` 가 앞에 적은 글자 크기를 지웠다** ── (2026-11-19 · 맵시)
+      //
+      // 단추의 기본 꼴을 지우려고 `font: 'inherit'` 을 적는다. 그런데 **`font` 는
+      // 단축 속성**이라 `font-size`·`font-weight`·`letter-spacing`·`line-height` 를
+      // **안 적은 칸까지 되돌린다.** 그래서 `{ fontSize: 11.5, …, font: 'inherit' }`
+      // 처럼 **뒤에 오면 그 11.5 가 조용히 사라지고** 상속 크기(15px)로 커진다.
+      //
+      // 11/19 에 여섯 자리가 그 꼴이었다(전부 `TrainPage` 의 작은 글씨 단추 —
+      // 「그만두기」 · 「+ 오른쪽이 다릅니다」 · 「접기」 …). **화면은 멀쩡해 보인다** —
+      // 그 글씨가 작아야 한다는 것을 아는 사람만 안다. 뜻이 「글꼴만 상속」이면
+      // `fontFamily: 'inherit'` 이 맞다.
+      const 단축자리 = s.순서.indexOf('font');
+      if (단축자리 >= 0) {
+        const 지워지는것 = ['fontSize', 'fontWeight', 'letterSpacing', 'fontFamily', 'lineHeight', 'fontStyle'];
+        const 앞에있는것 = s.순서.slice(0, 단축자리).filter((k) => 지워지는것.includes(k));
+        if (앞에있는것.length) {
+          결과.push({ file, line: node.loc.start.line, 빠진것: 앞에있는것, 류: '글꼴단축' });
+        }
       }
 
       // ── ⑸ **크기를 박은 동그란 단추는 폰에서 달걀이 된다** ── (2026-11-18 · 맵시)
@@ -553,6 +574,27 @@ const 되돌려꼴 = [
     기대: [],
   },
   {
+    이름: '11/19 의 작은 단추 꼴 — `font: inherit` 이 앞의 `fontSize` 를 지운다',
+    code: `const A = () => (
+  <button style={{ background: 'none', color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit' }}>접기</button>
+);`,
+    기대: ['fontSize'],
+  },
+  {
+    이름: '  `font` 가 먼저면 뒤의 크기가 산다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button style={{ font: 'inherit', fontSize: 11.5, color: 'var(--text-muted)' }}>접기</button>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  `fontFamily` 로 적으면 아무것도 안 지운다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button style={{ fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit' }}>접기</button>
+);`,
+    기대: [],
+  },
+  {
     이름: '11/19 의 기록 줄 꼴 — 네모 30 단추가 `tap-box` 를 안 들었다 (지우려다 고치기)',
     code: `const A = () => (
   <button aria-label="지우기" style={{ width: 30, height: 30, flexShrink: 0, padding: 0 }}>
@@ -733,6 +775,17 @@ console.log('\n── 폰에서 세로로 늘어나는 작은 단추가 없는�
     for (const r of 늘어남) console.log('         ' + r.file + ':' + r.line + '  → ' + r.빠진것.join(' · '));
     console.log('       → 그 표를 붙이세요. 폰은 단추 **높이만** 44 로 키우고 **폭은 그대로**라');
     console.log('         꼴이 찌그러지고(30×44) 과녁이 좁아 **옆 단추가 눌립니다**.');
+  }
+}
+
+console.log('\n── 단축 `font` 가 글자 크기를 지우지 않는가 ──');
+{
+  const 단축 = 모두.filter((r) => r.류 === '글꼴단축');
+  ok('`font: inherit` 이 앞에 적은 글자 크기를 지우지 않는다',
+    단축.map((r) => r.file + ':' + r.line + ' (' + r.빠진것.join('·') + ')'), []);
+  if (단축.length) {
+    console.log('       → `font` 는 **단축 속성**이라 안 적은 칸을 기본값으로 되돌립니다.');
+    console.log('         글꼴만 물려받으려면 `fontFamily` 로 적으세요.');
   }
 }
 
