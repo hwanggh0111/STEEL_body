@@ -7,6 +7,7 @@
     "dev": "nodemon src/index.js",
     "check": "node ../scripts/run-checks.cjs",
     "angle": "node scripts/check-angle.cjs",
+    "invisible": "node scripts/check-invisible.cjs",
     "storage": "node scripts/check-storage.cjs",
     "owner": "node scripts/check-owner.cjs",
     "backup": "node scripts/backup.cjs",

@@ -3,6 +3,10 @@
  * HTML 태그, 이벤트 핸들러, javascript: URI, 위험 패턴 모두 제거
  */
 
+// 보이지 않는 글자 표는 `utils/invisible.js` **한 자리**다 (2026-11-19 · 정석).
+// 꼴을 보는 손(`tagLike`)도 **먼저 지우고** 본다 — 그 아래 머리글에 까닭이 있다
+const { stripInvisible } = require('./invisible');
+
 // 위험 패턴 (이벤트 핸들러, javascript URI, 스크립트 관련)
 const DANGEROUS_PATTERNS = [
   /on\w+\s*=/gi,           // onerror=, onclick=, onfocus= 등
@@ -34,6 +38,10 @@ function sanitize(str) {
     let decoded = decodeURIComponent(clean);
     while (decoded !== clean) { clean = decoded; decoded = decodeURIComponent(clean); }
   } catch {}
+  // 보이지 않는 글자를 **태그를 떼기 전에** 걷는다 (2026-11-19 · 정석).
+  // 안 걷으면 `<` U+200B `img src=x>` 가 태그 떼기를 피해 그대로 남고,
+  // U+200B 만으로 된 **이름 없는 줄**이 운동 · 루틴 · 계획 목록에 생긴다
+  clean = stripInvisible(clean);
   // ── 1단계: **태그 모양만** 지운다 ── (2026-11-03 에 고쳤다)
   //
   // 여태 `[<>"'&`]` 를 **글자째 지웠다.** 태그를 막으려던 것인데, 사람이 적은 글을
@@ -172,11 +180,11 @@ function cleanName(raw, maxLen) {
 //   제어 문자 (줄바꿈 · 탭은 남긴다)
 //   방향을 뒤집는 글자 (U+202A–202E · U+2066–2069) — 남의 닉네임 옆에서 글을 거꾸로 보이게 해
 //   다른 사람이 쓴 것처럼 꾸밀 수 있다
-const INVISIBLE = /[ --‪-‮⁦-⁩]/g;
+// 좁은 표는 `utils/invisible.js` 한 자리로 옮겼다 (2026-11-19 · 정석) — 닉네임 쪽 표와 선이 둘이어서 류가 반만 닫혀 있었다
 
 function plainText(str) {
   if (typeof str !== 'string') return '';
-  return str.replace(INVISIBLE, '').replace(/\s+/g, ' ').trim();
+  return stripInvisible(str).replace(/\s+/g, ' ').trim();
 }
 
 // 여러 줄. 줄마다 공백을 정리하고 줄바꿈은 살린다 — sanitizeMultiline 과 같은 모양이다
@@ -246,9 +254,21 @@ function sanitizeObj(obj) {
 // 거절하지 않기로 한 것을 조용히 잘라내면 11/03 의 그 자리로 돌아간다.
 const TAG_LIKE = /<[/!?a-zA-Z]/;
 
+// ── **먼저 지우고 본다** ── (2026-11-19 · 정석)
+//
+// 여태 이 손은 **날것**을 봤다. 그래서 꺾쇠 바로 뒤에 보이지 않는 글자 하나를 끼우면
+// 「꺾쇠는 거절하고 까닭을 말한다」는 선(11/17)을 그냥 넘어갔다 —
+//
+//   `<` U+200B `img src=x>` → 통과 → 뒤에서 지우는 손이 **`<img src=x>` 로 되살렸다**
+//   U+FEFF · U+00AD · U+3164 · U+2060 · U+200E 를 끼운 꼴도 모두 같다
+//
+// 이 손을 부르는 자리가 **열세 곳**이다(닉네임 세 길 · 운동 이름 둘 · 루틴 넷 · 계획 ·
+// 체육관 · 메모 둘 · CSV 가져오기). 자리마다 순서를 고치면 또 어긋나므로 **여기 한 자리**
+// 에서 지운 뒤에 본다. `L < R` 은 그대로 통과한다 — 지우는 것은 보이지 않는 글자뿐이다.
+
 /** 태그처럼 읽히는 꼴이 있나 — `<` 뒤에 영문자 · `/` · `!` · `?` */
 function tagLike(raw) {
-  return typeof raw === 'string' && TAG_LIKE.test(raw);
+  return typeof raw === 'string' && TAG_LIKE.test(stripInvisible(raw));
 }
 
 /** 그때 사람에게 적어주는 말. **한 자리에만** 둔다 (화면도 서버 말을 그대로 보여준다) */

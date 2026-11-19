@@ -100,7 +100,7 @@ const WORKOUT_NOTE_MAX = 40;
 const RIR_VALUES = ['0', '1~2', '3+'];
 
 // 닉네임과 같은 자로 **보이지 않는 글자**만 걷는다 — 메모도 화면이 글자로 그린다
-const { NICK_INVISIBLE } = require('./nickname');
+const { tidy: tidyName } = require('./nickname');
 const { tagLike, ANGLE_WHY } = require('./sanitize');
 
 function normalizeNote(raw) {
@@ -108,9 +108,14 @@ function normalizeNote(raw) {
   if (raw === null || raw === '') return { ok: true, value: null };
   if (typeof raw !== 'string') return { ok: false, why: '메모는 글로 적어주세요' };
   // 꺾쇠 뒤에 글자가 붙으면 거절한다 — 닉네임 · 운동명과 같은 선 (11/17)
+  //
+  // **지우기 전에 보면 안 된다** (2026-11-19 · 정석). 꺾쇠 뒤에 보이지 않는 글자 하나를
+  // 끼우면 이 선을 넘어가고, 그 뒤 지우는 손이 `<img src=x>` 를 되살려 저장했다.
+  // 닉네임(`utils/nickname.js` 머리글)과 같은 결함이고 같은 순서로 고친다 — **지운 뒤**에 본다.
   if (tagLike(raw)) return { ok: false, why: ANGLE_WHY };
-  const v = raw.replace(NICK_INVISIBLE, '').replace(/[\t\r\n]+/g, ' ').trim();
+  const v = tidyName(raw);
   if (!v) return { ok: true, value: null };
+  if (tagLike(v)) return { ok: false, why: ANGLE_WHY };
   if (v.length > WORKOUT_NOTE_MAX) return { ok: false, why: `메모는 ${WORKOUT_NOTE_MAX}자까지 적을 수 있어요` };
   return { ok: true, value: v };
 }
