@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 시안 여섯 · 11/19</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (vite.config.js 의 devPreviewPlugin 머리글).
+     시안은 배포하지 않는다 — /dev/sian/<날짜>/ 에 둔다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .sub { color:var(--t2); margin:0; max-width:90ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:20px 24px 32px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  .note { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .note b { color:var(--t1); font-weight:600; }
+  .note code { color:var(--gold); font-size:12px; }
+  .cost { color:var(--warn); }
+  .fb { border-left:2px solid var(--new); padding-left:10px; margin-top:8px; }
+  a { color:var(--gold); }
+  @media (max-width:440px) { header, .row { padding-left:16px; padding-right:16px; } .col { flex-basis:100%; } iframe { width:100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 시안 <em>여섯</em> · 11/19</h1>
+  <p class="sub">주인: 「기능 시안 만들어서 보여줘」. <b>파란 점선</b>이 새로 붙는 자리, 화면 속 숫자는 예시다.
+    옆으로 넘겨 본다. <a href="/dev">← 개발 미리보기</a> · <a href="../1118b/">11/18 기능 시안 열</a> · <a href="../1118/">11/18 이름 시안</a></p>
+  <p class="sub" style="margin-top:10px;border-left:2px solid #d29a5f;padding-left:12px">
+    <b style="color:#d29a5f">★ 여섯 다 코드에서 먼저 셌다.</b>
+    11/17 에 <b style="color:#eae4d6">이미 있는 것을 없다고 읽어</b> 둘을 철회했고, 11/18 에도 ②가 또 그랬다(결산이 이미 재고 있었다).
+    그래서 이번에는 떠오른 것을 <b style="color:#eae4d6">코드에서 낱말 130개로 먼저 세어</b>, 이미 있는 것을 <b style="color:#eae4d6">스물 넘게 버렸다</b> —
+    원판 계산(<code>plateMath.js</code>) · 워밍업 계단(<code>setPlan.js</code>) · 다음 무게(<code>nextSet.js</code>) ·
+    기록을 다른 날로 옮기기(<code>TrainPage.jsx:1314</code> 「→ 로 옮깁니다」) · 내 기록 검색(<code>searchMine.js</code>) ·
+    자주 하는 것(<code>liftTrend.liftNames</code>) · 오프라인 대기(<code>workoutStore.queue</code>) ·
+    요일 알림 · 되돌리기(<code>undoRow.js</code>) · 이 날을 루틴으로(<code>dayRoutine.js</code>) · 1RM · 슈퍼세트 · 드롭세트 …
+    <b style="color:#eae4d6">전부 이미 있다.</b> 아래 여섯만 <b>한 자도 없었다</b> — 각 칸의 「센 것」이 그 증거다.<br>
+    <b style="color:#d29a5f">정석 · 맵시의 판정을 받기 전이다.</b> 내 권고 순서: <b>출시 전 — ① 한쪽씩(거절만 하고 받을 칸이 없다) → ② 운동마다 쉬는 시간(기기 값 하나뿐).</b>
+    <b style="color:#eae4d6">출시 뒤 — ⑥ 전부 받기(계정 삭제와 한 쌍) · ③ 대체 운동 · ④ 건강 앱 · ⑤ 지문.</b></p>
+</header>
+
+<div class="row">
+  <div class="col">
+    <div class="cap">① 세트 — 한쪽씩 적기<small>왼쪽 · 오른쪽을 따로 받는다</small></div>
+    <iframe src="Side.html" title="① 한쪽씩 적기"></iframe>
+    <div class="note"><b>센 것:</b> 기록 줄의 칸은 <code>date exercise weight sets reps minutes distance_km note rir</code> —
+      <b>좌우를 가를 칸이 0개다.</b> <code>왼쪽만</code> · <code>unilateral</code> 0곳.<br>
+      <b>이미 있는 증거:</b> 몸 치수는 <b>왼팔둘레 · 오른팔둘레</b>를 따로 받는다(<code>measure/BodySizeSection.jsx:13</code>).
+      치수는 좌우를 아는데 <b>적는 자리만 한 칸</b>이다.
+      <div class="fb"><b>왜 지금:</b> 11/17 에 <b>「L&lt;R 불균형」을 이름에 쓰면 거절</b>하게 만들었다(꺾쇠를 조용히 자르던 버그).
+        거절은 맞지만 <b>받을 칸을 안 줬다</b> — 사람은 그 말을 어디에도 못 적는다. 거절만 있고 길이 없는 자리는 다시 돌아온다.</div>
+      <div class="cost">값: 세트에 칸 둘(<code>weight_r</code> · <code>reps_r</code>) · 가져오기 · 내보내기(CSV) · 통계 묶는 손 · 검사 넷 넓히기.
+        기본은 <b>한 칸</b>(좌우 같으면 지금과 똑같다) · <b>권하는 첫째</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">② 휴식 — 운동마다 다르게<small>스쿼트 3분 · 컬 1분</small></div>
+    <iframe src="RestPer.html" title="② 운동마다 쉬는 시간"></iframe>
+    <div class="note"><b>센 것:</b> 휴식 길이는 <b>기기에 하나</b>다 — <code>REST_KEYS.duration</code>(<code>localKeys.js:143</code>).
+      운동 이름으로 나뉘는 자리가 <code>restTimerStore.js</code> 에 0곳.<br>
+      스쿼트에 3분을 맞춰두면 <b>컬에서도 3분을 기다린다.</b> 그래서 사람이 매번 다시 돌린다.
+      <div class="fb"><b>새로 재지 않는다:</b> 평소 쉬는 시간은 <b>이미 잰다</b> — 결산 「늘어졌나」가 기록 사이 간격으로
+        센다(<code>data/pace.js:117</code>). 그 값을 <b>권하지 않고</b> 칸 아래 사실로만 둔다(「스쿼트에서 평소 2분 50초」) —
+        앱이 「3분 쉬세요」라고 말하면 코치 노릇이 된다.</div>
+      <div class="cost">값: 기기에 운동별 표 하나(서버 0줄) · 휴식 화면 한 칸 · 설정 화면 한 줄</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">③ 기구 — 내 짐에 있는 것<small>없으면 같은 부위로 바꿔 준다</small></div>
+    <iframe src="Gear.html" title="③ 대체 운동"></iframe>
+    <div class="note"><b>센 것:</b> <code>대체 운동</code> 0곳. 기구 쪽에 있는 것은 <b>조절값</b>뿐이다 —
+      시트 · 발판 · 그립(<code>gymSetting.js</code>). <b>「그 짐에 무엇이 있나」는 아무 데도 없다.</b><br>
+      <b>자료를 새로 안 만든다:</b> 부위는 사전(<code>exercisePart.js</code>) · 기구는 <code>EXERCISE_GEAR</code>(바/바 없음, 사전에서 뽑은 파일)에서 읽는다.
+      <div class="fb"><b>코치 노릇 선:</b> 「같은 부위 · 당신 짐에 있는 것」만 늘어놓고 <b>고르는 것은 사람</b>이다.
+        횟수 · 무게는 말하지 않는다. 11/18 에 ⑥ 마무리 스트레칭이 반려된 선(「몇 초 하라는 것은 다치는 자리」)을 넘지 않는다.</div>
+      <div class="cost">값: 짐마다 기구 목록 하나(서버 칸 · 헬스장별) · 고르는 화면 하나 · 사전 쪽 0줄</div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">④ 건강 앱 — 내보내기<small>지금은 받아만 온다</small></div>
+    <iframe src="HealthOut.html" title="④ 건강 앱에 내보내기"></iframe>
+    <div class="note"><b>센 것:</b> <code>data/healthLink.js</code> 머리글이 그대로 적어뒀다 — <b>「체중·체지방률을 가져온다」.</b>
+      쓰기 권한 0곳.<br>
+      그래서 <b>삼성헬스 · 구글 핏에는 운동한 날이 빈칸</b>이다. 헬스장에 두 시간 있었는데 건강 앱은 그날을 모른다.
+      <div class="fb"><b>적게 보낸다:</b> 끝낼 때 <b>한 줄</b>만 — 언제부터 언제까지 · 근력 운동.
+        <b>무게 · 횟수 · 운동 이름은 안 보낸다</b>(건강 앱 운동 칸에 담을 자리가 없고, 밖으로 나가는 값은 적을수록 맞다).
+        시작·끝 시각은 결산이 쓰는 <code>pace</code> 가 이미 갖고 있다.</div>
+      <div class="cost">값: 안드로이드 쪽 쓰기 권한 하나 · 켜고 끄는 줄 하나 · 서버 0줄 · <b>12/24 뒤</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑤ 잠금 — 지문으로 풀기<small>네 자리는 그대로 둔다</small></div>
+    <iframe src="Bio.html" title="⑤ 지문으로 풀기"></iframe>
+    <div class="note"><b>센 것:</b> 잠금은 <b>네 자리 숫자뿐</b>이다(<code>PIN_LEN</code> · <code>appLock.js</code>).
+      <code>생체</code> · <code>Biometric</code> 0곳.<br>
+      앱을 열 때마다 네 자리를 치는 사람은 결국 <b>잠금을 끈다.</b> 지문은 그보다 빠르고, 네 자리는 <b>지문이 안 될 때 남는 길</b>로 그대로 둔다.
+      <div class="fb"><b>솔직하게 — 이 여섯 중 가장 비싸다.</b> 웹 쪽만으로는 안 되고 <b>안드로이드 쪽 손</b>(생체 인증 플러그인)이 든다.
+        잠금 값은 기기에 있으니(<code>localKeys</code>) 서버는 0줄이지만, <b>스토어 심사에 쓰는 권한 하나가 는다.</b>
+        <b>12/24 전에는 권하지 않는다.</b></div>
+      <div class="cost">값: 안드로이드 플러그인 하나 · 잠금 화면 단추 하나 · 설정 한 줄 · 서버 0줄 · <b>12/24 뒤</b></div></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">⑥ 내 기록 — 전부 한 묶음으로<small>메모 · 루틴 · 사진은 받을 길이 없다</small></div>
+    <iframe src="TakeAll.html" title="⑥ 전부 받기"></iframe>
+    <div class="note"><b>센 것:</b> 내보내는 길은 <b>셋</b>이다 — 운동 · 인바디 · 측정 CSV(<code>routes/export.js</code>).
+      <b>메모 · 그날 메모 · 내 루틴 · 기구 세팅 · 사진은 길이 0개다.</b>
+      통째로 받는 길(<code>export.js:103</code>)은 <b>관리자만</b> 쓴다.
+      <div class="fb"><b>왜 이것이 기능인가:</b> 계정은 <b>30일 유예 뒤 지워진다</b>(8/31 주인 결정).
+        고객센터는 「기록이 사라지면 서버에 있습니다」라고 답하는데, <b>지우기 전에 전부 꺼낼 길이 없다.</b>
+        스토어 개인정보 방침에도 「받아갈 수 있다」가 들어간다.</div>
+      <div class="cost">값: 묶어 주는 길 하나(서버) · 설정 화면 한 칸 · 사진은 <b>무거워서 따로 고르게</b> 한다</div></div>
+  </div>
+</div>
+</body>
+</html>
