@@ -110,6 +110,106 @@ for (const st of ['inbodyStore', 'workoutStore', 'noteStore', 'goalStore', 'gymS
   ok(`${st} 에 못 받음 깃발이 있다`, /failed/.test(src), true);
 }
 
+
+console.log('');
+console.log('── ★ 모집단 — 로딩 문구를 가진 화면 전수 ──');
+// ── **자가 류를 닫았다고 적고 파일 넷만 보고 있었다** ── (2026-11-19 · 정석)
+//
+// 위의 것들은 11/09 에 터진 **그 네 자리를 이름으로** 본다. 그런데 이 류
+// (「상태가 셋인데 분기가 둘」)는 **앱 전체**에 있다 — 로딩 문구를 코드에 가진 화면이
+// **스물다섯**이고, 자가 이름으로 보는 것은 **넷**이었다. 나머지 스물하나는 지금은
+// 멀쩡하지만 **자 밖**이라, 새로 어긋나거나 **새 화면이 붙으면** 아무도 모른다
+// (어제만 해도 한 줄 메모 · 좌우 칸 · 묶음 받기 세 화면이 붙었다).
+//
+// 그래서 **모집단을 이름으로 들지 않고 걸어서 센다.** 로딩 문구가 코드에 있으면
+// 그 화면은 **못 받음도 말할 수 있어야** 한다. 글자를 세는 자다 — 실패를 일부러
+// 만들어야 보이는 것이라 화면으로는 확인할 수 없다(위 머리글과 같은 까닭).
+//
+// **예외는 까닭과 함께 적고, 자가 그 까닭이 아직 참인지 확인한다** — 예외 목록만
+// 적어두면 그 목록이 썩는다(「없어진 예외」를 11/17 에 `check-corner` 가 잡았다).
+{
+  const 로딩말 = /불러오는 중|로딩 중|받는 중|받아오는 중/;
+  const 못받음표 = /failed|Failed|error|Error|못 불러|못 받|다시 받기|다시 해보|다시 읽기|다시<|retry/;
+
+  // 까닭이 있는 예외 — **그 까닭이 코드에 아직 있는지**까지 본다
+  const 예외 = {
+    'components/WeightChart.jsx': {
+      why: '`lazy` + `Suspense` 의 미리 잡아둔 자리다 — 조각 받기가 실패하면 '
+        + 'App 의 `ErrorBoundary` 가 받아 한 번 새로 받는다(그쪽이 이 류의 셋째 상태다)',
+      아직참인가: (글) => /lazy\(/.test(글) && /Suspense/.test(글),
+    },
+    'components/admin/BackupAdmin.jsx': {
+      why: '내려받기 **단추 글자**다(`busy ? …`). 실패는 토스트로 말하고, '
+        + '그 뒤 남는 화면은 단추뿐이라 **거짓을 말하지 않는다** — 관리자 화면이다',
+      아직참인가: (글) => /\.catch\(/.test(글) && /toast\(/.test(글),
+    },
+  };
+
+  const 파일들 = (d, out = []) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) 파일들(p, out);
+      else if (/\.jsx$/.test(e.name)) out.push(p);
+    }
+    return out;
+  };
+
+  const SRC = path.join(ROOT, 'src');
+  const 모집단 = [];
+  for (const f of 파일들(SRC)) {
+    const 글 = fs.readFileSync(f, 'utf8');
+    if (!로딩말.test(codeOf(글))) continue;      // 주석·상수에만 있으면 모집단이 아니다
+    모집단.push({ 자리: path.relative(SRC, f).replace(/\\/g, '/'), 글 });
+  }
+
+  // **셈 0 은 통과가 아니다** — 걷다 실패하면 「전부 통과」로 보인다
+  ok('로딩 문구를 가진 화면을 찾았다 (셈 0 은 통과가 아니다)', 모집단.length > 0, true);
+  console.log('       모집단 ' + 모집단.length + '개');
+
+  const 샌것 = [];
+  for (const r of 모집단) {
+    if (못받음표.test(codeOf(r.글))) continue;
+    const e = 예외[r.자리];
+    if (e && e.아직참인가(r.글)) continue;
+    샌것.push(r.자리 + (e ? ' (예외인데 그 까닭이 코드에서 사라졌다)' : ''));
+  }
+  ok('로딩을 말하는 화면은 **못 받음도 말한다**', 샌것, []);
+  if (샌것.length) {
+    console.log('       → 「받는 중」만 있고 「못 받았어요」가 없으면, 못 받은 순간');
+    console.log('         그 화면은 **영영 받는 중이라고 말한다**(11/09 의 그 자리).');
+    console.log('         상태로 남겨야 한다 — 토스트는 몇 초 뒤 사라진다.');
+  }
+  for (const [자리, e] of Object.entries(예외)) {
+    const r = 모집단.find((x) => x.자리 === 자리);
+    ok('  예외 「' + 자리 + '」 의 까닭이 아직 참이다', !r || e.아직참인가(r.글), true);
+  }
+  console.log('       예외 둘 — ' + Object.entries(예외).map(([k, v]) => k + ': ' + v.why.slice(0, 40) + '…').join(' · '));
+}
+
+// ── 되돌려 FAIL — 가짜 화면을 먹여 모집단 자가 사는지 본다 ──
+if (process.argv.includes('--되돌려')) {
+  console.log('');
+  console.log('── 되돌려 FAIL — 가짜 화면 둘을 먹인다 ──');
+  const 로딩말 = /불러오는 중|로딩 중|받는 중|받아오는 중/;
+  const 못받음표 = /failed|Failed|error|Error|못 불러|못 받|다시 받기|다시 해보|다시 읽기|다시<|retry/;
+  const 잡나 = (글) => 로딩말.test(codeOf(글)) && !못받음표.test(codeOf(글));
+  const 꼴 = [
+    ['로딩만 있고 못 받음이 없는 화면을 잡는다',
+      잡나('export default function X(){ return loading ? <p>불러오는 중…</p> : <L/>; }'), true],
+    ['  못 받음까지 가린 화면은 안 잡는다',
+      잡나('export default function X(){ return loading ? <p>불러오는 중…</p> : failed ? <p>못 불러왔어요</p> : <L/>; }'), false],
+    ['  「불러오는 중」이 **주석에만** 있으면 모집단이 아니다',
+      로딩말.test(codeOf('// 여기서 불러오는 중 을 적었다\nexport default function X(){ return <L/>; }')), false],
+  ];
+  let 샌것 = 0;
+  for (const [이름, 받은것, 기대] of 꼴) {
+    const 집었다 = 받은것 === 기대;
+    if (!집었다) { 샌것 += 1; bad += 1; }
+    console.log((집었다 ? 'OK   잡는다: ' : 'FAIL 샌다  : ') + 이름 + ' → ' + JSON.stringify(받은것));
+  }
+  console.log(샌것 ? '  ↑ **가짜를 못 집었다.** 이 자는 모집단을 못 지킨다' : '  가짜 ' + 꼴.length + '개를 다 집었다');
+}
+
 console.log('');
 if (bad > 0) { console.log(bad + '건 실패'); process.exit(1); }
 console.log('다 통과');
