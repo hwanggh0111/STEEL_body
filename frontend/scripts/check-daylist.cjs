@@ -105,6 +105,39 @@ console.log(NL + '── 담는 쪽과 짝인가 ──');
   본다('읽는 쪽을 찾았다', !!읽는쪽, true);
   본다('담는 쪽이 줄 묶음인지 본다', !!담는쪽 && /Array\.isArray\(/.test(담는쪽[0]), true);
   본다('읽는 쪽도 본다 (한쪽만 보면 또 샌다)', !!읽는쪽 && /Array\.isArray\(/.test(읽는쪽[0]), true);
+
+  // ── ★ **문이 둘인데 자가 하나만 보고 있었다** ── (2026-11-19 · 정석 2차)
+  //
+  // 날짜 묶음이 화면으로 들어오는 길은 **둘**이다 —
+  //
+  //     기기에 담아둔 것   `readCache()`                    ← 이 자가 보던 문
+  //     서버에서 온 것     `mergeQueue(server, queue)`      ← **안 보고 있었다**
+  //       (`store/workoutStore.js` 의 `set({ workouts: mergeQueue(…) })`)
+  //
+  // 지금은 `mergeQueue` 도 `Array.isArray(items) ? […items] : []` 로 막고 있어 **구멍은
+  // 없다.** 그런데 **자가 그것을 안 보므로**, 누가 그 한 줄을 지우면 스물여덟 자리가
+  // 다시 무방비가 되고 **아무 자도 안 운다.** 「뿌리에서 막았다」는 말은 **그 뿌리가
+  // 지켜질 때만** 참이다.
+  //
+  // 아침에 `check-threestate` 가 파일 넷만 이름으로 보던 것과 **같은 류**다 —
+  // 자가 모집단의 **일부만** 본다.
+  const 섞는쪽 = /export function mergeQueue[\s\S]*?\n\}/.exec(코드);
+  본다('섞는 쪽(서버에서 온 길)을 찾았다', !!섞는쪽, true);
+  // ★ **`Array.isArray(` 가 있나**로 보면 안 된다 — 이 함수 안에 그것이 **셋**이다
+  // (`workouts` 가 묶음인가 · `queue` 가 묶음인가 · **날짜 값이 묶음인가**). 날짜 값을
+  // 막는 그 한 줄만 지워도 **자는 통과한다.** 11/19 에 내가 그 느슨한 꼴로 한 번 세웠고,
+  // 되돌려를 돌려 보다 잡았다 — **무엇을 막는 `Array.isArray` 인지**까지 본다
+  본다('섞는 쪽이 **날짜 값**이 줄 묶음인지 본다 (문이 둘이다)',
+    !!섞는쪽 && /Object\.entries\([\s\S]{0,120}?Array\.isArray\(\s*items\s*\)/.test(섞는쪽[0]), true);
+
+  // 그리고 **화면이 그 둘 말고 다른 문으로 안 받는지** 본다 — 새 문이 생기면 운다
+  const 가게 = fs.readFileSync(path.join(ROOT, 'src/store/workoutStore.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const 넣는자리 = [...가게.matchAll(/workouts:\s*([A-Za-z가-힣_$][\w가-힣_$.]*)\s*\(?/g)]
+    .map((m) => m[1])
+    .filter((n) => n !== 'workouts');
+  본다('날짜 묶음을 세우는 손이 **아는 둘뿐**이다',
+    [...new Set(넣는자리)].filter((n) => !['mergeQueue', 'readCache'].includes(n)), []);
 }
 
 // ── 되돌려 보기 ──────────────────────────────────────────────
