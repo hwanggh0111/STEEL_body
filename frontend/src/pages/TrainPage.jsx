@@ -247,6 +247,18 @@ export default function TrainPage() {
   const [rowNote, setRowNote] = useState('');
   const [rir, setRir] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
+  // ── 한쪽씩 하는 운동 ── (2026-11-19 · 시안 1119 ① · 서버 칸은 `weight_r`·`reps_r`)
+  //
+  // 11/17 에 「원팔 덤벨로우 L<R」 같은 이름을 **거절**하게 만들었는데 **받을 칸을 안 줬다.**
+  // 몸 치수는 이미 왼팔·오른팔을 따로 받는다(`measure/BodySizeSection.jsx`) — 적는 자리만
+  // 한 칸이었다.
+  //
+  // **없는 것이 기본이다.** 접어두는 것이 아니라 **안 적으면 없는 것**이다 — 비우면 담기는
+  // 줄이 지금과 한 글자도 다르지 않다(서버가 좌우가 같으면 칸을 안 만든다). 화면과 서버가
+  // 같은 말을 해야 한다.
+  const [sideOpen, setSideOpen] = useState(false);
+  const [weightR, setWeightR] = useState('');
+  const [repsR, setRepsR] = useState('');
   // 횟수를 세어주는 카메라 (2026-09-30). **고른 운동이 있을 때만 열린다** —
   // 어느 관절을 볼지는 이름으로 정한다(`data/repCount.js`)
   const [countOpen, setCountOpen] = useState(false);
@@ -690,6 +702,16 @@ export default function TrainPage() {
       // 한 줄 메모 · 여유 횟수. **세트 칸에서 온 것(`over`)에는 안 싣는다** — 그 줄은 폼이 아니라
       // 진행표에서 왔고, 폼에 남은 말은 다른 세트 것일 수 있다.
       // 고칠 때는 **비운 것도 보낸다**(`null`) — 안 보내면 서버가 옛 메모를 그대로 둔다
+      // 한쪽씩 적은 것 (2026-11-19). **세트는 하나다** — 좌우로 쪼개지 않는다(한 세트에
+      // 양쪽을 다 하므로 쪼개면 세트 수가 두 배로 세어진다). 그래서 오른쪽은 **무게·횟수만**이다.
+      // 고칠 때는 **비운 것도 보낸다**(`null`) — 안 보내면 서버가 옛 값을 그대로 둔다.
+      // 유산소 줄에는 안 싣는다(런닝머신에 왼쪽 오른쪽이 없다 — 서버도 같은 자로 막는다)
+      if (!over && !asCardio) {
+        const wr = String(weightR).trim();
+        const rr2 = String(repsR).trim();
+        if (editingId) { payload.weightR = wr || null; payload.repsR = rr2 || null; }
+        else { if (wr) payload.weightR = wr; if (rr2) payload.repsR = rr2; }
+      }
       if (!over) {
         const n = rowNote.trim();
         const rv = !asCardio && rir ? rir : '';
@@ -991,6 +1013,11 @@ export default function TrainPage() {
     setReps(String(w.reps ?? ''));
     setRowNote(w.note ? String(w.note) : '');
     setRir(w.rir ? String(w.rir) : '');
+    // 적힌 것이 있으면 **펼쳐서** 보인다 — 접혀 있으면 고치는 사람이 그 칸이 있는 줄 모르고,
+    // 모른 채 저장하면 위의 `null` 이 그 값을 지운다
+    setWeightR(w.weight_r != null ? String(w.weight_r) : '');
+    setRepsR(w.reps_r != null ? String(w.reps_r) : '');
+    setSideOpen(!!(w.weight_r != null || w.reps_r != null));
     // 적힌 것이 있으면 펼쳐서 보인다 — 접혀 있으면 고치는 사람이 그 칸이 있는 줄 모른다
     setMoreOpen(!!(w.note || w.rir));
     // **유산소 줄도 고칠 수 있어야 한다** (2026-11-05). 이 줄이 없으면 고치려고
@@ -1028,6 +1055,7 @@ export default function TrainPage() {
       setReps('');
       setRowNote('');
       setRir('');
+      setWeightR(''); setRepsR(''); setSideOpen(false);
       setError('');
       return;
     }
@@ -1041,6 +1069,7 @@ export default function TrainPage() {
     setDistance('');
     setRowNote('');
     setRir('');
+    setWeightR(''); setRepsR(''); setSideOpen(false);
     setError('');
   };
 
@@ -1695,6 +1724,44 @@ export default function TrainPage() {
             </div>
             )}
 
+            {/* ── 한쪽씩 하는 운동 ── (2026-11-19 · 시안 1119 ①)
+                **없는 것이 기본이다.** 안 쓰는 사람에게 칸 둘이 늘면 적는 일이 느려지므로
+                한 줄로 접어 둔다 — 그리고 **비우면 담기는 줄이 지금과 같다**(서버가 좌우가
+                같으면 칸을 안 만든다). 바닥은 위 칸 셋과 **같은 `stepFloor`** 라, 320 에서는
+                [무게 왼][무게 오] / [횟수 왼][횟수 오] 로 저절로 떨어진다 */}
+            {!cardio && (!sideOpen ? (
+              <button
+                type="button"
+                onClick={() => setSideOpen(true)}
+                aria-expanded={false}
+                style={{
+                  background: 'none', border: 'none', padding: 0, marginBottom: 10,
+                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', font: 'inherit',
+                }}
+              >+ 오른쪽이 다릅니다 (한쪽씩 하는 운동)</button>
+            ) : (
+              <div style={{ marginBottom: 10 }}>
+                <div className="label">오른쪽 — 비우면 왼쪽과 같아요</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: stepFloor(숫자칸자릿수), minWidth: 0 }}>
+                    <NumberStep
+                      id="tr-wr" label="오른쪽 무게 kg" value={weightR} onChange={setWeightR}
+                      step={2.5} min={0} max={WEIGHT_KG_MAX} startAt={2.5} placeholder="맨몸" inputMode="decimal"
+                    />
+                  </div>
+                  <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: stepFloor(숫자칸자릿수), minWidth: 0 }}>
+                    <NumberStep
+                      id="tr-rr" label="오른쪽 횟수" value={repsR} onChange={setRepsR}
+                      step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  세트는 하나예요 — 양쪽을 한 세트로 셉니다
+                </div>
+              </div>
+            ))}
+
             {/* ── 바에 뭘 꽂나 ── (2026-10-05)
                 100kg 을 치려면 양쪽에 25+15. **매 세트 머리로 하던 계산**이다.
                 경쟁 앱은 거의 다 갖고 있고 우리만 없었다.
@@ -2099,7 +2166,21 @@ export default function TrainPage() {
               <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
                 {isCardioRow(w)
                   ? cardioText(w)
-                  : <>{isBodyweight(w.weight) ? '맨몸' : `${w.weight}`} &times; {w.sets}&times;{w.reps}</>}
+                  /* ── 한쪽씩 적은 줄은 **좌우를 다 보인다** ── (2026-11-19 · 시안 1119 ①)
+                     적어둔 것을 못 읽으면 적은 일이 헛것이 된다 — 11/19 오전의 그 중대(좁은
+                     폰에서 무게 칸이 비어 보였다)와 **같은 류**다. 오른쪽 칸은 **왼쪽과 다를
+                     때만** 담기므로(서버가 같으면 안 만든다), 이 줄이 보이는 것 자체가
+                     「좌우가 달랐다」는 뜻이다. 왼쪽/오른쪽은 **`왼 · 우` 로 짧게** 적는다 —
+                     폰 폭에서 「왼쪽 22.5kg × 3세트 × 10회 / 오른쪽 …」은 한 줄에 안 든다 */
+                  : <>
+                    {isBodyweight(w.weight) ? '맨몸' : `${w.weight}`}
+                    {w.weight_r != null && <>{'/'}{isBodyweight(w.weight_r) ? '맨몸' : `${w.weight_r}`}</>}
+                    {' '}&times; {w.sets}&times;{w.reps}
+                    {w.reps_r != null && <>{'/'}{w.reps_r}</>}
+                    {(w.weight_r != null || w.reps_r != null) && (
+                      <span style={{ color: 'var(--text-muted)' }}> 왼/우</span>
+                    )}
+                  </>}
               </span>
 
               {/* ── 고치기 · 지우기 ── (2026-09-18)
