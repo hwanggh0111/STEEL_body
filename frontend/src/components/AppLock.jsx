@@ -4,6 +4,8 @@ import { useLockStore } from '../store/lockStore';
 import { useAuthStore } from '../store/authStore';
 import { LogoMark } from './Logo';
 import { PIN_LEN, MAX_TRIES } from '../data/appLock';
+// 지문·얼굴로 풀기 (2026-11-19 · 시안 1119 ⑤). 네 자리를 **대신하지 않고 얹힌다**
+import { 켜졌나 as bioOn, 쓸수있나 as bioReady, 풀어본다 as bioTry } from '../data/lockBio';
 import { confirmDialog, dismissConfirm } from './ConfirmModal';
 import { useScrollLock } from '../data/useModalFocus';
 import { LAYER } from '../data/layers';
@@ -35,6 +37,8 @@ export default function AppLock() {
   const maybeLock = useLockStore((s) => s.maybeLock);
   const cooldown = useLockStore((s) => s.cooldown);
   const triesLeft = useLockStore((s) => s.triesLeft);
+  // 지문이 맞으면 **네 자리를 안 거치고 놓는다** — 맞혔을 때와 같은 자리다 (2026-11-19)
+  const release = useLockStore((s) => s.release);
   const logout = useAuthStore((s) => s.logout);
   const loggedIn = useAuthStore((s) => s.isLoggedIn);
 
@@ -150,6 +154,39 @@ export default function AppLock() {
   // 그 위에서는 아무것도 할 수 없다. 잠금이 가리려는 것은 **들어와 있는 사람의
   // 기록**이고, 로그인 전에는 가릴 것이 없다
   if (!enabled || !locked || !loggedIn || publicPlace) return null;
+
+  // ── 지문 단추를 그릴까 ── (2026-11-19)
+  //
+  // **눌러도 아무 일이 안 나는 줄을 두지 않는다**(`healthLink` · 설정함의 「앱 잠금」과
+  // 같은 규칙). 기기가 못 읽거나 안 켜 뒀으면 **아예 안 그린다**
+  const [bioCan, setBioCan] = useState(false);
+  useEffect(() => {
+    let 살아있다 = true;
+    (async () => {
+      const yes = bioOn() && await bioReady();
+      if (살아있다) setBioCan(yes);
+    })();
+    return () => { 살아있다 = false; };
+  }, []);
+
+  // 잠금이 떠 있는 동안 **한 번은 저절로 물어본다** — 지문을 켠 사람이 바라는 것은
+  // 「열면 바로 지문」이지 「단추를 찾아 누르기」가 아니다. 거절하면 네 자리가 그대로 있다.
+  // **다시 물어보지 않는다**(`물어봤다`) — 거절한 사람에게 계속 뜨면 그게 가로막이다
+  const 물어봤다 = useRef(false);
+  useEffect(() => {
+    if (!bioCan || !locked || 물어봤다.current) return;
+    물어봤다.current = true;
+    (async () => { if (await bioTry()) release(); })();
+  }, [bioCan, locked, release]);
+
+  async function 지문으로() {
+    if (busy.current) return;
+    busy.current = true;
+    const ok = await bioTry();
+    busy.current = false;
+    // 안 되면 **아무 말도 안 한다** — 네 자리 자판이 그대로 떠 있고, 그것이 다음 길이다
+    if (ok) release();
+  }
 
   async function push(k) {
     if (busy.current || left > 0) return;
@@ -279,6 +316,31 @@ export default function AppLock() {
           >{k}</button>
         )))}
       </div>
+
+      {/* ── 지문·얼굴로 풀기 ── (2026-11-19 · 시안 1119 ⑤)
+          네 자리는 **그대로 남는다** — 젖은 손 · 인식기 고장에 쓸 길이 없으면 안 된다.
+          그래서 자판 아래에 **얹는다**(자판을 치우지 않는다) */}
+      {bioCan && (
+        <button
+          onClick={지문으로}
+          aria-label="지문으로 풀기"
+          style={{
+            width: 54, height: 54, borderRadius: '50%', margin: '18px auto 2px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+            color: 'var(--accent)', cursor: 'pointer',
+          }}
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 3.6c-4.6 0-8.4 3.8-8.4 8.4" />
+            <path d="M20.4 12c0-4.6-3.8-8.4-8.4-8.4" />
+            <path d="M6.6 14.4a5.4 5.4 0 0 1 10.8-2.4" />
+            <path d="M9.6 17.4A2.4 2.4 0 0 1 14.4 15" />
+            <path d="M12 20.4v-2.4" />
+          </svg>
+        </button>
+      )}
 
       <button
         onClick={forgot}

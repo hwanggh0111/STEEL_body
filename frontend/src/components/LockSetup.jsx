@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLockStore } from '../store/lockStore';
+// ⑤ 지문·얼굴로 풀기 (2026-11-19 · 시안 1119 ⑤). 네 자리를 **대신하지 않고 얹힌다**
+import { 쓸수있나 as bioReady, 켜졌나 as bioOn, 켠다 as bioStart, 끈다 as bioStop } from '../data/lockBio';
 import { canLock, isPin, PIN_LEN, GRACE_MS, matches } from '../data/appLock';
 import { toast } from './Toast';
 import { confirmDialog } from './ConfirmModal';
@@ -31,6 +33,16 @@ export default function LockSetup({ onClose }) {
 
   const [now, setNow] = useState('');      // 지금 걸려 있는 것 (바꾸거나 풀 때)
   const [pin, setPin] = useState('');
+  // ⑤ 이 기기가 지문을 읽을 수 있나 · 지금 켜져 있나.
+  // **못 읽으면 줄을 아예 안 그린다** — 눌러도 아무 일이 안 나는 줄을 두지 않는다
+  const [bioCan, setBioCan] = useState(false);
+  const [bioIsOn, setBioIsOn] = useState(bioOn());
+  const [bioBusy, setBioBusy] = useState(false);
+  useEffect(() => {
+    let 살아있다 = true;
+    bioReady().then((yes) => { if (살아있다) setBioCan(yes); });
+    return () => { 살아있다 = false; };
+  }, []);
   const [again, setAgain] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -123,6 +135,43 @@ export default function LockSetup({ onClose }) {
             style={{ width: 'auto', fontSize: 12.5, padding: '10px 14px' }}>풀기</button>
         )}
       </div>
+
+      {/* ── ⑤ 지문·얼굴로 풀기 ── (2026-11-19 · 시안 1119 ⑤)
+          **네 자리를 걸어둔 사람에게만** 보인다 — 지문은 네 자리를 **대신하지 않고
+          빠른 길로 얹힌다**(기기가 못 읽으면 네 자리가 남는 길이다). 그래서 잠금이
+          없는 사람에게 이 줄을 먼저 보이면 **잠금을 안 걸고 지문만 켠 셈**이 된다.
+          ★ **무게는 네 자리와 똑같다** — 서버에 아무것도 안 보내고 서버가 아무것도
+          확인하지 않는다(`data/lockBio.js` 머리글). 그 말을 여기에도 적는다 */}
+      {enabled && bioCan && (
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13 }}>지문 · 얼굴로 풀기</span>
+            <button
+              className={bioIsOn ? 'btn-secondary active' : 'btn-secondary'}
+              disabled={bioBusy}
+              onClick={async () => {
+                setBioBusy(true);
+                if (bioIsOn) { bioStop(); setBioIsOn(false); toast('지문으로 풀기를 껐어요'); }
+                else {
+                  // **그 자리에서 한 번 물어본다** — 켜고 나서 처음 풀 때 안 되는 것을
+                  // 그때 알면 늦다. 거절하면 **거짓으로 켜두지 않는다**
+                  const ok = await bioStart();
+                  setBioIsOn(ok);
+                  toast(ok ? '이제 지문으로도 풀 수 있어요' : '지문을 못 읽었어요 — 네 자리는 그대로예요',
+                    ok ? undefined : 'error');
+                }
+                setBioBusy(false);
+              }}
+              style={{ marginLeft: 'auto', width: 'auto', fontSize: 12.5, padding: '8px 14px' }}
+              aria-pressed={bioIsOn}
+            >{bioIsOn ? '켜짐' : '켜기'}</button>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 7 }}>
+            네 자리는 <b style={{ color: 'var(--text-secondary)' }}>그대로 남습니다</b> — 지문이 안 될 때 쓰는 길이에요.
+            지문은 이 기기 안에만 있고 <b style={{ color: 'var(--text-secondary)' }}>서버로 보내지 않습니다</b>.
+          </div>
+        </div>
+      )}
 
       {/* **지금 잠그기.** 돌아왔을 때 잠그는 것만으로는 정작 그 순간을 못 막는다 —
           「사진 좀 보여줘」는 앱이 열려 있는 채로 폰을 건네는 일이다 */}

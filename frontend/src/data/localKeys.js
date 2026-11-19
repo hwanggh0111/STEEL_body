@@ -101,6 +101,11 @@ export const SORE_KEY = 'parts:sore';
 // 그 사람이 누구냐가 아니라 **그 헬스장에 어떤 바가 있느냐**이기 때문이다
 export const BAR_KEY = 'gym:bar';
 
+// 지문·얼굴로 잠금 풀기 (`data/lockBio.js`, 2026-11-19 · 시안 1119 ⑤).
+// **기기에 만든 열쇠의 이름**만 담는다 — 지문 자체는 기기의 보안 칸에만 있고
+// 브라우저도 우리도 못 본다. 네 자리(`LOCK_KEY_NAME`)와 같은 결이라 로그아웃해도 남긴다
+export const LOCK_BIO_KEY = 'steelbody_lock_bio';
+
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
   TOKEN_KEY, NICKNAME_KEY, ROLE_KEY, EMAIL_KEY,
