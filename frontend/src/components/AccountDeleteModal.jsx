@@ -3,6 +3,9 @@ import { useModalFocus } from '../data/useModalFocus';
 import client from '../api/client';
 import NavIcon from './NavIcon';
 import { LAYER } from '../data/layers';
+import { exportAll } from '../data/exportCsv';
+import { PARTS } from './ExportAll';
+import { toast } from './Toast';
 
 // ─────────────────────────────────────────────────────────────
 // 계정 삭제.
@@ -30,6 +33,18 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [sure, setSure] = useState(false);
+  // 지우기 전에 **이 자리에서** 받는다 (위 ★ 의 까닭). 담을 것은 설정의 그 목록
+  // 그대로다 — `PARTS` 한 자리에서 읽어 **열쇠를 두 벌로 두지 않는다**
+  const [busy, setBusy] = useState(false);
+  const 받아두기 = () => {
+    if (busy) return;
+    setBusy(true);
+    exportAll(PARTS.map((p) => p.key))
+      .then((name) => toast(`${name} 으로 받았어요`, 'success'))
+      // 사진까지 담으므로 묶음이 커서 끊길 수 있다 — **무엇을 해보라고** 말한다
+      .catch(() => toast('받지 못했어요. 설정 › 기록 챙기기에서 사진을 빼고 해보세요', 'error'))
+      .finally(() => setBusy(false));
+  };
 
   // 무엇을 물어야 하는지는 서버가 안다 (소셜인지 · 유예가 며칠인지)
   useEffect(() => {
@@ -130,9 +145,39 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
               </div>
             </div>
 
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 14 }}>
-              지우기 전에 기록을 남겨두고 싶으시면, 먼저 <b style={{ color: 'var(--text-secondary)' }}>기록 화면에서 내려받기</b>를
-              해두세요. 지운 뒤에는 저희도 꺼내 드릴 수 없습니다.
+            {/* ── ★ **여기가 꺼낼 수 있는 마지막 자리다** ── (2026-11-19 · 맵시)
+
+                여태 이 줄은 「먼저 **기록 화면에서 내려받기**를 해두세요」였다. 그 길로
+                가면 받는 것이 **셋**이고(운동 기록 · 인바디 · 측정) 메모 · 루틴 · 기구
+                세팅 · 사진은 **받을 길이 없었다** — 11/19 에 설정에 「전부 받기」를 붙여
+                그 넷을 열었다.
+
+                그런데 ★ **지우기를 누른 뒤에는 그 설정 화면에 못 들어간다.** 예약된
+                계정은 모든 API 가 401 이고(`middleware/auth.js`), 들어가려고 다시
+                로그인하면 **그 로그인이 삭제를 취소한다**(`routes/auth.js`). 즉
+                「30일 안에 꺼내세요」가 **길이 없는 말**이었다(정석이 찾았다).
+
+                그래서 **이 자리에서 받게 한다.** 창을 떠나지 않고, 누르기 전에.
+                받아야만 지울 수 있게 묶지는 않는다 — 그건 사람이 정할 일이다. */}
+            <div style={{
+              fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 14,
+              background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)', padding: '12px 14px',
+              borderLeft: '2px solid var(--accent)',
+            }}>
+              <b style={{ color: 'var(--text-primary)' }}>받아두시겠어요?</b> 지우기를 누른 뒤에는
+              이 앱에 들어올 수 없어서 <b style={{ color: 'var(--text-primary)' }}>여기가 꺼낼 수 있는
+              마지막 자리</b>입니다. 지운 뒤에는 저희도 꺼내 드릴 수 없습니다.
+              <button
+                type="button"
+                onClick={받아두기}
+                disabled={busy}
+                className="btn-secondary"
+                style={{ width: '100%', marginTop: 10 }}
+              >{busy ? '묶는 중…' : '내 기록 전부 받기 (사진까지)'}</button>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+                운동 기록 · 인바디 · 측정 · 메모 · 루틴 · 기구 세팅 · 사진을 한 묶음으로 받습니다.
+                사진이 많으면 시간이 걸려요 — 와이파이에서 받으시는 게 좋습니다.
+              </div>
             </div>
 
             {/* **못 받은 것과 아직 안 온 것을 가른다** (2026-11-09, 2차 검사).
