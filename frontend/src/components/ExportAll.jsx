@@ -1,0 +1,133 @@
+// **내 기록 전부 받기** (2026-11-19 · 맵시 · 시안 ⑥)
+//
+// ── 왜 ──
+//
+// 받을 수 있는 것이 **셋**이었다 — 운동 기록 · 인바디 · 측정(`data/exportCsv.js`).
+// 메모 · 내 루틴 · 기구 세팅 · 사진은 **받을 길이 아예 없었다.** 통째로 뜨는 길은
+// 있지만(`/export/backup`) 그것은 관리자 것이고 남의 기록까지 담는다.
+//
+// 이 칸이 필요한 자리는 **계정을 지우기 전**이다. 지우면 30일 유예 뒤에 사라지니
+// (8/31 주인 결정 · `AccountDeleteModal` 이 「기록 화면에서 내려받기」로 안내한다)
+// 그 전에 **전부** 받아둘 길이 있어야 한다. 셋만 받고 지우면 메모와 루틴은 사라진다.
+//
+// ── 무엇이 담기는지 보여주고 누르게 한다 ──
+//
+// 「전부 받기」 한 단추로 두면 **무엇이 담겼는지 받아 본 뒤에야** 안다. 그래서 목록을
+// 펼쳐 두고 고르게 한다 — 설정 화면의 원칙이 **「접지 않고 숨기지 않는다」**라서
+// (`SettingsPage` 의 `Group` 머리글) 아코디언으로 접지 않는다.
+//
+// **사진만 기본으로 꺼져 있다.** 한 장이 수십~수백 KB 이고 여러 해 쌓이면 묶음이
+// 수십 MB 가 된다 — 폰에서 받다 끊기면 **왜 끊겼는지 알 수 없다.** 그래서 고른
+// 사람만 담는다. 「무겁습니다」를 그 줄에 적어 둔다.
+
+import { useState } from 'react';
+import { exportAll } from '../data/exportCsv';
+import { toast } from './Toast';
+
+// 담을 것 — **이름과 열쇠를 한 자리에 둔다.** 서버가 받는 열쇠(`parts=`)와 화면에
+// 적는 이름이 갈리면, 한쪽을 고치는 날 **빠진 줄을 아무도 모른다**
+// (서버 쪽 짝은 `backend/src/routes/exportAll.js`)
+export const PARTS = [
+  { key: 'workouts', name: '운동 기록', note: 'CSV', on: true },
+  { key: 'inbody', name: '인바디', note: 'CSV', on: true },
+  { key: 'measures', name: '측정 기록', note: '줄자로 잰 것 · CSV', on: true },
+  { key: 'notes', name: '메모 · 그날 메모', note: '여태 받을 길이 없었어요', on: true },
+  { key: 'routines', name: '내 루틴', note: '여태 받을 길이 없었어요', on: true },
+  { key: 'gym', name: '기구 세팅', note: '여태 받을 길이 없었어요', on: true },
+  // 기본으로 꺼두는 **유일한 줄**이다 — 위 머리글의 그 까닭
+  { key: 'photos', name: '사진', note: '무겁습니다 — 고르면 담아요', on: false },
+];
+
+export default function ExportAll() {
+  const [pick, setPick] = useState(() => {
+    const o = {};
+    for (const p of PARTS) o[p.key] = p.on;
+    return o;
+  });
+  const [busy, setBusy] = useState(false);
+
+  const 고른것 = PARTS.filter((p) => pick[p.key]).map((p) => p.key);
+  const 사진담김 = pick.photos;
+
+  const 받기 = () => {
+    if (!고른것.length || busy) return;
+    setBusy(true);
+    exportAll(고른것)
+      .then((name) => toast(`${name} 으로 받았어요`, 'success'))
+      // **무엇이 안 됐는지 말한다.** 「받지 못했어요」만 뜨면 다시 눌러야 할지
+      // 기다려야 할지 알 수 없다 — 사진을 담았을 때는 그 줄을 같이 적는다
+      .catch(() => toast(
+        사진담김
+          ? '받지 못했어요. 사진을 빼고 다시 해보세요 (묶음이 너무 클 수 있어요)'
+          : '받지 못했어요. 잠시 뒤 다시 해보세요',
+        'error',
+      ))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 11, marginTop: 2 }}>
+      <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 2 }}>
+        내 기록 전부 받기
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+        고른 것을 <b style={{ color: 'var(--text-secondary)' }}>한 묶음</b>으로 받습니다.
+        계정을 지우기 전에 받아두세요 — 지우면 30일 뒤에 사라집니다.
+      </div>
+
+      {/* 묶음 이름을 낭독기에 알린다 — 체크 일곱이 무엇의 목록인지 안 들리면
+          「운동 기록, 체크 상자」만 읽힌다 */}
+      <div role="group" aria-label="묶음에 담을 것">
+        {PARTS.map((p) => (
+          <label
+            key={p.key}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              padding: '8px 0', borderTop: '1px solid var(--border)',
+              fontSize: 13, color: 'var(--text-secondary)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={!!pick[p.key]}
+              onChange={(e) => setPick((v) => ({ ...v, [p.key]: e.target.checked }))}
+              style={{ accentColor: 'var(--accent)', flexShrink: 0 }}
+            />
+            {/* 이름이 길어지는 날 꼬리표를 밀어내지 않게 — `minWidth: 0` 이 말줄임의 짝이다 */}
+            <span style={{
+              minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{p.name}</span>
+            <span style={{
+              marginLeft: 'auto', flexShrink: 0, fontSize: 11,
+              color: p.key === 'photos' ? 'var(--warning)' : 'var(--text-muted)',
+            }}>{p.note}</span>
+          </label>
+        ))}
+      </div>
+
+      <button
+        onClick={받기}
+        disabled={busy || !고른것.length}
+        className="btn-primary"
+        // 흐려지는 꼴은 `.btn-primary:disabled` 가 이미 갖고 있다 — 인라인으로
+        // 또 적으면 단추 꼴이 두 벌이 된다 (globals.css:276)
+        style={{ width: '100%', marginTop: 12 }}
+      >
+        {busy ? '묶는 중…' : `한 묶음으로 받기 (${고른것.length}가지)`}
+      </button>
+      {/* **하나도 안 고르면 왜 안 눌리는지 말한다** — 흐려진 단추만 두면
+          고장 난 것으로 읽힌다 */}
+      {!고른것.length && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+          담을 것을 하나 이상 골라주세요.
+        </div>
+      )}
+      {사진담김 && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+          사진이 들어가면 묶음이 커서 <b style={{ color: 'var(--text-secondary)' }}>시간이 걸립니다</b> —
+          와이파이에서 받으시는 게 좋아요.
+        </div>
+      )}
+    </div>
+  );
+}

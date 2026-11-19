@@ -142,6 +142,7 @@ function 깔림(code, file) {
           const 바닥 = 직접자식 && String(직접자식.s.flexBasis || '');
           칸.push({
             곳,
+            파일: file,
             통: 통곳,
             바닥,
             깔렸나: /(stepFloor|plainFloor)\(/.test(바닥),
@@ -345,6 +346,39 @@ console.log('\n── 그 바닥이 칸의 상한을 담는가 (글꼴에 물어
   const 바닥들 = 불러오기('components/NumberStep.jsx', 'floor');
   const limits = 불러오기('data/limits.js', 'limits');
 
+  // ── 바닥 식을 **실제로 재는 손** ──
+  //
+  // 바닥은 `stepFloor(담을자릿수(WEIGHT_KG_MAX, 1))` 처럼 **상수에서 뽑는다**. 그 안에
+  // 쓰인 이름이 그 화면 파일의 모듈 상수일 수도 있어서(`숫자칸자릿수` — ± 칸 둘이
+  // 같이 쓰는 자릿수), 모르는 이름이 나오면 **그 파일에서 그 선언을 찾아 먼저 잰다.**
+  // 여기서 이름 목록을 베껴 적으면 상수가 하나 늘 때 이 자만 옛 목록을 본다
+  const 캐시 = new Map();
+  const 재기 = (식글, 파일, 깊이 = 0) => {
+    const scope = { ...바닥들, ...limits };
+    for (const [k2, v] of 캐시) scope[k2] = v;
+    // `default` 같은 **예약어는 인자 이름이 될 수 없다** — 모듈을 불러오면 그 열쇠가
+    // 섞여 들어와 `Unexpected token 'default'` 로 터진다. 값을 쓸 일도 없으니 건다
+    const 예약 = new Set(['default', 'class', 'function', 'return', 'const', 'let', 'var',
+      'new', 'delete', 'typeof', 'instanceof', 'this', 'null', 'true', 'false', 'void',
+      'with', 'try', 'catch', 'finally', 'throw', 'import', 'export', 'extends', 'super',
+      'yield', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'in', 'of']);
+    const 이름들 = Object.keys(scope).filter((n) => !예약.has(n) && /^[^\s(){}[\].,;:'"`+\-*/%!?<>=&|^~\d]/.test(n));
+    const 값들 = 이름들.map((k2) => scope[k2]);
+    try {
+      // eslint-disable-next-line no-new-func
+      return new Function(...이름들, 'return (' + 식글 + ');')(...값들);
+    } catch (e) {
+      const m = /(\S+) is not defined/.exec(e.message);
+      if (!m || 깊이 > 5) throw e;
+      const 모르는이름 = m[1];
+      const code = fs.readFileSync(path.join(ROOT, 파일), 'utf8');
+      const 선언 = new RegExp('const ' + 모르는이름 + ' = ([^;\\r\\n]+);').exec(code);
+      if (!선언) throw new Error('`' + 모르는이름 + '` 선언을 못 찾았다');
+      캐시.set(모르는이름, 재기(선언[1], 파일, 깊이 + 1));
+      return 재기(식글, 파일, 깊이 + 1);
+    }
+  };
+
   const 꼴틀림 = [];
   const 합틀림 = [];
   const 안담김 = [];
@@ -355,10 +389,9 @@ console.log('\n── 그 바닥이 칸의 상한을 담는가 (글꼴에 물어
     // 바닥 식을 **실제로 불러** 값을 얻는다 — 식을 두 벌로 두지 않는다
     let 식;
     try {
-      // eslint-disable-next-line no-new-func
-      식 = new Function('f', 'L', 'with (f) { with (L) { return ' + k.바닥 + '; } }')(바닥들, limits);
+      식 = 재기(k.바닥, k.파일);
     } catch (e) {
-      못읽음.push(k.곳 + ' → ' + k.바닥);
+      못읽음.push(k.곳 + ' → ' + k.바닥 + ' (' + e.message.slice(0, 40) + ')');
       continue;
     }
     const r = L.바닥식읽기(식);

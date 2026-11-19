@@ -62,3 +62,41 @@ export function exportCsv(type, fallbackName) {
       return name;
     });
 }
+
+// ── **한 묶음으로 받기** ── (2026-11-19 · 맵시 · 시안 ⑥)
+//
+// 위의 `exportCsv` 는 셋을 **한 장씩** 받는다. 그런데 받을 길이 **아예 없는 것**이
+// 넷 있었다 — 메모 · 내 루틴 · 기구 세팅 · 사진. 통째로 뜨는 길은 있지만
+// (`routes/export.js` 의 `/export/backup`) 그것은 **관리자만** 쓰고 남의 것까지 담는다.
+//
+// 그래서 **내 것 전부**를 한 묶음으로 받는 길을 쓴다. 계정을 지우기 전에 쓸 것이다 —
+// 30일 유예 뒤에 지워지니(8/31 결정) 그 전에 전부 받아둘 길이 있어야 한다.
+//
+// 서버 길은 `GET /api/export/all?parts=<쉼표로 이은 것>` 이고 묶음 한 장으로 온다.
+// **무엇을 담을지 고르는 것은 사람**이다 — 사진은 무거워서 기본으로 안 담는다.
+// 이름은 여기서 정하지 않는다(`Content-Disposition`) — 위 머리글의 그 까닭이다.
+export function exportAll(parts, fallbackName = 'steelbody_all.zip') {
+  const baseURL = import.meta.env.VITE_API_URL || '/api';
+  const token = readLS(TOKEN_KEY);
+  const q = encodeURIComponent((parts || []).join(','));
+  return fetch(`${baseURL}/export/all?parts=${q}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error('Export failed ' + res.status);
+      const name = nameFromDisposition(res.headers.get('content-disposition')) || fallbackName;
+      return res.blob().then((blob) => ({ blob, name }));
+    })
+    .then(({ blob, name }) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      return name;
+    });
+}

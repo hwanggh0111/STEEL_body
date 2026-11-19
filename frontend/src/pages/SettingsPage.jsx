@@ -35,6 +35,7 @@ import client from '../api/client';
 import BreathCheck from '../components/BreathCheck';
 import NavIcon from '../components/NavIcon';
 import { toast } from '../components/Toast';
+import ExportAll from '../components/ExportAll';
 
 // 설정함 (2026-09-22).
 //
@@ -1000,6 +1001,11 @@ export default function SettingsPage() {
           sub="줄자로 잰 것"
           onClick={() => navigate('/body', { state: { tab: 'measure' } })}
         />
+        {/* ── **받을 길이 없던 넷** ── (2026-11-19 · 맵시 · 시안 ⑥)
+            위 두 줄은 **한 장씩** 받는 길이고, 메모 · 내 루틴 · 기구 세팅 · 사진은
+            받을 길이 **아예 없었다.** 계정을 지우기 전에 쓸 칸이라 그 자리에 둔다 —
+            옛 두 줄은 그대로 살려둔다(「없는 한 곳으로 보내는 것보다 두 줄이 낫다」) */}
+        <ExportAll />
       </Group>
 
       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4, marginBottom: 18 }}>

@@ -167,6 +167,14 @@ export function setsWeight({ sameForm, formWeight, lastWeight }) {
   return { ok: false, weight: '' };
 }
 
+// ± 가 붙는 숫자 칸(무게 · 횟수)이 **같이 쓰는 바닥의 자릿수.**
+//
+// 무게는 「999.5」 다섯 자(2.5 단위라 소수점이 붙는다) · 횟수는 「1000」 네 자다.
+// 둘을 따로 재면 **같은 종류 칸이 다른 폭**이 되고, 좁은 폰에서 횟수만 조금 더
+// 버텨 **한 줄에 어정쩡하게 남는 폭 구간**이 생긴다. 그래서 넓은 쪽으로 맞춘다
+// (2026-11-19 · 정석 제안). 상한을 올리는 날 이 수도 따라 움직인다.
+const 숫자칸자릿수 = Math.max(담을자릿수(WEIGHT_KG_MAX, 1), 담을자릿수(REPS_MAX));
+
 export default function TrainPage() {
   const navigate = useNavigate();
   const today = useToday();
@@ -1654,8 +1662,15 @@ export default function TrainPage() {
                 `ch` 는 브라우저가 그 글꼴의 `0` 폭으로 재는 단위라 **글자를 150% 로 쓰면
                 바닥도 같이 자라** 그때도 맞는다 */
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              {/* 자릿수도 **상한에서 센다** — 「999.5」 다섯 자 (2.5 단위라 소수점이 붙는다) */}
-              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(담을자릿수(WEIGHT_KG_MAX, 1)), minWidth: 0 }}>
+              {/* 자릿수도 **상한에서 센다** — 「999.5」 다섯 자 (2.5 단위라 소수점이 붙는다).
+                  ★ **± 칸 둘은 같은 바닥을 쓴다** (2026-11-19 · 정석 제안) — 무게는 다섯 자,
+                  횟수는 「1000」 네 자인데 **둘을 따로 재면 같은 종류 칸이 다른 폭**이 되고,
+                  좁은 폰에서 횟수만 조금 더 버텨 **한 줄에 어정쩡하게 남는 폭 구간**이 생긴다.
+                  그래서 **넓은 쪽으로 맞춘다**(`숫자칸자릿수`). 횟수가 한 자리를 더 받는
+                  셈이지만 이 저장소는 같은 거래를 이미 한 번 했다 — `tabular-nums` 를
+                  전역으로 걸어 글 속 수까지 고정폭이 되는 것을 받아들이고 떨림을 없앴다.
+                  덧으로 PC 에서 무게·횟수가 **다시 같은 폭**이 된다(221/109/221) */}
+              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(숫자칸자릿수), minWidth: 0 }}>
                 <NumberStep
                   id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
                   step={2.5} min={0} max={WEIGHT_KG_MAX} startAt={2.5} placeholder="맨몸" inputMode="decimal"
@@ -1670,8 +1685,8 @@ export default function TrainPage() {
                   min="1" max={SETS_MAX} value={sets}
                   onChange={(e) => setSets(e.target.value)} style={{ textAlign: 'center' }} />
               </div>
-              {/* 횟수는 「1000」 네 자다 — `REPS_MAX` 가 1000 이다 (손으로 3 이라 적었다가 자가 잡았다) */}
-              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(담을자릿수(REPS_MAX)), minWidth: 0 }}>
+              {/* 무게와 **같은 바닥**이다 (위 ★ 의 까닭) — 상한은 「1000」 네 자다 */}
+              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(숫자칸자릿수), minWidth: 0 }}>
                 <NumberStep
                   id="tr-r" label="횟수" value={reps} onChange={setReps}
                   step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
