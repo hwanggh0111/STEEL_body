@@ -181,6 +181,27 @@ async function 실물() {
   if (OFFLINE) { add('실물', '라이브 전수', 'SKIP', '--offline'); say('  건너뜀 (--offline)'); return; }
 
   const idx = await live('/');
+
+  // ── ★ **「정지됨」은 FAIL 이 아니다 — 측정 불가다** ── (2026-11-19 · 정석)
+  //
+  // 11/17 에 Render 무료 750시간을 다 썼다(같은 저장소에 묶인 무료 서비스가 넷이었고
+  // `keepWarm` 이 그걸 다 깨워뒀다). 주인이 셋을 지워 `steel-body` 하나만 남았고,
+  // **12/1 에 시간이 리셋되며 다시 뜬다.** 그동안 Render 는 「Service Suspended」를
+  // **503** 으로 돌려준다(봇 막이에 걸리면 **429** + Cloudflare 챌린지다).
+  //
+  // 그걸 FAIL 로 적으면 **매 세션 거짓 FAIL 이 하나씩 붙고 결함비율이 오염된다** —
+  // 「자가 지금을 베끼면 거짓이 된다」류다. 코드에는 고칠 것이 없고, 대시보드는
+  // 주인 손이다. 그래서 **따로 적고 셈에서 뺀다.** 아래 전수는 index 가 없으면
+  // 아무것도 볼 수 없으므로 여기서 멈추는 것은 그대로다.
+  const 정지됨 = idx && (idx.status === 503 || idx.status === 429);
+  if (정지됨) {
+    add('실물', '라이브 전수', 'SKIP',
+      `Render 정지(${idx.status}) — 무료 750시간 소진, **12/1 에 리셋되며 다시 뜬다**. 코드 쪽 할 일 없음`);
+    say(`  측정 불가 라이브 — Render 정지(${idx.status}). 무료 750시간 소진 · 12/1 리셋`);
+    say('            FAIL 이 아니다 — 코드에 고칠 것이 없고 대시보드는 주인 손이다');
+    say('            쌓인 커밋의 라이브 도달 확인은 **12/1 에 일괄**로 한다');
+    return;
+  }
   if (!idx || idx.status !== 200) {
     add('실물', '라이브 index', 'FAIL', `index 가 ${idx ? idx.status : '무응답'}`);
     say(`  FAIL 라이브 index — ${idx ? idx.status : '무응답'}`); return;
