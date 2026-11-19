@@ -118,7 +118,9 @@ export default function Toast() {
   // 알림이 위라서 **쉬는 동안 기록을 지우면 남은 시간이 가려졌다.** 운동 중에
   // 보고 있는 것이 그 시간이고, 되돌리기는 8초뿐이라 둘 다 보여야 한다.
   // 띠가 떠 있으면 알림을 띠 **위로** 올린다 (조건은 `restBarUp` 한 자리에서 온다).
-  const lift = barUp ? { bottom: 142 } : null;
+  // 띠가 떠 있으면 그 위로 비킨다. **142 는 짐작한 수였다** — 탭바와 띠 둘 다 글자
+  // 크기에 따라 자란다(2026-11-19 · 맵시). 둘이 제 높이를 알리니 그것을 더해 쓴다
+  const lift = barUp ? { bottom: 'calc(var(--tabbar-h, 60px) + var(--restbar-h, 68px) + 14px)' } : null;
 
   // 빨강은 통째로 칠하는 자리라 진한 쪽을 쓴다 — 밝은 --danger 에 흰 글자는 3.4:1 이다
   const bgColor = type === 'error' ? 'var(--danger-strong)' : type === 'warning' ? 'var(--warning)' : 'var(--accent)';

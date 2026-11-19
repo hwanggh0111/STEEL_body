@@ -683,7 +683,9 @@ export default function Layout() {
       </main>
 
       {/* 휴식 띠 — 탭 바 바로 위. PC 는 아래 탭 바가 없으므로 바닥에 붙는다 */}
-      <RestBar bottom={isPC ? 0 : 60} />
+      {/* 폰에서는 **탭바 높이만큼** 띄운다 — 60 을 박아두면 글자를 크게 쓰는 폰에서
+          탭바가 자라 띠를 덮었다(진행 막대가 가려진다 · 2026-11-19 · 맵시) */}
+      <RestBar bottom={isPC ? 0 : 'var(--tabbar-h, 60px)'} />
 
       {/* 루틴을 마치면 뜨는 결산. 화면 둘(운동 · 옛 기록)이 같은 것을 부른다 —
           껍데기에 한 벌만 걸어두고 `showFinish()` 로 부른다 (Toast 와 같은 결) */}
@@ -839,7 +841,8 @@ export default function Layout() {
             window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
           }}
           style={{
-            position: 'fixed', bottom: isPC ? 30 : 90, left: 20,
+            // 탭바 위로 30 — 그 높이는 탭바가 알려준다 (2026-11-19 · 맵시)
+            position: 'fixed', bottom: isPC ? 30 : 'calc(var(--tabbar-h, 60px) + 30px)', left: 20,
             width: 40, height: 40, borderRadius: '50%',
             background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
             fontSize: 18, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',

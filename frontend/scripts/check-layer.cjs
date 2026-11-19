@@ -183,6 +183,62 @@ ok('화면 코드에 덮개 층수를 박아둔 자리가 없다', 박은것, []
   ok('  표에 없는 덮개 층수가 CSS 에 없다', 모르는것, []);
 }
 
+// ── ★ **바닥에 뜨는 것이 탭바 높이를 짐작하지 않는가** ── (2026-11-19 · 맵시)
+//
+// 층은 위에서 지켰다. 그런데 **자리**도 겹친다 — 바닥에 떠 있는 것 셋(휴식 띠 ·
+// 알림 · 위로 가기)이 `bottom: 60 · 80 · 90` 으로 **탭바 높이 60 을 짐작해서** 적고
+// 있었다. 탭바 높이는 **글자 크기에 따라 자란다**: 기본 **64.6px** · 150% ~70 ·
+// 200% ~82. 그러면 층이 위인 탭바(9999 > 띠 9998)가 **띠를 덮고**, 200% 에서는
+// 띠 아래 9~13px 의 **쉬는 시간 진행 막대가 통째로 가려진다.**
+//
+// 그래서 탭바와 띠가 **제 높이를 재서** `--tabbar-h` · `--restbar-h` 로 알리고,
+// 바닥에 뜨는 것은 그 변수에서 올라간다. 이 자는 **짐작한 px 가 돌아오지 않는지**
+// 를 본다 — 돌아오면 글자를 크게 쓰는 사람 화면에서만 다시 가려지고, 그것은
+// **폰으로 글자를 키워 봐야** 보인다.
+{
+  const 짐작 = [];
+  const 보는것 = [
+    ['components/Layout.jsx', /<RestBar bottom=\{([^}]*)\}/, '휴식 띠'],
+    ['components/Layout.jsx', /bottom: isPC \? 30 : ([^,]+),/, '위로 가기'],
+    ['components/Toast.jsx', /const lift = barUp \? \{ bottom: ([^}]+) \}/, '알림이 띠 위로 비킬 때'],
+  ];
+  for (const [rel, re, 무엇] of 보는것) {
+    const src = codeOf(fs.readFileSync(path.join(SRC, rel), 'utf8'));
+    const m = re.exec(src);
+    if (!m) { 짐작.push(rel + ' — ' + 무엇 + ' 자리를 못 찾았다'); continue; }
+    // 변수를 쓰면 통과다. 수를 박아두면(60 · 90 · 142 …) 운다
+    if (!/--tabbar-h/.test(m[1])) 짐작.push(rel + ' — ' + 무엇 + ' = ' + m[1].trim());
+  }
+  // 알림은 CSS 에 있다
+  {
+    const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const 덩이 = /\.toast\s*\{([^}]*)\}/.exec(css);
+    if (!덩이) 짐작.push('globals.css — `.toast` 를 못 찾았다');
+    else {
+      const b = /bottom:\s*([^;]+);/.exec(덩이[1]);
+      if (!b) 짐작.push('globals.css — `.toast` 에 `bottom` 이 없다');
+      else if (!/--tabbar-h/.test(b[1])) 짐작.push('globals.css — 알림 = ' + b[1].trim());
+    }
+  }
+  ok('바닥에 뜨는 것이 탭바 높이를 변수로 받는다 (px 를 안 박는다)', 짐작, []);
+  if (짐작.length) {
+    console.log('       → `calc(var(--tabbar-h, 60px) + …)` 로 적으세요. 탭바는 글자 크기에');
+    console.log('         따라 자라고, 박아둔 px 는 그때 **띠와 알림을 덮습니다**.');
+  }
+
+  // 알리는 쪽이 살아 있나 — 재는 손이 빠지면 변수가 영영 안 생기고 **대체값으로
+  // 조용히 돌아간다**(60px). 그러면 위 검사는 통과인데 화면은 옛 꼴이다
+  const 탭바 = codeOf(fs.readFileSync(path.join(SRC, 'components', 'TabBar.jsx'), 'utf8'));
+  const 띠 = codeOf(fs.readFileSync(path.join(SRC, 'components', 'RestBar.jsx'), 'utf8'));
+  ok('  탭바가 제 높이를 재서 알린다', [
+    /--tabbar-h/.test(탭바), /ResizeObserver/.test(탭바), /getBoundingClientRect/.test(탭바),
+  ], [true, true, true]);
+  ok('  띠도 제 높이를 알린다 (알림이 비킬 거리)', [
+    /--restbar-h/.test(띠), /ResizeObserver/.test(띠),
+  ], [true, true]);
+}
+
 // 표를 **실제로 들여다 쓰는지** 본다 — 표만 지어두고 아무도 안 부르면 그 표는 없는 것이다
 {
   const 쓰는곳 = files.filter((f) => /from '\.\.?\/(\.\.\/)?data\/layers'/.test(fs.readFileSync(f, 'utf8')));

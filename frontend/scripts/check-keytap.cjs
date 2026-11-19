@@ -252,8 +252,14 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
   // 상한만 있고 `nowrap` 이 남아 있으면 **글이 접히지 않아** 상한 밖으로 잘린다
   ok('    긴 글이 접힌다 (`white-space: nowrap` 이 아니다)',
     !!알림꼴 && !/white-space:\s*nowrap/.test(알림꼴[1]), true);
-  // 쉬는 띠(bottom 60 · 높이 50 쯤)와 알림(bottom 80)이 겹친다 — 알림이 위라서 덮었다
-  ok('  쉬는 띠가 떠 있으면 알림이 위로 비킨다', /restBarUp/.test(t) && /bottom: 142/.test(t), true);
+  // 쉬는 띠와 알림은 둘 다 바닥에 뜬다 — 비키지 않으면 알림이 띠를 덮는다.
+  //
+  // ★ **비키는 거리는 `142` 라는 짐작한 수였다** (2026-11-19 · 맵시). 탭바와 띠가
+  // 둘 다 글자 크기에 따라 자라므로 그 둘이 **제 높이를 알리고**(`--tabbar-h` ·
+  // `--restbar-h`) 알림은 그것을 더해 쓴다. 그러니 지켜야 할 것은 「142 가 있는가」가
+  // 아니라 **「띠 높이를 받아 비키는가」**다 (`check-layer` 가 그 류를 전수로 본다)
+  ok('  쉬는 띠가 떠 있으면 알림이 위로 비킨다',
+    /restBarUp/.test(t) && /--restbar-h/.test(t), true);
   const store = fs.readFileSync(path.join(SRC, 'store', 'restTimerStore.js'), 'utf8');
   ok('    뜨는 조건이 한 자리에 있다', /export const restBarUp/.test(store), true);
   const bar = fs.readFileSync(path.join(SRC, 'components', 'RestBar.jsx'), 'utf8');

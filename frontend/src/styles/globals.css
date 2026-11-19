@@ -497,7 +497,10 @@ body::before {
 /* ─── 토스트 알림 ──────────────────── */
 .toast {
   position: fixed;
-  bottom: 80px;
+  /* 탭바 위로 20 — **그 높이는 탭바가 재서 알려준다** (`--tabbar-h` · 2026-11-19 · 맵시).
+     80 을 박아두면 글자를 크게 쓰는 폰에서 탭바가 자라 알림과 겹쳤다. 변수가 없는
+     순간(탭바를 안 그리는 화면 · 옛 웹뷰)에는 60 으로 떨어진다 */
+  bottom: calc(var(--tabbar-h, 60px) + 20px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent);

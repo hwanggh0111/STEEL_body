@@ -25,11 +25,36 @@ function nextLine(view, label) {
   return `다음 · ${view.nextSet}세트 · ${view.weight > 0 ? view.weight + 'kg ' : ''}${view.reps}회`;
 }
 
-export default function RestBar({ bottom = 58 }) {
+export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
   const { leftMs, deadline, pausedLeft, finished, label, runSec, duration, sound, vibrate, tone, volume, add, pause, resume, stop, ackFinished } = useRestTimerStore();
   const navigate = useNavigate();
   const location = useLocation();
   const alerted = useRef(false);
+
+  // ── **띠도 제 높이를 알린다** ── (2026-11-19 · 맵시)
+  //
+  // 알림(토스트)이 띠 위로 비킬 때 여태 `bottom: 142` 라는 **짐작한 수**를 썼다.
+  // 띠 높이는 글자 크기와 종목 이름 길이에 따라 달라지고(한 줄이 두 줄이 되면
+  // 더 자란다), 탭바 높이까지 더해야 하는 값이다. 재서 `--restbar-h` 에 적으면
+  // 알림이 `calc(--tabbar-h + --restbar-h + 틈)` 으로 저절로 비킨다.
+  // 띠가 없는 동안은 **0** 이다 — 안 비우면 띠가 사라진 뒤에도 알림이 떠 있다
+  const 띠ref = useRef(null);
+  useEffect(() => {
+    const el = 띠ref.current;
+    const 적기 = (px) => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--restbar-h', px + 'px');
+      }
+    };
+    if (!el) { 적기(0); return undefined; }
+    const 재기 = () => 적기(Math.round(el.getBoundingClientRect().height));
+    재기();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(재기);
+    if (ro) ro.observe(el);
+    // cleanup 에서 0 을 적지 않는다 — 매 렌더마다 0 → 실제값이 되면서 **알림이 깜빡인다.**
+    // 띠가 사라지는 렌더에서는 `ref` 가 비므로 위의 `적기(0)` 이 그 일을 한다
+    return () => { if (ro) ro.disconnect(); };
+  });
 
   // 띠에도 **다음에 들 것**을 적는다 (2026-10-01).
   //
@@ -112,6 +137,7 @@ export default function RestBar({ bottom = 58 }) {
 
   return (
     <div
+      ref={띠ref}
       style={{
         position: 'fixed', left: 0, right: 0, bottom,
         zIndex: LAYER.휴식띠,

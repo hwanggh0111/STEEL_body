@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MiniSplash from './MiniSplash';
 import Logo from './Logo';
@@ -91,14 +91,49 @@ const NAV_TOKENS = {
 };
 
 
+// ── **탭바는 제 높이를 알린다** ── (2026-11-19 · 맵시)
+//
+// 바닥에 떠 있는 것이 셋이다 — 휴식 띠(`bottom: 60`) · 알림(`80`) · 위로 가기(`90`).
+// 그 수들은 **탭바 높이 60 을 짐작해서 적은 것**이다. 그런데 탭바 높이는 **글자
+// 크기에 따라 자란다**: 기본에서 이미 **64.6px**(여백 10+10 · 아이콘 22 · 틈 4 ·
+// 이름 17.6 · 테두리 1)이고, 폰에서 글자를 150% 로 쓰면 ~70, 200% 면 ~82 가 된다.
+//
+// 그러면 **탭바가 띠를 덮는다**(층이 탭바 9999 > 띠 9998 이다) — 200% 에서 22px 을
+// 덮고, 띠 아래 9~13px 에 있는 **쉬는 시간 진행 막대가 통째로 가려진다.** 알림도
+// 탭바와 겹쳐 읽기 어려워진다.
+//
+// 그래서 **짐작을 걷고 실제 높이를 잰다.** 재서 `--tabbar-h` 에 적으면 바닥에 뜨는
+// 것들이 그 값에서 올라간다 — 글자를 키우면 탭바와 함께 따라 올라간다.
+// PC 는 사이드바라 아래가 비니 **0** 이다.
+const 탭바높이알리기 = (px) => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.setProperty('--tabbar-h', px + 'px');
+};
+
 export default function TabBar() {
   const [splash, setSplash] = useState(false);
+  const navRef = useRef(null);
   const [isAdminUser, setIsAdminUser] = useState(isAdmin());
   const location = useLocation();
   const navigate = useNavigate();
   const isPC = useIsPC();
   // 손볼 제보가 있으면 관리자 항목에 숫자를 붙인다 — 화면을 열어봐야만 알던 것이다
   const pending = usePendingReports();
+
+  // 재서 알린다 — 글자 크기 · 가로세로 돌리기 · 안전 영역이 바뀌면 다시 잰다.
+  // `ResizeObserver` 를 쓰는 까닭은 **글자 크기 바뀜에는 이벤트가 없다**는 것이다
+  // (`resize` 는 창 크기만 알려준다)
+  useEffect(() => {
+    if (isPC) { 탭바높이알리기(0); return undefined; }
+    const el = navRef.current;
+    if (!el) return undefined;
+    const 재기 = () => 탭바높이알리기(Math.round(el.getBoundingClientRect().height));
+    재기();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(재기);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isPC]);
 
   // 관리자 권한 변경 감지 (다른 탭에서 로그인/로그아웃 시)
   useEffect(() => {
@@ -329,7 +364,7 @@ export default function TabBar() {
       {splash && <MiniSplash onDone={() => { setSplash(false); navigate('/home'); }} />}
 
       {/* 하단 탭바 */}
-      <nav aria-label="하단 네비게이션" style={{
+      <nav ref={navRef} aria-label="하단 네비게이션" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'var(--surface)',
         backdropFilter: 'var(--surface-blur)',
