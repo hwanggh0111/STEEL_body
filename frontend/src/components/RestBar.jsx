@@ -39,6 +39,14 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
   // 알림이 `calc(--tabbar-h + --restbar-h + 틈)` 으로 저절로 비킨다.
   // 띠가 없는 동안은 **0** 이다 — 안 비우면 띠가 사라진 뒤에도 알림이 떠 있다
   const 띠ref = useRef(null);
+  // ★ **뜨는 조건에만 매단다** (2026-11-19 · 정석이 짚었다). 의존성 배열이 없으면
+  // 쉬는 동안 `leftMs` 가 **1초마다** 바뀌므로 이 효과가 매초 돌아 `ResizeObserver`
+  // 를 **1초마다 만들고 끊는다.** 틀린 꼴은 아니지만 할 일 없는 일이다 —
+  // **띠가 떴나 내렸나**가 바뀔 때만 다시 걸면 된다. 띠 **안**이 자라는 것(종목
+  // 이름이 두 줄이 되는 것 · 글자 크기)은 `ResizeObserver` 가 그대로 잡는다.
+  // 띠가 내려가는 렌더에서는 이 값이 false 로 바뀌어 효과가 다시 돌고, 그때
+  // `ref` 가 비어 있어 **0 이 적힌다** — 아래 `적기(0)` 이 하던 그 일이다
+  const 떴나 = restBarUp({ deadline, pausedLeft, finished });
   useEffect(() => {
     const el = 띠ref.current;
     const 적기 = (px) => {
@@ -61,7 +69,7 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
         document.documentElement.style.removeProperty('--restbar-h');
       }
     };
-  });
+  }, [떴나]);
 
   // 띠에도 **다음에 들 것**을 적는다 (2026-10-01).
   //
@@ -128,7 +136,7 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
   const alarmFired = useRestAlarm(running && (sound || vibrate) ? deadline : null, alarmBody);
 
   // 뜨는 조건은 `restBarUp` 한 자리에서 온다 — 한 줄 알림이 같은 것을 본다 (2026-11-11)
-  if (!restBarUp({ deadline, pausedLeft, finished })) return null;
+  if (!떴나) return null;   // 뜨는 조건은 위에서 한 번 본다 (`restBarUp` 한 자리)
 
   // **지금 도는 휴식이 몇 초짜리인가(`runSec`)로 잰다** (2026-09-19 에 고쳤다).
   //
