@@ -149,16 +149,29 @@ export default function AppLock() {
     if (locked && enabled) dismissConfirm();
   }, [locked, enabled]);
 
-  // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 —
-  // 잊었을 때 푸는 길이 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고
-  // 그 위에서는 아무것도 할 수 없다. 잠금이 가리려는 것은 **들어와 있는 사람의
-  // 기록**이고, 로그인 전에는 가릴 것이 없다
-  if (!enabled || !locked || !loggedIn || publicPlace) return null;
-
   // ── 지문 단추를 그릴까 ── (2026-11-19)
   //
   // **눌러도 아무 일이 안 나는 줄을 두지 않는다**(`healthLink` · 설정함의 「앱 잠금」과
   // 같은 규칙). 기기가 못 읽거나 안 켜 뒀으면 **아예 안 그린다**
+  //
+  // ── ★ **이 훅 넷은 아래 `return null` 보다 위에 있어야 한다** ── (2026-11-19 · 정석 2차)
+  //
+  // 처음 붙었을 때 이 넷이 **이른 반환 뒤**에 있었다. 그러면 React 가 **훅 수가 길마다
+  // 달라진** 것을 보고 그 자리에서 터뜨린다 —
+  //
+  //     잠겨 있을 때   훅 14개 (여기까지 다 돈다)
+  //     안 잠겼을 때   훅 10개 (`return null` 에서 끊긴다)
+  //
+  // 이 컴포넌트는 `App.jsx` 에 **늘 붙어 있고**(조건부로 그리는 자리가 아니다),
+  // `locked` 는 앱을 덮었다 돌아올 때 `maybeLock()` 으로 **그 자리에서** 켜진다.
+  // 즉 **잠금이 뜨는 순간**(10 → 14)과 **푸는 순간**(14 → 10) 양쪽에서 터진다 —
+  // 「Rendered more/fewer hooks than during the previous render」. 터지면
+  // `ErrorBoundary` 가 받는데 그 글은 **낡은 조각 꼴이 아니라 저절로 새로 받지도
+  // 않는다** — 잠금을 켠 사람은 **잠금 화면 대신 오류 화면**을 본다.
+  //
+  // **잠금을 안 쓰는 사람에게는 안 보인다**(늘 `return null` 이라 훅 수가 한결같다).
+  // 그래서 110개 검사도 빌드도 멀쩡했다 — 쓰는 사람에게만 터지는 꼴이다.
+  // 자(`check-hooks`)를 세워 이 류를 막는다.
   const [bioCan, setBioCan] = useState(false);
   useEffect(() => {
     let 살아있다 = true;
@@ -171,13 +184,20 @@ export default function AppLock() {
 
   // 잠금이 떠 있는 동안 **한 번은 저절로 물어본다** — 지문을 켠 사람이 바라는 것은
   // 「열면 바로 지문」이지 「단추를 찾아 누르기」가 아니다. 거절하면 네 자리가 그대로 있다.
-  // **다시 물어보지 않는다**(`물어봤다`) — 거절한 사람에게 계속 뜨면 그게 가로막이다
+  // **다시 물어보지 않는다**(`물어봤다`) — 거절한 사람에게 계속 뜨면 그게 가로막이다.
+  // 잠금이 떠 있을 때만 묻는 것은 **식 안의 `locked`** 가 지킨다(훅은 늘 돈다)
   const 물어봤다 = useRef(false);
   useEffect(() => {
-    if (!bioCan || !locked || 물어봤다.current) return;
+    if (!bioCan || !locked || !enabled || !loggedIn || publicPlace || 물어봤다.current) return;
     물어봤다.current = true;
     (async () => { if (await bioTry()) release(); })();
-  }, [bioCan, locked, release]);
+  }, [bioCan, locked, enabled, loggedIn, publicPlace, release]);
+
+  // **로그인 화면은 안 덮는다.** 덮으면 나갈 길이 막힌다 —
+  // 잊었을 때 푸는 길이 로그아웃인데, 로그아웃하면 이 화면이 로그인 화면을 덮고
+  // 그 위에서는 아무것도 할 수 없다. 잠금이 가리려는 것은 **들어와 있는 사람의
+  // 기록**이고, 로그인 전에는 가릴 것이 없다
+  if (!enabled || !locked || !loggedIn || publicPlace) return null;
 
   async function 지문으로() {
     if (busy.current) return;
