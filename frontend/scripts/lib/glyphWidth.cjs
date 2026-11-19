@@ -191,4 +191,78 @@ function 숫자폭(o = {}) {
   };
 }
 
-module.exports = { 숫자폭, 글꼴사정, 글꼴파일, 글리프폭, 파이썬있나 };
+// ── ★ **D 안으로 가면 자가 보는 것이 바뀐다** ── (2026-11-19 · 주인 결정)
+//
+// 주인이 고른 D 안은 칸 바닥을 `flex: 1 1 calc(5ch + 88px)` 로 깔고 **자리가 모자라면
+// 브라우저가 알아서 줄을 바꾼다.** 즉 **폭을 숫자로 가르는 경계가 없다** — 그러니
+// 「320·360·390·430 네 점에서 들어가는가」를 보는 자는 **D 를 검사할 수 없다**
+// (브라우저가 `ch` 로 재는 것을 자가 흉내낼 수 없다). 지켜야 하는 것이 바뀐다 —
+//
+//   ⒜ 칸 바닥이 `calc(<n>ch + <m>px)` 꼴로 **적혀 있는가**
+//   ⒝ 그 `m` 이 **코드에서 읽은 합**과 같은가 (생글자로 박히면 FAIL)
+//   ⒞ `n` 이 「100.5」 다섯 자를 **담는가** ← 글꼴을 읽는 조각이 쓰이는 자리
+//
+// ★ `ch` 는 `tnum` 폭이 아니다. CSS 의 `1ch` 는 그 글꼴 **「0」 글리프의 advance** 다
+//   (Barlow 400 에서 565/1000 em). 화면에 그려지는 숫자는 `tabular-nums` 때문에
+//   527 이라 **`ch` 가 더 넓다** — 즉 `ch` 로 깐 바닥은 **안전한 쪽으로 넉넉하다.**
+//   이 차이를 모르고 `ch` 를 7.378 로 세면 바닥을 **모자라게** 깔게 된다.
+
+/** CSS `1ch` 가 몇 px 인가 — 그 글꼴 「0」 의 advance 다 (`tnum` 이 아니다) */
+function ch폭(o = {}) {
+  const 사정 = 글꼴사정(o.고르개 || '.input');
+  const f = 글꼴파일(사정.family, 사정.weight);
+  const g = 글리프폭(f.파일);
+  if (g === null) {
+    return { 건너뜀: 'woff2 를 열 손이 없다 (python fontTools — 생성기가 쓰는 그 손이다)' };
+  }
+  if (g.digits['0'] == null) throw new Error('글꼴에 「0」 이 없다 — `ch` 를 잴 수 없다');
+  return {
+    ch: +((g.digits['0'] / g.upm) * 사정.size).toFixed(3),
+    사정: { ...사정, 영advance: g.digits['0'], unitsPerEm: g.upm, 글꼴파일: f.주소 },
+  };
+}
+
+/** `calc(<n>ch + <m>px)` 를 읽는다. 그 꼴이 아니면 `null` — 부르는 쪽이 FAIL 로 적는다 */
+function 바닥식읽기(글) {
+  const m = /calc\(\s*([\d.]+)ch\s*\+\s*([\d.]+)px\s*\)/.exec(String(글 || ''));
+  return m ? { n: +m[1], m: +m[2] } : null;
+}
+
+/**
+ * ⒞ `n`ch 가 그 글을 담는가. 담는 자리는 `ch` 로 재고, 드는 자리는 **그려지는 폭**
+ * (`tnum`)으로 잰다 — 두 단위가 다른 것이 이 셈의 요점이다
+ */
+function 담기나(글, n, o = {}) {
+  const c = ch폭(o);
+  if (c.건너뜀) return c;
+  const w = 숫자폭(o);
+  if (w.건너뜀) return w;
+  const 있는것 = +(c.ch * n).toFixed(3);
+  const 필요 = +w.글폭(글);
+  return { 드나: 있는것 >= 필요, 있는것, 필요, ch: c.ch, 여유: +(있는것 - 필요).toFixed(3) };
+}
+
+/**
+ * ⒝ `m` 이 몇이어야 하는가 — **코드에서 읽은 값만** 더한다.
+ * 부르는 쪽(`narrow-measure.cjs` 의 `상수()`)이 이미 읽어 온 것을 받는다 —
+ * 같은 값을 두 자리에서 읽으면 한쪽만 고쳐지는 날이 온다
+ *
+ * @param {{단추폭:number,단추틈:number,칸안여백:number,테두리?:number}} c
+ * @param {{단추:number}} [꼴]  ± 가 몇 개인가 (무게·횟수 2 · 세트 0)
+ */
+function 더할값(c, 꼴 = {}) {
+  const 단추수 = 꼴.단추 === undefined ? 2 : 꼴.단추;
+  const 테두리 = c.테두리 === undefined ? 1 : c.테두리;
+  for (const k of ['단추폭', '단추틈', '칸안여백']) {
+    if (typeof c[k] !== 'number' || Number.isNaN(c[k])) {
+      throw new Error('`' + k + '` 을 못 읽었다 — 자가 짐작하면 안 된다');
+    }
+  }
+  // 단추 둘 · 그 사이 틈 둘 · 칸 안 좌우 여백 · 칸 테두리 좌우
+  return c.단추폭 * 단추수 + c.단추틈 * 단추수 + c.칸안여백 * 2 + 테두리 * 2;
+}
+
+module.exports = {
+  숫자폭, 글꼴사정, 글꼴파일, 글리프폭, 파이썬있나,
+  ch폭, 바닥식읽기, 담기나, 더할값,
+};
