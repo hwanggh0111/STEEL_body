@@ -16,6 +16,8 @@ import { canWidget } from '../data/homeWidget';
 import { healthReady, openHealthSettings } from '../data/healthLink';
 import { useGymStore } from '../store/gymStore';
 import { confirmDialog } from '../components/ConfirmModal';
+// 운동마다 기억한 쉬는 시간 (2026-11-19 · 시안 ②) — 표는 기기에 있다
+import { 기억한수, 다잊는다 } from '../data/restPerExercise';
 import { removeLS, readLS, saveLS } from '../data/safeStorage';
 import { EMAIL_KEY, SAVED_ID_KEY, SHAPE_LOG_KEY, SHAPE_RATIOS_KEY } from '../data/localKeys';
 import { NICKNAME_MAX, USERNAME_MAX } from '../data/limits';
@@ -260,6 +262,9 @@ function GoRow({ title, sub, warn, onClick }) {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  // 기억해 둔 운동 수 — 표가 **기기에** 있어 스토어가 모른다. 들어올 때 한 번 읽고,
+  // 「전부 잊기」를 누르면 그 자리에서 0 으로 둔다
+  const [기억한운동수, set기억한운동수] = useState(() => 기억한수());
   // ── 운동 알림 줄에 사실을 적는다 (2026-09-30) ──
   //
   // 그 줄은 「시간 정하기」로 박혀 있었다 — 켜졌는지 · 막혔는지 · 서버가 보낼 수 있는지를
@@ -583,6 +588,42 @@ export default function SettingsPage() {
             onPick={setDuration}
           />
         </div>
+        {/* ── **운동마다 기억해 둔 것을 여기서 본다** ── (2026-11-19 · 맵시 · 시안 ②)
+            기억하는 자리는 휴식 화면이다. 그런데 **보는 자리가 거기뿐**이라, 무엇을
+            기억해 뒀는지 알려면 **그 운동을 다시 쉬어 봐야** 했다 — 「왜 이 운동만
+            3분을 기다리지」의 답이 앱 어디에도 없었다. 그래서 수를 여기 적고 **한
+            번에 잊는 길**을 둔다. 기억한 것이 없으면 이 줄은 **안 그린다**(설정이
+            또 한 줄 길어질 까닭이 없다) */}
+        {기억한운동수 > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '11px 0', borderTop: '1px solid var(--border)',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>운동마다 기억한 쉬는 시간</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                {기억한운동수}가지 운동에 따로 기억해 뒀어요 — 그 운동은 위 기본값 대신 그 길이로 돌아요.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 12.5, padding: '8px 12px' }}
+              onClick={async () => {
+                const ok = await confirmDialog(
+                  `${기억한운동수}가지에 기억해 둔 쉬는 시간을 전부 잊습니다.
+`
+                  + '운동 기록은 그대로예요. 다시 기억하려면 쉬는 화면에서 고르시면 됩니다.',
+                  { danger: true, confirmText: '전부 잊기' },
+                );
+                if (!ok) return;
+                다잊는다();
+                set기억한운동수(0);
+                toast('기억해 둔 쉬는 시간을 전부 잊었어요', 'success');
+              }}
+            >전부 잊기</button>
+          </div>
+        )}
       </Group>
 
       {/* ── 마이크 ──

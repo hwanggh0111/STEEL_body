@@ -23,6 +23,8 @@ import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
 import VoiceSet from '../components/VoiceSet';
 import NumberStep, { stepFloor, plainFloor, 담을자릿수 } from '../components/NumberStep';
+// 없다고 적어둔 기구 · 같은 부위의 다른 운동 (2026-11-19 · 시안 ③)
+import { 없다고적혔나, 대체후보 } from '../data/altExercise';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import SameWeightBanner from '../components/SameWeightBanner';
@@ -389,6 +391,22 @@ export default function TrainPage() {
   // 있는가로 본다(`isCardioRow`). 둘을 섞으면 지어내 적어둔 옛 줄이 갑자기
   // 「유산소 줄」로 읽혀 **없는 시간을 0분으로** 그린다
   const cardio = isCardioName(exercise);
+
+  // ── 없다고 적어둔 기구인가 (2026-11-19 · 시안 ③) ──
+  //
+  // 표는 **헬스장마다** 다르다(`altExercise` 가 그 열쇠로 담는다) — 집에서는 없는
+  // 것이 짐에서는 있다. 그래서 **지금 고른 헬스장**으로 묻는다. 헬스장을 안 고른
+  // 사람에게는 물을 것이 없다(`gym` 이 비면 `없다고적혔나` 가 false 다)
+  const gym = useGymStore((s) => s.gym);
+  const 없는기구다 = useMemo(
+    () => !!exercise && !cardio && 없다고적혔나(gym, exercise),
+    [gym, exercise, cardio],
+  );
+  // 후보 셈은 **그 줄을 그릴 때만** 돈다 — 사전 전체를 훑는 일이라 매 글자마다 돌리지 않는다
+  const 바꿀것 = useMemo(
+    () => (없는기구다 ? 대체후보(exercise, { gym, workouts, today }) : []),
+    [없는기구다, exercise, gym, workouts, today],
+  );
 
   // 이 운동을 마지막으로 한 기록. 미리 채울 값이고 화면에도 적는다.
   //
@@ -1632,6 +1650,62 @@ export default function TrainPage() {
                 **세팅을 먼저 보고 그 다음에 무슨 운동인지 알게 되는** 차례였다 —
                 「시트 4번」이 무엇의 시트인지 모르는 채로 먼저 읽힌다.
                 기구를 맞추는 일은 무게를 적는 일보다 먼저이되, **어느 운동인지 안 다음**이다 */}
+            {/* ── **없다고 적어둔 기구면 그 자리에서 말한다** ── (2026-11-19 · 맵시 · 시안 ③)
+                적어두는 자리는 「기구」 화면이고, 그것을 **쓰는 자리가 여기**다 — 적어만
+                두고 아무 데서도 안 쓰면 적을 까닭이 없다. 짐에 가서 기구 앞에 선 다음에야
+                「아, 여긴 없지」가 되는 것을 **적기 전에** 막는다.
+                ★ **권하지 않고 사실만 적는다** — 「대신 이걸 하세요」가 아니라 「같은 부위
+                로 이런 게 있어요」다. 고르는 것은 사람이고, 누르면 그 운동으로 **바꿔만**
+                준다(적지 않는다). 후보가 없으면(부위를 모르는 이름 등) **줄을 안 그린다** */}
+            {없는기구다 && (
+              <div
+                role="status"
+                style={{
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                  background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                  borderLeft: '2px solid var(--warning)', borderRadius: 'var(--radius)',
+                  padding: '10px 12px', marginBottom: 10,
+                }}
+              >
+                <div style={{ minWidth: 0, flexGrow: 1 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    <b style={{ color: 'var(--text-primary)' }}>{gym}</b> 에 없다고 적어두신 거예요.
+                  </div>
+                  {바꿀것.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '6px 0 5px' }}>
+                        같은 부위로 할 수 있는 것 — 누르면 바꿔 드려요
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {바꿀것.map((a) => (
+                          <button
+                            key={a.이름}
+                            type="button"
+                            className="btn-secondary"
+                            /* 가장 긴 이름이 「스미스머신 인클라인 프레스」(12자)다 —
+                               기구 꼬리표까지 붙으면 320px 폰에서 한 줄(219px)을 넘는다.
+                               **자르지 않고 접히게** 둔다(무슨 운동인지가 이름이다).
+                               `letterSpacing` 은 `Bebas Neue` 용이라 한글에서는 폭만
+                               먹는다 — 이 칩에서만 줄인다 (2026-11-19 · 맵시) */
+                            style={{
+                              fontSize: 12, padding: '7px 11px', letterSpacing: 0.3,
+                              lineHeight: 1.45, textAlign: 'left',
+                            }}
+                            onClick={() => pick(a.이름)}
+                          >
+                            {a.이름}
+                            {a.기구 && (
+                              <span style={{ color: 'var(--text-muted)' }}> · {a.기구}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             <GymSetting exercise={exercise} />
 
             {/* 적어둔 것 **전부**로 가는 길 (2026-09-19, 8차에 탭을 걷으면서).
