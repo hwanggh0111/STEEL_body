@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "04e7cce1e8",
+  "detailVersion": "43a51eb8e7",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "e045c80",
+      "date": "2026-11-19",
+      "text": "한쪽씩 하는 운동을 좌우로 적는다 — 11/17 에 거절만 하고 못 줬던 칸 (시안 1119 ①)",
+      "label": "새 기능",
+      "scope": "기록",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "숫자 칸에 {\"toString\":1} 을 보내면 500 이 났다 — 이상값 검사는 331 번을 429 로 맞고 통과로 적었다",
       "label": "고침",
       "scope": "서버",
-      "has": true
-    },
-    {
-      "key": "fe5a41a",
-      "date": "2026-11-11",
-      "text": "되살린 루틴에서 운동이 사라졌다 — 글자로 담긴 옛 줄을 서버가 조용히 버렸다",
-      "label": "고침",
-      "scope": "루틴",
       "has": true
     }
   ]
