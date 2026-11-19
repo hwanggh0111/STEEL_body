@@ -234,9 +234,24 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
   // 자판으로 지운 사람은 알림까지 탭으로 가는 동안 8초가 지난다 — 그때만 포커스를 옮긴다
   ok('  자판으로 한 일이면 되돌리기 단추로 포커스를 옮긴다', /btnRef\.current\.focus\(\)/.test(t), true);
   ok('  닫힐 때 있던 자리로 돌려준다', /back\.focus\(\)/.test(t), true);
-  // 글 + 단추가 화면보다 넓어지면 단추 절반이 화면 밖으로 나가 **누를 수가 없다**
-  const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8');
-  ok('  단추 붙은 알림이 화면 밖으로 안 나간다', /\.toast-action[\s\S]{0,200}max-width/.test(css), true);
+  // 글 + 단추가 화면보다 넓어지면 단추 절반이 화면 밖으로 나가 **누를 수가 없다**.
+  //
+  // ★ 상한을 **`.toast` 에서 본다** (2026-11-19 · 맵시). 11/11 에는 `.toast-action`
+  // 한 자리에만 있었고 그래서 이 자도 그 자리를 봤는데, **그냥 알림 240곳이 같은
+  // 자리에서 터지고 있었다**(긴 글이 좌우로 잘렸다). 상한과 접힘이 `.toast` 로
+  // 올라갔고 단추 붙은 알림은 **같은 요소에 두 클래스**라 그대로 받는다 — 그러니
+  // 지켜야 할 것은 「`.toast` 에 상한이 있는가」다. 거기 있으면 둘 다 안 나간다
+  // **주석을 먼저 걷는다** — 머리글에 「여기는 `white-space: nowrap` 이었다」라고
+  // 적어둔 그 글자에 자가 속았다(11/19 에 실제로 거짓 FAIL 이 났다). 11/16 에
+  // `check-tap` 이 같은 까닭으로 주석을 걷는다
+  const cssRaw = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8');
+  const css = cssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+  const 알림꼴 = /\.toast\s*\{([\s\S]*?)\}/.exec(css);
+  ok('  알림에 상한이 있다 (단추 붙은 것도 같은 요소라 같이 받는다)',
+    !!알림꼴 && /max-width:/.test(알림꼴[1]), true);
+  // 상한만 있고 `nowrap` 이 남아 있으면 **글이 접히지 않아** 상한 밖으로 잘린다
+  ok('    긴 글이 접힌다 (`white-space: nowrap` 이 아니다)',
+    !!알림꼴 && !/white-space:\s*nowrap/.test(알림꼴[1]), true);
   // 쉬는 띠(bottom 60 · 높이 50 쯤)와 알림(bottom 80)이 겹친다 — 알림이 위라서 덮었다
   ok('  쉬는 띠가 떠 있으면 알림이 위로 비킨다', /restBarUp/.test(t) && /bottom: 142/.test(t), true);
   const store = fs.readFileSync(path.join(SRC, 'store', 'restTimerStore.js'), 'utf8');

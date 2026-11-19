@@ -87,6 +87,25 @@ function cssMoJib(cssRaw) {
   for (const m of css.matchAll(/([.#][\w-]+)\s*\{([^}]*)\}/g)) {
     if (/(^|[;\s{])height:\s*[\d.]+px/.test(m[2]) && /line-height:\s*[\d.]+px/.test(m[2])) 글묶음.push(m[1]);
   }
+  // ── **떠 있는 칸이 한 줄로 늘어나 화면을 넘는가** ── (2026-11-19 · 맵시)
+  //
+  // `position: fixed` 로 띄운 칸이 `white-space: nowrap` 인데 **상한이 없으면**, 글이
+  // 길어지는 날 화면 밖으로 나간다. 가운데 맞춤(`translateX(-50%)`)이면 **양쪽이 다**
+  // 잘려 가운데 토막만 보인다. 토스트가 그 꼴이었다 — 앱의 알림 글은 길고(240곳 중
+  // 「한 번에 50,000줄까지…기간을 나눠 넣어주세요」는 600px 쯤이다) 320px 폰에서
+  // 좌우로 140px 씩 삐져나갔다. **왜 안 됐는지 말하려고 띄운 알림이 그 말을 못 한다.**
+  //
+  // 11/11 에 같은 고침이 `.toast-action`(되돌리기 단추가 붙은 꼴) **한 자리에만**
+  // 들어가 있었다 — 집안에 꼴이 이미 있는데 한 자리만 고쳐진 그 모양이다.
+  const 떠서잘림 = [];
+  for (const m of css.matchAll(/([.#][\w-]+(?:\s*,\s*[.#][\w-]+)*)\s*\{([^}]*)\}/g)) {
+    const body = m[2];
+    if (!/position:\s*fixed/.test(body)) continue;
+    if (!/white-space:\s*nowrap/.test(body)) continue;
+    if (/max-width:/.test(body)) continue;
+    for (const sel of m[1].split(',')) 떠서잘림.push(sel.trim());
+  }
+
   // `body` 가 한글을 **띄어쓰기에서만** 끊나 (2026-11-18) — 빠지면 「생깁 / 니다」로
   // 돌아간다. 브라우저 없이는 끊긴 자리를 셀 수 없어 **그 한 줄을 지킨다**
   const body = /(^|\})\s*body\s*\{([^}]*)\}/.exec(css);
@@ -94,7 +113,7 @@ function cssMoJib(cssRaw) {
     keepAll: !!body && /word-break:\s*keep-all/.test(body[2]),
     받침: !!body && /overflow-wrap:\s*(break-word|anywhere)/.test(body[2]),
   };
-  return { 말줄임, 동그라미, 글묶음, 낱말 };
+  return { 말줄임, 동그라미, 글묶음, 떠서잘림, 낱말 };
 }
 
 // ── 클래스로 가로 flex 가 되는 것을 `globals.css` 에서 읽는다 ──
@@ -602,6 +621,12 @@ if (process.argv.includes('--되돌려')) {
     cssMoJib('.pill { height: 16px; line-height: 16px; }').글묶음, ['.pill']);
   ok('  `min-height` 는 묶음이 아니다 (거짓 FAIL 막이)',
     cssMoJib('.pill { min-height: 16px; line-height: 16px; }').글묶음, []);
+  ok('  떠서 한 줄로 늘어나는 칸이 생기면 걸린다 (11/19 의 토스트 꼴)',
+    cssMoJib('.toast { position: fixed; white-space: nowrap; }').떠서잘림, ['.toast']);
+  ok('  상한이 있으면 안 걸린다 (거짓 FAIL 막이)',
+    cssMoJib('.toast { position: fixed; white-space: nowrap; max-width: min(420px, calc(100vw - 32px)); }').떠서잘림, []);
+  ok('  안 떠 있는 칸은 안 센다 (거짓 FAIL 막이 · 줄 안의 꼬리표)',
+    cssMoJib('.badge { white-space: nowrap; }').떠서잘림, []);
   ok('  `body` 에서 `keep-all` 이 빠지면 걸린다',
     cssMoJib('body { color: red; overflow-wrap: break-word; }').낱말, { keepAll: false, 받침: true });
   ok('  `keep-all` 만 있고 받침이 없으면 걸린다 (긴 메일이 칸을 넘는다)',
@@ -667,6 +692,8 @@ console.log('\n── 내가 못 보는 자리가 생겼나 ──');
   ok('CSS 에 말줄임이 없다 (이 자는 인라인 `style` 만 본다)', r.말줄임, []);
   ok('  CSS 의 동그라미는 flex 자식이 아니다 (떠 있는 것만 있다)', r.동그라미, []);
   ok('  CSS 에 `height` 와 px 줄 높이로 글을 묶는 클래스가 없다', r.글묶음, []);
+  // 떠 있는 칸이 한 줄로 늘어나 화면을 넘는 꼴 (2026-11-19) — 토스트가 그랬다
+  ok('  떠 있는 칸이 한 줄로 늘어나 화면을 넘지 않는다 (`nowrap` + 상한 없음)', r.떠서잘림, []);
 
   // 11/18 실제 화면을 띄워 낱말마다 줄 상자를 셌을 때 360px 에서 **마흔한 자리**가
   // 낱말 가운데서 갈렸다(「생깁 / 니다」). 그 한 줄이 빠지면 그대로 돌아간다

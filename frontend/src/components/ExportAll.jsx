@@ -16,6 +16,17 @@
 // 펼쳐 두고 고르게 한다 — 설정 화면의 원칙이 **「접지 않고 숨기지 않는다」**라서
 // (`SettingsPage` 의 `Group` 머리글) 아코디언으로 접지 않는다.
 //
+// ── 묶음을 **둘로 가른다** ── (2026-11-19 · 좁은 폭을 재고 고쳤다)
+//
+// 처음에는 일곱을 한 줄씩 늘어놓고 줄마다 꼬리표(「여태 받을 길이 없었어요」)를
+// 붙였다. **320px 폰에서 그 꼬리표가 이름을 밀어낸다** — 이름 98px + 꼬리표 142px
+// 이면 쓸 수 있는 223px 을 넘고, 꼬리표가 `flexShrink: 0` 이라 **이름이 잘린다**
+// (「메모 · 그날…」). 무엇을 받는지가 이름인데 설명 때문에 그 이름이 깎이는 꼴이다.
+//
+// 그래서 **시안대로 묶음을 둘로** 둔다 — 「지금 받을 수 있는 것」과 「받을 길이 없던
+// 것」. 설명이 **묶음 제목 한 줄로 올라가니** 줄마다 적을 것이 없어지고, 꼬리표는
+// 「CSV」·「새로」처럼 짧은 것만 남아 320 에서도 안 겹친다.
+//
 // **사진만 기본으로 꺼져 있다.** 한 장이 수십~수백 KB 이고 여러 해 쌓이면 묶음이
 // 수십 MB 가 된다 — 폰에서 받다 끊기면 **왜 끊겼는지 알 수 없다.** 그래서 고른
 // 사람만 담는다. 「무겁습니다」를 그 줄에 적어 둔다.
@@ -27,16 +38,23 @@ import { toast } from './Toast';
 // 담을 것 — **이름과 열쇠를 한 자리에 둔다.** 서버가 받는 열쇠(`parts=`)와 화면에
 // 적는 이름이 갈리면, 한쪽을 고치는 날 **빠진 줄을 아무도 모른다**
 // (서버 쪽 짝은 `backend/src/routes/exportAll.js`)
+//
+// `tag` 는 **짧은 것만** 적는다 — 긴 설명은 묶음 제목이 맡는다(위 머리글의 그 까닭)
 export const PARTS = [
-  { key: 'workouts', name: '운동 기록', note: 'CSV', on: true },
-  { key: 'inbody', name: '인바디', note: 'CSV', on: true },
-  { key: 'measures', name: '측정 기록', note: '줄자로 잰 것 · CSV', on: true },
-  { key: 'notes', name: '메모 · 그날 메모', note: '여태 받을 길이 없었어요', on: true },
-  { key: 'routines', name: '내 루틴', note: '여태 받을 길이 없었어요', on: true },
-  { key: 'gym', name: '기구 세팅', note: '여태 받을 길이 없었어요', on: true },
+  { key: 'workouts', group: 'now', name: '운동 기록', tag: 'CSV', on: true },
+  { key: 'inbody', group: 'now', name: '인바디', tag: 'CSV', on: true },
+  { key: 'measures', group: 'now', name: '측정 기록', tag: 'CSV', on: true },
+  { key: 'notes', group: 'new', name: '메모 · 그날 메모', tag: '새로', on: true },
+  { key: 'routines', group: 'new', name: '내 루틴', tag: '새로', on: true },
+  { key: 'gym', group: 'new', name: '기구 세팅', tag: '새로', on: true },
   // 기본으로 꺼두는 **유일한 줄**이다 — 위 머리글의 그 까닭
-  { key: 'photos', name: '사진', note: '무겁습니다 — 고르면 담아요', on: false },
+  { key: 'photos', group: 'new', name: '사진', tag: '무겁습니다', on: false },
 ];
+
+const 묶음이름 = {
+  now: '지금 받을 수 있는 것',
+  new: '받을 길이 없던 것',
+};
 
 export default function ExportAll() {
   const [pick, setPick] = useState(() => {
@@ -65,45 +83,52 @@ export default function ExportAll() {
       .finally(() => setBusy(false));
   };
 
+  const 줄 = (p) => (
+    <label
+      key={p.key}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+        padding: '7px 0', fontSize: 13, color: 'var(--text-secondary)',
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={!!pick[p.key]}
+        onChange={(e) => setPick((v) => ({ ...v, [p.key]: e.target.checked }))}
+        style={{ accentColor: 'var(--accent)', flexShrink: 0 }}
+      />
+      {/* 이름이 길어지는 날 꼬리표를 밀어내지 않게 — `minWidth: 0` 이 말줄임의 짝이다 */}
+      <span style={{
+        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{p.name}</span>
+      <span style={{
+        marginLeft: 'auto', flexShrink: 0, fontSize: 11,
+        color: p.key === 'photos' ? 'var(--warning)' : 'var(--text-muted)',
+      }}>{p.tag}</span>
+    </label>
+  );
+
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 11, marginTop: 2 }}>
       <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 2 }}>
         내 기록 전부 받기
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
         고른 것을 <b style={{ color: 'var(--text-secondary)' }}>한 묶음</b>으로 받습니다.
         계정을 지우기 전에 받아두세요 — 지우면 30일 뒤에 사라집니다.
       </div>
 
-      {/* 묶음 이름을 낭독기에 알린다 — 체크 일곱이 무엇의 목록인지 안 들리면
+      {/* 묶음마다 이름을 낭독기에도 알린다 — 체크 일곱이 무엇의 목록인지 안 들리면
           「운동 기록, 체크 상자」만 읽힌다 */}
-      <div role="group" aria-label="묶음에 담을 것">
-        {PARTS.map((p) => (
-          <label
-            key={p.key}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-              padding: '8px 0', borderTop: '1px solid var(--border)',
-              fontSize: 13, color: 'var(--text-secondary)',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={!!pick[p.key]}
-              onChange={(e) => setPick((v) => ({ ...v, [p.key]: e.target.checked }))}
-              style={{ accentColor: 'var(--accent)', flexShrink: 0 }}
-            />
-            {/* 이름이 길어지는 날 꼬리표를 밀어내지 않게 — `minWidth: 0` 이 말줄임의 짝이다 */}
-            <span style={{
-              minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{p.name}</span>
-            <span style={{
-              marginLeft: 'auto', flexShrink: 0, fontSize: 11,
-              color: p.key === 'photos' ? 'var(--warning)' : 'var(--text-muted)',
-            }}>{p.note}</span>
-          </label>
-        ))}
-      </div>
+      {['now', 'new'].map((g) => (
+        <div key={g} role="group" aria-label={묶음이름[g]} style={{ marginBottom: 6 }}>
+          <div style={{
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.4,
+            color: 'var(--text-muted)', paddingTop: 6,
+          }}>{묶음이름[g]}</div>
+          {PARTS.filter((p) => p.group === g).map(줄)}
+        </div>
+      ))}
 
       <button
         onClick={받기}
@@ -111,7 +136,7 @@ export default function ExportAll() {
         className="btn-primary"
         // 흐려지는 꼴은 `.btn-primary:disabled` 가 이미 갖고 있다 — 인라인으로
         // 또 적으면 단추 꼴이 두 벌이 된다 (globals.css:276)
-        style={{ width: '100%', marginTop: 12 }}
+        style={{ width: '100%', marginTop: 8 }}
       >
         {busy ? '묶는 중…' : `한 묶음으로 받기 (${고른것.length}가지)`}
       </button>
