@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "95db2d6db8",
+  "detailVersion": "402068aa4c",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "b98547e",
+      "date": "2026-11-19",
+      "text": "지문 · 얼굴로 푼다 — 네 자리는 그대로 남는다 (시안 1119 ⑤)",
+      "label": "새 기능",
+      "scope": "잠금",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "잘 된 날을 다시 하려면 운동을 하나씩 다시 쳐야 했다 — 「이 날을 루틴으로」",
       "label": "새 기능",
       "scope": "기록·루틴",
-      "has": true
-    },
-    {
-      "key": "26b07cd",
-      "date": "2026-11-12",
-      "text": "자판이 오르면 결과가 하나도 안 보였다 · 「벤치」에 이름에 벤치가 없는 내 기록이 섞였다",
-      "label": "고침",
-      "scope": "찾기",
       "has": true
     }
   ]
