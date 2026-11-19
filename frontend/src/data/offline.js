@@ -237,7 +237,24 @@ export function saveQueue(queue) {
 
 export function readCache() {
   const c = readJson(WORKOUT_CACHE_KEY, null);
-  return c && typeof c === 'object' && !Array.isArray(c) ? c : null;
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+  // ── ★ **날짜마다 담긴 것이 줄 묶음인지도 본다** ── (2026-11-19 · 정석 2차)
+  //
+  // 여태 **겉만** 봤다 — 「묶음이 아닌 object 인가」. 그래서 `{ '2026-11-18': '글자' }`
+  // 같은 것이 그대로 지나갔고, 그것을 받은 자리들이 **거기서 터졌다**
+  // (`(list || []).filter is not a function`). 화면 그리는 길에서 터지면
+  // `ErrorBoundary` 가 받아 **그 화면이 통째로 사라진다.**
+  //
+  // 이 묶음을 날짜별로 훑는 자리가 **스물여덟 곳**이다(`Object.entries(workouts …)` ·
+  // `workouts[date]`). 스물여덟에 각각 `Array.isArray` 를 적으면 **그 규칙이 스물여덟
+  // 벌**이 되고, 다음에 자리가 느는 날 또 한 곳이 빠진다. 그래서 **들어오는 자리에서**
+  // 막는다 — 담는 쪽(`saveCache`)은 이미 `Array.isArray(items)` 로 거르고 있었다.
+  // **한 쌍인데 한쪽만 보고 있던 것**이다.
+  const 성한것 = {};
+  for (const [date, items] of Object.entries(c)) {
+    if (Array.isArray(items)) 성한것[date] = items;
+  }
+  return 성한것;
 }
 
 // 담아두는 것은 **최근 것부터 90일까지**다. 몇 년치를 통째로 담으면 localStorage 가

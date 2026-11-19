@@ -18,6 +18,7 @@
     "trim": "node scripts/trim-android-res.mjs",
     "android:icons": "node scripts/gen-app-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#12100c\" --iconBackgroundColorDark \"#12100c\" --splashBackgroundColor \"#12100c\" --splashBackgroundColorDark \"#12100c\" && npm run trim",
     "play:assets": "node scripts/gen-play-assets.mjs",
+    "daylist": "node scripts/check-daylist.cjs",
     "restper": "node scripts/check-restper.cjs",
     "check": "node ../scripts/run-checks.cjs",
     "cardiotrend": "node scripts/check-cardiotrend.cjs",
