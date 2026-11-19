@@ -110,6 +110,18 @@ function 되돌려() {
   // ④ 갈래가 늘어도 자가 따라간다 — 상수를 베끼지 않았는지
   보다('SECRET_SCOPE 를 원본에서 읽는다', 비밀.test('관리자·보안') && !비밀.test('가져오기'));
 
+  // ── ⑤ **셈 0 은 통과가 아니다 — 류 식이 살아 있는가** ── (2026-11-19 · 정석)
+  //
+  // 11/19 에 네 류의 식을 조여 후보 **46 → 3** 으로 내렸다(읽어 보니 46 이 다 거짓이었다).
+  // 그런데 조이다가 **다 꺼버리면** 「후보 0」이 통과처럼 보인다. 그래서 **가짜 조각
+  // 넷**을 같은 식에 먹여, 식이 **진짜 결함은 잡는지** 본다.
+  const 걸린것 = 류훑기(가짜조각);
+  const 잡나 = (류, 자리) => (걸린것[류] ? 걸린것[류].후보 : []).some((p) => p.startsWith(자리));
+  보다('가짜 분모 0 을 잡는다 (`합 / 값들.length`)', 잡나('E 분모 0', '가짜/분모0.js'));
+  보다('안 치우는 타이머를 잡는다 (`setInterval` 뒤 `clearInterval` 없음)', 잡나('D 구독·타이머 누수', '가짜/누수.jsx'));
+  보다('받은 글을 그대로 푸는 `JSON.parse` 를 잡는다', 잡나('B JSON.parse 무방비', '가짜/파스.js'));
+  보다('`.catch` 없는 화면 부르기를 잡는다', 잡나('A 조용한 실패', '가짜/조용히.jsx'));
+
   const 진 = 판.filter(([, ok]) => !ok);
   console.log(진.length ? `되돌려: ${진.length}건이 안 잡힌다 — 자가 거짓이다` : `되돌려: ${판.length}건 전부 잡는다`);
   return 진.length ? 1 : 0;
@@ -325,41 +337,48 @@ function 분기() {
 }
 
 // ─── 4. 류 ────────────────────────────────────────────────────────────────
+//
+// ── ★ **마흔여섯 번 울어서 0건이면 그 자는 죽은 자다** ── (2026-11-19 · 정석)
+//
+// 11/19 에 이 네 류의 후보 **마흔여섯을 전수로 읽었다**(A 11 · B 2 · D 7 · E 26).
+// **확정된 결함은 0 이었다.** 왜 거짓이었는지 하나하나 적는다 —
+//
+//   E 분모 0 — 스물여섯 중 **열일곱이 정규식 리터럴**이었다(`/<script/i` 의 `/` 를
+//     나눗셈으로 읽었다). 남은 아홉은 가드가 있었다 — `session.total ?` ·
+//     `weeks >= 1 ?` · `span === 0 ?` · `count ?` 는 **같은 줄**이고,
+//     `if (!weight) return null`(composition) · `Number(ratio) > 0 ?`(overlayShot) 는
+//     창(±4줄) **바로 밖**이었다. `useWidth` 의 `step` 은 `[1,2,2.5,5,10].find(…)` 라
+//     **0 이 될 수 없고**(`raw/mag` 가 1~10 사이라 10 이 늘 참이다), `useBreath` 의
+//     `buf.length` 는 `new Uint8Array(1024)` 다
+//   D 누수 — 일곱 다 **일부러 끝까지 두는 것**이었다. 서버 타이머는 `unref()` 를 걸어
+//     프로세스를 안 붙잡고(`aiGuard`), `Toast` 의 `keydown`·`pointerdown` 은 앱이 사는
+//     동안 하나만 붙고, `useBreath` 의 것은 `timerRef` 로 들고 **내려갈 때 치운다**
+//     (92행·205행 — 창 35줄 밖이었다)
+//   B JSON.parse — 둘 다 **박아 둔 글자**다(보안 자기 점검의 `'{"__proto__":…}'`)
+//   A 조용한 실패 — 스토어 안의 `await client.*` 는 **부르는 쪽이 받는다**
+//     (`GoalPage` 가 `try/catch` 로 감싸 토스트를 띄운다). `RoutinePage` 의 것은
+//     `.catch` 가 **16줄 아래**라 창(14줄) 밖이었다
+//
+// 마흔여섯 번 울고 0건이면 **다음 세션의 나는 이 목록을 안 읽는다.** 그렇게 자가
+// 죽는다. 그래서 식을 조인다 —
+//
+//   · **정규식 리터럴을 먼저 걷어낸다** (E 후보의 65%가 그것이었다)
+//   · **가드를 같은 줄부터** 본다 — 이 앱의 가드는 `x ? a / x : 0` 꼴이 많다
+//   · 창을 **4 → 14줄**로 넓힌다 (`if (!x) return` 은 함수 머리에 있다)
+//   · 타이머는 **치우는 짝이 그 파일 어디에든 있으면** 넘긴다 — `unref()` ·
+//     `clearInterval(들고있던것)` · `removeEventListener`
+//   · **모듈 꼭대기에 한 번 붙는 것은 누수가 아니다** — 앱·프로세스가 사는 동안 하나다
+//   · `JSON.parse('…')` 처럼 **박아 둔 글자**는 세지 않는다
+//   · A 는 **스토어 파일을 안 센다.** 부르는 쪽을 봐야 판정이 되는데 이 자는 파일 하나만
+//     본다 — **못 보는 것을 본 척하지 않는다.** 화면 파일만 보고 창도 30줄로 넓힌다
+//
+// 그리고 **셈 0 은 통과가 아니다.** `--되돌려` 에서 **가짜 조각**을 먹여 식이 살아 있는지
+// 본다(진짜 분모 0 · 안 치우는 타이머 · 받은 글을 그대로 푸는 `JSON.parse` ·
+// `.catch` 없는 화면). 지금 코드에서 0건이고 **가짜에서 넷 다 잡히면** 그때 「0건」이 사실이다.
 function 류() {
   say('\n── 4. 결함류 후보 (숫자는 결함 수가 아니다 — 읽어야 할 자리 수다) ──');
   const files = 파일들(['frontend/src', 'backend/src'], /\.(js|jsx|mjs)$/);
-  const near = (L, i, re, s) => L.slice(Math.max(0, i - s), i + s + 1).some(l => re.test(l));
-  const 류들 = {
-    'A 조용한 실패': { 자리: 0, 후보: [] },
-    'B JSON.parse 무방비': { 자리: 0, 후보: [] },
-    'D 구독·타이머 누수': { 자리: 0, 후보: [] },
-    'E 분모 0': { 자리: 0, 후보: [] },
-  };
-  for (const f of files) {
-    const L = fs.readFileSync(f, 'utf8').split('\n');
-    L.forEach((line, i) => {
-      const t = line.trim();
-      if (t.startsWith('//') || t.startsWith('*')) return;
-      const at = `${rel(f)}:${i + 1}`;
-      if (/\bclient\.(get|post|put|patch|delete)\(/.test(line)) {
-        류들['A 조용한 실패'].자리++;
-        if (!near(L, i, /\.catch\(|catch\s*\(|try\s*\{/, 14)) 류들['A 조용한 실패'].후보.push(at);
-      }
-      if (/JSON\.parse\(/.test(line)) {
-        류들['B JSON.parse 무방비'].자리++;
-        if (!near(L, i, /try\s*\{|catch\s*\(|safeParse|tryParse/, 12)) 류들['B JSON.parse 무방비'].후보.push(at);
-      }
-      if (/addEventListener\(|setInterval\(/.test(line)) {
-        류들['D 구독·타이머 누수'].자리++;
-        if (!near(L, i, /removeEventListener\(|clearInterval\(|stopTicker|return \(\) =>/, 35)) 류들['D 구독·타이머 누수'].후보.push(at);
-      }
-      const m = /([A-Za-z_$][\w$.\[\]]*)\s*\/\s*([A-Za-z_$][\w$.()\[\]]*)/.exec(line);
-      if (m && !/['"`]/.test(line) && !/require|import|https?:/.test(line)) {
-        류들['E 분모 0'].자리++;
-        if (!near(L, i, /\|\|\s*1|Math\.max|> 0|<= 0|isFinite|length \?|&&|!\w+\) return/, 4)) 류들['E 분모 0'].후보.push(at);
-      }
-    });
-  }
+  const 류들 = 류훑기(files.map((f) => ({ 이름: rel(f), 글: fs.readFileSync(f, 'utf8') })));
   for (const [k, v] of Object.entries(류들)) {
     add('류', k, v.후보.length ? 'READ' : 'PASS', `자리 ${v.자리} · 후보 ${v.후보.length}` +
       (v.후보.length ? ` — ${v.후보.slice(0, 12).join(' ')}${v.후보.length > 12 ? ' …' : ''}` : ''));
@@ -368,6 +387,154 @@ function 류() {
   }
   add('류', '훑은 운영 파일', 'PASS', `${files.length}개`);
 }
+
+// 정규식 리터럴을 글자로 바꿔 없앤다 — `/<script/i` 의 `/` 는 나눗셈이 아니다.
+// 앞에 오는 것으로 가른다: `(` · `,` · `=` · `[` · `:` · 셈씨 · 줄머리 뒤의 `/` 는
+// **정규식의 시작**이다 (나눗셈은 이름 · `)` · `]` · 숫자 뒤에 온다)
+function 정규식걷기(line) {
+  // **줄 끝 주석도 걷는다** — `// data:text/html` 의 `/` 를 나눗셈으로 읽는다
+  // (11/19 에 `sanitize.js` 두 줄이 그 꼴로 남았다). 식을 먼저 걷으면 주석 속
+  // `//` 가 식으로 안 먹히므로 **식 → 주석** 차례다
+  // 한 줄에서 열고 닫는 주석(`{/* 작성/수정 폼 */}`)과 **열고 안 닫은 꼬리**도 걷는다 —
+  // 줄을 넘어가는 것은 부르는 쪽이 따라가고, **그 줄 안의 것**은 여기서 걷는다
+  const 주석없는것 = line.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\*.*$/, ' ');
+  const 식없는것 = 식걷기(주석없는것);
+  const i = 식없는것.indexOf('//');
+  return i >= 0 ? 식없는것.slice(0, i) : 식없는것;
+}
+
+function 식걷기(line) {
+  return line.replace(
+    /(^\s*|[(,=[:!?&|+\-*{;]\s*)\/(?![/*])(?:\\.|\[(?:\\.|[^\]])*\]|[^/\\\n])+\/[gimsuy]*/g,
+    (_, pre) => pre + '«식»'
+  );
+}
+
+/** 그 줄(또는 창)에 분모를 지키는 손이 있나 */
+const 가드있나 = (s) => /\|\|\s*1|Math\.max|>\s*0|<=\s*0|===\s*0|!==\s*0|isFinite|\.length\s*\?|\w\s*\?[^.]|&&|!\w+\)\s*return|return\s+null/.test(s);
+
+/**
+ * 네 류를 훑는다.
+ * @param {{이름:string, 글:string}[]} 볼것  파일 대신 **글을 받는다** — `--되돌려` 가
+ *   가짜 조각을 같은 식에 먹일 수 있어야 한다(자가 자기를 시험한다)
+ */
+function 류훑기(볼것) {
+  const near = (L, i, re, s) => L.slice(Math.max(0, i - s), i + s + 1).some((l) => re.test(l));
+  const 류들 = {
+    'A 조용한 실패': { 자리: 0, 후보: [] },
+    'B JSON.parse 무방비': { 자리: 0, 후보: [] },
+    'D 구독·타이머 누수': { 자리: 0, 후보: [] },
+    'E 분모 0': { 자리: 0, 후보: [] },
+  };
+
+  for (const { 이름, 글 } of 볼것) {
+    const L = 글.split('\n');
+    const 화면파일 = /\.jsx$/.test(이름);
+    const 스토어파일 = /(^|[\\/])store[\\/]/.test(이름);
+    const 치우는짝 = /clearInterval\(|removeEventListener\(|\.unref\s*\(\)/.test(글);
+    // ── ★ **주석 안은 코드가 아니다** ── (2026-11-19 · 정석)
+    //
+    // 식이 한글 이름을 보게 되자(`합 / 값들.length`) **한글 주석의 `/` 가 쏟아졌다** —
+    // 「작성/수정 폼」 · 「그만 / 두기」 · 「접기/펼치기」 · 「769px / 안쪽 폭 236px」.
+    // 여섯이 전부 `{/* … */}` **여러 줄 주석의 가운데 줄**이라 줄머리만 봐서는 못 걸렀다.
+    // 그래서 블록 주석을 **줄을 넘어가며** 따라간다.
+    let 주석안 = false;
+    L.forEach((line, i) => {
+      const t = line.trim();
+      const 열림 = line.lastIndexOf('/*');
+      const 닫힘 = line.lastIndexOf('*/');
+      const 이줄이주석안 = 주석안;
+      if (열림 >= 0 && 열림 > 닫힘) 주석안 = true;
+      else if (닫힘 >= 0 && 닫힘 > 열림) 주석안 = false;
+      if (이줄이주석안) return;
+      if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return;
+      const at = `${이름}:${i + 1}`;
+
+      // ── A. 받아만 두고 **못 받았을 때를 안 그리는** 자리 ──
+      if (/\bclient\.(get|post|put|patch|delete)\(/.test(line) && !스토어파일) {
+        류들['A 조용한 실패'].자리++;
+        if (화면파일 && !near(L, i, /\.catch\(|catch\s*\(|try\s*\{/, 30)) {
+          류들['A 조용한 실패'].후보.push(at);
+        }
+      }
+
+      // ── B. **받은** 글을 그대로 푸는 자리 (박아 둔 글자는 세지 않는다) ──
+      if (/JSON\.parse\(/.test(line) && !/JSON\.parse\(\s*['"`]/.test(line)) {
+        류들['B JSON.parse 무방비'].자리++;
+        if (!near(L, i, /try\s*\{|catch\s*\(|safeParse|tryParse/, 12)) {
+          류들['B JSON.parse 무방비'].후보.push(at);
+        }
+      }
+
+      // ── D. 붙여 두고 **안 떼는** 자리 ──
+      if (/addEventListener\(|setInterval\(/.test(line)) {
+        류들['D 구독·타이머 누수'].자리++;
+        const 꼭대기 = /^\s{0,2}\S/.test(line);     // 모듈 꼭대기 — 사는 동안 하나다
+        // **한 번만 울고 끝나는 것**은 누수가 아니다 — `load` · `DOMContentLoaded` ·
+        // `{ once: true }`. `main.jsx` 의 서비스워커 등록이 그 꼴이다(11/19 에 읽었다)
+        const 한번만 = /addEventListener\(\s*['"](?:load|DOMContentLoaded)['"]|once:\s*true/.test(line);
+        if (!꼭대기 && !치우는짝 && !한번만) 류들['D 구독·타이머 누수'].후보.push(at);
+      }
+
+      // ── E. 분모가 0 일 수 있는 자리 ──
+      const 깬줄 = 정규식걷기(line);
+      // ★ **이름에 한글이 들어간다** (2026-11-19 · 되돌려 시험이 잡았다).
+      // 식이 `[A-Za-z_$]` 로 시작하는 이름만 봐서 `합 / 값들.length` 를 **아예 못 봤다** —
+      // 이 저장소는 한글 이름을 많이 쓴다(`합` · `값들` · `잰것` …). 글자 종류로 본다
+      const m = /([\p{L}_$][\p{L}\p{N}_$.[\]]*)\s*\/\s*([\p{L}_$][\p{L}\p{N}_$.()[\]]*)/u.exec(깬줄);
+      if (m && !/['"`]/.test(깬줄) && !/require|import|https?:/.test(깬줄)) {
+        류들['E 분모 0'].자리++;
+        if (!가드있나(깬줄)
+          && !near(L, i, /\|\|\s*1|Math\.max|>\s*0|<=\s*0|===\s*0|isFinite|!\w+\)\s*return|return\s+null/, 14)) {
+          류들['E 분모 0'].후보.push(at);
+        }
+      }
+    });
+  }
+  return 류들;
+}
+
+/** `--되돌려` 가 먹이는 **가짜 조각 넷** — 식이 살아 있으면 넷 다 잡힌다 */
+const 가짜조각 = [
+  {
+    이름: '가짜/분모0.js',
+    글: [
+      'function 평균(값들) {',
+      '  const 합 = 값들.reduce((s, v) => s + v, 0);',
+      '  return 합 / 값들.length;',          // 빈 배열이면 NaN — 가드가 없다
+      '}',
+    ].join('\n'),
+  },
+  {
+    이름: '가짜/누수.jsx',
+    글: [
+      'export default function 화면() {',
+      '  useEffect(() => {',
+      '    setInterval(() => 똑딱(), 1000);',  // 치우는 짝이 없다
+      '  }, []);',
+      '}',
+    ].join('\n'),
+  },
+  {
+    이름: '가짜/파스.js',
+    글: [
+      'export function 읽기(받은것) {',
+      '  const v = JSON.parse(받은것);',       // 박은 글이 아니다 · try 가 없다
+      '  return v;',
+      '}',
+    ].join('\n'),
+  },
+  {
+    이름: '가짜/조용히.jsx',
+    글: [
+      'export default function 목록() {',
+      '  useEffect(() => {',
+      '    client.get(\'/things\').then(({ data }) => set(data));',   // `.catch` 가 없다
+      '  }, []);',
+      '}',
+    ].join('\n'),
+  },
+];
 
 // ── 거들이 ──
 function 파일들(roots, re) {
