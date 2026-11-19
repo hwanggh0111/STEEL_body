@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>기록 칸이 좁은 폰에서 안 보인다 — 시안 넷 · 11/19</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다. 시안은 배포하지 않는다 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; --bad:#d9736a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 32px/1.1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 10px; }
+  h1 em { font-style:normal; color:var(--bad); }
+  .sub { color:var(--t2); margin:0 0 10px; max-width:96ch; }
+  .sub b { color:var(--t1); font-weight:600; }
+  .sub code { color:var(--gold); font-size:12.5px; }
+  .warnbox { border-left:2px solid var(--bad); padding-left:12px; }
+  table { border-collapse:collapse; margin:14px 0 4px; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:5px 10px; text-align:left; }
+  th { color:var(--t2); font-weight:600; }
+  td.bad { color:var(--bad); font-weight:600; }
+  td.ok { color:#8fb77d; }
+  .row { display:flex; gap:26px; overflow-x:auto; padding:18px 24px 30px; align-items:flex-start; }
+  .col { flex:0 0 auto; display:flex; flex-direction:column; gap:10px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  .pair { display:flex; gap:10px; }
+  figure { margin:0; }
+  figcaption { font:600 11px 'Barlow',sans-serif; letter-spacing:.8px; color:var(--t2); padding:4px 0; }
+  iframe { height:600px; border:1px solid var(--line); background:#12100c; display:block; }
+  .w320 { width:320px; } .w360 { width:360px; }
+  .note { background:var(--card); border:1px solid var(--line); padding:11px 13px; font-size:12.5px; color:var(--t2); max-width:690px; }
+  .note b { color:var(--t1); font-weight:600; }
+  a { color:var(--gold); }
+</style>
+</head>
+<body>
+<header>
+  <h1>기록 칸의 숫자가 좁은 폰에서 <em>안 보인다</em> — 시안 넷 · 11/19</h1>
+  <p class="sub warnbox"><b>먼저 버그다.</b> 「지금」 틀을 320 폭으로 보면 무게 칸이 비어 보인다 —
+    적어둔 <code>100.5</code> 가 거기 있는데 <b>글 자리가 2.7px</b> 라 안 보이는 것이다.
+    ± 단추 둘(36+36)과 틈(4+4)이 칸에서 먼저 자리를 가져간다. 상수는 전부 코드에서 읽어 셌다
+    (<code>--padding-x: 20</code> · <code>.card{padding:16}</code> ·
+    <code>minmax(0,1.35fr) minmax(0,0.8fr) minmax(0,1.35fr) gap 8</code> · <code>NumberStep width:36</code>).</p>
+
+  <table>
+    <tr><th>화면</th><th>카드 안쪽</th><th>칸 셋</th><th>무게 칸의 글 자리</th><th>「22.5」 26.0</th><th>「100.5」 33.4</th></tr>
+    <tr><td>320px</td><td>246</td><td>89 / 53 / 89</td><td class="bad">2.7px</td><td class="bad">✗ 아무것도 안 보인다</td><td class="bad">✗</td></tr>
+    <tr><td>360px</td><td>286</td><td>104 / 62 / 104</td><td class="bad">18.1px</td><td class="bad">✗ 두 자까지만</td><td class="bad">✗</td></tr>
+    <tr><td>390px</td><td>316</td><td>116 / 69 / 116</td><td class="bad">29.7px</td><td class="ok">○</td><td class="bad">✗</td></tr>
+    <tr><td>430px</td><td>356</td><td>131 / 78 / 131</td><td class="ok">45.1px</td><td class="ok">○</td><td class="ok">○</td></tr>
+  </table>
+  <p class="sub" style="font-size:12.5px">글자 폭은 <b>어림이 아니라 글꼴 파일에서 읽은 값</b>이다 —
+    Barlow 400 의 숫자는 <b>527/1000 em</b>, 마침표 278 이고 <code>font-variant-numeric: tabular-nums</code>
+    가 전역이라 숫자는 모두 같은 폭이다(14px 에서 숫자 <b>7.378px</b> · 마침표 <b>3.892px</b>).
+    그래서 「22.5」 = <b>26.0px</b> · 「100.5」 = <b>33.4px</b> 다.
+    빼는 것의 합은 <b>86</b> — ± 단추 72 + 틈 8 + 칸 안 여백 4 + 테두리 2 다
+    (칸 안 여백은 <code>.input</code> 의 14 가 아니라 <code>NumberStep</code> 이 인라인으로 덮는 <b>2</b> 다).</p>
+  <p class="sub" style="font-size:12.5px"><b>뿌리는 ± 가 아니다.</b> 320 에서 단추를 28 로 깎고 칸 안
+    여백을 0 으로 해도 25.5px 라 「100.5」가 안 든다. 깎기는 390 만 겨우 살리는 임시방편이고,
+    글자를 150% 로 쓰면 다시 무너진다 — <b>길은 좁은 폭에서 줄을 쪼개는 것</b>이다.</p>
+
+  <p class="sub">아래는 <b>320 과 360 두 폭</b>으로 나란히 둔 것이다. 파란 바탕이 <b>글이 들어갈 자리</b>,
+    파란 점선이 <b>바뀌는 자리</b>다. 고르는 것은 주인이다 — 넷 다 코드로 셈해 두었다.
+    <a href="/dev">← 개발 미리보기</a> · <a href="../1119/">11/19 기능 시안 여섯</a></p>
+</header>
+
+<div class="row">
+  <div class="col">
+    <div class="cap">지금<small>칸 셋이 나란하다 · 글 자리 2.7 / 18.1px</small></div>
+    <div class="pair">
+      <figure><figcaption>320px</figcaption><iframe class="w320" src="Now.html" title="지금 320"></iframe></figure>
+      <figure><figcaption>360px</figcaption><iframe class="w360" src="Now.html" title="지금 360"></iframe></figure>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="cap">A · 줄만 바꾼다<small>좁으면 두 줄 · 글 자리 33 → 41px (± 32)</small></div>
+    <div class="pair">
+      <figure><figcaption>320px</figcaption><iframe class="w320" src="A.html" title="A 320"></iframe></figure>
+      <figure><figcaption>360px</figcaption><iframe class="w360" src="A.html" title="A 360"></iframe></figure>
+    </div>
+    <div class="note"><b>가장 작은 고침</b>이고 넓은 화면은 지금 그대로다. 두 칸은 세 칸보다 넓다 —
+      글 자리 <b>33(320) · 53(360) · 68(390) · 88(430)</b>.
+      값 둘 — ⑴ <span class="bad">320 에서 「100.5」(33.4)에 <b>0.4px 모자란다</b></span>(± 를 32 로 줄이면 41 로 선다).
+      ⑵ <b>폭을 숫자로 가르는 줄(420px)이 하나 생긴다</b> — 글자를 150% 로 쓰는 사람은 폭이 안 변하니 또 빠듯해진다.</div>
+  </div>
+
+  <div class="col">
+    <div class="cap">B · 한 줄에 한 칸<small>글 자리 160px</small></div>
+    <div class="pair">
+      <figure><figcaption>320px</figcaption><iframe class="w320" src="B.html" title="B 320"></iframe></figure>
+      <figure><figcaption>360px</figcaption><iframe class="w360" src="B.html" title="B 360"></iframe></figure>
+    </div>
+    <div class="note"><b>어떤 폰에서도, 글자 200% 에서도 안 잘린다.</b>
+      값 — 세로가 세 줄로 길어져 적기 단추가 밀리고, 운동 중 손가락이 오가는 거리가 늘어난다.</div>
+  </div>
+
+  <div class="col">
+    <div class="cap">C · 숫자는 전폭, ± 는 아래 좌우<small>글 자리 216px · 과녁 100px 넘게</small></div>
+    <div class="pair">
+      <figure><figcaption>320px</figcaption><iframe class="w320" src="C.html" title="C 320"></iframe></figure>
+      <figure><figcaption>360px</figcaption><iframe class="w360" src="C.html" title="C 360"></iframe></figure>
+    </div>
+    <div class="note"><b>엄지가 닿는 자리(파란 띠) 안에 숫자와 ± 가 함께 들어온다</b> — 단추에 「− 2.5」처럼
+      얼마씩인지 적을 자리도 생긴다. 값 — <b>세로가 B 보다 더 길고 지금 꼴과 가장 많이 달라진다.</b></div>
+  </div>
+
+  <div class="col">
+    <div class="cap">D · 스스로 줄을 바꾼다<small>바닥을 <code>calc(5ch + 88px)</code> 로 적어둔다</small></div>
+    <div class="pair">
+      <figure><figcaption>320px</figcaption><iframe class="w320" src="D.html" title="D 320"></iframe></figure>
+      <figure><figcaption>360px</figcaption><iframe class="w360" src="D.html" title="D 360"></iframe></figure>
+    </div>
+    <div class="note"><b>폭을 숫자로 가르지 않는 유일한 안.</b> 한 칸의 바닥을 「숫자 다섯 자 + ± 자리」로
+      적어두면 모자란 폰에서 알아서 줄이 바뀌고, <b>글자를 150% 로 쓰면 <code>ch</code> 도 같이 자라</b>
+      그때도 맞는다. 값 — <b>줄 수가 폰마다 달라</b> 화면이 어떻게 설지 한눈에 못 그린다.</div>
+  </div>
+</div>
+</body>
+</html>

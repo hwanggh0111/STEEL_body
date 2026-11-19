@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="../1119/_s.css">
+<link rel="stylesheet" href="_f.css">
+<title>A — 좁은 폰에서 두 줄</title>
+<style>
+  /* 넓으면 지금 그대로. 좁으면 무게·횟수가 한 줄, 세트가 아래 줄 전폭 */
+  .two { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,0.8fr) minmax(0,1.35fr); gap: 8px; }
+  @media (max-width: 420px) {
+    .two { grid-template-columns: 1fr 1fr; }
+    .two .sets { grid-column: 1 / -1; }
+    /* 320 아래에서는 ± 를 32 로 — 그래야 「100.5」가 든다 */
+    .two .step button { width: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 적기</div>
+    <div class="card focus">
+      <label class="lbl">운동</label>
+      <input class="in-wide" value="벤치프레스" readonly>
+
+      <div class="two nw" style="margin-top:14px">
+        <div>
+          <span class="lab">무게 kg</span>
+          <div class="step"><button>−</button><input class="in-step" value="100.5" readonly><button>＋</button></div>
+        </div>
+        <div>
+          <span class="lab">횟수</span>
+          <div class="step"><button>−</button><input class="in-step" value="10" readonly><button>＋</button></div>
+        </div>
+        <div class="sets">
+          <span class="lab">세트</span>
+          <input class="in-wide" value="5" readonly>
+        </div>
+      </div>
+      <button class="btn1" style="margin-top:14px">기록하기</button>
+    </div>
+    <p class="why"><span class="tagn">A</span> <b>줄만 바꾼다.</b> 두 칸이 세 칸보다 넓어 글 자리가
+      <b>33px(320) · 53px(360)</b> 로 늘고, ± 를 32 로 줄이면 320 에서도 <b>41px</b> 가 된다.
+      꼴은 지금과 같고 <b>넓은 화면은 한 줄 그대로</b>다. 다만 <span class="cut">폭을 숫자로 가르는 줄
+      (420px)이 하나 생긴다</span> — 글자를 150% 로 쓰는 사람은 폭이 그대로라 또 빠듯해진다.</p>
+  </main>
+</div>
+</body>
+</html>

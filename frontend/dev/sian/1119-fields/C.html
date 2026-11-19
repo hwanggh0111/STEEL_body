@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="../1119/_s.css">
+<link rel="stylesheet" href="_f.css">
+<title>C — 숫자는 전폭, ± 는 아래 좌우</title>
+<style>
+  .stack { display: grid; gap: 12px; }
+  /* 숫자 칸은 줄 전체를 쓴다 — ± 가 자리를 가져가지 않는다 */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .pair button { min-height: 44px; background: #241a11; border: 1px solid #4a3f2c; border-radius: 2px;
+    color: #eeb77d; font-size: 19px; line-height: 1; padding: 0; }
+  .wr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 420px) { .wr { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 적기</div>
+    <div class="card focus">
+      <label class="lbl">운동</label>
+      <input class="in-wide" value="벤치프레스" readonly>
+
+      <div class="stack nw" style="margin-top:14px">
+        <div>
+          <span class="lab">무게 kg</span>
+          <input class="in-step" style="width:100%;font-size:17px" value="100.5" readonly>
+          <div class="pair"><button>− 2.5</button><button>＋ 2.5</button></div>
+        </div>
+        <div class="wr">
+          <div>
+            <span class="lab">세트</span>
+            <input class="in-wide" value="5" readonly>
+          </div>
+          <div>
+            <span class="lab">횟수</span>
+            <input class="in-step" style="width:100%" value="10" readonly>
+            <div class="pair"><button>− 1</button><button>＋ 1</button></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn1" style="margin-top:14px">기록하기</button>
+    </div>
+    <p class="why"><span class="tagn">C</span> <b>숫자가 줄 전체를 쓴다</b> — 글 자리 <b>216px</b>.
+      ± 는 아래 좌우로 내려가 <b>과녁이 반 폭씩(100px 넘게)</b> 커지고, 얼마씩 오르는지(<b>− 2.5</b>)를
+      단추에 적을 자리도 생긴다. <b>엄지가 닿는 자리(파란 띠)</b> 안에 숫자와 ± 가 함께 들어온다.
+      값은 <span class="cut">세로가 B 보다 더 길고, 지금 꼴과 가장 많이 달라지는 것</span>이다.</p>
+  </main>
+  <div class="thumb"><span>한 손으로 닿는 자리</span></div>
+</div>
+</body>
+</html>

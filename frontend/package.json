@@ -89,6 +89,7 @@
     "step": "node scripts/check-step.cjs",
     "phone": "node scripts/phone-dev.mjs",
     "tap": "node scripts/check-tap.cjs",
+    "narrow": "node scripts/narrow-measure.cjs",
     "sw": "node scripts/check-sw.cjs",
     "privacy": "node scripts/check-privacy.cjs",
     "alarm": "node scripts/check-alarm.cjs",

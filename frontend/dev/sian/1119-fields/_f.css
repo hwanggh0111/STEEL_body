@@ -1,0 +1,29 @@
+/* 기록 칸 시안 공용 — `../1119/_s.css` 위에 얹는다.
+   틀 폭을 iframe 이 정하게 `.ph` 를 늘려 쓴다 (320 · 360 두 폭을 한 파일로 본다) */
+.ph { width: 100%; height: 100%; }
+
+/* 앱의 `.input` 과 같은 자리 — 평범한 칸은 padding 11/14 */
+.in-wide { width: 100%; min-width: 0; min-height: 44px; background: #1b1712; border: 1px solid #332b1e;
+  color: #eae4d6; padding: 11px 14px; font: 14px 'Barlow', 'IBM Plex Sans KR', sans-serif;
+  border-radius: 2px; text-align: center; }
+
+/* ± 사이에 끼는 칸 — 앱의 `NumberStep` 은 좌우 여백을 2 로 좁혀 글 자리로 돌린다.
+   바탕을 파랗게 두어 **글이 들어갈 자리**가 눈에 보이게 한다 (시안에서만) */
+.in-step { flex: 1; min-width: 0; min-height: 44px; background: #16202e; border: 1px solid #332b1e;
+  color: #eae4d6; padding: 11px 2px; font: 14px 'Barlow', 'IBM Plex Sans KR', sans-serif;
+  border-radius: 2px; text-align: center; }
+
+.lab { font: 600 11px/1.5 'Barlow', 'IBM Plex Sans KR', sans-serif; letter-spacing: 1px;
+  color: #aaa28e; display: block; margin-bottom: 4px; }
+.why { font-size: 12px; color: #aaa28e; margin: 12px 0 0; }
+.why b { color: #eae4d6; font-weight: 600; }
+.why .cut { color: #d9736a; font-weight: 600; }
+.tagn { display: inline-block; font: 600 10px 'Barlow', sans-serif; letter-spacing: .6px;
+  color: #7fa8d9; border: 1px solid #44536b; border-radius: 999px; padding: 1px 7px; }
+
+/* 엄지가 닿는 자리 — 한 손으로 쥐었을 때 화면 아래쪽 */
+.thumb { position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+  background: linear-gradient(0deg, rgba(127,168,217,.13), rgba(127,168,217,0));
+  border-top: 1px dashed rgba(127,168,217,.5); pointer-events: none; }
+.thumb span { position: absolute; top: 4px; right: 8px; font: 600 10px 'Barlow', sans-serif;
+  letter-spacing: .6px; color: #7fa8d9; }

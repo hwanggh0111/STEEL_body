@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="../1119/_s.css">
+<link rel="stylesheet" href="_f.css">
+<title>D — 자리가 모자라면 스스로 줄을 바꾼다</title>
+<style>
+  /* ★ 폭을 숫자로 가르지 않는다. 한 칸의 **바닥**을 「숫자 다섯 자 + ± 자리」로 적어두고
+     자리가 모자라면 flex 가 알아서 줄을 바꾼다. `ch` 는 브라우저가 **그 폰트의 0 글자
+     폭**으로 재는 단위라, 글자를 150% 로 쓰면 바닥도 같이 자란다 — 짐작한 px 가 없다 */
+  .wrapfields { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wrapfields > div { flex: 1 1 calc(5ch + 88px); min-width: 0; }
+  .wrapfields > div.sets { flex: 1 1 calc(2ch + 32px); }
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 적기</div>
+    <div class="card focus">
+      <label class="lbl">운동</label>
+      <input class="in-wide" value="벤치프레스" readonly>
+
+      <div class="wrapfields nw" style="margin-top:14px">
+        <div>
+          <span class="lab">무게 kg</span>
+          <div class="step"><button>−</button><input class="in-step" value="100.5" readonly><button>＋</button></div>
+        </div>
+        <div>
+          <span class="lab">횟수</span>
+          <div class="step"><button>−</button><input class="in-step" value="10" readonly><button>＋</button></div>
+        </div>
+        <div class="sets">
+          <span class="lab">세트</span>
+          <input class="in-wide" style="padding-left:4px;padding-right:4px" value="5" readonly>
+        </div>
+      </div>
+      <button class="btn1" style="margin-top:14px">기록하기</button>
+    </div>
+    <p class="why"><span class="tagn">D</span> <b>폭을 숫자로 가르지 않는다.</b> 한 칸의 바닥을
+      <b>「숫자 다섯 자 + ± 자리」</b>(<code>calc(5ch + 88px)</code>)로 적어두면, 자리가 모자란 폰에서는
+      <b>스스로 줄이 바뀐다</b> — 320 은 한 칸씩, 360·390 은 두 칸 + 세트, 넓은 화면은 지금처럼 한 줄.
+      <b>글자를 150% 로 쓰면 <code>ch</code> 도 같이 자라</b> 그때도 알아서 줄을 바꾼다.
+      <span class="cut">값은 줄 수가 폰마다 다른 것</span>이다 — 화면이 어떻게 설지 한눈에 못 그린다.</p>
+  </main>
+</div>
+</body>
+</html>

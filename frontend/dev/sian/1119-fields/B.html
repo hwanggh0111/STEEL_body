@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="../1119/_s.css">
+<link rel="stylesheet" href="_f.css">
+<title>B — 좁은 폰에서 한 줄에 한 칸</title>
+<style>
+  .one { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,0.8fr) minmax(0,1.35fr); gap: 8px; }
+  @media (max-width: 420px) { .one { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 적기</div>
+    <div class="card focus">
+      <label class="lbl">운동</label>
+      <input class="in-wide" value="벤치프레스" readonly>
+
+      <div class="one nw" style="margin-top:14px">
+        <div>
+          <span class="lab">무게 kg</span>
+          <div class="step"><button>−</button><input class="in-step" value="100.5" readonly><button>＋</button></div>
+        </div>
+        <div>
+          <span class="lab">세트</span>
+          <input class="in-wide" value="5" readonly>
+        </div>
+        <div>
+          <span class="lab">횟수</span>
+          <div class="step"><button>−</button><input class="in-step" value="10" readonly><button>＋</button></div>
+        </div>
+      </div>
+      <button class="btn1" style="margin-top:14px">기록하기</button>
+    </div>
+    <p class="why"><span class="tagn">B</span> <b>한 줄에 한 칸.</b> 글 자리가 <b>160px</b> 다 —
+      어떤 폰에서도, 글자를 200% 로 써도 <b>안 잘린다.</b> ± 도 커진 글자를 그대로 받는다.
+      값은 <span class="cut">세로가 세 줄로 길어지는 것</span>이다: 적기 단추가 아래로 밀리고,
+      운동 중에 손가락이 오가는 거리가 늘어난다.</p>
+  </main>
+</div>
+</body>
+</html>
