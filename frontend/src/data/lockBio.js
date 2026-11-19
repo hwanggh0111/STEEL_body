@@ -99,7 +99,13 @@ export async function 켠다(이름표 = '블랙아이언 잠금') {
           // **이 기기 안의 인증기만** (USB 열쇠를 들고 다니게 하지 않는다)
           authenticatorAttachment: 'platform',
           userVerification: 'required',
-          residentKey: 'preferred',
+          // ── ★ **`preferred` 는 이 기기를 벗어난다** ── (2026-11-19 · 정석 2차)
+          //
+          // 바로 위에 「이 기기 안의 인증기만」이라 적어두고 `preferred` 를 뒀는데,
+          // 요즘 안드로이드는 그 꼴이면 **패스키를 계정에 동기화**한다 — 같은 구글
+          // 계정의 **다른 기기에서도 풀린다.** 「기기의 가림막」이라는 뜻과 다르다.
+          // `discouraged` 면 글과 식이 맞는다
+          residentKey: 'discouraged',
         },
         timeout: 60000,
       },
@@ -130,7 +136,10 @@ export async function 풀어본다() {
         timeout: 60000,
       },
     });
-    return !!got;
+    // **돌아온 열쇠가 담아둔 그것인지 맞댄다** (2026-11-19 · 정석 2차).
+    // `allowCredentials` 로 이미 걸렀지만, 그것은 **부탁**이고 확인이 아니다 —
+    // 맞대지 않으면 「풀렸다」를 기기 말만 듣고 적는 셈이다
+    return !!got && !!got.rawId && b64(got.rawId) === id;
   } catch {
     return false;
   }

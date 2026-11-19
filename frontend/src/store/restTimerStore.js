@@ -149,7 +149,13 @@ export const useRestTimerStore = create((set, get) => ({
    */
   durationFor: (name) => {
     const v = 기억한것(name);
-    return Number.isFinite(v) && v > 0 ? v : get().duration;
+    if (!Number.isFinite(v) || v <= 0) return get().duration;
+    // **테두리에 조인다** (2026-11-19 · 정석 2차). `start()` 는 조이는데 이 손은 안 조여서,
+    // 화면의 「… 로 돌아요」가 **실제로 도는 길이와 다른 수**를 적을 수 있었다 — 그 줄을
+    // 붙인 까닭이 「실제로 도는 길이를 적는다」였으니 그게 어긋나면 줄의 뜻이 없다.
+    // (지금 UI 로는 `CHOICES` 넷만 들어가 재현이 안 되지만, 기기 저장은 사람이 고칠 수 있고
+    //  `읽은표()` 가 **모양은 안 믿으면서 범위는 안 보던 것**과도 짝이 안 맞았다)
+    return Math.min(MAX_SEC, Math.max(MIN_SEC, v));
   },
 
   /**

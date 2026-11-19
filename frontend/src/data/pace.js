@@ -26,6 +26,14 @@ const BASELINE_DAYS = 28;
 /** 평소라고 말하려면 잴 수 있는 날이 이만큼은 있어야 한다 */
 const MIN_BASELINE_DAYS = 3;
 
+// 두 날짜 사이의 날 수 (2026-11-19). **새로 세지 않는다** — `npm run daygap` 이
+// 「날짜를 밀리초로 세는 자리」가 새로 생기는 것을 막는다(내가 거기 걸렸다).
+// 그 손은 날짜 키를 **한낮으로** 읽는다 — 자정은 서머타임이 자정에 시작하는 곳에서
+// 없는 시각이라 하루가 어긋난다
+import { daysBetween } from './personalRecord';
+// 운동 이름을 견주는 식 — 이 앱에 하나뿐이다
+import { flatName } from './flatName';
+
 const at = (r) => {
   const t = new Date(r?.created_at || 0).getTime();
   return Number.isFinite(t) && t > 0 ? t : null;
@@ -117,6 +125,71 @@ export function buildPace(workouts, today) {
     // 평소보다 얼마나 더(또는 덜) 쉬었나. 평소가 없으면 null
     deltaMs: base ? pace.medianMs - base.medianMs : null,
   };
+}
+
+/**
+ * **그 운동에서 평소 이만큼 쉬었다** (2026-11-19 · 시안 1119 ② · 맵시 요청).
+ *
+ * ── 왜 따로 재나 ──
+ *
+ * 위 `baselineOf` 가 주는 것은 **하루치 전체 간격**의 중앙값이다. 그 수로 「스쿼트에서
+ * 평소 2분 50초」라고 적으면 **사실이 아닌 것을 사실처럼** 적는 것이다 — 그날에는 컬도
+ * 있었고 유산소도 있었다. 맵시가 그것을 보고 **붙이지 않고 넘겼다.** 맞는 판단이다.
+ *
+ * 그래서 **그 운동 줄끼리의 간격만** 센다. 한 운동의 세트 사이가 곧 그 운동의 휴식이다.
+ *
+ * ── 모르면 모른다고 한다 ──
+ *
+ * 간격이 **셋 미만**이면 `null` 이다(`baselineOf` 가 날 셋을 요구하는 것과 같은 선).
+ * 두 번 쉬어본 것으로 「평소」라고 말하지 않는다. **화면은 `null` 이면 그 줄을 안 그린다.**
+ *
+ * ── 권하지 않는다 ──
+ *
+ * 이 수는 **사실 한 줄**로만 쓴다. 「그러니 3분 쉬세요」로 바꾸면 코치 노릇이고,
+ * 그것은 11/18 에 반려된 선이다 (`data/restPerExercise.js` 머리글).
+ *
+ * @param workouts 날짜 → 줄들
+ * @param name     운동 이름 (자유 입력 — 눕혀서 견준다)
+ * @param today    오늘 (앞날 기록은 뺀다)
+ * @param days     거슬러 보는 날 수 (기본 `BASELINE_DAYS`)
+ *
+ * @returns {{ medianMs, samples, days }} 또는 **`null`**(잴 수 없다)
+ */
+export function 운동별평소(workouts, name, today, days = BASELINE_DAYS) {
+  // 눕히는 식은 **한 자리에서 온다** (`data/flatName.js` · 2026-11-19 · 정석 2차)
+  const 나 = flatName(name);
+  if (!나 || !today) return null;
+
+  const gaps = [];
+  let 센날 = 0;
+  for (const [date, list] of Object.entries(workouts || {})) {
+    if (date > today) continue;                     // 앞날 기록은 셈에서 뺀다
+    const 거리 = daysBetween(date, today);
+    if (!Number.isFinite(거리) || 거리 < 0 || 거리 > days) continue;
+
+    const stamps = (list || [])
+      .filter((r) => flatName(r?.exercise) === 나)
+      .map(at)
+      .filter((t) => t !== null)
+      .sort((a, b) => a - b);
+    if (stamps.length < 2) continue;                // 간격이 하나도 안 나온다
+
+    let 이날 = 0;
+    for (let i = 1; i < stamps.length; i += 1) {
+      const g = stamps[i] - stamps[i - 1];
+      // **한꺼번에 적은 날은 뺀다** — 집에 와서 다섯 세트를 몰아 적으면 간격이 몇 초다.
+      // 위 `MIN_SPAN` 이 하루치에서 막는 것과 같은 까닭이고, 여기서는 **간격마다** 본다
+      if (g < 20 * 1000) continue;
+      // 그리고 **너무 긴 것도 뺀다** — 세트 사이가 아니라 「딴 일을 하다 왔다」다
+      if (g > 20 * 60000) continue;
+      gaps.push(g);
+      이날 += 1;
+    }
+    if (이날 > 0) 센날 += 1;
+  }
+
+  if (gaps.length < 3) return null;                 // 모르면 모른다고 한다
+  return { medianMs: median(gaps), samples: gaps.length, days: 센날 };
 }
 
 /** 분·초로 적는다. 1분 미만은 초로만 */

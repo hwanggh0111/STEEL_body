@@ -28,8 +28,8 @@ import { GYM_MISSING_KEY } from './localKeys';
 import { EXERCISE_DICT, partOf } from './exerciseDict';
 import { liftNames } from './liftTrend';
 
-/** 눕힌 이름. `plateMath.js` · `restPerExercise.js` 와 **같은 식**이다 */
-const flat = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
+// 눕히는 식은 **한 자리에서 온다** (2026-11-19 · 정석 2차)
+import { flatName as flat } from './flatName';
 
 /** 한 짐에 몇 개까지 적어 두나. 끝없이 늘지 않게 */
 export const MAX_MISSING = 80;

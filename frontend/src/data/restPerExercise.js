@@ -28,8 +28,10 @@
 import { readLS, saveLS } from './safeStorage';
 import { REST_PER_EXERCISE_KEY } from './localKeys';
 
-/** 눕힌 이름. `plateMath.js` 의 `flat` 과 **같은 식**이다 (양쪽이 갈리면 열쇠가 안 맞는다) */
-const flat = (s) => String(s || '').toLowerCase().replace(/[\s.,!?~·・\-_'"()]/g, '');
+// 눕히는 식은 **한 자리에서 온다** (2026-11-19 · 정석 2차) — 여기 베껴 적어 두면
+// 한쪽에서 고치는 날 **같은 운동이 다른 것으로 보인다**(쉬는 시간은 「벤치 프레스」에
+// 기억해 뒀는데 원판은 「벤치프레스」로 찾는다). 그리고 아무 자도 안 울린다
+import { flatName as flat } from './flatName';
 
 /** 고를 수 있는 길이. 휴식 타이머의 테두리(10초~10분) 안이다 */
 export const CHOICES = [60, 90, 180, 300];
