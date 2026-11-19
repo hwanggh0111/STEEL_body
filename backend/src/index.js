@@ -440,6 +440,9 @@ app.use('/api/gym-settings', require('./routes/gymSettings'));
 app.use('/api/notes',       require('./routes/notes'));
 app.use('/api/client-error', require('./routes/clientErrors'));
 app.use('/api/export',      require('./routes/export'));
+// 내 기록을 통째로 한 장으로 (2026-11-19 · 시안 1119 ⑥). **같은 앞자리에 둔다** —
+// 길은 `/all` 하나라 위의 CSV 셋과 안 부딪힌다
+app.use('/api/export',      require('./routes/exportAll'));
 // 내보내기의 짝. 여기만 따로 제한을 둔다 — 파일 한 장에 수만 줄이라 한 번이 비싸다
 app.use('/api/import',      require('./routes/importData'));
 
