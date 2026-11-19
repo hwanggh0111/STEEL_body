@@ -106,6 +106,9 @@ function SetChecks({ done, planned, onTap, disabled }) {
             onClick={() => onTap(on ? n - 1 : n)}
             aria-pressed={on}
             aria-label={on ? `${n}세트 체크 풀기` : `${n}세트 했음`}
+            // `tap-box` — 폰에서 높이만 44 로 자라 42×44 가 되던 것을 42×42 로 두고
+            // 닿는 자리만 넓힌다 (globals.css · 2026-11-19 · 맵시)
+            className="tap-box"
             style={{
               width: 42, height: 42, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1246,6 +1249,10 @@ export default function TrainPage() {
                     onClick={() => navigate('/routine', { state: { editId: r.id } })}
                     aria-label={`${r.name} 루틴 고치기`}
                     title="루틴 고치기"
+                    // 바로 왼쪽이 줄 전체를 덮는 「시작」 단추다 — 과녁이 32 로 좁으면
+                    // **고치려다 운동이 시작된다.** 꼴은 32 로 두고 닿는 자리만 44 로
+                    // 넓힌다 (`tap-box` · 2026-11-19 · 맵시)
+                    className="tap-box"
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       width: 32, height: 32, flexShrink: 0,
@@ -2055,13 +2062,17 @@ export default function TrainPage() {
 
               {/* ── 고치기 · 지우기 ── (2026-09-18)
                   **글자가 아니라 그림으로 둔다** — 줄마다 「고치기 · 지우기」를 적으면
-                  기록 스무 줄에 같은 말이 마흔 번 적힌다. 손가락 자리(36px)는 지킨다.
+                  기록 스무 줄에 같은 말이 마흔 번 적힌다.
+                  **보이는 꼴은 30px 이고 닿는 자리는 44px 다** (`tap-box`) — 이 줄은
+                  「36px 를 지킨다」고 적어뒀는데 값은 처음부터 30 이었다. 글과 값이
+                  갈린 자리였다 (2026-11-19 · 맵시).
                   못 올린 줄도 고치고 지울 수 있다 — 줄에 세워둔 것은 스토어가 알아서
                   기기 안에서 고친다(`isLocalId`) */}
               <button
                 onClick={() => startEditing(w)}
                 aria-label={`${w.exercise} 고치기`}
                 title="고치기"
+                className="tap-box"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 30, height: 30, flexShrink: 0, marginLeft: 2,
@@ -2078,6 +2089,7 @@ export default function TrainPage() {
                 onClick={() => removeRecord(w)}
                 aria-label={`${w.exercise} 지우기`}
                 title="지우기"
+                className="tap-box"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 30, height: 30, flexShrink: 0,

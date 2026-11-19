@@ -314,10 +314,30 @@ function 훑기(code, file, 가로클래스) {
         && a.name && a.name.name === 'role');
       const 누르는것 = 태그 === 'button' || 태그 === 'summary'
         || (역할 && 역할.value && 역할.value.value === 'button');
+      // ── **네모는 폭을 아무도 안 메웠다** ── (2026-11-19 · 맵시)
+      //
+      // ⑸ 를 처음 세울 때 **둥근 것만** 봤다(`borderRadius`). 그런데 위의 까닭에
+      // 둥글기는 아무 상관이 없다 — 폰에서 높이만 44 로 자라는 것은 **크기를 박은
+      // 누르는 것 전부**다. 네모는 달걀이 안 되니 **눈에 덜 띄고**, 그래서 더 오래
+      // 남았다: 운동 기록 줄의 고치기·지우기가 30×44 로 서 있었고 둘이 `marginLeft: 2`
+      // 로 붙어 **지우려다 고치기**가 났다(루틴 줄의 32 는 옆이 「시작」이라 **고치려다
+      // 운동이 시작**됐다). 꼴보다 **잘못 눌리는 것**이 먼저다.
+      //
+      // 그래서 **둥근 조건을 걷는다.** 기대하는 표만 꼴에 따라 가른다 —
+      // 동그라미는 `tap-round` · 네모는 `tap-box`(`globals.css` 에서 **같은 손**이다).
+      // 폭만 박고 높이를 안 박은 단추도 센다 — 폰에서 높이는 44 로 자라고 **폭은
+      // 그대로**라 과녁이 좁다. 글이 드는 단추는 폭이 글만큼 넓어지지만, `width` 를
+      // 박아두면 그 값이 실제 폭이다(앱 전체가 `box-sizing: border-box` 다).
       const 둥근 = ['50%', 999, '999px', '9999px'].includes(s.값.borderRadius);
-      if (누르는것 && 둥근 && typeof s.값.width === 'number' && s.값.width === s.값.height
-        && s.값.width < 44 && !cls.includes('tap-round') && !cls.includes('tap-tight')) {
-        결과.push({ file, line: node.loc.start.line, 빠진것: ['tap-round'], 류: '달걀단추' });
+      const 폭박힘 = typeof s.값.width === 'number' && s.값.width < 44;
+      // 높이가 변수인 것은 **안 센다** — 모르는 것을 「작다」로 읽으면 거짓 FAIL 이
+      // 깔리고, 거짓 FAIL 이 깔린 자는 아무도 안 본다 (⑶ 과 같은 판단)
+      const 높이가더크지않다 = !s.모름.has('height')
+        && (s.값.height === undefined || (typeof s.값.height === 'number' && s.값.height < 44));
+      if (누르는것 && 폭박힘 && 높이가더크지않다
+        && !cls.includes('tap-round') && !cls.includes('tap-box') && !cls.includes('tap-tight')) {
+        const 표 = 둥근 ? 'tap-round' : 'tap-box';
+        결과.push({ file, line: node.loc.start.line, 빠진것: [표], 류: 둥근 ? '달걀단추' : '홀쭉단추' });
       }
     }
     for (const k of Object.keys(node)) {
@@ -513,6 +533,52 @@ const 되돌려꼴 = [
 );`,
     기대: [],
   },
+  {
+    이름: '11/19 의 기록 줄 꼴 — 네모 30 단추가 `tap-box` 를 안 들었다 (지우려다 고치기)',
+    code: `const A = () => (
+  <button aria-label="지우기" style={{ width: 30, height: 30, flexShrink: 0, padding: 0 }}>
+    <svg width="15" height="15" />
+  </button>
+);`,
+    기대: ['tap-box'],
+  },
+  {
+    이름: '  `tap-box` 를 들었으면 울지 않는다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button className="tap-box" style={{ width: 30, height: 30 }}>
+    <svg width="15" height="15" />
+  </button>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  폭만 박고 높이를 안 박은 단추도 센다 (폰에서 높이만 자란다)',
+    code: `const A = () => (
+  <button style={{ width: 28, padding: 0 }}>×</button>
+);`,
+    기대: ['tap-box'],
+  },
+  {
+    이름: '  높이가 변수인 것은 안 센다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button style={{ width: 30, height: barH }}>{v}</button>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  폭이 44 이상이면 늘어날 것이 없다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <button style={{ width: 48, height: 30 }}>저장</button>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  일부러 작게 둔 것은 표가 있다 (거짓 FAIL 막이 · `tap-tight`)',
+    code: `const A = () => (
+  <button className="tap-tight" style={{ width: 20, height: 20 }}>×</button>
+);`,
+    기대: [],
+  },
 ];
 
 if (process.argv.includes('--되돌려')) {
@@ -621,14 +687,25 @@ console.log('\n── 글자를 크게 쓰면 잘리는 칸이 없는가 ──'
   }
 }
 
-console.log('\n── 폰에서 세로로 늘어 달걀이 되는 동그란 단추가 없는가 ──');
+console.log('\n── 폰에서 세로로 늘어나는 작은 단추가 없는가 ──');
 {
-  const 달걀 = 모두.filter((r) => r.류 === '달걀단추');
-  ok('크기를 박은 44 미만 동그란 단추는 `tap-round` 를 든다',
-    달걀.map((r) => r.file + ':' + r.line), []);
-  if (달걀.length) {
-    for (const r of 달걀) console.log('         ' + r.file + ':' + r.line);
-    console.log('       → `className="tap-round"` 를 붙이세요. 폰은 단추 **높이만** 44 로 키웁니다.');
+  const 늘어남 = 모두.filter((r) => r.류 === '달걀단추' || r.류 === '홀쭉단추');
+  // **셈이 0 인 것은 통과가 아니다.** 「표를 든 자리」를 같이 세어 둔다 — 모집단이
+  // 0 으로 떨어지면(파서가 단추를 못 찾거나 류 이름을 고쳐 필터가 빗나가면) 이 줄이
+  // 먼저 운다. 11/16·11/17 에 거듭 밟은 「자가 「지금」을 베끼면 거짓이 된다」 류다
+  const 표든자리 = [];
+  for (const f of 파일들(SRC)) {
+    const src = fs.readFileSync(f, 'utf8');
+    if (/className="tap-(round|box)"/.test(src)) 표든자리.push(path.relative(ROOT, f).replace(/\\/g, '/'));
+  }
+  ok('표를 든 자리가 있다 (모집단이 비면 이 자는 장식이다)', 표든자리.length > 0, true);
+  console.log('       `tap-round`·`tap-box` 를 든 파일 ' + 표든자리.length + '개');
+  ok('크기를 박은 44 미만 단추는 표를 든다 (동그라미 `tap-round` · 네모 `tap-box`)',
+    늘어남.map((r) => r.file + ':' + r.line), []);
+  if (늘어남.length) {
+    for (const r of 늘어남) console.log('         ' + r.file + ':' + r.line + '  → ' + r.빠진것.join(' · '));
+    console.log('       → 그 표를 붙이세요. 폰은 단추 **높이만** 44 로 키우고 **폭은 그대로**라');
+    console.log('         꼴이 찌그러지고(30×44) 과녁이 좁아 **옆 단추가 눌립니다**.');
   }
 }
 

@@ -32,13 +32,36 @@ const ok = (name, got, want) => {
     + (pass ? '' : ' (기대: ' + JSON.stringify(want) + ')'));
 };
 
+/**
+ * ── **폭을 메우는 것은 `::after` 한 줄뿐이다** ── (2026-11-19 · 맵시)
+ *
+ * 위 전역 규칙은 **높이만** 44 로 키운다. 크기를 박은 단추(동그라미 34·36·40 ·
+ * 네모 30·32·42)는 폭이 그대로라 폰에서 꼴이 찌그러지고 **과녁이 좁아 옆 단추가
+ * 눌린다** (11/18 에 동그라미, 11/19 에 네모를 닫았다 — 운동 기록 줄에서 지우려다
+ * 고치기가 났다). 그것을 메우는 것은 음수 `inset` 한 줄이고 **지우면 조용히
+ * 좁아진다** — 화면은 멀쩡해 보이고 폰으로 눌러봐야 안다. 그래서 값으로 지킨다.
+ * `min(0px, …)` 이라야 음수가 되고, 음수라야 칸 **밖으로** 뻗는다.
+ *
+ * ★ **식을 이 한 자리에 둔다** — 본 검사와 되돌려-FAIL 이 **같은 손**을 부른다.
+ * 되돌려가 제 안에 정규식을 또 적으면 식을 넓히는 날 되돌려만 옛 식을 본다
+ * (`check-shrink` 의 `cssMoJib` 와 같은 까닭 · 11/17 에 실제로 밟았다).
+ */
+function 폭메움(block, bare) {
+  const 밖 = bare.replace(block, '');
+  return {
+    테두리: [/\.tap-round::after/.test(block), /\.tap-box::after/.test(block)],
+    뻗음: /inset: *min\( *0px, *calc\(\(100% *- *44px\) *\/ *2\)\)/.test(block),
+    높이되돌림: [/button\.tap-round/.test(block), /button\.tap-box/.test(block)],
+    // `position: relative` 는 **묶음 밖**에 있다 — `::after` 의 기준이라 폰·PC 둘 다 쓴다
+    기준: [/\.tap-round[\s,]/.test(밖), /\.tap-box[\s,]/.test(밖)],
+  };
+}
+
 const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'globals.css'), 'utf8');
 
-console.log('── 전역 규칙이 살아 있는가 ──');
-
-// 주석을 걷어낸 알맹이만 본다 — 주석에 적힌 글자에 속으면 안 된다
-const bare = css.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1');
-const block = (() => {
+// 주석을 걷어낸 알맹이와 `pointer: coarse` 묶음을 뽑는 손 — 본 검사와 되돌려가 같이 쓴다
+const 알맹이 = (raw) => raw.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1');
+const 묶음 = (bare) => {
   const at = bare.indexOf('@media (pointer: coarse)');
   if (at < 0) return '';
   let depth = 0;
@@ -47,7 +70,48 @@ const block = (() => {
     else if (bare[i] === '}') { depth -= 1; if (depth === 0) return bare.slice(at, i + 1); }
   }
   return '';
-})();
+};
+
+// ─────────────────────────────────────────────────────────────
+// 되돌려-FAIL — 일부러 어긋낸 CSS 를 먹여 **빨개지는지** 본다
+//
+//   node scripts/check-tap.cjs --되돌려
+// ─────────────────────────────────────────────────────────────
+if (process.argv.includes('--되돌려')) {
+  console.log('── 되돌려-FAIL: 일부러 어긋낸 꼴을 먹인다 ──');
+  const 재기 = (raw) => { const b = 알맹이(raw); return 폭메움(묶음(b), b); };
+  const 바름 = `.tap-round,
+.tap-box { position: relative; }
+@media (pointer: coarse) {
+  button:not(.tap-tight) { min-height: 44px !important; }
+  button.tap-round,
+  button.tap-box { min-height: 0 !important; }
+  .tap-round::after,
+  .tap-box::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); }
+}`;
+  ok('바른 꼴은 울지 않는다 (거짓 FAIL 막이)', 재기(바름),
+    { 테두리: [true, true], 뻗음: true, 높이되돌림: [true, true], 기준: [true, true] });
+  ok('  네모 쪽 `::after` 를 지우면 걸린다 (네모만 조용히 좁아진다)',
+    재기(바름.replace('  .tap-round::after,\n', '  ')).테두리, [false, true]);
+  ok('  `inset` 을 0 으로 바꾸면 걸린다 (칸 밖으로 안 뻗는다)',
+    재기(바름.replace(/inset: min\(0px, calc\(\(100% - 44px\) \/ 2\)\)/, 'inset: 0')).뻗음, false);
+  ok('  높이 되돌림을 지우면 걸린다 (30×44 홀쭉이로 돌아간다)',
+    재기(바름.replace('  button.tap-box { min-height: 0 !important; }', '')).높이되돌림, [true, false]);
+  ok('  `position: relative` 를 지우면 걸린다 (`::after` 가 엉뚱한 칸을 기준 삼는다)',
+    재기(바름.replace('.tap-round,\n.tap-box { position: relative; }', '')).기준, [false, false]);
+  // **주석에 적힌 글자에 속지 않는다** — 11/16 의 「자가 「지금」을 베끼면 거짓이 된다」 류
+  ok('  주석에만 적혀 있으면 안 센다 (거짓 PASS 막이)',
+    재기('/* .tap-box::after { inset: min(0px, calc((100% - 44px) / 2)); } */').테두리, [false, false]);
+  console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
+  process.exit(bad ? 1 : 0);
+}
+
+console.log('── 전역 규칙이 살아 있는가 ──');
+
+// 주석을 걷어낸 알맹이만 본다 — 주석에 적힌 글자에 속으면 안 된다.
+// 뽑는 손은 위에 한 자리로 두었다 (되돌려도 같은 손을 쓴다)
+const bare = 알맹이(css);
+const block = 묶음(bare);
 
 ok('`@media (pointer: coarse)` 묶음이 있다', block.length > 0, true);
 ok('단추를 겨냥한다', /\bbutton\b/.test(block), true);
@@ -56,6 +120,12 @@ ok('닿는 높이를 44px 로 둔다', /min-height: *44px/.test(block), true);
 ok('인라인 스타일을 이긴다 (!important)', /min-height: *44px *!important/.test(block), true);
 ok('PC 는 안 건드린다 (묶음 밖에 44px 를 안 건다)',
   /min-height: *44px/.test(bare.replace(block, '')), false);
+
+const 폭 = 폭메움(block, bare);
+ok('`tap-round`·`tap-box` 둘 다 닿는 자리를 넓힌다', 폭.테두리, [true, true]);
+ok('  사방으로 뻗어 44 를 채운다 (음수 `inset`)', 폭.뻗음, true);
+ok('  그 둘은 높이를 다시 꼴 크기로 되돌린다 (안 그러면 세로로 늘어난다)', 폭.높이되돌림, [true, true]);
+ok('  `::after` 의 기준이 묶음 밖에 서 있다', 폭.기준, [true, true]);
 
 console.log('\n── 격자 칸이 단추로 바뀌지 않았는가 ──');
 //
