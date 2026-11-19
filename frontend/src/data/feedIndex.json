@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "470d4ed280",
+  "detailVersion": "674572ce19",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "8e464ff",
+      "date": "2026-11-19",
+      "text": "탭바가 사라져도 그 높이가 뿌리에 남아 있었다 — 치우고 간다",
+      "label": "고침",
+      "scope": "꼴",
       "has": true
     },
     {
@@ -1126,14 +1134,6 @@
       "key": "fd0bfe6",
       "date": "2026-11-12",
       "text": "별표를 말하는 제목이 뭉개졌다 — 「** · 백틱」이 「 · 백틱」으로",
-      "label": "고침",
-      "scope": "공지",
-      "has": true
-    },
-    {
-      "key": "436e20c",
-      "date": "2026-11-12",
-      "text": "공지함 40줄이 ** · 백틱 · ★ 를 날것으로 보여줬다 — 라이브에서도",
       "label": "고침",
       "scope": "공지",
       "has": true
