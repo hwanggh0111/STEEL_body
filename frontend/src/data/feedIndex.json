@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5f25b64a3c",
+  "detailVersion": "bed3817f09",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "92036de",
+      "date": "2026-11-18",
+      "text": "주인 메일 앞부분이 공지함에 실렸다 — 싣는 자리에서 막는다 · 보안 점검의 「DB 가 없다」를 고친다",
+      "label": "고침",
+      "scope": "공지",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "드롭 줄만 적은 날을 셈에서 빼면서 아무 말도 안 했다 — 수는 맞고 근거가 거짓이었다",
       "label": "고침",
       "scope": "다음 한 걸음",
-      "has": true
-    },
-    {
-      "key": "aec78a1",
-      "date": "2026-11-11",
-      "text": "측정과 내 루틴까지 — 측정은 고치는 길이 아예 없고, 루틴은 지우면 다시 짜야 했다",
-      "label": "새 기능",
-      "scope": "되돌리기",
       "has": true
     }
   ]
