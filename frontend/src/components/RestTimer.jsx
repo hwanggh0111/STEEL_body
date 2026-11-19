@@ -1,4 +1,6 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
+// 운동마다 쉬는 시간 (2026-11-19 · 시안 1119 ②). 표는 **기기에** 있다
+import { 기억한것, CHOICES as REST_CHOICES } from '../data/restPerExercise';
 import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -197,6 +199,7 @@ export default function RestTimer() {
     duration, runSec, leftMs, deadline, pausedLeft, label,
     autoStart, sound, vibrate, tone, volume,
     setDuration, setAutoStart, setSound, setVibrate, setTone, setVolume,
+    rememberFor, perVer, durationFor,
     start, add, pause, resume, stop,
   } = useRestTimerStore();
 
@@ -334,7 +337,18 @@ export default function RestTimer() {
           그렇게 적는다 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...(prefsOpen ? null : { display: 'none' }) }}>
         {active && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>다음 휴식</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            다음 휴식
+            {/* ★ **이 운동에 쓸 길이를 적는다** (2026-11-19 · 시안 1119 ②).
+                아래 칩은 **기기 기본값**(`duration`)을 비추는데, 이 운동에 기억해 둔 것이
+                있으면 **실제로 도는 길이는 그것**이다 — 그 둘이 다를 때 적지 않으면
+                사람은 「90초라고 적혀 있는데 3분을 쉰다」로 읽는다 */}
+            {restedName && durationFor(restedName) !== duration && (
+              <span style={{ color: 'var(--accent)' }}>
+                {' · '}{restedName} 은 {formatLeft(durationFor(restedName) * 1000)} 로 돌아요
+              </span>
+            )}
+          </div>
         )}
         <div style={{ display: 'flex', gap: 6 }}>
           {PRESETS.map(sec => (
@@ -351,6 +365,43 @@ export default function RestTimer() {
             onClick={() => setShowCustom(v => !v)}
           >직접</button>
         </div>
+
+        {/* ── 이 운동에 기억 ── (2026-11-19 · 시안 1119 ②)
+            길이가 **기기에 하나**라 스쿼트에 3분을 맞춰두면 컬에서도 3분을 기다렸다.
+            **쉬고 있는 그 운동**(`restedName` — 휴식을 건 이름에서 읽는다)에만 붙인다 —
+            이름을 모르는 휴식(직접 시작한 것)에는 이 줄을 안 그린다.
+            ★ **권하지 않는다.** 평소 쉰 시간은 아래 사실 한 줄로만 적는다 —
+            「3분 쉬세요」라고 말하면 코치 노릇이고, 그건 11/18 에 반려된 그 선이다 */}
+        {restedName && (
+          <div style={{ marginTop: 2 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 5 }}>
+              {restedName} 에 기억해 두기
+              {기억한것(restedName) != null && (
+                <span style={{ color: 'var(--accent)' }}> · 지금 {formatLeft(기억한것(restedName) * 1000)}</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {REST_CHOICES.map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  className={`btn-secondary${기억한것(restedName) === sec ? ' active' : ''}`}
+                  style={{ flexGrow: 1, padding: '8px 0', fontSize: 12.5 }}
+                  /* 같은 값을 다시 누르면 **잊는다** — 「안 기억하기」 단추를 따로 두지 않는다 */
+                  onClick={() => rememberFor(restedName, sec)}
+                  aria-pressed={기억한것(restedName) === sec}
+                >{sec < 60 ? `${sec}초` : `${sec / 60}분`}</button>
+              ))}
+            </div>
+            {/* 판 번호를 읽어 **표가 바뀔 때 다시 그려지게** 한다 (표는 기기에 있어 스토어가 안 본다) */}
+            <span hidden>{perVer}</span>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5 }}>
+              {기억한것(restedName) != null
+                ? '다음부터 이 운동은 이 길이로 저절로 시작해요'
+                : '안 고르면 위에서 고른 길이로 돌아요'}
+            </div>
+          </div>
+        )}
 
         {showCustom && (
           <div style={{ display: 'flex', gap: 8 }}>

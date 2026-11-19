@@ -186,9 +186,30 @@ if (missing.length) {
 //
 // **번들러는 걷어내 주지만** 코드는 그대로 남는다. 조각 크기가 아니라 **읽는 사람**의 일이다.
 console.log('');
+// ★ **테두리가 한글에서 서는지 그 자리에서 재 본다** (2026-11-19).
+// 이 줄이 없으면, 테두리가 다시 `\b` 로 돌아가도 **아무 것도 안 울고** 0건으로 통과한다
+// (한글 이름이 하나도 없는 날에는 셈이 0 이라 통과처럼 보인다 — 「셈 0 은 통과가 아니다」)
+console.log('── 테두리가 한글 이름에서 서는가 ──');
 console.log('── 안 쓰는 이름을 가져오는 자리 ──');
 {
-  const B = '\\b';
+  // ── ★ **한글 이름에는 `\b` 가 안 선다** ── (2026-11-19 · 벼림)
+  //
+  // 테두리를 `\b` 로 잡고 있었다. 자바스크립트의 `\b` 는 **`[A-Za-z0-9_]` 의 경계**라,
+  // 한글은 그 글자 묶음에 없어서 `\b기억한것\b` 가 **아무 데도 안 맞는다.** 그래서
+  // 한글로 이름을 준 손을 가져다 쓰면 **쓰고 있는데 「안 쓴다」고 울었다**(거짓 FAIL 셋).
+  // 이 저장소는 한글 이름을 많이 쓴다 — `자리표` · `담을자릿수` · `기억한것` …
+  //
+  // 그래서 **이름 글자를 내가 적어** 앞뒤를 본다. 한글 음절(가–힣)과 자모까지 넣는다 —
+  // 넣지 않으면 `기억한다` 를 찾을 때 `기억한다면` 도 맞는 것으로 읽힌다.
+  const 이름글자 = 'A-Za-z0-9_$\\uAC00-\\uD7A3\\u1100-\\u11FF\\u3130-\\u318F';
+  const 테두리 = (name) => new RegExp('(?<![' + 이름글자 + '])'
+    + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![' + 이름글자 + '])');
+  ok('한글 이름을 쓰는 것으로 읽는다', 테두리('기억한것').test('const v = 기억한것(name);'), true);
+  ok('  한글 이름이 없으면 안 읽는다', 테두리('기억한것').test('const v = 다른것(name);'), false);
+  ok('  긴 이름에 묻힌 것은 안 읽는다', 테두리('기억한다').test('if (기억한다면) {}'), false);
+  ok('영어 이름도 그대로 읽는다', 테두리('useMemo').test('const x = useMemo(() => 1, []);'), true);
+  ok('  낱말 안에 든 것은 안 읽는다', 테두리('Memo').test('const x = useMemo(() => 1, []);'), false);
+
   const 안쓰는것 = [];
   for (const tree of TREES) {
     for (const f of walk(tree.dir)) {
@@ -199,7 +220,7 @@ console.log('── 안 쓰는 이름을 가져오는 자리 ──');
         for (const raw of m[1].split(',')) {
           const name = raw.includes(' as ') ? raw.split(' as ')[1].trim() : raw.trim();
           if (!name) continue;
-          if (!new RegExp(B + name + B).test(body)) {
+          if (!테두리(name).test(body)) {
             안쓰는것.push(tree.label + '/' + path.relative(tree.dir, f).split(path.sep).join('/') + ' — ' + name);
           }
         }

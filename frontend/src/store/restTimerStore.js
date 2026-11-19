@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { readLS, saveLS, removeLS } from '../data/safeStorage';
 import { REST_KEYS } from '../data/localKeys';
 import { VOLUMES, DEFAULT_TONE, DEFAULT_VOLUME, knownTone, looksLikeToneId } from '../data/alertSound';
+// 운동마다 쉬는 시간 (2026-11-19 · 시안 1119 ②). 표는 **기기에** 있다 (서버 0줄)
+import { 기억한것, 기억한다 } from '../data/restPerExercise';
 
 // 휴식 타이머.
 //
@@ -74,6 +76,9 @@ const PREF_KEYS = [LS_DURATION, LS_AUTO, LS_SOUND, LS_VIBRATE, LS_TONE, LS_VOLUM
 const initialPrefs = () => ({
   // 다음 휴식에 쓸 기본값. 사람이 프리셋으로 고르는 것이 이것이다
   duration: readInt(LS_DURATION, 90),
+  // 운동별 표가 바뀌었다는 **판 번호**. 표는 기기에 있어 스토어가 안 보므로,
+  // 이 수가 바뀔 때 그 칸을 쓰는 화면이 다시 그려진다 (2026-11-19)
+  perVer: 0,
   autoStart: readFlag(LS_AUTO),
   sound: readFlag(LS_SOUND),
   vibrate: readFlag(LS_VIBRATE),
@@ -136,10 +141,35 @@ export const useRestTimerStore = create((set, get) => ({
     ticker = setInterval(() => get().tick(), TICK_MS);
   },
 
-  // 저장했을 때 부른다. 꺼져 있으면 아무 일도 하지 않는다
-  autoStartAfterSet: (label) => {
+  /**
+   * **이 운동에 쓸 길이** (2026-11-19 · 시안 1119 ②).
+   *
+   * 기억해 둔 것이 있으면 그것, 없으면 기기 기본값(`duration`). 0 이나 못 읽는 값은
+   * 기억한 것이 **없는 것으로** 본다 — 0 을 그대로 쓰면 「0초 휴식」이 된다.
+   */
+  durationFor: (name) => {
+    const v = 기억한것(name);
+    return Number.isFinite(v) && v > 0 ? v : get().duration;
+  },
+
+  /**
+   * 이 운동에 기억한다. **같은 값을 다시 누르면 잊는다**(여유 횟수 칸과 같은 결).
+   * 돌고 있는 휴식은 **안 건드린다** — 쉬는 중에 길이가 바뀌면 사람은 몇 초를 쉬었는지 잃는다.
+   */
+  rememberFor: (name, sec) => {
+    const v = 기억한다(name, sec);
+    // 화면이 다시 그려지게 **표 판을 올린다** — 기기 저장은 스토어가 안 보는 자리다
+    set((s) => ({ perVer: (s.perVer || 0) + 1 }));
+    return v;
+  },
+
+  // 저장했을 때 부른다. 꺼져 있으면 아무 일도 하지 않는다.
+  //
+  // **운동 이름을 같이 받는다** (2026-11-19) — 이름이 안 오면 기기 기본값으로 돈다.
+  // 옛 부르는 자리(이름 없이 부르던 곳)도 그대로 돈다
+  autoStartAfterSet: (label, name = '') => {
     if (!get().autoStart) return false;
-    get().start(get().duration, label);
+    get().start(get().durationFor(name), label);
     return true;
   },
 

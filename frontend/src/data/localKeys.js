@@ -172,6 +172,13 @@ export const SETTINGS_KEYS = {
   inbodyScore: 'steelbody_set_inbodyscore',
 };
 
+// 운동마다 쉬는 시간 (`data/restPerExercise.js`, 2026-11-19 · 시안 1119 ②).
+//
+// 길이가 **기기에 하나**였다(위 `REST_KEYS.duration`) — 스쿼트에 3분을 맞춰두면 컬에서도
+// 3분을 기다렸다. 운동 이름 → 초 의 표를 한 줄(JSON)로 담는다. 휴식 취향 여섯과 같은 결이라
+// **그 기기의 것**이고 로그아웃해도 남긴다.
+export const REST_PER_EXERCISE_KEY = 'steelbody_rest_per_exercise';
+
 // 휴식 알림 권한을 **물어본 적이 있나** (`data/restAlarm.js`).
 // 세트마다 묻지 않으려고 이 기기에 적어둔다 — 그 기기의 것이라 로그아웃해도 남긴다.
 // **여기 없었다** (2026-10-27): 이름을 모으는 파일인데 이 하나가 밖에만 있었다
