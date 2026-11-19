@@ -226,6 +226,77 @@ if (이력 === null || 이력 === 'shallow') {
   };
   const 빠진것 = 봐야할것.filter((r) => !담겼나(r));
   ok('고친 커밋이 **전부** 공지에 있다 (HEAD 제외)', 빠진것.map((r) => r.hash), []);
+
+  // ── ★ **「HEAD 제외」가 하루의 마지막 고침을 영영 놓친다** ── (2026-11-19 · 정석)
+  //
+  // 위에서 HEAD 를 빼는 것은 맞다 — 커밋은 제 해시를 제 안에 담을 수 없고, 생성기도
+  // 제 커밋을 못 본다(`git log` 를 돌리는 때에 아직 그 커밋이 없다). 그래서 **거짓
+  // FAIL 막이**로는 옳다.
+  //
+  // **그런데 그 자리가 구멍이다.** 평소엔 다음 손이 `npm run changelog` 를 돌릴 때
+  // 따라잡히지만 **그날의 마지막 고침은 따라잡아 줄 다음 손이 없다.** 11/18 이
+  // 그랬다 — `92036de` 가 규칙대로 산출물 넷을 같은 커밋에 담았는데도 **자기 줄만**
+  // 공지함에 없었고, 자는 울지 않았다(벼림이 `e8c08f4` 로 메웠다).
+  //
+  // 그래서 **FAIL 로 세지 않고 「따라잡을 것」으로 따로 적는다.** FAIL 로 두면 고침을
+  // 올리는 모든 손이 거짓 FAIL 을 하나씩 받고, 그것이 쌓이면 다음 판정이 오염된다
+  // (「자가 지금을 베끼면 거짓이 된다」류).
+  const 공지대상인가 = (r) => 드는종류.includes(r.type)
+    && !빼는갈래.includes(r.scope) && !화면밖커밋(r.hash);
+  // **그 판본의 산출물**로 본다 — 지금 산출물로 보면 이미 따라잡힌 뒤라 늘 0건이다
+  const 그판본에담겼나 = (hash) => {
+    let 글 = '';
+    try { 글 = git(['show', hash + ':frontend/src/data/changelog.json']); }
+    catch {
+      try { 글 = git(['show', hash + ':src/data/changelog.json']); } catch { return null; }
+    }
+    try {
+      return new Set((JSON.parse(글).items || []).map((r) => r.hash)).has(hash);
+    } catch { return null; }
+  };
+  const 따라잡을것있나 = (hash) => {
+    const r = 줄.find((x) => x.hash === hash);
+    if (!r || !공지대상인가(r)) return false;
+    const 담김 = 그판본에담겼나(hash);
+    return 담김 === null ? false : !담김;      // 못 읽으면 울지 않는다
+  };
+
+  const 머리 = 줄[0];
+  if (머리 && 공지대상인가(머리) && !담겼나(머리)) {
+    console.log('따라잡을 것 1건 — **HEAD(' + 머리.hash + ') 가 공지함에 자기 줄이 없다**');
+    console.log('         ' + 머리.subject.slice(0, 70));
+    console.log('       FAIL 이 아니다 — 생성기는 제 커밋을 볼 수 없다(위 머리글).');
+    console.log('       다음 손이 `npm run changelog` · `npm run feed` 를 돌리면 따라잡힌다.');
+    console.log('       **하루를 닫는 손이라면 지금 돌려서 넷을 커밋하세요** — 그러지 않으면');
+    console.log('       그 줄은 라이브 소식에 영영 안 오른다 (11/18 의 `92036de`).');
+  } else if (머리 && 공지대상인가(머리)) {
+    console.log('       HEAD(' + 머리.hash + ')는 이미 공지함에 있다 — 따라잡을 것 0건');
+  } else {
+    console.log('       HEAD 는 공지로 안 드는 종류다 — 따라잡을 것 0건');
+  }
+
+  // ── 되돌려 FAIL — 그 구멍이 났던 두 날을 자에게 먹인다 ──
+  if (process.argv.includes('--되돌려')) {
+    console.log('\n── 되돌려 FAIL — 11/18 의 그 꼴을 자에게 먹인다 ──');
+    const 꼴 = [
+      ['`92036de` 를 HEAD 로 두면 울어야 한다 (그 판본에 자기 줄이 없었다)',
+        () => 따라잡을것있나('92036de'), true],
+      ['`e8c08f4`(메운 커밋)를 HEAD 로 두면 울지 않는다',
+        () => 따라잡을것있나('e8c08f4'), false],
+    ];
+    let 샌것 = 0;
+    for (const [이름, 부르기, 기대] of 꼴) {
+      let 받은것;
+      try { 받은것 = 부르기(); } catch (e) { 받은것 = 'THROW:' + e.message; }
+      const 집었다 = JSON.stringify(받은것) === JSON.stringify(기대);
+      if (!집었다) 샌것 += 1;
+      console.log((집었다 ? 'OK   잡는다: ' : 'FAIL 샌다  : ') + 이름
+        + ' → ' + JSON.stringify(받은것) + (집었다 ? '' : ' (기대: ' + JSON.stringify(기대) + ')'));
+    }
+    bad += 샌것;
+    console.log(샌것 ? '  ↑ **그 꼴을 자가 못 집었다.** 이 자는 구멍을 못 메운다'
+      : '  두 꼴을 다 집었다');
+  }
   if (빠진것.length) {
     console.log('       빠진 것:');
     빠진것.forEach((r) => console.log('         ' + r.hash + '  ' + r.subject.slice(0, 64)));
