@@ -8,7 +8,8 @@ const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize')
 // 박혀 있었고 화면에는 제한이 없어서 **말없이 잘렸다.** 화면도 같은 이름으로
 // 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
 const EXERCISE_NAME_MAX = 100;
-const { normalizeWeight, normalizeNote, normalizeRir } = require('../utils/workoutFields');
+const { normalizeWeight, normalizeNote, normalizeRir,
+        normalizeSideWeight, normalizeSideReps } = require('../utils/workoutFields');
 // 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
 // 여태 아래 두 자리에 `100` · `1000` 이 생글자로 박혀 있었고, `routineSession.js` 는
 // 옆에 `MAX_SETS = 100` 을 따로 적고 **주석으로** 「기록 화면이 100 까지 받는다」고
@@ -88,6 +89,9 @@ const slim = (w) => {
   // 한 줄 메모 · 여유 횟수 (2026-11-18) — 있을 때만
   if (w.note) o.note = w.note;
   if (w.rir) o.rir = w.rir;
+  // 오른쪽 무게 · 횟수 (2026-11-19) — 좌우가 다를 때만 담긴 칸이라, 있을 때만 보낸다
+  if (w.weight_r != null) o.weight_r = w.weight_r;
+  if (w.reps_r != null) o.reps_r = w.reps_r;
   if (w.updated_at) o.updated_at = w.updated_at;
   return o;
 };
@@ -108,6 +112,9 @@ router.get('/', auth, (req, res) => {
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
   const { date, exercise, weight, sets, reps, clientKey, link, minutes, note, rir } = req.body;
+  // 오른쪽 칸 (2026-11-19) — 화면은 `weightR` 로, 파일 길과 옛 앱은 `weight_r` 로 보낸다
+  const weightR = req.body.weightR !== undefined ? req.body.weightR : req.body.weight_r;
+  const repsR = req.body.repsR !== undefined ? req.body.repsR : req.body.reps_r;
   // 파일로 넣는 길과 옛 앱이 `distance_km` 으로 보낼 수 있다 — 둘 다 받는다
   const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
   // 오프라인 줄에서 올라온 것만 이 키를 달고 온다 (`local-...`). 재전송돼도 서버가
@@ -192,8 +199,16 @@ router.post('/', auth, spamCheck, (req, res) => {
   const r = normalizeRir(rir);
   if (!r.ok) return res.status(400).json({ error: r.why });
 
+  // 한쪽씩 하는 운동 (2026-11-19) — **왼쪽과 같으면 칸을 안 만든다**(자가 그렇게 돌려준다).
+  // 그래서 안 적는 사람에게는 담기는 줄이 지금과 한 글자도 다르지 않다
+  const wr = normalizeSideWeight(weightR, w.value, c.cardio);
+  if (!wr.ok) return res.status(400).json({ error: wr.why });
+  const rr = normalizeSideReps(repsR, numReps, c.cardio);
+  if (!rr.ok) return res.status(400).json({ error: rr.why });
+
   const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink,
-    { minutes: c.minutes, distanceKm: c.distanceKm }, { note: n.value, rir: r.value });
+    { minutes: c.minutes, distanceKm: c.distanceKm },
+    { note: n.value, rir: r.value, weightR: wr.value, repsR: rr.value });
   // **담은 줄을 같이 보낸다** (2026-10-31) — 화면이 그것을 제자리에 꽂고 목록
   // 전체를 다시 받지 않는다. `GET /workouts` 가 주는 줄과 **같은 모양**이어야 한다
   // (화면이 둘을 섞어 쓴다) — 그래서 다듬거나 고르지 않고 그대로 보낸다
@@ -214,6 +229,9 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   }
 
   const { date, exercise, weight, sets, reps, minutes, note, rir } = req.body;
+  // 오른쪽 칸 (2026-11-19) — POST 와 같은 두 이름을 받는다
+  const weightRPut = req.body.weightR !== undefined ? req.body.weightR : req.body.weight_r;
+  const repsRPut = req.body.repsR !== undefined ? req.body.repsR : req.body.reps_r;
   const distanceKm = req.body.distanceKm !== undefined ? req.body.distanceKm : req.body.distance_km;
   // 고치면서 유산소 줄로 바뀔 수 있다 (세트·횟수로 적어둔 런닝머신을 고치는 길이다)
   const cp = normalizeCardio(minutes, distanceKm);
@@ -270,6 +288,14 @@ router.put('/:id', auth, spamCheck, (req, res) => {
   const rp = normalizeRir(rir);
   if (!rp.ok) return res.status(400).json({ error: rp.why });
 
+  // 한쪽씩 하는 운동 (2026-11-19). **유산소 줄로 고치면 좌우 칸이 지워진다** —
+  // 아래 「두 모양을 섞어 담지 않는다」와 같은 까닭이다. 안 보낸 칸은 건드리지 않되,
+  // 유산소로 바뀌는 줄에서는 **지우라고 말한다**(`null`)
+  const wrp = normalizeSideWeight(cp.cardio ? null : weightRPut, w.value, false);
+  if (!wrp.ok) return res.status(400).json({ error: wrp.why });
+  const rrp = normalizeSideReps(cp.cardio ? null : repsRPut, numReps, false);
+  if (!rrp.ok) return res.status(400).json({ error: rrp.why });
+
   // **두 모양을 섞어 담지 않는다** — 유산소 줄로 고치면 세트 · 횟수를 비우고,
   // 근력 줄로 되돌리면 시간 · 거리를 비운다. 둘 다 적혀 있으면 읽는 쪽마다
   // 다른 것을 보고 다른 말을 한다
@@ -283,6 +309,8 @@ router.put('/:id', auth, spamCheck, (req, res) => {
     distance_km: cp.distanceKm,
     note: np.value,
     rir: rp.value,
+    weight_r: wrp.value,
+    reps_r: rrp.value,
   });
 
   if (result.changes === 0) {

@@ -58,6 +58,7 @@
     "range": "node scripts/check-range.cjs",
     "order": "node scripts/check-order.cjs",
     "tag": "node scripts/check-tag.cjs",
+    "side": "node scripts/check-side.cjs",
     "fields": "node scripts/check-fields.cjs",
     "cardioapi": "node scripts/check-cardio-api.cjs",
     "gate": "node scripts/check-gate.cjs",

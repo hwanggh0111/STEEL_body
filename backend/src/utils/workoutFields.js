@@ -130,7 +130,85 @@ function normalizeRir(raw) {
   return { ok: true, value: v.trim() };
 }
 
+// ── **한쪽씩 하는 운동** ── (2026-11-19 · 시안 1119 ①)
+//
+// 원팔 덤벨로우 · 불가리안 스플릿 스쿼트는 **왼쪽과 오른쪽이 같은 날이 드물다.**
+// 그런데 적을 칸이 하나뿐이라, 사람은 그 말을 **운동 이름에** 적었다 —
+// 「원팔 덤벨로우 L<R」. 11/17 에 그 꺾쇠를 **거절**하게 만들었는데(그 전에는 「원팔
+// 덤벨로우 L」로 조용히 잘려 저장됐다), **받을 칸은 안 줬다.** 거절만 있고 길이 없는
+// 자리라 그 사람은 그 말을 어디에도 못 적는다. 이것이 그때 못 낸 짝이다.
+//
+// 몸 치수는 이미 좌우를 따로 받는다 — 「왼팔둘레 · 오른팔둘레」
+// (`frontend/src/components/measure/BodySizeSection.jsx`). **치수는 아는데 적는 자리만
+// 한 칸**이었다.
+//
+// ── 담는 모양 ──
+//
+//   `weight` · `reps`      왼쪽 — **또는 양쪽이 같을 때의 그 값**(지금과 같다)
+//   `weight_r` · `reps_r`  오른쪽 — **왼쪽과 다를 때만** 담는다
+//
+// **세트는 하나다.** 좌우를 세트로 쪼개지 않는다 — 한 세트에 양쪽을 다 하므로,
+// 「3세트」를 좌 3 · 우 3 으로 적으면 **세트 수가 두 배로 세어진다.** 그래서 10/05 의
+// 슈퍼세트 · 드롭세트처럼 줄을 따로 적는 길을 쓰지 않고, 오른쪽 값만 한 줄에 더한다
+// (5년치 기록을 옮기지 않아도 되는 것도 같은 까닭이다).
+//
+// **좌우가 같으면 칸을 안 만든다.** `note` · `rir` · `link` 와 같은 결이다 — 옛 줄과
+// 모양이 같아야 섞어 읽을 때 갈라지지 않는다. 그래서 **안 적는 사람에게는 지금과
+// 한 글자도 다르지 않다.**
+//
+// 받는 값 셋도 `note` · `rir` 과 같다: `undefined` 는 **건드리지 않는다**(고치는 길) ·
+// `null` · 빈 글은 **지운다** · 그 밖은 다듬어 담거나 **거절하고 까닭을 말한다.**
+//
+// **유산소 줄에는 담지 않는다** — 런닝머신에 왼쪽 오른쪽이 없다. 지어낸 「1세트 1회」를
+// 안 넣는 것과 같은 선이다(`utils/cardioFields.js` 머리글).
+//
+// 세트 · 횟수의 테두리는 **여기서 정하지 않는다** — `utils/setRange.js` 한 자리에서
+// 온다(10/31 에 세 자리에 생글자로 박혀 있던 것을 모았다).
+const { REPS_MAX } = require('./setRange');
+
+/**
+ * 오른쪽 무게. 자는 왼쪽과 **같은 것**을 쓴다 (`normalizeWeight`) — 한쪽만 음수나
+ * 999kg 을 받으면 같은 줄의 두 숫자가 서로 다른 말을 한다.
+ *
+ * @param raw   받은 값
+ * @param left  왼쪽에 담길 값 — **같으면 칸을 안 만든다**
+ * @param cardio 유산소 줄인가
+ */
+function normalizeSideWeight(raw, left, cardio) {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw === null || raw === '') return { ok: true, value: null };
+  if (cardio) return { ok: false, why: '유산소 줄에는 좌우를 따로 적지 않아요' };
+  const w = normalizeWeight(raw);
+  // 까닭은 왼쪽 자가 말한 그대로 쓰고 **어느 쪽인지만** 앞에 붙인다 —
+  // 말을 새로 지으면 같은 한도가 두 가지 말로 나간다
+  if (!w.ok) return { ok: false, why: `오른쪽 ${w.why}` };
+  if (left !== undefined && left !== null && w.value === left) return { ok: true, value: null };
+  return { ok: true, value: w.value };
+}
+
+/**
+ * 오른쪽 횟수. 왼쪽과 **같은 테두리**(1 이상 정수 · `REPS_MAX` 이하)를 쓴다.
+ *
+ * @param raw   받은 값
+ * @param left  왼쪽에 담길 횟수 — **같으면 칸을 안 만든다**
+ * @param cardio 유산소 줄인가
+ */
+function normalizeSideReps(raw, left, cardio) {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw === null || raw === '') return { ok: true, value: null };
+  if (cardio) return { ok: false, why: '유산소 줄에는 좌우를 따로 적지 않아요' };
+  // 글자로 온 숫자도 받는다 (CSV · 옛 앱) — 그러나 `'8회'` 처럼 섞인 것은 거절한다
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim());
+  if (!Number.isInteger(n) || n <= 0) {
+    return { ok: false, why: '오른쪽 횟수는 1 이상의 정수여야 해요' };
+  }
+  if (n > REPS_MAX) return { ok: false, why: `오른쪽 횟수는 ${REPS_MAX} 이하여야 해요` };
+  if (left !== undefined && left !== null && n === Number(left)) return { ok: true, value: null };
+  return { ok: true, value: n };
+}
+
 module.exports = {
   normalizeWeight, cleanExerciseName, WEIGHT_MAX, WEIGHT_KG_MAX, NAME_MAX,
   normalizeNote, normalizeRir, WORKOUT_NOTE_MAX, RIR_VALUES,
+  normalizeSideWeight, normalizeSideReps,
 };

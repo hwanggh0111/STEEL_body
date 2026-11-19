@@ -6,20 +6,25 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
 <link rel="stylesheet" href="_s.css">
 <title>세트 — 한쪽씩 적기</title>
+<!-- 2026-11-19 · 고친 판. 첫 판에 결함 셋이 있었다 (정석이 **화면을 열어** 잡았다) —
+     ⒜ **「세트」 칸이 통째로 빠졌다**(제목에만 있었다. 서버 쪽에 「세트는 하나다」라고
+        적어두고 화면에서 그 하나를 지웠다) ⒝ ± 단추가 없었다(`_s.css` 에 `.step` 을
+        정의해두고 안 썼다 — 앱 표준은 `NumberStep` 이고, 안 맞추면 적는 법이 두 벌이 된다)
+     ⒞ 위가 무게인지 아래가 횟수인지 **쓰여 있지 않았다**(값으로만 짐작했다).
+     줄은 **D안**(좁으면 스스로 바뀐다)을 따른다 — ± 를 붙이면 320 에서 한 줄에 둘이 못 선다. -->
 <style>
-.chip{min-height:36px;padding:0 12px;border:1px solid #4a3f2c;border-radius:999px;background:none;color:#cfc6b2;font:600 12.5px 'Barlow','IBM Plex Sans KR',sans-serif}
-.chip.on{border-color:#eeb77d;color:#eeb77d;background:#241a11}
-.row{display:flex;align-items:center;gap:8px}
 .mut{color:#aaa28e;font-size:12.5px}
-.big{font:34px/1 'Bebas Neue',sans-serif;letter-spacing:1px;color:#eae4d6}
-.ln{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
-.ln:last-child{border-bottom:none}
-
-.sd{display:flex;gap:8px}
-.sd>div{flex:1;min-width:0}
 .tag{font:600 10.5px 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:.8px;color:#aaa28e;border:1px solid #4a3f2c;border-radius:999px;padding:2px 8px}
 .bad{color:#d9736a}
-
+/* 한 칸 = 라벨 + [− 숫자 +]. 바닥을 「숫자 다섯 자 + ± 자리」로 적어두면
+   좁은 폰에서 스스로 줄이 바뀐다 (D안) */
+.fields{display:flex;flex-wrap:wrap;gap:8px}
+.f{flex:1 1 calc(5ch + 88px);min-width:0}
+.f>.lbl{margin-bottom:4px}
+.side{border-left:2px solid #4a3f2c;padding-left:11px;margin-top:12px}
+.side.r{border-left-color:#7fa8d9}
+.side>.who{font:600 12px 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:1px;color:#aaa28e;margin-bottom:6px}
+.side.r>.who{color:#7fa8d9}
 </style>
 </head>
 <body>
@@ -32,28 +37,68 @@
     <div class="st"><div class="bar"></div>운동 적기</div>
 
     <div class="card focus">
-      <label class="lbl">운동</label>
-      <input class="in" value="원팔 덤벨로우" readonly>
+      <label class="lbl" for="ex">운동</label>
+      <input class="in" id="ex" value="원팔 덤벨로우" readonly>
       <div class="row" style="margin-top:12px">
         <span class="tag">한쪽씩 하는 운동</span>
         <span class="mut">— 사전에서 읽었습니다</span>
       </div>
 
-      <div class="nw" style="margin-top:14px">
-        <label class="lbl">무게 · 횟수 <span class="mut" style="letter-spacing:0">좌우가 같으면 한 칸만 쓰세요</span></label>
-        <div class="sd">
-          <div>
-            <div class="lbl" style="margin-bottom:4px">왼쪽</div>
-            <input class="in" value="22.5" readonly>
-            <input class="in" style="margin-top:4px" value="10" readonly>
+      <!-- ★ 세트는 **하나다.** 좌우로 쪼개지 않는다 — 한 세트에 양쪽을 다 하므로
+           「3세트」를 좌 3 · 우 3 으로 적으면 세트 수가 두 배로 세어진다 -->
+      <div style="margin-top:14px">
+        <label class="lbl" for="sets">세트 <span class="mut" style="letter-spacing:0">양쪽을 한 세트로 셉니다</span></label>
+        <div class="step">
+          <button type="button" aria-label="세트 1 줄이기">−</button>
+          <input class="in" id="sets" inputmode="numeric" value="3" readonly>
+          <button type="button" aria-label="세트 1 늘리기">+</button>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="who">왼쪽</div>
+        <div class="fields">
+          <div class="f">
+            <label class="lbl" for="wl">무게 (kg)</label>
+            <div class="step">
+              <button type="button" aria-label="왼쪽 무게 2.5 줄이기">−</button>
+              <input class="in" id="wl" inputmode="decimal" value="22.5" readonly>
+              <button type="button" aria-label="왼쪽 무게 2.5 늘리기">+</button>
+            </div>
           </div>
-          <div>
-            <div class="lbl" style="margin-bottom:4px">오른쪽</div>
-            <input class="in" value="22.5" readonly>
-            <input class="in" style="margin-top:4px" value="8" readonly>
+          <div class="f">
+            <label class="lbl" for="rl">횟수</label>
+            <div class="step">
+              <button type="button" aria-label="왼쪽 횟수 1 줄이기">−</button>
+              <input class="in" id="rl" inputmode="numeric" value="10" readonly>
+              <button type="button" aria-label="왼쪽 횟수 1 늘리기">+</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="side r nw">
+        <div class="who">오른쪽 <span class="mut" style="letter-spacing:0">— 비우면 왼쪽과 같습니다</span></div>
+        <div class="fields">
+          <div class="f">
+            <label class="lbl" for="wr">무게 (kg)</label>
+            <div class="step">
+              <button type="button" aria-label="오른쪽 무게 2.5 줄이기">−</button>
+              <input class="in" id="wr" inputmode="decimal" value="20" readonly>
+              <button type="button" aria-label="오른쪽 무게 2.5 늘리기">+</button>
+            </div>
+          </div>
+          <div class="f">
+            <label class="lbl" for="rr">횟수</label>
+            <div class="step">
+              <button type="button" aria-label="오른쪽 횟수 1 줄이기">−</button>
+              <input class="in" id="rr" inputmode="numeric" value="8" readonly>
+              <button type="button" aria-label="오른쪽 횟수 1 늘리기">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button class="btn1" style="margin-top:14px">기록하기</button>
     </div>
 
@@ -65,6 +110,9 @@
 
     <div class="flat"><b style="color:#cfc6b2">몸 치수는 이미 좌우를 따로 받습니다</b> — 「왼팔둘레 · 오른팔둘레」
       (<span class="mut">measure/BodySizeSection.jsx</span>). 적는 자리만 한 칸이었습니다.</div>
+
+    <div class="flat" style="margin-bottom:0"><b style="color:#cfc6b2">오른쪽을 비우면 담기는 줄이 지금과 같습니다</b> —
+      좌우가 같으면 칸을 안 만듭니다(<span class="mut">weight_r · reps_r</span>). 안 적는 사람에게는 한 글자도 안 바뀝니다.</div>
   </main>
   <nav class="tb" aria-label="하단 네비게이션"><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"></circle><path d="M8.4 10.4h7.2l-.9 4.6H9.3z"></path><path d="M9.6 15 9 20.4M14.4 15l.6 5.4"></path></svg><span>오늘</span></button><button class="tab on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4"></path><path d="M7.2 12h9.6"></path></svg><span>운동</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"></rect><path d="M3.8 10h16.4"></path><path d="M8.2 3.6v3.4M15.8 3.6v3.4"></path></svg><span>기록</span></button><button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"></path><path d="M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"></path></svg><span>몸</span></button></nav>
 </div>

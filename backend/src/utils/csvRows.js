@@ -15,7 +15,8 @@
 
 const { MEASURE_TYPE_OF, FIELD_KEY_OF } = require('./measureLabels');
 // 무게 · 운동명을 다듬는 자는 저장하는 쪽과 **같은 것**을 쓴다 (2026-10-22)
-const { normalizeWeight, cleanExerciseName, normalizeNote, normalizeRir } = require('./workoutFields');
+const { normalizeWeight, cleanExerciseName, normalizeNote, normalizeRir,
+        normalizeSideWeight, normalizeSideReps } = require('./workoutFields');
 // 이름이 조용히 잘리는 것을 막는 자 — 까닭도 그 자리에서 가져온다 (2026-11-17)
 const { tagLike, ANGLE_WHY } = require('./sanitize');
 // 유산소 줄의 시간 · 거리 — **손으로 적는 길과 같은 자**를 쓴다 (2026-11-05).
@@ -117,7 +118,10 @@ function parseCsv(text) {
 // 내보낸 적 있는 파일은 **영영 읽혀야 한다.**
 const COLS = {
   // `메모` · `여유` 는 2026-11-18 — 끝에 붙인다. 옛 파일은 두 칸이 없고(-1), 그래도 읽힌다
-  workouts: ['날짜', '운동명', '무게', '세트', '횟수', '묶음', '시간(분)', '거리(km)', '메모', '여유'],
+  // `오른쪽 무게` · `오른쪽 횟수` 는 2026-11-19(한쪽씩 하는 운동) — 역시 **끝에** 붙인다.
+  // 가운데 끼우면 내보낸 적 있는 파일의 자리가 밀린다
+  workouts: ['날짜', '운동명', '무게', '세트', '횟수', '묶음', '시간(분)', '거리(km)', '메모', '여유',
+             '오른쪽 무게', '오른쪽 횟수'],
   inbody: ['날짜', '키(cm)', '체중(kg)', '체지방률(%)', '골격근량(kg)', '체수분(L)', 'BMI'],
   measures: ['날짜', '종류', '번호', '항목', '값'],
 };
@@ -167,6 +171,9 @@ function readWorkouts(text) {
   // 2026-11-18 — 한 줄 메모 · 여유 횟수. 옛 파일에는 없다(-1)
   const iNote = at(header, C[8], 'note');
   const iRir = at(header, C[9], 'rir');
+  // 2026-11-19 — 한쪽씩 하는 운동. 옛 파일에는 없다(-1)
+  const iWeightR = at(header, C[10], 'weight_r');
+  const iRepsR = at(header, C[11], 'reps_r');
   // ── ★ **무게 칸이 「없는 것」과 「빈 것」은 다르다** ── (2026-11-17 · 정석)
   //
   // 위 머리글이 막은 것은 **머리줄이 갈리는 것**이고, 그것은 `COLS` 한 벌로 막혔다.
@@ -256,6 +263,13 @@ function readWorkouts(text) {
     const rr = normalizeRir(iRir >= 0 ? (cells[iRir] || '') : '');
     if (!rr.ok) { bad.push({ line, why: rr.why }); continue; }
 
+    // 오른쪽 칸 — **손으로 적는 길과 같은 자**(`utils/workoutFields.js`).
+    // 유산소 줄에는 담지 않으므로 그 줄에서 값이 오면 **그 줄만 거절**한다
+    const wrc = normalizeSideWeight(iWeightR >= 0 ? (cells[iWeightR] || '') : '', w.value, c.cardio);
+    if (!wrc.ok) { bad.push({ line, why: wrc.why }); continue; }
+    const rrc = normalizeSideReps(iRepsR >= 0 ? (cells[iRepsR] || '') : '', c.cardio ? null : reps, c.cardio);
+    if (!rrc.ok) { bad.push({ line, why: rrc.why }); continue; }
+
     const weight = w.value;
     // 유산소 줄은 **세트 · 횟수를 담지 않는다** (지어낸 「1세트 1회」가 그 거짓이다)
     const row = c.cardio
@@ -265,6 +279,9 @@ function readWorkouts(text) {
     if (link) row.link = link;
     if (n.value) row.note = n.value;
     if (rr.value) row.rir = rr.value;
+    // 2026-11-19 — 좌우가 다를 때만 담긴다 (자가 같으면 `null` 을 준다)
+    if (wrc.value != null) row.weight_r = wrc.value;
+    if (rrc.value != null) row.reps_r = rrc.value;
     out.push(row);
   }
   return { rows: out, bad };

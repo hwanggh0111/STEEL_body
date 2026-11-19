@@ -32,7 +32,7 @@ router.get('/workouts', auth, (req, res) => {
   // 내보낸 것을 못 되읽으면 「챙겨 나갈 수는 있는데 들고 들어올 수는 없다」가 된다
   const header = headerOf('workouts');
   const rows = workouts.map(w =>
-    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''},${csvCell(w.note || '')},${w.rir || ''}`
+    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''},${csvCell(w.note || '')},${w.rir || ''},${csvCell(w.weight_r || '')},${w.reps_r || ''}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM for Korean Excel support
 

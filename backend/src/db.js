@@ -951,6 +951,11 @@ const db = {
     // 한 줄 메모 · 여유 횟수 (2026-11-18) — 있을 때만 칸을 만든다 (위와 같은 결)
     if (extra && extra.note) workout.note = extra.note;
     if (extra && extra.rir) workout.rir = extra.rir;
+    // 오른쪽 무게 · 횟수 (2026-11-19) — **좌우가 다를 때만** 자가 값을 준다
+    // (`utils/workoutFields.js` 의 `normalizeSideWeight` 머리글). 같으면 `null` 이라
+    // 칸이 안 생기고, 그래서 안 적는 사람의 줄은 지금과 모양이 같다
+    if (extra && extra.weightR != null) workout.weight_r = extra.weightR;
+    if (extra && extra.repsR != null) workout.reps_r = extra.repsR;
     data.workouts.push(workout);
     afterRowChange('workouts', userId, { added: workout });
     save(data);
@@ -989,7 +994,7 @@ const db = {
     // 유산소 줄로 고치면 세트·횟수가 빠지고 되돌리면 시간·거리가 빠진다.
     // 두 모양이 한 줄에 같이 남으면 읽는 쪽마다 다른 것을 보고 다른 말을 한다
     // 한 줄 메모 · 여유 횟수도 같은 결 (2026-11-18) — `undefined` 는 그대로, `null` 은 지운다
-    for (const k of ['minutes', 'distance_km', 'note', 'rir']) {
+    for (const k of ['minutes', 'distance_km', 'note', 'rir', 'weight_r', 'reps_r']) {
       if (fields[k] === undefined) continue;
       if (fields[k] === null) delete workout[k];
       else workout[k] = fields[k];
