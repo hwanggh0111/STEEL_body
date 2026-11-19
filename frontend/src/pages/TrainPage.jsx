@@ -22,7 +22,7 @@ import { useRestTimerStore, formatLeft } from '../store/restTimerStore';
 import RestTimer from '../components/RestTimer';
 import ExerciseFinder from '../components/ExerciseFinder';
 import VoiceSet from '../components/VoiceSet';
-import NumberStep from '../components/NumberStep';
+import NumberStep, { stepFloor, plainFloor, 담을자릿수 } from '../components/NumberStep';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import SameWeightBanner from '../components/SameWeightBanner';
@@ -1611,15 +1611,22 @@ export default function TrainPage() {
                 둘 다 있다. 한쪽을 필수로 걸면 그중 한 사람은 또 지어내야 한다 */}
             {cardio ? (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <NumberStep
-                    id="tr-min" label="시간 분" value={minutes} onChange={setMinutes}
-                    step={5} min={1} max={MINUTES_MAX} startAt={5} inputMode="numeric"
-                  />
-                  <NumberStep
-                    id="tr-km" label="거리 km" value={distance} onChange={setDistance}
-                    step={0.5} min={0} max={DISTANCE_KM_MAX} startAt={0.5} placeholder="비워도 돼요" inputMode="decimal"
-                  />
+                {/* 유산소도 **같은 류**다 (2026-11-19 · 맵시) — 두 칸을 반반으로 쪼개면
+                    320px 폰에서 한 칸이 119px 이고 글 자리가 33px 이라 「120.5」가 잘린다.
+                    아래 꼴과 같은 손을 쓴다: 바닥을 깔고 모자라면 줄이 바뀐다 */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: stepFloor(담을자릿수(MINUTES_MAX)), minWidth: 0 }}>
+                    <NumberStep
+                      id="tr-min" label="시간 분" value={minutes} onChange={setMinutes}
+                      step={5} min={1} max={MINUTES_MAX} startAt={5} inputMode="numeric"
+                    />
+                  </div>
+                  <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: stepFloor(담을자릿수(DISTANCE_KM_MAX, 1)), minWidth: 0 }}>
+                    <NumberStep
+                      id="tr-km" label="거리 km" value={distance} onChange={setDistance}
+                      step={0.5} min={0} max={DISTANCE_KM_MAX} startAt={0.5} placeholder="비워도 돼요" inputMode="decimal"
+                    />
+                  </div>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
                   유산소는 <b style={{ color: 'var(--text-secondary)' }}>시간과 거리</b>로 적어요 —
@@ -1632,12 +1639,29 @@ export default function TrainPage() {
                 </div>
               </div>
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1.35fr)', gap: 8, marginBottom: 10 }}>
-              <NumberStep
-                id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
-                step={2.5} min={0} max={WEIGHT_KG_MAX} startAt={2.5} placeholder="맨몸" inputMode="decimal"
-              />
-              <div>
+            /* ── **적어둔 무게가 좁은 폰에서 안 보였다** ── (2026-11-19 · 맵시 · 주인이 고른 안)
+                칸 셋을 `minmax(0, …fr)` 로 나눠 세웠더니 320px 폰에서 무게 칸이 89px 이고,
+                그중 **86px 을 ± 와 여백이 먼저 가져가** 글 자리가 **2.7px** 이었다
+                (360 → 18.1 · 390 → 29.7 · 430 → 45.1). 「100.5」가 드는 데 33.4px 이니
+                **430 아래 전부**에서 적어둔 숫자가 잘렸다.
+                ★ **± 를 깎는 길은 접었다** — 320 에서 단추 28 · 여백 0 으로 해도 25.5px 라
+                「100.5」가 안 들고, 글자를 150% 로 쓰면 어느 폭에서든 다시 무너진다.
+                11/18 의 42→36 이 그 깎기였고 390 만 겨우 살렸다. **다음 손도 그 길로 가지 말 것.**
+                그래서 **폭을 숫자로 가르지 않는다**(미디어쿼리 없다). 한 칸의 **바닥**을
+                `NumberStep.stepFloor(자릿수)` 로 깔아두면 자리가 모자란 폰에서 **flex 가 알아서
+                줄을 바꾼다** — 320 은 [무게] / [횟수 세트], 360·390 은 [무게 횟수] / [세트],
+                430 과 PC 는 **지금처럼 한 줄**이고 비율도 `flexGrow` 로 그대로다.
+                `ch` 는 브라우저가 그 글꼴의 `0` 폭으로 재는 단위라 **글자를 150% 로 쓰면
+                바닥도 같이 자라** 그때도 맞는다 */
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {/* 자릿수도 **상한에서 센다** — 「999.5」 다섯 자 (2.5 단위라 소수점이 붙는다) */}
+              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(담을자릿수(WEIGHT_KG_MAX, 1)), minWidth: 0 }}>
+                <NumberStep
+                  id="tr-w" label="무게 kg" value={weight} onChange={setWeight}
+                  step={2.5} min={0} max={WEIGHT_KG_MAX} startAt={2.5} placeholder="맨몸" inputMode="decimal"
+                />
+              </div>
+              <div style={{ flexGrow: 0.8, flexShrink: 1, flexBasis: plainFloor(담을자릿수(SETS_MAX)), minWidth: 0 }}>
                 <label className="label" htmlFor="tr-s">세트</label>
                 {/* **테두리를 건다** (2026-10-31). 칸 셋 중 이것만 ± 가 없어
                     `NumberStep` 을 안 쓰는데, 그러면서 `min`·`max` 도 안 받고
@@ -1646,10 +1670,13 @@ export default function TrainPage() {
                   min="1" max={SETS_MAX} value={sets}
                   onChange={(e) => setSets(e.target.value)} style={{ textAlign: 'center' }} />
               </div>
-              <NumberStep
-                id="tr-r" label="횟수" value={reps} onChange={setReps}
-                step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
-              />
+              {/* 횟수는 「1000」 네 자다 — `REPS_MAX` 가 1000 이다 (손으로 3 이라 적었다가 자가 잡았다) */}
+              <div style={{ flexGrow: 1.35, flexShrink: 1, flexBasis: stepFloor(담을자릿수(REPS_MAX)), minWidth: 0 }}>
+                <NumberStep
+                  id="tr-r" label="횟수" value={reps} onChange={setReps}
+                  step={1} min={1} max={REPS_MAX} startAt={1} inputMode="numeric"
+                />
+              </div>
             </div>
             )}
 
