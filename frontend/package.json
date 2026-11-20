@@ -37,6 +37,7 @@
     "shrink": "node scripts/check-shrink.cjs",
     "pushpull": "node scripts/check-pushpull.cjs",
     "layer": "node scripts/check-layer.cjs",
+    "devframe": "node scripts/check-devframe.cjs",
     "typed": "node scripts/check-typedfield.cjs",
     "saysize": "node scripts/check-saysize.cjs",
     "signup": "node scripts/check-signup.cjs",
