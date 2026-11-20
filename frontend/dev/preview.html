@@ -481,7 +481,8 @@
       if (d.note) box.appendChild(document.createTextNode('· ' + d.note));
       const nthEl = document.createElement('span');
       nthEl.className = 'nth';
-      nthEl.textContent = `폭 순서 ${nth} / ${ORDER.length}  ·  ◀ ▶ 또는 화살표 키로 넘김 · r 로 돌림 · z 로 크게`;
+      nthEl.textContent = `폭 순서 ${nth} / ${ORDER.length}  ·  ◀ ▶ 또는 화살표 키로 넘김 · r 로 돌림 · z 로 크게`
+        + `  ·  이 자리를 그대로 건네려면 ?path=${$('path').value}&device=${d.id}&zoom=${zoomOf()}`;
       box.appendChild(nthEl);
     }
     // 배율을 쓰는 동안은 **무엇이 다른지**를 늘 보이게 적는다 (틀을 진짜로 믿지 않게)
@@ -490,11 +491,16 @@
       z.textContent = `크게 ${zoomOf()}×`;
       z.style.color = '#c9a227';
       box.appendChild(z);
+      // ★ 별표를 **글자로** 적으면 별표째 보인다 — 굵게 할 것은 칸으로 만든다
+      // (2026-11-20 · 정석이 짚었다. **틀을 믿지 말라고 적은 줄이 깨져 보이면 덜 읽힌다**)
       const why = document.createElement('span');
       why.className = 'nth';
       why.style.color = '#a8926a';
-      why.textContent = '글자만이 아니라 **전부** 커진다 — 폰의 「글자 크게」는 글자만 키운다. '
-        + '넘침을 과장해 보여주는 틀이다: 여기서 안 넘치면 폰에서도 안 넘친다. 재는 것은 폰에서.';
+      const 굵게 = (t) => Object.assign(document.createElement('b'), { textContent: t });
+      why.append('글자만이 아니라 ', 굵게('전부'), ' 커진다 — 폰의 「글자 크게」는 글자만 키운다. '
+        + '넘침을 ', 굵게('과장해'), ' 보여주는 틀이다: ',
+        굵게('여기서 안 넘치면 폰에서도 안 넘친다'),
+        '. 그 반대는 아니다 — 재는 것은 폰에서.');
       box.appendChild(why);
     }
     measure();
