@@ -65,22 +65,38 @@ const blockOf = (src, name) => {
   return null;
 };
 
+// ── 자가 눈이 멀지 않게 (2026-11-20 · 정석) ──
+//
+// 여태 이 자는 `useState('')` **한 꼴만** 봤다. 쌍따옴표 · 괄호 안 빈칸 · 인자
+// 없음 · `undefined` 는 **보이지 않았다**. 그러고도 `watched` 를 **적기만 하고
+// 판정하지 않아서**, 누가 `useState("")` 로 적는 날 그 줄은 이 검사에서 조용히
+// 사라지고 전체는 초록으로 남는다. **셈 0 은 통과가 아니다.**
+//
+// 그래서 ⑴ 꼴을 넓히고 ⑵ **느슨한 자와 견준다** — 느슨한 자가 더 잡으면 FAIL
+// 이다. 기준 숫자를 박지 않으므로 썩지 않는다.
+const 세우는꼴 = /const\s*\[\s*(\w+)\s*,\s*(set\w+)\s*\]\s*=\s*useState\s*(?:<[^>]*>)?\s*\(\s*(''|""|``|false|null|undefined)?\s*\)/g;
+const 내리는꼴 = /^\s*(''|""|``|false|null|undefined)?\s*\)/;
+// 이것보다 더 잡는 자가 있으면 위의 자가 눈이 먼 것이다 (이름만 보고 센다)
+const 더느슨한꼴 = /\[\s*(\w*(?:err|fail|stuck)\w*)\s*,\s*(set\w+)\s*\]\s*=\s*useState/gi;
+
 console.log('── 못 받았다를 세우고 안 내려놓는 자리 ──');
 const stuck = [];
 const noWay = [];
 let watched = 0;
+const 본것 = [];           // 느슨한 자와 견주려고 이름까지 적어 둔다
 for (const f of walk(SRC)) {
   const src = codeOf(fs.readFileSync(f, 'utf8'));
   const rel = path.relative(SRC, f).split(path.sep).join('/');
-  for (const m of src.matchAll(/const \[(\w+), (set\w+)\] = useState\((''|false|null)\)/g)) {
+  for (const m of src.matchAll(세우는꼴)) {
     const [, name, setter] = m;
     // 못 받았다는 뜻으로 쓰는 값만 본다
     if (!/(err|fail|stuck)/i.test(name)) continue;
     const block = blockOf(src, name);
+    본것.push(rel + ' ' + name);    // 가림막이 없어도 **봤다** — 느슨한 자와 셈을 맞춘다
     if (!block) continue;             // 가리지 않으면 길을 막지 않는다
     watched += 1;
     const sets = [...src.matchAll(new RegExp('\\b' + setter + '\\(([^;\n]*)', 'g'))].map((x) => x[1]);
-    const downs = sets.filter((v) => /^\s*(''|false|null)\s*\)/.test(v));
+    const downs = sets.filter((v) => 내리는꼴.test(v));
     if (sets.length && downs.length === 0) {
       stuck.push(rel + '  ' + name + ' (세우는 자리 ' + sets.length + ' : 내려놓는 자리 0)');
     }
@@ -91,6 +107,21 @@ for (const f of walk(SRC)) {
   }
 }
 console.log('     화면을 가리는 「못 받았다」 ' + watched + '개');
+// **적은 수를 판정으로 올린다** — 모집단이 0 이 되면 운다
+ok('  「못 받았다」를 한 자리라도 봤다', watched > 0, true);
+// 그리고 **내 눈이 느슨한 자보다 좁아지지 않았는가** (꼴이 바뀌는 날을 위해)
+{
+  const 느슨히본것 = [];
+  for (const f of walk(SRC)) {
+    const src = codeOf(fs.readFileSync(f, 'utf8'));
+    const rel = path.relative(SRC, f).split(path.sep).join('/');
+    for (const m of src.matchAll(더느슨한꼴)) 느슨히본것.push(rel + ' ' + m[1]);
+  }
+  const 내가본것 = new Set(본것);
+  const 놓친것 = 느슨히본것.filter((x) => !내가본것.has(x));
+  console.log('     느슨한 자로는 ' + 느슨히본것.length + '개 — 내 자로는 ' + 본것.length + '개');
+  ok('  ★ 내 자가 느슨한 자보다 좁지 않다 (눈이 멀면 운다)', 놓친것, []);
+}
 ok('안 내려놓는 자리', stuck, []);
 ok('  다시 읽을 길이 없는 가림막', noWay, []);
 
