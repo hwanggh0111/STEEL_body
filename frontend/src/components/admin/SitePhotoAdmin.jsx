@@ -70,9 +70,18 @@ export default function SitePhotoAdmin() {
       setPhotos((prev) => [...prev, res.data.photo]);
       toast(shrunk ? '사진을 줄여서 걸었어요' : '사진을 걸었어요');
     } catch (err) {
-      // 서버가 거절한 까닭을 주면 그것을 쓰고, 없으면 **우리가 아는 까닭**을 말한다 —
-      // 못 읽은 것을 「줄여보세요」로 말하면 줄여 와도 또 안 된다 (11/20 · 말은 한 자리에서)
-      toast(err.response?.data?.error || photoRejectMessage({ unreadable: 안읽힘 }), 'error');
+      // ── ★ **못 읽은 것은 서버 말보다 우리 말이 먼저다** ── (2026-11-20)
+      //
+      // 서버는 「사진이 너무 커요 (최대 2MB)」라고만 말한다 — **그게 서버가 아는
+      // 전부**다. 그런데 우리가 **못 읽은 그림**을 원본째 올린 경우, 그 말은 사실이
+      // 아니고(크기가 까닭이 아니다) **줄여 와도 또 안 된다.** 서버 말을 그대로
+      // 앞세우면 프런트에서 고친 그 말이 **서버 말로 덮인다.**
+      //
+      // 그래서 **우리가 더 많이 아는 경우에만** 우리 말을 앞세운다. 그 밖에는 서버
+      // 말이 먼저다 — 장수 한도(12장)처럼 **서버만 아는 까닭**이 있다
+      toast(안읽힘
+        ? photoRejectMessage({ unreadable: true })
+        : (err.response?.data?.error || photoRejectMessage({})), 'error');
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "c2b6d6ddbe",
+  "detailVersion": "ab728e6732",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "1110f15",
+      "date": "2026-11-20",
+      "text": "늦게 온 실패가 새것을 덮는 자리 하나 더 · 머리에 매달린 서랍이 화면 밖으로 흘렀다 (정석 1차)",
+      "label": "고침",
+      "scope": "1차",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "권한 상승 경로를 적은 글이 공지함에 올라가 있었다 — 보안 갈래는 제목만 싣는다",
       "label": "고침",
       "scope": "공지",
-      "has": true
-    },
-    {
-      "key": "b7fade2",
-      "date": "2026-11-13",
-      "text": "저장소가 서버 말을 버리고 오류를 지어냈다 — 계정 막힘도 429 도 「지우지 못했어요」였다",
-      "label": "고침",
-      "scope": "지우기",
       "has": true
     }
   ]

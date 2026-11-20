@@ -72,7 +72,16 @@ function loadImage(dataUrl) {
  * `photoRejectMessage` **한 자리**에서 만든다 — 세 자리(프로필 · 전후 사진 ·
  * 홈페이지 사진)가 같은 손을 부른다. 두 벌로 두면 한쪽만 고치는 날이 온다.
  */
-export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } = {}) {
+/**
+ * `onStage` — **지금 무엇을 하는 중인지** 부르는 쪽에 알려준다 (2026-11-20).
+ *
+ * 폰에서 고른 8MB 사진은 **읽기와 다시 굽기에 1~3초**가 걸린다. 그동안 화면이
+ * 그대로면 사람은 **한 번 더 누르고**, 그러면 요청이 둘이 된다. 걸음을 둘로
+ * 나눠 주는 까닭은 **느린 까닭이 다르기 때문**이다 — 읽기는 폰 탓, 올리기는
+ * 신호 탓이라 사람이 기다릴지 말지를 그걸 보고 정한다. 안 주면 지금과 같다.
+ */
+export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false, onStage } = {}) {
+  onStage?.('read');
   const original = await readAsDataURL(file);
   if (typeof original !== 'string') throw new Error('read');
 
@@ -102,6 +111,7 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } =
   }
 
   try {
+    onStage?.('shrink');
     const img = await loadImage(original);
     const edge = Math.max(img.naturalWidth, img.naturalHeight);
     const scale = edge > maxEdge ? maxEdge / edge : 1;

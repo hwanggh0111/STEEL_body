@@ -326,6 +326,38 @@ console.log('\n── 못 읽은 것을 「크다」고 말하지 않는가 ─�
     /JPG|jpg/.test(말), true);
 }
 
+console.log('\n── 고르는 동안 그 자리에서 말하는가 ──');
+{
+  const layout = codeOf(fs.readFileSync(path.join(SRC, 'components', 'Layout.jsx'), 'utf8'));
+  const sheet = codeOf(fs.readFileSync(path.join(SRC, 'components', 'AccountSheet.jsx'), 'utf8'));
+  // 걸음을 **셋 다** 세운다 — 하나만 빠지면 그 구간이 「멈춘 것」처럼 보인다
+  ok('걸음을 셋 다 세운다 (읽는 중 · 줄이는 중 · 올리는 중)',
+    ['read', 'shrink', 'upload'].filter((k) => !layout.includes("'" + k + "'")), []);
+  // 줄이는 손이 **걸음을 알려주는 손**을 받는다 (안 받으면 화면이 짐작해야 한다)
+  const shrink = codeOf(fs.readFileSync(path.join(SRC, 'data', 'shrinkImage.js'), 'utf8'));
+  ok('  줄이는 손이 걸음을 알려준다 (`onStage`)', shrink.includes('onStage?.('), true);
+  // **하는 중에는 다시 못 누른다** — 막는 자리가 둘이다(파일 칸 · 시트의 동그라미).
+  // 하나만 막으면 다른 길이 열려 있다 (그 길로 들어가면 요청이 둘이 된다)
+  ok('  하는 중에는 파일 칸이 안 받는다', layout.includes('if (photoStage)'), true);
+  ok('  하는 중에는 동그라미가 안 열린다', sheet.includes('busyPhoto'), true);
+  // 까닭은 **그 자리에 남는다** — 토스트로만 말하면 3초 뒤 사라진다
+  ok('  까닭을 그 자리에 남긴다 (`photoFail`)',
+    layout.includes('setPhotoFail(') && sheet.includes('photoFail'), true);
+  ok('  까닭에 **다음 걸음**이 붙어 있다 (다시 고르기)', sheet.includes('다시 고르기'), true);
+}
+
+console.log('\n── 사진 일이 한 자리에 모였는가 ──');
+{
+  const sheet = codeOf(fs.readFileSync(path.join(SRC, 'components', 'AccountSheet.jsx'), 'utf8'));
+  // 세 갈래가 **한 메뉴**에 있다 (여태 동그라미 · 줄 · 줄 셋으로 흩어져 있었다)
+  ok('동그라미 하나가 세 갈래를 낸다 (크게 보기 · 바꾸기 · 지우기)',
+    ['크게 보기', '사진 바꾸기', '사진 지우기'].filter((w) => !sheet.includes(w)), []);
+  ok('  그 셋이 메뉴 안에 있다 (role="menu")', sheet.includes('role="menu"'), true);
+  // 떠 있는 것에는 **나갈 길**이 있어야 한다 — 바깥 누르기와 Esc 둘 다
+  ok('  바깥을 눌러도 닫힌다', sheet.includes('setPhotoMenu(false)'), true);
+  ok('  Esc 로도 닫힌다', sheet.includes('Escape') && sheet.includes('photoMenu'), true);
+}
+
 console.log('\n── 늦게 온 답이 새 사진을 덮지 않는가 ──');
 {
   const raw = fs.readFileSync(path.join(SRC, 'components', 'Layout.jsx'), 'utf8');
