@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "ab728e6732",
+  "detailVersion": "c26118a2c3",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "f2f3188",
+      "date": "2026-11-20",
+      "text": "그 자리에서 말하고, 동그라미 하나로 모았다 (시안 A + C 를 둘 다 붙였다)",
+      "label": "새 기능",
+      "scope": "사진",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "덮개가 떠 있는데 탭이 뒤 화면으로 샜다 — 보이지도 않는 단추가 눌렸다",
       "label": "고침",
       "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "85783ec",
-      "date": "2026-11-13",
-      "text": "권한 상승 경로를 적은 글이 공지함에 올라가 있었다 — 보안 갈래는 제목만 싣는다",
-      "label": "고침",
-      "scope": "공지",
       "has": true
     }
   ]
