@@ -295,8 +295,12 @@ export default function AppLock() {
         margin: 'auto', width: '100%',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26,
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <LogoMark size={34} />
+        {/* ── **로고와 안내를 한 줄로** ── (2026-11-20 · 시안 1120 ① · 정석 피드백)
+            세로를 줄이려고 로고를 걷을까 했는데 **걷지 않는다** — 잠금 화면은 「이 앱이
+            맞나」를 보는 자리다(가짜 잠금 화면이 있는 세상이다). 대신 **24px 로 줄여
+            안내 줄과 한 줄에** 둔다: 로고 34 + 틈 12 + 안내 20 = 66 이 **~28** 이 된다 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: '100%' }}>
+          <LogoMark size={24} />
           {/* ── **초가 줄어들 때 문장이 좌우로 떨었다** (2026-11-16 · 맵시) ──
               이 줄은 Barlow(본문 기본 글꼴)로 그리는데 Barlow 숫자는 폭이
               350~565 로 **21.5% em** 벌어진다. 가운데 정렬이라 30 → 29 → 9 로
@@ -345,7 +349,50 @@ export default function AppLock() {
           display: 'grid', gridTemplateColumns: 'repeat(3, 72px)', gap: 12,
           opacity: left > 0 ? 0.4 : 1,
         }}>
-          {KEYS.map((k, i) => (k === '' ? <span key={i} /> : (
+          {KEYS.map((k, i) => {
+            // ── ★ **지문은 자판의 빈 칸에 선다** ── (2026-11-20 · 시안 1120 ① · 주인이 골랐다)
+            //
+            // 여태 자판 **아래에** 따로 얹혀 있었다(54px + 여백 20 + 틈 26 = **100px**).
+            // 그 100px 이 320×568 에서 **잘려 나가던 자리**다 — 지문을 켠 사람이 저절로
+            // 묻는 한 번을 거절하면 **단추가 화면 밖에 있었다.**
+            //
+            // `KEYS` 의 `''`(왼쪽 아래)는 **원래 빈 칸**이다. 거기 세우면 자리를 공짜로
+            // 얻고, 자판을 손으로 더듬는 사람에게는 **오히려 제자리**다(정석 판정 — 낭독기
+            // 순서가 「9 · 지문 · 0 · 지우기」가 된다).
+            //
+            // ★ **`disabled` 를 같이 붙인다.** `지문으로()` 는 `left > 0` 이면 이른 반환
+            // 하는데(아래 그 함수), 이 그리드는 `opacity: 0.4` 로 **「못 누른다」고 말만**
+            // 하고 손은 살아 있었다 — 누르면 **조용히 아무 일도 안 났다.** 꼴·손·안내 줄
+            // (「n초 뒤에 다시」)이 셋 다 같은 말을 해야 한다 (정석이 짚었다).
+            //
+            // 글자는 안 넣는다 — 글자를 넣으면 글자 200% 에서 **그 칸만 또 자란다**.
+            if (k === '') {
+              if (!bioCan) return <span key={i} />;
+              return (
+                <button
+                  key={i}
+                  onClick={지문으로}
+                  disabled={left > 0}
+                  aria-label="지문으로 풀기"
+                  style={{
+                    minHeight: 62, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+                    borderRadius: 'var(--radius)', color: 'var(--accent)',
+                    cursor: left > 0 ? 'default' : 'pointer',
+                  }}
+                >
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M12 3.6c-4.6 0-8.4 3.8-8.4 8.4" />
+                    <path d="M20.4 12c0-4.6-3.8-8.4-8.4-8.4" />
+                    <path d="M6.6 14.4a5.4 5.4 0 0 1 10.8-2.4" />
+                    <path d="M9.6 17.4A2.4 2.4 0 0 1 14.4 15" />
+                    <path d="M12 20.4v-2.4" />
+                  </svg>
+                </button>
+              );
+            }
+            return (
             <button
               key={i}
               onClick={() => push(k)}
@@ -362,33 +409,12 @@ export default function AppLock() {
                 cursor: left > 0 ? 'default' : 'pointer',
               }}
             >{k}</button>
-          )))}
+            );
+          })}
         </div>
 
-        {/* ── 지문·얼굴로 풀기 ── (2026-11-19 · 시안 1119 ⑤)
-            네 자리는 **그대로 남는다** — 젖은 손 · 인식기 고장에 쓸 길이 없으면 안 된다.
-            그래서 자판 아래에 **얹는다**(자판을 치우지 않는다) */}
-        {bioCan && (
-          <button
-            onClick={지문으로}
-            aria-label="지문으로 풀기"
-            style={{
-              width: 54, height: 54, borderRadius: '50%', margin: '18px auto 2px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--accent-dim)', border: '1px solid var(--accent)',
-              color: 'var(--accent)', cursor: 'pointer',
-            }}
-          >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <path d="M12 3.6c-4.6 0-8.4 3.8-8.4 8.4" />
-              <path d="M20.4 12c0-4.6-3.8-8.4-8.4-8.4" />
-              <path d="M6.6 14.4a5.4 5.4 0 0 1 10.8-2.4" />
-              <path d="M9.6 17.4A2.4 2.4 0 0 1 14.4 15" />
-              <path d="M12 20.4v-2.4" />
-            </svg>
-          </button>
-        )}
+        {/* 지문은 **자판의 빈 칸**으로 옮겼다 (2026-11-20 · 위 `KEYS` 묶음).
+            네 자리는 그대로 남는다 — 젖은 손 · 인식기 고장에 쓸 길이 없으면 안 된다 */}
 
         <button
           onClick={forgot}
