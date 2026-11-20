@@ -22,7 +22,7 @@ const MIN_SPAN = 10;
 /** 그날의 속도라 말하려면 이만큼은 있어야 한다 */
 const MIN_RECORDS = 3;
 /** 평소를 셀 때 거슬러 보는 날 수 */
-const BASELINE_DAYS = 28;
+export const BASELINE_DAYS = 28;
 /** 평소라고 말하려면 잴 수 있는 날이 이만큼은 있어야 한다 */
 const MIN_BASELINE_DAYS = 3;
 

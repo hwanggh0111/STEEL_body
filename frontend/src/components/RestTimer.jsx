@@ -1,6 +1,8 @@
 import { useRestTimerStore, formatLeft, PRESETS, MIN_SEC, MAX_SEC } from '../store/restTimerStore';
 // 운동마다 쉬는 시간 (2026-11-19 · 시안 1119 ②). 표는 **기기에** 있다
 import { 기억한것, CHOICES as REST_CHOICES } from '../data/restPerExercise';
+// **그 운동에서 평소 이만큼 쉬었다** — 사실 한 줄로만 쓴다 (2026-11-20 · 시안 1119 ②)
+import { 운동별평소, shortTime, BASELINE_DAYS } from '../data/pace';
 import { primeAudio, previewTone, TONES, VOLUMES } from '../data/alertSound';
 import { useRoutineSessionStore } from '../store/routineSessionStore';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -224,6 +226,25 @@ export default function RestTimer() {
     [workouts, restedName, today],
   );
 
+  // ── **그 운동에서 평소 이만큼 쉬었다** ── (2026-11-20 · 맵시 · 시안 1119 ② 의 마지막 조각)
+  //
+  // 위의 「이 운동에 기억해 두기」는 길이를 **고르는** 자리다. 그런데 고를 때 기댈 것이
+  // 없었다 — 60·90·120·180 중에 무엇이 내 스쿼트에 맞는지는 **내가 평소 얼마나 쉬었나**
+  // 를 봐야 아는 것이고, 그 수는 기록에 이미 들어 있다.
+  //
+  // ★ **권하지 않는다.** 「그러니 3분으로 맞추세요」라고 적으면 코치 노릇이고 그것은
+  // 11/18 에 반려된 선이다. **사실 한 줄만** 적고 고르는 것은 사람이 한다.
+  //
+  // 셈은 `pace.운동별평소` 가 한다(간격 셋 미만이면 `null` · 몰아 적은 날과 딴 일 하다
+  // 온 것은 안 센다 · 자 `check-restper`). **`null` 이면 이 줄을 아예 안 그린다** —
+  // 「모른다」를 0 으로 적지 않는다.
+  //
+  // `view` 와 같은 까닭으로 memo 다 — 이 자리는 **1초마다 다시 그려진다**
+  const 평소 = useMemo(
+    () => (restedName ? 운동별평소(workouts, restedName, today) : null),
+    [workouts, restedName, today],
+  );
+
   const [custom, setCustom] = useState('');
   const [showCustom, setShowCustom] = useState(false);
 
@@ -380,6 +401,19 @@ export default function RestTimer() {
                 <span style={{ color: 'var(--accent)' }}> · 지금 {formatLeft(기억한것(restedName) * 1000)}</span>
               )}
             </div>
+            {/* 고를 때 기댈 사실 한 줄. 없으면(간격 셋 미만) 안 그린다 — 「모른다」를
+                0 으로 적지 않는다. 날 수는 셈이 보는 기간(`BASELINE_DAYS`)에서 읽는다 —
+                글로 「최근 4주」라고 적어두면 기간이 바뀌는 날 **글만 거짓이 된다** */}
+            {평소 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 6 }}>
+                요즘 이 운동에서는 평소{' '}
+                <span style={{ color: 'var(--text-secondary)' }}>{shortTime(평소.medianMs)}</span>
+                {' '}쉬었어요
+                <span style={{ display: 'inline-block' }}>
+                  {' · '}{BASELINE_DAYS}일 중 {평소.days}일 · {평소.samples}번
+                </span>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {REST_CHOICES.map((sec) => (
                 <button
