@@ -195,8 +195,22 @@ console.log('── 프로필 사진은 더 줄이는가 ──');
   ok('  크기를 받는다', /maxEdge = MAX_EDGE, always = false/.test(shrink), true);
   ok('  `always` 면 한도 안이어도 줄인다', /!always && original\.length <= PHOTO_MAX_BASE64/.test(shrink), true);
   ok('  줄이려다 커지면 원본을 둔다', /always && out\.length >= original\.length/.test(shrink), true);
-  ok('프로필 올리는 자리가 그 자를 쓴다',
-    /shrinkImage\(file, \{ maxEdge: PROFILE_EDGE, always: true \}\)/.test(layout), true);
+  // ── ★ **꼴이 아니라 뜻으로 본다** ── (2026-11-20 · 맵시)
+  //
+  // 여태 한 줄로 박아둔 글자를 그대로 맞댔다(`shrinkImage(file, { maxEdge: …, always: true })`).
+  // 그런데 11/20 에 그 부름에 `onStage`(걸음 알림)를 더하면서 **줄이 세 줄로 쪼개졌고**,
+  // 뜻은 그대로인데 이 자가 **거짓 FAIL** 을 냈다. 자가 **적는 꼴**을 지키면, 그 꼴을
+  // 바꾸는 날 고친 사람이 **자를 의심하게** 된다 — 오늘 세 번 밟은 그 류의 반대쪽이다.
+  //
+  // 그래서 **한 부름 안에 둘이 다 있나**로 본다(줄바꿈·차례·딴 값에 안 흔들린다).
+  // 괄호를 세며 자르지 않고 `shrinkImage(` 뒤 300자를 보는 것으로 족하다 —
+  // 이 부름은 더 길어질 일이 없고, 길어지면 그때 넓히면 된다.
+  ok('프로필 올리는 자리가 그 자를 쓴다', (() => {
+    const i = layout.indexOf('shrinkImage(file');
+    if (i < 0) return false;
+    const 부름 = layout.slice(i, i + 300);
+    return /maxEdge:\s*PROFILE_EDGE/.test(부름) && /always:\s*true/.test(부름);
+  })(), true);
   // 전·후 사진은 **그대로 1280** 이어야 한다 — 몸을 견주는 그림이라 깎으면 안 된다
   ok('전·후 사진은 안 건드렸다', /shrinkImage\(file\)/.test(front('pages/ComparePage.jsx')), true);
 }
