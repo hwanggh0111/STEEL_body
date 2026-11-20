@@ -437,6 +437,20 @@ function 훑기(code, file, 가로클래스) {
         return (el.children || []).some((c) => c.type === 'JSXElement' && 받는손있나(c));
       };
       // 안쪽 상자도 **같은 눈으로** 본다 — 한쪽만 조건을 걷으면 그 쪽만 눈이 밝다
+      // ── ★ **우리가 고친 그 꼴이 자에게는 안 보인다** ── (2026-11-20 · 정석 2차)
+      //
+      // 이 자가 권하는 고침은 「겉에 넘침 손 + 안쪽 `margin: auto`」다. 그런데 자는
+      // **가운데 맞춤을 `justifyContent`/`alignItems` 로만** 찾는다 — 누가 처음부터
+      // 고친 꼴로 적으면서 **넘침 손만 빼면 아무도 안 운다.** 담을 것이 커지는 날
+      // `margin: auto` 는 넘침을 **위아래로 갈라** 양쪽을 다 잘라낸다(가운데 맞춤과
+      // 똑같은 자리다). 11/20 에 `MiniSplash` 의 넘침 손을 떼어 돌려보고 알았다 —
+      // **되돌려도 안 울었다.** 쌓는 방향과 상관없다(가로통도 세로로 가운데 선다).
+      const 안쪽이가운데서나 = 속칸들(node).some((c) => {
+        const cs = 스타일(c);
+        const m = cs.값.margin;
+        return m === 'auto' || (typeof m === 'string' && /(^|s)auto(s|$)/.test(m))
+          || cs.값.marginTop === 'auto' || cs.값.marginBottom === 'auto';
+      });
       const 안쪽상자 = 속칸들(node).some((c) => {
         const cs = 스타일(c);
         const 상한 = cs.값.maxHeight !== undefined || cs.모름.has('maxHeight');
@@ -485,7 +499,8 @@ function 훑기(code, file, 가로클래스) {
           // 맞췄다는 사실** 자체다: `justifyContent` 든 `alignItems` 든 넘친 것을
           // **시작 가장자리 밖**으로 밀어내고 거기에는 스크롤 자리가 안 생긴다
           빠진것.push('margin:auto(안쪽으로)');
-        } else if (세로쌓임 && !세로가운데 && !안쪽상자 && !속이줄어드나 && 담을것있나 && !넘침손) {
+        } else if ((안쪽이가운데서나 || (세로쌓임 && !세로가운데))
+          && !안쪽상자 && !속이줄어드나 && 담을것있나 && !넘침손) {
           // 가운데로 맞추지 않았으니 **아래쪽만** 잘린다 — 가운데 맞춤을 옮길 일은
           // 없고 넘침 손 한 줄이면 된다
           빠진것.push('overflowY:auto(아래로 잘린다)');
@@ -948,6 +963,24 @@ const 되돌려꼴 = [
     {open && (
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>속</div>
     )}
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  안쪽이 `margin: auto` 로 가운데 서면 겉은 넘침 손이 있어야 한다 (가로통도 · 11/20 2차)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex' }}>
+    <div style={{ margin: 'auto' }}><Logo /></div>
+  </div>
+);`,
+    기대: ['overflowY:auto(아래로 잘린다)'],
+  },
+  {
+    이름: '    넘침 손이 있으면 안 운다 (고친 꼴 · 가로통)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', overflow: 'auto' }}>
+    <div style={{ margin: 'auto' }}><Logo /></div>
   </div>
 );`,
     기대: [],
