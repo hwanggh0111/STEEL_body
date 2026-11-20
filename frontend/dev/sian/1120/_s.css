@@ -1,5 +1,11 @@
+html,body{height:100%}
 body{margin:0;background:#0b0a08}
-.ph{width:390px;height:844px;position:relative;overflow:hidden;background:#12100c;background-image:radial-gradient(120% 85% at 50% -5%,#241c14 0%,#181310 50%,#12100c 100%);color:#eae4d6;font-family:'Barlow','IBM Plex Sans KR',sans-serif;font-size:15px;line-height:1.6}
+/* ── **폰 폭을 따라간다** ── (2026-11-20 · 맵시 · 주인 요청)
+   390×844 로 박아두면 `/dev` 폰 틀(320·360)에 넣었을 때 **옆이 잘릴 뿐**이고,
+   「크게」 150~200% 로 봐도 시안이 자라지 않는다. 틀을 흘려 두면 **시안을 그 자리에서
+   320·360 으로** 볼 수 있다 — 폰 점검표가 바라는 것이 그것이다.
+   혼자 열었을 때(iframe 밖)는 `100dvh` 가 화면 높이를 준다 */
+.ph{width:100%;max-width:390px;min-height:100dvh;margin:0 auto;position:relative;overflow-x:hidden;overflow-y:auto;background:#12100c;background-image:radial-gradient(120% 85% at 50% -5%,#241c14 0%,#181310 50%,#12100c 100%);color:#eae4d6;font-family:'Barlow','IBM Plex Sans KR',sans-serif;font-size:15px;line-height:1.6}
 .ph *{box-sizing:border-box}
 .hd{height:68px;display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #332b1e;background:rgba(18,16,12,.72)}
 .logo{color:#eeb77d;font:21px/1 'Bebas Neue',sans-serif;letter-spacing:1.5px}

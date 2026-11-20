@@ -303,6 +303,34 @@
     ['/privacy', '개인정보처리방침'],
   ];
 
+  // ── 시안 ── (2026-11-20 · 맵시 · 주인 요청: 「개발화면에 붙여봐」)
+  //
+  // 시안은 앱이 아니라 **그림**이다. 그런데 그림을 폰 틀에 넣으면 얻는 것이 있다 —
+  // **320·360 과 「크게」 150~200% 로 그 자리에서** 볼 수 있다(그래서 시안 틀도
+  // 폰 폭을 따라가게 고쳤다 · `dev/sian/1120/_s.css`).
+  //
+  // 날짜를 **박아 적는다.** 폴더를 훑어 짓는 쪽이 깔끔하지만 이 장은 **정적 HTML**
+  // 이라 파일 목록을 읽을 손이 없다. 새 시안을 만드는 날 이 줄을 같이 보탠다
+  const SIAN = [
+    ['/dev/sian/1120/', '★ 열다섯 한 장에 (index)'],
+    ['/dev/sian/1120/01-Lock.html', '① 잠금 — 한 화면에'],
+    ['/dev/sian/1120/02-Rest.html', '② 쉬는 중 — 한 장면으로'],
+    ['/dev/sian/1120/03-RestBar.html', '③ 쉬는 띠 — 띠가 진행이다'],
+    ['/dev/sian/1120/04-TabBar.html', '④ 탭바 — 적기를 가운데로'],
+    ['/dev/sian/1120/05-Toast.html', '⑤ 알림 — 머리 아래로'],
+    ['/dev/sian/1120/06-Write.html', '⑥ 적기 — 칩 한 줄'],
+    ['/dev/sian/1120/07-Step.html', '⑦ 숫자 칸 — ± 를 아래로'],
+    ['/dev/sian/1120/08-Save.html', '⑧ 저장 — 자판 위에'],
+    ['/dev/sian/1120/09-Home.html', '⑨ 오늘 — 한 장으로'],
+    ['/dev/sian/1120/10-History.html', '⑩ 기록 — 날짜를 기둥으로'],
+    ['/dev/sian/1120/11-Settings.html', '⑪ 설정 — 칩이 따라온다'],
+    ['/dev/sian/1120/12-Export.html', '⑫ 받기 — 요약 한 줄'],
+    ['/dev/sian/1120/13-Gold.html', '⑬ 금을 아낀다'],
+    ['/dev/sian/1120/14-Type.html', '⑭ 글꼴 — Bebas 는 숫자에만'],
+    ['/dev/sian/1120/15-Empty.html', '⑮ 빈 화면'],
+    ['/dev/sian/1119/', '11/19 기능 시안 여섯'],
+  ];
+
   // ── 기기 ──
   //
   // 적는 값은 **CSS 픽셀**이다(기기 해상도가 아니다). 폰 광고의 「3200×1440」 같은 수가
@@ -390,11 +418,29 @@
 
   // ── 주소 ──
   const routeSel = $('route');
-  for (const [p, name] of ROUTES) {
-    const o = document.createElement('option');
-    o.value = p;
-    o.textContent = name + '  ' + p;
-    routeSel.appendChild(o);
+  // 앱 화면과 시안을 **묶어 가른다** — 한 뭉치로 두면 서른 줄이 섞여 고를 수가 없다
+  {
+    const 묶음 = (이름) => {
+      const g = document.createElement('optgroup');
+      g.label = 이름;
+      routeSel.appendChild(g);
+      return g;
+    };
+    const 앱 = 묶음('앱 화면');
+    for (const [p, name] of ROUTES) {
+      const o = document.createElement('option');
+      o.value = p;
+      o.textContent = name + '  ' + p;
+      앱.appendChild(o);
+    }
+    const 시안 = 묶음('시안 · 11/20 UI 열다섯 (그림이다)');
+    for (const [p, name] of SIAN) {
+      const o = document.createElement('option');
+      o.value = p;
+      // 주소가 길어 이름만 적는다 — 고른 뒤 주소 칸에 그대로 들어간다
+      o.textContent = name;
+      시안.appendChild(o);
+    }
   }
 
   const devSel = $('device');
