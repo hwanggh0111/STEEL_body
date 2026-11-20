@@ -40,6 +40,7 @@
     "layer": "node scripts/check-layer.cjs",
     "devframe": "node scripts/check-devframe.cjs",
     "live": "node scripts/check-live.cjs",
+    "guard": "node scripts/check-guard.cjs",
     "typed": "node scripts/check-typedfield.cjs",
     "saysize": "node scripts/check-saysize.cjs",
     "signup": "node scripts/check-signup.cjs",

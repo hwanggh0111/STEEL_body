@@ -65,7 +65,16 @@ export default function OneRMSection({ records, onSave, onDelete }) {
           <input id={`${uid}-r`} className="input" type="number" inputMode="numeric" min="1" max={RM_MAX_REPS} placeholder="5" value={reps} onChange={e => { setReps(e.target.value); setResult(null); setOver(false); }} />
         </div>
       </div>
-      <button className="btn-primary" onClick={calc1RM} style={{ marginBottom: 10 }}>계산</button>
+      {/* ── ★ **빈 칸에서 누르면 조용히 아무 일도 안 났다** ── (2026-11-20 · 정석 1차)
+          손이 `if (!weight || !reps) return` 으로 막는데 단추는 **멀쩡해 보였다.**
+          누르는 사람은 왜 안 되는지 모른 채 또 누른다 — 꼴과 손이 같은 말을 해야
+          한다(잠금 화면의 지문 단추와 같은 류다 · `check-guard` 가 센다) */}
+      <button
+        className="btn-primary"
+        onClick={calc1RM}
+        disabled={!weight || !reps}
+        style={{ marginBottom: 10 }}
+      >계산</button>
 
       {result && (
         <div className="card" style={{ marginBottom: 12, textAlign: 'center', borderColor: 'var(--accent)' }}>

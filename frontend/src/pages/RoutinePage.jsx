@@ -1052,8 +1052,13 @@ export default function RoutinePage() {
                   >
                     이 운동 기록하기
                   </button>
+                  {/* ★ **저장 중에는 단추도 막혀 보여야 한다** (2026-11-20 · 정석 1차).
+                      손이 `if (savingRoutine) return false` 로 막는데 단추는 멀쩡해
+                      보여서, 느린 신호에서 두 번째 누름이 **조용히 사라졌다** —
+                      사람은 안 눌린 줄 알고 또 누른다 (`check-guard` 가 센다) */}
                   <button
                     className="btn-secondary"
+                    disabled={savingRoutine}
                     style={{ marginTop: 8, fontSize: 13, padding: '8px 16px' }}
                     onClick={(e) => {
                       e.stopPropagation();
