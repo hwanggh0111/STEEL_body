@@ -20,13 +20,18 @@ export default function MiniSplash({ onDone }) {
       backgroundImage: 'var(--bg-glow)',
       zIndex: LAYER.스플래시,
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      // 큰 스플래시와 **같은 손**이다 (2026-11-20 · `SplashScreen.jsx` 머리글).
+      // 담을 것이 로고 한 줄이라 넘칠 일이 거의 없지만, **「거의 없다」를 까닭 목록에
+      // 적어 빼주는 쪽은 안 한다** — 그렇게 빼준 큰 스플래시가 글자 200% 에서 넘쳤다.
+      // 한 줄 붙이는 값이 적는 값보다 싸고, 자에 빼줄 자리가 **0** 으로 남는다
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
       transition: 'transform 0.2s ease-in, opacity 0.2s ease-in',
       transform: phase >= 2 ? 'translateY(-100vh)' : 'translateY(0)',
       opacity: phase >= 2 ? 0 : 1,
     }}>
       <div style={{
+        margin: 'auto',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
