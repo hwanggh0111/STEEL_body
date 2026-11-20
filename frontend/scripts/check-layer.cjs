@@ -306,6 +306,8 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   };
   const 바닥에뜨는것 = [];
   const 프롭으로받는것 = [];
+  const 못읽은것 = [];
+  const 머리에붙는것 = [];
   for (const f of files) {
     const rel = path.relative(SRC, f).split(path.sep).join('/');
     const src = codeOf(fs.readFileSync(f, 'utf8'));
@@ -316,7 +318,20 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
       // `bottom,` — 부르는 쪽에서 받는다 (`<RestBar bottom={…}>` 는 위에서 본다)
       if (/bottom,/.test(덩이)) { 프롭으로받는것.push(rel); continue; }
       const b = /bottom:\s*('[^']*'|[^,\n}]+)/.exec(덩이);
-      if (!b) continue;
+      // ★ **못 읽으면 조용히 건너뛰지 않는다** (2026-11-20 · 정석이 짚은 류).
+      //
+      // 정석이 제 자에서 같은 것을 냈다 — 속을 줄이는 칸이 `{live && …}` 안에 있어
+      // `node.children` 에 안 보였고 **그래서 거짓 FAIL** 이 났다. 정규식이든 AST든
+      // **안 보이는 자리를 통과로 적으면** 똑같이 눈이 먼다. 여기서 안 보일 수 있는
+      // 꼴은 `...바닥꼴` 로 펴 넣는 것 · 변수로 넘기는 것 · 창(320자) 밖으로 밀린
+      // 것이다. 그러면 **사람에게 보라고 말한다** — 통과로 적지 않는다
+      // **머리에 붙는 것은 바닥 쌓임이 아니다** — 서랍(`top: 58, right: 12`)이 그렇다.
+      // 이 갈래를 안 두면 **고쳐둔 자리에 거짓 FAIL** 이 뜬다 (11/20 에 그렇게 울었다)
+      if (!b) {
+        if (/top:\s*\d/.test(덩이)) { 머리에붙는것.push(rel); continue; }
+        못읽은것.push(rel);
+        continue;
+      }
       const 값 = b[1].trim();
       if (값 === '0') continue;                 // 쌓임의 바닥이다 (탭바 자신)
       바닥에뜨는것.push([rel, 값]);
@@ -325,6 +340,13 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   // 모집단이 비면 **긁는 식이 망가진 것**이다 — 0건을 통과로 보지 않는다
   ok('바닥에 뜨는 것을 자가 찾았다 (0건은 통과가 아니다)', 바닥에뜨는것.length > 0, true);
   ok('  띠는 부르는 쪽에서 자리를 받는다', 프롭으로받는것, ['components/RestBar.jsx']);
+  ok('★ 자리를 못 읽은 덮개가 없다 (못 읽으면 통과가 아니다)', 못읽은것, []);
+  // 갈라낸 것을 **적어서 보인다** — 조용히 빼면 다음 사람이 이 자를 못 믿는다
+  ok('  머리에 붙는 것은 갈라냈다 (서랍)', 머리에붙는것, ['components/Layout.jsx']);
+  if (못읽은것.length) {
+    console.log('       → `bottom` 을 그 자리에 적거나, 부르는 쪽에서 받게 하세요.');
+    console.log('         스프레드(`...꼴`)·변수로 숨으면 이 자는 쌓임을 셀 수 없습니다.');
+  }
   ok('목록에 없는 것이 새로 뜨지 않았다 (쌓임을 같이 적어야 한다)',
     바닥에뜨는것.filter(([rel]) => !쌓임[rel]).map(([rel, v]) => `${rel} = ${v}`), []);
 
@@ -332,7 +354,10 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   const 대체값 = [];
   for (const [rel, 값] of 바닥에뜨는것) {
     const [무엇, 더할것] = 쌓임[rel] || ['', []];
-    for (const v of 더할것) if (!값.includes(v)) 안더한것.push(`${무엇}(${rel}) — ${v} 를 안 더한다`);
+    // 한 파일에 바닥에 뜨는 것이 둘 이상 생기면 이름표가 **거짓이 된다**(목록은
+    // 파일로 키를 잡는다) — 그래서 **식을 같이 적는다.** 11/20 에 서랍을 바닥으로
+    // 옮겨 먹였더니 「맨 위로 단추」라고 울어서 알았다
+    for (const v of 더할것) if (!값.includes(v)) 안더한것.push(`${무엇}(${rel}) "${값}" — ${v} 를 안 더한다`);
     // 더하는 쪽은 **없을 때 0** 이다.
     //
     // ★ **정규식을 안 쓴다** — 이 자를 세우는 동안 셸이 백슬래시를 먹어 패턴이
@@ -354,6 +379,42 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   ok('★ 같이 뜨는 것은 아래에 쌓인 것을 다 더한다', 안더한것, []);
   ok('  없을 때 0 으로 떨어진다 (띠가 내려가면 제자리)', 대체값, []);
   for (const [rel, 값] of 바닥에뜨는것) console.log('       ' + (쌓임[rel] || [rel])[0] + ' = ' + 값);
+
+  // ── ★ **CSS 로 바닥에 뜨는 것** ── (2026-11-20 · 맵시)
+  //
+  // 위는 화면 코드(`style={{…}}`)만 긁었다. 그런데 이 앱에서 바닥에 뜨는 것 하나는
+  // **CSS 에 있다**(`.toast`) — 그리고 이 자는 그것을 **모집단으로 세지 않고** 아래에서
+  // 손으로 한 줄 볼 뿐이었다. `.my-fab { position: fixed; bottom: 90px }` 를 누가
+  // 보태면 **아무 자도 울지 않는다.** 정석이 짚은 「안 보는 자리」와 같은 류다.
+  //
+  // 그래서 `globals.css` 에서도 **스스로 찾는다** — 바닥이 0 이 아닌 `fixed` 덩이는
+  // 아래 표에 있어야 하고, 그 식은 쌓인 것을 더해야 한다
+  {
+    const css = fs.readFileSync(path.join(SRC, 'styles', 'globals.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    // 선택자 → 더해야 하는 것. `.toast` 의 기본 자리는 탭바 위고, 띠가 떴을 때
+    // 비키는 식은 **화면 코드에 있다**(`Toast.jsx` 의 `lift` · 아래에서 본다)
+    const CSS쌓임 = { '.toast': ['--tabbar-h'] };
+    const 찾은것 = [];
+    for (const m of css.matchAll(/([^{}]+)\{([^}]*position:\s*fixed[^}]*)\}/g)) {
+      const 줄들 = m[1].trim().split('\n');
+      const sel = 줄들[줄들.length - 1].trim();
+      const b = /bottom:\s*([^;]+);/.exec(m[2]);
+      if (!b) continue;                                  // 바닥을 안 적은 것은 통째로 덮는 것이다
+      const 값 = b[1].trim();
+      if (값 === '0' || 값 === '0px') continue;          // 쌓임의 바닥이다
+      찾은것.push([sel, 값]);
+    }
+    ok('CSS 에서 바닥에 뜨는 것을 찾았다 (0건은 통과가 아니다)', 찾은것.length > 0, true);
+    ok('  CSS 에 목록 밖의 것이 새로 뜨지 않았다',
+      찾은것.filter(([sel]) => !CSS쌓임[sel]).map(([sel, v]) => sel + ' = ' + v), []);
+    const CSS안더한것 = [];
+    for (const [sel, 값] of 찾은것) {
+      for (const v of CSS쌓임[sel] || []) if (!값.includes(v)) CSS안더한것.push(sel + ' — ' + v + ' 를 안 더한다');
+    }
+    ok('  CSS 쪽도 쌓인 것을 더한다', CSS안더한것, []);
+    for (const [sel, 값] of 찾은것) console.log('       ' + sel + ' = ' + 값);
+  }
 
   // 알림(CSS)도 같은 것을 본다 — 띠가 떴을 때 비키는 식은 **둘 다** 더해야 한다
   const 알림 = codeOf(fs.readFileSync(path.join(SRC, 'components', 'Toast.jsx'), 'utf8'));
