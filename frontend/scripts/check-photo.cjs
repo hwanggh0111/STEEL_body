@@ -174,6 +174,27 @@ function 순번막이(raw) {
   return { 올림, 견줌 };
 }
 
+/**
+ * **메뉴를 덮는 막이 서랍 안에 갇히나.** (2026-11-20 · 정석이 짚었다)
+ *
+ * 막은 `position: fixed; inset: 0` 으로 화면을 다 덮어야 바깥 누르기가 산다. 그런데
+ * 그 막은 **서랍 안**에 있고 서랍은 `overflowY: auto` 다 — 지금은 서랍에 `transform`
+ * 이 없어서 막이 서랍 밖으로 나간다. `transform`(·`filter`·`perspective`·`willChange`)
+ * 이 서랍에 붙는 날 그것이 **`fixed` 의 새 틀**이 되어 막이 갇히고, 메뉴가 **안 닫힌다.**
+ *
+ * ★ 식을 여기 한 자리에 둔다 — 본 검사와 되돌려가 **같은 손**을 부른다.
+ */
+function 서랍이갇히나(raw) {
+  const src = codeOf(raw);
+  const i = src.indexOf('zIndex: LAYER.서랍');
+  if (i < 0) return { 찾았나: false, 갇히는까닭: [] };
+  const 통 = src.slice(Math.max(0, i - 700), i + 300);
+  return {
+    찾았나: true,
+    갇히는까닭: ['transform:', 'filter:', 'perspective:', 'willChange:'].filter((k) => 통.includes(k)),
+  };
+}
+
 function 파일들(dir) {
   const out = [];
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -282,6 +303,15 @@ if (process.argv.includes('--되돌려')) {
   ok('    다르게 여는 손도 받는다 (`createImageBitmap` · 거짓 FAIL 막이)',
     한도안열어보나('if (original.length <= PHOTO_MAX_BASE64) { await createImageBitmap(blob); }'), []);
 
+  // 서랍이 `transform` 을 얻는 날 — **막이 갇히고 바깥 누르기가 죽는다**
+  ok('서랍에 `transform` 이 붙으면 운다 (막이 서랍 안에 갇힌다)',
+    서랍이갇히나("<div style={{ position: 'fixed', top: 58, transform: 'translateY(0)', zIndex: LAYER.서랍 }}>").갇히는까닭,
+    ['transform:']);
+  ok('  없으면 안 운다 (지금 판)',
+    서랍이갇히나("<div style={{ position: 'fixed', top: 58, overflowY: 'auto', zIndex: LAYER.서랍 }}>").갇히는까닭, []);
+  ok('  서랍 통을 못 찾으면 **통과가 아니다**',
+    서랍이갇히나("<div style={{ position: 'fixed' }}>").찾았나, false);
+
   // 순번 막이 — 견주는 자리가 하나만 있으면 **다른 길로 옛것이 돌아온다**
   ok('순번을 안 견주면 셈이 모자라다',
     순번막이('const n = (photoSeqRef.current += 1);\n.then(() => { if (n !== photoSeqRef.current) return; })'),
@@ -355,6 +385,22 @@ console.log('\n── 사진 일이 한 자리에 모였는가 ──');
   ok('  그 셋이 메뉴 안에 있다 (role="menu")', sheet.includes('role="menu"'), true);
   // 떠 있는 것에는 **나갈 길**이 있어야 한다 — 바깥 누르기와 Esc 둘 다
   ok('  바깥을 눌러도 닫힌다', sheet.includes('setPhotoMenu(false)'), true);
+  // ── ★ **바깥 누르기가 기대고 선 자리** ── (2026-11-20 · 정석이 짚었다)
+  //
+  // 메뉴를 덮는 막은 `position: fixed; inset: 0` 으로 **화면을 다 덮어야** 한다.
+  // 그런데 그 막은 **서랍 안**에 있고, 서랍은 `overflowY: auto` 다 — 지금은 서랍에
+  // `transform` 이 없어서 막이 서랍 밖으로 나간다. **`transform`(또는 `filter` ·
+  // `perspective` · `willChange`)이 서랍에 붙는 날**, 그것이 `fixed` 의 새 틀이 되어
+  // 막이 **서랍 안으로 갇히고** 바깥 누르기가 죽는다(메뉴가 안 닫힌다).
+  //
+  // 주석으로 적어두면 썩는다 — **그날 울게** 둔다.
+  {
+    const layout = fs.readFileSync(path.join(SRC, 'components', 'Layout.jsx'), 'utf8');
+    const { 찾았나, 갇히는까닭 } = 서랍이갇히나(layout);
+    // 자리를 못 찾으면 **통과가 아니라 FAIL** 이다 (서랍이 옮겨가면 이 자가 눈이 먼다)
+    ok('  서랍 통을 찾았다 (못 찾으면 이 줄은 아무것도 안 지킨다)', 찾았나, true);
+    ok('  서랍에 `transform` 류가 없다 (붙으면 바깥 누르기가 죽는다)', 갇히는까닭, []);
+  }
   ok('  Esc 로도 닫힌다', sheet.includes('Escape') && sheet.includes('photoMenu'), true);
 }
 
