@@ -63,6 +63,14 @@ function 식(파일들) {
   const 거절자리 = [];
   // ⑵ 말을 베껴 적은 자리
   const 베낀말 = [];
+  // ⑸ ★ **판단이 크기 하나에 매인 자리** (2026-11-20 · 정석 1차)
+  //
+  // 아침에 고친 것은 **말**이었다 — 「못 읽은 것을 크다고 말하지 않는다」. 그런데
+  // **거절할지 말지를 가르는 조건은 그대로 크기 하나**였다(`length > 한도`). 그래서
+  // 못 읽은 사진이 **한도 아래면 그냥 담겼고**, 담긴 뒤에는 **아무도 그것을 볼 수
+  // 없다**(이 기기도 못 읽는 그림이다 · 홈페이지 사진은 손님에게 깨져 나간다).
+  // 말을 한 자리에서 받는 것만으로는 모자라다 — **조건으로도** 봐야 한다.
+  const 크기만본다 = [];
   for (const [rel, raw] of 파일들) {
     const src = codeOf(raw);
     // ★ **거절하는 자리는 「사람에게 말하는 자리」다.** 처음에는 「한도를 쓰거나 줄이는
@@ -74,12 +82,16 @@ function 식(파일들) {
     if (거르나) {
       // 거절하는 말을 **스스로 만들지 말고** 한 자리에서 받아야 한다
       if (!/photoRejectMessage\s*\(/.test(src)) 거절자리.push(rel);
+      // 그리고 **못 읽었다를 조건으로도** 봐야 한다 (말로만 보면 한도 아래가 샌다).
+      // `if (…)` 안에 그 낱말이 있나로 본다 — 말에만 넘기는 꼴(`photoRejectMessage({
+      // unreadable })`)과 가르려고 **조건 자리**를 짚는다
+      if (!/if\s*\([^)]*(unreadable|못읽음|안읽힘)/.test(src)) 크기만본다.push(rel);
     }
     // 한도 안내를 글자로 적은 자리 (말을 만드는 그 파일만 가질 수 있다)
     if (rel === 'src/data/photoLimit.js') continue;
     if (/이하만 가능|아래로 줄여|줄여보세요/.test(src)) 베낀말.push(rel);
   }
-  return { 거절자리, 베낀말 };
+  return { 거절자리, 베낀말, 크기만본다 };
 }
 
 /**
@@ -105,6 +117,48 @@ function 줄이는손(raw) {
     }
   }
   return 샌자리;
+}
+
+/**
+ * ⑹ ★ **한도 안이어도 열어는 보나.** (2026-11-20 · 정석 1차)
+ *
+ * 「한도 안이면 그대로 둔다」는 가지가 **못 읽었는지 묻지도 않고** 돌려주고 있었다 —
+ * 그 길로 1MB 짜리 HEIC 이 `unreadable` **없이** 나가 그냥 올라갔다. 올라가면 이
+ * 기기에서도 깨지고 남의 기기에서도 깨진다. **「크기가 괜찮다」는 「읽을 수 있다」가
+ * 아니다.** 그 가지 안에 여는 손(`loadImage`)이나 `unreadable` 이 있어야 한다.
+ *
+ * ★ 이 손을 `줄이는손` 과 **따로** 둔다 — 처음에 그 안에 섞었더니 「줄이기를 건너뛴
+ * 자리」 되돌려 꼴과 과녁이 겹쳐 **거짓 FAIL** 이 났다(11/20 · 그 자리에서 갈랐다).
+ */
+function 한도안열어보나(raw) {
+  const src = codeOf(raw);
+  const i = src.indexOf('<= PHOTO_MAX_BASE64');
+  // **0건은 통과가 아니다** — 한도를 보는 줄이 사라지면 이 검사가 장식이 된다
+  if (i < 0) return ['한도를 보는 줄을 못 찾았다'];
+  // ★ **창으로 재지 않는다 — 가지를 뜬다.** 처음에 「그 자리에서 700자」로 봤다가
+  // 진짜 파일로 되돌려 보고 두 번 샜다(11/20 · 둘 다 그 자리에서 고쳤다):
+  //
+  //   ⑴ `unreadable` **글자**를 증거로 삼았다 → 여는 줄만 떼면 `catch` 의
+  //      `unreadable: true` 가 남아 **통과**했다
+  //   ⑵ 창이 넓어 **아래 본문의 `loadImage`** 를 제 가지로 착각했다 → 여는 줄을
+  //      떼도 **통과**했다
+  //
+  // 그래서 `if` 의 **가지만** 중괄호로 떠서 그 안에서 **여는 손**을 찾는다. 가지가
+  // 중괄호 없는 한 줄(`if (…) return …;`)이면 여는 손이 들어갈 자리가 없다 — 그것이
+  // 바로 샌 꼴이다. 여는 손은 셋 중 아무것이어도 된다(꼴을 하나로 못박으면 다르게
+  // 적는 날 거짓 FAIL 이다).
+  let j = i;
+  while (j < src.length && src[j] !== '{' && src[j] !== ';') j += 1;
+  if (src[j] !== '{') return ['한도 안이면 열어보지도 않는다'];   // 한 줄 가지
+  let 깊이 = 0;
+  let 끝 = j;
+  for (; 끝 < src.length; 끝 += 1) {
+    if (src[끝] === '{') 깊이 += 1;
+    else if (src[끝] === '}') { 깊이 -= 1; if (깊이 === 0) break; }
+  }
+  const 가지 = src.slice(j, 끝 + 1);
+  return /loadImage|createImageBitmap|\.decode\(/.test(가지)
+    ? [] : ['한도 안이면 열어보지도 않는다'];
 }
 
 /**
@@ -172,6 +226,28 @@ const 되돌려꼴 = [
     본다: (r) => r.거절자리,
     기대: [],
   },
+  // ── ★ 판단이 크기 하나에 매인 꼴 (2026-11-20 · 정석 1차) ──
+  //
+  // **아침의 고침이 여기까지 안 왔다.** 말은 한 자리에서 받는데 조건은 크기 하나라,
+  // 못 읽은 사진이 **한도 아래면 그냥 담겼다.** 그 꼴을 그대로 먹인다
+  {
+    이름: '★ 말만 한 자리에서 받고 조건이 크기 하나면 운다 (11/20 아침의 그 꼴)',
+    파일: [['src/pages/X.jsx', "if (data.length > PHOTO_MAX_BASE64) toast(photoRejectMessage({ unreadable }));"]],
+    본다: (r) => r.크기만본다,
+    기대: ['src/pages/X.jsx'],
+  },
+  {
+    이름: '  조건으로도 보면 안 운다 (고친 꼴)',
+    파일: [['src/pages/X.jsx', "if (unreadable || data.length > PHOTO_MAX_BASE64) toast(photoRejectMessage({ unreadable }));"]],
+    본다: (r) => r.크기만본다,
+    기대: [],
+  },
+  {
+    이름: '  한글로 적은 이름도 센다 (`못읽음` · `안읽힘`)',
+    파일: [['src/pages/X.jsx', "if (못읽음 || data.length > PHOTO_MAX_BASE64) toast(photoRejectMessage({ unreadable: 못읽음 }));"]],
+    본다: (r) => r.크기만본다,
+    기대: [],
+  },
 ];
 
 if (process.argv.includes('--되돌려')) {
@@ -185,6 +261,26 @@ if (process.argv.includes('--되돌려')) {
     줄이는손('try { x(); } catch {\n  return { data: original, shrunk: false, unreadable: true };\n}'), []);
   ok('  줄이기를 건너뛴 자리는 못 읽은 것이 아니다 (거짓 FAIL 막이)',
     줄이는손('if (!always && original.length <= LIMIT) return { data: original, shrunk: false };'), []);
+
+  // ★ 한도 안에서도 열어보나 (2026-11-20 · 정석 1차)
+  ok('★ 한도 안이면 열어보지도 않으면 운다 (1MB 짜리 HEIC 이 그냥 올라갔다)',
+    한도안열어보나('if (!always && original.length <= PHOTO_MAX_BASE64) return { data: original, shrunk: false };'),
+    ['한도 안이면 열어보지도 않는다']);
+  ok('  열어만 보면 안 운다 (고친 꼴 · 다시 굽지 않는다)',
+    한도안열어보나('if (!always && original.length <= PHOTO_MAX_BASE64) {\n'
+      + '  try { await loadImage(original); } catch { return { data: original, unreadable: true }; }\n'
+      + '  return { data: original, shrunk: false };\n}'), []);
+  ok('  한도를 보는 줄이 사라지면 운다 (0건은 통과가 아니다)',
+    한도안열어보나('const a = 1;'), ['한도를 보는 줄을 못 찾았다']);
+  // ★ **진짜 파일로 되돌려 보고 잡은 꼴** — 여는 줄만 떼면 `unreadable` 글자가 남아
+  // 자가 통과시켰다. 글자는 증거가 아니다 (11/20 · 정석)
+  ok('  ★ 여는 손 없이 `unreadable` 만 적어두면 운다 (글자는 증거가 아니다)',
+    한도안열어보나('if (!always && original.length <= PHOTO_MAX_BASE64) {\n'
+      + '  // 걷었다\n  return { data: original, shrunk: false };\n}\n'
+      + 'try { x(); } catch { return { data: original, unreadable: true }; }'),
+    ['한도 안이면 열어보지도 않는다']);
+  ok('    다르게 여는 손도 받는다 (`createImageBitmap` · 거짓 FAIL 막이)',
+    한도안열어보나('if (original.length <= PHOTO_MAX_BASE64) { await createImageBitmap(blob); }'), []);
 
   // 순번 막이 — 견주는 자리가 하나만 있으면 **다른 길로 옛것이 돌아온다**
   ok('순번을 안 견주면 셈이 모자라다',
@@ -212,11 +308,17 @@ console.log('       ' + 사진자리.join(' · '));
 const r = 식(모두);
 ok('거절하는 자리는 **모두** 한 자리에서 말을 받는다 (`photoRejectMessage`)', r.거절자리, []);
 ok('  한도 안내를 베껴 적은 자리가 없다', r.베낀말, []);
+// ★ **말만 고치면 절반이다** — 조건이 크기 하나면 못 읽은 사진이 한도 아래로 샌다
+ok('  ★ 거절 판단이 크기 하나에 매여 있지 않다 (못 읽은 것은 한도 아래여도 거절)',
+  r.크기만본다, []);
 
 console.log('\n── 못 읽은 것을 「크다」고 말하지 않는가 ──');
 {
   const raw = fs.readFileSync(path.join(SRC, 'data', 'shrinkImage.js'), 'utf8');
   ok('줄이는 손이 못 읽은 자리마다 `unreadable` 을 돌려준다', 줄이는손(raw), []);
+  // ★ 못 읽었는지 **묻는 자리 자체**가 한도 밖에만 있으면, 한도 아래는 영영 안 묻는다
+  ok('  ★ 한도 안이어도 열어는 본다 (「크기가 괜찮다」는 「읽을 수 있다」가 아니다)',
+    한도안열어보나(raw), []);
   // 말을 만드는 손이 **두 갈래를 다 말하나** — 한 갈래만 있으면 다시 크기 탓만 한다
   const 말 = fs.readFileSync(path.join(SRC, 'data', 'photoLimit.js'), 'utf8');
   ok('  말을 만드는 손이 `unreadable` 갈래를 갖는다', /unreadable/.test(codeOf(말)), true);

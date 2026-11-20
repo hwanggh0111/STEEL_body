@@ -121,7 +121,10 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
   // 고른 사진이든 찍은 사진이든 **저장하는 길은 하나다.** 두 벌로 두면 한쪽만
   // 고치는 날이 오고, 그러면 같은 사진이 경로에 따라 다르게 저장된다
   const commit = (data, shrunk, unreadable) => {
-    if (typeof data !== 'string' || data.length > PHOTO_MAX_BASE64) {
+    // ★ **못 읽은 것은 크기와 상관없이 거절한다** (2026-11-20 · 정석 1차 · `Layout` 과
+    // 같은 자리). 아침에 고친 것은 **말**이었고 판단은 **크기 하나**에 매여 있었다 —
+    // 못 읽은 사진이 한도 아래면 그냥 담겼고, 담긴 뒤에는 **아무도 그것을 볼 수 없다**
+    if (unreadable || typeof data !== 'string' || data.length > PHOTO_MAX_BASE64) {
       // 까닭이 둘이다 — 진짜 크거나 **우리가 못 읽은 것**이다. 말은 한 자리에서
       // 만든다(`photoRejectMessage`) — 베껴 적으면 한쪽만 고치는 날이 온다 (11/20)
       toast(photoRejectMessage({ unreadable }));

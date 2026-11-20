@@ -79,7 +79,27 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } =
   // 이미 넉넉하면 그대로 둔다. 다시 구우면 화질만 손해다.
   // **`always` 면 크기와 상관없이 줄인다** — 프로필처럼 **그리는 크기가 정해진**
   // 자리에서는 「한도 안이니 그대로」가 300KB 를 26px 에 쓰는 일이 된다 (2026-10-31)
-  if (!always && original.length <= PHOTO_MAX_BASE64) return { data: original, shrunk: false };
+  if (!always && original.length <= PHOTO_MAX_BASE64) {
+    // ── ★ **한도 안이어도 열어는 본다** ── (2026-11-20 · 정석 1차)
+    //
+    // 11/20 에 「못 읽은 것을 크다고 말하지 않는다」를 고쳤는데, **못 읽었는지 묻는
+    // 자리 자체가 한도 밖에만 있었다.** 이 줄이 한도 안이면 **그대로 돌려주고 끝**이라
+    // `unreadable` 이 **아예 안 붙는다** — 1MB 짜리 HEIC 은 못 읽었는지 알 수조차 없다.
+    //
+    // 그 길로 가면 못 여는 그림이 **그대로 올라간다.** 그러면 이 기기에서도 깨져
+    // 보이고(`<img>` 가 같은 손으로 못 읽는다) 남의 기기에서도 깨진다 — 홈페이지
+    // 사진은 **손님에게 깨진 그림**이 걸린다. 「크기가 괜찮다」는 「읽을 수 있다」가
+    // 아니다.
+    //
+    // 그래서 **열어만 본다.** 다시 굽지 않으므로 화질은 그대로다. 보여주려면
+    // 브라우저가 어차피 한 번 풀어야 하는 그림이라 값도 늘지 않는다.
+    try {
+      await loadImage(original);
+    } catch {
+      return { data: original, shrunk: false, unreadable: true };
+    }
+    return { data: original, shrunk: false };
+  }
 
   try {
     const img = await loadImage(original);

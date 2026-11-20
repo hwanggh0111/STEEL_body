@@ -55,6 +55,17 @@ export default function SitePhotoAdmin() {
     try {
       const { data, shrunk, unreadable } = await shrinkImage(file);
       안읽힘 = unreadable;
+      // ── ★ **못 읽은 것은 올리기 전에 거절한다** ── (2026-11-20 · 정석 1차)
+      //
+      // 아침에 고친 것은 **말**이었고 판단은 **크기 하나**에 매여 있었다. 그래서 못
+      // 읽은 사진이 한도 아래면 **서버까지 올라갔다** — 서버는 `data:image/` 로
+      // 시작하는지만 보므로 받는다. 그리고 이 사진은 **홈페이지에 걸리는 사진**이라
+      // 깨진 그림이 **손님에게** 나간다. 우리가 못 읽은 그림을 걸어두면 아무도
+      // 그것을 볼 수 없다
+      if (안읽힘) {
+        toast(photoRejectMessage({ unreadable: true }), 'error');
+        return;
+      }
       const res = await client.post('/site-photos', { data, caption: '' });
       setPhotos((prev) => [...prev, res.data.photo]);
       toast(shrunk ? '사진을 줄여서 걸었어요' : '사진을 걸었어요');
