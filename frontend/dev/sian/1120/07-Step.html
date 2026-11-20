@@ -1,0 +1,43 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="_s.css"><title>⑦ 숫자 칸 — ± 를 칸 밖으로</title></head>
+<body><div class="ph"><div class="wrap">
+
+  <span class="tag now">지금 — [− 칸 +] 가 한 줄이라 글 자리를 ± 가 먼저 먹는다</span>
+  <div class="half">
+    <div class="mut">320px 에서 무게 칸이 89px 이고 그중 <b style="color:#d29a5f">86px 을 ± 와 여백이
+      가져가 글 자리가 2.7px</b> 이었다(11/19). <b>± 를 깎는 길은 접었다</b> — 28px 로 해도
+      「100.5」가 안 든다. 지금은 칸 바닥을 `calc(5ch + 86px)` 로 깔아 <b>줄을 바꾼다</b></div>
+  </div>
+
+  <span class="tag new">안 — ± 를 칸 아래로 내린다 (가로를 ± 가 안 먹는다)</span>
+  <div class="half new">
+    <div style="display:flex;gap:8px">
+      <div style="flex:1">
+        <label class="lbl">무게 kg</label>
+        <input class="in" value="100.5" style="min-height:48px;font-size:19px">
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <button class="btn2" style="flex:1;min-height:40px;color:#eeb77d;border-color:#4a3f2c">− 2.5</button>
+          <button class="btn2" style="flex:1;min-height:40px;color:#eeb77d;border-color:#4a3f2c">+ 2.5</button>
+        </div>
+      </div>
+      <div style="flex:1">
+        <label class="lbl">횟수</label>
+        <input class="in" value="10" style="min-height:48px;font-size:19px">
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <button class="btn2" style="flex:1;min-height:40px;color:#eeb77d;border-color:#4a3f2c">− 1</button>
+          <button class="btn2" style="flex:1;min-height:40px;color:#eeb77d;border-color:#4a3f2c">+ 1</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mut">얻는 것 — <b style="color:#eae4d6">320px 에서도 칸 둘이 한 줄에 서고 글 자리가
+    칸 폭 전부</b>다(89px → 글에 83px). 단추도 커져서(40×한 칸의 절반) 벤치에 누워 눌러도
+    안 빗나간다. <b style="color:#7fa8d9">얼마씩 오르는지(2.5 · 1)가 단추에 적힌다</b> —
+    지금은 눌러 봐야 안다.<br>
+    <b style="color:#d29a5f">값:</b> 세로가 칸마다 45px 는다(폼이 길어진다 — ⑥의 칩 한 줄과 함께
+    보셔야 합니다). 그리고 <b>세트 칸은 ± 가 없어</b> 셋을 나란히 두면 높이가 어긋난다 →
+    세트를 횟수 아래 작은 칸으로 옮기는 쪽이 따라옵니다</div>
+
+</div></div></body></html>
