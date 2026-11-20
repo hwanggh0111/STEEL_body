@@ -75,6 +75,26 @@ export function exportCsv(type, fallbackName) {
 // 서버 길은 `GET /api/export/all?parts=<쉼표로 이은 것>` 이고 묶음 한 장으로 온다.
 // **무엇을 담을지 고르는 것은 사람**이다 — 사진은 무거워서 기본으로 안 담는다.
 // 이름은 여기서 정하지 않는다(`Content-Disposition`) — 위 머리글의 그 까닭이다.
+/**
+ * **무엇이 얼마나 담기는지 먼저 본다** (2026-11-20 · 맵시 · 시안 ⑥).
+ *
+ * 같은 주소를 `parts` 없이 부르면 서버가 목록만 준다 —
+ * `{ 담기는것: [{열쇠, 갈래, 줄, 기본꺼짐, 늘담는다}], 안담는것: [{갈래, 까닭}] }`.
+ *
+ * ★ **못 받아도 아무 일도 안 난다.** 받기 카드는 이 값 없이도 그대로 돌아가고,
+ * 수를 적는 자리만 비어 있다 — 설정 화면을 여는 길목에 **막는 것을 두지 않는다.**
+ */
+export function 받을것미리본다() {
+  const baseURL = import.meta.env.VITE_API_URL || '/api';
+  const token = readLS(TOKEN_KEY);
+  return fetch(`${baseURL}/export/all`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .catch(() => null);
+}
+
 export function exportAll(parts, fallbackName = 'steelbody_all.zip') {
   const baseURL = import.meta.env.VITE_API_URL || '/api';
   const token = readLS(TOKEN_KEY);
