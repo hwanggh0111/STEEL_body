@@ -32,6 +32,14 @@
 //   ⑶ **크기가 박힌 동그라미는 가로 flex 안에서 `flexShrink: 0` 을 든다** (11/17)
 //   ⑷ **글이 든 칸을 `height` 와 px 줄 높이로 묶지 않는다** (11/18) — 폰에서 글자를
 //      크게 쓰면 글자만 자라 잘리거나 옆을 덮는다
+//   ⑸ **크기를 박은 44 미만 단추는 표를 든다** (11/18·11/19) — 폰은 높이만 44 로 키운다
+//   ⑹ **단축 `font` 가 앞에 적은 글자 크기를 지우지 않는다** (11/19)
+//   ⑺ **화면을 덮는 칸은 넘치면 스크롤한다** (11/20) — 가운데로만 맞춘 덮개는 글자를
+//      키우면 위아래가 같이 잘리고 **스크롤도 안 돼** 잘린 것에 영영 못 닿는다.
+//      그 자리에서 사라지는 것이 **앞으로 가는 단추**라 꾸밈이 아니라 막힘이다.
+//      ★ 이 류를 지키는 자가 11/20 에 **두 벌로 갈라질 뻔했다**(맵시가 `check-layer`
+//      에 같은 묶음을 짓고 있었다). 한 벌로 합치면서 저쪽의 **`안쪽상자` 갈래**와
+//      **까닭 목록**을 이리로 옮겨 왔다 — 덮개 검사는 **여기 하나다.**
 //
 // flex 통인지는 `style` 의 `display: 'flex'` 로 보고, **클래스로 flex 가 되는 것은
 // `globals.css` 에서 읽는다** — 여기 베껴 적으면 클래스가 하나 늘 때 자만 옛 목록을
@@ -320,6 +328,109 @@ function 훑기(code, file, 가로클래스) {
       const 줄박힘 = /^[\d.]+px$/.test(String(s.값.lineHeight ?? ''));
       if (높이박힘 && 줄박힘 && 글이드나(node)) {
         결과.push({ file, line: node.loc.start.line, 빠진것: ['minHeight'], 류: '글묶음' });
+      }
+
+      // ── ⑺ **화면을 덮는 칸이 가운데로만 맞추고 넘침을 안 받았다** ── (2026-11-20 · 맵시)
+      //
+      // `position: fixed; inset: 0` 으로 화면을 덮고 안을 `justifyContent: 'center'`
+      // 로 가운데 맞춘 칸은, **담을 것이 화면보다 커지는 날** 넘침이 위아래로 갈려
+      // 잘린다. 그리고 `overflow` 가 없으니 **스크롤도 안 된다** — 잘린 것에 영영
+      // 닿을 수가 없다. 글자 크기를 150~200% 로 쓰면 그 날이 바로 온다.
+      //
+      // 11/20 에 잠금 화면이 그 꼴이었다: 320×568 기본 글자에서 이미 57px 넘쳤고
+      // 아래에서 사라지는 것이 **지문 단추**와 **「네 자리를 잊으셨나요」**였다 —
+      // 네 자리를 잊은 사람이 **나갈 길을 못 찾는다.** 같은 류를 둘 더 찾았다
+      // (`RepCounter` 의 「카메라 켜기」 · `SiteHome` 의 사진 설명). 꾸밈이 아니라
+      // **막힘**이라 ⑷ 와 같은 자리에 둔다.
+      //
+      // ★ 고치는 법은 `overflow` 한 줄이 **아니다.** `justifyContent: 'center'` 와
+      // 스크롤을 같이 두면 **위로 넘친 쪽은 스크롤해도 안 닿는다**(flexbox 명세
+      // §5.1 의 그 자리 — 넘침이 시작 가장자리 밖으로 나가고 스크롤 자리가 안 생긴다).
+      // 가운데 맞춤을 **안쪽 칸의 `margin: auto` 로** 옮겨야 자리가 모자랄 때 0 으로
+      // 떨어져 양 끝이 다 닿는다. 그러니 이 자는 **둘을 같이 본다** —
+      // 넘침 손이 없으면 울고, `justifyContent: 'center'` 가 남아 있어도 운다.
+      //
+      // 세로통만 센다(`flexDirection: 'column'`) — 가로로 늘어놓은 것은 이 류가
+      // 아니고, `flexDirection` 이 변수인 자리는 **안 센다**(모르는 것을 세로로
+      // 읽으면 거짓 FAIL 이 깔린다 · ⑶ 과 같은 판단).
+      //
+      // ★ **`inset: 0` 이 다 화면을 덮는 것은 아니다.** `position: absolute; inset: 0`
+      // 은 **가장 가까운 자리 잡은 조상**을 덮는데, 그 조상이 크기를 적어 둔 통이면
+      // (`width: size, height: size`) 덮는 것은 화면이 아니라 **그 통**이다 — 고리
+      // 가운데의 숫자가 그 꼴이다(`GoalRing` · `RestTimer`). 거기에 스크롤을 달면
+      // 고리 안에서 숫자가 굴러간다. 11/20 에 이 자를 처음 돌렸을 때 그 둘을
+      // 울렸고 **거짓 FAIL** 이었다 — 그래서 조상을 보고 가른다.
+      const 크기적힘 = (x) => ['width', 'height'].some((k) => x.값[k] !== undefined || x.모름.has(k));
+      const 화면을덮나 = () => {
+        if (s.값.position === 'fixed') return true;            // 틀이 화면이다
+        if (s.값.position !== 'absolute') return false;
+        for (let i = stack.length - 2; i >= 0; i -= 1) {
+          const a = stack[i];
+          const p = a.s.값.position;
+          if (p !== 'relative' && p !== 'absolute' && p !== 'fixed' && !a.s.모름.has('position')) continue;
+          return !크기적힘(a.s);          // 크기를 적어 둔 통이면 화면이 아니다
+        }
+        return true;                       // 자리 잡은 조상이 없으면 틀이 화면이다
+      };
+      const 덮나 = (s.값.inset === 0 || s.값.inset === '0' || s.값.inset === '0px'
+        || ((s.값.top === 0 || s.값.top === '0') && (s.값.bottom === 0 || s.값.bottom === '0')))
+        && 화면을덮나();
+      const flex통 = s.값.display === 'flex';
+      const 세로쌓임 = s.값.flexDirection === 'column';
+      //
+      // **세로로 가운데 맞추는 칸만 센다.** 머리·발을 `flexShrink: 0` 으로 두고
+      // 가운데를 `flexGrow: 1; minHeight: 0` 으로 줄이는 통(`OverlayCamera` ·
+      // `RepCounter` 의 바깥)은 **넘쳐도 속이 먼저 줄어** 이 류가 안 난다 — 거기까지
+      // 울리면 거짓 FAIL 이다(11/20 에 되돌려-FAIL 이 그것을 잡아냈다 · 자를 먼저
+      // 좁혔다). 그 통이 **진짜 넘치는지는 재야 알고**, 재는 것은 이 자가 못 한다.
+      //
+      // 세로로 가운데 맞추는 손은 **쌓는 쪽에 따라 다르다** — 세로로 쌓으면
+      // `justifyContent`, 가로로 늘어놓으면 `alignItems` 다. 가로통도 세는 까닭은
+      // 덮개의 절반이 **상자 하나를 가운데 앉히는 가로통**이기 때문이다
+      // (`AccountBlocked` · `MaintenanceScreen` · `ConfirmModal`). `flexDirection`
+      // 이 변수인 자리는 안 센다(모르는 것을 세로로 읽으면 거짓 FAIL 이 깔린다).
+      const 세로가운데 = !s.모름.has('flexDirection')
+        && (세로쌓임 ? s.값.justifyContent === 'center' : s.값.alignItems === 'center');
+      //
+      // ★ **안쪽 상자가 넘침을 받으면 겉은 넘칠 수 없다** (2026-11-20 · 맵시의 지적).
+      // `maxHeight: '85vh'` + `overflowY: 'auto'` 로 담은 상자를 가운데 앉힌 덮개는
+      // 11/16 에 이미 닫힌 자리다 — 담을 것이 85vh 를 못 넘으니 겉이 샐 일이 없다.
+      // 맵시가 `check-layer` 에서 같은 자를 짓다가 이 갈래 없이 돌려 **거짓 FAIL
+      // 둘**(`AccountBlocked`·`MaintenanceScreen`)을 받았다. 글자로 훑지 않고
+      // **직접 자식의 꼴로** 본다.
+      //
+      // 받는 손이 **그 상자 자신에** 있을 필요는 없다 — `ConfirmModal` 은 상자를
+      // `maxHeight: calc(100dvh - 32px)` 로 묶고 **글만** 스크롤한다(제목과 단추가
+      // 흘러가면 「확인이 어디 있지」가 되므로 그것이 더 낫다). 그래서 **자손까지**
+      // 내려가 받는 손을 찾는다. 그림 한 장은 상한만으로 끝난다 — **안에서 굴릴
+      // 것이 없다**(`Layout` 의 사진 확대).
+      const 받는손있나 = (el) => {
+        const es = 스타일(el);
+        if (['overflow', 'overflowY'].some((k) => es.값[k] !== undefined || es.모름.has(k))) return true;
+        const 태그 = el.openingElement.name && el.openingElement.name.name;
+        if (태그 === 'img') return true;
+        return (el.children || []).some((c) => c.type === 'JSXElement' && 받는손있나(c));
+      };
+      const 안쪽상자 = (node.children || []).some((c) => {
+        if (c.type !== 'JSXElement') return false;
+        const cs = 스타일(c);
+        const 상한 = cs.값.maxHeight !== undefined || cs.모름.has('maxHeight');
+        return 상한 && 받는손있나(c);
+      });
+      if (덮나 && flex통 && !s.퍼짐) {
+        const 빠진것 = [];
+        if (세로가운데 && !안쪽상자) {
+          const 넘침손 = ['overflow', 'overflowY'].some((k) => s.값[k] !== undefined || s.모름.has(k));
+          if (!넘침손) 빠진것.push('overflowY:auto');
+          // 넘침 손이 있어도 **가운데 맞춤이 남아 있으면 반만 고친 것**이다 —
+          // 가로통은 `alignItems: 'center'` 를 그대로 둬도 된다(세로 넘침이 양쪽으로
+          // 갈리는 것은 `align-items` 가 아니라 **스크롤 통의 그 자리**다). 그래서
+          // 세로로 쌓은 통만 안쪽으로 넘기라고 한다
+          if (세로쌓임) 빠진것.push('margin:auto(안쪽으로)');
+          else 빠진것.push('안쪽 상자에 `maxHeight`+`overflowY`');
+        }
+        // 어긋난 것이 없어도 **적어 둔다** — 모집단이 0 으로 떨어지면 아래가 운다
+        결과.push({ file, line: node.loc.start.line, 빠진것, 류: '덮침' });
       }
 
       // ── ⑹ **단축 `font` 가 앞에 적은 글자 크기를 지웠다** ── (2026-11-19 · 맵시)
@@ -640,6 +751,89 @@ const 되돌려꼴 = [
 );`,
     기대: [],
   },
+  // ── ⑺ 덮는 칸의 넘침 (2026-11-20) ──
+  {
+    이름: '11/20 의 잠금 화면 꼴 — 덮는 칸이 가운데만 맞추고 넘침을 안 받는다',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center', gap: 26, padding: 24 }}>
+    <button>지문으로</button>
+  </div>
+);`,
+    기대: ['overflowY:auto', 'margin:auto(안쪽으로)'],
+  },
+  {
+    이름: '  `overflow` 만 붙이고 가운데 맞춤을 남겨두면 **반만 고친 것**이다',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', display: 'flex',
+    flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <button>지문으로</button>
+  </div>
+);`,
+    기대: ['margin:auto(안쪽으로)'],
+  },
+  {
+    이름: '  넘침을 받고 가운데를 안쪽으로 넘기면 안 운다 (고친 꼴)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+    alignItems: 'center', overflowY: 'auto', padding: 24 }}>
+    <div style={{ margin: 'auto' }}><button>지문으로</button></div>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  머리·발을 나눠 둔 통은 이 류가 아니다 (거짓 FAIL 막이 · 가운데 맞춤 없음)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flexShrink: 0 }}>머리</div>
+    <div style={{ flexGrow: 1, minHeight: 0 }}>속</div>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  크기를 적어 둔 통 안의 `inset: 0` 은 화면이 아니다 (거짓 FAIL 막이 · 고리 속 숫자)',
+    code: `const A = () => (
+  <div style={{ position: 'relative', width: size, height: size }}>
+    <svg />
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center' }}>{main}</div>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  크기를 안 적은 통 안이면 센다 (11/20 의 「카메라 켜기」 꼴)',
+    code: `const A = () => (
+  <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center' }}>
+      <button>카메라 켜기</button>
+    </div>
+  </div>
+);`,
+    기대: ['overflowY:auto', 'margin:auto(안쪽으로)'],
+  },
+  {
+    이름: '  가로로 늘어놓은 덮는 칸은 안 센다 (거짓 FAIL 막이)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center' }}>
+    <span>x</span>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    이름: '  `top: 0` + `bottom: 0` 으로 적어도 덮는 것으로 본다 (`inset` 만 보면 눈이 먼다)',
+    code: `const A = () => (
+  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <button>켜기</button>
+  </div>
+);`,
+    기대: ['overflowY:auto', 'margin:auto(안쪽으로)'],
+  },
 ];
 
 if (process.argv.includes('--되돌려')) {
@@ -786,6 +980,37 @@ console.log('\n── 단축 `font` 가 글자 크기를 지우지 않는가 ─
   if (단축.length) {
     console.log('       → `font` 는 **단축 속성**이라 안 적은 칸을 기본값으로 되돌립니다.');
     console.log('         글꼴만 물려받으려면 `fontFamily` 로 적으세요.');
+  }
+}
+
+console.log('\n── 화면을 덮는 칸이 넘침을 받는가 ──');
+{
+  const 덮침 = 모두.filter((r) => r.류 === '덮침');
+  // **셈 0 은 통과가 아니다** — 모집단을 먼저 세운다 (11/19·11/20 에 거듭 밟은 류).
+  // 11/20 에 맵시가 손으로 센 덮개가 **열일곱**이었다. 그보다 적게 잡히면 이 자가
+  // 눈이 먼 것이다 — 숫자를 박지 않고 **열 넘는지**로만 둔다(숫자를 박으면 썩는다)
+  ok('덮는 칸을 찾았다 (모집단이 비면 이 자는 장식이다)', 덮침.length > 10, true);
+  console.log('       화면을 덮는 칸 ' + 덮침.length + '곳');
+
+  // ── **까닭 목록** ── (벼림 제안 · 맵시가 `check-layer` 에서 먼저 쓴 꼴을 옮겨 왔다)
+  //
+  // 구조로 가를 수 없는 자리가 남는다. 「목록에 적어뒀다」가 **알리바이가 되지 않게**
+  // 세 가지를 같이 지킨다 — ⑴ 자리마다 까닭을 적는다 ⑵ **까닭이 비면 운다**
+  // ⑶ **없는 깃발**(목록에만 남고 덮개는 사라진 자리)도 운다.
+  const 까닭 = {
+    'src/components/MiniSplash.jsx:16': '홈으로 돌아올 때 **0.45초** 뜨는 로고 한 줄(`cap: 28`)이다 — 담을 것이 세로 40px 쯤이라 가로로 돌린 폰(320)에서도 넘칠 수가 없다. 글자를 키워도 자라는 것은 그 한 줄뿐이다',
+  };
+  const 막힌것 = 덮침.filter((r) => r.빠진것.length && !까닭[r.file + ':' + r.line]);
+  ok('  빼준 자리마다 까닭이 비어 있지 않다',
+    Object.entries(까닭).filter((e) => !e[1] || e[1].trim().length < 10).map((e) => e[0]), []);
+  ok('  까닭 목록에 **없는 덮개**를 적어두지 않았다',
+    Object.keys(까닭).filter((k) => !덮침.some((r) => r.file + ':' + r.line === k)), []);
+  ok('덮는 칸은 넘치면 스크롤하고, 가운데 맞춤을 안쪽으로 넘겼다',
+    막힌것.map((r) => r.file + ':' + r.line + ' (' + r.빠진것.join('·') + ')'), []);
+  if (막힌것.length) {
+    console.log('       → `overflowY: \'auto\'` 를 덮는 칸에, 가운데 맞춤은 **안쪽 칸의**');
+    console.log('         `margin: \'auto\'` 로 옮기세요. `justifyContent: \'center\'` 와');
+    console.log('         스크롤을 같이 두면 **위로 넘친 쪽은 스크롤해도 안 닿습니다**.');
   }
 }
 

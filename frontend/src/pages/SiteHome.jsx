@@ -675,21 +675,31 @@ export default function SiteHome() {
           aria-label={shot.caption || '사진'}
           onClick={() => setShot(null)}
           style={{
+            // 사진 `80vh` + 설명 + 여백 40 은 **글자를 키우면 100vh 를 넘는다**
+            // (설명이 두세 줄로 늘어난다). 가운데 맞춤이라 넘침이 위아래로 갈려
+            // **설명이 잘렸다** — 넘치면 스크롤한다 (2026-11-20 · 맵시 · AppLock 과 같은 류).
+            // 가운데 맞춤은 안쪽 `margin: auto` 가 한다
             position: 'fixed', inset: 0, zIndex: LAYER.뒤판, background: 'rgba(8,7,5,0.92)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            overflowY: 'auto', WebkitOverflowScrolling: 'touch',
             padding: 20, cursor: 'zoom-out',
           }}
         >
-          <img
-            src={shot.data}
-            alt={shot.caption || ''}
-            style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 'var(--radius)' }}
-          />
-          {shot.caption && (
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 14, textAlign: 'center' }}>
-              {shot.caption}
-            </div>
-          )}
+          <div style={{
+            margin: 'auto', flexShrink: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+          }}>
+            <img
+              src={shot.data}
+              alt={shot.caption || ''}
+              style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 'var(--radius)' }}
+            />
+            {shot.caption && (
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 14, textAlign: 'center' }}>
+                {shot.caption}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

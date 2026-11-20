@@ -46,7 +46,15 @@ export default function SplashScreen({ onDone }) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      // ── **글자를 키우면 로고가 잘렸다** ── (2026-11-20 · 맵시 · AppLock 과 같은 류)
+      //
+      // 덮는 칸이 `justifyContent: 'center'` 로만 서 있고 **넘침을 받는 손이
+      // 없었다.** 320×568 에 글자 200% 면 세로 잠금 로고(마크·이름·설명 셋)가
+      // 담길 자리를 넘고, 가운데 맞춤이라 **위아래가 같이 잘린다.** 넘치면
+      // 스크롤하고 가운데 맞춤은 **안쪽의 `margin: auto`** 가 한다 — 스크롤과
+      // `justifyContent: 'center'` 를 같이 두면 위로 넘친 쪽에 영영 못 닿는다
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
       transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease',
       transform: phase >= 3 ? 'translateY(-100vh)' : 'translateY(0)',
       opacity: phase >= 3 ? 0 : 1,
@@ -54,6 +62,7 @@ export default function SplashScreen({ onDone }) {
       {/* 로고 한 벌 — **가운데에 서는 것이 이것 하나다.**
           커지고 줄어드는 것은 이 덩이째로 한다 (글자와 획이 같은 비율로 움직인다) */}
       <div style={{
+        margin: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -81,7 +90,12 @@ export default function SplashScreen({ onDone }) {
       {/* 금빛 글로우 — 8/28 에 오렌지에서 바꿨는데 이 주석만 옛말로 남아 있었다.
           로고 한가운데에 둔다 — 가로로 둘이 섰을 때는 가운데가 로고가 아니었다 */}
       <div style={{
+        // 가운데를 **직접 적는다.** 위에서 `justifyContent: 'center'` 를 걷었으니
+        // 떠 있는 것의 「제 자리」가 위로 올라간다 — 글로우는 로고 한가운데여야 한다
         position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
         width: 300,
         height: 300,
         borderRadius: '50%',

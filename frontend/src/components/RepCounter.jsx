@@ -182,24 +182,42 @@ export default function RepCounter({ exercise, onDone, onClose }) {
             )}
             {!live && (
               <div style={{
+                // ── **카메라 켜기가 잘려 나갔다** ── (2026-11-20 · 맵시)
+                //
+                // 이 칸은 가운데로 맞추면서 **넘침을 받는 손이 없었다.** 위의
+                // `flex: 1; minHeight: 0` 때문에 **머리와 발이 자라는 만큼 이 칸이
+                // 줄어드는데**, 글자를 200% 로 쓰면 머리·발이 커지고 안내 두 줄이
+                // 다섯 줄로 늘고 **거절 알림까지 뜨면** 담을 것이 담길 자리를 넘는다.
+                // 가운데 맞춤이라 넘침이 위아래로 갈려 잘리고, 그때 아래에서
+                // 사라지는 것이 **「카메라 켜기」 단추**다 — 이 화면에서 앞으로 가는
+                // 길이 그것뿐이라 꾸밈이 아니라 **막힘**이다 (AppLock 과 같은 류).
+                //
+                // `justifyContent: 'center'` 를 **안쪽 `margin: auto` 로** 옮긴다 —
+                // 스크롤과 같이 두면 **위로 넘친 쪽은 스크롤해도 안 닿는다**
                 position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20,
+                alignItems: 'center', padding: 20,
+                overflowY: 'auto', WebkitOverflowScrolling: 'touch',
               }}>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, textAlign: 'center' }}>
-                  폰을 <b style={{ color: 'var(--text-secondary)' }}>옆에 세워두고</b> 온몸이 보이게 놓아주세요.<br />
-                  <b style={{ color: 'var(--text-secondary)' }}>영상은 아무 데도 안 남아요</b> — 세고 나서 숫자만 가져갑니다.
-                </div>
-                <button
-                  className="btn-primary"
-                  onClick={start}
-                  disabled={stage !== null}
-                  style={{ width: 'auto', padding: '11px 22px', fontFamily: 'inherit', cursor: 'pointer' }}
-                >{stage ? (STAGE[stage] || '여는 중…') : '카메라 켜기'}</button>
-                {error && (
-                  <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
-                    {error}
+                <div style={{
+                  margin: 'auto', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, textAlign: 'center' }}>
+                    폰을 <b style={{ color: 'var(--text-secondary)' }}>옆에 세워두고</b> 온몸이 보이게 놓아주세요.<br />
+                    <b style={{ color: 'var(--text-secondary)' }}>영상은 아무 데도 안 남아요</b> — 세고 나서 숫자만 가져갑니다.
                   </div>
-                )}
+                  <button
+                    className="btn-primary"
+                    onClick={start}
+                    disabled={stage !== null}
+                    style={{ width: 'auto', padding: '11px 22px', fontFamily: 'inherit', cursor: 'pointer' }}
+                  >{stage ? (STAGE[stage] || '여는 중…') : '카메라 켜기'}</button>
+                  {error && (
+                    <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
+                      {error}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
