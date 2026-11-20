@@ -153,6 +153,26 @@ ok('점검 화면이 runsOn 을 들여온다', /import \{ runsOn \} from '\.\.\/
 ok('  제 손으로 다시 적지 않는다', /function runsOn/.test(screen), false);
 ok('고객센터가 요일을 직접 그리지 않는다', /DAY_LABELS/.test(support), false);
 
+// ── ★ **늦게 온 실패가 새 목록을 덮지 않나** ── (2026-11-20 · 정석 1차)
+//
+// 이 화면은 저장·삭제를 누르는 손을 **막지 않는다**(`disabled` 는 개수 상한 하나뿐).
+// 그래서 두 번 누르면 요청이 둘 뜨고, 첫 요청이 **늦게 실패하면** 그때 뜬 옛 목록으로
+// 화면을 되돌려 **두 번째가 성공해 있어도** 덮는다 — 화면과 서버가 조용히 갈린다.
+// 이 화면이 정하는 것은 **모든 사용자를 막는 점검**이다.
+//
+// 사진 바꾸기에서 고친 것과 같은 류이고(`Layout` 의 `photoSeqRef`), 고침도 같다 —
+// 순번을 매겨 **마지막으로 누른 것만** 화면을 건드린다. 올리는 자리 하나와 견주는
+// 자리 **둘**(성공 · 실패)이 있어야 한다. 하나라도 빠지면 그 길로 옛것이 돌아온다.
+{
+  const admin = fs.readFileSync('src/components/admin/MaintAdmin.jsx', 'utf-8');
+  // 주석을 걷는다 — 글자를 찾는 자가 제 까닭 설명에 걸리면 거짓 PASS 다
+  const 코드 = admin.replace(/\/\*[\s\S]*?\*\//g, '').split('\n')
+    .filter((l) => !l.trim().startsWith('//')).join('\n');
+  ok('저장 순번을 올리는 자리가 있다', (코드.match(/저장순번\.current\s*\+=\s*1/g) || []).length, 1);
+  ok('  순번을 견주는 자리가 둘이다 (성공 · 실패)',
+    (코드.match(/!==\s*저장순번\.current/g) || []).length, 2);
+}
+
 console.log('');
 console.log(bad === 0 ? '모두 통과' : bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

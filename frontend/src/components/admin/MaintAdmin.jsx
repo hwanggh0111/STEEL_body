@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MAINT_VERSION_KEY } from '../../data/localKeys';
 import NavIcon from '../NavIcon';
 import { getSchedules, fetchSchedules, pushSchedules, runningNow } from '../MaintenanceScreen';
@@ -144,14 +144,33 @@ export default function MaintAdmin() {
   // 부르는 쪽이 `save(...)` 를 **await 없이** 부르고 바로 「추가됐습니다」를 띄우고
   // 있었다. 서버가 거절해도 성공 문구가 먼저 번쩍이고 목록도 되돌아간다 —
   // 사람은 걸린 줄 알고 나간다. 점검은 **모든 사용자를 막는 것**이라 특히 나쁘다.
+  // ── ★ **늦게 온 실패가 새 목록을 덮었다** ── (2026-11-20 · 정석 1차)
+  //
+  // 사진 바꾸기에서 고친 것과 **같은 류**다(`Layout` 의 `photoSeqRef`). 여기는 저장·
+  // 삭제를 누르는 손을 **막는 것이 없다** — `disabled` 가 걸린 자리는 「개수 상한」
+  // 하나뿐이다. 그래서 두 번 누르면 요청이 둘 뜨고, **첫 요청이 늦게 실패하면**
+  // 그때 뜬 `prev`(두 번째 누르기 **전**의 목록)로 화면을 되돌린다 — **두 번째가
+  // 성공해 있어도** 덮는다.
+  //
+  // 그러면 화면과 서버가 **조용히 갈린다.** 이 화면이 정하는 것은 **모든 사용자를
+  // 막는 점검**이라, 머리글이 적어둔 「저장한 줄 알았는데 안 걸려 있는 것이 제일
+  // 나쁘다」가 **거꾸로**도 성립한다 — 걸렸는데 안 걸린 줄 아는 것.
+  //
+  // 순번을 매겨 **마지막으로 누른 것만** 화면을 되돌리거나 고친다. 올라간 것은 서버가
+  // 받은 차례대로이고, 되돌릴 자격은 **지금 보고 있는 그것**에만 있다
+  const 저장순번 = useRef(0);
   const save = async (updated) => {
+    const 내순번 = (저장순번.current += 1);
     const prev = schedules;
     setSchedules(updated);
     try {
       const saved = await pushSchedules(updated);
+      // 뒤엣것이 주인이다 — 올라간 것은 올라갔으니 **참**을 돌려주고 화면만 안 건드린다
+      if (내순번 !== 저장순번.current) return true;
       setSchedules(saved);
       return true;
     } catch (e) {
+      if (내순번 !== 저장순번.current) return false;
       setSchedules(prev);
       toast(e?.response?.data?.error || '점검 설정을 저장하지 못했어요', 'error');
       return false;

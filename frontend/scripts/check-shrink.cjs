@@ -509,6 +509,30 @@ function 훑기(code, file, 가로클래스) {
         결과.push({ file, line: node.loc.start.line, 빠진것, 류: '덮침' });
       }
 
+      // ── ★ **머리에 매달린 칸도 아래로 넘친다** ── (2026-11-20 · 정석 1차)
+      //
+      // 위 묶음은 **화면을 통째로 덮는 것**(`inset: 0`)만 본다. 그런데 `top` 으로
+      // 머리에 매달고 **아래 끝을 안 적은** 칸은 담은 것이 길어지면 **화면 아래로
+      // 흘러나가고**, 넘침 손이 없으니 거기에 닿을 수가 없다. 11/20 에 계정 서랍이
+      // 그 꼴이었다 — 글자를 키우면 **로그아웃과 계정 삭제**가 화면 밖으로 나갔다.
+      //
+      // 셋 중 하나는 있어야 한다 — ⑴ 아래 끝(`bottom`) ⑵ 상한(`maxHeight`)
+      // ⑶ 넘침 손. 상한만 있고 넘침 손이 없으면 **잘린 채 멈추므로** 둘을 같이 본다
+      // (`maxHeight` + 넘침 손, 또는 안쪽 상자가 그 둘을 들기).
+      //
+      // 모집단이 **지금 한 곳**이다. 적어두는 까닭은 **다음에 머리에 매다는 사람**이
+      // 같은 자리에 빠지지 않게 하는 것이다 — 0 으로 떨어지면 아래가 운다
+      if (s.값.position === 'fixed' && !s.퍼짐
+        && (s.값.top !== undefined || s.모름.has('top'))
+        && s.값.bottom === undefined && !s.모름.has('bottom')
+        && s.값.inset === undefined && !s.모름.has('inset')) {
+        const 넘침손 = ['overflow', 'overflowY'].some((k) => s.값[k] !== undefined || s.모름.has(k));
+        const 상한 = s.값.maxHeight !== undefined || s.모름.has('maxHeight');
+        const 빠진것 = [];
+        if (!((상한 && 넘침손) || 안쪽상자)) 빠진것.push('maxHeight+overflowY (아래로 흘러나간다)');
+        결과.push({ file, line: node.loc.start.line, 빠진것, 류: '머리매달림' });
+      }
+
       // ── ⑹ **단축 `font` 가 앞에 적은 글자 크기를 지웠다** ── (2026-11-19 · 맵시)
       //
       // 단추의 기본 꼴을 지우려고 `font: 'inherit'` 을 적는다. 그런데 **`font` 는
@@ -985,6 +1009,40 @@ const 되돌려꼴 = [
 );`,
     기대: [],
   },
+  // ── ★ 머리에 매달린 칸 (2026-11-20 · 정석 1차 · 계정 서랍) ──
+  {
+    이름: '★ 머리에 매달고 아래 끝을 안 적으면 운다 (화면 밖으로 흘러나간다)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', top: 58, right: 12, display: 'flex', flexDirection: 'column' }}>
+    <button>로그아웃</button>
+  </div>
+);`,
+    기대: ['maxHeight+overflowY (아래로 흘러나간다)'],
+  },
+  {
+    이름: '  상한과 넘침 손이 있으면 안 운다 (고친 꼴)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', top: 58, right: 12, maxHeight: 'calc(100dvh - 70px)',
+    overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <button>로그아웃</button>
+  </div>
+);`,
+    기대: [],
+  },
+  {
+    // ★ 이 꼴을 처음에 「아래 끝이 있으니 아무것도 안 운다」로 적었다가 **내가 틀렸다** —
+    // 위아래로 뻗은 칸도 담은 것이 길면 아래가 잘려 못 닿으므로 **덮침 묶음이 옳게
+    // 울었다.** 그래서 넘침 손을 갖춘 꼴로 적는다: 그러면 덮침은 조용하고, **머리매달림
+    // 묶음이 `bottom` 있는 칸을 끌어오지 않는지**만 남아 보인다 (11/20)
+    이름: '  아래 끝이 있으면 머리매달림이 아니다 (거짓 FAIL 막이 · 위아래로 뻗은 사이드바)',
+    code: `const A = () => (
+  <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, width: 240, display: 'flex',
+    flexDirection: 'column', overflowY: 'auto' }}>
+    <button>사이드바</button>
+  </div>
+);`,
+    기대: [],
+  },
   {
     이름: '  빈 덮개는 안 센다 (거짓 FAIL 막이 · 서랍 뒤판)',
     code: `const A = () => (
@@ -1158,6 +1216,12 @@ console.log('\n── 화면을 덮는 칸이 넘침을 받는가 ──');
   // 들어 있었는데 글자 200% 에서 넘쳤다. 과녁이 제대로 좁으면(조상에 크기가 적혔나 ·
   // 안쪽 상자가 받나 · 세로로 가운데 맞추나) **빼줄 자리가 0 이다.** 적는 쪽이 아니라
   // **재는 쪽**이고, 재서 안 되면 **한 줄 붙이는 쪽**이다(`MiniSplash` 가 그 꼴이다).
+  // ★ 머리에 매달린 칸 — 모집단을 **따로** 세어 적는다 (0 이면 이 줄이 장식이 된다)
+  const 매달림 = 모두.filter((r) => r.류 === '머리매달림');
+  ok('머리에 매달린 칸을 찾았다 (모집단이 비면 이 줄은 장식이다)', 매달림.length > 0, true);
+  console.log('       머리에 매달린 칸 ' + 매달림.length + '곳');
+  ok('★ 머리에 매달린 칸은 아래 끝이 있거나 넘침을 받는다 (서랍이 화면 밖으로 흘렀다)',
+    매달림.filter((r) => r.빠진것.length).map((r) => r.file + ':' + r.line), []);
   const 막힌것 = 덮침.filter((r) => r.빠진것.length);
   ok('덮는 칸은 넘치면 스크롤하고, 가운데 맞춤을 안쪽으로 넘겼다',
     막힌것.map((r) => r.file + ':' + r.line + ' (' + r.빠진것.join('·') + ')'), []);

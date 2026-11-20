@@ -54,6 +54,16 @@ export default function Layout() {
   const [zoomImg, setZoomImg] = useState(null);
   // 프로필 사진 요청의 **순번**. 늦게 온 답이 새것을 덮지 않게 한다 (2026-11-20)
   const photoSeqRef = useRef(0);
+  // ── **고르는 동안 그 자리에서 말한다** ── (2026-11-20 · 시안 1120-photo A안)
+  //
+  // 여태 누른 뒤 **아무 표시가 없었다.** 8MB 사진은 읽기·굽기에 1~3초인데 화면이
+  // 그대로라 **한 번 더 누르게** 되고, 그것이 「두 번 고르면 옛 사진으로 되돌아간다」
+  // 버그를 부르던 짝이다. 홈페이지 사진(「올리는 중…」) · 체형(걸음 이름)은 이미
+  // 말하고 있었고 **프로필만 없었다** — 다섯 중 하나만 다른 자리는 잊은 자리다.
+  const [photoStage, setPhotoStage] = useState(null);   // 'read' | 'shrink' | 'upload'
+  // 까닭은 **토스트가 아니라 그 자리에** 남긴다 — 토스트는 3초면 사라져서
+  // 「무엇을 하라는 거였지」가 된다. 다음 걸음까지 한 줄로 적는다
+  const [photoFail, setPhotoFail] = useState('');
 
   // 서랍에 담기는 줄. **목록은 `TabBar` 가 들고 있다** — 아래 길찾기(PC 사이드바)와
   // 같은 것을 써야 한쪽에만 새 줄이 생기는 일이 없다.
@@ -401,6 +411,9 @@ export default function Layout() {
   // (shrinkImage 주석 참고). 그래도 안 되는 것만 안내한다
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
+    // 하는 중이면 **받지 않는다** — 시트에서도 못 누르게 막지만, 파일 칸은 자판
+    // 단축키로도 열리므로 **손이 둘이면 막는 자리도 둘**이어야 한다
+    if (photoStage) { e.target.value = ''; return; }
     // **고른 것을 비워둔다** (2026-10-21에 고쳤다). 파일 칸은 **값이 같으면
     // `change` 를 안 준다** — 그래서 사진을 지웠다가 **같은 사진을 다시 고르면
     // 아무 일도 안 일어났다.** 올리다 실패해서 같은 것을 다시 고르는 길도 막혀 있었다.
@@ -410,14 +423,19 @@ export default function Layout() {
     if (!file) return;
     let photoData;
     let 못읽음 = false;
+    setPhotoFail('');
+    setPhotoStage('read');
     try {
       const { shrinkImage, PROFILE_EDGE } = await import('../data/shrinkImage');
       // **프로필은 26px 로 그린다** — 긴 변 256 으로 줄여 올린다 (2026-10-31).
       // 여태 전·후 사진과 같은 자로 줄여서, 한도(2MB) 안이면 **안 줄였다** —
       // 300KB 짜리가 기기를 바꿀 때마다 그대로 내려왔다
-      ({ data: photoData, unreadable: 못읽음 } = await shrinkImage(file, { maxEdge: PROFILE_EDGE, always: true }));
+      ({ data: photoData, unreadable: 못읽음 } = await shrinkImage(file, {
+        maxEdge: PROFILE_EDGE, always: true, onStage: setPhotoStage,
+      }));
     } catch {
-      toast('사진을 읽지 못했어요', 'error');
+      setPhotoStage(null);
+      setPhotoFail('사진을 읽지 못했어요 — 다른 사진으로 다시 골라주세요');
       return;
     }
     // ── ★ **못 읽은 것은 크기와 상관없이 거절한다** ── (2026-11-20 · 정석 1차)
@@ -434,7 +452,8 @@ export default function Layout() {
       // **1.2MB 짜리를 골라도 그 말이 떴다.** 사실과 다르고, 줄여 와도 또 안 되니
       // **할 수 있는 일을 안 알려준 셈**이다. 말은 `photoRejectMessage` 한 자리에서
       // 만든다 — 사진을 거절하는 세 자리가 **같은 손**을 부른다
-      toast(photoRejectMessage({ unreadable: 못읽음 }), 'error');
+      setPhotoStage(null);
+      setPhotoFail(photoRejectMessage({ unreadable: 못읽음 }));
       return;
     }
     // ── ★ **늦게 온 실패가 뒤엣것을 덮었다** ── (2026-11-20)
@@ -448,14 +467,19 @@ export default function Layout() {
     // 순번을 매겨 **마지막으로 고른 것만** 화면을 되돌린다. 올라간 것은 서버가
     // 받은 차례대로이고, 되돌릴 자격은 **지금 보고 있는 그것**에만 있다
     const 내순번 = (photoSeqRef.current += 1);
+    setPhotoStage('upload');
     setProfilePhoto(photoData);
     client.post('/photos', { type: 'profile', data: photoData }).then(() => {
       if (내순번 !== photoSeqRef.current) return;   // 더 나중 것이 올라갔다 — 손대지 않는다
       saveLS(PROFILE_KEY, photoData);
+      setPhotoStage(null);
+      toast('프로필 사진을 바꿨어요');
     }).catch(() => {
       if (내순번 !== photoSeqRef.current) return;   // 옛 실패가 새 사진을 덮지 않는다
       setProfilePhoto(readLS(PROFILE_KEY) || '');
-      toast('사진 업로드 실패', 'error');
+      setPhotoStage(null);
+      // 신호 탓인지 우리 탓인지 모르니 **다음 걸음만** 적는다
+      setPhotoFail('사진을 올리지 못했어요 — 신호를 확인하고 다시 골라주세요');
     });
   };
 
@@ -482,6 +506,7 @@ export default function Layout() {
     // 지우기도 **같은 순번을 올린다** — 올리던 것이 늦게 성공해 `saveLS` 로 다시
     // 담으면 지운 사진이 다음 번에 되살아난다
     photoSeqRef.current += 1;
+    setPhotoFail('');
     removeLS(PROFILE_KEY);
     setProfilePhoto('');
     // **서버 삭제 실패를 삼키면 안 된다.** 이 기기에서만 지워지고 서버에는 남으면
@@ -825,9 +850,23 @@ export default function Layout() {
         />
       )}
       <div ref={sideRef} style={{
+        // ── ★ **머리에 매달린 서랍도 아래로 넘친다** ── (2026-11-20 · 정석 1차)
+        //
+        // 11/20 에 고친 덮개 넷은 `inset: 0` 이라 자가 본다. 이 칸은 `top: 58` ·
+        // `right: 12` 로 **머리에 매달려** 있어서 그 과녁 밖이었고, **아래 끝도 넘침
+        // 손도 없었다.** 담긴 것은 사진 · 닉네임 · 이메일 · 서랍 줄 여럿 · 비밀번호 ·
+        // 로그아웃 · 계정 삭제다 — 글자를 150~200% 로 쓰면 그 줄들이 **화면 아래로
+        // 나가고**, 스크롤이 없으니 **로그아웃과 계정 삭제에 닿을 수가 없다.**
+        //
+        // 아래 끝을 화면에 묶고(`100dvh` — 주소창이 접히는 폰에서 `vh` 는 거짓말을
+        // 한다) 넘치면 **서랍 안에서** 구르게 한다. 가운데 맞춤은 없으므로 위로
+        // 넘치는 쪽은 생기지 않는다
         position: 'fixed',
         top: 58,
         right: 12,
+        maxHeight: 'calc(100dvh - 58px - 12px)',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         zIndex: LAYER.서랍,
         display: sideMenu ? 'flex' : 'none',
         flexDirection: 'column', alignItems: 'flex-end',
@@ -840,6 +879,9 @@ export default function Layout() {
             onPickPhoto={() => fileRef.current?.click()}
             onDeletePhoto={handlePhotoDelete}
             onZoomPhoto={setZoomImg}
+            photoStage={photoStage}
+            photoFail={photoFail}
+            onClearPhotoFail={() => setPhotoFail('')}
             onSaveNick={saveNickname}
             savingNick={savingNick}
             drawer={drawerItems}
