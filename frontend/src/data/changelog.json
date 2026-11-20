@@ -2,6 +2,15 @@
   "generated": "2026-11-20",
   "items": [
     {
+      "hash": "9b9d268",
+      "date": "2026-11-20",
+      "type": "fix",
+      "label": "고침",
+      "scope": "받기",
+      "text": "**「사진」을 켜고 받으면 0장이 나갔다** — 사진은 `photos.json` 에 따로 산다",
+      "detail": "`db.userRows(u, ['photos'])` 는 영영 빈 목록이다 — 사진은 본 DB 가 아니라\n`photos.json` 에 살고(`loadPhotos`) 그 손은 본 DB만 본다. `USER_COLLECTIONS` 에도\n`photos` 가 없어 모집단 자도 안 울었다.\n\n★ 삭제 창이 `PARTS` 전부로 부른다 — **「지우기 전에 먼저 받기」가 사진 0장을 주고\n사진은 계정과 함께 지워졌다.** 그러면서 `빠진것` 에는 그 줄이 적히지 않았다\n(고른 것으로 치기 때문이다).\n\n- 사진은 그 자리에서 따로 집는다 (`db.getPhotos`) · 미리 보기 장수도 같은 손으로\n- `USER_COLLECTIONS` 에 `photos` 를 넣지 않는다 — 그 목록은 지우는 쪽이 본 DB 를\n  돌 때 쓴다. …"
+    },
+    {
       "hash": "6b4b26c",
       "date": "2026-11-20",
       "type": "fix",
@@ -711,15 +720,6 @@
       "scope": "배포",
       "text": "**첫 짐과 아이콘에서 93.6KB 를 덜어냈다** · 빌드 메모가 라이브에 공개돼 있었다",
       "detail": "배포본을 전부 재고 들어갔다. 서버 쪽은 이미 잘 서 있다 — br 미리 압축 · 해시 박힌\n덩어리에 `immutable` · 구글 글꼴은 `media=\"print\"` 로 렌더링을 안 막는다. 남은 셋을\n걷었다.\n\n## ★ `dist/.vite/manifest.json` 이 라이브에서 200 이었다 (32KB)\n\n비테가 **빌드 때 쓰라고** 적어주는 메모다. `route-chunks.mjs` 가 읽는 그 파일이고\n읽고 나면 쓸 일이 없는데, `dist` 안에 있어서 `express.static` 이 그대로 내줬다 —\n`curl https://steel-body.onrender.com/.vite/manifest.json` → **200 · 32,418B**.\n`precompress` 도 그것까지 br·gz 로 싸서 **셋**을 내보내고 있었다 …"
-    },
-    {
-      "hash": "f0c170c",
-      "date": "2026-11-13",
-      "type": "fix",
-      "label": "고침",
-      "scope": "서버",
-      "text": "★ **여덟 자를 넘는 확장자가 폴백에 올라타 HTML 을 200 으로 받았다**",
-      "detail": "11/11 에 「확장자가 붙은 주소는 폴백에 태우지 않는다」로 막은 자리인데, 선을\n**길이로 재고 있었다** — `/\\.[A-Za-z0-9]{1,8}$/`. 그래서 여덟 자를 넘는 확장자가\n그대로 지나갔다. 라이브에서 받아 확인했다 —\n\n    /manifest.webmanifest   → 200 text/html  (3,944B = index.html)\n    /x.properties           → 200 text/html\n\n11/11 의 그 사고가 일어나는 자리다. 서비스워커는 받은 것이 HTML 이어도\n`status === 200` 만 보고 담았고(`public/sw.js` 4번 · 캐시 우선), 담긴 사람은\n새로고침으로도 회복이 안 됐다. …"
     }
   ]
 }
