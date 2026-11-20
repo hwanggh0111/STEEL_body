@@ -5,7 +5,7 @@ import RadarChart from '../components/charts/Radar';
 import { toast } from '../components/Toast';
 import client from '../api/client';
 import { readLS, saveLS, removeLS } from '../data/safeStorage';
-import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, photoRejectMessage } from '../data/photoLimit';
 import { COMPARE_PHOTOS_KEY } from '../data/localKeys';
 import { shrinkImage } from '../data/shrinkImage';
 import OverlayCamera from '../components/OverlayCamera';
@@ -120,9 +120,11 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
 
   // 고른 사진이든 찍은 사진이든 **저장하는 길은 하나다.** 두 벌로 두면 한쪽만
   // 고치는 날이 오고, 그러면 같은 사진이 경로에 따라 다르게 저장된다
-  const commit = (data, shrunk) => {
+  const commit = (data, shrunk, unreadable) => {
     if (typeof data !== 'string' || data.length > PHOTO_MAX_BASE64) {
-      toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`);
+      // 까닭이 둘이다 — 진짜 크거나 **우리가 못 읽은 것**이다. 말은 한 자리에서
+      // 만든다(`photoRejectMessage`) — 베껴 적으면 한쪽만 고치는 날이 온다 (11/20)
+      toast(photoRejectMessage({ unreadable }));
       return;
     }
     const updated = { ...photos, [photoKey]: data };
@@ -150,8 +152,8 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
     e.target.value = '';
     if (!file) return;
     try {
-      const { data, shrunk } = await shrinkImage(file);
-      commit(data, shrunk);
+      const { data, shrunk, unreadable } = await shrinkImage(file);
+      commit(data, shrunk, unreadable);
     } catch {
       toast('사진을 읽지 못했어요', 'error');
     }

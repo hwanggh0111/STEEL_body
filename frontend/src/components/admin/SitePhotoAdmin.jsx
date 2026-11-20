@@ -3,7 +3,7 @@ import client from '../../api/client';
 import { toast } from '../Toast';
 import { confirmDialog } from '../ConfirmModal';
 import { shrinkImage } from '../../data/shrinkImage';
-import { PHOTO_MAX_LABEL } from '../../data/photoLimit';
+import { photoRejectMessage } from '../../data/photoLimit';
 import NavIcon from '../NavIcon';
 
 // 홈페이지 사진 — **관리자가 거는 자리.**
@@ -51,13 +51,17 @@ export default function SitePhotoAdmin() {
     if (!file || busy) return;
 
     setBusy(true);
+    let 안읽힘 = false;
     try {
-      const { data, shrunk } = await shrinkImage(file);
+      const { data, shrunk, unreadable } = await shrinkImage(file);
+      안읽힘 = unreadable;
       const res = await client.post('/site-photos', { data, caption: '' });
       setPhotos((prev) => [...prev, res.data.photo]);
       toast(shrunk ? '사진을 줄여서 걸었어요' : '사진을 걸었어요');
     } catch (err) {
-      toast(err.response?.data?.error || `사진을 못 올렸어요 (${PHOTO_MAX_LABEL} 아래로 줄여보세요)`, 'error');
+      // 서버가 거절한 까닭을 주면 그것을 쓰고, 없으면 **우리가 아는 까닭**을 말한다 —
+      // 못 읽은 것을 「줄여보세요」로 말하면 줄여 와도 또 안 된다 (11/20 · 말은 한 자리에서)
+      toast(err.response?.data?.error || photoRejectMessage({ unreadable: 안읽힘 }), 'error');
     } finally {
       setBusy(false);
     }

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>A안 — 그 행이 말한다</title>
+<!-- 2026-11-20 · A안. **새 화면을 안 만든다** — 「사진 바꾸기」 그 행이 진행과 까닭을 말한다.
+     파란 점선이 새로 붙는 자리다. 걸음이 늘지 않고, 서랍 안에서 끝난다. -->
+<style>
+.sheet{width:268px;background:#1b1712;border:1px solid #332b1e;border-radius:2px;box-shadow:0 18px 40px rgba(0,0,0,.45);overflow:hidden}
+.who{display:flex;align-items:center;gap:13px;padding:18px 16px 16px}
+.big{width:52px;height:52px;flex-shrink:0;border-radius:50%;border:1px solid #eeb77d;position:relative;background:center/cover no-repeat url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"><rect width="52" height="52" fill="%23463425"/><circle cx="26" cy="19" r="9" fill="%236d523a"/><ellipse cx="26" cy="46" rx="17" ry="13" fill="%236d523a"/></svg>')}
+/* 진행은 **그 사진 위에** 고리로 돈다 — 어디서 일이 벌어지는지가 한눈에 선다 */
+.ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid #332b1e;border-top-color:#eeb77d;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.nm{font:600 14px 'Barlow','IBM Plex Sans KR',sans-serif}
+.em{font-size:11.5px;color:#8f8471}
+.rows{border-top:1px solid #332b1e}
+.r{display:flex;align-items:center;gap:11px;padding:13px 16px;border-bottom:1px solid #251f16;font-size:13.5px}
+.r .ic{width:17px;flex-shrink:0;color:#aaa28e;text-align:center}
+.r.mut{color:#8f8471}
+.r.busy{color:#eeb77d}
+.step{margin-left:auto;font:600 11.5px 'Barlow','IBM Plex Sans KR',sans-serif;color:#aaa28e;flex-shrink:0}
+.nw{outline:1.5px dashed #7fa8d9;outline-offset:3px}
+/* 까닭은 **그 행 바로 아래**에 남는다 — 토스트는 3초 뒤 사라져서 「무엇을 하라는 거였지」가 된다 */
+.why{display:flex;gap:10px;background:#1b1712;border-bottom:1px solid #251f16;border-left:2px solid #d29a5f;padding:11px 14px 12px;font-size:12.5px;color:#aaa28e;line-height:1.7}
+.why b{color:#eae4d6}
+.why .ic{color:#d29a5f;flex-shrink:0;margin-top:1px}
+.doit{display:inline-block;margin-top:7px;font:600 12px 'Barlow','IBM Plex Sans KR',sans-serif;color:#eeb77d;border:1px solid #4a3f2c;border-radius:2px;padding:6px 11px}
+.note{position:absolute;left:0;right:0;bottom:0;background:#15120e;border-top:1px solid #332b1e;padding:11px 14px;font-size:11.5px;color:#8f8471;line-height:1.7}
+.note b{color:#7fa8d9}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+
+  <main style="padding:14px 20px 0;display:flex;justify-content:flex-end">
+    <div class="sheet">
+      <div class="who">
+        <div class="big"><div class="ring nw"></div></div>
+        <div style="min-width:0">
+          <div class="nm">seeddemo</div>
+          <div class="em">with****@gmail.com</div>
+        </div>
+      </div>
+      <div class="rows">
+        <div class="r"><span class="ic">⚙</span>아이디 바꾸기</div>
+
+        <!-- ★ 진행을 **그 행에서** 말한다. 세 걸음을 다 적는다 —
+             「읽는 중」과 「올리는 중」은 느린 까닭이 다르다(폰 탓 · 신호 탓) -->
+        <div class="r busy nw"><span class="ic">▣</span>사진 바꾸는 중<span class="step">줄이는 중… 2/3</span></div>
+
+        <!-- ★ 누르는 동안 **다시 못 누른다** — 두 번 눌러 옛 사진으로 되돌아가던 길이 막힌다 -->
+        <div class="r mut"><span class="ic">⊘</span>사진 지우기</div>
+        <div class="r"><span class="ic">🔒</span>비밀번호 변경</div>
+      </div>
+    </div>
+  </main>
+
+  <main style="padding:16px 20px 0;display:flex;justify-content:flex-end">
+    <div class="sheet">
+      <div class="who">
+        <div class="big"></div>
+        <div style="min-width:0">
+          <div class="nm">seeddemo</div>
+          <div class="em">with****@gmail.com</div>
+        </div>
+      </div>
+      <div class="rows">
+        <div class="r nw"><span class="ic">▣</span>사진 바꾸기</div>
+        <!-- ★ 실패하면 **그 자리에 까닭과 다음 걸음**이 남는다 (토스트는 사라진다) -->
+        <div class="why nw"><span class="ic">!</span><span>
+          이 폰이 <b>이 사진 형식(HEIC)을 못 읽어요.</b> 크기 때문이 아닙니다 —
+          사진 앱에서 <b>JPG 로 보내</b> 다시 골라 주세요.
+          <span class="doit">다시 고르기</span></span></div>
+        <div class="r mut"><span class="ic">⊘</span>사진 지우기</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="note">
+    <b>A안 — 그 행이 말한다.</b> 새 화면 0개 · 걸음 안 늘어남.
+    위: 진행을 <b>세 걸음</b>으로(읽는 중 → 줄이는 중 → 올리는 중) · 사진 위에 고리 ·
+    <b>그동안 다시 못 누른다</b>(②가 닫힌다).
+    아래: 실패하면 <b>그 행 아래에 까닭과 다음 걸음</b>이 남는다(①이 닫힌다 — 크기 탓이 아니라고 말한다).
+  </div>
+</div>
+</body>
+</html>

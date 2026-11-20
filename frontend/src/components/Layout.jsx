@@ -16,7 +16,7 @@ import Logo from './Logo';
 import { confirmDialog } from './ConfirmModal';
 import client from '../api/client';
 import { readLS, removeLS, saveLS } from '../data/safeStorage';
-import { PHOTO_MAX_BASE64, PHOTO_MAX_LABEL } from '../data/photoLimit';
+import { PHOTO_MAX_BASE64, photoRejectMessage } from '../data/photoLimit';
 import { EMAIL_KEY, PROFILE_PHOTO_KEY } from '../data/localKeys';
 // **사진을 고를 때만 받는다** (2026-09-22). 이미지를 줄이는 코드는 캔버스를 다루는
 // 덩어리라, 사진을 한 번도 안 올리는 사람에게까지 첫 화면에서 받게 할 이유가 없다
@@ -52,6 +52,8 @@ export default function Layout() {
   const [profilePhoto, setProfilePhoto] = useState(readLS(PROFILE_KEY) || '');
   const [savingNick, setSavingNick] = useState(false);
   const [zoomImg, setZoomImg] = useState(null);
+  // 프로필 사진 요청의 **순번**. 늦게 온 답이 새것을 덮지 않게 한다 (2026-11-20)
+  const photoSeqRef = useRef(0);
 
   // 서랍에 담기는 줄. **목록은 `TabBar` 가 들고 있다** — 아래 길찾기(PC 사이드바)와
   // 같은 것을 써야 한쪽에만 새 줄이 생기는 일이 없다.
@@ -407,24 +409,45 @@ export default function Layout() {
     e.target.value = '';
     if (!file) return;
     let photoData;
+    let 못읽음 = false;
     try {
       const { shrinkImage, PROFILE_EDGE } = await import('../data/shrinkImage');
       // **프로필은 26px 로 그린다** — 긴 변 256 으로 줄여 올린다 (2026-10-31).
       // 여태 전·후 사진과 같은 자로 줄여서, 한도(2MB) 안이면 **안 줄였다** —
       // 300KB 짜리가 기기를 바꿀 때마다 그대로 내려왔다
-      ({ data: photoData } = await shrinkImage(file, { maxEdge: PROFILE_EDGE, always: true }));
+      ({ data: photoData, unreadable: 못읽음 } = await shrinkImage(file, { maxEdge: PROFILE_EDGE, always: true }));
     } catch {
       toast('사진을 읽지 못했어요', 'error');
       return;
     }
     if (typeof photoData !== 'string' || photoData.length > PHOTO_MAX_BASE64) {
-      toast(`사진은 ${PHOTO_MAX_LABEL} 이하만 가능해요`, 'error');
+      // ── ★ **못 읽은 것을 「크다」고 말하지 않는다** ── (2026-11-20)
+      //
+      // 여태 까닭을 하나로만 말했다 — 「사진은 1.5MB 이하만 가능해요」. 그런데 못 여는
+      // 형식(데스크톱 크롬의 HEIC 등)이면 줄이는 손이 **원본을 그대로** 돌려주므로
+      // **1.2MB 짜리를 골라도 그 말이 떴다.** 사실과 다르고, 줄여 와도 또 안 되니
+      // **할 수 있는 일을 안 알려준 셈**이다. 말은 `photoRejectMessage` 한 자리에서
+      // 만든다 — 사진을 거절하는 세 자리가 **같은 손**을 부른다
+      toast(photoRejectMessage({ unreadable: 못읽음 }), 'error');
       return;
     }
+    // ── ★ **늦게 온 실패가 뒤엣것을 덮었다** ── (2026-11-20)
+    //
+    // 미리 보기를 먼저 바꾸고 올리는데, 올리기가 실패하면 `readLS`(옛 사진)로
+    // 되돌린다. 그런데 **두 번 고르면** 첫 요청의 실패가 **나중에** 와서,
+    // **두 번째가 이미 성공해 있어도** 그 옛 사진으로 덮었다 — 사람이 보기에는
+    // 「바꿨는데 옛 사진으로 되돌아간다」다. 고르는 동안 아무 표시가 없어
+    // (한 번 더 누르기 쉬워) 걸리기도 쉬웠다.
+    //
+    // 순번을 매겨 **마지막으로 고른 것만** 화면을 되돌린다. 올라간 것은 서버가
+    // 받은 차례대로이고, 되돌릴 자격은 **지금 보고 있는 그것**에만 있다
+    const 내순번 = (photoSeqRef.current += 1);
     setProfilePhoto(photoData);
     client.post('/photos', { type: 'profile', data: photoData }).then(() => {
+      if (내순번 !== photoSeqRef.current) return;   // 더 나중 것이 올라갔다 — 손대지 않는다
       saveLS(PROFILE_KEY, photoData);
     }).catch(() => {
+      if (내순번 !== photoSeqRef.current) return;   // 옛 실패가 새 사진을 덮지 않는다
       setProfilePhoto(readLS(PROFILE_KEY) || '');
       toast('사진 업로드 실패', 'error');
     });
@@ -450,6 +473,9 @@ export default function Layout() {
   const handlePhotoDelete = async () => {
     const ok = await confirmDialog('프로필 사진을 삭제할까요?', { title: '프로필 사진 삭제', confirmText: '삭제' });
     if (!ok) return;
+    // 지우기도 **같은 순번을 올린다** — 올리던 것이 늦게 성공해 `saveLS` 로 다시
+    // 담으면 지운 사진이 다음 번에 되살아난다
+    photoSeqRef.current += 1;
     removeLS(PROFILE_KEY);
     setProfilePhoto('');
     // **서버 삭제 실패를 삼키면 안 된다.** 이 기기에서만 지워지고 서버에는 남으면

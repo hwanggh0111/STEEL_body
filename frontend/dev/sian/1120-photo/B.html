@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>B안 — 올리기 전에 보여준다</title>
+<!-- 2026-11-20 · B안. 고른 사진을 **올리기 전에** 보여주고 「이 사진으로」를 누르게 한다.
+     잘못 고른 것을 되돌릴 수 있다 — 지금은 누른 순간 **바로 덮어쓴다**(옛 사진은 사라진다).
+     값: 걸음이 하나 늘고 작은 화면 하나가 생긴다. -->
+<style>
+.back{position:absolute;inset:0;background:rgba(8,7,5,.72)}
+.box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:316px;background:#1b1712;border:1px solid #332b1e;border-radius:2px;box-shadow:0 18px 40px rgba(0,0,0,.5);padding:18px 18px 16px}
+.ttl{font:400 19px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1.5px;color:#eae4d6;margin-bottom:4px}
+.sub{font-size:12.5px;color:#8f8471;margin-bottom:14px}
+/* 미리보기는 **쓰는 꼴 그대로** 보여준다 — 네모로 보여주고 동그라미로 그리면
+   머리가 잘린 것을 올린 뒤에야 안다 */
+.prev{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.circ{width:84px;height:84px;flex-shrink:0;border-radius:50%;border:1px solid #eeb77d;background:center/cover no-repeat url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84"><rect width="84" height="84" fill="%23463425"/><circle cx="42" cy="31" r="15" fill="%236d523a"/><ellipse cx="42" cy="74" rx="27" ry="21" fill="%236d523a"/></svg>')}
+.mini{display:flex;flex-direction:column;gap:7px;align-items:center;font-size:11px;color:#8f8471}
+.mini .d{width:26px;height:26px;border-radius:50%;border:1px solid #4a3f2c;background:center/cover no-repeat url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect width="26" height="26" fill="%23463425"/><circle cx="13" cy="10" r="5" fill="%236d523a"/><ellipse cx="13" cy="23" rx="8" ry="7" fill="%236d523a"/></svg>')}
+.facts{background:#15120e;border:1px solid #332b1e;border-radius:2px;padding:10px 12px;font-size:12px;color:#aaa28e;line-height:1.8;margin-bottom:14px}
+.facts b{color:#eae4d6}
+.btns{display:flex;gap:8px}
+.nw{outline:1.5px dashed #7fa8d9;outline-offset:4px}
+.note{position:absolute;left:0;right:0;bottom:0;background:#15120e;border-top:1px solid #332b1e;padding:11px 14px;font-size:11.5px;color:#8f8471;line-height:1.7}
+.note b{color:#7fa8d9}
+.note .cost{color:#d29a5f}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+
+  <div class="back"></div>
+  <div class="box nw" role="dialog" aria-label="이 사진으로 할까요">
+    <div class="ttl">이 사진으로 할까요</div>
+    <div class="sub">올리기 전입니다. 아직 바뀌지 않았어요.</div>
+
+    <div class="prev">
+      <div class="circ"></div>
+      <div class="mini">
+        <div class="d"></div>
+        실제 크기<br>(머리띠 26px)
+      </div>
+    </div>
+
+    <!-- 지어내지 않는다 — 셋 다 고른 파일에서 그 자리에서 재는 수다 -->
+    <div class="facts">
+      고른 것 <b>IMG_4821.JPG · 3.4MB</b><br>
+      올라가는 것 <b>256px · 14KB</b> <span style="color:#8f8471">— 우리가 줄입니다</span><br>
+      <span style="color:#8f8471">지금 사진은 바꾸면 <b style="color:#d29a5f">되돌릴 수 없습니다</b></span>
+    </div>
+
+    <div class="btns">
+      <button class="btn2" style="flex:1">다시 고르기</button>
+      <button class="btn1" style="flex:1.4">이 사진으로</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>B안 — 올리기 전에 보여준다.</b> 동그라미로 **쓰는 꼴 그대로** 미리 보고(머리가 잘리는지),
+    <b>올라가는 크기</b>까지 적어 준다. 잘못 고른 것을 <b>올리기 전에</b> 되돌린다 —
+    지금은 누른 순간 바로 덮어쓰고 옛 사진은 사라진다.
+    <span class="cost">값: 걸음이 하나 늘고(고르기 → 확인 → 올리기) 작은 화면 하나가 생긴다.</span>
+    ①②③ 는 이 안에서도 따로 고쳐야 한다.
+  </div>
+</div>
+</body>
+</html>

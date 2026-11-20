@@ -56,9 +56,21 @@ function loadImage(dataUrl) {
 
 /**
  * @param {File} file 고른 파일
- * @returns {Promise<{ data: string, shrunk: boolean }>}
- *   data   — 올릴 data URL
- *   shrunk — 우리가 줄였는지 (화면에서 그렇다고 알려줄 때 쓴다)
+ * @returns {Promise<{ data: string, shrunk: boolean, unreadable?: boolean }>}
+ *   data       — 올릴 data URL
+ *   shrunk     — 우리가 줄였는지 (화면에서 그렇다고 알려줄 때 쓴다)
+ *   unreadable — ★ **브라우저가 이 그림을 못 열었다** (2026-11-20)
+ *
+ * ── `unreadable` 이 왜 생겼나 ──
+ *
+ * 못 여는 형식(데스크톱 크롬의 HEIC 같은)이면 아래 `catch` 가 **원본을 그대로**
+ * 돌려준다. 그 원본이 한도를 넘으면 부르는 쪽이 「사진은 1.5MB 이하만 가능해요」를
+ * 띄웠다 — **1.2MB 짜리를 골라도 같은 말**이다. 까닭이 **사실과 다르고**(크기 탓이
+ * 아니라 우리가 못 읽은 것이다) **다음 걸음도 없다**(줄여 와도 또 안 된다).
+ *
+ * 그래서 「못 읽었다」를 **값으로** 돌려준다. 말은 `photoLimit.js` 의
+ * `photoRejectMessage` **한 자리**에서 만든다 — 세 자리(프로필 · 전후 사진 ·
+ * 홈페이지 사진)가 같은 손을 부른다. 두 벌로 두면 한쪽만 고치는 날이 온다.
  */
 export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } = {}) {
   const original = await readAsDataURL(file);
@@ -78,7 +90,7 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } =
     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
     const ctx = canvas.getContext('2d');
-    if (!ctx) return { data: original, shrunk: false };
+    if (!ctx) return { data: original, shrunk: false, unreadable: true };
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     for (const q of QUALITIES) {
@@ -93,8 +105,8 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false } =
     // 세 번을 낮춰도 안 되면 마지막 것을 준다. 부르는 쪽이 한도를 다시 보고 안내한다
     return { data: canvas.toDataURL('image/jpeg', QUALITIES[QUALITIES.length - 1]), shrunk: true };
   } catch {
-    // 브라우저가 못 여는 형식. 원본을 그대로 돌려준다
-    return { data: original, shrunk: false };
+    // 브라우저가 못 여는 형식. 원본을 그대로 돌려주고 **못 읽었다고 말한다**
+    return { data: original, shrunk: false, unreadable: true };
   }
 }
 

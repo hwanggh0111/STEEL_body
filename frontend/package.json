@@ -35,6 +35,7 @@
     "loadfail": "node scripts/check-loadfail.cjs",
     "scroll": "node scripts/check-scroll.cjs",
     "shrink": "node scripts/check-shrink.cjs",
+    "photo": "node scripts/check-photo.cjs",
     "pushpull": "node scripts/check-pushpull.cjs",
     "layer": "node scripts/check-layer.cjs",
     "devframe": "node scripts/check-devframe.cjs",
