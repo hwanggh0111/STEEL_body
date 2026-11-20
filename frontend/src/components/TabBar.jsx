@@ -120,6 +120,41 @@ const 탭바높이치우기 = () => {
 export default function TabBar() {
   const [splash, setSplash] = useState(false);
   const navRef = useRef(null);
+
+  // ── ★ **글자를 키운 사람에게만 탭 이름을 접는다** ── (2026-11-20 · 시안 1120 ④)
+  //
+  // 탭바 높이는 기본 **64.6px** 인데 폰에서 글자를 150% 로 쓰면 ~70, 200% 면 ~82 가 된다
+  // (`NAV_TOKENS.labelSize: 11` 이 22 로 자란다). 그만큼 **바닥에 뜨는 것이 전부 밀리고**
+  // (띠 · 알림 · 「맨 위로」 — 11/19·11/20 에 그 셋을 다 고쳤다) 화면도 그만큼 줄어든다.
+  //
+  // 시안 ④ 의 A 안(가운데 큰 단추)은 **길 이름이 바뀌어** 익은 사람이 헤매고, B 안
+  // (아이콘만)은 **처음 쓰는 사람에게 아이콘 넷을 외우게** 한다. 그래서 중간으로 간다 —
+  // **기본 크기에서는 지금과 한 글자도 다르지 않고**, 글자를 키운 사람에게만 접는다.
+  //
+  // ★ **배율을 묻지 않고 잰다.** 웹에서 「글자 크기 200%」라는 수는 읽을 길이 없다.
+  // 그리고 **탭바 높이(`--tabbar-h`)로 재지 않는다** — 접으면 그 높이가 줄어 다시 펴지고,
+  // 펴면 또 커져 **떨린다**(정석이 짚은 자리). 대신 **라벨 글자의 실제 px** 를 잰다:
+  // 그 값은 **접어도 안 변하므로** 떨 자리가 없다. 11 이 기본이고 150% 면 ~16.5,
+  // 200% 면 22 다 — **15.5** 를 넘으면 접는다(150% 를 담는 선이다).
+  const 라벨잣대 = useRef(null);
+  const [이름접기, set이름접기] = useState(false);
+  useEffect(() => {
+    const el = 라벨잣대.current;
+    if (!el || typeof window === 'undefined') return undefined;
+    const 재기 = () => {
+      const px = parseFloat(window.getComputedStyle(el).fontSize) || 0;
+      // 0 이 나오면(못 쟀다) **접지 않는다** — 모를 때는 이름을 보이는 쪽이 안전하다
+      if (px > 0) set이름접기(px > 15.5);
+    };
+    재기();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(재기);
+    if (ro) ro.observe(el);
+    window.addEventListener('resize', 재기);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', 재기);
+    };
+  }, []);
   const [isAdminUser, setIsAdminUser] = useState(isAdmin());
   const location = useLocation();
   const navigate = useNavigate();
@@ -220,12 +255,15 @@ export default function TabBar() {
   // `aria-current="page"` 는 **지금 어디인지**를 읽어준다 — 금색은 눈으로만 보인다.
   // 안 읽은 수(badge)는 이름에 같이 넣는다. 「고객센터」만 읽히면 빨간 동그라미에
   // 적힌 3 은 전해지지 않는다.
-  const NavCell = ({ item, active, onClick, layout = 'vertical' }) => (
+  const NavCell = ({ item, active, onClick, layout = 'vertical', 이름숨김 = false }) => (
     <button
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      aria-label={item.badge > 0 ? `${item.label}, 안 읽은 ${item.badge}` : undefined}
+      /* ★ **이름을 늘 들려준다** (2026-11-20). 여태 `badge > 0` 일 때만 있었다 —
+         이름을 접으면 **나머지 탭은 이름이 통째로 사라진다**(아이콘만 남는다).
+         보이든 접히든 낭독기에는 같은 말이 가야 한다 (정석이 짚었다) */
+      aria-label={item.badge > 0 ? `${item.label}, 안 읽은 ${item.badge}` : item.label}
       style={{
         display: 'flex',
         flexDirection: layout === 'vertical' ? 'column' : 'row',
@@ -234,6 +272,13 @@ export default function TabBar() {
         gap: layout === 'vertical' ? 4 : 12,
         width: '100%',
         padding: layout === 'vertical' ? `${NAV_TOKENS.paddingY}px 4px` : `${NAV_TOKENS.paddingY}px ${NAV_TOKENS.paddingX}px`,
+        // ★ **접으면 과녁이 44 아래로 내려간다** (2026-11-20 · 정석이 경고한 자리).
+        // 이름이 있을 때는 여백 20 + 아이콘 22 + 틈 4 + 이름 17.6 = 64.6 이라 넉넉한데,
+        // 이름을 접으면 **20 + 22 = 42** 다. 폰의 「글자 크기」는 **글자만** 키우므로
+        // 여백 10 과 아이콘 22 는 그대로다 — 즉 접은 뒤에는 늘 42 다.
+        // 그래서 세로 칸에 **바닥을 깐다.** 이름이 있을 때는 이미 그보다 커서 아무 일도
+        // 안 한다 (`check-tap` 이 44 를 지킨다)
+        minHeight: layout === 'vertical' ? 48 : undefined,
         cursor: 'pointer',
         position: 'relative',
         transition: 'all 0.15s',
@@ -287,7 +332,9 @@ export default function TabBar() {
           }}>{item.badge > 99 ? '99+' : item.badge}</span>
         )}
       </span>
-      <span style={{
+      {/* 이름. 글자를 키운 사람에게는 **접는다** — 그래도 `aria-label` 로 들린다.
+          `hidden` 으로 끄는 것은 집안 꼴이다(`globals.css` 의 `[hidden]`) */}
+      <span hidden={이름숨김} style={{
         fontFamily: NAV_TOKENS.labelFont,
         fontSize: NAV_TOKENS.labelSize,
         letterSpacing: NAV_TOKENS.labelLetterSpacing,
@@ -386,6 +433,16 @@ export default function TabBar() {
         <div style={{
           display: 'flex', width: '100%', maxWidth: 'var(--max-width)',
         }}>
+          {/* ★ 라벨 글자를 재는 **보이지 않는 잣대**다 (위 머리글). 탭 이름과 **같은
+              글꼴·같은 크기**로 두어야 같은 값이 읽힌다. 접혀도 이 칸은 늘 있으므로
+              잣대가 사라지지 않는다 — 그래서 떨지 않는다 */}
+          <span ref={라벨잣대} aria-hidden="true" style={{
+            position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+            clip: 'rect(0 0 0 0)', pointerEvents: 'none',
+            fontFamily: NAV_TOKENS.labelFont,
+            fontSize: NAV_TOKENS.labelSize,
+            letterSpacing: NAV_TOKENS.labelLetterSpacing,
+          }}>가</span>
           {TABS.map(tab => (
             <div key={tab.path} style={{ flex: 1 }}>
               <NavCell
@@ -393,6 +450,7 @@ export default function TabBar() {
                 active={isActive(tab.path)}
                 onClick={() => handleTab(tab.path)}
                 layout="vertical"
+                이름숨김={이름접기}
               />
             </div>
           ))}
