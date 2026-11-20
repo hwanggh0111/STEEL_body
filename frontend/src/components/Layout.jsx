@@ -841,8 +841,25 @@ export default function Layout() {
             window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
           }}
           style={{
-            // 탭바 위로 30 — 그 높이는 탭바가 알려준다 (2026-11-19 · 맵시)
-            position: 'fixed', bottom: isPC ? 30 : 'calc(var(--tabbar-h, 60px) + 30px)', left: 20,
+            // ── **떠 있는 것끼리도 겹친다** ── (2026-11-20 · 맵시)
+            //
+            // 11/19 에 「탭바 위로 30」을 짐작한 px 에서 `--tabbar-h` 로 옮겼다. 층도
+            // 자리도 탭바와는 안 겹치게 됐는데, **쉬는 띠를 빼먹었다** —
+            //
+            //     쉬는 띠    bottom 탭바          · 높이 68(기본)~96(글자 200%) · z 9998
+            //     맨 위로    bottom 탭바 + 30     · 40×40                      · z 50
+            //
+            // 단추가 띠 **안에 통째로 들어가 있었다.** 층은 띠가 위라서(9998 > 50)
+            // **쉬는 동안 내내 눌리지 않았다** — 눌러도 띠가 먹는다. 띠에는 종목 이름이
+            // 적혀 있어 단추도 안 보인다. 글자를 키울수록 더 깊이 묻힌다.
+            //
+            // 둘 다 제 높이를 알리니(`--tabbar-h` · `--restbar-h`) **쌓인 것을 다 더한다.**
+            // 띠가 없으면 `--restbar-h` 가 **0** 이라(`RestBar` 가 내려갈 때 0 을 적는다)
+            // 지금과 똑같은 자리다. PC 는 탭바가 사이드바라 `--tabbar-h` 가 0 이고,
+            // 그래서 `isPC` 갈래를 걷었다 — 한 식이 두 쪽을 다 맞춘다
+            position: 'fixed',
+            bottom: 'calc(var(--tabbar-h, 60px) + var(--restbar-h, 0px) + 30px)',
+            left: 20,
             width: 40, height: 40, borderRadius: '50%',
             background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
             fontSize: 18, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
