@@ -35,6 +35,9 @@ const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const codeOf = (s) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
 
+// 줄바꿈은 상수로 둔다 — 셸을 거쳐 고치다 백슬래시가 먹히는 일이 있었다
+const NL = String.fromCharCode(10);
+
 let bad = 0;
 const ok = (name, got, want) => {
   const pass = JSON.stringify(got) === JSON.stringify(want);
@@ -282,6 +285,22 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   // 그대로 둔다: 알림은 **위에 있어야 맞고**(되돌리기가 붙는다 · 4~8초면 사라진다),
   // 비키게 하면 알림이 뜰 때마다 단추가 45px 쯤 **튀어 오른다.** 적어두는 까닭은
   // 다음에 이 겹침을 보는 사람이 **모르고 고치지 않게** 하기 위해서다
+  // ★ **일부러 겹치는 쌍은 자료로 적는다** (까닭까지 · 2026-11-20 · 벼림 제안).
+  //
+  // 「목록에 적어뒀다」가 **알리바이가 되지 않게** 쌍마다 까닭을 붙이고, 까닭이
+  // 비면 이 자가 운다. 다음에 이 겹침을 보는 사람이 **모르고 고치거나, 모르고
+  // 빼지 않게** 하는 것이 목록의 일이다
+  const 일부러겹치는쌍 = [
+    ['알림', '맨 위로',
+      '알림은 되돌리기가 붙어 **위에 있어야 맞고** 4~8초면 사라진다. 비키게 하면 '
+      + '알림이 뜰 때마다 단추가 45px 튀어 올라 **움직이는 과녁**이 된다 '
+      + '(320px 에서 알림이 가운데 맞춤 288px 이라 단추 left 20~60 을 덮는다). '
+      + '벼림·맵시 합의 · 판정은 정석'],
+  ];
+  ok('일부러 겹치는 쌍마다 까닭이 적혀 있다',
+    일부러겹치는쌍.filter((r) => !r[2] || r[2].trim().length < 20).map((r) => r[0] + ' ↔ ' + r[1]), []);
+  for (const [가, 나] of 일부러겹치는쌍) console.log('       일부러 겹친다: ' + 가 + ' ↔ ' + 나);
+
   const 쌓임 = {
     'components/Layout.jsx': ['맨 위로 단추', ['--tabbar-h', '--restbar-h']],
   };
@@ -341,6 +360,76 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
   const lift = /const lift = barUp \? \{ bottom: '([^']*)'/.exec(알림);
   ok('알림이 띠 위로 비킬 때 둘을 다 더한다',
     lift ? ['--tabbar-h', '--restbar-h'].filter((v) => !lift[1].includes(v)) : ['비키는 식을 못 찾았다'], []);
+}
+
+// ── ★ **통째로 덮는 것이 넘칠 때 닿을 수 있는가** ── (2026-11-20 · 맵시)
+//
+// 11/20 에 ①②③⑤ 꼴을 보다 **잠금 화면**에서 나왔다. `fixed; inset: 0` 에
+// `justifyContent: 'center'` 인데 **넘침을 받는 손이 없었다** — 안에 든 것을 코드에
+// 적힌 수로 세면 글자 100% 에서 625px 이고, **320×568 은 그것만으로 57px 넘친다**
+// (360×640 도 네 자리를 한 번 틀리면 넘치고, 글자 150% 면 그냥 넘친다).
+//
+// 가운데 맞춤이라 넘침이 위아래로 갈려 잘리고 `overflow` 가 없어 **스크롤도 안 된다.**
+// 아래에서 잘려 나가는 것이 **지문 단추와 「네 자리를 잊으셨나요」** 였다 — 네 자리를
+// 잊은 사람이 **나갈 길을 못 찾는다.** 꾸밈이 아니라 **막힘**이다.
+//
+// ── 같은 류를 훑었다 ──
+//
+// 통째로 덮는 것이 **열일곱**이고 **샌 것은 그 하나**였다. 나머지는 11/13 에 세운
+// 손(`maxHeight` + `overflowY` 를 **안쪽 상자**에)을 쓰고 있다. 그 손이 다시 빠지지
+// 않게 자가 센다 — 셋 중 하나는 있어야 한다:
+//
+//   ⑴ 덮개 자신이 스크롤한다 (`overflowY: 'auto'`)
+//   ⑵ **안쪽 상자**가 `maxHeight` 와 `overflowY` 를 같이 든다
+//   ⑶ **까닭 목록**에 있다 — 그리고 **까닭이 비면 운다** (벼림 제안)
+//
+// ★ 가운데 맞춤과 스크롤을 **같이** 두지 않는다 — `justifyContent: 'center'` 로
+// 위로 넘친 쪽은 스크롤해도 **안 닿는다.** 가운데는 안쪽 `margin: auto` 가 맡는다.
+console.log(NL + '── 통째로 덮는 것이 넘칠 때 닿을 수 있는가 ──');
+{
+  // 파일 → 안 받아도 되는 까닭. **비면 운다**
+  const 까닭 = {
+    'components/SplashScreen.jsx': '로고와 한 줄뿐이다 — 글자를 키워도 넘치는 높이가 아니다',
+    'components/MiniSplash.jsx': '로고 하나뿐이다 — 글이 아예 안 들어 글자를 키워도 안 자란다',
+    'components/Layout.jsx': '덮개 둘뿐이다 — 서랍 뒤판은 **빈 덮개**이고, 사진 확대는 그림 한 장을 `maxHeight: 85vh` 로 담는다',
+    'pages/SiteHome.jsx': '그림 한 장을 `maxHeight: 80vh` 로 담는다',
+    'components/OverlayCamera.jsx': '머리와 바닥이 `flexShrink: 0` 이고 가운데 카메라가 **남는 자리를 먹는** 꼴이라 글자를 키우면 카메라가 줄어든다',
+    'components/RepCounter.jsx': '위와 같은 꼴이다 (머리·바닥 고정 · 가운데가 남는 자리)',
+  };
+  const 덮개 = [];
+  for (const f of files) {
+    const rel = path.relative(SRC, f).split(path.sep).join('/');
+    const src = codeOf(fs.readFileSync(f, 'utf8'));
+    for (const m of src.matchAll(/position:\s*'fixed'/g)) {
+      const 앞 = src.slice(m.index, m.index + 400);
+      // **통째로 덮는 것**만 본다 — 바닥에 뜨는 것은 위 묶음이 본다
+      if (!(/inset:\s*0/.test(앞) || (/top:\s*0/.test(앞) && /bottom:\s*0/.test(앞)))) continue;
+      const 뒤 = src.slice(m.index, m.index + 4000);
+      const 통스크롤 = /overflow(Y)?:\s*'(auto|scroll)'/.test(앞);
+      // 안쪽 상자 — 둘을 적는 차례는 사람마다 다르다
+      const 안쪽상자 = /maxHeight:[\s\S]{0,1200}?overflow(Y)?:\s*'(auto|scroll)'/.test(뒤)
+        || /overflow(Y)?:\s*'(auto|scroll)'[\s\S]{0,1200}?maxHeight:/.test(뒤);
+      // ★ 가운데 맞춤 + 통스크롤은 **위로 넘친 쪽이 안 닿는다**.
+      //
+      // 다만 **안쪽 상자가 받고 있으면 안 문다** — 11/16 에 고친 둘(계정 막힘 ·
+      // 점검)이 그 꼴이다: 속 상자가 `maxHeight: 85vh` 로 제 키를 묶으니 겉은
+      // 넘칠 일이 없고, 그러면 겉의 가운데 맞춤은 그냥 가운데 세우는 일만 한다.
+      // 이 갈래를 안 두면 **고쳐둔 자리에 거짓 FAIL** 이 뜬다 (11/20 에 그렇게 울었다)
+      const 가운데와스크롤 = 통스크롤 && !안쪽상자 && /justifyContent:\s*'center'/.test(앞);
+      덮개.push({ rel, 통스크롤, 안쪽상자, 가운데와스크롤 });
+    }
+  }
+  ok('덮개를 찾았다 (0건은 통과가 아니다)', 덮개.length > 10, true);
+  console.log('       ' + 덮개.length + '곳');
+  ok('★ 넘침을 받거나, 까닭이 적혀 있다',
+    덮개.filter((d) => !d.통스크롤 && !d.안쪽상자 && !까닭[d.rel]).map((d) => d.rel), []);
+  ok('  빼준 자리마다 까닭이 비어 있지 않다',
+    Object.entries(까닭).filter((e) => !e[1] || e[1].trim().length < 10).map((e) => e[0]), []);
+  // 까닭만 남고 덮개가 사라지면 **없는 깃발**이다 — 목록이 거짓이 된다
+  ok('  까닭 목록에 **없는 덮개**를 적어두지 않았다',
+    Object.keys(까닭).filter((k) => !덮개.some((d) => d.rel === k)), []);
+  ok('★ 가운데 맞춤과 스크롤을 같이 두지 않았다 (위로 넘친 쪽이 안 닿는다)',
+    덮개.filter((d) => d.가운데와스크롤).map((d) => d.rel), []);
 }
 
 // 표를 **실제로 들여다 쓰는지** 본다 — 표만 지어두고 아무도 안 부르면 그 표는 없는 것이다

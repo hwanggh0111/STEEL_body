@@ -263,112 +263,141 @@ export default function AppLock() {
         position: 'fixed', inset: 0, zIndex: LAYER.잠금,
         background: 'var(--bg-primary)',
         backgroundImage: 'var(--bg-glow)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 26, padding: 24,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        // 가운데 맞춤은 안쪽 `margin: auto` 가 한다 (아래 머리글 ⑵)
+        overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+        padding: 24,
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <LogoMark size={34} />
-        {/* ── **초가 줄어들 때 문장이 좌우로 떨었다** (2026-11-16 · 맵시) ──
-            이 줄은 Barlow(본문 기본 글꼴)로 그리는데 Barlow 숫자는 폭이
-            350~565 로 **21.5% em** 벌어진다. 가운데 정렬이라 30 → 29 → 9 로
-            줄어드는 동안 문장 전체가 매초 움직였다.
-            ── **땜질을 걷었다** ── (2026-11-16)
+      {/* ── ★ **넘치면 닿을 수가 없었다** ── (2026-11-20 · 맵시)
 
-            처음에는 수 칸에 `minWidth: '2ch'` 로 자리를 미리 비웠다. `tabular-nums`
-            가 **그때는 안 듣는 줄**이었기 때문이다 — 11/13 에 글꼴을 자급하면서
-            `layout_features = []` 로 `tnum` 까지 떼어내 열셋 전부 OpenType 기능이
-            0개였다. `3d7106c` 로 되살렸고, 이제 `body` 한 줄이 모든 수를 고정폭으로
-            세운다(`globals.css` 의 `font-variant-numeric`).
+          이 칸은 `fixed; inset: 0` 에 `justifyContent: 'center'` 였고 **넘침을 받는
+          손이 없었다.** 안에 든 것을 코드에 적힌 수로 세면 —
 
-            `2ch` 를 남겨둘 까닭이 없다 — 자릿수를 사람이 미리 알아야 하고, 글꼴을
-            바꾸면 `ch` 가 같이 움직인다. 글꼴 기능이 그 셋을 다 없앤다. */}
-        <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
-          {left > 0 ? (
-            <>
-              {secs}초 뒤에 다시 치실 수 있어요
-            </>
-          ) : '네 자리를 쳐주세요'}
-        </div>
-      </div>
+            글자 100% 처음      625px      150% 664px      200% 743px
+            글자 100% 틀린 뒤   655px      150% 703px      200% 791px
 
-      {/* 친 만큼 점이 찬다. 숫자를 그대로 보여주지 않는다 — 어깨 너머가 있다 */}
+          **320×568 은 기본 글자에서 이미 57px 넘친다.** 360×640 도 네 자리를 한 번
+          틀리면(「n번 남았어요」가 는다) 넘치고, 글자를 150% 로 쓰면 그냥 넘친다.
+
+          가운데 맞춤이라 넘침이 **위아래로 갈려** 잘리고, `overflow` 가 없어
+          **스크롤이 안 된다.** 아래에서 잘려 나가는 것이 **지문 단추(74px)와
+          「네 자리를 잊으셨나요」(34px)** 다 — 네 자리를 잊은 사람이 **나갈 길을
+          못 찾고**, 지문을 켠 사람은 저절로 묻는 한 번을 거절하면 단추가 없다.
+          앱에 못 들어오는 자리라 꾸밈이 아니라 **막힘**이다.
+
+          ⑴ 넘치면 **스크롤한다**(`overflowY: 'auto'`)
+          ⑵ 가운데 맞춤은 **`margin: auto` 로** 옮긴다 — `justifyContent: 'center'` 와
+             스크롤을 같이 두면 **위로 넘친 쪽은 스크롤해도 안 닿는다**(flex 의 그
+             자리다). `margin: auto` 는 자리가 남을 때만 가운데로 밀고, 모자라면
+             0 으로 떨어져 양쪽 끝이 다 닿는다 */}
       <div style={{
-        display: 'flex', gap: 14,
-        animation: shake ? 'lockShake 0.4s' : 'none',
+        margin: 'auto', width: '100%',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26,
       }}>
-        {Array.from({ length: PIN_LEN }, (_, i) => (
-          <span key={i} style={{
-            flexShrink: 0, width: 13, height: 13, borderRadius: '50%',
-            background: i < pin.length ? 'var(--accent)' : 'transparent',
-            border: `1px solid ${i < pin.length ? 'var(--accent)' : 'var(--border-hover)'}`,
-            transition: 'background 0.12s ease',
-          }} />
-        ))}
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <LogoMark size={34} />
+          {/* ── **초가 줄어들 때 문장이 좌우로 떨었다** (2026-11-16 · 맵시) ──
+              이 줄은 Barlow(본문 기본 글꼴)로 그리는데 Barlow 숫자는 폭이
+              350~565 로 **21.5% em** 벌어진다. 가운데 정렬이라 30 → 29 → 9 로
+              줄어드는 동안 문장 전체가 매초 움직였다.
+              ── **땜질을 걷었다** ── (2026-11-16)
 
-      {triesLeft() < MAX_TRIES && left === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: -14 }}>
-          {triesLeft()}번 남았어요
+              처음에는 수 칸에 `minWidth: '2ch'` 로 자리를 미리 비웠다. `tabular-nums`
+              가 **그때는 안 듣는 줄**이었기 때문이다 — 11/13 에 글꼴을 자급하면서
+              `layout_features = []` 로 `tnum` 까지 떼어내 열셋 전부 OpenType 기능이
+              0개였다. `3d7106c` 로 되살렸고, 이제 `body` 한 줄이 모든 수를 고정폭으로
+              세운다(`globals.css` 의 `font-variant-numeric`).
+
+              `2ch` 를 남겨둘 까닭이 없다 — 자릿수를 사람이 미리 알아야 하고, 글꼴을
+              바꾸면 `ch` 가 같이 움직인다. 글꼴 기능이 그 셋을 다 없앤다. */}
+          <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
+            {left > 0 ? (
+              <>
+                {secs}초 뒤에 다시 치실 수 있어요
+              </>
+            ) : '네 자리를 쳐주세요'}
+          </div>
         </div>
-      )}
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 72px)', gap: 12,
-        opacity: left > 0 ? 0.4 : 1,
-      }}>
-        {KEYS.map((k, i) => (k === '' ? <span key={i} /> : (
+        {/* 친 만큼 점이 찬다. 숫자를 그대로 보여주지 않는다 — 어깨 너머가 있다 */}
+        <div style={{
+          display: 'flex', gap: 14,
+          animation: shake ? 'lockShake 0.4s' : 'none',
+        }}>
+          {Array.from({ length: PIN_LEN }, (_, i) => (
+            <span key={i} style={{
+              flexShrink: 0, width: 13, height: 13, borderRadius: '50%',
+              background: i < pin.length ? 'var(--accent)' : 'transparent',
+              border: `1px solid ${i < pin.length ? 'var(--accent)' : 'var(--border-hover)'}`,
+              transition: 'background 0.12s ease',
+            }} />
+          ))}
+        </div>
+
+        {triesLeft() < MAX_TRIES && left === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: -14 }}>
+            {triesLeft()}번 남았어요
+          </div>
+        )}
+
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 72px)', gap: 12,
+          opacity: left > 0 ? 0.4 : 1,
+        }}>
+          {KEYS.map((k, i) => (k === '' ? <span key={i} /> : (
+            <button
+              key={i}
+              onClick={() => push(k)}
+              disabled={left > 0}
+              aria-label={k === '←' ? '지우기' : k}
+              style={{
+                // `height` 가 아니라 `minHeight` 다 — 폰에서 글자를 크게 쓰면
+                // `fontSize: 24` 가 48 까지 자라는데, 높이를 묶어두면 **눌러야 하는
+                // 숫자가 잘린다.** 잠금 화면은 숫자를 못 읽으면 앱에 못 들어온다
+                // (2026-11-17 · 맵시). 기본 크기에서는 지금과 같은 62 다
+                minHeight: 62, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 2,
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)', color: 'var(--text-primary)',
+                cursor: left > 0 ? 'default' : 'pointer',
+              }}
+            >{k}</button>
+          )))}
+        </div>
+
+        {/* ── 지문·얼굴로 풀기 ── (2026-11-19 · 시안 1119 ⑤)
+            네 자리는 **그대로 남는다** — 젖은 손 · 인식기 고장에 쓸 길이 없으면 안 된다.
+            그래서 자판 아래에 **얹는다**(자판을 치우지 않는다) */}
+        {bioCan && (
           <button
-            key={i}
-            onClick={() => push(k)}
-            disabled={left > 0}
-            aria-label={k === '←' ? '지우기' : k}
+            onClick={지문으로}
+            aria-label="지문으로 풀기"
             style={{
-              // `height` 가 아니라 `minHeight` 다 — 폰에서 글자를 크게 쓰면
-              // `fontSize: 24` 가 48 까지 자라는데, 높이를 묶어두면 **눌러야 하는
-              // 숫자가 잘린다.** 잠금 화면은 숫자를 못 읽으면 앱에 못 들어온다
-              // (2026-11-17 · 맵시). 기본 크기에서는 지금과 같은 62 다
-              minHeight: 62, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 2,
-              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)', color: 'var(--text-primary)',
-              cursor: left > 0 ? 'default' : 'pointer',
+              width: 54, height: 54, borderRadius: '50%', margin: '18px auto 2px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+              color: 'var(--accent)', cursor: 'pointer',
             }}
-          >{k}</button>
-        )))}
-      </div>
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 3.6c-4.6 0-8.4 3.8-8.4 8.4" />
+              <path d="M20.4 12c0-4.6-3.8-8.4-8.4-8.4" />
+              <path d="M6.6 14.4a5.4 5.4 0 0 1 10.8-2.4" />
+              <path d="M9.6 17.4A2.4 2.4 0 0 1 14.4 15" />
+              <path d="M12 20.4v-2.4" />
+            </svg>
+          </button>
+        )}
 
-      {/* ── 지문·얼굴로 풀기 ── (2026-11-19 · 시안 1119 ⑤)
-          네 자리는 **그대로 남는다** — 젖은 손 · 인식기 고장에 쓸 길이 없으면 안 된다.
-          그래서 자판 아래에 **얹는다**(자판을 치우지 않는다) */}
-      {bioCan && (
         <button
-          onClick={지문으로}
-          aria-label="지문으로 풀기"
+          onClick={forgot}
           style={{
-            width: 54, height: 54, borderRadius: '50%', margin: '18px auto 2px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--accent-dim)', border: '1px solid var(--accent)',
-            color: 'var(--accent)', cursor: 'pointer',
+            background: 'none', border: 'none', color: 'var(--text-muted)',
+            fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', padding: 8,
           }}
-        >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-            <path d="M12 3.6c-4.6 0-8.4 3.8-8.4 8.4" />
-            <path d="M20.4 12c0-4.6-3.8-8.4-8.4-8.4" />
-            <path d="M6.6 14.4a5.4 5.4 0 0 1 10.8-2.4" />
-            <path d="M9.6 17.4A2.4 2.4 0 0 1 14.4 15" />
-            <path d="M12 20.4v-2.4" />
-          </svg>
-        </button>
-      )}
-
-      <button
-        onClick={forgot}
-        style={{
-          background: 'none', border: 'none', color: 'var(--text-muted)',
-          fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', padding: 8,
-        }}
-      >네 자리를 잊으셨나요</button>
+        >네 자리를 잊으셨나요</button>
+      </div>
     </div>
   );
 }
