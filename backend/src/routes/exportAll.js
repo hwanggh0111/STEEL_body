@@ -66,6 +66,27 @@ const 뺀다 = [
   ['routineSessions', '지금 진행 중인 한 판의 상태입니다 — 자료가 아니라 하던 일이라 담지 않습니다'],
 ];
 
+// ── ★ **사진은 다른 파일에 산다** ── (2026-11-20 · 벼림)
+//
+// 11/19 에 「사진」 체크를 붙여 놓고 담는 일은 `db.userRows(u, ['photos'])` 에
+// 맡겼다. 그런데 **그 손은 영영 빈 목록을 돌려준다** — 사진은 본 DB(`blackiron.json`)
+// 가 아니라 **`photos.json` 에 따로** 살고(`loadPhotos`), `userRows` 는 본 DB만 본다.
+// `db.USER_COLLECTIONS` 에도 `photos` 가 **없다**(그래서 모집단 자도 안 울었다).
+//
+// 드러난 꼴이 이 앱이 거듭 없애온 그 류다 — 사람이 「사진」을 켜고 받는데 사진이
+// **0장**이고, 그러면서 `빠진것` 에는 **「photos 를 안 담았다」가 적히지 않는다**
+// (고른 것으로 치기 때문이다). **조용히 다르게 동작하고, 그 장을 백업으로 믿는다.**
+//
+// 사진은 계정을 지울 때 **같이 지워진다**(`db.deleteUserPhotos`) — 그러니 꺼낼 수
+// 있어야 한다는 이 건의 전제가 사진에도 그대로 걸린다.
+//
+// 그래서 **여기서만 따로 집는다.** `USER_COLLECTIONS` 에 `photos` 를 끼워 넣지
+// 않는다 — 그 목록은 지우는 쪽이 **본 DB 를 돌 때** 쓰는 것이라(`db.js` 의 지우는
+// 손) 거기 넣으면 지우는 길이 없는 통을 돌게 된다.
+//
+// 거르는 식은 여기 없다 — `db.getPhotos` 안의 한 줄이다(`userRows` 와 같은 선).
+const 사진들 = (userId) => db.getPhotos(userId);
+
 /** 켤 때 한 번 — **담는 것 + 뺀 것 = 지우는 목록** 인가 */
 function 확인() {
   const 담은통 = Object.values(담는다).flatMap((v) => v.통).filter((k) => k !== 'photos');
@@ -77,6 +98,19 @@ function 확인() {
     // 없는 채로 30일 뒤에 지워진다 — 그것이 이 건이 고치려던 바로 그 결함이다
     throw new Error(`[exportAll] 꺼내는 목록에 없는 갈래가 있습니다: ${안다룬것.join(', ')} `
       + '— `담는다` 에 넣거나 `뺀다` 에 까닭과 함께 적어주세요 (db.USER_COLLECTIONS 와 맞춥니다)');
+  }
+  // ★ **사진을 집는 손이 있는가** — 위의 `photos` 는 그 목록에서 빠져 있어
+  // 모집단 셈이 안 지킨다. 이름이 바뀌거나 사라지면 **그 자리에서 서버가 터져**
+  // 알려준다. 그러지 않으면 11/19 처럼 **0장을 조용히 담는다**
+  if (typeof db.getPhotos !== 'function') {
+    throw new Error('[exportAll] 사진을 집는 손(`db.getPhotos`)이 없습니다 '
+      + '— 사진은 `photos.json` 에 따로 살아 `userRows` 로는 안 나옵니다');
+  }
+  // 그리고 **두 벌이 되는 날을 막는다** — `photos` 가 본 DB 갈래로 들어오면
+  // 여기서 따로 집을 까닭이 없어지고, 그때 두 길이 같은 것을 두 번 담는다
+  if (db.USER_COLLECTIONS.includes('photos')) {
+    throw new Error('[exportAll] `photos` 가 USER_COLLECTIONS 에 들어왔습니다 '
+      + '— 이제 `userRows` 가 집으니 위 `사진들` 을 걷으세요 (두 번 담지 않게)');
   }
 }
 확인();
@@ -101,7 +135,11 @@ router.get('/all', auth, (req, res) => {
   if (고른것.length === 0) {
     const 목록 = Object.entries(담는다).map(([key, v]) => ({
       열쇠: key, 갈래: v.이름,
-      줄: Object.values(db.userRows(u, v.통)).reduce((a, b) => a + 셈(b), 0),
+      // 사진은 **다른 파일에서 센다**(위 머리글). 여기서도 `userRows` 로 세면
+      // 사진 석 장을 가진 사람에게 미리 보기가 **「0줄」이라고 말한다**
+      줄: key === 'photos'
+        ? 셈(사진들(u))
+        : Object.values(db.userRows(u, v.통)).reduce((a, b) => a + 셈(b), 0),
       기본꺼짐: !!v.기본꺼짐, 늘담는다: !!v.늘담는다,
     }));
     return res.json({ 담기는것: 목록, 안담는것: 뺀다.map(([k, 왜]) => ({ 갈래: k, 까닭: 왜 })) });
@@ -113,6 +151,13 @@ router.get('/all', auth, (req, res) => {
     if (v.늘담는다 || 고른것.includes(key)) 담을통.push(...v.통);
   }
   const data = db.userRows(u, 담을통);
+  // ── ★ 사진은 **여기서 따로 집는다** ── (2026-11-20 · 위 머리글)
+  //
+  // `userRows` 가 담을통에 `photos` 가 있어도 **빈 목록을 넣어 둔다**(본 DB 에 그
+  // 갈래가 없다). 그것을 덮어쓴다 — 안 덮으면 「사진 0장」이 조용히 나간다.
+  // **고르지 않으면 손도 대지 않는다**: 사진은 base64 덩어리라 켜지 않은 사람의
+  // 묶음에 들어가면 그것만으로 묶음이 몇 MB 가 된다
+  if (담을통.includes('photos')) data.photos = 사진들(u);
   // ── 제보는 **내가 쓴 글만** ── (정석 지시서 ②)
   //
   // 제보 본문은 내가 쓴 글이라 담는다. 그런데 같은 줄에 **관리자 쪽 칸**이 붙어 있다 —

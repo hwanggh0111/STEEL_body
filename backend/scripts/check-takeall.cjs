@@ -166,6 +166,81 @@ console.log(NL + '── 머리글과 크기 ──');
 본다('한글 이름은 RFC 5987 로 적는다', /filename\*=UTF-8''/.test(길글), true);
 본다('묶음 크기 상한이 있다', /큰묶음/.test(길글), true);
 
+// ── ⑻ ★ 사진이 **실제로** 담기는가 ──────────────────────────
+//
+// 11/19 에 이 자리가 비어 있었다 — 「사진 심는 길이 없다」. 사진 0장짜리 DB 에서
+// 「안 담겼다」를 PASS 로 적으면 **그 줄은 아무것도 안 지킨다**(정석 미검증 1).
+//
+// 그래서 **심고, 길을 실제로 불러, 글 안을 센다.** 11/20 에 이 자를 세우자마자
+// 그 길이 무너져 있던 것이 드러났다 — 사진은 `photos.json` 에 따로 살아
+// `db.userRows(u, ['photos'])` 가 **영영 빈 목록**이었다. 사람은 「사진」을 켜고
+// 받는데 0장이 오고, `빠진것` 에도 그 줄이 없었다(고른 것으로 치기 때문이다).
+//
+// 보는 것 셋 (정석이 재판정에서 보는 것과 같다):
+//   ⒈ **심은 장수가 0이 아니다** — 0이면 아래가 다 빈 통과가 된다
+//   ⒉ **켠 쪽과 끈 쪽을 둘 다** 본다 — 끈 쪽에 base64 가 안 드는 것까지가 한 건
+//   ⒊ 되돌려에서 **사진을 집는 손을 끊어** 보고 이 자가 우는지 본다
+console.log(NL + '── 사진이 실제로 담기는가 (2026-11-20) ──');
+
+/** 그 길을 실제로 부른다 — 문지기(`auth`)는 지나고 **마지막 손**만 부른다 */
+const 길부르기 = (() => {
+  const router = require('../src/routes/exportAll');
+  const 층 = router.stack.find((l) => l.route && l.route.path === '/all');
+  const 손 = 층 && 층.route.stack[층.route.stack.length - 1].handle;
+  return (userId, parts) => {
+    let 받은것 = null;
+    const res = {
+      setHeader() {},
+      json(o) { 받은것 = { 미리보기: o }; },
+      send(s) { 받은것 = { 글: s }; },
+    };
+    손({ userId, query: parts == null ? {} : { parts } }, res);
+    return 받은것;
+  };
+})();
+
+/** 묶음 글 안에 base64 사진이 **몇 장** 들었나 — 글을 세는 것이 요점이다 */
+식.사진든것 = (글) => (String(글).match(/data:image/g) || []).length;
+
+{
+  // ⒈ 심는다. **A 두 장 · B 한 장** — 남의 사진이 섞이는 것까지 같이 본다
+  db.savePhoto(A, 'profile', 'data:image/png;base64,AAAAPROFILE');
+  db.savePhoto(A, 'before', 'data:image/png;base64,AAAABEFORE');
+  db.savePhoto(B, 'profile', 'data:image/png;base64,BBBBPROFILE');
+  // ★ **0장이면 여기서 운다** — 아래 줄들이 「안 담겼다」로 다 통과해 버리는 꼴을 막는다
+  본다('★ 사진을 심었다 (0 이면 아래가 다 빈 통과다)', db.getPhotos(A).length, 2);
+  본다('  남의 사진도 심었다', db.getPhotos(B).length, 1);
+
+  // ⒉ 미리 보기 — 사진 가진 사람에게 **「0줄」이라고 말하지 않는다**
+  const 미리 = 길부르기(A, null).미리보기;
+  const 사진줄 = 미리.담기는것.find((x) => x.열쇠 === 'photos');
+  본다('미리 보기가 사진 장수를 센다', 사진줄 ? 사진줄.줄 : null, 2);
+
+  // ⒊ **켠 쪽** — 사진이 글에 실제로 든다
+  const 켠것 = 길부르기(A, 'workouts,photos').글;
+  const 켠장 = JSON.parse(켠것);
+  본다('★ 켠 쪽: 사진이 묶음에 든다', 식.사진든것(켠것), 2);
+  본다('  켠 쪽: `data.photos` 가 두 장이다', (켠장.data.photos || []).length, 2);
+  본다('  켠 쪽: 남의 사진은 없다',
+    (켠장.data.photos || []).filter((p) => p.user_id !== A).map((p) => p.user_id), []);
+  본다('  켠 쪽: base64 가 비어 있지 않다',
+    (켠장.data.photos || []).every((p) => /^data:image\/[a-z]+;base64,.+/.test(String(p.data))), true);
+  // 고른 것이면 **「안 담았다」고 적지 않는다** — 적으면 그 글이 거짓이 된다
+  본다('  켠 쪽: 빠진것에 photos 줄이 없다',
+    (켠장.빠진것 || []).filter((s) => s.startsWith('photos')), []);
+
+  // ⒋ **끈 쪽** — base64 가 한 글자도 안 든다. 사진은 무거워서 기본 꺼짐이다
+  const 끈것 = 길부르기(A, 'workouts').글;
+  const 끈장 = JSON.parse(끈것);
+  본다('★ 끈 쪽: 사진이 한 장도 안 든다', 식.사진든것(끈것), 0);
+  본다('  끈 쪽: `data.photos` 가 아예 없다', 끈장.data.photos === undefined, true);
+  본다('  끈 쪽: 빠진것에 photos 줄이 있다',
+    (끈장.빠진것 || []).some((s) => s.startsWith('photos')), true);
+
+  // ⒌ 사진을 집는 손은 **한 자리**다 (`db.getPhotos` 안의 한 줄) — 길은 안 거른다
+  본다('그 길에 사진 거르는 식이 없다', /photos[\s\S]{0,40}user_id/.test(길코드), false);
+}
+
 // ── 되돌려 보기 ──────────────────────────────────────────────
 if (process.argv.includes('--되돌려')) {
   console.log(NL + '── 되돌려 보기 ──');
@@ -193,6 +268,22 @@ if (process.argv.includes('--되돌려')) {
       () => 식.머리글에한글("res.setHeader('Content-Disposition', 'attachment; filename=\"내기록.json\"');"), 1],
     ['  퍼센트 인코딩은 글자로 안 센다',
       () => 식.머리글에한글("res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent('내기록.json')}`);"), 0],
+    // ── ★ 사진 (2026-11-20) ──
+    //
+    // **11/19 의 그 꼴을 그대로 먹인다** — 사진을 집는 손을 끊으면(= `userRows` 에
+    // 맡겨둔 그때) 켠 쪽에서도 0장이 나온다. 그때 이 자가 **울어야** 한다.
+    // 0건은 통과가 아니다 [[ruler-copies-now]]
+    ['사진 집는 손을 끊으면 켠 쪽이 0장이 된다 (11/19 의 그 꼴)',
+      () => {
+        const 참손 = db.getPhotos;
+        db.getPhotos = () => [];                      // `userRows` 에 맡겨둔 그때와 같다
+        try { return 식.사진든것(길부르기(A, 'workouts,photos').글); } finally { db.getPhotos = 참손; }
+      }, 0],
+    ['  손을 되돌리면 다시 두 장이다 (끊은 것이 되돌아왔나)',
+      () => 식.사진든것(길부르기(A, 'workouts,photos').글), 2],
+    ['묶음에 사진이 억지로 들면 센다',
+      () => 식.사진든것('{"data":{"photos":[{"data":"data:image/png;base64,AAA"}]}}'), 1],
+    ['  글에 없으면 0 이다 (셈이 늘 1을 내지 않는다)', () => 식.사진든것('{"data":{}}'), 0],
   ];
   for (const [이름, 부르기, 어긋난값] of 꼴) {
     const 받은것 = 부르기();
