@@ -150,6 +150,36 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
   const ratio = finished ? 1 : Math.max(0, Math.min(1, (leftMs ?? 0) / (span * 1000)));
   const color = finished ? 'var(--success)' : 'var(--accent)';
 
+  // ── ★ **낭독기가 쉬는 동안 내내 떠들고 있었다** ── (2026-11-20 · 정석이 짚었다)
+  //
+  // 이 띠는 통째로 `role="status" aria-live="polite"` 였고 그 안에 **매초 바뀌는 남은
+  // 시간**이 들어 있었다(`formatLeft(leftMs)`). 그래서 **60초 휴식에 60번** 읽는다 —
+  // 눈으로 보는 사람에게는 공짜인 그 숫자가 **귀로 듣는 사람에게는 소음**이다.
+  //
+  // 지우면 안 된다(남은 시간은 그 사람이 알아야 하는 값이다). 그래서 **거친 눈금**으로
+  // 가른다 — 1분 단위로, 30초·10초에서 한 번, 끝에서 한 번. 60초 휴식이면 **네 번**이다.
+  //
+  // 글이 **그 눈금에서만 바뀌므로** 리액트가 매초 다시 그려도 DOM 글자가 그대로고,
+  // 그러면 `aria-live` 가 읽지 않는다. 눈에 보이는 큰 숫자는 `aria-hidden` 으로 가린다
+  const 눈금초 = (() => {
+    if (finished) return 0;
+    const s = Math.max(0, Math.ceil((leftMs ?? 0) / 1000));
+    if (s <= 10) return 10;
+    if (s <= 30) return 30;
+    // **30초 눈금이다.** 1분 눈금으로 올리면 90초에 「2분쯤」이라고 말한다 — 그것은
+    // 거친 것이 아니라 **과장**이다. 이 저장소의 선은 「모르면 모른다」이고,
+    // 아는 것을 부풀려 말하지도 않는다
+    return Math.ceil(s / 30) * 30;        // 1분 · 1분 30초 · 2분 …
+  })();
+  const 읽을글 = (() => {
+    if (paused) return '휴식을 멈췄어요';
+    if (finished) return '쉬는 시간이 끝났어요';
+    if (눈금초 < 60) return `${눈금초}초쯤 남았어요`;
+    const 분 = Math.floor(눈금초 / 60);
+    const 초 = 눈금초 % 60;
+    return `${분}분${초 ? ` ${초}초` : ''}쯤 남았어요`;
+  })();
+
   return (
     <div
       ref={띠ref}
@@ -157,13 +187,45 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
         position: 'fixed', left: 0, right: 0, bottom,
         zIndex: LAYER.휴식띠,
         borderTop: `1px solid ${color}`,
-        background: finished ? 'var(--success-dim)' : 'var(--accent-dim)',
+        // ── ★ **띠 자체가 진행이다** ── (2026-11-20 · 맵시 · 시안 1120 ③ · 주인이 골랐다)
+        //
+        // 여태 띠 **아래에 진행 막대가 따로** 있었다(`height: 4` + `marginTop: 5` = **9px**).
+        // 막대가 띠와 다른 물건이라 **늘 덮일 걱정**을 해야 했다 — 글자를 키우면 탭바가
+        // 자라 그 9px 이 **가장 먼저** 가려졌고(11/19 에 `--tabbar-h` 로 고친 자리),
+        // 오늘은 「맨 위로」가 이 띠에 통째로 묻혀 있었다.
+        //
+        // 막대를 걷고 **바탕이 왼→오로 차오르게** 한다. 덮일 물건이 하나 줄고 띠 높이도
+        // 9px 낮아진다 — 띠는 제 높이를 재서 알리므로(`--restbar-h`) 알림과 「맨 위로」가
+        // **저절로 따라 내려온다**(`check-layer` 가 그 쌓임을 본다).
+        background: finished ? 'var(--success-dim)' : 'var(--bg-secondary)',
         padding: '9px 14px',
         display: 'flex', alignItems: 'center', gap: 12,
+        // 차오르는 칸이 이 안에서 선다
+        overflow: 'hidden',
       }}
-      role="status"
-      aria-live="polite"
     >
+      {/* ── 차오르는 바탕 ──
+          **면적으로 읽히는 값**이라 색이 옅어도 보인다. 다만 옅은 바탕만으로는 「지금
+          어디까지」가 흐릿하므로 **차오름의 머리에 금 한 줄**을 세운다 — 그 선이 움직이는
+          것이 눈에 걸린다. 금을 **면으로 칠하지 않는 것**은 11/13 의 선이다(금 바탕은
+          축하가 입는 옷이다 · `PersonalRecordBanner`).
+          1초 — 스토어가 **적히는 초가 바뀔 때만** 알려준다 (`restTimerStore` 의 tick) */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: `${ratio * 100}%`,
+        background: finished ? 'rgba(127,176,105,0.10)' : 'rgba(238,183,125,0.13)',
+        borderRight: ratio > 0 && ratio < 1 ? `2px solid ${color}` : 'none',
+        transition: 'width 1s linear',
+        pointerEvents: 'none',
+      }} />
+
+      {/* ★ 낭독기에 읽히는 줄은 **이 숨은 칸 하나**다 (위 머리글의 거친 눈금).
+          띠 통째로 `aria-live` 를 걸면 매초 떠든다 */}
+      <span role="status" aria-live="polite" style={{
+        position: 'absolute', width: 1, height: 1, overflow: 'hidden',
+        clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
+      }}>{읽을글}{label ? ` · ${label}` : ''}</span>
+
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
         <circle cx="12" cy="13" r="8" />
         <path d="M12 9v4l2.5 2M9 2h6" />
@@ -176,7 +238,7 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
         role="button"
         tabIndex={0}
         aria-label="운동 화면으로 돌아가기"
-        style={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
+        style={{ flexGrow: 1, minWidth: 0, cursor: 'pointer', position: 'relative' }}
         onClick={() => { if (location.pathname !== '/train') navigate('/train'); }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -186,8 +248,10 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{
-            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5,
+          {/* 눈으로 읽는 숫자다 — 낭독기에는 위의 거친 눈금이 간다(여기까지 읽히면
+              매초 두 번 말하는 셈이다). 막대를 걷은 자리를 받아 조금 키운다 */}
+          <span aria-hidden="true" style={{
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1.5,
             color, lineHeight: 1,
           }}>{finished ? '휴식 끝' : formatLeft(leftMs)}</span>
           {/* `minWidth: 0` 이 없어 **말줄임이 안 들었다** — 가로 flex 자식의
@@ -201,11 +265,9 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
             : finished ? '다음 세트 하세요'
             : nextLine(view, label)}</span>
         </div>
-        {!finished && (
-          <div className="progress-bg" style={{ height: 4, marginTop: 5 }}>
-            <div style={{ height: 4, width: `${ratio * 100}%`, background: color, borderRadius: 'var(--radius)', transition: 'width 1s linear'   /* 스토어가 초당 한 번만 알려준다 (restTimerStore 의 tick) */ }} />
-          </div>
-        )}
+        {/* 진행 막대는 **걷었다** — 띠 바탕이 그 몫을 한다 (위 머리글 · 2026-11-20).
+            여기 `height: 4 + marginTop: 5` = 9px 이 있었고, 그 9px 이 글자를 키운 폰에서
+            가장 먼저 가려지던 자리다 */}
       </div>
 
       {!finished && (
