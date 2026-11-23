@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "08b7021d21",
+  "detailVersion": "19b7e323e7",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,21 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "f02e51a",
+      "date": "2026-11-23",
+      "text": "90e6ebd 에 섞여 들어간 맵시의 미커밋 두 덩어리를 뺀다",
+      "label": "고침",
+      "scope": "커밋",
+      "has": true
+    },
+    {
+      "key": "90e6ebd",
+      "date": "2026-11-23",
+      "text": "전수 리뷰로 찾은 버그 스물을 고친다 — 기록 중복 · 앞 사람 기록 · 저장 실패 · 보안 구멍",
+      "label": "고침",
       "has": true
     },
     {
@@ -1122,21 +1137,6 @@
       "label": "새 기능",
       "scope": "운동",
       "has": true
-    },
-    {
-      "key": "31f7919",
-      "date": "2026-11-16",
-      "text": "가로 flex 에 자가 없어 말줄임이 안 들었다 — 긴 이름이 칸을 넘었다",
-      "label": "고침",
-      "scope": "UI",
-      "has": true
-    },
-    {
-      "key": "bbe7372",
-      "date": "2026-11-13",
-      "text": "안 쓰는 구글 글꼴 집 둘이 CSP 에 열려 있었다 — 걷는다",
-      "label": "고침",
-      "scope": "보안"
     }
   ]
 }
