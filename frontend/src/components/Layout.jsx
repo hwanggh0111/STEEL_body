@@ -3,7 +3,6 @@ import { Outlet, useNavigate, useLocation, useNavigationType } from 'react-route
 import TabBar from './TabBar';
 import RestBar from './RestBar';
 import SessionFinish from './SessionFinish';
-import { useRestTimerStore } from '../store/restTimerStore';
 import { useAuthStore } from '../store/authStore';
 import { isAdmin as checkAdmin } from '../data/admin';
 import MiniSplash from './MiniSplash';
@@ -211,10 +210,8 @@ export default function Layout() {
   };
   const navType = useNavigationType();
   const isPC = useIsPC();
-  // 휴식 띠가 떠 있으면 그만큼 아래를 비워둔다 — 안 그러면 마지막 줄이 띠에 가린다
-  const restShowing = useRestTimerStore(
-    s => s.deadline != null || s.pausedLeft != null || s.finished,
-  );
+  // 휴식 띠 · 탭바 높이는 각자 재서 `--restbar-h` · `--tabbar-h` 로 알린다 —
+  // 본문 아래 여백도 그 값을 읽는다(아래 `main` 참고 · 2026-11-23 · 맵시)
   const [showTopBtn, setShowTopBtn] = useState(false);
 
   // 떠 있는 동안 **뒤 화면이 안 밀리게** 한다 (2026-11-16 · 맵시).
@@ -717,10 +714,22 @@ export default function Layout() {
       )}
 
       {/* 아래 탭바가 홈바만큼 두꺼워지면 **본문도 그만큼 더 비켜야** 한다 (2026-10-05).
-          안 하면 목록 마지막 줄이 탭바 뒤로 들어간다 — 끝까지 스크롤해도 안 보인다 */}
+          안 하면 목록 마지막 줄이 탭바 뒤로 들어간다 — 끝까지 스크롤해도 안 보인다
+
+          ── **「맨 위로」 밑에 마지막 글이 영영 깔렸다** ── (2026-11-23 · 맵시)
+
+          여백이 짐작 px(`80` · 띠 `58`)였는데 바닥에 뜨는 것들은 11/19~20 에 잰 값으로
+          옮겼다 — **본문만 안 따라왔다.** 「맨 위로」는 탭바 위 30~70px 에 뜨는데 본문은
+          탭바 위 15px 까지만 비켜서, **맨 아래까지 내려도** 단추 밑 글이 안 나왔다
+          (360×740 에서 잼: 고객센터 `v1.0.0` 줄 · 운동 알림 마지막 세 줄 · 기능성운동
+          마지막 카드 두 줄). 띠도 실제는 68~96 인데 58 만 비켰다.
+
+          그래서 **쌓인 것을 단추와 같은 식으로 더한다**: 탭바 + 띠 + 단추 틈 30 + 단추
+          40 + 숨 10. 탭바 높이에 바닥 안전 여백이 이미 들어 있고(`TabBar` 가 그 칸까지
+          잰다) PC 는 `--tabbar-h` 가 0 이라 **한 식이 두 쪽을 다 맞춘다** */}
       <main className="content-area" style={{
         paddingTop: 22,
-        paddingBottom: `calc(${(isPC ? 30 : 80) + (restShowing ? 58 : 0)}px + ${isPC ? '0px' : 'env(safe-area-inset-bottom, 0px)'})`,
+        paddingBottom: 'calc(var(--tabbar-h, 60px) + var(--restbar-h, 0px) + 80px)',
       }}>
         {/* 주소를 key 로 준다. content-area 자체는 라우트가 바뀌어도 남아 있어서
             여기에 걸린 등장 애니메이션이 첫 화면에서 한 번만 돌고 말았다 */}

@@ -59,6 +59,25 @@ function load(rel, tmp) {
 
 const L = load('src/data/layers.js', '.cl-layers.cjs');
 
+// 본문 아래 여백 식이 바닥에 떠 있는 것만큼 비키는가 — 아래 「본문이 비키는가」 묶음과
+// 되돌려 손이 **같은 손**을 쓴다(되돌려가 따로 짠 손을 재면 그 손만 빨개진다)
+//   여백식  `main` 의 `paddingBottom` 글
+//   틈 · 키  「맨 위로」가 탭바+띠 위로 뜨는 px · 단추 높이 px (Layout 에서 읽은 값)
+const 본문비킴문제 = (여백식, 틈, 키) => {
+  const 문제 = [];
+  for (const v of ['--tabbar-h', '--restbar-h']) {
+    if (!여백식.includes('var(' + v)) 문제.push(v + ' 를 안 읽는다 (짐작 px 로 비킨다)');
+  }
+  // 띠 쪽 대체값은 0 — 띠가 없는 동안 쓸데없이 비지 않게
+  const 띠 = /var\(--restbar-h,\s*([^)]*)\)/.exec(여백식);
+  if (띠 && !/^0(px)?$/.test(띠[1].trim())) 문제.push('--restbar-h 의 대체값이 ' + 띠[1].trim() + ' 다');
+  // var(…) 밖의 px 를 더한 것이 단추 틈 + 키를 넘어야 단추 밑 글이 나온다
+  const 밖 = 여백식.replace(/var\([^)]*\)/g, '');
+  const 더한px = [...밖.matchAll(/(\d+(?:\.\d+)?)px/g)].reduce((s, m) => s + Number(m[1]), 0);
+  if (!(더한px >= 틈 + 키)) 문제.push(`단추 몫 ${더한px}px < 틈 ${틈} + 키 ${키} (맨 아래 글이 단추 밑에 깔린다)`);
+  return 문제;
+};
+
 // ── 차례가 뜻대로 오르는가 ──
 //
 // 「서랍뒤판 → … → 점검」 차례는 `layers.js` 가 `LAYER_ORDER` 로 들고 있다.
@@ -423,6 +442,36 @@ console.log('\n── 떠 있는 것끼리 겹치는가 (바닥에 쌓인 것) �
     lift ? ['--tabbar-h', '--restbar-h'].filter((v) => !lift[1].includes(v)) : ['비키는 식을 못 찾았다'], []);
 }
 
+// ── ★ **본문이 떠 있는 것만큼 비키는가** ── (2026-11-23 · 맵시)
+//
+// 위 두 묶음은 **떠 있는 것끼리**를 봤다. 그런데 떠 있는 것은 **본문 위에도** 뜬다 —
+// 11/19~20 에 띠 · 알림 · 「맨 위로」를 잰 값으로 옮기면서 **본문 아래 여백은 짐작
+// px 그대로**(`80` · 띠 `58`) 남았다. 「맨 위로」는 탭바 위 30~70px 에 뜨는데 본문은
+// 탭바 위 15px 까지만 비켜서, **맨 아래까지 내려도 단추 밑 글이 영영 안 나왔다**
+// (360×740 에서 잼: 고객센터 `v1.0.0` 줄 · 운동 알림 마지막 세 줄 · 기능성운동
+// 마지막 카드 두 줄). 띠도 실제 68~96 인데 58 만 비켰다.
+//
+// 단추의 틈과 키는 **베끼지 않고 그 자리에서 읽는다** — 단추를 키우거나 올리면
+// 이 자가 본문 쪽을 같이 고치라고 운다.
+console.log('\n── 본문이 떠 있는 것만큼 비키는가 (맨 아래 글이 단추 밑에 깔리지 않게) ──');
+{
+  const src = codeOf(fs.readFileSync(path.join(SRC, 'components', 'Layout.jsx'), 'utf8'));
+  const 본문 = /<main className="content-area" style=\{\{([\s\S]*?)\}\}>/.exec(src);
+  const 여백 = 본문 && /paddingBottom:\s*('[^']*'|`[^`]*`)/.exec(본문[1]);
+  const 단추머리 = src.indexOf('aria-label="맨 위로"');
+  // 단추 덩이: 그 `style={{` 부터 aria-label 까지
+  const 덩이 = 단추머리 < 0 ? '' : src.slice(src.lastIndexOf('style={{', 단추머리), 단추머리);
+  const 틈 = /bottom:\s*'calc\([^']*\+\s*(\d+)px\)'/.exec(덩이);
+  const 키 = /height:\s*(\d+)/.exec(덩이);
+  ok('본문 여백 · 단추 자리 · 단추 키를 찾았다 (못 찾으면 통과가 아니다)',
+    [!!여백, !!틈, !!키], [true, true, true]);
+  if (여백 && 틈 && 키) {
+    const 문제 = 본문비킴문제(여백[1], Number(틈[1]), Number(키[1]));
+    ok('★ 본문 아래 여백이 탭바 + 띠 + 「맨 위로」 몫을 비킨다', 문제, []);
+    console.log('       본문 여백 = ' + 여백[1] + ' · 단추 = 틈 ' + 틈[1] + ' + 키 ' + 키[1]);
+  }
+}
+
 // ── 덮개가 넘칠 때 닿을 수 있는가 → **`check-shrink` 가 본다** ──
 //
 // 11/20 에 이 자리에 그 묶음을 지었다(잠금 화면이 320×568 에서 넘치고 스크롤이 없어
@@ -479,6 +528,15 @@ if (process.argv.includes('--되돌려')) {
   const 걸린수 = [...codeOf(가짜).matchAll(/zIndex:\s*(\d+)/g)]
     .map((m) => Number(m[1])).filter((n) => n >= L.LAYER_MIN);
   ok('  숫자를 박은 줄이 새로 생기면 걸린다', 걸린수, [99999]);
+  // 본문 여백 — 11/23 전의 꼴(짐작 px)과, 변수는 읽되 단추 몫이 모자란 꼴
+  const 옛여백 = "`calc(${(isPC ? 30 : 80) + (restShowing ? 58 : 0)}px + ${isPC ? '0px' : 'env(safe-area-inset-bottom, 0px)'})`";
+  ok('  본문 여백이 짐작 px 로 돌아가면 걸린다 (11/23 의 그 꼴)', 본문비킴문제(옛여백, 30, 40).length > 0, true);
+  ok('  변수를 읽어도 단추 몫이 모자라면 걸린다',
+    본문비킴문제("'calc(var(--tabbar-h, 60px) + var(--restbar-h, 0px) + 20px)'", 30, 40).length, 1);
+  ok('  띠 대체값이 0 이 아니면 걸린다',
+    본문비킴문제("'calc(var(--tabbar-h, 60px) + var(--restbar-h, 68px) + 80px)'", 30, 40).length, 1);
+  ok('  고친 꼴은 안 걸린다 (셈이 늘 우는 손이 아닌지)',
+    본문비킴문제("'calc(var(--tabbar-h, 60px) + var(--restbar-h, 0px) + 80px)'", 30, 40), []);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
