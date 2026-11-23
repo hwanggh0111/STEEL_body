@@ -121,11 +121,12 @@ console.log('── 쌓인 줄 전수 (로컬 DB) ──');
     const p = path.join(ROOT, f);
     if (fs.existsSync(p)) { db = JSON.parse(fs.readFileSync(p, 'utf8')); break; }
   }
-  if (!db) {
-    console.log('SKIP 로컬 DB 가 없다 (운영에서는 이 갈래를 안 돈다)');
+  // 파일은 있어도 운동 줄이 0 이면 볼 것이 없다 — 새로 받은 사본에서 서버 검사가
+  // 빈 DB 를 먼저 만들어 두면 「줄이 있다」가 거짓 FAIL 을 냈다 (2026-11-23 · 정석).
+  if (!db || !(db.workouts || []).length) {
+    console.log('SKIP 로컬 DB 가 없거나 운동 줄이 0 이다 (운영에서는 이 갈래를 안 돈다)');
   } else {
-    const rows = db.workouts || [];
-    ok('줄이 있다', rows.length > 0, true);
+    const rows = db.workouts;
     const 어긋난것 = [];
     for (const r of rows) {
       const s = serverReads(r.weight);
