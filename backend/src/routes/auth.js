@@ -49,6 +49,12 @@ function badUsername(v) {
   if (s.length < USERNAME_MIN || s.length > USERNAME_MAX || !USERNAME_CHARS.test(s)) {
     return `아이디는 영문+숫자+특수문자(!@#$%^&*._-) ${USERNAME_MIN}~${USERNAME_MAX}자만 가능해요`;
   }
+  // **소셜 계정이 받는 아이디 모양은 못 쓴다** (2026-11-23). `isSocialAccount` 는 아이디가
+  // `google_xxxxxxxx` 꼴이면 소셜로 본다 — 비밀번호 계정이 그 모양으로 바꾸면 「소셜」이
+  // 되어 **비밀번호를 안 묻고 계정 지우기**가 통했다
+  if (/^(google|naver|instagram|twitter|kakao|facebook)_[0-9a-f]{8}$/i.test(s)) {
+    return '그 모양의 아이디는 쓸 수 없어요';
+  }
   return null;
 }
 const { addLog } = require('./security');
@@ -447,7 +453,10 @@ router.post('/login', async (req, res) => {
     return res.status(429).json({ error: `로그인 시도 초과. ${remaining}분 후 다시 시도해주세요` });
   }
 
-  const user = email.includes('@') ? db.findUserByEmail(email) : db.findUserByUsername(email);
+  // **`@` 가 든 아이디도 아이디로 찾는다** (2026-11-23). 아이디 규칙이 `@` 를 허락하는데
+  // (`kim@1234`) 여태 `@` 만 보면 메일로만 찾아서, 그 사람은 맞는 비밀번호로도 영영
+  // 「틀렸어요」를 듣고 실패가 쌓여 잠겼다. 메일로 먼저 찾고 없으면 아이디로 찾는다
+  const user = (email.includes('@') && db.findUserByEmail(email)) || db.findUserByUsername(email);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     // 계정별 · IP별 두 자리에 같이 센다 (둘 중 하나만으로는 못 잡는 것이 있다)

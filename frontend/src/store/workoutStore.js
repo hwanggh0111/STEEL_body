@@ -244,8 +244,16 @@ export const useWorkoutStore = create((set, get) => ({
    */
   addWorkout: async (workout, { refetch = true } = {}) => {
     const mine = sessionEpoch();
+    // ── **첫 시도부터 줄 열쇠를 단다** (2026-11-23) ──
+    //
+    // 여태 첫 POST 는 열쇠 없이 나갔다. 응답이 늦어 시간이 넘으면(잠든 서버가 15초 넘게
+    // 깨거나 헬스장 LTE 가 답을 잃으면) 그것을 「신호 없음」으로 읽고 **새 열쇠로** 줄에
+    // 세웠다 — 그런데 서버는 첫 요청을 이미 담았다. 줄이 올라가면 서버는 열쇠로만
+    // 겹침을 거르므로 **같은 세트가 두 줄**이 됐다(볼륨 · 최고 기록까지 부풀었다).
+    // 줄에 세울 그 항목을 먼저 만들고, 그 열쇠를 첫 시도에도 싣는다
+    const item = makeQueued(workout);
     try {
-      const { data } = await client.post('/workouts', workout);
+      const { data } = await client.post('/workouts', { ...workout, clientKey: item.id });
       // 적고 나가는 그 틈에도 꽂지 않는다 (까닭은 `store/session.js`)
       if (!isSameSession(mine)) return data;
       // **줄이 왔으면 꽂고 끝낸다** (2026-10-31, 위 `putRow` 머리글).
@@ -266,7 +274,6 @@ export const useWorkoutStore = create((set, get) => ({
       if (!isOfflineError(err)) throw err;
       // 나간 뒤에는 줄에도 안 세운다 — 그 줄은 다음 사람 기기에 남는다
       if (!isSameSession(mine)) throw err;
-      const item = makeQueued(workout);
       const queue = [...get().queue, item];
       // **담겼는지 본다** (2026-10-24). `localStorage` 가 찼거나 막혀 있으면
       // 이 줄은 **램에만** 남는다 — 앱을 닫으면 사라진다. 그런데 화면은

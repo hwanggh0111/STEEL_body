@@ -109,7 +109,7 @@ function ChangeRow({ c }) {
   );
 }
 
-function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
+function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos, setPhotoAt }) {
   const inputRef = useRef(null);
   const [camOpen, setCamOpen] = useState(false);
   const photo = photos[photoKey] || null;
@@ -130,11 +130,20 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
       toast(photoRejectMessage({ unreadable }));
       return;
     }
-    const updated = { ...photos, [photoKey]: data };
-    // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
-    // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
-    const cached = savePhotos(updated);
-    setPhotos(updated);
+    // **지금 판 위에 얹는다** (2026-11-23). 여태 이 칸이 받은 `photos` 에 얹었는데,
+    // 줄이는 동안(`shrinkImage`) 그 값은 이미 늙는다 — BEFORE 를 올리고 바로 AFTER 를
+    // 올리면 뒤 것이 앞 것을 화면과 기기에서 지웠다(서버에는 둘 다 있다)
+    let cached = true;
+    setPhotos((prev) => {
+      const updated = { ...prev, [photoKey]: data };
+      // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
+      // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
+      cached = savePhotos(updated);
+      return updated;
+    });
+    // 올린 날도 같이 바꾼다 — 안 바꾸면 새 사진에 옛 날짜(「3월 1일에 올림」)가 붙고
+    // 지우기 확인과 공유 카드까지 그 날짜를 말한다
+    setPhotoAt((p) => ({ ...p, [photoKey]: new Date().toISOString() }));
     // 서버 저장 실패를 삼키고 '사진 저장!' 을 띄우고 있었다.
     // 이 기기 localStorage 에만 남으므로 기기를 바꾸면 사진이 사라지는데,
     // 사용자는 저장된 줄 안다. 어디에 저장됐는지를 그대로 말한다
@@ -144,7 +153,9 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
           ? (shrunk ? '사진 저장! (올리기 좋게 줄였어요)' : '사진 저장!')
           : '사진 저장! (기기에는 다 못 담았어요 — 신호가 없을 땐 안 보입니다)',
       ))
-      .catch(() => toast('이 기기에만 저장됐어요 — 서버 저장에 실패했습니다', 'error'));
+      // **「이 기기에만 저장됐다」고 하지 않는다** (2026-11-23). 다음에 열면 화면이
+      // 서버에 있는 것으로 갈아끼우므로 그 사진은 사라진다 — 지금 다시 올려야 한다
+      .catch(() => toast('서버에 못 올렸어요 — 다시 올려주세요 (지금 나가면 이 사진은 사라집니다)', 'error'));
   };
 
   // 폰에서 고른 사진은 대개 3~8MB 다. 거절하지 않고 줄여서 올린다
@@ -182,10 +193,13 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos }) {
     );
     if (!yes) return;
 
-    const updated = { ...photos };
-    delete updated[photoKey];
-    savePhotos(updated);
-    setPhotos(updated);
+    setPhotos((prev) => {
+      const updated = { ...prev };
+      delete updated[photoKey];
+      savePhotos(updated);
+      return updated;
+    });
+    setPhotoAt((p) => { const n = { ...p }; delete n[photoKey]; return n; });
     // 올릴 때는 「이 기기에만 저장됐어요」라고 정직하게 말하면서, 지울 때는
     // 서버 실패를 삼키고 「삭제!」만 띄우고 있었다. 서버에 남아 있으면
     // **다음에 열 때 사진이 되살아난다** — 지운 줄 알았는데 그대로다
@@ -598,8 +612,8 @@ export default function ComparePage({ embedded = false }) {
 
       {/* ── 2. 사진 ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} setPhotos={setPhotos} />
-        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} setPhotos={setPhotos} />
+        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} setPhotos={setPhotos} setPhotoAt={setPhotoAt} />
+        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} setPhotos={setPhotos} setPhotoAt={setPhotoAt} />
       </div>
       {/* **사진은 위에서 고른 날짜를 따라가지 않는다.** 없는 날짜를 지어내지 않고
           다른 것은 다르다고 적는다 — 안 적으면 사람은 같은 날의 것으로 읽는다 */}

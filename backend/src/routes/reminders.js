@@ -19,6 +19,9 @@ const { messageOf, DEFAULTS } = require('../utils/reminderSchedule');
 // 한 통도 안 갔다**(2026-10-22). 두 곳에 적어두면 반드시 이렇게 된다
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
+// 브라우저가 주는 웹 푸시 서비스 — 크롬·삼성·엣지(FCM) · 파이어폭스 · 윈도 · 애플
+const PUSH_HOST = /^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.notify\.windows\.com|web\.push\.apple\.com|[a-z0-9.-]+\.push\.apple\.com)$/;
+
 // 받은 값을 다듬는다. **버린 것이 있으면 무엇을 버렸는지 같이 돌려준다.**
 //
 // 예전에는 모르는 값을 조용히 버리고, 남은 게 없으면 「바꿀 값이 없어요」라고 했다.
@@ -93,6 +96,16 @@ router.post('/subscribe', auth, (req, res) => {
   const endpoint = sub?.endpoint;
   const keys = sub?.keys;
   if (typeof endpoint !== 'string' || !/^https:\/\//.test(endpoint) || endpoint.length > 1000) {
+    return res.status(400).json({ error: '구독 주소가 올바르지 않아요' });
+  }
+  // ── **알림 서비스의 주소만 받는다** (2026-11-23) ──
+  //
+  // 여태 `https://` 이기만 하면 받았다. 알림을 보낼 때 서버가 **그 주소로 직접 POST**
+  // 하므로, 아무 주소(내부망 `https://10.x.x.x/…` 포함)나 적어 두면 「테스트 알림」
+  // 한 번으로 서버가 그곳을 두드렸다. 브라우저들이 주는 알림 서비스는 몇 곳뿐이다
+  let pushHost = '';
+  try { pushHost = new URL(endpoint).hostname.toLowerCase(); } catch { /* 아래에서 거절 */ }
+  if (!PUSH_HOST.test(pushHost)) {
     return res.status(400).json({ error: '구독 주소가 올바르지 않아요' });
   }
   if (!keys || typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string') {

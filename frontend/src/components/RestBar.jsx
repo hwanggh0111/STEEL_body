@@ -99,12 +99,20 @@ export default function RestBar({ bottom = 'var(--tabbar-h, 60px)' }) {
     // 3분 뒤에 앱을 열면, 멈춰 있던 타이머가 그제서야 끝을 세운다 — 그때 삑 소리를
     // 내면 사람은 「지금 끝났나?」 하고 시계를 다시 본다. 앱에서만 쓰는 판단이다
     if (!alarmFired.current) beepDone({ sound, vibrate, tone, volume });
-    // 다 됐다는 표시를 잠깐 두고 스스로 걷는다 — 누르지 않아도 사라진다
-    const t = setTimeout(() => ackFinished(), 6000);
-    return () => clearTimeout(t);
     // `alarmFired` 는 **의존성에 넣지 않는다.** ref 라 다시 돌 거리가 아닌 데다,
     // 아래에서 만들어지는 값이라 넣으면 배열을 셀 때 터진다(TDZ)
-  }, [finished, sound, vibrate, tone, volume, ackFinished]);
+  }, [finished, sound, vibrate, tone, volume]);
+
+  // 다 됐다는 표시를 잠깐 두고 스스로 걷는다 — 누르지 않아도 사라진다.
+  //
+  // **울리는 효과와 떼어 둔다** (2026-11-23). 같이 있을 때는 「휴식 끝」이 떠 있는
+  // 6초 안에 소리 · 음색 · 크기를 바꾸면 정리가 시계를 지우고, 다시 돈 효과는
+  // `alerted` 에 막혀 **새 시계를 안 걸었다** — 초록 띠가 × 를 누를 때까지 남았다
+  useEffect(() => {
+    if (!finished) return undefined;
+    const t = setTimeout(() => ackFinished(), 6000);
+    return () => clearTimeout(t);
+  }, [finished, ackFinished]);
 
   const running = deadline != null;
   const paused = pausedLeft != null;

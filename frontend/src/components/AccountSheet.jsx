@@ -59,8 +59,11 @@ export default function AccountSheet({
   useEffect(() => {
     if (!photoMenu) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setPhotoMenu(false); } };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // **잡는 차례(capture)로 듣는다** (2026-11-23). 서랍의 Esc 는 `document` 에서
+    // 듣는데, 거품 차례에서는 `document` 가 `window` 보다 먼저라 여기서 멈춰도 늦었다 —
+    // Esc 한 번에 메뉴만이 아니라 **계정 서랍 전체**가 닫혔다
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [photoMenu]);
 
   // 걸음을 **사람 말로** 적는다. 느린 까닭이 다르다 — 읽기·굽기는 폰 탓, 올리기는 신호 탓
@@ -207,8 +210,11 @@ export default function AccountSheet({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
+                  // 한글을 조합하는 중의 Enter 는 글자를 끝내는 것이지 저장이 아니다 (2026-11-23)
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return; 
                   if (e.key === 'Enter') save();
-                  if (e.key === 'Escape') setEditing(false);
+                  // 고치기만 접는다 — 안 멈추면 서랍의 Esc 까지 닿아 서랍째 닫힌다
+                  if (e.key === 'Escape') { e.stopPropagation(); setEditing(false); }
                 }}
                 autoFocus
                 maxLength={NICKNAME_MAX}

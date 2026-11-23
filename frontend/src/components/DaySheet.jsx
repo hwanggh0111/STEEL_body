@@ -289,7 +289,12 @@ export default function DaySheet({
                 aria-label="담을 운동 이름"
                 value={name}
                 onChange={(e) => { setName(e.target.value.slice(0, PLAN_NAME_MAX)); if (planError) setPlanError(''); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExercise(); } }}
+                onKeyDown={(e) => {
+                  // 한글 조합 중의 Enter 는 글자를 끝내는 것이다 — 여기서 담으면 칸을 비운 뒤
+                  // 마지막 음절(「벤치프레스」의 「스」)이 빈 칸에 다시 내려앉는다 (2026-11-23)
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return; 
+                  if (e.key === 'Enter') { e.preventDefault(); addExercise(); }
+                }}
                 placeholder="운동 하나만 적어도 돼요"
                 style={{ fontSize: 13, padding: '8px 11px' }}
               />

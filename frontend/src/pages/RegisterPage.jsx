@@ -97,6 +97,11 @@ export default function RegisterPage() {
   const backTo = useLocation().state?.from;
   const navTimerRef = useRef(null);
   const emailCheckTimerRef = useRef(null);
+  // **늦게 온 확인 답은 버린다** (2026-11-23). 칠 때마다 번호를 올리고, 답이 왔을 때
+  // 번호가 그대로인 것만 쓴다 — 안 그러면 `kimc`(빈 것) 답이 `kimch`(쓰는 것)를 치는
+  // 동안 내려앉아 「사용 가능」을 띄우고 가입 단추를 켰다
+  const emailSeqRef = useRef(0);
+  const usernameSeqRef = useRef(0);
   const usernameCheckTimerRef = useRef(null);
   useEffect(() => () => {
     if (navTimerRef.current) clearTimeout(navTimerRef.current);
@@ -195,6 +200,7 @@ export default function RegisterPage() {
     // 아래 형식 자가 `[^\s@]` 라, ` kim@a.com ` 을 붙여넣으면 눈에는 멀쩡한 주소를
     // 보면서 「올바른 이메일 형식이 아니에요」를 듣는다 — 보이지 않는 글자다
     const val = cleanEmailField(raw);
+    const seq = ++emailSeqRef.current;
     setEmail(val);
     setEmailOk(false);
     setEmailError('');
@@ -214,12 +220,14 @@ export default function RegisterPage() {
       setEmailChecking(true);
       try {
         const { data } = await client.post('/auth/check-email', { email: val });
+        if (seq !== emailSeqRef.current) return;
         setEmailOk(data.available);
         setEmailError(data.available ? '' : data.message);
       } catch (err) {
+        if (seq !== emailSeqRef.current) return;
         setEmailError(err.response?.data?.error || '확인 실패');
       } finally {
-        setEmailChecking(false);
+        if (seq === emailSeqRef.current) setEmailChecking(false);
       }
     }, 600);
   };
@@ -238,6 +246,7 @@ export default function RegisterPage() {
     // 소문자로만 낮추고 **공백은 그대로 들고 있었다** — ` kim12 ` 를 붙여넣으면
     // 「영문, 숫자, 특수문자만 가능」이 뜬다. 아이디에 공백은 쓸 수 없는 글자다
     const next = cleanIdField(val);
+    const seq = ++usernameSeqRef.current;
     setUsername(next);
     setUsernameOk(false);
     setUsernameMsg('');
@@ -256,13 +265,15 @@ export default function RegisterPage() {
       setUsernameChecking(true);
       try {
         const { data } = await client.post('/auth/check-username', { username: next });
+        if (seq !== usernameSeqRef.current) return;
         setUsernameOk(data.available);
         setUsernameMsg(data.message);
       } catch (err) {
+        if (seq !== usernameSeqRef.current) return;
         setUsernameMsg(err.response?.data?.error || '확인 실패');
         setUsernameOk(false);
       } finally {
-        setUsernameChecking(false);
+        if (seq === usernameSeqRef.current) setUsernameChecking(false);
       }
     }, 600);
   };
@@ -398,13 +409,17 @@ export default function RegisterPage() {
             {/* 소셜로 들어오면 계정이 저절로 만들어진다 — **제일 빠른 길이라 맨 위에
                 둔다.** 예전에는 이 자리가 비어 있어서, 구글로 가입하려면 「로그인」
                 쪽으로 가야 한다는 걸 알아내야 했다 */}
-            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={safeBackTo(backTo)} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
-              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
-              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-            </div>
+            {/* 가름선은 단추와 함께 선다 — 켜진 제공자가 없으면 「또는」이 홀로 남는다 */}
+            <SocialLoginButtons
+              disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={safeBackTo(backTo)}
+              after={(
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+                  <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
+                  <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+                </div>
+              )}
+            />
 
             {/* 새로고침으로 되돌아온 사람에게 **왜 처음인지** 말한다.
                 아무 말 없이 1걸음을 보여주면 적은 것이 그냥 사라진 것으로 보인다 */}

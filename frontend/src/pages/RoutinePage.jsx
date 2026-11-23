@@ -474,7 +474,13 @@ export default function RoutinePage() {
 
   // **부르는 자리가 둘이다** — 갈래/유형이 바뀔 때와 「다시 받기」를 누를 때.
   // 두 벌로 적으면 한쪽만 고쳐지는 날이 온다
+  // **늦게 온 답이 지금 고른 유형을 덮지 않게** (2026-11-23). 느린 망에서 「맨몸」을
+  // 받는 중에 담아둔 「머신」으로 넘어가면, 맨몸 답이 뒤늦게 내려앉아 머신 단추가 켜진
+  // 채 맨몸 루틴이 떴다(부위 이름이 같아 티도 안 났다). 지금 원하는 유형을 들고 있다가
+  // 다르면 담아만 두고 화면은 안 바꾼다
+  const wantKindRef = useRef(null);
   const fetchPicks = useCallback((kind, { again = false } = {}) => {
+    wantKindRef.current = kind;
     if (!again && cacheRef.current[kind]) {
       setRoutines(cacheRef.current[kind]); setLoadErr(false); setLoading(false); return;
     }
@@ -484,16 +490,18 @@ export default function RoutinePage() {
       .then(({ data }) => {
         const obj = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
         cacheRef.current[kind] = obj;
+        if (wantKindRef.current !== kind) return;
         setRoutines(obj);
         setLoadErr(false);
       })
       .catch(() => {
+        if (wantKindRef.current !== kind) return;
         // **빈 것으로 만들지 않는다** — 화면이 「없다」와 「못 받았다」를 갈라 말한다
         setRoutines({});
         setLoadErr(true);
         toast('루틴을 불러오지 못했어요', 'error');
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (wantKindRef.current === kind) setLoading(false); });
   }, []);
 
   // **추천을 보고 있을 때만 받아온다.** 예전에는 화면에 들어오기만 해도 받았고,

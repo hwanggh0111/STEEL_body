@@ -383,10 +383,12 @@ export default function Layout() {
   // 열려 있는 동안 Esc 로도 닫는다
   useEffect(() => {
     if (!sideMenu) return;
-    const onKey = (e) => { if (e.key === 'Escape') setSideMenu(false); };
+    // 서랍에서 띄운 사진이 위에 있으면 Esc 는 **그 사진만** 닫는다 (2026-11-23) —
+    // 두 손이 다 `document` 에서 들어서 한 번에 사진과 서랍이 같이 닫혔다
+    const onKey = (e) => { if (e.key === 'Escape' && !zoomImg) setSideMenu(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [sideMenu]);
+  }, [sideMenu, zoomImg]);
 
   // ── **크게 띄운 사진은 Esc 로 닫을 길이 없었다** ── (2026-11-11)
   //

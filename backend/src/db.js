@@ -1616,7 +1616,8 @@ const db = {
     const data = load();
     if (!data.blacklist || data.blacklist.length === 0) return false;
     return data.blacklist.some(b => {
-      if (b.type === 'email' && email && b.value === email) return true;
+      // 메일은 **크기를 맞춰** 견준다 (2026-11-23) — `Banned@x.com` 으로 다시 가입하면 지나갔다
+      if (b.type === 'email' && email && emailKey(b.value) === emailKey(email)) return true;
       if (b.type === 'ip' && ip && b.value === ip) return true;
       if (b.type === 'ip_range' && ip) {
         const range = b.value.replace('/24', '').replace(/\.\d+$/, '');
@@ -1851,7 +1852,11 @@ const db = {
    * 까닭은 위 `bumpVer` 머리글에 (2026-10-24).
    */
   dataTag,
-  flushNow() { _flushImmediate(); },
+  // **비동기 쓰기가 도는 중이면 동기로 덮지 않는다** (2026-11-23). 같은 임시 파일
+  // (`.writing`)에 둘이 붓게 되어, 비동기 쪽이 이름 바뀐 파일에 옛 바이트를 마저 쓰면
+  // `blackiron.json` 이 반쪽씩 섞인다. 부른 쪽은 이미 `save()` 했으므로 `_dirty` 가
+  // 서 있고, 도는 쓰기가 끝나면 `_flush` 의 `finally` 가 그것을 이어서 쓴다
+  flushNow() { if (_writeLock) return; _flushImmediate(); },
   /**
    * 사진도 지금 쓴다.
    *

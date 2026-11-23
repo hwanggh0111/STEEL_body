@@ -245,6 +245,7 @@ console.log('── 5. 앱 전수: **두 번째 시계가 또 생기지 않았�
     'src/components/admin/MaintAdmin.jsx': '점검을 **앞날로** 거는 자리다 (`min` 이 오늘, `max` 가 없다)',
     'src/components/MaintenanceScreen.jsx': '점검이 **지금** 도는 중인지 본다 — 날짜가 아니라 시각이다',
     'src/data/healthLink.js': '건강앱에 **최근 30일**을 달라고 하는 자리 (시각 구간)',
+    'src/pages/ComparePage.jsx': '사진을 올린 **시각**을 적는다 — 서버가 주는 `created_at` 과 같은 값이다 (2026-11-23)',
   };
   const 자리 = [];
   (function walk(d) {

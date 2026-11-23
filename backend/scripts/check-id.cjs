@@ -170,8 +170,16 @@ async function run() {
     // 바꿀 수 있게 되자 그 증거가 사라질 수 있게 됐다 — 그러면 **비밀번호가 없는
     // 사람에게 비밀번호를 묻는 창**이 열리고(설정함 · 계정 시트), 계정도 못 지운다.
     // 바꿀 때 `is_social` 로 적어 두는지 본다
-    const soc = await makeUser('soc@test.local', 'google_aabbccdd');
+    // **소셜 계정은 소셜 로그인이 만드는 대로 만든다** (2026-11-23). 여태 가입 길에
+    // `google_aabbccdd` 를 넣어 만들었는데, 그 길이 바로 구멍이었다 — 비밀번호 계정이
+    // 그 모양 아이디로 「소셜」이 되어 비밀번호 없이 계정을 지웠다. 이제 가입 · 이름
+    // 바꾸기가 그 모양을 거절하므로, `oauth.js` 처럼 db 에 바로 만든다(`is_social` 이
+    // 없는 옛 소셜 계정의 모양이다)
+    db.createUser('soc@test.local', await require('bcryptjs').hash('abcd1234', 4), '소셜', 'google_aabbccdd');
+    const soc = { token: (await login('soc@test.local')).body.token };
     ok('아이디 모양으로 소셜을 알아본다', db.isSocialAccount(db.findUserByUsername('google_aabbccdd')), true);
+    ok('  비밀번호 계정은 그 모양으로 가입할 수 없다', (await makeUser('fake@test.local', 'google_00000000')).status, 400);
+    ok('  그 모양으로 바꿀 수도 없다', (await changeId(me.token, 'naver_00000000')).status, 400);
     ok('  바꿀 수 있다', (await changeId(soc.token, 'kevin12')).status, 200);
     const after = db.findUserByUsername('kevin12');
     ok('  모양은 더 이상 소셜이 아닌데', /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(after.username), false);

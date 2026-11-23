@@ -206,7 +206,7 @@ export default function SitePhotoAdmin() {
                     autoFocus
                     placeholder="한 줄 설명 (안 적어도 됩니다)"
                     onChange={(e) => setEditing({ ...editing, caption: e.target.value })}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveCaption(); if (e.key === 'Escape') setEditing(null); }}
+                    onKeyDown={(e) => { if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') saveCaption(); if (e.key === 'Escape') setEditing(null); }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn-secondary" style={{ flex: 1 }} disabled={busy} onClick={saveCaption}>저장</button>

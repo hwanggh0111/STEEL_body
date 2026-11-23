@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "54c7d90a26",
+  "detailVersion": "08b7021d21",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "9ee0b0c",
+      "date": "2026-11-23",
+      "text": "「맨 위로」 밑에 마지막 글이 영영 깔렸다 — 본문 여백이 잰 높이를 읽는다",
+      "label": "고침",
+      "scope": "배치",
       "has": true
     },
     {
@@ -1129,14 +1137,6 @@
       "text": "안 쓰는 구글 글꼴 집 둘이 CSP 에 열려 있었다 — 걷는다",
       "label": "고침",
       "scope": "보안"
-    },
-    {
-      "key": "a42b1b6",
-      "date": "2026-11-13",
-      "text": "갈래를 하나 더하면 줄 수 상한이 조용히 사라진다 — 상한을 갈래 안으로 넣는다",
-      "label": "고침",
-      "scope": "가져오기",
-      "has": true
     }
   ]
 }

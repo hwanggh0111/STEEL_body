@@ -124,6 +124,21 @@ client.interceptors.response.use(
           await new Promise((r) => setTimeout(r, 400));
           return client(originalRequest);
         }
+        // ── **「아니다」를 들은 것만 로그아웃이다** ── (2026-11-23)
+        //
+        // 갱신 요청이 신호가 끊겨 못 가거나, 시간이 넘거나, 배포 중이라 5xx 거나,
+        // 한 IP 한도에 걸려 429 면 **갱신 쿠키는 멀쩡하다.** 그런데 여태 그것도 다
+        // 「세션이 만료되었어요」로 로그인 화면에 보냈다 — 운동하다 LTE 가 한 번
+        // 끊기면 보던 화면이 날아갔다. `checkAuth` 가 지키는 규칙(401/403 만 로그아웃)과
+        // 같게 한다. 이번 요청만 실패로 돌려주고, 다음 요청이 다시 갱신해 본다
+        const refreshStatus = refreshErr?.response?.status;
+        if (refreshStatus !== 401 && refreshStatus !== 403) {
+          isRefreshing = false;
+          const queue = [...refreshQueue];
+          refreshQueue = [];
+          queue.forEach(({ reject }) => reject(refreshErr));
+          return Promise.reject(refreshErr);
+        }
         // refresh도 실패: 카운터 증가 + 큐 복사 후 초기화
         refreshFailCount++;
         isRefreshing = false;

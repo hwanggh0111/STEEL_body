@@ -883,7 +883,10 @@ function aiGuardMiddleware(req, res, next) {
   if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
 
   // 블랙리스트 체크 (가입 시)
-  if (req.path === '/api/auth/register' && req.method === 'POST') {
+  // **주소 모양을 맞춰 본다** (2026-11-23). Express 는 대소문자와 끝 `/` 를 가리지 않아
+  // `/api/auth/Register` · `/api/auth/register/` 도 가입으로 들어가는데, 여기는 글자
+  // 그대로 견줘서 그 둘로 차단 목록을 비껴갔다
+  if (req.path.toLowerCase().replace(/\/+$/, '') === '/api/auth/register' && req.method === 'POST') {
     const email = req.body?.email;
     const ua = req.get('user-agent') || '';
     if (db.isBlacklisted(email, ip, ua)) {

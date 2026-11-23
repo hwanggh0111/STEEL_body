@@ -1,6 +1,15 @@
 {
-  "generated": "2026-11-20",
+  "generated": "2026-11-23",
   "items": [
+    {
+      "hash": "9ee0b0c",
+      "date": "2026-11-23",
+      "type": "fix",
+      "label": "고침",
+      "scope": "배치",
+      "text": "**「맨 위로」 밑에 마지막 글이 영영 깔렸다** — 본문 여백이 잰 높이를 읽는다",
+      "detail": "본문 아래 여백이 짐작 px(80 · 띠 58)로 남아, 탭바 위 30~70px 에 뜨는\n「맨 위로」 밑 글이 끝까지 내려도 안 보였다. 여백을\ncalc(var(--tabbar-h) + var(--restbar-h, 0px) + 80px) 로 바꾸고,\ncheck-layer 에 「본문이 떠 있는 것만큼 비키는가」 묶음과 되돌려 확인을 더한다."
+    },
     {
       "hash": "d4298e6",
       "date": "2026-11-20",
@@ -711,15 +720,6 @@
       "scope": "보안",
       "text": "**안 쓰는 구글 글꼴 집 둘이 CSP 에 열려 있었다** — 걷는다",
       "detail": ""
-    },
-    {
-      "hash": "a42b1b6",
-      "date": "2026-11-13",
-      "type": "fix",
-      "label": "고침",
-      "scope": "가져오기",
-      "text": "**갈래를 하나 더하면 줄 수 상한이 조용히 사라진다** — 상한을 갈래 안으로 넣는다",
-      "detail": "정석이 전수에서 집어 1차로 넘긴 건이다 (`routes/importData.js:97`).\n\n줄 수 상한을 `MAX_TOTAL` 이라는 **딴 표**로 두고 `MAX_TOTAL[kind]` 로 찾아 썼다.\n지금은 셋(`workouts`·`inbody`·`measures`)이 맞아 돌지만 **짝이라는 보장이 코드에\n없었다.** `KINDS` 에 넷째를 더하면서 이 표를 깜빡하면 —\n\n    room = undefined - have.size   →  NaN\n    NaN <= 0                       →  **false**\n\n가 되어 **상한 검사가 통째로 사라진다.** 가득 찼다는 409 도 안 나가고 무한히 들어간다.\n실제로 재 봤다: …"
     }
   ]
 }

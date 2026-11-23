@@ -86,6 +86,18 @@ export function useModalFocus(boxRef, open, { onClose, initialFocus } = {}) {
   // 덮개를 열기 **직전에** 어디에 서 있었는지. 닫을 때 그 자리로 돌려준다
   const 왔던자리 = useRef(null);
 
+  // ── **닫는 손은 들고만 있는다** ── (2026-11-23)
+  //
+  // 부르는 쪽은 거의 다 `onClose={() => …}` 처럼 **그릴 때마다 새 손**을 준다. 그것을
+  // 아래 효과의 의존에 두었더니, 덮개 주인이 다시 그려질 때마다(입력칸에 한 글자 칠
+  // 때마다) 효과가 정리 → 다시 돌았다 — 포커스가 **뒤 단추로 갔다가 첫 칸으로** 왔고,
+  // 그 틈에 친 글자는 뒤 단추에 떨어지고, 아이폰은 자판이 닫혔다. 손은 늘 최신 것을
+  // 쓰되 효과는 **열고 닫힐 때만** 돈다
+  const 닫는손 = useRef(onClose);
+  닫는손.current = onClose;
+  const 첫칸 = useRef(initialFocus);
+  첫칸.current = initialFocus;
+
   useEffect(() => {
     if (!open) return undefined;
 
@@ -95,12 +107,12 @@ export function useModalFocus(boxRef, open, { onClose, initialFocus } = {}) {
     // 상자 자신에 주지 않는다. `tabIndex` 없는 `div` 에 포커스를 주면 읽어주는 기계가
     // 「그룹」이라고만 읽고 **무엇을 하는 자리인지 말하지 않는다**
     const t = setTimeout(() => {
-      const 첫자리 = initialFocus?.current || 닿는것들(boxRef.current)[0];
+      const 첫자리 = 첫칸.current?.current || 닿는것들(boxRef.current)[0];
       첫자리?.focus();
     }, 0);
 
     const onKey = (e) => {
-      if (e.key === 'Escape' && onClose) { e.stopPropagation(); onClose(); return; }
+      if (e.key === 'Escape' && 닫는손.current) { e.stopPropagation(); 닫는손.current(); return; }
       if (e.key !== 'Tab') return;
 
       const 것들 = 닿는것들(boxRef.current);
@@ -130,7 +142,7 @@ export function useModalFocus(boxRef, open, { onClose, initialFocus } = {}) {
       const 돌아갈곳 = 왔던자리.current;
       if (돌아갈곳 && document.contains(돌아갈곳)) 돌아갈곳.focus();
     };
-  }, [open, boxRef, onClose, initialFocus]);
+  }, [open, boxRef]);
 }
 
 /** 상자 안에서 자판으로 닿는 것들을 순서대로. 숨은 것 · 꺼진 것은 뺀다 */

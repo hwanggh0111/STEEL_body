@@ -90,6 +90,15 @@ function pgPool() {
     max: 3,                       // 무료 판은 연결 수가 적다. 이 앱은 한 대로 돈다
     idleTimeoutMillis: 30000,
   });
+  // ── **쉬는 연결이 끊겨도 서버는 안 죽는다** (2026-11-23) ──
+  //
+  // `pg.Pool` 은 쉬고 있는 연결이 저쪽에서 끊기면(DB 재시작 · 망 끊김) `'error'` 를
+  // 낸다. 듣는 손이 없으면 Node 가 그것을 **잡히지 않은 예외로 던져 프로세스가 죽는다**
+  // — 끝내기 길을 안 거치니 램에 남은 것(모아 쓰기 500ms 몫)이 사라진다.
+  // 끊긴 연결은 풀이 버리고 다음 쿼리가 새로 붙는다. 적어만 둔다
+  if (typeof pool.on === 'function') pool.on('error', (err) => {
+    console.error('[DB] Postgres 쉬는 연결이 끊겼습니다:', err.message);
+  });
   return pool;
 }
 
@@ -188,10 +197,18 @@ module.exports = {
   write(name, text) {
     if (KIND === 'postgres') {
       preloaded.set(name, text);              // 램이 먼저 맞는다. 읽기는 여기서 나간다
-      writeChain = writeChain.then(() => pgWrite(name, text)).catch((err) => {
+      // ── **실패를 부른 쪽에 돌려준다** (2026-11-23) ──
+      //
+      // 여태 `.catch` 가 오류를 삼킨 그 약속을 돌려줬다 — 늘 「됐다」로 끝났다.
+      // `db.js` 의 `_flush` 는 실패해야 `_dirty = true` 로 다시 쓰는데, 그 손이
+      // **한 번도 안 돌았다.** Postgres 가 잠깐 끊긴 사이 적은 세트는 램에만 남고,
+      // 다음 저장이 없으면 배포 · 재시작 때 사라졌다(파일 쪽은 실패를 돌려준다).
+      // 줄(`writeChain`)은 계속 이어져야 하니 줄 쪽만 삼키고, 부른 쪽에는 그대로 준다
+      const p = writeChain.then(() => pgWrite(name, text));
+      writeChain = p.catch((err) => {
         console.error('[DB] Postgres 에 쓰지 못했습니다:', err.message);
       });
-      return writeChain;
+      return p;
     }
     return fileWrite(pathOf(name), text);
   },
@@ -203,7 +220,12 @@ module.exports = {
    * 기다릴 수 없는 자리(`process.on('exit')`)에서는 할 수 있는 데까지만 한다.
    */
   writeSync(name, text) {
-    if (KIND === 'postgres') return module.exports.write(name, text);
+    if (KIND === 'postgres') {
+      // 끝내는 자리는 이 약속을 안 받는다 — 실패가 잡히지 않은 거부로 새지 않게
+      const p = module.exports.write(name, text);
+      p.catch(() => {});
+      return p;
+    }
     fileWriteSync(pathOf(name), text);
     return Promise.resolve();
   },

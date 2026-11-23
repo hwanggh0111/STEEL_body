@@ -11,6 +11,7 @@ import { useReportStore } from './reportStore';
 import { useGoalStore } from './goalStore';
 import { useGymStore } from './gymStore';
 import { useLockStore } from './lockStore';
+import { useRestTimerStore } from './restTimerStore';
 // 이 스토어는 모듈이 로드되는 순간 localStorage 를 읽는다. 쿠키를 막아둔 브라우저는
 // 읽기에서도 SecurityError 를 던지는데, 그러면 import 단계에서 앱 전체가 흰 화면이 된다.
 import { readLS, saveLS, removeLS, readCookies } from '../data/safeStorage';
@@ -46,6 +47,64 @@ REMOVED_GAME_KEYS.forEach(k => removeLS(k));
 // 사진 · 검색 기록 · 답변 확인 시각이 그렇게 빠져 있었다
 const LOGOUT_KEYS = PER_USER_KEYS;
 
+
+/**
+ * 이 기기에서 **앞 사람의 것**을 다 잊는다 — 브라우저에 담긴 것과 스토어 둘 다.
+ *
+ * ── 왜 따로 뺐나 ── (2026-11-23)
+ *
+ * 여태 이 일은 `logout` 안에만 있었다. 그런데 **로그아웃을 안 거치고 나가는 길**이
+ * 있다 — 세션이 만료돼 `api/client.js` 의 `toLogin` 이 튕기는 길은 토큰과 이름만
+ * 지운다. 못 올린 줄 · 90일 목록 · 메모 · 사진이 그대로 남고, 그 기기에서 **다른 사람이**
+ * 로그인하면 앞 사람 기록이 화면에 뜨고 **못 올린 줄이 새 사람 계정으로 올라갔다.**
+ * 그래서 들어오는 세 길(이메일 · 가입 · 소셜)이 `forgetIfOther` 로 이것을 부른다.
+ */
+function forgetUser() {
+  LOGOUT_KEYS.forEach(k => removeLS(k));
+  // 다른 스토어 초기화
+  // 담아둔 목록 · 못 올린 줄까지 비운다. 안 비우면 다음에 로그인한 사람 화면에
+  // **앞 사람이 헬스장에서 적은 기록**이 남는다 (localStorage 쪽은 LOGOUT_KEYS 가 지운다)
+  useWorkoutStore.setState({ workouts: {}, server: {}, queue: [], loading: false, flushing: false });
+  // 그날 메모도 같다 — 앞 사람이 달력에 적어둔 것이 남으면 안 된다
+  useNoteStore.setState({ notes: {}, server: {}, queue: {}, loading: false, flushing: false, loadFailed: false });
+  useInbodyStore.setState({ records: [], loading: false });
+  // 목록을 「방금 받아왔다」고 기억해 둔 것까지 비운다.
+  // 안 비우면 다음에 로그인한 사람이 앞 사람 목록을 잠깐 본다
+  resetWorkoutCache();
+  resetNoteCache();
+  resetInbodyCache();
+  // 체형의 자세 인식 모델도 놓아준다. 목록과 달리 **남의 것이 보이는 문제는
+  // 아니지만**(모델은 누구에게나 같다), 10MB 를 든 채로 로그인 화면에 서 있을
+  // 이유가 없다. 다음에 「체형」을 열면 CDN 이 아니라 브라우저 캐시에서 온다
+  resetPose();
+  // **영상용도 같이 놓는다** (2026-10-21에 고쳤다).
+  //
+  // 9/30 에 횟수 세기를 붙이면서 모델을 **하나 더** 만들었다(흐르는 화면은 `VIDEO`
+  // 모드라야 한다). 놓아주는 짝(`resetPoseVideo`)도 그때 같이 적어뒀는데
+  // **아무도 안 불렀다** — 「`resetPose` 와 짝」이라고 주석까지 달아둔 채였다.
+  // 그래서 횟수를 한 번이라도 세면 그 10MB 를 로그인 화면까지 들고 서 있었다.
+  // 길이 둘인데 한쪽에만 적어둔, 이 앱이 거듭 당하는 그 모양이다
+  resetPoseVideo();
+  // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
+  useRoutineSessionStore.getState().reset();
+  // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다
+  useReportStore.getState().reset();
+  // 목표도 — 체중 목표는 남에게 보일 것이 아니다
+  useGoalStore.getState().reset();
+  // 기구 세팅도 — 남의 헬스장 세팅이 내 화면에 뜨면 안 된다
+  useGymStore.getState().reset();
+  // 쉬는 시계도 멈춘다 — 앞 사람 운동 이름을 단 띠가 다음 사람 화면에 남는다
+  useRestTimerStore.getState().stop();
+}
+
+// 들어온 사람이 **담아둔 사람과 다르면** 앞 사람 것을 잊는다. 같은 사람이면 남긴다 —
+// 세션만 만료돼 다시 들어온 사람의 못 올린 줄은 그 사람 것이다.
+// 담아둔 이메일이 없으면(로그아웃으로 이미 지웠거나 처음) 지울 것도 없다
+function forgetIfOther(nextEmail) {
+  const prev = readLS(EMAIL_KEY);
+  if (prev && nextEmail && prev !== nextEmail) forgetUser();
+}
+
 export const useAuthStore = create((set) => ({
   token: readLS(TOKEN_KEY), // 레거시 호환 (httpOnly 쿠키 전환 완료 후 제거 예정)
   nickname: readLS(NICKNAME_KEY),
@@ -59,6 +118,7 @@ export const useAuthStore = create((set) => ({
     // 그때 날아가 있는 앞 사람의 답도 같이 버린다
     newSession();
     const { data } = await client.post('/auth/login', { email, password });
+    forgetIfOther(data.email);
     if (data.token) saveLS(TOKEN_KEY, data.token);
     saveLS(NICKNAME_KEY, data.nickname);
     if (data.email) saveLS(EMAIL_KEY, data.email);
@@ -86,6 +146,7 @@ export const useAuthStore = create((set) => ({
    * 세 길(이메일 · 가입 · 소셜)이 이제 같은 자리를 지난다.
    */
   socialLoggedIn: ({ nickname, email }) => {
+    forgetIfOther(email);
     if (nickname) {
       saveLS(NICKNAME_KEY, nickname);
       // **다음에 올 때 인사할 이름도 담는다.** 이메일 로그인은 담는데 소셜만 안 담아서,
@@ -112,6 +173,7 @@ export const useAuthStore = create((set) => ({
   // `code` 는 메일로 받은 여섯 자리다 — 서버가 가입을 받는 자리에서 같이 본다
   register: async (email, password, nickname, username, code) => {
     const { data } = await client.post('/auth/register', { email, password, nickname, username, code });
+    forgetIfOther(data?.email);
     if (data?.token) saveLS(TOKEN_KEY, data.token);
     if (data?.nickname) saveLS(NICKNAME_KEY, data.nickname);
     if (data?.email) saveLS(EMAIL_KEY, data.email);
@@ -174,7 +236,7 @@ export const useAuthStore = create((set) => ({
     // **손으로 나열**하고 있었다. 한 곳만 고치면 다른 쪽에 남는다 —
     // 8/25 에 죽은 게임 키를 정리하면서 「나열은 한 군데에만 있으면 된다」고 적어놓고
     // 이 둘을 못 봤다
-    LOGOUT_KEYS.forEach(k => removeLS(k));
+    // (브라우저에 담긴 것과 스토어는 아래 `forgetUser()` 가 지운다)
     // CSRF 쿠키 클라이언트에서도 삭제 (서버 실패 대비)
     try { document.cookie = 'sb_csrf=; Max-Age=0; path=/'; } catch { /* 쿠키를 막아둔 브라우저 */ }
     // ── 앱 잠금 네 자리도 잊는다 ── (2026-10-24)
@@ -185,38 +247,7 @@ export const useAuthStore = create((set) => ({
     // 적혀 있었다 — 그 말이 맞게 한다. 까닭은 `lockStore.forget` 에
     useLockStore.getState().forget();
     set({ token: null, nickname: null, sex: null, isLoggedIn: false });
-    // 다른 스토어 초기화
-    // 담아둔 목록 · 못 올린 줄까지 비운다. 안 비우면 다음에 로그인한 사람 화면에
-    // **앞 사람이 헬스장에서 적은 기록**이 남는다 (localStorage 쪽은 LOGOUT_KEYS 가 지운다)
-    useWorkoutStore.setState({ workouts: {}, server: {}, queue: [], loading: false, flushing: false });
-    // 그날 메모도 같다 — 앞 사람이 달력에 적어둔 것이 남으면 안 된다
-    useNoteStore.setState({ notes: {}, server: {}, queue: {}, loading: false, flushing: false, loadFailed: false });
-    useInbodyStore.setState({ records: [], loading: false });
-    // 목록을 「방금 받아왔다」고 기억해 둔 것까지 비운다.
-    // 안 비우면 다음에 로그인한 사람이 앞 사람 목록을 잠깐 본다
-    resetWorkoutCache();
-    resetNoteCache();
-    resetInbodyCache();
-    // 체형의 자세 인식 모델도 놓아준다. 목록과 달리 **남의 것이 보이는 문제는
-    // 아니지만**(모델은 누구에게나 같다), 10MB 를 든 채로 로그인 화면에 서 있을
-    // 이유가 없다. 다음에 「체형」을 열면 CDN 이 아니라 브라우저 캐시에서 온다
-    resetPose();
-    // **영상용도 같이 놓는다** (2026-10-21에 고쳤다).
-    //
-    // 9/30 에 횟수 세기를 붙이면서 모델을 **하나 더** 만들었다(흐르는 화면은 `VIDEO`
-    // 모드라야 한다). 놓아주는 짝(`resetPoseVideo`)도 그때 같이 적어뒀는데
-    // **아무도 안 불렀다** — 「`resetPose` 와 짝」이라고 주석까지 달아둔 채였다.
-    // 그래서 횟수를 한 번이라도 세면 그 10MB 를 로그인 화면까지 들고 서 있었다.
-    // 길이 둘인데 한쪽에만 적어둔, 이 앱이 거듭 당하는 그 모양이다
-    resetPoseVideo();
-    // 진행 중인 루틴도 비운다 — 안 비우면 다음에 로그인한 사람이 앞 사람의 진행표를 본다
-    useRoutineSessionStore.getState().reset();
-    // 제보함도 — 안 비우면 다음 사람에게 앞 사람의 제보와 「새 답변」이 뜬다
-    useReportStore.getState().reset();
-    // 목표도 — 체중 목표는 남에게 보일 것이 아니다
-    useGoalStore.getState().reset();
-    // 기구 세팅도 — 남의 헬스장 세팅이 내 화면에 뜨면 안 된다
-    useGymStore.getState().reset();
+    forgetUser();
   },
 
   /**
