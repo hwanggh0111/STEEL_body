@@ -357,6 +357,71 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
     ok('들여오는 것은 zustand 하나뿐이다', imports, ['zustand']);
 
     // ─────────────────────────────────────────────────────────────
+    // **로그아웃을 안 거치고 나간 자리에 다른 사람이 들어온다** (2026-11-23 고침 · 자는 11-24)
+    // ─────────────────────────────────────────────────────────────
+    //
+    // 세션이 만료돼 튕기는 길(`api/client.js` 의 `toLogin`)은 **토큰과 이름만** 지운다.
+    // 못 올린 줄 · 90일 목록 · 메모 · 사진은 그대로 남는다. 그 기기에서 **다른 사람이**
+    // 로그인하면 앞 사람 기록이 화면에 뜨고, **못 올린 줄이 새 사람 계정으로 올라갔다.**
+    // 11/23 에 들어오는 세 길이 `forgetIfOther` 를 부르게 고쳤는데 **자가 없었다.**
+    //
+    // 여기서는 **브라우저에 담긴 것**으로 본다 — 저장소 쪽은 위의 묶음들이 이미 보고,
+    // 기기에 담긴 것이 다음 사람 화면에 **남는** 쪽이다(`hydrate` 가 그것부터 그린다).
+    console.log('');
+    console.log('── 앞 사람 자리에 다른 사람이 들어온다 ──');
+    const amod = await load('src/store/authStore.js', '.h-auth.cjs');
+    const keys = await load('src/data/localKeys.js', '.h-keys.cjs');
+    const A = () => amod.useAuthStore.getState();
+    // ★ **열쇠 이름을 베끼지 않는다** — `localKeys.js` 에서 받아 온다. 처음에 손으로
+    // 적었더니(`workoutCache` …) 실제 이름(`ironlog_*`)과 달라 **여섯 줄이 거짓으로
+    // 울었다**. 베낀 이름은 바뀌는 날 조용히 아무것도 안 지킨다
+    const 앞사람 = () => {
+      ls.clear();
+      for (const k of keys.PER_USER_KEYS) ls.set(k, '앞사람');
+      ls.set(keys.EMAIL_KEY, 'first@a.com');
+    };
+    // 아직 **앞 사람 것**이 남아 있는 열쇠들 (들어온 사람이 새로 적은 것은 값이 다르다)
+    const 남은것 = () => [...ls.entries()].filter(([, v]) => v === '앞사람').map(([k]) => k).sort();
+    fake.bodies['/auth/login'] = { token: 't', nickname: '둘째', email: 'second@b.com' };
+
+    앞사람();
+    const 심은수 = 남은것().length;
+    ok('심을 자리가 있다 (모집단 0 을 통과로 내보내지 않는다)', 심은수 > 5, true);
+    await A().login('second@b.com', 'pw');
+    ok('**다른 사람이 들어오면 앞 사람 것이 하나도 안 남는다**', 남은것(), []);
+    ok('  들어온 사람으로 적힌다', ls.get(keys.EMAIL_KEY), 'second@b.com');
+
+    // 같은 사람이면 **남긴다** — 세션만 만료돼 다시 들어온 사람의 못 올린 줄은 그 사람 것이다
+    앞사람();
+    fake.bodies['/auth/login'] = { token: 't', nickname: '첫째', email: 'first@a.com' };
+    await A().login('first@a.com', 'pw');
+    ok('같은 사람이 다시 들어오면 그 사람 것을 남긴다',
+      [keys.WORKOUT_QUEUE_KEY, keys.WORKOUT_CACHE_KEY, keys.COMPARE_PHOTOS_KEY].map((k) => ls.get(k)),
+      ['앞사람', '앞사람', '앞사람']);
+
+    // ★ **누가 들어왔는지 모를 때** (2026-11-24). 소셜은 `email` 이 비는 판이 있고
+    // (`LoginPage` 가 `null` 로 넘긴다) 가입 답에 메일이 없는 판도 같다. 「모르니
+    // 남긴다」로 두면 그 길로 구멍이 그대로 열려 있다 — 11/23 고침이 메일에만 기댔다
+    앞사람();
+    A().socialLoggedIn({ nickname: '소셜', email: null });
+    ok('**메일을 모르는 채로 들어와도 앞 사람 것은 지운다**', 남은것(), []);
+
+    // 세 길이 **다 그 자리를 지나는가** — 하나만 고치면 남은 길로 들어온다
+    앞사람();
+    A().socialLoggedIn({ nickname: '소셜', email: 'social@c.com' });
+    ok('소셜 길도 지운다', 남은것(), []);
+    앞사람();
+    fake.bodies['/auth/register'] = { token: 't', nickname: '새사람', email: 'new@d.com' };
+    await A().register('new@d.com', 'pw', '새사람', 'newone01', '123456');
+    ok('가입 길도 지운다', 남은것(), []);
+    // 처음 쓰는 기기(담아둔 사람이 없다)에서는 **지울 것도 없다** — 괜히 비우지 않는다
+    ls.clear();
+    ls.set(keys.WORKOUT_QUEUE_KEY, '앞사람');
+    fake.bodies['/auth/login'] = { token: 't', nickname: '첫째', email: 'first@a.com' };
+    await A().login('first@a.com', 'pw');
+    ok('담아둔 사람이 없으면 비우지 않는다', ls.get(keys.WORKOUT_QUEUE_KEY), '앞사람');
+
+    // ─────────────────────────────────────────────────────────────
     // 로그아웃이 세대를 **먼저** 올리는가
     // ─────────────────────────────────────────────────────────────
     console.log('');
