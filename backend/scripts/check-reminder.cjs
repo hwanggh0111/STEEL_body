@@ -303,5 +303,81 @@ console.log('\n── 기본값이 두 곳에 적혀 있지 않은가 ──');
   ok('새 줄에 기본값을 깔아둔다', /\.\.\.REMINDER_DEFAULTS/.test(dbSrc), true);
 }
 
-console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
-process.exit(bad ? 1 : 0);
+// 보내는 자리를 **실제로 불러** 보는 칸이 있어 끝을 비동기로 감싼다 (2026-11-24)
+(async () => {
+  // ── **보내는 자리도 주소를 보는가** ── (2026-11-24 · 정석 2차)
+  //
+  // 11/23 이 「푸시 구독이 아무 https 주소를 받아 서버가 그곳을 두드렸다」를 고쳤다.
+  // 고친 자리는 **받는 문**이었다. 그런데 알림을 보낼 때 서버가 **담긴 주소로 직접
+  // POST** 하므로, **11/23 이전에 담긴 줄**은 검사를 한 번도 안 지난 채 지금도
+  // 두드려진다. 40d7824(소셜 모양 아이디)가 배운 것과 같은 꼴이다 —
+  // **문을 닫는 것과 이미 안에 있는 것을 보는 것은 다른 일이다.**
+  //
+  // 그래서 **보내는 손을 실제로 불러** 본다. 적힌 꼴을 보는 것이 아니라 값으로 본다.
+  {
+    const webpushLib = require('web-push');
+    const keys = webpushLib.generateVAPIDKeys();
+    // push.js 는 **들일 때** 열쇠를 읽는다 — 그래서 들이기 전에 넣는다
+    process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+    process.env.VAPID_PRIVATE_KEY = keys.privateKey;
+    const { isPushEndpoint } = require('../src/utils/pushHost');
+    const push = require('../src/utils/push');
+    const db2 = require('../src/db');
+
+    // ① 손 자체 — 알림 서비스의 것만 참이다
+    const 참 = [
+      'https://fcm.googleapis.com/fcm/send/abc',
+      'https://updates.push.services.mozilla.com/wpush/v2/abc',
+      'https://abc-1.notify.windows.com/w/?token=x',
+      'https://web.push.apple.com/abc',
+    ];
+    const 거짓 = [
+      'https://10.1.2.3/secret',              // 내부망
+      'https://evil.example.com/hook',        // 아무 곳
+      'http://fcm.googleapis.com/fcm/send/x', // https 가 아니다
+      'https://fcm.googleapis.com.evil.io/x', // 비슷한 이름
+      'not a url',
+      '',
+    ];
+    ok('알림 서비스 주소는 받는다', 참.filter((u) => !isPushEndpoint(u)), []);
+    ok('  그 밖은 받지 않는다', 거짓.filter((u) => isPushEndpoint(u)), []);
+
+    // ② **보내는 자리**가 담긴 주소를 보는가 — 이미 담긴 나쁜 줄을 먹인다.
+    //    닿을 수 없는 주소를 쓴다(127.0.0.1:1) — 지킴이가 없으면 **진짜로 나간다**
+    const C = 77;
+    db2.savePushSub(C, { endpoint: 'https://127.0.0.1:1/already-stored', keys: { p256dh: 'x', auth: 'y' } });
+    const 적힌것 = [];
+    const 원래error = console.error;
+    console.error = (...a) => { 적힌것.push(a.join(' ')); };
+    let 보낸수 = -1;
+    try { 보낸수 = await push.sendToUser(C, { title: '자', body: '자' }); } finally { console.error = 원래error; }
+    ok('이미 담긴 나쁜 주소로는 한 통도 안 나간다', 보낸수, 0);
+    ok('  건너뛴 까닭을 적어둔다', 적힌것.some((l) => l.includes('알림 서비스의 주소가 아니라')), true);
+    // 나간 적이 없다는 증거 — 실제로 쐈다면 그 자리에서 다른 까닭이 적힌다
+    ok('  나가서 실패한 것이 아니다', 적힌것.some((l) => l.includes('보내기 실패')), false);
+
+    // ③ 두 벌로 적지 않았나 — 브라우저가 새 주소를 쓰는 날 한쪽만 고쳐진다
+    const fs2 = require('fs');
+    const path2 = require('path');
+    const 적은자리 = [];
+    (function w(d) {
+      for (const e of fs2.readdirSync(d, { withFileTypes: true })) {
+        const p = path2.join(d, e.name);
+        if (e.isDirectory()) { w(p); continue; }
+        if (!e.name.endsWith('.js')) continue;
+        // ★ 과녁에 **점을 두지 않는다** — 그 목록은 식이라 점이 `.` 로 적혀 있고
+      //   `notify.windows.com` 으로 찾으면 **한 자리도 못 찾아** 0건이 통과로 보인다
+      //   (11/24 에 이 자를 세우다 그대로 밟았다)
+      const 글 = fs2.readFileSync(p, 'utf8');
+      if (글.includes('notify') && 글.includes('windows') && 글.includes('mozilla')) {
+          적은자리.push(path2.relative(path2.join(__dirname, '..'), p).split(path2.sep).join('/'));
+        }
+      }
+    }(path2.join(__dirname, '..', 'src')));
+    ok('알림 서비스 목록은 한 자리에만 있다', 적은자리, ['src/utils/pushHost.js']);
+  }
+
+
+  console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
+  process.exit(bad ? 1 : 0);
+})();

@@ -6,6 +6,7 @@
 let _webpush;
 const webpush = () => (_webpush || (_webpush = require('web-push')));
 const db = require('../db');
+const { isPushEndpoint } = require('./pushHost');
 
 // ─────────────────────────────────────────────────────────────
 // 웹 푸시.
@@ -69,6 +70,17 @@ async function sendToUser(userId, payload) {
 
   await Promise.all(subs.map(async (s) => {
     try {
+      // ── **담긴 주소도 나가기 전에 본다** ── (2026-11-24 · 정석 2차)
+      //
+      // 11/23 이 받는 문을 막았다. 그런데 **그 전에 담긴 줄**은 검사를 지난 적이
+      // 없고, 알림을 보낼 때 서버가 그 주소로 **직접 POST** 한다 — 내부망
+      // (`https://10.x.x.x/…`)을 적어둔 줄이 있으면 알림마다 그곳을 두드린다.
+      // 문을 닫는 것과 **이미 안에 있는 것을 보는 것**은 다른 일이다(40d7824 의 교훈).
+      // 지우지는 않는다 — 사람이 보고 판단할 거리다. 적어두고 건너뛴다
+      if (!isPushEndpoint(s.endpoint)) {
+        console.error('[push] 알림 서비스의 주소가 아니라 건너뜁니다:', String(s.endpoint).slice(0, 60));
+        return;
+      }
       await webpush().sendNotification({ endpoint: s.endpoint, keys: s.keys }, body);
       sent += 1;
     } catch (err) {

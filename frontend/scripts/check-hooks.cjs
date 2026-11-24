@@ -181,5 +181,63 @@ if (process.argv.includes('--되돌려')) {
 }
 
 console.log('');
+console.log('── 시계를 거는 효과의 의존에 손이 들어 있나 ── (2026-11-24 · 정석 2차)');
+// 11/23 이 `useModalFocus` 에서 **「닫는 손은 들고만 있는다」**로 고친 그 판단이다.
+// 부르는 쪽은 거의 다 `onDone={() => …}` 처럼 **그릴 때마다 새 손**을 준다. 그것을
+// 효과의 의존에 두면 주인이 다시 그릴 때마다 정리 → 다시 돈다.
+//
+// 듣는 손을 다시 붙이는 효과는 그래도 **결함이 아니다**(붙였다 떼는 값이 같다).
+// **시계를 거는 효과는 다르다** — 지웠다 처음부터 다시 걸므로 **끝이 계속 밀리고**,
+// 주인이 시계보다 자주 그려지면 **영영 안 끝난다.** 11/24 에 그 꼴 둘을 찾았다 —
+// `MiniSplash`(450ms · 부르는 세 자리가 다 새 손) · `SplashScreen`(3.2초 · 로그인 뒤
+// 홈으로 넘어가는 그 길). 둘 다 멈추면 **사람이 화면에 갇힌다.**
+//
+// 그래서 **시계가 든 효과만** 보고, 그 의존에 `on*` 꼴 이름이 있으면 운다.
+// 식을 거의 안 쓴다 — 11/24 에 셸이 역슬래시를 먹어 다른 자의 과녁이 깨진 채
+// 「전부 통과」가 났다. 글자 자리로 자른다.
+const 시계 = ['setTimeout(', 'setInterval(', 'requestAnimationFrame('];
+const 손이름꼴 = /^on[A-Z]/;
+const 시계효과 = { 센것: 0 };
+const 손을의존에둔것 = [];
+for (const f of 파일들(SRC)) {
+  if (!f.endsWith('.jsx') && !f.endsWith('.js')) continue;
+  const code = fs.readFileSync(f, 'utf8');
+  let at = 0;
+  for (;;) {
+    const s = code.indexOf('useEffect(() => {', at);
+    if (s < 0) break;
+    at = s + 10;
+    // 중괄호 깊이로 효과의 몸을 떠낸다 — 식으로 자르면 안쪽 `}` 에서 끊긴다
+    let i = code.indexOf('{', s + 'useEffect(('.length);
+    let depth = 0;
+    let quote = null;
+    for (; i < code.length; i += 1) {
+      const c = code[i];
+      if (quote) { if (c === quote && code[i - 1] !== String.fromCharCode(92)) quote = null; continue; }
+      if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+      if (c === '{') depth += 1;
+      else if (c === '}') { depth -= 1; if (depth === 0) break; }
+    }
+    const 몸 = code.slice(s, i);
+    if (!시계.some((t) => 몸.includes(t))) continue;
+    // 몸이 끝난 뒤의 `, [ … ]);` 가 의존이다
+    const 뒤 = code.slice(i, i + 400);
+    const a = 뒤.indexOf('[');
+    const b = 뒤.indexOf(']');
+    if (a < 0 || b < a) continue;        // 의존을 안 준 효과 — 매번 도는 것이 뜻이다
+    시계효과.센것 += 1;
+    const 들 = 뒤.slice(a + 1, b).split(',').map((x) => x.trim()).filter(Boolean);
+    const 손 = 들.filter((d) => 손이름꼴.test(d));
+    if (손.length === 0) continue;
+    const 줄 = code.slice(0, s).split('\n').length;
+    손을의존에둔것.push(path.relative(ROOT, f).split(path.sep).join('/') + ':' + 줄 + ' [' + 손.join(' ') + ']');
+  }
+}
+// 0건은 통과가 아니다 — 센 효과가 0 이면 이 자가 눈이 먼 것이다
+ok('시계를 거는 효과를 실제로 세었다', 시계효과.센것 > 5, true);
+console.log('     시계가 든 효과 ' + 시계효과.센것 + '개');
+ok('그중 의존에 손을 둔 것이 없다', 손을의존에둔것, []);
+
+console.log('');
 console.log(bad ? bad + '건 실패' : '전부 통과');
 process.exit(bad ? 1 : 0);

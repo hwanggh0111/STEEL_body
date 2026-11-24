@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Logo from './Logo';
 import { LAYER } from '../data/layers';
 
@@ -28,13 +28,22 @@ export default function SplashScreen({ onDone }) {
   // phase 2: 로고 줄어들며 자리를 잡는다
   // phase 3: 슬라이드 업 + 홈 진입
 
+  // ── **시계를 거는 효과의 의존에 손을 두지 않는다** ── (2026-11-24 · 정석)
+  //
+  // `LoginPage:307` 이 `onDone={goAfterLogin}` 을 주는데 그 손은 **맨몸 함수**라
+  // 그릴 때마다 새 것이다(`LoginPage:89`). 로그인 화면이 3.2초 안에 한 번이라도 다시
+  // 그려지면 시계 넷이 **처음부터** 다시 걸리고, 그보다 자주 그려지면 홈으로 **영영
+  // 안 넘어간다.** `useModalFocus`(11/23)와 같은 류다
+  const 끝손 = useRef(onDone);
+  끝손.current = onDone;
+
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 200);
     const t2 = setTimeout(() => setPhase(2), 1600);
     const t3 = setTimeout(() => setPhase(3), 2400);
-    const t4 = setTimeout(() => onDone(), 3200);
+    const t4 = setTimeout(() => 끝손.current(), 3200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
-  }, [onDone]);
+  }, []);
 
   return (
     <div style={{
