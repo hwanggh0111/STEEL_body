@@ -19,7 +19,12 @@
 const fs = require('fs');
 
 module.exports = function tidyAtExit(TMP) {
-  const files = [TMP, String(TMP).replace(/\.json$/, '.photos.json')];
+  const main = [TMP, String(TMP).replace(/\.json$/, '.photos.json')];
+  // **쓰다 만 임시 파일도 치운다** (2026-11-24). 검사가 중간에 죽으면 `.writing` 이
+  // 남는데 아무도 안 지웠다 — 11/24 에 트리에 둘이 남아 있었다
+  // (`.check-order.json.writing` · `.check-tag.json.writing`). 남은 임시 파일은
+  // 다음 쓰기가 덮어 쓸 뿐이지만, **지워진 줄 알고 보는 사람에게는 거짓 자취**다
+  const files = [...main, ...main.map((f) => f + '.writing'), ...main.map((f) => f + '.writing.sync')];
   const rm = () => {
     for (const f of files) {
       try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch { /* 지우지 못해도 검사를 깨지 않는다 */ }

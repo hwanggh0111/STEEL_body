@@ -533,6 +533,32 @@ function _flushImmediate() {
     }
   }
 }
+/**
+ * **지금 쓰되, 도는 비동기 쓰기에 끼어들지 않는다** (2026-11-24).
+ *
+ * 임시 파일을 밟는 길은 `storage.js` 에서 막았다(동기 쪽 임시 이름을 갈랐고, 나중에
+ * 부른 쓰기가 이기게 했다). 그래도 **동기로 끼어들 까닭이 없는 자리는 비킨다** —
+ * 38MB 를 동기로 쓰는 동안 서버는 아무 요청도 못 받고, 도는 쓰기가 끝나면 `_dirty` 가
+ * 그대로 이어진다. 비킬 때는 **500ms 를 더 기다리지 않게 줄에 세운다** — 도는 쓰기가
+ * 끝나는 그 자리에서 바로 쓴다.
+ *
+ * 11/23 에 이 판단을 `flushNow` **한 곳에만** 적었는데, 동기로 쓰는 손은 셋이었다
+ * (차단 기록 · 메일 번호 · 소셜 쪽지). **부르는 쪽마다 적으면 한 곳이 빠진다** —
+ * 그래서 손을 하나로 둔다. 지키는 자는 `check-write` 에 있다.
+ *
+ * 끝내는 자리(`exit` · `_bye` · `drain`)는 이 손을 **쓰지 않는다.** 그쪽은 비키면
+ * 그대로 사라진다 — 뒤에 이어 쓸 사람이 없다.
+ */
+function _flushNowSafe() {
+  if (_writeLock) {
+    // 줄에는 하나만 세운다 — `_flush` 는 그때의 `_cache` 를 통째로 쓰므로 여럿 세워도 같다
+    if (_writeQueue.length === 0) _writeQueue.push(() => _flush());
+    return false;
+  }
+  _flushImmediate();
+  return true;
+}
+
 process.on('exit', () => { _flushImmediate(); _flushPhotosSync(); });
 
 // ── **서버의 끝내기를 앞질러 나가지 않는다** ── (2026-11-05)
@@ -1856,7 +1882,7 @@ const db = {
   // (`.writing`)에 둘이 붓게 되어, 비동기 쪽이 이름 바뀐 파일에 옛 바이트를 마저 쓰면
   // `blackiron.json` 이 반쪽씩 섞인다. 부른 쪽은 이미 `save()` 했으므로 `_dirty` 가
   // 서 있고, 도는 쓰기가 끝나면 `_flush` 의 `finally` 가 그것을 이어서 쓴다
-  flushNow() { if (_writeLock) return; _flushImmediate(); },
+  flushNow() { _flushNowSafe(); },
   /**
    * 사진도 지금 쓴다.
    *
@@ -2185,7 +2211,8 @@ const db = {
     save(data);
     // 인증번호와 같이 **바로 쓴다.** 이 사이에 서버가 죽으면(배포 · 잠들었다 깨기)
     // 메일을 적고 있던 사람이 「시간이 지났어요」로 떨어진다
-    _flushImmediate();
+    // (도는 쓰기가 있으면 비킨다 — `_flushNowSafe`)
+    _flushNowSafe();
   },
   /** 살아 있는 줄만 돌려준다. 식은 줄은 그 자리에서 걷는다 */
   getSocialPending(tokenHash) {
@@ -2229,8 +2256,9 @@ const db = {
     save(data);
     // **여기서는 기다리지 않고 바로 쓴다.** 보통 저장은 0.5초 모아 쓰는데,
     // 이 값은 그 사이에 서버가 죽으면 **사람이 메일로 받은 번호가 못 쓰는 번호가 된다**
-    // (배포 · 잠들었다 깨기가 바로 그 순간이다). 번호를 받는 일은 드물어서 값이 싸다
-    _flushImmediate();
+    // (배포 · 잠들었다 깨기가 바로 그 순간이다). 번호를 받는 일은 드물어서 값이 싸다.
+    // 도는 쓰기가 있으면 비킨다 — 까닭은 `_flushNowSafe` 머리글에 (2026-11-24)
+    _flushNowSafe();
     return row;
   },
   /** 살아 있는 줄만 돌려준다. 만료된 줄은 그 자리에서 걷는다 */

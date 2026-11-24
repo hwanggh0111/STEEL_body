@@ -37,11 +37,34 @@ const PHOTOS = 'photos.json';
 // ── 파일로 둘 때 ──
 const TMP_SUFFIX = '.writing';
 
+// ── **동기 쓰기도 사슬을 비껴갈 수 없다** ── (2026-11-24)
+//
+// `fileWriteSync` 는 아래 `fileChains` 를 **안 지난다** — 기다릴 수 없으니 못 지난다.
+// 그래서 비동기 쓰기가 도는 중에 동기로 쓰면 둘이 **같은 임시 파일**(`.writing`)에 붓고,
+// 쓰다 만 바이트가 본 파일 자리에 끼이거나 뒤쪽 `rename` 이 `ENOENT` 로 터진다.
+// 10/22 에 비동기끼리는 사슬로 막았고, 11/23 에 `db.js` 의 `flushNow` **한 자리**를
+// 막았는데 — 동기로 쓰는 손은 거기 하나가 아니다(메일 번호 · 소셜 쪽지 · 끝내기 셋).
+// **부르는 쪽마다 적어두면 반드시 한 곳이 빠진다**(10/22 에 이 파일에 적어둔 그 말이다).
+//
+// 여기서 둘을 뗀다.
+//   1. **임시 이름을 갈라 쓴다** — 동기 쪽은 `.writing.sync`. 서로의 임시 파일을
+//      밟는 길이 사라진다
+//   2. **나중에 부른 쓰기가 이긴다** — 동기로 쓴 뒤에 닿는 비동기 `rename` 은
+//      **옛 판**이다(둘 다 같은 램을 찍는데 동기 쪽이 나중에 찍었다). 그 판은
+//      갈아끼우지 않고 버린다 — 안 버리면 방금 쓴 번호·쪽지가 옛 판에 덮인다.
+//      끝내기(`drain`)가 사슬을 비우는 것과 **같은 뜻**이고, 기다릴 수 없는 자리
+//      (`process.on('exit')`)에서는 이것만 남는다
+let writeSeq = 0;                 // 쓰기를 **부른** 차례. 파일과 상관없이 하나로 센다
+const syncSeq = new Map();        // 파일 이름 → 마지막 동기 쓰기의 차례
+
 function fileWriteSync(file, text) {
+  const mySeq = ++writeSeq;
   // 쓰다 죽어도 앞의 것이 남게 — 딴 이름으로 다 쓴 뒤 이름을 바꿔 끼운다
-  const tmp = file + TMP_SUFFIX;
+  const tmp = file + TMP_SUFFIX + '.sync';
   fs.writeFileSync(tmp, text, 'utf-8');
   fs.renameSync(tmp, file);
+  // 갈아끼운 **뒤에** 적는다 — 적는 사이에 비동기 쪽이 끼어들 틈은 없다(동기가 줄을 쥔다)
+  syncSeq.set(file, mySeq);
 }
 
 // **겹쳐 쓰면 서로의 임시 파일을 밟는다** (2026-10-22).
@@ -61,10 +84,17 @@ function fileWriteSync(file, text) {
 const fileChains = new Map();     // 파일 이름 → 지금까지의 쓰기 사슬
 
 function fileWrite(file, text) {
+  const mySeq = ++writeSeq;
   const prev = fileChains.get(file) || Promise.resolve();
   const next = prev.then(async () => {
     const tmp = file + TMP_SUFFIX;
     await fsp.writeFile(tmp, text, 'utf-8');
+    // 내가 기다리는 동안 **나중에 부른 동기 쓰기**가 이 파일을 갈아끼웠다면 내 판은
+    // 옛것이다 — 끼우지 않고 임시 파일만 걷는다 (위 머리글 2번)
+    if ((syncSeq.get(file) || 0) > mySeq) {
+      await fsp.unlink(tmp).catch(() => { /* 이미 없으면 그만 */ });
+      return;
+    }
     await fsp.rename(tmp, file);
   });
   // 사슬은 **실패해도 이어진다.** 한 번 터진 쓰기가 뒤의 모든 쓰기를 막으면 안 된다.

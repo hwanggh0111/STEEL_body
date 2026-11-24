@@ -76,7 +76,75 @@ function whoIsInFile() {
   ok('사진 쓰기 실패 뒤 다시 쓴다',
     /_photoTimer = setTimeout\(_flushPhotos/.test(dbSrc.slice(ph, ph + 1200)), true);
 
-  for (const f of [TMP, PHOTOS_FILE, PHOTOS_FILE + '.writing']) {
+  // ── 4. **동기 쓰기와 비동기 쓰기가 겹칠 때** ── (2026-11-24)
+  //
+  // 사슬(`fileChains`)은 비동기끼리만 줄을 세운다. **동기 쓰기는 그 줄을 안 지난다** —
+  // 기다릴 수 없으니 못 지난다. 그래서 둘이 겹치면 **같은 임시 파일**(`.writing`)에
+  // 붓고, 쓰다 만 바이트가 본 파일 자리에 끼이거나 뒤쪽 `rename` 이 `ENOENT` 로 터졌다.
+  // 11/23 에 `db.js` 의 `flushNow` 한 자리를 막았지만 동기로 쓰는 손은 셋이었다.
+  //
+  // 정한 것은 **나중에 부른 쓰기가 이긴다**다 — 둘 다 같은 램을 찍으므로 나중에 찍은
+  // 것이 새 판이다. 양쪽 차례를 다 본다 (한쪽만 보면 「늘 동기가 이긴다」로도 통과한다).
+  for (const gap of [0, 1, 5, 20]) {
+    const first = storage.write(storage.PHOTOS, blob('A', 12));
+    await sleep(gap);
+    storage.writeSync(storage.PHOTOS, blob('S', 12));     // **나중에** 부른 쪽
+    const r = await Promise.allSettled([first]);
+    const failed = r.filter((x) => x.status === 'rejected').map((x) => x.reason.code || x.reason.message);
+    ok(gap + 'ms 뒤 동기가 끼어들어도 안 터진다', failed, []);
+    ok('  나중에 부른 동기 쪽이 파일에 남는다', whoIsInFile(), 'S');
+  }
+  // 거꾸로 — 동기로 쓴 **뒤에** 부른 비동기는 새 판이므로 이겨야 한다.
+  // (차례를 안 보고 「동기가 이긴다」로 막으면 여기서 운다)
+  storage.writeSync(storage.PHOTOS, blob('S', 12));
+  await storage.write(storage.PHOTOS, blob('B', 12));
+  ok('동기 뒤에 부른 비동기가 이긴다', whoIsInFile(), 'B');
+  ok('임시 파일이 둘 다 안 남는다',
+    [fs.existsSync(PHOTOS_FILE + '.writing'), fs.existsSync(PHOTOS_FILE + '.writing.sync')],
+    [false, false]);
+
+  // ── 5. **요청 길에서 동기로 쓰는 손이 도는 쓰기에 끼어들지 않는가** ── (2026-11-24)
+  //
+  // 메일 번호 · 소셜 쪽지는 모아 쓰기(0.5초)를 기다리지 않고 **바로 쓴다** — 그 사이에
+  // 서버가 죽으면 사람이 받은 번호가 못 쓰는 번호가 되니 맞는 판단이다. 그런데 그 길이
+  // 도는 비동기 쓰기 중에도 동기로 38MB 를 부으면 **그동안 서버는 아무 요청도 못 받는다.**
+  // 그래서 도는 쓰기가 있으면 **줄에 세우고 비킨다**(`_flushNowSafe`).
+  //
+  // **시간(ms)으로 재지 않는다** — 디스크가 빠른 자리에서 숫자가 썩는다. 뜻으로 본다:
+  //   ⑴ 비켰으면 **그 순간 파일에는 아직 없다**  ⑵ 그러나 **잃지도 않는다**(끝내면 있다)
+  // 잠긴 틈을 만드는 것은 쓰기를 늦추는 것으로 한다 — 시간에 안 기대고 **잠긴 것을
+  // 본 뒤에** 부른다
+  process.env.JWT_SECRET = 'x'.repeat(40);
+  const db = require('../src/db');
+  require('./_tmpdb.cjs')(TMP);
+  const realWrite = storage.write;
+  let 쓰는중 = 0;
+  storage.write = (name, text) => {
+    쓰는중 += 1;
+    return sleep(200).then(() => realWrite(name, text)).finally(() => { 쓰는중 -= 1; });
+  };
+  // 한 번 적어 두고(여기서는 도는 쓰기가 없으니 그대로 쓴다), 다시 더럽혀 비동기 쓰기를 깨운다
+  db.blockIp('9.9.9.9', Date.now() + 60000, 1, '겹침 자');
+  db.flushNow();
+  db.blockIp('9.9.9.8', Date.now() + 60000, 1, '겹침 자 둘');
+  while (!쓰는중) await sleep(5);                  // 이제 `_writeLock` 이 서 있다
+  const 적힌것 = () => { try { return JSON.parse(fs.readFileSync(TMP, 'utf8')); } catch (e) { return { 깨짐: e.message }; } };
+  db.putVerifyCode('wr@check.local', 'hash'.repeat(8), 60000);
+  const 바로 = 적힌것();
+  ok('도는 쓰기 중에는 번호를 동기로 붓지 않는다',
+    (바로.verifyCodes || []).length, 0);
+  // 파일이 깨지지도, 옛 판으로 덮이지도 않았다 — 도는 쓰기 **전**의 판이 온전하다
+  ok('  그 사이에도 파일은 온전하다 (앞 판 그대로)', (바로.blocks || []).map((b) => b.ip), ['9.9.9.9']);
+  await db.drain();
+  const 나중 = 적힌것();
+  ok('  비켰어도 번호를 잃지 않는다',
+    (나중.verifyCodes || []).map((r) => r.email), ['wr@check.local']);
+  ok('  앞서 적은 것도 그대로다',
+    (나중.blocks || []).filter((b) => String(b.reason || '').startsWith('겹침 자')).map((b) => b.ip),
+    ['9.9.9.9', '9.9.9.8']);
+  storage.write = realWrite;
+
+  for (const f of [TMP, PHOTOS_FILE, PHOTOS_FILE + '.writing', PHOTOS_FILE + '.writing.sync', TMP + '.writing', TMP + '.writing.sync']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }
   console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
