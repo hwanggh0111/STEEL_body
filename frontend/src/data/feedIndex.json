@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "c382f05aa1",
+  "detailVersion": "dc8fa4f69c",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "ff25b13",
+      "date": "2026-11-24",
+      "text": "그리는 함수 안에서 기기에 담고 있었다 — 월요일 고침의 남은 자리 + 그 류를 쓸어보는 자",
+      "label": "고침",
+      "scope": "사진",
       "has": true
     },
     {
@@ -1127,14 +1135,6 @@
       "text": "덮개를 열면 뒤가 그대로 밀렸다 — 열셋 중 가두는 것이 하나였다",
       "label": "고침",
       "scope": "UI",
-      "has": true
-    },
-    {
-      "key": "5d65bb7",
-      "date": "2026-11-16",
-      "text": "미리받기에 나머지 한글 조각은 안 당긴다는 못을 박는다 (c7c3b46 뒤)",
-      "label": "빨라짐",
-      "scope": "첫 화면",
       "has": true
     }
   ]
