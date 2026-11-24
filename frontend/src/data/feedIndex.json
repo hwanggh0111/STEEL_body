@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5d94c8a0f5",
+  "detailVersion": "5ab238a757",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "c419493",
+      "date": "2026-11-24",
+      "text": "동기로 쓰는 손은 하나가 아니었다 — 겹침을 쓰는 자리 하나에서 막는다 (11/23 뿌리)",
+      "label": "고침",
+      "scope": "저장",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "자급하면서 글꼴 기능을 하나도 안 남겼다 — 고정폭 숫자·커닝이 죽어 있었다",
       "label": "고침",
       "scope": "글꼴",
-      "has": true
-    },
-    {
-      "key": "f6676ae",
-      "date": "2026-11-16",
-      "text": "1월 1일에 0 으로 돌아갔다 — 첫 기록부터 전부를 센다",
-      "label": "새 기능",
-      "scope": "기록",
       "has": true
     }
   ]
