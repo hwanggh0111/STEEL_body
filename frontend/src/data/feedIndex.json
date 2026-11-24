@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5ab238a757",
+  "detailVersion": "181fc9cf21",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -499,6 +499,13 @@
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
       "has": true
+    },
+    {
+      "key": "40d7824",
+      "date": "2026-11-24",
+      "text": "모양으로 짐작하지 않고 아는 사실을 적는다 — 소셜 모양 아이디 구멍의 뿌리 (11/23 뒤)",
+      "label": "고침",
+      "scope": "보안"
     },
     {
       "key": "c419493",
@@ -1128,14 +1135,6 @@
       "text": "글꼴이 화면을 막는 CSS 안에 base64 로 박혀 있었다 · 미리받기를 꽂는다",
       "label": "빨라짐",
       "scope": "첫 화면",
-      "has": true
-    },
-    {
-      "key": "3d7106c",
-      "date": "2026-11-16",
-      "text": "자급하면서 글꼴 기능을 하나도 안 남겼다 — 고정폭 숫자·커닝이 죽어 있었다",
-      "label": "고침",
-      "scope": "글꼴",
       "has": true
     }
   ]
