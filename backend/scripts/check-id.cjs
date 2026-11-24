@@ -175,15 +175,58 @@ async function run() {
     // 그 모양 아이디로 「소셜」이 되어 비밀번호 없이 계정을 지웠다. 이제 가입 · 이름
     // 바꾸기가 그 모양을 거절하므로, `oauth.js` 처럼 db 에 바로 만든다(`is_social` 이
     // 없는 옛 소셜 계정의 모양이다)
-    db.createUser('soc@test.local', await require('bcryptjs').hash('abcd1234', 4), '소셜', 'google_aabbccdd');
-    const soc = { token: (await login('soc@test.local')).body.token };
+    // ★ **열쇠를 비밀번호로 받지 않는다** (2026-11-24). 여기서 `login()` 으로 열쇠를
+    // 얻고 있었는데, **그 로그인 자체가 「비밀번호를 안다」는 증명**이다(아래 ⑵) —
+    // 그러면 이 사람은 더 이상 소셜이 아니고, 자가 **있을 수 없는 사람**을 세우게 된다.
+    // 실제 소셜 계정의 비밀번호는 무작위 32바이트라 본인도 모르고, 열쇠는 oauth
+    // 콜백에서 받는다. 그대로 짓는다
+    db.createUser('soc@test.local', await require('bcryptjs').hash(require('crypto').randomBytes(32).toString('hex'), 4), '소셜', 'google_aabbccdd');
+    const socRow = db.findUserByUsername('google_aabbccdd');
+    const soc = { token: require('jsonwebtoken').sign({ userId: socRow.id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '15m' }) };
     ok('아이디 모양으로 소셜을 알아본다', db.isSocialAccount(db.findUserByUsername('google_aabbccdd')), true);
     ok('  비밀번호 계정은 그 모양으로 가입할 수 없다', (await makeUser('fake@test.local', 'google_00000000')).status, 400);
     ok('  그 모양으로 바꿀 수도 없다', (await changeId(me.token, 'naver_00000000')).status, 400);
+    // **모양은 한 곳에서 온다** (2026-11-24) — 이름 목록을 db 에서 받아 **그 전부**를
+    // 돌린다. 자가 제 목록을 베껴 적으면 제공자를 하나 더 받는 날 **베낀 목록만
+    // 모른다**(지금 이 파일에 `twitter` · `kakao` 가 빠진 꼴로 적혀 있었다).
+    ok('  내보낸 이름 목록이 비어 있지 않다', db.SOCIAL_USERNAME_PROVIDERS.length > 0, true);
+    for (const prov of db.SOCIAL_USERNAME_PROVIDERS) {
+      const id = prov + '_11223344';
+      // (거절이 빠진 꼴로 되돌리면 이 줄은 400 이 아닌 것으로 운다 — 200 일 때도,
+      //  30일 제한에 먼저 걸려 429 일 때도 운다. **400 이 아니면 운다**가 과녁이다)
+      ok('  ' + id + ' 은 거절된다', [db.SOCIAL_USERNAME_SHAPE.test(id), (await changeId(me.token, id)).status], [true, 400]);
+      ok('    큰 글자(' + prov.toUpperCase() + '_…)도 거절된다', (await changeId(me.token, prov.toUpperCase() + '_11223344')).status, 400);
+    }
     ok('  바꿀 수 있다', (await changeId(soc.token, 'kevin12')).status, 200);
     const after = db.findUserByUsername('kevin12');
-    ok('  모양은 더 이상 소셜이 아닌데', /^(google|naver|facebook|instagram)_[0-9a-f]{8}$/.test(after.username), false);
+    // 모양을 **자가 베끼지 않는다** — db 가 내보내는 그것으로 본다
+    ok('  모양은 더 이상 소셜이 아닌데', db.SOCIAL_USERNAME_SHAPE.test(after.username), false);
     ok('  **적어둔 표시로 여전히 소셜이다**', db.isSocialAccount(after), true);
+
+    // ── ⑵ **모양으로 짐작하지 않고 아는 사실을 적는가** ── (2026-11-24)
+    //
+    // 11/23 은 「그 모양으로 바꿀 수 없다」로 막았다. 그런데 **거절이 뚫리면 뒤에
+    // 아무것도 없었다** — 11/23 **이전에** 그 모양으로 바꿔둔 이메일 계정은 지금도
+    // 「비밀번호를 모르는 사람」으로 보인다(= 비밀번호 없이 계정 지우기). 그래서
+    // 사실을 적는 자리를 둘 뒀다: **가입할 때** · **비밀번호로 들어올 때**(옛 계정이
+    // 저절로 메워진다). 적혀 있으면 모양은 아무 힘이 없다
+    // ★ **갓 가입한 사람으로 본다** — 처음엔 위의 `me@test.local` 로 봤는데 그 사람은
+    // 이미 아이디를 바꿨고, **바꾸는 쪽이 적어준 것**을 가입 쪽 공으로 쳤다. 가입에서
+    // 그 줄을 걷어도 자가 안 울었다(11/24 에 되돌려로 잡았다)
+    await makeUser('justreg@test.local', 'justreg1');
+    ok('가입한 사람은 그 자리에서 「안다」고 적힌다', db.findUserByEmail('justreg@test.local').has_password, true);
+    // 11/23 이전 꼴을 **진짜로** 만든다 — 표시 없는 이메일 계정이 소셜 모양 아이디를 쥔 꼴
+    db.createUser('old@test.local', await require('bcryptjs').hash('abcd1234', 4), '옛사람', 'oldone01');
+    const 옛사람 = db.findUserByEmail('old@test.local');
+    db.updateUserUsername(옛사람.id, 'naver_aabbccdd');   // 서버 길은 막혔지만 db 에는 이 꼴이 남아 있다
+    ok('  옛 꼴: 아이디 모양만 보면 소셜로 보인다', db.SOCIAL_USERNAME_SHAPE.test(db.findUserById(옛사람.id).username), true);
+    ok('  그래도 소셜이 아니다 (바꿀 때 사실을 적었다)', db.isSocialAccount(db.findUserById(옛사람.id)), false);
+    // 바꿀 때마저 비껴간 계정(그 줄보다 먼저 바꿔둔 사람)은 **비밀번호로 들어올 때** 메워진다
+    const 손으로 = db.findUserById(옛사람.id);
+    delete 손으로.has_password;
+    ok('  표시를 지우면 다시 소셜로 보이고', db.isSocialAccount(db.findUserById(옛사람.id)), true);
+    ok('  비밀번호로 들어오면 그것으로 증명된다', (await login('old@test.local')).status, 200);
+    ok('    들어온 뒤에는 소셜이 아니다', db.isSocialAccount(db.findUserById(옛사람.id)), false);
 
     console.log('');
     console.log('── 화면이 미리 알 수 있는가 (`/auth/me`) ──');

@@ -441,6 +441,21 @@ function save(data) {
   _saveTimer = setTimeout(_flush, 500);
 }
 
+// ── 저절로 지어지는 소셜 아이디의 **모양은 한 곳에만 적는다** ── (2026-11-24)
+//
+// 소셜 로그인은 아이디를 `google_1a2b3c4d` 꼴로 지어준다(`routes/oauth.js`).
+// `isSocialAccount` 가 **그 모양을 증거로** 보고, 11/23 에 가입·이름 바꾸기도 그 모양을
+// 거절하게 됐다 — 비밀번호 계정이 그 모양으로 바꿔 「소셜」이 되면 **비밀번호를 안 묻고
+// 계정 지우기**가 통했기 때문이다. 그런데 그 정규식이 **세 곳에 따로 적혔다**
+// (여기 · `routes/auth.js` · 자). 제공자를 하나 더 받는 날 한 곳이 빠지고, 빠진 곳이
+// 거절하는 쪽이면 **구멍이 다시 열린다.** 이름 목록에서 **짓는다**.
+//
+// `kakao` · `facebook` 은 **길을 내린 뒤에도 남긴다** (2026-10-07) — 그 길로 이미
+// 만들어진 계정의 아이디가 `kakao_1a2b3c4d` 꼴이다. 여기서 빼면 그 사람에게
+// 「저절로 지어진 아이디예요」를 안 해준다
+const SOCIAL_USERNAME_PROVIDERS = ['google', 'naver', 'instagram', 'twitter', 'kakao', 'facebook'];
+const SOCIAL_USERNAME_SHAPE = new RegExp('^(' + SOCIAL_USERNAME_PROVIDERS.join('|') + ')_[0-9a-f]{8}$');
+
 const INDENT = () => (process.env.NODE_ENV === 'production' ? undefined : 2);
 
 /**
@@ -1123,6 +1138,11 @@ const db = {
     // 모양(`google_xxxxxxxx`)으로도 알아보는데, 이름을 바꾸면 그 증거가 사라진다 —
     // 그러면 비밀번호가 없는 사람에게 비밀번호를 묻고, 계정도 못 지우게 된다
     if (db.isSocialAccount(user)) user.is_social = true;
+    // **소셜이 아니면 그 사실도 적어 둔다** (2026-11-24). 안 적으면 새 아이디의 **모양**이
+    // 증거가 되어, 비밀번호로 가입한 사람이 `google_1a2b3c4d` 로 바꾸는 순간 「비밀번호를
+    // 모르는 사람」이 된다(= 비밀번호 없이 계정 지우기). 11/23 에 그 모양을 거절해 막았지만,
+    // **거절이 뚫리면 그 뒤에 아무것도 없다** — 이 줄은 모양이 아니라 사실을 본다
+    else user.has_password = true;
     user.username = username;
     user.usernameChangedAt = new Date().toISOString();
     invalidateUserIndex();
@@ -1953,11 +1973,11 @@ const db = {
     if (!user) return false;
     if (user.has_password) return false;
     if (user.is_social) return true;
-    // `kakao` · `facebook` 은 **길을 내린 뒤에도 남긴다** (2026-10-07) — 그 길로
-    // 이미 만들어진 계정의 아이디가 `kakao_1a2b3c4d` 꼴이다. 여기서 빼면 그
-    // 사람에게 「저절로 지어진 아이디예요」를 안 해준다
-    return /^(google|naver|instagram|twitter|kakao|facebook)_[0-9a-f]{8}$/.test(user.username || '');
+    return SOCIAL_USERNAME_SHAPE.test(user.username || '');
   },
+  // 쓰는 데가 셋이다 — 여기 · 가입/바꾸기의 거절(`routes/auth.js`) · 자. **내보낸다**
+  SOCIAL_USERNAME_PROVIDERS,
+  SOCIAL_USERNAME_SHAPE,
 
   /**
    * 이 사람은 **자기 비밀번호를 안다**고 적어 둔다.

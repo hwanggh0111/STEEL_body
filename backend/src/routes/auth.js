@@ -51,8 +51,12 @@ function badUsername(v) {
   }
   // **소셜 계정이 받는 아이디 모양은 못 쓴다** (2026-11-23). `isSocialAccount` 는 아이디가
   // `google_xxxxxxxx` 꼴이면 소셜로 본다 — 비밀번호 계정이 그 모양으로 바꾸면 「소셜」이
-  // 되어 **비밀번호를 안 묻고 계정 지우기**가 통했다
-  if (/^(google|naver|instagram|twitter|kakao|facebook)_[0-9a-f]{8}$/i.test(s)) {
+  // 되어 **비밀번호를 안 묻고 계정 지우기**가 통했다.
+  // 모양은 **db 가 내보내는 것 하나**를 쓴다 (2026-11-24) — 여기 따로 적어두면 제공자를
+  // 하나 더 받는 날 거절하는 쪽만 모르게 되고, 그러면 구멍이 다시 열린다.
+  // 큰 글자(`GOOGLE_…`)도 같이 막는다 — 아이디는 크기를 가리지 않고 견주므로
+  // (`usernameKey`) 같은 아이디이고, 받아두면 저쪽 검사만 모양을 못 알아본다
+  if (db.SOCIAL_USERNAME_SHAPE.test(s.toLowerCase())) {
     return '그 모양의 아이디는 쓸 수 없어요';
   }
   return null;
@@ -400,7 +404,12 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    db.createUser(email, hashed, safeNickname, username);
+    const made = db.createUser(email, hashed, safeNickname, username);
+    // **아는 사실을 그 자리에서 적는다** (2026-11-24). 여태 이메일 가입은 적지 않았다 —
+    // 「아이디 모양으로도 소셜이 아니라서 어차피 같은 답이 나온다」는 까닭이었는데,
+    // **아이디를 바꿀 수 있게 되면서 그 전제가 깨졌다**(11/23 의 그 구멍이다).
+    // 사실이 적혀 있으면 모양은 아무 힘이 없다
+    db.markHasPassword(made.lastInsertRowid);
     // 번호는 **계정이 만들어진 뒤에** 지운다. 여기서 터지는 흔한 까닭은 아이디 중복인데,
     // 먼저 지워버리면 아이디만 바꿔 다시 누를 때 번호를 또 받아야 한다
     db.clearVerifyCode(email);
@@ -471,6 +480,15 @@ router.post('/login', async (req, res) => {
   // 들어왔으면 그 계정 카운터는 지운다. **IP 쪽은 안 지운다** — 자기 계정 하나를
   // 제대로 로그인해서 스무 번 틀린 흔적을 지우는 길이 되면 안 된다
   db.clearLoginFail(acctKey);
+
+  // ── **비밀번호로 들어온 것이 증명이다** ── (2026-11-24)
+  //
+  // 「이 사람이 자기 비밀번호를 아는가」를 `isSocialAccount` 가 답하는데, 적혀 있지 않으면
+  // **아이디 모양**으로 짐작한다. 11/23 이전에 만들어진 이메일 계정에는 그 표시가 없어서,
+  // 그 계정이 `google_1a2b3c4d` 꼴로 바꿨던 적이 있으면(11/23 에 막기 전에는 됐다)
+  // 지금도 「소셜」로 보인다 — **비밀번호를 안 묻고 계정이 지워진다.**
+  // 방금 맞는 비밀번호를 댄 사람에게는 그 짐작이 필요 없다. 한 번 적고 끝낸다
+  if (!user.has_password) db.markHasPassword(user.id);
 
   // 지우기로 해놓고 다시 온 사람. **묻지 않고 되살린다** —
   // 자기 비밀번호로 들어온 사람이 「아직 지우지 마세요」라고 말한 것과 같다.
