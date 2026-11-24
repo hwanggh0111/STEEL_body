@@ -267,6 +267,81 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
 }
 
 console.log('');
+console.log('── 한글을 조합하는 중의 Enter ── (2026-11-24 · 정석)');
+// 한글은 **글자를 맺을 때 Enter 를 쓴다.** 그 Enter 는 「저장」이 아니라 「이 음절을
+// 끝낸다」는 뜻인데, 글자칸의 `onKeyDown` 이 그것을 받아 저장·이동을 하면 —
+//
+//   · 이름칸: 「근호」를 맺으려 누른 Enter 가 **마지막 음절이 빠진 이름**을 저장했다
+//   · 찾기칸: 「어깨」를 맺으려 누른 Enter 가 **첫 결과로 화면을 옮겼다**
+//   · 담는칸: 칸을 비운 뒤 **마지막 음절이 빈 칸에 다시 내려앉았다** (11/23 에 잡은 꼴)
+//
+// 11/23 에 자리 셋(`AccountSheet` · `DaySheet` · `SitePhotoAdmin`)을 고쳤는데 **같은
+// 판단이 다섯 곳에 빠져 있었다**(정석 2차 · 11/24). 「고쳤다」가 자리 하나를 고쳤다는
+// 뜻이 되지 않게 이 자를 둔다.
+//
+// ★ **이 자는 식(정규식)을 거의 안 쓴다.** 11/24 에 이 칸을 처음 적을 때 셸이 역슬래시를
+//   통째로 먹어 과녁이 `/types*=s*/` 가 됐고, **그 꼴로도 「전부 통과」가 났다** —
+//   손을 이름으로 넘긴 자리(`onKeyDown={onKeyDown}`)를 영영 못 봤다. 되돌려를 여덟
+//   자리에 먹여 보고서야 알았다. 그래서 **글자 자리로 자른다** ([[shell-eats-backslash]])
+//
+// ★ 비키는 것: `type="number"` 같은 칸(조합이 없다) · `<div role="button">`
+//   (글자를 적는 자리가 아니다 — 거기서 Enter 는 「누른다」는 뜻이다)
+const 글자칸 = new Set(['input', 'textarea']);
+const 조합없는칸 = ['number', 'checkbox', 'radio', 'range', 'color', 'file', 'date', 'time', 'tel'];
+const 지킴이있나 = (t) => t.includes('isComposing') || t.includes('keyCode === 229');
+const 홀이름 = /^[A-Za-z_$][A-Za-z0-9_$]*$/;   // 역슬래시가 없는 식만 쓴다
+
+/** `onKeyDown={...}` 의 중괄호 안을 깊이를 세어 떠낸다 — 식으로 자르면 안쪽 `}` 에서 끊긴다 */
+function 손의속(attrs) {
+  const k = attrs.indexOf('onKeyDown={');
+  if (k < 0) return '';
+  let i = k + 'onKeyDown={'.length;
+  let depth = 1;
+  let quote = null;
+  const 처음 = i;
+  while (i < attrs.length && depth > 0) {
+    const c = attrs[i];
+    if (quote) { if (c === quote) quote = null; }
+    else if (c === '"' || c === "'" || c === '`') quote = c;
+    else if (c === '{') depth += 1;
+    else if (c === '}') depth -= 1;
+    i += 1;
+  }
+  return attrs.slice(처음, i - 1);
+}
+
+const 지킴없는칸 = [];
+let 센글자칸 = 0;
+(function 훑기(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) { 훑기(full); continue; }
+    if (!e.name.endsWith('.jsx') && !e.name.endsWith('.js')) continue;
+    const code = fs.readFileSync(full, 'utf8');
+    for (const { tag, attrs, at } of openTags(code)) {
+      if (!글자칸.has(tag)) continue;
+      if (!attrs.includes('onKeyDown')) continue;
+      if (조합없는칸.some((t) => attrs.includes('type="' + t + '"') || attrs.includes("type='" + t + "'"))) continue;
+      // 손이 이 자리에 적혀 있으면 그것을, 이름으로 넘겼으면 **그 함수의 몸**을 본다
+      let 볼것 = 손의속(attrs);
+      const 넘긴이름 = 볼것.trim();
+      if (홀이름.test(넘긴이름)) {
+        const j = code.indexOf('const ' + 넘긴이름 + ' = (');
+        볼것 = j >= 0 ? code.slice(j, j + 1500) : 볼것;
+      }
+      if (!볼것.includes("'Enter'")) continue;   // Enter 를 안 보는 손은 과녁이 아니다
+      센글자칸 += 1;
+      if (지킴이있나(볼것)) continue;
+      지킴없는칸.push(path.relative(ROOT, full).split(path.sep).join('/') + ':' + lineOf(code, at));
+    }
+  }
+}(SRC));
+// 0건은 통과가 아니다 — 센 칸이 적으면 이 자가 눈이 먼 것이다 (11/24 에 실제로 그랬다)
+ok('글자칸에서 Enter 를 받는 손을 전수로 세었다', 센글자칸 >= 8, true);
+console.log('     글자칸 중 Enter 를 보는 손 ' + 센글자칸 + '개');
+ok('그 전부에 조합 지킴이가 있다', 지킴없는칸, []);
+
+console.log('');
 if (bad === 0) console.log('눌리는 것이 자판으로도 눌립니다');
 else console.log(bad + '건 FAIL');
 process.exit(bad === 0 ? 0 : 1);

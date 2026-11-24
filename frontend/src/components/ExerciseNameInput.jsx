@@ -68,6 +68,9 @@ export default function ExerciseNameInput({
   };
 
   const onKeyDown = (e) => {
+    // 조합 중의 Enter·화살표는 **글자를 고르는 손**이다 — 여기서 가로채면 적던 이름이
+    // 짚어둔 것으로 덮인다 (2026-11-24 · 정석 · 11/23 에 이름칸 셋만 고쳤다)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (!show) {
       // 닫혀 있을 때 ↓ 는 **목록을 편다** — 치다 말고 뭐가 있나 보고 싶을 때다
       if (e.key === 'ArrowDown' && hits.length > 0) { e.preventDefault(); setOpen(true); setCursor(0); }

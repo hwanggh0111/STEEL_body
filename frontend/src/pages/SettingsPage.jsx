@@ -803,7 +803,11 @@ export default function SettingsPage() {
                 aria-label="이름"
                 value={nickDraft}
                 onChange={(e) => setNickDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveNick(); }}
+                onKeyDown={(e) => {
+                  // 조합 중의 Enter 는 글자를 맺는 것이다 (2026-11-24 · 정석 · 로그인 화면과 같은 까닭)
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                  if (e.key === 'Enter') saveNick();
+                }}
                 /* **가입 화면과 같은 선을 든다** (2026-10-31). 여기만 20 이었다 —
                    같은 서버 길(`PUT /auth/nickname`)로 가는 같은 칸인데, 가입 때
                    25자로 지은 사람은 **여기서 그 이름을 고칠 수 없었다** */
@@ -856,7 +860,12 @@ export default function SettingsPage() {
                     aria-label="새 아이디"
                     value={idDraft}
                     onChange={(e) => typeId(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveId(); }}
+                    onKeyDown={(e) => {
+                      // 아이디는 영문·숫자뿐이지만 **자판이 한글인 채로 치는 사람**이 있다 —
+                      // 조합 중의 Enter 로 저장이 돌면 빈 칸을 저장하려 든다 (2026-11-24 · 정석)
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                      if (e.key === 'Enter') saveId();
+                    }}
                     maxLength={USERNAME_MAX}
                     autoFocus
                     autoComplete="username"

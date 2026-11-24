@@ -668,7 +668,14 @@ const FILE_LIKE = /\.[^/]+$/;
 
 // SPA 폴백 — API가 아닌 모든 요청은 index.html로
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
+  // ── **대소문자가 다르면 API 가 HTML 을 200 으로 받았다** ── (2026-11-24 · 정석)
+  //
+  // `/API/notices` · `/Api/zzz` 는 이 줄에 안 걸려 SPA 폴백으로 떨어졌다 —
+  // **404 대신 `index.html` 이 200 으로** 나갔다(11/24 에 띄워서 확인). 바로 위
+  // 머리글이 적어둔 그 사고다: 서비스워커가 HTML 을 그 주소에 담으면 회복이 안 된다.
+  // 익스프레스 길찾기가 대소문자를 안 가리므로 `/API/workouts` 는 **진짜 손에 닿고**,
+  // 그 길은 `aiGuard` 의 문(`startsWith('/api/')`)도 지나지 않았다 — 같은 뿌리다
+  if (req.path.toLowerCase().startsWith('/api')) return next();
   if (FILE_LIKE.test(req.path)) {
     // 담지 말라고 분명히 말한다 — 404 를 담는 캐시도 있다
     res.set('Cache-Control', 'no-store');

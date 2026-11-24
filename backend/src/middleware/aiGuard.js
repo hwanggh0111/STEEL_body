@@ -846,10 +846,34 @@ function aiGuardMiddleware(req, res, next) {
   totalRequests++;
 
   // 헬스체크와 정적 파일은 아무것도 안 본다
-  if (req.path === '/api/health') return next();
+  // ── **방어막의 문을 뜻으로 여닫는다** ── (2026-11-24 · 정석)
+  //
+  // 11/23 에 가입 차단 목록이 「주소 대소문자 · 끝 `/`」로 비껴가던 것을 **아래
+  // 블랙리스트 줄에서만** 고쳤다. 그런데 **이 위의 문이 그대로 글자였다** —
+  // `!req.path.startsWith('/api/')` 가 `/API/auth/register` 를 「API 가 아니다」로
+  // 읽고 **방어막을 통째로 건너뛴다.** 익스프레스 길찾기는 대소문자를 안 가리므로
+  // 그 요청은 **진짜 가입 손에 그대로 닿는다.**
+  //
+  // 11/24 에 띄워서 쏴 봤다(카나리아 403 으로 자가 방어막에 닿은 것을 먼저 확인했다) —
+  //
+  //     소문자 + 막힌 메일           403 막았다
+  //     끝 슬래시 + 막힌 메일        403 막았다      ← 11/23 고침이 선다
+  //     메일 크기 다름               403 막았다      ← 11/23 고침이 선다
+  //     **`/API/` + Bearer 한 줄**    400 **비껴갔다**  ← 같은 류의 남은 문
+  //
+  // CSRF 가 받쳐 줄 것 같지만 아니다 — 쿠키 없이 `Authorization: Bearer x` 한 줄만
+  // 있으면 그 손도 건너뛴다(`index.js` 의 「Bearer 만 쓰는 요청」 예외). 가입은
+  // 쿠키가 없는 자리라 **그 예외가 늘 열려 있다.**
+  //
+  // 그래서 길을 **맨 앞에서 한 번 다듬어** 아래 전부가 같은 값을 본다. 글자 하나를
+  // 고치는 것이 아니라 **문을 하나로 모은 것**이다 — 다음에 문이 또 생겨도 이 값을 쓴다
+  const 길 = req.path.toLowerCase();
+  const 길끝없이 = 길.replace(new RegExp('/+$'), '') || '/';
+
+  if (길끝없이 === '/api/health') return next();
   // 정적 파일 / SPA 경로는 보안 검사 스킵 (API만 검사)
   // — favicon, /assets/*, /icons/*, .js/.css/.png 등 → API 외 경로는 통과
-  if (!req.path.startsWith('/api/')) return next();
+  if (!길.startsWith('/api/')) return next();
 
   // ── 세는 열쇠를 **맨 앞에서** 붙인다 ── (2026-10-22)
   //
@@ -886,7 +910,7 @@ function aiGuardMiddleware(req, res, next) {
   // **주소 모양을 맞춰 본다** (2026-11-23). Express 는 대소문자와 끝 `/` 를 가리지 않아
   // `/api/auth/Register` · `/api/auth/register/` 도 가입으로 들어가는데, 여기는 글자
   // 그대로 견줘서 그 둘로 차단 목록을 비껴갔다
-  if (req.path.toLowerCase().replace(/\/+$/, '') === '/api/auth/register' && req.method === 'POST') {
+  if (길끝없이 === '/api/auth/register' && req.method === 'POST') {
     const email = req.body?.email;
     const ua = req.get('user-agent') || '';
     if (db.isBlacklisted(email, ip, ua)) {

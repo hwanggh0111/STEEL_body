@@ -144,6 +144,21 @@ console.log('── **주인이 없어진 줄은 뺄 수 있는가** ── (202
   ok('  없는 줄은 0 이다 (화면이 404 로 받는다)', db.removeBlacklist(999999).changes, 0);
   ok('  남은 줄은 그대로다', db.isBlacklisted('ghost@x.test', null, 'Mozilla'), true);
 
+  // ── **막는 쪽과 푸는 쪽이 같은 크기로 견주는가** ── (2026-11-24 · 정석)
+  //
+  // 11/23 에 `isBlacklisted` 만 `emailKey` 로 바꿨다(`Banned@x.com` 으로 다시
+  // 가입하면 지나가던 것). 그런데 **푸는 쪽(`removeBlacklistFor`)은 글자 그대로**
+  // 였다 — 그래서 크기가 다른 줄은 **막히기는 하는데 풀리지 않았다**(`changes: 0`).
+  // 관리자는 「풀었다」를 듣고 그 사람은 그대로 막혀 있다. **한쪽만 다듬으면 짝이
+  // 어긋난다** — 이 자는 그 짝을 본다(둘 중 하나만 고쳐도 운다).
+  db.addBlacklist('email', 'Mixed@CASE.test', '크기가 다른 줄', 888);
+  ok('크기가 달라도 막는다', db.isBlacklisted('mixed@case.test', null, 'Mozilla'), true);
+  // ★ **주인(`user_id`)을 주면 이 자가 거짓 PASS 를 낸다** — 그 갈래가 먼저 맞아서
+  //    메일 갈래가 한 번도 안 돈다. 11/24 에 그렇게 적었다가 되돌려도 안 울어서 잡았다.
+  //    메일만으로 푸는 길(10/22 **이전**에 들어간 줄에 쓰는 그 길)을 본다
+  ok('  크기가 달라도 풀린다 (메일만으로)', db.removeBlacklistFor(null, 'mixed@case.test').changes, 1);
+  ok('  푼 뒤에는 안 막는다', db.isBlacklisted('mixed@case.test', null, 'Mozilla'), false);
+
   const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'security.js'), 'utf-8');
   ok('라우트가 그 함수를 부른다 (부르는 자리 0 이 아니다)', /db\.removeBlacklist\(/.test(src), true);
   ok('  길이 있다', /router\.delete\('\/blacklist\/:id'/.test(src), true);

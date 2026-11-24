@@ -159,6 +159,9 @@ export default function HomeSearch() {
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         onKeyDown={(e) => {
+          // **조합 중의 Enter 로 화면을 옮기지 않는다** (2026-11-24 · 정석). 「어깨」를 치다
+          // 음절을 맺으려 Enter 를 누르면 그 순간 첫 결과로 떠나 버렸다 — 사람은 아직 적는 중이다
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
           if (e.key === 'Enter' && query.trim()) {
             const top = results[0];
             if (top) { e.target.blur(); pick(top); }

@@ -270,7 +270,13 @@ function oauthErrorText(code) {
             type="text"
             value={oauthNick}
             onChange={(e) => { setOauthNick(e.target.value); setNickError(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && saveOauthNick()}
+            onKeyDown={(e) => {
+              // 한글을 조합하는 중의 Enter 는 **글자를 끝내는 것**이지 저장이 아니다 (2026-11-24 · 정석).
+              // 「근호」를 치다 Enter 로 음절을 맺으면 그 순간 이름이 저장돼 **마지막 음절이 빠진
+              // 이름**이 서버로 갔다. 11/23 에 이름칸 셋을 고치면서 이 자리가 빠졌다
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+              if (e.key === 'Enter') saveOauthNick();
+            }}
             placeholder="사용할 닉네임"
             maxLength={NICKNAME_MAX}
             autoFocus

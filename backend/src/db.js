@@ -1715,7 +1715,11 @@ const db = {
     if (!data.blacklist || data.blacklist.length === 0) return { changes: 0, ips: [] };
     const mine = data.blacklist.filter((b) => (
       (Number.isInteger(userId) && b.user_id === userId)
-      || (email && b.type === 'email' && b.value === email)
+      // **막는 쪽과 같은 크기로 견준다** (2026-11-24 · 정석). 11/23 에 `isBlacklisted`
+      // 만 `emailKey` 로 바꿔서, `Banned@TEST.local` 줄이 `banned@test.local` 을
+      // **막기는 하는데 풀리지는 않았다** — 관리자는 「풀었다」를 듣고(`changes: 0`)
+      // 그 사람은 그대로 막혀 있다. 한쪽만 다듬으면 그 짝이 어긋난다
+      || (email && b.type === 'email' && emailKey(b.value) === emailKey(email))
     ));
     if (mine.length === 0) return { changes: 0, ips: [] };
     const ips = mine.filter((b) => b.type === 'ip').map((b) => b.value);

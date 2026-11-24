@@ -275,6 +275,35 @@ async function pickPort() {
   const stillBlocked = await call('GET', '/routines/머신', { ip: IP.notFound });
   ok('막힌 주소는 멀쩡한 자리도 못 연다', stillBlocked.status, 403);
 
+  // ── **문을 글자로 여닫으면 대문자 한 글자로 방어막이 사라진다** ── (2026-11-24 · 정석)
+  //
+  // 11/23 에 가입 차단 목록이 「주소 대소문자 · 끝 `/`」로 비껴가던 것을 고쳤는데,
+  // **고친 자리가 방어막 안쪽이었다.** 그 위의 문이 아직 글자였다 —
+  // `!req.path.startsWith('/api/')` 가 `/API/...` 를 「API 가 아니다」로 읽고
+  // **아무것도 안 보고 흘렸다.** 익스프레스 길찾기는 대소문자를 안 가리므로 그
+  // 요청은 진짜 손에 그대로 닿았고, CSRF 도 `Authorization: Bearer x` 한 줄이면
+  // 건너뛴다(쿠키가 없을 때). 11/24 에 쏴 보니 **막힌 메일이 가입으로 들어갔다.**
+  //
+  // 그래서 **이미 막아둔 주소**로 같은 문 셋을 두드려 본다 — 막힌 주소가 어느
+  // 문으로든 열리면 그것이 구멍이다. `call()` 은 `/api` 를 붙이므로 여기서는 날로 쏜다
+  const 날로 = async (길, 더) => {
+    try {
+      const r = await fetch(`http://127.0.0.1:${PORT}${길}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': IP.notFound, ...(더 || {}) },
+        body: JSON.stringify({ email: 'door@x.test', password: 'abcd1234!', nickname: '문', username: 'door1234' }),
+      });
+      return r.status;
+    } catch (e) { return 0; }
+  };
+  ok('막힌 주소는 대문자 주소로도 못 연다', await 날로('/API/auth/register', { Authorization: 'Bearer x' }), 403);
+  ok('  끝 슬래시로도 못 연다', await 날로('/api/auth/register/', { Authorization: 'Bearer x' }), 403);
+  ok('  섞인 대소문자로도 못 연다', await 날로('/Api/Auth/Register', { Authorization: 'Bearer x' }), 403);
+  // 404 가 아니라 **index.html 을 200 으로** 받던 자리도 같이 본다 (같은 뿌리다)
+  const 엉뚱 = await fetch(`http://127.0.0.1:${PORT}/API/zzz-none`, {
+    headers: { 'X-Forwarded-For': IP.clean } });
+  ok('  없는 API 주소는 대문자여도 HTML 을 안 준다', (엉뚱.headers.get('content-type') || '').includes('text/html'), false);
+
   console.log('');
   console.log('── 차단이 서버 재시작을 넘어 남는가 ──');
   // Render 무료 플랜은 15분만 놀아도 프로세스를 내린다.
