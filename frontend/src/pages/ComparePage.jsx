@@ -109,7 +109,7 @@ function ChangeRow({ c }) {
   );
 }
 
-function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos, setPhotoAt }) {
+function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt }) {
   const inputRef = useRef(null);
   const [camOpen, setCamOpen] = useState(false);
   const photo = photos[photoKey] || null;
@@ -133,14 +133,9 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos, setPhotoAt }
     // **지금 판 위에 얹는다** (2026-11-23). 여태 이 칸이 받은 `photos` 에 얹었는데,
     // 줄이는 동안(`shrinkImage`) 그 값은 이미 늙는다 — BEFORE 를 올리고 바로 AFTER 를
     // 올리면 뒤 것이 앞 것을 화면과 기기에서 지웠다(서버에는 둘 다 있다)
-    let cached = true;
-    setPhotos((prev) => {
-      const updated = { ...prev, [photoKey]: data };
-      // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
-      // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
-      cached = savePhotos(updated);
-      return updated;
-    });
+    // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
+    // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
+    const cached = applyPhotos((prev) => ({ ...prev, [photoKey]: data }));
     // 올린 날도 같이 바꾼다 — 안 바꾸면 새 사진에 옛 날짜(「3월 1일에 올림」)가 붙고
     // 지우기 확인과 공유 카드까지 그 날짜를 말한다
     setPhotoAt((p) => ({ ...p, [photoKey]: new Date().toISOString() }));
@@ -193,10 +188,9 @@ function PhotoUpload({ label, photoKey, photos, takenAt, setPhotos, setPhotoAt }
     );
     if (!yes) return;
 
-    setPhotos((prev) => {
+    applyPhotos((prev) => {
       const updated = { ...prev };
       delete updated[photoKey];
-      savePhotos(updated);
       return updated;
     });
     setPhotoAt((p) => { const n = { ...p }; delete n[photoKey]; return n; });
@@ -314,6 +308,24 @@ export default function ComparePage({ embedded = false }) {
   const [photos, setPhotos] = useState(loadPhotos);
   const [photoAt, setPhotoAt] = useState({});
 
+  // ── **그리는 함수 안에서 기기에 담지 않는다** ── (2026-11-24)
+  //
+  // 11/23 에 「지금 판 위에 얹는다」를 `setPhotos((prev) => { … savePhotos(…) … })` 로
+  // 고쳤다. 늙은 값에 얹던 것은 그것으로 닫혔는데, **담는 일이 그리는 함수 안으로
+  // 들어갔다.** 그 함수는 React 가 **순수한 것으로 보고 한 번 더 부를 수 있다** —
+  // 담기는 것이 base64 사진 둘(최대 4MB)이고, 담긴 결과(`cached`)를 **부른 쪽이 그
+  // 자리에서 알 수 없어** 「기기에는 다 못 담았어요」가 앞 판을 보고 말했다.
+  //
+  // 최신 판을 **ref 로 들고**, 얹는 것은 보통 함수에서 한다 — 늙지도 않고, 두 번
+  // 담지도 않고, 담긴 결과를 그 자리에서 돌려준다
+  const photosRef = useRef(photos);
+  const applyPhotos = (고치기) => {
+    const next = 고치기(photosRef.current);
+    photosRef.current = next;
+    setPhotos(next);
+    return savePhotos(next);
+  };
+
   // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
   const refreshTick = useRefreshTick();
 
@@ -345,6 +357,7 @@ export default function ComparePage({ embedded = false }) {
       const at = {};
       if (before) { serverPhotos.before = before.data; at.before = before.updated_at || before.created_at; }
       if (after) { serverPhotos.after = after.data; at.after = after.updated_at || after.created_at; }
+      photosRef.current = serverPhotos;      // 들고 있는 판도 같이 맞춘다
       setPhotos(serverPhotos);
       setPhotoAt(at);
       savePhotos(serverPhotos);
@@ -612,8 +625,8 @@ export default function ComparePage({ embedded = false }) {
 
       {/* ── 2. 사진 ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} setPhotos={setPhotos} setPhotoAt={setPhotoAt} />
-        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} setPhotos={setPhotos} setPhotoAt={setPhotoAt} />
+        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} applyPhotos={applyPhotos} setPhotoAt={setPhotoAt} />
+        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} applyPhotos={applyPhotos} setPhotoAt={setPhotoAt} />
       </div>
       {/* **사진은 위에서 고른 날짜를 따라가지 않는다.** 없는 날짜를 지어내지 않고
           다른 것은 다르다고 적는다 — 안 적으면 사람은 같은 날의 것으로 읽는다 */}

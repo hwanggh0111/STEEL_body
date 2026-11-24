@@ -285,5 +285,46 @@ ok('잠금은 담은 뒤 읽어서 확인한다',
 ok('체형은 못 담았으면 그 자리에 적는다',
   fs.readFileSync(path.join(SRC, 'pages/ShapePage.jsx'), 'utf-8').includes('kept === false'), true);
 
+// ── **그리는 함수 안에서 기기에 담지 않는가** ── (2026-11-24)
+//
+// `setState((prev) => …)` 에 넘기는 함수는 React 가 **순수한 것으로 보고** 한 번 더
+// 부를 수 있다(StrictMode 는 늘 두 번 부른다). 그 안에서 `localStorage` 에 담으면
+// ⑴ 같은 것을 두 번 쓰고(견주기 사진은 base64 둘 · 최대 4MB) ⑵ 담긴 결과를 **부른
+// 쪽이 그 자리에서 알 수 없다** — 11/23 에 견주기 사진이 그 꼴이 되어 「기기에는 다
+// 못 담았어요」가 앞 판을 보고 말했다(11/24 에 고쳤다).
+//
+// **정규식으로 묶음을 자르지 않는다** — `{}` 가 겹치면 정규식은 반드시 엉뚱한 데서
+// 끊긴다. 괄호를 **글자 자리로 세어** 그 함수의 끝을 찾는다.
+const 담는손 = /(?:saveLS|savePhotos|localStorage\.setItem|keepLocal)\s*\(/;
+const 함수를넘김 = /^set[A-Za-z0-9_]*\s*\(\s*(?:\([^)]*\)|[A-Za-z0-9_$]+)\s*=>/;
+const 그린다안에서담는다 = [];
+let 본부름 = 0;
+for (const f of walk(SRC)) {
+  const rel = path.relative(SRC, f).split(path.sep).join('/');   // 역슬래시를 안 적는다 (셸이 먹는다)
+  if (rel.startsWith('dev/')) continue;
+  const src = codeLines(fs.readFileSync(f, 'utf8')).join('\n');   // 주석은 걷고 본다
+  for (const m of src.matchAll(/\bset[A-Z][A-Za-z0-9_]*\s*\(/g)) {
+    // 괄호가 닫히는 데까지가 **그 부름**이다
+    let depth = 0; let end = -1;
+    for (let i = m.index + m[0].length - 1; i < src.length; i += 1) {
+      const ch = src[i];
+      if (ch === '(') depth += 1;
+      else if (ch === ')') { depth -= 1; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) continue;
+    const 부름 = src.slice(m.index, end + 1);
+    if (!함수를넘김.test(부름)) continue;      // `setX(값)` 은 그리는 함수가 아니다
+    본부름 += 1;
+    if (담는손.test(부름)) {
+      const 줄 = src.slice(0, m.index).split('\n').length;
+      그린다안에서담는다.push(rel + ':' + 줄 + ' ' + 부름.slice(0, 40).replace(/\s+/g, ' ') + '…');
+    }
+  }
+}
+ok('그리는 함수 안에서 기기에 담는 자리가 없다', 그린다안에서담는다, []);
+// 모집단이 0 이면 위 줄은 아무것도 안 지킨다 — **몇 개를 보고 있는지** 같이 센다
+console.log('     그렇게 함수를 넘기는 자리 ' + 본부름 + '곳을 보고 있다');
+ok('  모집단이 0 이 아니다', 본부름 > 10, true);
+
 console.log(bad === 0 ? '\n모두 통과' : `\n${bad}건 FAIL`);
 process.exit(bad === 0 ? 0 : 1);
