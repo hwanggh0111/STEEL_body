@@ -58,7 +58,23 @@ const KINDS = {
     put: (userId, r) => db.createWorkout(userId, r.date, r.exercise, r.weight, r.sets, r.reps, null, r.link,
       { minutes: r.minutes ?? null, distanceKm: r.distanceKm ?? null },
       // 한 줄 메모 · 여유 횟수도 같이 (2026-11-18) — 빠뜨리면 되넣은 기록에서 사라진다
-      { note: r.note ?? null, rir: r.rir ?? null }),
+      // ── **한쪽씩 적은 것이 이 자리에서 사라지고 있었다** ── (2026-11-24 · 정석)
+      //
+      // 11/19 에 오른쪽 칸을 붙이며 **네 길이 같은 자를 부르게** 했는데(손으로 적기 ·
+      // 고치기 · 파일로 넣기 · 파일로 받기) **담는 이 줄만 빠졌다.** 파서는 읽어서
+      // `row.weight_r` 까지 만들어 둔다(`csvRows.js:283`) — 여기서 안 넘기니 버려진다.
+      //
+      // 재 봤다: 내보낸 CSV 를 **그대로** 다시 넣으면 세 줄에서 **다섯 칸**이 사라지고,
+      // 가져오기는 **「3줄 넣었다 · 실패 0」** 이라고 답한다. 사람은 잃은 줄 모른다.
+      // ⑥ 「내 기록 전부 받기」가 바로 이 길이라 **한 약속이 어긋나 있었다.**
+      //
+      // 이 자리 위에 같은 말이 **두 번** 적혀 있다 — 10/05 의 묶음, 11/18 의 메모.
+      // 세 번째다. **칸을 늘리는 사람은 이 줄도 같이 본다.**
+      //
+      // 이름이 갈리는 자리이기도 하다 — 파일 쪽은 `weight_r`(열 이름 꼴), 담는 손은
+      // `weightR`(화면이 보내는 꼴)이다. 그 환승이 여기서 일어난다
+      { note: r.note ?? null, rir: r.rir ?? null,
+        weightR: r.weight_r ?? null, repsR: r.reps_r ?? null }),
   },
   inbody: {
     label: '인바디',
