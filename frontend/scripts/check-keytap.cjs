@@ -267,6 +267,56 @@ console.log('── 알림이 낭독기에 전해지는가 ── (2026-11-11)')
 }
 
 console.log('');
+console.log('── Esc 한 번에 두 층이 닫히지 않는가 ── (2026-11-24 · 정석 2차)');
+// 11/23 에 「Esc 한 번에 계정 서랍 전체가 닫혔다」를 고쳤다(`AccountSheet` 는 잡는
+// 차례로, `Layout` 은 띄운 사진이 있으면 서랍을 안 닫게). 그런데 **같은 판단이
+// 필요한 자리가 더 있었다** — 앱에서 가장 많이 쓰는 확인창(`ConfirmModal`)이 그랬다:
+// 서랍 → 계정 시트 → 「프로필 사진을 삭제할까요?」에서 Esc 를 누르면 확인창만이
+// 아니라 **서랍까지 닫혔다.**
+//
+// **비킴 목록을 두지 않는다** — 그 목록은 알리바이가 된다(11/20 에 배웠다).
+// 대신 **겹침을 잰다**: Esc 를 듣는 부품을 **Esc 를 듣는 다른 파일이 그리면**
+// 그 부품은 위에 서는 층이므로 **잡는 차례(capture)로 듣고 거기서 멈춰야** 한다.
+// 거품 차례에서는 `document` 가 `window` 보다 먼저 오므로 `stopPropagation` 만으로는
+// 늦다 — 11/23 에 `AccountSheet` 가 밟은 그 자리다.
+const Esc목록 = new Map();   // 파일 → { 듣나, 잡나, 멈추나, 이름 }
+(function Esc훑기(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) { Esc훑기(full); continue; }
+    if (!e.name.endsWith('.jsx') && !e.name.endsWith('.js')) continue;
+    const code = fs.readFileSync(full, 'utf8');
+    if (!code.includes("addEventListener('keydown'") || !code.includes("'Escape'")) continue;
+    Esc목록.set(full, {
+      이름: path.basename(e.name).replace('.jsx', '').replace('.js', ''),
+      잡나: code.includes("'keydown', onKey, true)"),
+      멈추나: code.includes('stopPropagation'),
+      글: code,
+    });
+  }
+}(SRC));
+// 0건은 통과가 아니다 — Esc 를 듣는 파일을 못 찾으면 이 자가 눈이 먼 것이다
+ok('Esc 를 듣는 자리를 실제로 세었다', Esc목록.size >= 5, true);
+console.log('     Esc 를 듣는 파일 ' + Esc목록.size + '개');
+
+const 위에서는것 = [];
+for (const [f, a] of Esc목록) {
+  // 이 파일이 그리는 부품 중 Esc 를 듣는 것 (이름으로 들여왔고 `<이름` 으로 그린다)
+  for (const [g, b] of Esc목록) {
+    if (f === g) continue;                       // 같은 파일 안의 층은 그 파일이 차례를 안다
+    const 들여옴 = a.글.includes("/" + b.이름 + "'") || a.글.includes("'./" + b.이름 + "'");
+    const 그린다 = a.글.includes('<' + b.이름);
+    // 손으로 띄우는 확인창도 그리는 것이다 — `confirmDialog()` 가 `ConfirmModal` 을 띄운다
+    const 손으로띄움 = b.이름 === 'ConfirmModal' && a.글.includes('confirmDialog(');
+    if (!((들여옴 && 그린다) || 손으로띄움)) continue;
+    if (b.잡나 && b.멈추나) continue;
+    위에서는것.push(b.이름 + ' (위) ↔ ' + a.이름 + ' (아래)'
+      + ' — ' + (b.잡나 ? '' : '잡는 차례가 아니다') + (b.잡나 || b.멈추나 ? '' : ' · ') + (b.멈추나 ? '' : '멈추지 않는다'));
+  }
+}
+ok('위에 서는 층은 잡는 차례로 듣고 멈춘다', [...new Set(위에서는것)], []);
+
+console.log('');
 console.log('── 한글을 조합하는 중의 Enter ── (2026-11-24 · 정석)');
 // 한글은 **글자를 맺을 때 Enter 를 쓴다.** 그 Enter 는 「저장」이 아니라 「이 음절을
 // 끝낸다」는 뜻인데, 글자칸의 `onKeyDown` 이 그것을 받아 저장·이동을 하면 —

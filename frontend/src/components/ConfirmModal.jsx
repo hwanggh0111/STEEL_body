@@ -105,7 +105,17 @@ export default function ConfirmModalHost() {
   useEffect(() => {
     if (!state) return;
     const onKey = (e) => {
-      if (e.key === 'Escape') close(false);
+      // ── **Esc 한 번에 아래 층까지 닫혔다** ── (2026-11-24 · 정석 2차)
+      //
+      // 11/23 이 같은 꼴을 `AccountSheet`(사진 메뉴) · `Layout`(띄운 사진 ↔ 서랍)에서
+      // 고쳤는데, **앱에서 가장 많이 쓰는 확인창**이 남아 있었다. 서랍 → 계정 시트 →
+      // 「프로필 사진을 삭제할까요?」(`Layout:503`)에서 Esc 를 누르면 확인창만이 아니라
+      // **서랍까지 같이 닫혔다** — 묻는 말에 답하려다 자리를 잃는다.
+      //
+      // `stopPropagation` 만으로는 늦다. 아래 층들은 `document` 에서 듣고, 거품
+      // 차례에서는 `document` 가 `window` 보다 **먼저** 온다(11/23 에 `AccountSheet` 가
+      // 밟은 그 자리). 그래서 **잡는 차례(capture)로 듣고** 거기서 멈춘다
+      if (e.key === 'Escape') { e.stopPropagation(); close(false); }
       else if (e.key === 'Enter') {
         // ── **Enter 가 지우고 있었다** ── (2026-11-04)
         //
@@ -126,8 +136,8 @@ export default function ConfirmModalHost() {
         else confirmBtnRef.current?.focus();
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [state, close]);
 
   // 위험 동작이면 취소 버튼에 autoFocus (실수 방지), 아니면 확인 버튼

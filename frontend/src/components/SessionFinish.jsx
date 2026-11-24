@@ -86,10 +86,14 @@ export default function SessionFinish() {
   // 떠 있는 동안은 Esc 로 닫는다. 자판만 쓰는 사람에게 나갈 길이 있어야 한다
   useEffect(() => {
     if (!summary) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setSummary(null); };
-    window.addEventListener('keydown', onKey);
+    // **아래 층까지 닫히지 않게 잡는 차례로 멈춘다** (2026-11-24 · 정석 2차).
+    // 이 덮개는 `Layout:760` 이 그리는데, 그 `Layout` 도 Esc 로 서랍을 닫는다
+    // (`Layout:388`). 거품 차례에서는 `document` 가 `window` 보다 먼저라 멈춰도
+    // 늦다 — 11/23 에 `AccountSheet` 가 밟은 그 자리다
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setSummary(null); } };
+    window.addEventListener('keydown', onKey, true);
     closeRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [summary]);
 
   // 훅은 조건보다 위에 있어야 한다 — 결산이 없을 때도 같은 수만큼 불려야 한다

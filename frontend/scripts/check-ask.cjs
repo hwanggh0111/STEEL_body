@@ -72,7 +72,17 @@ const modal = read('src/components/ConfirmModal.jsx');
 ok('Enter 를 포커스로 가른다', /enterChoice\(/.test(modal) && /focusKind\(/.test(modal), true);
 // 되돌아가면 이것이 다시 뜬다 — 그 한 줄이 기록을 지우는 자리다
 ok('  **Enter 로 그냥 승인하지 않는다**', /'Enter'\)\s*close\(true\)/.test(modal.replace(/\s+/g, ' ').replace(/ \)/g, ')')), false);
-ok('Escape 는 취소다', /'Escape'\)\s*close\(false\)/.test(modal.replace(/\s+/g, ' ')), true);
+// ★ **꼴이 아니라 뜻으로 본다** (2026-11-24 · 정석). 여태 과녁이
+//   `/'Escape'\)\s*close\(false\)/` 였다 — 그 갈래에 「아래 층으로 안 내려보낸다」를
+//   한 줄 넣자(`e.stopPropagation()`) **뜻은 그대로인데 자가 울었다.** 붙어 있는지가
+//   아니라 **그 갈래가 취소로 닫는가**를 본다
+ok('Escape 는 취소다', (() => {
+  const 한줄 = modal.replace(/\s+/g, ' ');
+  const at = 한줄.indexOf("'Escape'");
+  if (at < 0) return false;
+  const 갈래 = 한줄.slice(at, at + 120);
+  return 갈래.includes('close(false)');
+})(), true);
 ok('위험한 물음은 취소에 포커스를 준다', /danger \? cancelBtnRef\.current : confirmBtnRef\.current/.test(modal), true);
 // 적어두지 않으면 `danger: false` 를 빠뜨린 물음이 조용히 안전한 쪽으로 샌다
 ok('  아무 말 없으면 위험한 것으로 친다', /options\.danger !== false/.test(modal), true);
