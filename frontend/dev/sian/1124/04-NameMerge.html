@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>4. 갈린 이름을 합친다</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.ln{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+.fact{background:#1b1712;border:1px solid #332b1e;border-left:2px solid #eeb77d;border-radius:2px;padding:11px 13px;font-size:13px;color:#cfc6b2}
+.fact b{color:#eae4d6}
+.two{display:flex;gap:10px}
+.two>div{flex:1;background:#1b1712;border:1px solid #332b1e;padding:11px;border-radius:2px}
+.two .n2{font:600 13px 'Barlow','IBM Plex Sans KR',sans-serif;color:#eae4d6}
+.warn{border-left:2px solid #d29a5f}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>벤치프레스</div>
+
+    <div class="card nw">
+      <div class="lbl">같은 운동을 두 이름으로 적고 있습니다</div>
+      <div class="two">
+        <div><div class="n2">벤치프레스</div><div class="mut">17일 · 최고 90kg &times; 3회</div></div>
+        <div><div class="n2">벤치 프레스</div><div class="mut">6일 · 최고 85kg &times; 5회</div></div>
+      </div>
+      <div class="mut" style="margin:10px 0 0">띄어쓰기만 다릅니다. 지금은 <b style="color:#cfc6b2">따로 세고</b> 있어
+        최고 기록도 · 다음 한 걸음도 따로 나옵니다.</div>
+      <button class="btn1" style="margin-top:12px">「벤치프레스」로 합치기</button>
+    </div>
+
+    <div class="say warn">
+      <span class="ic" aria-hidden="true">&#9679;</span>
+      <div><b style="color:#eae4d6">합치기는 23줄을 한꺼번에 고칩니다.</b>
+      무엇이 바뀌는지 <b style="color:#eae4d6">먼저 보여주고</b> 한 번 묻습니다 —
+      그리고 <b style="color:#eae4d6">되돌리기 한 번</b>을 남깁니다(묶음 하나로 되돌립니다).
+      계정 지우기와 같은 결로 다룹니다.</div>
+    </div>
+
+    <div class="flat">지금은 <b style="color:#cfc6b2">알려주기만</b> 합니다 —
+      <span class="mut">data/searchMine.js</span> 머리글에 「합치는 것은 서버 일괄 변경이라 이 시안에
+      없다」고 적혀 있고, 그 줄이 11/12 부터 그대로입니다.
+      <b style="color:#cfc6b2">서버 길 하나</b>(일괄 바꾸기 + 되돌리기)</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"/><path d="M8.4 10.4h7.2l-.9 4.6H9.3zM9.6 15 9 20.4M14.4 15l.6 5.4"/></svg><span>오늘</span></button>
+    <button class="tab on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4M7.2 12h9.6"/></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"/><path d="M3.8 10h16.4M8.2 3.6v3.4M15.8 3.6v3.4"/></svg><span>기록</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 19.5h16M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"/></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>

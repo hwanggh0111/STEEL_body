@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>8. 건강 앱으로 내보내기 - 다시</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.ln{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+.fact{background:#1b1712;border:1px solid #332b1e;border-left:2px solid #eeb77d;border-radius:2px;padding:11px 13px;font-size:13px;color:#cfc6b2}
+.fact b{color:#eae4d6}
+.warn{border-left:2px solid #d29a5f}
+.off{opacity:.55}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>건강 앱</div>
+
+    <div class="card off">
+      <div class="lbl">삼성 헬스 · 애플 건강으로 보내기</div>
+      <div class="ln"><span>오늘 운동</span><span class="mut">보낼 수 없습니다</span></div>
+      <div class="ln"><span>체중 · 골격근량</span><span class="mut">보낼 수 없습니다</span></div>
+      <button class="btn1" style="margin-top:12px" disabled>보내기</button>
+    </div>
+
+    <div class="say warn">
+      <span class="ic" aria-hidden="true">&#9679;</span>
+      <div><b style="color:#eae4d6">지금 쓰는 플러그인의 손이 읽기뿐입니다.</b>
+      <span class="mut">capacitor-health</span> 의 <span class="mut">definitions.d.ts</span> 에는
+      <span class="mut">query*</span> 만 있습니다 — <b style="color:#eae4d6">넣는 손이 0개</b>입니다.
+      그런데 권한 이름에는 <span class="mut">WRITE_WORKOUTS</span> 가 <b style="color:#eae4d6">있습니다</b> —
+      억지로 붙이면 <b style="color:#eae4d6">쓰지도 못할 권한을 스토어 심사에 한 줄 늘립니다.</b></div>
+    </div>
+
+    <div class="flat">갈래는 하나입니다 — <b style="color:#cfc6b2">쓰기 되는 네이티브 플러그인으로 갈아타기</b>
+      (<span class="mut">cap sync</span> + 건강 권한 심사). 11/19 에 시안 4 로 이미 올렸고
+      그때 권고가 <b style="color:#cfc6b2">12/24 뒤</b>였습니다. 오늘도 같습니다 —
+      <b style="color:#cfc6b2">권하지 않습니다.</b> 리스트에 올려두는 까닭은
+      <b style="color:#cfc6b2">잊고 다시 꺼내 세 번 재지 않으려고</b>입니다.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="5.6" r="2.4"/><path d="M8.4 10.4h7.2l-.9 4.6H9.3zM9.6 15 9 20.4M14.4 15l.6 5.4"/></svg><span>오늘</span></button>
+    <button class="tab on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4.2 9.3v5.4M7.2 6.8v10.4M16.8 6.8v10.4M19.8 9.3v5.4M7.2 12h9.6"/></svg><span>운동</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.8" y="5.4" width="16.4" height="14.4" rx="2"/><path d="M3.8 10h16.4M8.2 3.6v3.4M15.8 3.6v3.4"/></svg><span>기록</span></button>
+    <button class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 19.5h16M7.5 19.5v-5.2M12 19.5v-9.4M16.5 19.5v-7"/></svg><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>
