@@ -475,8 +475,23 @@ function readMeasures(text) {
 // **유산소 줄도 가를 수 있어야 한다** (2026-11-05) — 세트 · 횟수가 둘 다 비어
 // 있어서, 시간 · 거리를 열쇠에 안 넣으면 같은 날 30분과 60분이 **같은 줄**이 되어
 // 뒤엣것이 「이미 있어서 건너뛰었어요」로 사라진다
+// ── ★ **열쇠는 내보내는 열을 전부 본다** ── (2026-11-24 · 정석)
+//
+// 위 11/05 의 교훈이 유산소에서 멈춰 있었다. 같은 날 · 같은 운동 · 왼쪽이 같고
+// **오른쪽만 다른** 두 줄(원팔 로우 오른쪽 18 ↔ 22.5)은 열쇠가 같아서, 다시 넣을 때
+// 뒤엣것이 **「이미 있어서 건너뛰었어요」로 사라졌다.** 메모만 다른 두 줄도 같다 —
+// 띄워서 재 보니 **네 줄이 두 줄**이 됐다(`added 2 · skipped 2`).
+//
+// 열쇠에 안 든 열은 **그 열만 다른 줄을 뭉갠다.** 그래서 한 열을 더할 때마다 여기도
+// 더하는 것이 아니라, **내보내는 열 전부**(`COLS.workouts` 열두 개)를 본다 —
+// 날짜 · 운동명 · 무게 · 세트 · 횟수 · 묶음 · 시간 · 거리 · 메모 · 여유 · 오른쪽 둘.
+// 그러면 열이 늘어도 이 자리는 **이미 그 열을 본다.**
+//
+// 이름이 두 꼴로 온다 — 파일에서 읽은 줄은 `distanceKm`, DB 줄은 `distance_km` 다.
+// 둘 다 받는다(아래 `??`). **같은 줄이 두 꼴로 보이면 열쇠가 갈려 겹침이 안 걸린다.**
 const workoutKey = (w) => [w.date, String(w.exercise).trim(), String(w.weight).trim(),
-  w.sets, w.reps, w.minutes ?? '', w.distanceKm ?? w.distance_km ?? ''].join('|');
+  w.sets, w.reps, w.link ?? '', w.minutes ?? '', w.distanceKm ?? w.distance_km ?? '',
+  w.note ?? '', w.rir ?? '', w.weightR ?? w.weight_r ?? '', w.repsR ?? w.reps_r ?? ''].join('|');
 const inbodyKey = (r) => [r.date, r.weight, r.height ?? '', r.fat_pct ?? '', r.muscle_kg ?? '', r.water_l ?? ''].join('|');
 /**
  * 측정 열쇠 — **값까지 본다** (2026-09-18 에 고쳤다).
