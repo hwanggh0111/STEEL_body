@@ -216,7 +216,13 @@ function JumpBar({ items }) {
       style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 16 }}
     >
       {items.map(({ id, title }) => {
-        const on = here === id;
+        // ── 아직 아무 묶음도 위쪽에 안 걸렸으면 **첫 묶음**이다 ── (2026-11-24 · 맵시)
+        //
+        // 「위쪽 45%」 선은 화면 키에 비례한다. 첫 묶음은 머리 · 칩 줄 아래 ~305px 에서
+        // 시작하는데, 키 740 이면 선이 333 이라 걸리고 **640 · 568 이면 288 · 256 이라
+        // 안 걸린다** — 작은 폰에서 처음 열면 칩이 하나도 안 켜져 「지금 어디」가 빈다.
+        // 맨 위에서 보이는 것은 늘 첫 묶음이니 그것을 켠다. 스크롤하면 관찰자가 넘겨받는다
+        const on = (here ?? items[0]?.id) === id;
         return (
           <button
             key={id}

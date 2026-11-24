@@ -409,13 +409,17 @@ export default function RegisterPage() {
             {/* 소셜로 들어오면 계정이 저절로 만들어진다 — **제일 빠른 길이라 맨 위에
                 둔다.** 예전에는 이 자리가 비어 있어서, 구글로 가입하려면 「로그인」
                 쪽으로 가야 한다는 걸 알아내야 했다 */}
-            <SocialLoginButtons disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={safeBackTo(backTo)} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
-              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
-              <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-            </div>
+            {/* 가름선은 단추와 함께 선다 — 켜진 제공자가 없으면 「또는」이 홀로 남는다 */}
+            <SocialLoginButtons
+              disabled={codeSending || verifying} googleLabel="Google 로 가입하기" to={safeBackTo(backTo)}
+              after={(
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+                  <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
+                  <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
+                </div>
+              )}
+            />
 
             {/* 새로고침으로 되돌아온 사람에게 **왜 처음인지** 말한다.
                 아무 말 없이 1걸음을 보여주면 적은 것이 그냥 사라진 것으로 보인다 */}

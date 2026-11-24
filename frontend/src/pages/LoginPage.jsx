@@ -311,7 +311,9 @@ function oauthErrorText(code) {
   const known = !!savedNickname && !!readLS(SAVED_ID_KEY);
   const returning = known && !switched;
 
-  const social = <SocialLoginButtons disabled={loading} to={safeBackTo(backTo)} />;
+  // 가름선을 **부품에 들여보낸다** — 켜진 제공자가 0 이거나 아직 묻는 중이면
+  // 부품이 통째로 사라지는데, 형제로 두면 「OR」이 홀로 남아 아무것도 안 가른다
+  const social = (edge) => <SocialLoginButtons disabled={loading} to={safeBackTo(backTo)} {...edge} />;
   const divider = (label) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: label === 'OR' ? 0 : 24 }}>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -393,8 +395,7 @@ function oauthErrorText(code) {
 
         {!returning && (
           <>
-            {social}
-            {divider('OR')}
+            {social({ after: divider('OR') })}
           </>
         )}
 
@@ -504,8 +505,7 @@ function oauthErrorText(code) {
             안 들어가는데 까닭을 알 길이 없어진다. 가름선에 그 말을 적는다 */}
         {returning && (
           <>
-            {divider('소셜로 가입하셨으면')}
-            {social}
+            {social({ before: divider('소셜로 가입하셨으면') })}
           </>
         )}
 

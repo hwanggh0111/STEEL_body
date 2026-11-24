@@ -248,5 +248,68 @@ ok('메일을 보내는 자리가 다 같은 손을 쓴다', 생글자메일, []
 ok('가입 화면이 아이디를 제 손으로 안 다듬는다',
   read('src/pages/RegisterPage.jsx').includes("val.toLowerCase()"), false);
 
+console.log('');
+console.log('── 가름선이 소셜 단추와 함께 서나 ──');
+// ── 왜 (2026-11-24 · 맵시) ──
+//
+// `SocialLoginButtons` 는 켜진 제공자가 0 이거나 **아직 서버에 묻는 중**이면
+// `return null` 로 통째로 사라진다. 그런데 「OR」 · 「또는 메일로 만들기」 ·
+// 「소셜로 가입하셨으면」 가름선은 쓰는 쪽에 **형제로** 놓여 있어서 홀로 남았다 —
+// 아무것도 가르지 않는 줄이 뜬다(처음 열 때 한 번은 늘 그렇다).
+//
+// 가름선을 `before` · `after` 로 **부품에 들여보내** 생사를 같이 하게 했다.
+// 이 자는 **적지 않고 잰다** — 부품 밖에 남은 가름선이 하나라도 있으면 운다
+{
+  const socialSrc = read('src/components/SocialLoginButtons.jsx');
+  const sig = socialSrc.match(/export default function SocialLoginButtons\(\{[^}]*\}/);
+  ok('부품이 가름선을 받는다',
+    sig ? /\bbefore\b/.test(sig[0]) && /\bafter\b/.test(sig[0]) : null, true);
+  const body = socialSrc.slice(socialSrc.lastIndexOf('  return ('));
+  ok('  받아서 그린다', /\{before\}/.test(body) && /\{after\}/.test(body), true);
+  // 묶음 **밖**에 그려야 여백이 형제로 두던 때와 같다 (세로통 안에 들어가면 `gap` 이 붙는다)
+  const col = body.indexOf("flexDirection: 'column'");
+  ok('  세로통 밖에 그린다',
+    body.indexOf('{before}') < col && body.indexOf('{after}') > body.lastIndexOf('</div>'), true);
+
+  // ── 부품 밖에 남은 가름선을 **센다** ── (적지 않고 잰다)
+  //
+  // 로그인 화면은 `social({ after: divider('OR') })` 꼴로 **한 줄에** 넘긴다.
+  // 그 줄을 걷어낸 나머지에 `divider('…')` 가 남으면 **형제로 선 가름선**이다
+  const loginSrc = codeOf(read('src/pages/LoginPage.jsx'));
+  const 홀로선가름선 = loginSrc.split(String.fromCharCode(10))
+    .filter((l) => /divider\('/.test(l) && !/social\(/.test(l))
+    .map((l) => l.trim());
+  ok('로그인 화면에 홀로 선 가름선이 없다', 홀로선가름선, []);
+  // 넘기는 자리 둘 — 아래쪽(OR)과 위쪽(소셜로 가입하셨으면) 둘 다 쓴다
+  ok('  아래쪽 가름선을 부품에 넘긴다', /social\(\{ after: divider\(/.test(loginSrc), true);
+  ok('  위쪽 가름선도 부품에 넘긴다', /social\(\{ before: divider\(/.test(loginSrc), true);
+
+  // 가입 화면은 가름선을 글자로 적어 뒀다 — 그 글자가 **부품 안**에 있어야 한다
+  const regSrc = codeOf(read('src/pages/RegisterPage.jsx'));
+  // ── 부품의 끝은 **중괄호 깊이 0 의 `/>`** 다 ──
+  //
+  // 자를 두 번 틀리게 적었다. 처음 만나는 `/>` 로 끊으면 `after={( <div … /> )}` 속의
+  // 그 `/>` 에서 끊겨 **부품이 절반만** 잡히고, 「줄머리의 `/>`」로 끊으니 **고치기 전
+  // 꼴**(한 줄짜리 `… />` + 형제 가름선)에서 뒤쪽 어느 줄의 `/>` 까지 통째로 삼켜
+  // **되돌려도 통과**했다(거짓 PASS — 되돌려 먹여 알았다).
+  // 속을 세는 것이 산다: `{` 를 세며 가다 **깊이 0 에서 만난 `/>`** 가 그 부품의 끝이다
+  const elEnd = (src) => {
+    const from = src.indexOf('<SocialLoginButtons');
+    if (from < 0) return null;
+    let depth = 0;
+    for (let i = from; i < src.length; i += 1) {
+      if (src[i] === '{') depth += 1;
+      else if (src[i] === '}') depth -= 1;
+      else if (depth === 0 && src.startsWith('/>', i)) return src.slice(from, i + 2);
+    }
+    return null;
+  };
+  const el = elEnd(regSrc);
+  const 가름선글 = '또는 메일로 만들기';
+  ok('가입 화면이 가름선을 부품에 넘긴다', el ? el.includes(가름선글) : null, true);
+  ok('  부품 밖에 같은 줄이 또 없다',
+    (el ? regSrc.replace(el, '') : regSrc).includes(가름선글), false);
+}
+
 console.log('\n' + (bad ? `${bad}건 실패` : '전부 통과'));
 process.exit(bad ? 1 : 0);

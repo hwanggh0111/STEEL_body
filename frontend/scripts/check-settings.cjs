@@ -57,11 +57,31 @@ for (const c of chips) {
   }
 }
 
+// ── 처음 열었을 때 칩 하나는 켜져 있나 ── (2026-11-24 · 맵시)
+//
+// 켜진 칩은 `IntersectionObserver` 가 정한다 — **「위쪽 45%」 안에 들어온 묶음**
+// (`rootMargin: 0px 0px -55% 0px`). 그 선은 화면 키에 비례해서, 첫 묶음이 시작하는
+// ~305px 보다 선이 위에 오는 작은 폰(640 → 288 · 568 → 256)에서는 **아무 칩도
+// 안 켜진다** — 「지금 어디」를 말하려고 둔 줄이 처음 열 때 통째로 빈다.
+// 맨 위에서 보이는 것은 늘 첫 묶음이니 그것으로 받친다.
+// **칩 줄 안에서 찾는다** — 같은 파일의 고르는 줄(`SegMenu`)에도 `const on =` 가
+// 있어서 그냥 찾으면 **엉뚱한 자리를 보고 운다** (여기서 한 번 밟았다)
+const jumpBody = src.slice(src.indexOf('function JumpBar('));
+const onLine = jumpBody.slice(0, jumpBody.indexOf('\nfunction ') + 1 || undefined)
+  .match(/const on = ([^;]+);/);
+if (!onLine) {
+  problems.push('칩이 켜지는 자리(const on = …)를 못 찾았어요');
+} else if (!/items\[0\]/.test(onLine[1])) {
+  problems.push(`처음 열면 켜진 칩이 없어요 — 「const on = ${onLine[1].trim()}」 는 관찰자가 아직 아무것도`
+    + ' 안 줬을 때(작은 폰에서 첫 묶음이 선 아래) 전부 꺼진 줄이 됩니다');
+}
+
 console.log('── 설정 칩 줄과 묶음이 맞나 ──');
 
 if (problems.length === 0) {
   console.log(`OK   묶음 ${groups.length}개가 모두 칩 줄에 있다`);
   console.log(`OK   죽은 칩이 없다 → ${chips.map((c) => c.title).join(' · ')}`);
+  console.log(`OK   처음 열면 첫 칩이 켜진다 → ${onLine ? onLine[1].trim() : ''}`);
   console.log('');
   console.log('전부 통과');
   process.exit(0);
