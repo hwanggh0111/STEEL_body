@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "181fc9cf21",
+  "detailVersion": "c382f05aa1",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "3e9f440",
+      "date": "2026-11-24",
+      "text": "메일을 모르는 채로 들어오면 앞 사람 것이 그대로 남았다 + 11/23 고침을 지키는 자",
+      "label": "고침",
+      "scope": "넘김",
       "has": true
     },
     {
@@ -1125,14 +1133,6 @@
       "key": "5d65bb7",
       "date": "2026-11-16",
       "text": "미리받기에 나머지 한글 조각은 안 당긴다는 못을 박는다 (c7c3b46 뒤)",
-      "label": "빨라짐",
-      "scope": "첫 화면",
-      "has": true
-    },
-    {
-      "key": "c7c3b46",
-      "date": "2026-11-16",
-      "text": "글꼴이 화면을 막는 CSS 안에 base64 로 박혀 있었다 · 미리받기를 꽂는다",
       "label": "빨라짐",
       "scope": "첫 화면",
       "has": true
