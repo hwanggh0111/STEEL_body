@@ -106,6 +106,11 @@ export const BAR_KEY = 'gym:bar';
 // 브라우저도 우리도 못 본다. 네 자리(`LOCK_KEY_NAME`)와 같은 결이라 로그아웃해도 남긴다
 export const LOCK_BIO_KEY = 'steelbody_lock_bio';
 
+// 잠금 화면에서 **틀린 횟수 · 마지막으로 틀린 때** (2026-11-25 · 근호). 메모리에만 두니
+// 새로고침 한 번에 0 으로 돌아가 다섯 번마다 쉬는 시간이 사라졌다(네 자리 만 개를 쉬지
+// 않고 다 해볼 수 있었다). 네 자리와 같은 기기의 것이라 로그아웃해도 남긴다
+export const LOCK_TRIES_KEY = 'steelbody_lock_tries';
+
 export const PER_USER_KEYS = [
   // 누구인지 · 기억해둔 것
   TOKEN_KEY, NICKNAME_KEY, ROLE_KEY, EMAIL_KEY,

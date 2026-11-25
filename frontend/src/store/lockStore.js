@@ -3,6 +3,27 @@ import {
   isLockSet, matches, setPin as savePin, clearPin,
   shouldLock, cooldownLeft, MAX_TRIES,
 } from '../data/appLock';
+import { readLS, saveLS, removeLS } from '../data/safeStorage';
+import { LOCK_TRIES_KEY } from '../data/localKeys';
+
+// ── **틀린 횟수는 새로고침을 넘어 남는다** ── (2026-11-25 · 근호)
+//
+// `tries` · `lastTryAt` 가 메모리에만 있어서, 다섯 번 틀리고 새로고침하면 0 부터 다시였다 —
+// 쉬는 시간(`cooldownLeft`)이 한 번도 안 걸린 채 네 자리 만 개를 다 해볼 수 있었다.
+// 기기에 같이 적고, 켤 때 읽는다. 맞히거나 · 풀거나 · 새로 걸면 지운다
+const readTries = () => {
+  try {
+    const v = JSON.parse(readLS(LOCK_TRIES_KEY) || 'null');
+    const tries = Number.isInteger(v?.tries) && v.tries > 0 ? v.tries : 0;
+    const lastTryAt = Number.isFinite(v?.lastTryAt) && v.lastTryAt > 0 ? v.lastTryAt : 0;
+    return { tries, lastTryAt };
+  } catch { return { tries: 0, lastTryAt: 0 }; }
+};
+const keepTries = (tries, lastTryAt) => {
+  if (tries > 0) saveLS(LOCK_TRIES_KEY, JSON.stringify({ tries, lastTryAt }));
+  else removeLS(LOCK_TRIES_KEY);
+};
+const kept = readTries();
 
 // 앱 잠금이 지금 어떤 상태인가.
 //
@@ -18,20 +39,20 @@ export const useLockStore = create((set, get) => ({
   // 지금 잠겨 있는가. **앱이 뜰 때 걸려 있으면 잠근 채로 시작한다** —
   // 폰을 껐다 켠 뒤가 바로 남의 손에 있었을 수 있는 때다
   locked: isLockSet(),
-  tries: 0,
-  lastTryAt: 0,
+  tries: kept.tries,
+  lastTryAt: kept.lastTryAt,
   // 화면을 벗어난 시각. 돌아왔을 때 이것으로 「얼마나 비워뒀나」를 잰다
   hiddenAt: null,
 
   /** 지금 잠근다 (폰을 건네기 전에 누르는 단추 · 설정에서 막 걸었을 때) */
-  lock: () => { if (get().enabled) set({ locked: true, tries: 0 }); },
+  lock: () => { if (get().enabled) { keepTries(0, 0); set({ locked: true, tries: 0 }); } },
 
   /** 화면을 벗어났다 / 돌아왔다 */
   markHidden: () => set({ hiddenAt: Date.now() }),
   maybeLock: () => {
     const { enabled, locked, hiddenAt } = get();
     if (!enabled || locked) { set({ hiddenAt: null }); return; }
-    if (shouldLock(hiddenAt)) set({ locked: true, tries: 0 });
+    if (shouldLock(hiddenAt)) { keepTries(0, 0); set({ locked: true, tries: 0 }); }
     set({ hiddenAt: null });
   },
 
@@ -39,9 +60,11 @@ export const useLockStore = create((set, get) => ({
   tryUnlock: async (pin) => {
     if (cooldownLeft(get().tries, get().lastTryAt) > 0) return false;
     const ok = await matches(pin);
-    if (ok) { set({ locked: false, tries: 0, lastTryAt: 0 }); return true; }
+    if (ok) { keepTries(0, 0); set({ locked: false, tries: 0, lastTryAt: 0 }); return true; }
     const tries = get().tries + 1;
-    set({ tries, lastTryAt: Date.now() });
+    const at = Date.now();
+    keepTries(tries, at);
+    set({ tries, lastTryAt: at });
     return false;
   },
 
@@ -55,17 +78,19 @@ export const useLockStore = create((set, get) => ({
    * 네 자리를 잊어 로그아웃으로 풀 때 쓴다 — 안 놓으면 다시 로그인한 뒤에도 잠긴 채로
    * 열려서 같은 자리에 또 선다. 잠금 자체는 기기의 것이라 남긴다
    */
-  release: () => set({ locked: false, tries: 0, lastTryAt: 0 }),
+  release: () => { keepTries(0, 0); set({ locked: false, tries: 0, lastTryAt: 0 }); },
 
   /** 설정에서 걸거나 바꾼다. **건 뒤에는 잠그지 않는다** — 방금 친 사람이 주인이다 */
   set: async (pin) => {
     await savePin(pin);
+    keepTries(0, 0);
     set({ enabled: true, locked: false, tries: 0, lastTryAt: 0 });
   },
 
   /** 푼다(잠금을 없앤다). 화면이 지금 것을 먼저 맞춰본 뒤에만 부른다 */
   remove: () => {
     clearPin();
+    keepTries(0, 0);
     set({ enabled: false, locked: false, tries: 0, lastTryAt: 0 });
   },
 
@@ -89,6 +114,7 @@ export const useLockStore = create((set, get) => ({
    */
   forget: () => {
     clearPin();
+    keepTries(0, 0);
     set({ enabled: false, locked: false, tries: 0, lastTryAt: 0, hiddenAt: null });
   },
 }));

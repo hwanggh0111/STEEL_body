@@ -54,7 +54,10 @@ export default function RestBreath() {
 
   // 쉬는 것이 끝나면 마이크를 끈다. **쉬는 동안만 듣는다**
   useEffect(() => {
+    // 권한을 **묻는 중**(`asking`)에도 끈다 — `on` 은 허락이 온 뒤에야 서서, 묻는 사이 휴식이
+    // 끝나면 이 손이 비켰고 곧 마이크가 열렸다 (2026-11-25 · 근호)
     if (deadline == null && breath.on) breath.stop();
+    else if (deadline == null && breath.phase === 'asking') breath.stop();
   }, [deadline]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // 새 휴식이 시작되면 준 것도 다시 센다

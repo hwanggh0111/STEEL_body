@@ -87,8 +87,19 @@ export function useBreath(th) {
   // 동작마다 가장 컸던 값을 찾으려면 **언제 얼마였나**가 있어야 한다.
   // 판 하나(10분)면 5천 개쯤이라 메모리에 두어도 된다 — 끝나면 버린다
   const marksRef = useRef([]);
+  // ── **묻는 동안 사라진 화면이 마이크를 여는 일** ── (2026-11-25 · 근호)
+  //
+  // `start` 는 `getUserMedia` 를 **기다린다**(권한 창). 그 사이 화면이 닫히거나(정리 손이
+  // 먼저 돈다 — 그때 `streamRef` 는 아직 비어 있다) `stop` 을 부르거나 한 번 더 누르면,
+  // 늦게 온 허락이 **아무도 안 보는 자리에** 마이크 · AudioContext · 120ms 타이머를 세웠다 —
+  // 빨간 녹음 점이 새로고침까지 남았다. 부를 때마다 번호를 올리고, 기다린 뒤 번호가
+  // 바뀌었으면 받은 트랙을 바로 끄고 물러난다
+  const genRef = useRef(0);
+  const askingRef = useRef(false);
 
   const stop = useCallback(() => {
+    genRef.current += 1;          // 묻는 중인 `start` 가 있으면 그것을 물린다
+    askingRef.current = false;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     // **트랙을 멈춘다.** `AudioContext` 만 닫으면 탭의 녹음 표시가 남는다 —
     // 껐는데 빨간 점이 그대로면 사람은 꺼진 것을 못 믿는다
@@ -110,7 +121,9 @@ export function useBreath(th) {
   }, [pushLive]);
 
   const start = useCallback(async () => {
-    if (on) return;
+    if (on || askingRef.current) return;   // 묻는 중에 또 누르면 둘째 마이크를 열지 않는다
+    askingRef.current = true;
+    const mine = ++genRef.current;
     setPhase('asking');
     setWhy(null);
     try {
@@ -119,6 +132,12 @@ export function useBreath(th) {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
+      askingRef.current = false;
+      if (mine !== genRef.current) {
+        // 기다리는 사이 꺼졌다(화면이 닫혔거나 `stop`) — 받은 것을 바로 돌려준다
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
 
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -172,6 +191,8 @@ export function useBreath(th) {
         setState(breathState(baselineOf(w), baseRef.current, thRef.current));
       }, TICK_MS);
     } catch (err) {
+      askingRef.current = false;
+      if (mine !== genRef.current) return;   // 이미 물린 부름이다 — 화면에 말을 남기지 않는다
       // 막힌 것과 아예 없는 것을 가른다 — 사람이 할 수 있는 일이 다르다
       const denied = err?.name === 'NotAllowedError' || err?.name === 'SecurityError';
       setPhase('blocked');
@@ -202,6 +223,7 @@ export function useBreath(th) {
 
   // 화면을 떠나면 **반드시 끈다.** 안 끄면 마이크가 켜진 채로 남는다
   useEffect(() => () => {
+    genRef.current += 1;          // 묻는 중이던 `start` 는 허락이 와도 물러난다
     if (timerRef.current) clearInterval(timerRef.current);
     streamRef.current?.getTracks?.().forEach((t) => t.stop());
     ctxRef.current?.close?.();

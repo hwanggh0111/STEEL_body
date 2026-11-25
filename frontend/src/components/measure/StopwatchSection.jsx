@@ -31,6 +31,8 @@ export default function StopwatchSection({ onSave }) {
   const anchorRef = useRef(0);
   // 멈추기 전까지 쌓인 값 (스톱워치는 흐른 시간, 타이머는 남은 시간)
   const baseRef = useRef(0);
+  // 돌던 중에 초기화했나 — 아래 정리 손이 흐른 시간을 다시 적지 않게 (2026-11-25)
+  const resetRef = useRef(false);
 
   useEffect(() => {
     if (!running) return;
@@ -60,6 +62,11 @@ export default function StopwatchSection({ onSave }) {
 
     return () => {
       clearInterval(id);
+      // **초기화가 먼저 왔으면 흐른 시간을 다시 적지 않는다** (2026-11-25 · 근호).
+      // `handleReset` 이 `baseRef` 를 0 으로 두지만, `running` 이 바뀌어 이 정리 손이 **그 뒤에**
+      // 돌면서 `base + gone` 을 도로 적었다 — 0:30 에서 초기화하고 시작하면 0:30 부터 갔다.
+      // 모드를 바꿀 때(`handleReset` 을 같이 부른다)도 타이머의 남은 시간이 스톱워치로 넘어갔다
+      if (resetRef.current) { resetRef.current = false; baseRef.current = 0; return; }
       // 멈출 때 지금까지 것을 쌓아둔다. 안 그러면 이어서 하기가 처음부터 다시 된다
       const gone = Date.now() - anchorRef.current;
       baseRef.current = mode === 'timer' ? Math.max(0, base - gone) : base + gone;
@@ -95,6 +102,8 @@ export default function StopwatchSection({ onSave }) {
   const handleStop = () => setRunning(false);
 
   const handleReset = () => {
+    // 돌고 있을 때만 정리 손이 뒤따른다 — 그 손에 「초기화했다」를 알린다
+    if (running) resetRef.current = true;
     setRunning(false);
     baseRef.current = 0;
     setTime(0);
