@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오늘 한 것 · 버그 확률표 · 11/25</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; --bad:#d9736b; --ok:#8fbf8a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  h2 { font:600 15px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2); margin:26px 24px 0; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .sub { color:var(--t2); margin:0; max-width:94ch; }
+  .lead { border-left:2px solid var(--warn); padding-left:12px; margin:12px 24px 0; max-width:100ch; color:var(--t2); }
+  .lead b { color:var(--t1); font-weight:600; }
+  .lead.alarm { border-color:var(--bad); }
+  .wrap { overflow-x:auto; margin:14px 24px 0; }
+  table { width:100%; min-width:720px; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; vertical-align:top; padding:10px; border-bottom:1px solid var(--line); }
+  th { color:var(--t2); font-weight:600; white-space:nowrap; }
+  td b { color:var(--t1); font-weight:600; }
+  code { color:var(--gold); font-size:12px; }
+  .p { white-space:nowrap; font-weight:600; }
+  .bar { height:6px; background:#282219; border-radius:1px; margin-top:6px; width:120px; }
+  .bar i { display:block; height:100%; border-radius:1px; }
+  .hi { color:var(--bad); } .hi .bar i { background:var(--bad); }
+  .mid { color:var(--warn); } .mid .bar i { background:var(--warn); }
+  .lo { color:var(--ok); } .lo .bar i { background:var(--ok); }
+  .who { color:var(--t2); white-space:nowrap; }
+  ul.runs { margin:12px 24px 0; padding-left:18px; color:var(--t2); max-width:100ch; }
+  ul.runs b { color:var(--t1); font-weight:600; }
+  .okk { color:var(--ok); font-weight:600; }
+  .foot { margin:20px 24px 40px; color:var(--t2); font-size:12.5px; max-width:100ch; }
+  a { color:var(--gold); }
+  @media (max-width:440px) { header { padding-left:16px; padding-right:16px; } h2, .lead, .wrap, ul.runs, .foot { margin-left:16px; margin-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>오늘 한 것 · <em>버그 확률표</em> · 11/25</h1>
+  <p class="sub">주인: 「오늘 한 거 버그랑 오류 있는지 확률표로 시안으로 띄워」. 커밋 여덟(<code>8ab384f..fbb09cf</code>)을
+    <b style="color:#eae4d6">근호가 감사</b>하고 <b style="color:#eae4d6">벼림이 검사를 따로 돌려</b> 합쳤다.
+    확률은 「아직 못 찾은 버그가 남아 있을 가능성」을 감사자가 어림한 값이다 — 잰 값이 아니다.
+    <a href="./">&larr; 11/25 시안</a> · <a href="/dev">개발 미리보기</a></p>
+
+  <p class="lead alarm"><b>★ 먼저 — 확인이 필요한 것 둘</b><br>
+    <b>① GitHub <code>main</code> 이 <code>8ab384f</code> → <code>fbb09cf</code> 로 올라갔다.</b> 주인 지시는 「12/1 에 전부, 그때까지 <code>hold-1125</code> 에만」이었다.
+    벼림 창의 push 는 전부 <code>HEAD:refs/heads/hold-1125</code> 였다 — <b>이 창에서 올린 것이 아니다.</b> 누가 올렸는지 주인 확인이 필요하다.
+    되돌리려면 <code>main</code> 을 강제로 되감아야 해서(남의 손일 수 있다) 손대지 않았다.<br>
+    <b>② <code>steel-body.onrender.com</code> 이 「This service has been suspended」를 돌려준다.</b> 그래서 <code>main</code> 이 바뀌어도 지금 라이브로 나가지는 않는다.
+    대신 <b>앱도 사이트도 지금 안 열린다</b> — 무료 시간을 다 썼거나 대시보드에서 멈춘 것으로 보인다(<code>docs/SYSTEM-2026-11-16.md</code> 6-1 의 「서비스 셋이 750시간을 나눠 탄다」).</p>
+</header>
+
+<h2>커밋마다 — 버그가 남아 있을 확률</h2>
+<div class="wrap"><table>
+  <tr><th>커밋</th><th>무엇</th><th>누가</th><th>확률</th><th>까닭</th></tr>
+
+  <tr><td><code>e3fdabf</code></td><td><b>좁던 단추 넓히기</b> · 작은 몸 또렷하게 (62차 UI)</td><td class="who">맵시</td>
+    <td class="p mid">중간 · 약 35%<div class="bar"><i style="width:35%"></i></div></td>
+    <td><b>손가락 폰에서 ✎(고치기) 오른쪽을 누르면 ✕(지우기)가 눌린다.</b> ✕ 의 누르는 자리를 44px 로 넓혔는데
+      (<code>globals.css:170</code>) 기록 카드에서 ✎ 와 4px 떨어져 붙어 있다(<code>WorkoutCard.jsx:52</code> · <code>InbodyCard.jsx</code>).
+      확인창이 떠서 <b>지워지지는 않는다</b> — 고치려다 「삭제할까요?」를 보게 된다. 겹침을 보는 자(<code>check-tap</code>)가 날짜 칸만 보고 ✕ 이웃은 안 본다.
+      <b>→ 손볼 것은 이것 하나. 맵시 몫.</b></td></tr>
+
+  <tr><td><code>12e76f4</code></td><td><b>여유(RIR) 세기</b> — 같은 무게에서 「3+」 적은 날 (시안 1124 ①)</td><td class="who">맵시</td>
+    <td class="p lo">낮음 · 약 15%<div class="bar"><i style="width:15%"></i></div></td>
+    <td>셈은 맞다(3+ 만 · 드롭 뺌 · 무게 바뀌면 멈춤 · 2번 이상일 때만). 다만 <b>최근 8번만</b> 본다(<code>MAX_SESSIONS</code>) —
+      9번 넘게 같은 무게면 「N번」이 덜 세진다. <b>틀린 말이 아니라 덜 센 말</b>이다. 설명에 「최근 8번 안에서」를 적을지는 맵시 판단.</td></tr>
+
+  <tr><td><code>fbb09cf</code></td><td><b>마지막으로 나간 알림</b> (시안 1125 ②)</td><td class="who">벼림</td>
+    <td class="p lo">낮음 · 약 8%<div class="bar"><i style="width:8%"></i></div></td>
+    <td>나간 뒤에만 적는다 · 사람이 못 적는다 · 시험 알림은 안 바꾼다 · 요일은 폰 달력으로 — 근호가 <b>따로 되돌려 봐서</b> 자가 우는 것까지 봤다.
+      남은 틈은 「한 대 이상」이라 <b>어느 기기인지 모른다</b>는 것 하나이고, 화면이 그렇게 말한다.</td></tr>
+
+  <tr><td><code>d20d50b</code></td><td><b>같은 사람 재로그인 때 못 올린 기록이 지워지던 것</b></td><td class="who">근호</td>
+    <td class="p lo">낮음 · 약 8%<div class="bar"><i style="width:8%"></i></div></td>
+    <td>메일을 깎지 않고, 대소문자 · 앞뒤 공백을 무시해 견준다(서버 <code>emailKey</code> 와 같은 규칙). 남은 틈: 그 밖의 꼴 차이는 아직 「남」으로 본다 —
+      지금 서버는 메일을 그대로 돌려줘서 <b>실제로 나는 자리는 못 찾았다</b>.</td></tr>
+
+  <tr><td><code>946564a</code></td><td>공지 산출물(공지 목록 파일 넷)</td><td class="who">벼림</td>
+    <td class="p lo">낮음 · 약 5%<div class="bar"><i style="width:5%"></i></div></td>
+    <td>손으로 쓴 것이 아니라 <b>개발 서버 · 빌드가 다시 뽑는 파일</b>이다. 틀려도 다음 뽑기에 덮인다.</td></tr>
+
+  <tr><td><code>bd17482</code></td><td>새 기능 시안 셋 (<code>/dev/sian/1125/</code>)</td><td class="who">벼림</td>
+    <td class="p lo">낮음 · 약 3%<div class="bar"><i style="width:3%"></i></div></td>
+    <td><code>dev/</code> 아래라 <b>앱에는 안 실린다</b>. 근호가 3차까지 봤다.</td></tr>
+
+  <tr><td><code>a475c8d</code></td><td>개발 미리보기 목차에 시안 넷</td><td class="who">벼림</td>
+    <td class="p lo">낮음 · 약 2%<div class="bar"><i style="width:2%"></i></div></td>
+    <td>줄 넷이 다 실제 파일을 가리킨다(근호 확인). 앱에는 안 실린다.</td></tr>
+
+  <tr><td><code>f9ad8d4</code></td><td>근호 역할 문서 (<code>agents/geunho/README.md</code>)</td><td class="who">근호</td>
+    <td class="p lo">낮음 · 약 1%<div class="bar"><i style="width:1%"></i></div></td>
+    <td>글 한 장뿐이고 코드는 없다.</td></tr>
+</table></div>
+
+<h2>벼림이 따로 돌린 검사 — 지금 트리(<code>fbb09cf</code>) 기준</h2>
+<ul class="runs">
+  <li><b>화면 검사</b> <code>npm run check</code> (frontend) — <span class="okk">119 / 119 통과</span></li>
+  <li><b>서버 검사</b> <code>npm run check</code> (backend) — <span class="okk">모두 통과</span></li>
+  <li><b>앱 한 바퀴</b> <code>npm run smoke</code> (가입~알림, 진짜 서버) — <span class="okk">전부 통과</span></li>
+  <li><b>방어막</b> <code>npm run shield</code> (진짜 HTTP) — <span class="okk">전부 통과</span></li>
+  <li><b>이상한 값</b> <code>npm run odd</code> (모든 길에 이상한 값 → 500 안 나나) — <span class="okk">500 없음</span></li>
+  <li><b>알림</b> <code>npm run reminder</code> · <code>npm run delivered</code> — <span class="okk">전부 통과</span> · <code>--되돌려</code> 하면 FAIL (자가 살아 있다)</li>
+  <li><b>배포 빌드</b> <code>npm run build</code> — <span class="okk">성공</span></li>
+</ul>
+
+<p class="foot"><b style="color:#eae4d6">한 줄로</b> — 오늘 여덟 중 손볼 것은 <b style="color:#d29a5f">e3fdabf 의 ✕/✎ 과녁 겹침 하나</b>(확인창이 있어 잃는 것은 없다).
+  나머지는 낮음이다. 그보다 급한 것은 위의 둘 — <b style="color:#d9736b">main 이 12/1 전에 올라간 것</b>과 <b style="color:#d9736b">Render 서비스가 멈춰 있는 것</b>이다.<br>
+  빌드가 공지 목록 파일 넷을 다시 뽑아 트리에 미커밋으로 남아 있다(오늘 커밋 셋을 담은 것) — 주인 지시가 나오면 커밋한다.</p>
+</body>
+</html>
