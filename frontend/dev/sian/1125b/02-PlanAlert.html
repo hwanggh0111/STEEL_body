@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>2. 계획한 날은 그 계획으로 알린다</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.noti{background:#1f1b15;border:1px solid #3a3224;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.noti .ap{font-size:11px;color:#8f8471;margin-bottom:4px}
+.noti b{display:block;font-size:14px;color:#eae4d6;font-weight:600}
+.noti span{font-size:12.5px;color:#cfc6b2}
+.ln{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+.tagx{font-size:11px;color:#8f8471}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>폰에 오는 알림</div>
+
+    <div class="lbl">지금 (계획과 상관없이)</div>
+    <div class="noti">
+      <div class="ap">BLACK IRON · 19:00</div>
+      <b>오늘 운동하는 날이에요</b>
+      <span>기록까지 남기면 이번 주 한 칸이 채워집니다.</span>
+    </div>
+
+    <div class="lbl" style="margin-top:14px">바꾼 뒤 — 오늘 달력에 「하체」를 담아둔 날</div>
+    <div class="noti nw">
+      <div class="ap">BLACK IRON · 19:00</div>
+      <b>오늘은 하체로 정해두셨어요</b>
+      <span>누르면 오늘 화면으로 갑니다 — 담아둔 계획과 시작 단추가 거기 있어요.</span>
+    </div>
+
+    <div class="card nw" style="margin-top:14px">
+      <div class="lbl">운동 알림 설정</div>
+      <div class="ln"><span>요일 · 시각</span><span class="mut">월 · 수 · 금 19:00</span></div>
+      <div class="ln"><span>계획한 날에도 알림 <span class="tagx">(요일이 아니어도)</span></span><span style="color:#eeb77d">켜짐</span></div>
+    </div>
+
+    <div class="say">
+      <span class="ic" aria-hidden="true">&#9679;</span>
+      <div><b style="color:#eae4d6">하루에 한 통은 그대로</b>입니다 — 요일 알림과 계획 알림이 같은 날이면 계획 쪽 말 하나만 갑니다.
+      그날 이미 기록을 적었으면 안 보내는 것은 <b style="color:#eae4d6">지금도 그렇습니다</b>(<span class="mut">reminderSchedule.js:155</span>). 계획이 둘이면 이름을 둘까지 적습니다.</div>
+    </div>
+
+    <div class="flat">서버는 계획을 <b style="color:#cfc6b2">이미 들고 있습니다</b>
+      (<span class="mut">db.js:79</span> 의 plans — 날짜 · 이름 · 루틴 id). 그런데 알림은 계획을
+      <b style="color:#cfc6b2">한 번도 안 봅니다</b> — <span class="mut">reminderSchedule.js</span> · <span class="mut">reminderRunner.js</span> 에
+      plan 이라는 글자가 0번입니다. 말은 셋뿐입니다(<span class="mut">reminderSchedule.js:193~208</span>).
+      <b style="color:#d29a5f">서버 칸 하나</b>(「계획한 날에도」 켜고 끄기) + 알림을 고르는 곳에 계획 읽기</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><span>오늘</span></button>
+    <button class="tab"><span>운동</span></button>
+    <button class="tab on"><span>기록</span></button>
+    <button class="tab"><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>

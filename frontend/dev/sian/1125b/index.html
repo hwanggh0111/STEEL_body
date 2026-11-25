@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 후보 둘 · 11/25 밤</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다. 시안은 배포하지 않는다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  h2 { font:600 15px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2); margin:26px 24px 0; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .sub { color:var(--t2); margin:0; max-width:94ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .lead { border-left:2px solid var(--warn); padding-left:12px; margin:10px 24px 0; max-width:94ch; color:var(--t2); }
+  .lead b { color:var(--t1); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:16px 24px 28px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  table { width:calc(100% - 48px); margin:14px 24px 0; border-collapse:collapse; font-size:13px; max-width:120ch; }
+  th, td { text-align:left; vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--t2); font-weight:600; white-space:nowrap; }
+  td b { color:var(--t1); font-weight:600; }
+  td.z { color:var(--gold); white-space:nowrap; }
+  td.w { color:var(--warn); white-space:nowrap; }
+  code { color:var(--gold); font-size:12px; }
+  a { color:var(--gold); }
+  .ex { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .ex dt { color:var(--gold); font-weight:600; margin-top:10px; }
+  .ex dt:first-child { margin-top:0; }
+  .ex dd { margin:2px 0 0; }
+  .ex dd b { color:var(--t1); font-weight:600; }
+  ul.gone { margin:10px 24px 30px; padding-left:18px; color:var(--t2); max-width:100ch; }
+  ul.gone b { color:var(--t1); font-weight:600; }
+  @media (max-width:440px) { header, .row { padding-left:16px; padding-right:16px; } .col { flex-basis:100%; } iframe { width:100%; }
+    h2, .lead { margin-left:16px; margin-right:16px; } table, ul.gone { width:calc(100% - 32px); margin-left:16px; margin-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 후보 <em>둘</em> · 11/25 밤</h1>
+  <p class="sub">주인: 「넌 새기능 연구나 해」 · 「니도 마저하라고」. <b>파란 점선</b>이 새로 붙는 자리다. 화면 속 숫자는 예시다.
+    <a href="/dev">&larr; 개발 미리보기</a> · <a href="../1125/">11/25 후보 셋</a> · <a href="../1124/">11/24 후보 여덟</a></p>
+
+  <p class="lead"><b>뽑는 법은 같다 — 「서버는 아는데 화면이 말 안 하는 자리」.</b>
+    이번엔 서버 길마다 <b>화면이 몇 곳에서 부르나</b>를 먼저 셌다(<code>faq-gaps</code> 는 0곳처럼 보였지만 관리자 화면이 쓰고 있어서 뺐다).
+    그리고 <b>사람에게 닿는 길</b>(알림 · 내 계정)을 따라가며 「서버가 적어두고 아무에게도 안 말하는 것」을 찾았다. 남은 것이 둘이다.</p>
+
+  <p class="lead" style="border-color:#7fa8d9"><b>권고</b><br>
+    <b style="color:#eeb77d">① 고객센터 밖에도 「새 답」 점 —</b> 서버 칸 0 · 이미 있는 「봤다」 손을 그대로 쓴다. 12/08 전에 넣을 수 있다.<br>
+    <b style="color:#d29a5f">② 계획한 날은 그 계획으로 알린다 —</b> 서버 칸 하나 + 알림 판단 함수에 손이 간다. <b>출시 뒤</b>(근호 판단).</p>
+
+  <p class="lead" style="border-color:#d29a5f"><b>★ 근호 검사 (11/25 밤) — 처음 안에서 틀린 것</b><br>
+    <b>① FAIL → 고침.</b> 「화면에서 <code>reply_at</code> 을 읽는 곳은 내 제보 목록 하나뿐」이 <b>틀렸다.</b> 「새 답」을 세는 손이 <b>이미 있다</b> —
+    <code>reportView.js:26</code> <code>isNewReply</code> · <code>:78</code> <code>newReplyCount</code> · 본 시각을 기기에 적는 <code>SEEN_REPLY_KEY</code>(<code>localKeys.js:42</code>) ·
+    고객센터에 들어가면 새 답이 있는 제보 칸을 저절로 펴고 금색 줄로 알린다(<code>SupportPage.jsx:101~114 · 184 · 192 · 199</code>).
+    벼림이 찾을 때 검색 결과 앞부분만 보고 놓쳤다. <b>없는 것은 고객센터 밖(「내 계정」 점 · 계정 메뉴)뿐</b>이다.
+    새 「봤다」 칸을 만들면 <code>SEEN_REPLY_KEY</code> 와 두 벌이 되어 한쪽에서 본 것이 다른 쪽에 남는다 → <b>기존 키와 <code>isNewReply</code> 를 그대로 쓴다.</b>
+    그리고 점을 그리려면 <b>앱을 켤 때 내 제보(<code>GET /reports</code>)를 한 번 받아야 한다</b> — 지금은 고객센터에 들어가야 받는다. 서버 칸은 0 이지만 요청은 하나 는다.<br>
+    <b>② PASS · 조건 셋.</b> 알림 판단(<code>decide()</code>)은 순수 함수라 <b>그날 계획을 인자로 받아야</b> 한다(runner 가 사람마다 읽어 넘긴다) ·
+    「이미 적은 날은 안 보낸다」(<code>done-today</code>)는 지금 <b>요일 갈래 안에만</b> 있어서(<code>:155</code>) 계획 갈래에 <b>따로</b> 넣어야 한다 ·
+    계획과 「오래 쉬고 계세요」가 같은 날이면 하나만 — 이유를 <code>'plan'</code> 으로 두면 <code>markStreakNudged</code> 가 안 불려 다음 날 쉼 알림이 안 막힌다(<code>reminderRunner.js:46</code>).
+    알림 주소 <code>/home</code> 은 맞다(<code>App.jsx:159</code> · <code>sw.js:244</code>).<br>
+    <b>근거 줄 · 겹침 — PASS.</b></p>
+</header>
+
+<h2>한 장에</h2>
+<table>
+  <tr><th>안</th><th>서버가 아는 것</th><th>지금 화면</th><th>값</th></tr>
+  <tr><td><b>① 제보에 답이 왔어요</b></td>
+      <td>답을 단 시각 <code>reply_at</code>(<code>db.js:1443</code>)</td>
+      <td>고객센터 <b>안</b>에서는 이미 「새 답」을 알린다 · <b>밖</b>(내 계정)에서는 0 — 네 번 들어가야 만난다</td><td class="z">서버 칸 0 · 요청 1</td></tr>
+  <tr><td><b>② 계획한 날은 그 계획으로 알린다</b></td>
+      <td>달력에 담은 계획(<code>db.js:79</code> plans — 날짜 · 이름 · 루틴 id)</td>
+      <td>알림은 계획을 <b>안 본다</b> — 요일이 아닌 날 계획은 알림 0 · 요일 날에도 말이 「오늘 운동하는 날이에요」 하나</td><td class="w">서버 칸 1 · 출시 뒤</td></tr>
+</table>
+
+<h2>화면</h2>
+<div class="row">
+  <div class="col"><div class="cap">① 고객센터 밖에도 「새 답」 점 · 12/08 전<small>이미 있는 「봤다」 손(SEEN_REPLY_KEY · isNewReply)을 그대로 쓴다</small></div>
+    <iframe src="01-ReplyCame.html" title="1. 제보에 답이 왔어요"></iframe>
+    <dl class="ex">
+      <dt>무슨 기능인가</dt>
+      <dd>관리자가 내 제보에 답을 달면, <b>위 「내 계정」 단추에 작은 금색 점</b>이 뜨고 계정 메뉴의 「고객센터」 옆에
+        <b>「새 답 1」</b>이 붙는다. 열면 「보내신 제보 ○○에 답이 왔어요」 한 줄에서 바로 그 답으로 간다.</dd>
+      <dt>왜 필요한가</dt>
+      <dd>제보는 보내고 나면 <b>다시 찾아가지 않는다.</b> 답을 달아도 본 사람이 없으면 답은 없는 것과 같다 —
+        같은 것을 또 제보하거나, 「답이 없다」고 여기고 떠난다. 출시 직후에는 제보가 제일 많이 오는 때다.</dd>
+      <dt>근거 — 서버도 알고, 고객센터 안에서는 이미 말한다 (근호 검사로 고침)</dt>
+      <dd>답을 달 때 서버가 그 시각을 적는다(<code>backend/src/db.js:1443</code> 의 <code>reply_at</code>).
+        내 제보 목록도 그 시각을 이미 받아 그린다(<code>frontend/src/pages/support/ReportList.jsx:249</code>).
+        그런데 거기까지 가는 길이 <b>내 계정 → 고객센터 → 무엇을 도와드릴까요 → 내 제보</b>, 네 번이다
+        (<code>frontend/src/components/site/AppGuide.jsx:127</code>). 앱 어디에도 「답이 왔다」고 알리는 줄이 <b>없다</b>
+        <b>고객센터 안에서는 이미 알린다</b> — 본 시각을 이 기기에 적고(<code>SEEN_REPLY_KEY</code> · <code>frontend/src/data/localKeys.js:42</code>),
+        그보다 늦은 답을 「새 답」으로 센다(<code>frontend/src/pages/support/reportView.js:26 · 78</code>), 들어가면 그 제보를 펴서 금색 줄로 보인다
+        (<code>SupportPage.jsx:101~114</code>). <b>고객센터에 들어가기 전에는 아무 데도 안 보인다</b> — 그게 빠진 자리다.
+        → <b>서버 칸 0</b>. 점은 <b>같은 키 · 같은 함수</b>로 센다(두 벌을 만들지 않는다). 다만 앱을 켤 때 내 제보를 한 번 받는 <b>요청 하나</b>가 는다.</dd>
+      <dt>어떻게 세나</dt>
+      <dd>고객센터가 이미 쓰는 <code>newReplyCount(내 제보, SEEN_REPLY_KEY 의 시각)</code> 그대로. 고객센터에서 답을 보면 그 키가 바뀌니 <b>점도 같이 사라진다</b>.</dd>
+      <dt>안 하는 것</dt>
+      <dd>푸시 알림은 <b>안 보낸다</b>(운동 알림을 켠 사람에게 다른 말이 섞이면 알림을 꺼버린다 — 원하면 다음에 따로 묻는다).
+        「봤다」를 서버에 안 두니 <b>다른 폰에서 한 번 더</b> 보일 수 있다 — 그 정도는 받아들인다.
+        답 없는 제보에는 아무것도 안 그린다.</dd>
+    </dl></div>
+
+  <div class="col"><div class="cap">② 계획한 날은 그 계획으로 알린다 · 출시 뒤<small>판단 함수가 계획을 받아야 · 「이미 적은 날」 검사를 계획 갈래에도</small></div>
+    <iframe src="02-PlanAlert.html" title="2. 계획한 날은 그 계획으로 알린다"></iframe>
+    <dl class="ex">
+      <dt>무슨 기능인가</dt>
+      <dd>달력에 「하체」를 담아둔 날, 알림이 <b>「오늘은 하체로 정해두셨어요」</b>로 온다.
+        그리고 알림 설정에 <b>「계획한 날에도 알림」</b>을 둔다 — 켜면 알림 요일이 아닌 날이라도 계획이 있으면 온다.
+        누르면 <b>오늘 화면</b>으로 간다(담아둔 계획과 시작 단추가 이미 거기 있다).</dd>
+      <dt>왜 필요한가</dt>
+      <dd>계획을 담는 사람은 <b>그날 하려고</b> 담는다. 그런데 알림 요일(월 · 수 · 금)이 아닌 목요일에 담았으면 <b>아무것도 안 온다</b>.
+        요일 날에도 알림은 늘 같은 말이라, 무엇을 하기로 했는지는 사람이 기억해야 한다.</dd>
+      <dt>근거 — 서버가 들고 있는데 알림이 안 본다</dt>
+      <dd>계획은 서버에 있다(<code>backend/src/db.js:79</code> — 날짜 · 이름 · <code>routine_id</code>).
+        알림을 고르는 두 파일(<code>backend/src/utils/reminderSchedule.js</code> · <code>reminderRunner.js</code>)에 <b>plan 이라는 글자가 한 번도 없다.</b>
+        보내는 말은 셋뿐이다 — 「오래 쉬고 계세요」 · 「○○ 며칠째 식었어요」 · 「오늘 운동하는 날이에요」(<code>reminderSchedule.js:193~208</code>).
+        오늘 화면은 이미 오늘 계획을 읽어 그린다(<code>frontend/src/pages/HomePage.jsx:294</code>) · 시작 단추도 있다(<code>:360</code>).
+        → <b>서버 칸 1</b>(「계획한 날에도」 켜고 끄기) + 알림 고르는 곳에서 그날 계획을 읽는다.<br>
+        <b>근호 검사 — 붙여야 할 조건 셋:</b> ⑴ <code>decide()</code> 는 순수 함수라 그날 계획을 <b>인자로</b> 받는다(runner 가 읽어 넘긴다)
+        ⑵ 「이미 적은 날」 검사(<code>done-today</code>)가 지금 요일 갈래 안에만 있어 계획 갈래에 <b>따로</b> 넣는다
+        ⑶ 계획과 「오래 쉬고 계세요」가 같은 날이면 계획 하나 — 이유를 <code>'plan'</code> 으로 두어 쉼 알림 기록(<code>reminderRunner.js:46</code>)을 안 건드린다.
+        판단 함수에 손이 가서 <b>출시 뒤</b>로 둔다.</dd>
+      <dt>안 하는 것</dt>
+      <dd><b>하루 한 통을 넘기지 않는다</b> — 요일 알림과 계획이 같은 날이면 계획 쪽 말 하나만.
+        그날 이미 기록을 적었으면 <b>지금처럼</b> 안 보낸다(<code>reminderSchedule.js:155</code> 의 <code>done-today</code>).
+        계획 이름은 <b>둘까지만</b> 적는다. 「꼭 하세요」 같은 재촉은 안 쓴다.
+        알림을 눌러 <b>바로 루틴을 시작하지는 않는다</b> — 그런 길(주소로 루틴을 여는 손)이 지금 없어서, 만들면 크기가 커진다.</dd>
+    </dl></div>
+</div>
+
+<h2>훑었는데 이미 있던 것 — 다음에 또 「이거 없네」로 시작하지 않게</h2>
+<ul class="gone">
+  <li><b>고객센터에서 답 못 찾은 말 모으기</b> — 화면 호출이 0곳처럼 보였지만 관리자 화면이 쓴다(<code>FaqGapAdmin.jsx:30</code>) · 고객센터가 보낸다(<code>AskFirst.jsx:39</code>)</li>
+  <li><b>제보의 답 보여주기 · 고객센터 안 「새 답」</b> — 이미 있다(<code>ReportList.jsx:34 · 113 · 249</code> · <code>SupportPage.jsx:101~114</code> · <code>reportView.js:26</code>).
+    <b>없는 것은 고객센터 밖의 점뿐</b>이다 → ① (처음엔 이걸 놓쳤다 · 근호 검사)</li>
+  <li><b>이미 운동한 날엔 알림 안 보내기</b> — 이미 한다(<code>reminderSchedule.js:155</code>)</li>
+</ul>
+</body>
+</html>

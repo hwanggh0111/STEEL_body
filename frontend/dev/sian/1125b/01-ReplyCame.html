@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>1. 고객센터 밖에도 새 답 점</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.menu{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 2px;border-bottom:1px solid #2a2318;font-size:14px}
+.menu:last-child{border-bottom:none}
+.dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#eeb77d}
+.dot i{width:7px;height:7px;border-radius:50%;background:#eeb77d;display:block}
+.fact{background:#1b1712;border:1px solid #332b1e;border-left:2px solid #eeb77d;border-radius:2px;padding:11px 13px;font-size:13px;color:#cfc6b2;margin-bottom:14px}
+.fact b{color:#eae4d6}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc nw" style="margin-left:auto;position:relative" aria-label="내 계정 · 새 답 1"><span class="av">S</span><span class="n">seeddemo</span>
+      <i style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#eeb77d;display:block"></i></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>내 계정</div>
+
+    <div class="card">
+      <div class="menu"><span>내 정보</span><span class="mut">›</span></div>
+      <div class="menu"><span>운동 알림</span><span class="mut">›</span></div>
+      <div class="menu nw"><span>고객센터</span><span class="dot"><i></i>새 답 1</span></div>
+      <div class="menu"><span>로그아웃</span><span class="mut">›</span></div>
+    </div>
+
+    <div class="fact nw">
+      <b>보내신 제보 「사진이 안 올라가요」에 답이 왔어요</b><br>
+      <span class="mut">11월 24일 (화) · 눌러서 답 보기</span>
+    </div>
+
+    <div class="say">
+      <span class="ic" aria-hidden="true">&#9679;</span>
+      <div><b style="color:#eae4d6">고객센터에서 답을 보면 점도 사라집니다</b> — 고객센터가 이미 쓰는 「봤다」 기록을 그대로 씁니다(이 폰에만 · 서버 칸 0).
+      다른 폰에서는 한 번 더 보일 수 있습니다 — 그 정도는 괜찮다고 봅니다.
+      <b style="color:#eae4d6">답이 없는 제보에는 아무것도 안 그립니다.</b></div>
+    </div>
+
+    <div class="flat">고객센터 <b style="color:#cfc6b2">안</b>에서는 이미 「새 답」을 알립니다
+      (<span class="mut">SupportPage.jsx:101~114</span> · <span class="mut">reportView.js:26</span>). 그런데 거기까지
+      <b style="color:#cfc6b2">내 계정 → 고객센터 → …</b> 들어가기 전에는 <b style="color:#cfc6b2">아무 데도 안 보입니다</b>
+      (<span class="mut">AppGuide.jsx:127</span>). 점은 같은 키(<span class="mut">SEEN_REPLY_KEY</span>) · 같은 함수(<span class="mut">newReplyCount</span>)로 셉니다.
+      서버 칸 0 · 앱을 켤 때 내 제보를 한 번 받는 요청 1</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab on"><span>오늘</span></button>
+    <button class="tab"><span>운동</span></button>
+    <button class="tab"><span>기록</span></button>
+    <button class="tab"><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>
