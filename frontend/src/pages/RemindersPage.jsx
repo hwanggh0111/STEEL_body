@@ -138,6 +138,36 @@ function Toggle({ on, onClick, label, desc, warn, disabled, divider }) {
   );
 }
 
+// ── 마지막으로 **나간** 알림 ── (2026-11-25 · 벼림, 시안 1125 ② · 근호 검사)
+//
+// 「알림이 안 와요」에서 **서버가 안 보낸 것**과 **폰이 안 띄운 것**을 가를 길이 없었다.
+// 서버가 나간 날을 하나 적어두고(`last_delivered_date` · `reminderRunner.js`), 여기서 그 날만 말한다.
+//
+//   · **「이 폰」이라고 단정하지 않는다** — 그 날짜는 사람 단위다. 두 대 중 다른 기기에만
+//     나가도 적힌다. 그래서 「받는 기기 중 한 대 이상」이라고만 한다
+//   · **나간 적이 없으면 줄을 안 그린다** — 「없음」을 고장처럼 보이게 하지 않는다
+//   · **시험 알림은 이 날짜를 안 바꾼다** — 정한 시각에 나간 것만 적는다
+//   · 날짜는 **그 사람 날짜**('YYYY-MM-DD')다. `new Date('2026-11-24')` 로 풀면 UTC 자정이라
+//     서쪽 시간대에서 하루 앞 요일이 나온다 — 쪼개서 **이 기기 달력의 그 날**로 세운다
+const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
+function deliveredLabel(date) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof date === 'string' ? date : '');
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (d.getMonth() !== Number(m[2]) - 1) return null; // 2월 31일 같은 것
+  return `${Number(m[2])}월 ${Number(m[3])}일 (${WEEKDAY[d.getDay()]})`;
+}
+function LastDelivered({ date }) {
+  const label = deliveredLabel(date);
+  if (!label) return null;
+  return (
+    <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+      마지막으로 나간 알림 — <span style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <br />받는 기기 중 한 대 이상에 나갔어요
+    </div>
+  );
+}
+
 export default function RemindersPage() {
   const [settings, setSettings] = useState(null);
   const [vapid, setVapid] = useState(null);
@@ -451,6 +481,7 @@ export default function RemindersPage() {
                   다른 기기 {devices}대에서는 받고 있어요
                 </div>
               )}
+              {devices > 0 && <LastDelivered date={settings.last_delivered_date} />}
               <button className="btn-primary" disabled={busy} onClick={enableHere}>
                 이 기기에서 알림 켜기
               </button>
@@ -460,6 +491,7 @@ export default function RemindersPage() {
               <div style={{ fontSize: 13, color: 'var(--success)' }}>
                 이 기기는 알림을 받습니다{devices > 1 ? ` · 이 계정에 켠 기기 ${devices}대` : ''}
               </div>
+              <LastDelivered date={settings.last_delivered_date} />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-secondary" disabled={busy} onClick={sendTest} style={{ flexGrow: 1 }}>
                   지금 한 통 보내보기

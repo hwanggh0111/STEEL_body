@@ -2687,6 +2687,20 @@ const db = {
     save(data);
   },
 
+  // ── **실제로 나간 날**은 따로 적는다 ── (2026-11-25 · 벼림, 시안 1125 ②)
+  //
+  // 위의 `last_sent_date` 는 「보내려 한 날」이다 — 두 번 안 가게 **보내기 전에** 적는다
+  // (`reminderRunner.js`). 기기가 0대여도 · 푸시가 전부 실패해도 남는다. 그 날짜를
+  // 화면에 「보냈다」로 보이면 **서버가 못 보낸 날도 폰 탓**으로 읽힌다(근호 검사).
+  // 그래서 한 대 이상 나갔을 때만 이 칸을 적는다. 사람 단위다 — **어느 기기인지는 모른다**
+  markReminderDelivered(userId, localDate) {
+    const data = load();
+    const row = (data.reminders || []).find(r => r.user_id === userId);
+    if (!row) return;
+    row.last_delivered_date = localDate;
+    save(data);
+  },
+
   // 「오래 쉬고 계세요」를 보낸 쉼을 적어둔다 — 그때의 마지막 운동 날짜다.
   // 같은 쉼에 두 번 보내지 않으려는 것이다. 다시 운동하면 날짜가 바뀌어 풀린다
   markStreakNudged(userId, lastWorkoutDate) {

@@ -70,7 +70,12 @@ async function tick(nowMs = Date.now()) {
     // 알림을 누른 사람이 탭바에 아무 칸도 안 켜진 화면에 서게 된다
     const url = msg.cold ? '/map' : '/train';
     const n = await push.sendToUser(r.user_id, { ...msg, url, tag: 'workout-reminder' });
-    if (n > 0) sent += 1;
+    // **나간 날은 나간 뒤에만 적는다** (2026-11-25 · 시안 1125 ②). 위의 「보냈다고 먼저
+    // 적는다」와 같은 자리에 두면 못 보낸 날도 남는다 — 그게 그 칸을 따로 둔 까닭이다
+    if (n > 0) {
+      sent += 1;
+      db.markReminderDelivered(r.user_id, verdict.localDate);
+    }
   }
   return sent;
 }

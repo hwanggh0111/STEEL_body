@@ -66,7 +66,8 @@
     "adminapi": "node scripts/check-admin-api.cjs",
     "bye": "node scripts/check-bye.cjs",
     "assets": "node scripts/check-assets.cjs",
-    "routinerow": "node scripts/check-routinerow.cjs"
+    "routinerow": "node scripts/check-routinerow.cjs",
+    "delivered": "node scripts/check-delivered.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
