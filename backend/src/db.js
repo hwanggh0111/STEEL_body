@@ -335,8 +335,18 @@ function _warnIfChangedOutside() {
 let _lastStatMs = 0;
 const STAT_EVERY_MS = 1000;      // 요청마다 stat 하지 않는다 — 1초에 한 번으로 묶는다
 
+// ── **판을 갈아끼운 횟수** ── (2026-11-25 · 근호 · TODO 11/26 ⑭)
+//
+// 아래 `dataTag` 는 `표 · 사람 · 뜬 때 · 그 사람 번호` 로 딱지를 짓는다. 그런데 파일을
+// 밖에서 고쳐 판을 다시 읽어도 그 넷이 **하나도 안 바뀌어서**, 옛 `If-None-Match` 를 든
+// 화면은 **304 로 옛 목록**을 계속 받았다(그 사람이 다음에 적을 때까지). 갈아끼울 때마다
+// 이 수를 올리고 딱지에 싣는다. 여기(위쪽)에 두는 까닭 — `_dropDerived` 가 쓰는 값이라
+// 아래 `_dataVer` 처럼 늦게 선언하면 순서에 기대게 된다
+let _reloadEpoch = 0;
+
 /** 판을 갈아끼웠으면 그 판에서 뽑아둔 것은 전부 버린다 (아래에 선언된 것들이다). */
 function _dropDerived() {
+  _reloadEpoch += 1;
   _queryCache.clear();
   _index.userById = null;                       // `rebuildIndex` 가 셋을 같이 다시 짠다
   Object.keys(_rowIndex).forEach((k) => { _rowIndex[k] = null; });
@@ -687,7 +697,10 @@ function dataTag(table, userId, variant = '') {
   // 번호는 표 하나로 센다 — 번호 열쇠에 변종을 섞으면 **그 변종은 영영 안 올라간다**
   // (`bumpVer` 는 표 이름으로만 올린다). 딱지만 갈라 놓는다
   const n = _dataVer.get(table + ':' + userId) || 0;
-  return `W/"${table}-${userId}-${BOOT_TAG}-${n}${variant ? '-' + variant : ''}"`;
+  // 판을 갈아끼웠으면(`_reloadEpoch`) 딱지도 바뀐다 — 위 머리글
+  // 갈아끼운 적이 없으면 딱지 꼴은 예전 그대로다(`check-fresh` 가 그 꼴을 본다)
+  const boot = _reloadEpoch ? `${BOOT_TAG}r${_reloadEpoch}` : BOOT_TAG;
+  return `W/"${table}-${userId}-${boot}-${n}${variant ? '-' + variant : ''}"`;
 }
 
 /**
