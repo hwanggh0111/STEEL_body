@@ -444,11 +444,32 @@ function load() {
   return _cache;
 }
 
+// ── ★ **쓰기가 끊이지 않으면 파일에 한 번도 안 썼다** ── (2026-11-25 · 근호)
+//
+// 여태 `save` 가 부를 때마다 타이머를 **지우고 다시** 500ms 를 걸었다(뒤로 미는 묶음 ·
+// 최대 대기 없음). 0.5초 안에 쓰기가 계속 오면 타이머가 영영 안 터져서, 붐비는 동안
+// 바뀐 것이 **RAM 에만** 있었다 — 그때 죽으면 전부 잃는다. 걸린 타이머는 **그대로 둔다**
+// (처음 바뀐 뒤 늦어도 그만큼 뒤에는 쓴다).
+//
+// ── **판이 클수록 덜 자주 쓴다** ──
+//
+// 이 DB 는 한 장을 통째로 문자열로 만든다(그동안 이벤트 루프가 선다). `npm run bench -- 20`
+// (5년치 20명)에서 한 번에 **575ms** 다 — 500ms 마다 쓰면 서버가 거의 답을 못 한다.
+// 쉬는 간격을 **지난번 만드는 데 걸린 시간의 10배**(0.5~10초)로 둬서, 쓰기가 CPU 의 10% 를
+// 넘지 않게 한다. 작은 판은 지금처럼 0.5초다. 끝날 때는 `_flushImmediate` 가 기다리지 않고 쓴다
+let _lastStringifyMs = 0;
+const SAVE_MIN_MS = 500;
+const SAVE_MAX_MS = 10000;
+const saveDelay = () => Math.min(SAVE_MAX_MS, Math.max(SAVE_MIN_MS, Math.round(_lastStringifyMs * 10)));
+function _scheduleFlush() {
+  if (_saveTimer) return;                  // 이미 걸려 있다 — 뒤로 밀지 않는다
+  _saveTimer = setTimeout(() => { _saveTimer = null; _flush(); }, saveDelay());
+}
+
 function save(data) {
   _cache = data;
   _dirty = true;
-  if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(_flush, 500);
+  _scheduleFlush();
 }
 
 // ── 저절로 지어지는 소셜 아이디의 **모양은 한 곳에만 적는다** ── (2026-11-24)
@@ -515,7 +536,9 @@ function _flush() {
   // **기다리기 전에** 찍어둔다. 기다리는 동안 `_cache` 가 바뀌어도 이 판은 온전하다
   let text;
   try {
+    const t0 = Date.now();
     text = JSON.stringify(_cache, null, INDENT());
+    _lastStringifyMs = Date.now() - t0;   // 다음 쉬는 간격을 정한다 (위 `saveDelay`)
   } catch (err) {
     console.error('[DB] 저장 실패(문자열):', err.message);
     _writeLock = false;
@@ -535,8 +558,7 @@ function _flush() {
         next();
       } else if (_dirty) {
         // 쓰는 동안 또 바뀌었거나 실패했다
-        if (_saveTimer) clearTimeout(_saveTimer);
-        _saveTimer = setTimeout(_flush, 500);
+        _scheduleFlush();
       }
     });
 }
