@@ -21,6 +21,8 @@
  */
 
 const isAsync = (fn) => typeof fn === 'function' && fn.constructor && fn.constructor.name === 'AsyncFunction';
+// 길(route)에 꽂힌 보통 손 — 오류 손(인자 넷)은 빼고
+const isRouteHandler = (fn) => typeof fn === 'function' && fn.length <= 3;
 
 /** async 손 하나를 감싼다. 인자 수(3)를 지켜야 Express 가 오류 손(4)과 헷갈리지 않는다 */
 function wrap(fn) {
@@ -48,7 +50,9 @@ function guardAsyncRoutes(appOrRouter) {
     for (const layer of stack) {
       if (layer.route && Array.isArray(layer.route.stack)) {
         for (const l of layer.route.stack) {
-          if (isAsync(l.handle) && !l.handle.__guarded) { l.handle = wrap(l.handle); count += 1; }
+          // **길 손은 전부 감싼다** — async 라고 안 적고 Promise 를 돌려주는 손(`(req, res) => x().then(…)`)도
+          // 같은 구멍이다(벼림 감사 · 11/25). 동기 손은 감싸도 하는 일이 같다(던지면 next)
+          if (isRouteHandler(l.handle) && !l.handle.__guarded) { l.handle = wrap(l.handle); count += 1; }
         }
         continue;
       }
@@ -75,7 +79,7 @@ function unguardedAsync(appOrRouter) {
     for (const layer of stack) {
       if (layer.route) {
         for (const l of layer.route.stack) {
-          if (isAsync(l.handle) && !l.handle.__guarded) left.push(`${l.method || '*'} ${base}${layer.route.path}`);
+          if (isRouteHandler(l.handle) && !l.handle.__guarded) left.push(`${l.method || '*'} ${base}${layer.route.path}`);
         }
         continue;
       }
