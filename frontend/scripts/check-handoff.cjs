@@ -421,6 +421,28 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
     await A().login('first@a.com', 'pw');
     ok('담아둔 사람이 없으면 비우지 않는다', ls.get(keys.WORKOUT_QUEUE_KEY), '앞사람');
 
+    // ★ **같은 사람을 남으로 보지 않는다** (2026-11-25 · 근호 2차). 서버는 메일을
+    // `emailKey`(공백 · 대소문자 무시)로 견주고, `o'neil@x.com` 같은 메일도 받는다.
+    // 글자 하나가 달라 보인다고 지우면 **같은 사람의 못 올린 줄을 잃는다**
+    const 같은사람 = (담긴, 들어온) => {
+      앞사람();
+      ls.set(keys.EMAIL_KEY, 담긴);
+      A().socialLoggedIn({ nickname: '첫째', email: 들어온 });
+      return ls.get(keys.WORKOUT_QUEUE_KEY);
+    };
+    ok('대소문자만 다른 같은 메일이면 남긴다', 같은사람('First@A.com', 'first@a.com'), '앞사람');
+    ok("따옴표 · & 가 든 메일도 같은 사람이면 남긴다", 같은사람("o'neil&co@a.com", "o'neil&co@a.com"), '앞사람');
+
+    // 소셜 콜백이 **메일을 깎아서 넘기지 않는가** — 깎으면 위 줄이 화면에서 어긋난다.
+    // `LoginPage` 를 통째로 띄울 수는 없어서, 그 식 한 줄을 떼어 **값으로** 돌린다
+    const lp = fs.readFileSync('src/pages/LoginPage.jsx', 'utf-8');
+    const 식 = (lp.match(/const sanitizedEmail = (.+);/) || [])[1];
+    ok('소셜 콜백의 메일 식을 찾았다', !!식, true);
+    // eslint-disable-next-line no-new-func
+    const 깎기 = 식 ? new Function('emailParam', `return ${식};`) : () => '';
+    ok("소셜 콜백이 메일을 그대로 넘긴다 (o'neil&co@a.com)", 깎기(" o'neil&co@a.com "), "o'neil&co@a.com");
+    ok('  빈 메일은 null 이다', 깎기(''), null);
+
     // ─────────────────────────────────────────────────────────────
     // 로그아웃이 세대를 **먼저** 올리는가
     // ─────────────────────────────────────────────────────────────

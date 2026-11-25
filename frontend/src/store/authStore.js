@@ -112,9 +112,15 @@ function forgetUser() {
 // 틀리는 쪽을 고른다. 같은 사람인데 잊으면 **못 올린 줄을 잃고**(아픈 일이다),
 // 남인데 안 잊으면 **남의 기록이 남의 계정에 올라간다.** 뒤쪽은 되돌릴 길이 없고
 // 그 사람 둘 다에게 해가 된다. 모를 때는 잊는 쪽이다
+//
+// ── **같은 메일은 같은 자로 견준다** ── (2026-11-25 · 근호 2차)
+//
+// 서버는 메일을 `emailKey`(앞뒤 공백 · 대소문자 무시)로 같다고 본다. 여기서 글자 그대로
+// 견주면 `A@x.com` 과 `a@x.com` 이 **같은 계정인데 남**이 되어 못 올린 줄을 잃는다
+const emailSame = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 function forgetIfOther(nextEmail) {
   const prev = readLS(EMAIL_KEY);
-  if (prev && (!nextEmail || prev !== nextEmail)) forgetUser();
+  if (prev && (!nextEmail || !emailSame(prev, nextEmail))) forgetUser();
 }
 
 export const useAuthStore = create((set) => ({

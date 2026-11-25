@@ -182,7 +182,11 @@ function oauthErrorText(code) {
       // 여기서 괄호·따옴표를 또 떼면 「I'm 강철」이 이 기기에서만 「Im 강철」로 보였다 —
       // 화면은 React 가 글자로 그리니 뗄 까닭이 없다. 길이 선만 남긴다
       const sanitizedNick = nick.slice(0, NICKNAME_MAX);
-      const sanitizedEmail = emailParam ? emailParam.replace(/[<>"'&`]/g, '').slice(0, 100) : null;
+      // 메일도 **서버가 보낸 그대로** 담는다 (2026-11-25 · 근호 2차). 여태 `' & `` 같은
+      // 글자를 떼고 100자에서 잘랐는데, 서버는 `o'neil@x.com` 같은 메일을 받는다(`isValidEmail`).
+      // 그러면 비밀번호로 들어와 담긴 메일과 여기서 담는 메일이 **같은 사람인데 달라져서**
+      // `forgetIfOther` 가 남으로 보고 **못 올린 줄을 지웠다.** 위 이름과 같은 까닭으로 뗄 까닭이 없다
+      const sanitizedEmail = emailParam ? emailParam.trim().slice(0, 254) || null : null;
       // **들어온 뒤 처리는 스토어 한 곳에서** (2026-09-18). 여기서 직접 `setState` 를
       // 하고 있었더니, 「로그인하면 잠금을 놓는다」가 이 길만 비껴갔다 —
       // 구글로 들어온 사람에게 네 자리를 또 물었다
