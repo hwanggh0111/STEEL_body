@@ -161,6 +161,31 @@ for (const root of ROOTS) {
 ok('열 자리 아래다', tight.length <= 10, true);
 if (tight.length) console.log('     ' + tight.join('\n     '));
 
+// ── **높이는 44 인데 폭이 좁던 자리** ── (2026-11-25 · 맵시)
+//
+// 헤드리스 Chrome 에 터치를 켜고 열여섯 화면을 280 · 360 에서 재 보니, 전역 규칙 덕에
+// 높이는 다 44 였지만 **폭이 20~37px** 인 단추가 남아 있었다. 글자만 있는 단추는
+// 글자 폭이 곧 과녁이다. 고친 자리마다 그 한 줄을 값으로 본다 — 지우면 조용히 좁아진다
+console.log('\n── 폭이 좁던 자리 (11/25) ──');
+const SRC = path.join(__dirname, '..', 'src');
+const src = (...p) => fs.readFileSync(path.join(SRC, ...p), 'utf8');
+ok('기록 줄 ✕(`.delete-btn`)도 닿는 폭을 넓힌다',
+  [/\.delete-btn::after/.test(block), /\.delete-btn\s*\{\s*position:\s*relative/.test(bare.replace(block, ''))], [true, true]);
+const routine = src('pages', 'RoutinePage.jsx');
+ok('루틴 「수정」 「삭제」 둘 다 여백으로 44 폭',
+  [/padding: '0 11px' \}\}\s*>수정<\/button>/.test(routine), /padding: '0 11px' \}\}\s*>삭제<\/button>/.test(routine)], [true, true]);
+ok('  그 둘 사이를 벌리지 않는다(넓힌 과녁이 겹치지 않게 gap 0)',
+  /display: 'flex', gap: 0, alignItems: 'center', marginRight: -11/.test(routine), true);
+const settings = src('pages', 'SettingsPage.jsx');
+ok('설정 건너뛰는 칩 · 고르기 칩이 44 폭 아래로 안 줄어든다',
+  (settings.match(/minWidth: 44/g) || []).length >= 2, true);
+ok('목표 「다시」가 여백으로 44 폭', /padding: '0 11px', margin: '0 -11px'[^>]*>다시</.test(src('pages', 'GoalPage.jsx')), true);
+ok('인바디 「접기」가 여백으로 44 폭', /padding: '0 11px', marginRight: -11,[\s\S]{0,120}>접기</.test(src('pages', 'InbodyPage.jsx')), true);
+const layout = src('components', 'Layout.jsx');
+ok('머리 로고(마크만 남은 280)가 44 폭 · 칸 바닥 32',
+  [/aria-label="홈으로"[\s\S]{0,300}padding: '0 12px', marginLeft: -12/.test(layout), /head-logo-slot[^\n]*minWidth: 32/.test(layout)], [true, true]);
+ok('  글자를 걷는 선도 그 12 만큼 올렸다 (128)', /@container \(max-width: 128px\)/.test(css), true);
+
 console.log('');
 if (bad) {
   console.log(bad + '건 실패 — 폰에서 작은 단추가 안 눌릴 수 있습니다.');

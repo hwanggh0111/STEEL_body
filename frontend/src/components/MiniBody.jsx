@@ -1,6 +1,6 @@
 import { memo, Fragment } from 'react';
 import { bodyPartOf } from '../data/bodyPart';
-import { HEAD, VIEWBOX, GOLD, SKIN, SKIN_EDGE, viewFor } from './bodyShapes';
+import { HEAD, VIEWBOX, GOLD, SKIN, SKIN_EDGE_MINI, viewFor } from './bodyShapes';
 
 // 운동 카드의 작은 몸 (2026-10-06).
 //
@@ -27,8 +27,15 @@ const SIZE = 36;
 const RATIO = 2.38;          // 지도의 비율과 같다
 const BASE_STROKE = 1.4;     // 24px 에서의 굵기. 아래에서 크기에 맞춰 되돌린다
 
-/** 몸통 전체를 가라앉히는 정도. 1 이면 지도와 같은 또렷함이다. */
-const BODY_DIM = 0.55;
+/** 몸통 전체를 가라앉히는 정도. 1 이면 지도와 같은 또렷함이다.
+ *
+ * 0.55 → 1 (2026-11-25 · 맵시 · 주인 「선명하게, 살짝 중간」). 바탕 몸 색(`SKIN`)이 이미
+ * 카드 바탕과 거의 같아서, 0.55 를 겹치니 **윤곽이 아예 안 보였다** — 금색 한 조각이
+ * 허공에 떠 「몸의 어디」가 아니라 그냥 네모로 읽혔다. 지도와 같은 또렷함까지만 올린다
+ * (그래도 운동명보다 어둡다). 더 밝게는 안 간다 — 그러면 그림이 카드의 주인공이 된다 */
+const BODY_DIM = 1;
+/** 쓰는 곳 금색. 0.82 → 0.92 — 윤곽이 살아난 만큼 한 조각도 같이 또렷하게 */
+const PAINT_ALPHA = 0.92;
 
 /**
  * 한 운동이 쓰는 곳.
@@ -59,7 +66,7 @@ function MiniBody({ exercise, part, size = SIZE }) {
       style={{ flexShrink: 0, display: 'block' }}
     >
       {/* 바탕 몸 — 가라앉힌다. 금색 한 조각이 주인공이다 */}
-      <g fill={SKIN} stroke={SKIN_EDGE} strokeWidth={stroke} opacity={BODY_DIM}>
+      <g fill={SKIN} stroke={SKIN_EDGE_MINI} strokeWidth={stroke} opacity={BODY_DIM}>
         {HEAD}
         {/* 조각을 배열로 펴면 React 가 열쇠를 찾는다 — 부위 이름을 쓴다 */}
         {Object.entries(shapes).map(([name, shape]) => (
@@ -68,7 +75,7 @@ function MiniBody({ exercise, part, size = SIZE }) {
       </g>
 
       {/* 쓰는 곳 하나 */}
-      {paint && <g fill={GOLD} opacity="0.82">{paint}</g>}
+      {paint && <g fill={GOLD} opacity={PAINT_ALPHA}>{paint}</g>}
     </svg>
   );
 }

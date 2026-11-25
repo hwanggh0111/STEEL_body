@@ -611,10 +611,13 @@ export default function RoutinePage() {
         <div key={r._id || r.id || i} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5, color: 'var(--accent)' }}>{r.name}</span>
-            <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {/* 「수정」 「삭제」가 각 22px 폭에 10px 떨어져 있었다 — **고치려다 지우기가 눌리는**
+                자리다(운동 기록 줄은 11/19 에 닫았다). 둘 다 44 폭으로 넓히고 사이를 붙인다.
+                글자 사이는 10 → 22 로 벌어지고, 오른쪽 끝은 바깥 여백을 당겨 그대로 (11/25 · 맵시) */}
+            <span style={{ display: 'flex', gap: 0, alignItems: 'center', marginRight: -11 }}>
             <button
               onClick={() => editRoutine(r)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: '0 11px' }}
             >수정</button>
             <button
               onClick={async () => {
@@ -633,7 +636,7 @@ export default function RoutinePage() {
                 // 실패해도 「삭제 완료」가 먼저 번쩍인다
                 deleteMyRoutine(r._id || r.id);
               }}
-              style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: '0 11px' }}
             >삭제</button>
             </span>
           </div>

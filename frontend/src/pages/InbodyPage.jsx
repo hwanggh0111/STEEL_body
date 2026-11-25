@@ -503,7 +503,10 @@ export default function InbodyPage({ embedded = false }) {
                 onClick={closeForm}
                 style={{
                   marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
-                  padding: 0, font: 'inherit', fontSize: 12.5, color: 'var(--text-muted)',
+                  // 글자는 22px 폭이라 손가락에 좁다(11/25 · 맵시). 여백으로 44 를 채우고
+                  // 같은 만큼 바깥 여백을 당겨 **글자 자리는 그대로** 둔다
+                  padding: '0 11px', marginRight: -11,
+                  font: 'inherit', fontSize: 12.5, color: 'var(--text-muted)',
                 }}
               >접기</button>
             )}

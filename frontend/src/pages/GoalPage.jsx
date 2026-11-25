@@ -330,7 +330,9 @@ export default function GoalPage() {
           <button
             type="button"
             onClick={() => fetchGoal(true)}
-            style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
+            // 글 속 단추라 23px 폭이었다 — 여백으로 44 를 채우고 바깥 여백을 당겨
+            // 글자 자리는 그대로 둔다 (11/25 · 맵시)
+            style={{ background: 'none', border: 'none', padding: '0 11px', margin: '0 -11px', font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
           >다시</button>
           <div style={{ marginTop: 6, fontSize: 12.5 }}>세운 목표가 있어도 지금은 보이지 않아요. 아래에 새로 적으셔도 됩니다.</div>
         </div>
@@ -431,7 +433,7 @@ export default function GoalPage() {
                           background: w.current ? 'var(--accent)' : 'transparent',
                         }} />
                         <div style={{
-                          fontSize: 10.5, marginTop: 3,
+                          fontSize: 11, marginTop: 3,
                           color: w.met ? 'var(--accent)' : 'var(--text-muted)',
                           fontFamily: w.before ? 'inherit' : "'Bebas Neue', 'BI Sans KR', sans-serif",
                           letterSpacing: w.before ? 0 : 0.5,

@@ -406,6 +406,16 @@ console.log('── 달아오른 칠이 한 곳에서 오나 ── (2026-10-20)
   ok('  미리보기에도 없다', /opacity: 0\.\d+/.test(codeOf(preview)), false);
   // 범례도 같은 손에서 받아야 한다 — 손으로 적으면 칠을 고친 날 범례만 옛 색이다
   ok('범례도 같은 손에서 받는다', /\[3, 2, 1\]\.map\(\(lv, i\) => \(\{ \.\.\.heatPaint\(lv\)/.test(map), true);
+
+  // ── **기록 카드의 작은 몸이 안 보였다** ── (2026-11-25 · 맵시 · 주인 「선명하게, 살짝 중간」)
+  // 바탕 몸 색이 카드 바탕과 거의 같은데 0.55 를 겹쳐 윤곽이 사라졌다 — 금색 조각만
+  // 허공에 떴다. 지도의 또렷함(1)까지 올리고 테두리만 한 단계 밝혔다. 다시 내려가면
+  // 화면은 멀쩡해 보이고 **그림이 무엇인지만** 조용히 사라진다
+  const dim = Number((codeOf(mini).match(/const BODY_DIM = ([\d.]+)/) || [])[1]);
+  ok('작은 몸 바탕이 0.9 아래로 가라앉지 않는다', dim >= 0.9, true);
+  ok('  테두리는 작은 몸 몫(`SKIN_EDGE_MINI`)을 쓴다', /stroke=\{SKIN_EDGE_MINI\}/.test(mini), true);
+  ok('  그 색은 조각 파일 한 자리에 있다', /export const SKIN_EDGE_MINI = '#[0-9a-f]{6}'/.test(shapes), true);
+  ok('  지도는 제 테두리 그대로다(작은 몸 몫을 안 쓴다)', /SKIN_EDGE_MINI/.test(map), false);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

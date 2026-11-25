@@ -132,7 +132,8 @@ button:active:not(:disabled),
    `position: fixed` 를 적은 단추(위로 가기)는 인라인이 이겨 그대로 떠 있고, 그것도
    `::after` 의 기준이 된다. 묶음 **밖**에 두는 것은 이 한 줄뿐이다 — 44 는 묶음 안에만 */
 .tap-round,
-.tap-box { position: relative; }
+.tap-box,
+.delete-btn { position: relative; }
 @media (pointer: coarse) {
   button:not(.tap-tight),
   [role="button"]:not(.tap-tight),
@@ -162,8 +163,11 @@ button:active:not(:disabled),
   button.tap-box {
     min-height: 0 !important;
   }
+  /* `.delete-btn`(기록 줄 끝의 ✕ · 아홉 자리)도 같은 손이다 — 높이만 44 가 되고 폭은
+     **20px** 그대로였다(몸 · 기록 화면 · 11/25 · 맵시). 꼴은 두고 닿는 폭만 넓힌다 */
   .tap-round::after,
-  .tap-box::after {
+  .tap-box::after,
+  .delete-btn::after {
     content: '';
     position: absolute;
     inset: min(0px, calc((100% - 44px) / 2));
@@ -485,7 +489,8 @@ body::before {
    옆의 닉네임 알약 길이가 사람마다 달라서다. 컨테이너 쿼리를 모르는 옛 웹뷰는
    이 줄을 버리고 지금처럼 글자를 보인다 */
 .head-logo-slot { container-type: inline-size; }
-@container (max-width: 116px) {
+/* 116 → 128 (11/25 · 맵시) — 로고 단추가 오른쪽에 닿는 여백 12 를 칸 안에서 받는다 (Layout.jsx) */
+@container (max-width: 128px) {
   .head-logo-slot .logo-word { display: none !important; }
 }
 /* 닉네임 칸 상한 — 280 에서 쓸 수 있는 자리가 68 이다 (Layout.jsx `head-nick`).

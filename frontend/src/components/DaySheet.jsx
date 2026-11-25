@@ -229,7 +229,7 @@ export default function DaySheet({
                 opacity: state === 'missed' ? 0.55 : 1,
               }}>
                 <span style={{
-                  fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0,
+                  fontSize: 11, color: 'var(--text-muted)', flexShrink: 0,
                   border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
                 }}>{p.kind === 'routine' ? '루틴' : '운동'}</span>
                 <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>{p.name}</span>

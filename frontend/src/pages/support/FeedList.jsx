@@ -44,7 +44,7 @@ export default function FeedList({ items }) {
           }}>{fmtDate(c.date)}</span>
           {/* 공지는 색을 준다 — 커밋에서 온 줄과 성격이 다르다 */}
           <span style={{
-            fontSize: 10.5, flexShrink: 0, borderRadius: 'var(--radius)', padding: '1px 6px',
+            fontSize: 11, flexShrink: 0, borderRadius: 'var(--radius)', padding: '1px 6px',
             color: c.notice ? 'var(--accent)' : 'var(--text-muted)',
             border: `1px solid ${c.notice ? 'var(--accent)' : 'var(--border)'}`,
             background: c.notice ? 'var(--accent-dim)' : 'transparent',

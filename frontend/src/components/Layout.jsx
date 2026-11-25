@@ -579,7 +579,10 @@ export default function Layout() {
               그대로다 — 빈 칸까지 「홈으로」가 되면 엉뚱한 데를 눌러 홈으로 간다 */}
           {/* `minWidth: 20` — 마크 자리. 30자 닉네임을 280 에 넣어 보니 이 칸이 **0** 이 되어
               마크까지 사라졌다. 마크는 남기고, 모자라는 몫은 닉네임 칸이 줄여 낸다(아래 `head-nick`) */}
-          <div className="head-logo-slot" style={{ display: isPC ? 'none' : 'flex', flex: '1 1 0', minWidth: 20 }}>
+          {/* 마크만 남으면 단추가 **20px 폭**이었다(280 폰 · 11/25 · 맵시). 왼쪽은 머리 여백
+              쪽으로 12 를 뻗고(바깥 여백을 당겨 마크 자리는 그대로), 오른쪽 12 는 칸 안에서 받는다.
+              그래서 칸의 바닥이 20 → 32 다 */}
+          <div className="head-logo-slot" style={{ display: isPC ? 'none' : 'flex', flex: '1 1 0', minWidth: 32 }}>
             <button
               type="button"
               onClick={goHome}
@@ -587,7 +590,7 @@ export default function Layout() {
               style={{
                 cursor: 'pointer', display: 'flex',
                 alignItems: 'center', gap: 8, minWidth: 0,
-                background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
+                background: 'none', border: 'none', padding: '0 12px', marginLeft: -12, font: 'inherit', color: 'inherit',
               }}
             >
               <Logo cap={18} />

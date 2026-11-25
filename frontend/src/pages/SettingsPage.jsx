@@ -116,7 +116,8 @@ function Pick({ items, value, onPick, idOf = (x) => x.id, nameOf = (x) => x.name
             onClick={() => onPick(id)}
             aria-pressed={on}
             style={{
-              minHeight: 34, padding: '6px 12px', borderRadius: 'var(--radius)', fontSize: 12,
+              // 한 글자 고르기(띵 · 종 · 삑 · 남 · 여)가 37px 였다 (11/25 · 맵시)
+              minHeight: 34, minWidth: 44, padding: '6px 12px', borderRadius: 'var(--radius)', fontSize: 12,
               fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
               border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
               background: on ? 'var(--accent-dim)' : 'none',
@@ -235,6 +236,8 @@ function JumpBar({ items }) {
               border: `1px solid ${on ? 'var(--accent-low)' : 'var(--border)'}`,
               background: on ? 'var(--accent-dim)' : 'var(--bg-secondary)',
               padding: '4px 9px', borderRadius: 'var(--radius)',
+              // 한 글자 칩(「몸」)이 31px 였다 — 칩은 폭이 곧 과녁이다 (11/25 · 맵시)
+              minWidth: 44,
               transition: 'color .15s, border-color .15s, background .15s',
             }}
           >{title}</button>

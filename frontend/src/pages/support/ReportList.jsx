@@ -140,7 +140,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                       있다 — 상태 배지만 보고는 답이 온 줄 모른다 */}
                   {hasReply(item) && (
                     <span style={{
-                      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5,
+                      fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                       padding: '2px 7px', borderRadius: 'var(--radius)',
                       background: isNew ? 'var(--accent)' : 'var(--accent-dim)',
                       color: isNew ? 'var(--on-accent)' : 'var(--accent)',
@@ -148,7 +148,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                     }}>{isNew ? '새 답변' : '답변 옴'}</span>
                   )}
                   <span style={{
-                    fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5,
+                    fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                     padding: '2px 7px', borderRadius: 'var(--radius)',
                     background: st.dim, color: st.color, border: `1px solid ${st.color}`,
                   }}>{st.label}</span>
@@ -219,7 +219,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                   <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
                     {tags.map(t => (
                       <span key={t} style={{
-                        fontSize: 10.5, color: 'var(--text-muted)',
+                        fontSize: 11, color: 'var(--text-muted)',
                         border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '2px 7px',
                       }}>{t}</span>
                     ))}

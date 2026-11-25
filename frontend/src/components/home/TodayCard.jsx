@@ -180,7 +180,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                   <span style={{
-                    fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0,
+                    fontSize: 11, color: 'var(--text-muted)', flexShrink: 0,
                     border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
                   }}>{p.kind === 'routine' ? '루틴' : '운동'}</span>
                   <span style={{

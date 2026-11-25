@@ -14,6 +14,10 @@ export const GOLD = '#eeb77d';
 export const GOLD_LOW = '#d29a5f';
 export const SKIN = '#1c1813';
 export const SKIN_EDGE = '#2b251c';
+// 운동 카드의 **작은 몸**만 쓰는 테두리 (2026-11-25 · 맵시). 36px 로 줄이면 `SKIN_EDGE` 는
+// 카드 바탕(`--bg-card`)에 묻혀 윤곽이 안 보인다. 지도는 크니까 그대로 둔다 —
+// 한 단계만 밝힌 중간 톤이다(운동명 `--text-secondary` 보다 한참 어둡다)
+export const SKIN_EDGE_MINI = '#4a4032';
 
 /**
  * 달아오른 정도 → 칠. **0(식음)은 안 칠한다**(`null`).
