@@ -344,9 +344,17 @@ function readState(req) {
   const [body, mac] = String(raw).split('.');
   if (!body || !mac) return null;
   const want = signState(body);
-  // 길이가 다르면 timingSafeEqual 이 던진다 — 먼저 본다
-  if (mac.length !== want.length) return null;
-  if (!crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(want))) return null;
+  // 길이가 다르면 timingSafeEqual 이 던진다 — 먼저 본다.
+  // ★ **바이트로 잰다** (2026-11-25 · 근호). 여태 `mac.length`(글자 수)로 쟀는데 쿠키에
+  // `é` · 한글 같은 여러 바이트 글자를 넣으면 글자 수는 같고 바이트 수가 달라 **던졌다** —
+  // 이 손은 async 라 잡는 곳이 없어 unhandledRejection 으로 **서버가 통째로 죽었다**
+  // (로그인 없이 콜백 주소 한 번이면 됐다). 그 경우에도 던지지 않게 한 번 더 감싼다
+  const macBuf = Buffer.from(mac);
+  const wantBuf = Buffer.from(want);
+  if (macBuf.length !== wantBuf.length) return null;
+  let same = false;
+  try { same = crypto.timingSafeEqual(macBuf, wantBuf); } catch { return null; }
+  if (!same) return null;
   let data = null;
   try { data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); } catch { return null; }
   if (!data || data.s !== got) return null;
