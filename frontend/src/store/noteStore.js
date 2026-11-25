@@ -9,6 +9,8 @@ import {
 import { blockOf } from '../data/accountBlock';
 // 429 는 거절이 아니다 — 규칙은 운동 쪽과 **한 곳**에 있다 (`data/offline.js`)
 import { isTooFastError, retryAfterMs } from '../data/offline';
+// 나간 뒤에 날아온 답은 앞 사람 것이다 (`store/session.js`)
+import { sessionEpoch, isSameSession } from './session';
 
 // 달력의 **그날 메모**. 신호가 없어도 적힌다.
 //
@@ -171,6 +173,12 @@ export const useNoteStore = create((set, get) => ({
       .sort((a, b) => String(a[1].at).localeCompare(String(b[1].at)));
     if (entries.length === 0) return { sent: 0, failed: 0, stopped: false, blocked: false, tooFastMs: 0 };
 
+    // ── **사람이 바뀌면 멈춘다** ── (2026-11-25 · 근호)
+    //
+    // 운동 · 루틴 올리기는 줄마다 `isSameSession` 을 보는데 **메모만 안 봤다.** A 가 느린
+    // 신호에서 올리다 나가고 B 가 들어오면, 남은 A 메모가 **B 의 쿠키로** 올라가고 같은
+    // 날짜의 B 줄을 `dropEntry` 가 지울 수 있었다. 보내기 전 · 답 뒤 둘 다 본다
+    const mine = sessionEpoch();
     set({ flushing: true });
     let sent = 0;
     let failed = 0;
@@ -179,14 +187,17 @@ export const useNoteStore = create((set, get) => ({
     let tooFastMs = 0;
     try {
       for (const [date, e] of entries) {
+        if (!isSameSession(mine)) { stopped = true; break; }
         try {
           if (e.op === 'delete') await client.delete(`/notes/${e.id}`);
           else await client.post('/notes', { body: e.body, date });
+          if (!isSameSession(mine)) { stopped = true; break; }
           const next = dropEntry(get().queue, date);
           keepNoteQueue(set, next);
           get().apply(null, next);
           sent += 1;
         } catch (err) {
+          if (!isSameSession(mine)) { stopped = true; break; }
           if (isOfflineError(err)) { stopped = true; set({ online: false }); break; }
           // 「잠시 뒤에」(429)는 거절이 아니다 — 표시하지 않고 기다린다 (운동 쪽과 같다)
           if (isTooFastError(err)) {
@@ -213,8 +224,10 @@ export const useNoteStore = create((set, get) => ({
         }
       }
     } finally {
-      set({ flushing: false });
+      // 새 사람의 올리기가 이미 돌고 있으면 그 깃발은 건드리지 않는다
+      if (isSameSession(mine)) set({ flushing: false });
     }
+    if (!isSameSession(mine)) return { sent, failed, stopped: true, blocked, tooFastMs };
     // 올린 것이 있으면 보고 있는 달을 다시 받아 서버 것으로 맞춘다
     if (sent > 0 && loadedMonth) await get().fetchMonth(loadedMonth).catch(() => {});
     return { sent, failed, stopped, blocked, tooFastMs };

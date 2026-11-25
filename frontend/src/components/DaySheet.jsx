@@ -160,8 +160,12 @@ export default function DaySheet({
     if (!v) return;
     if (담겼나(v)) { setPlanError(`「${v}」 는 이 날에 이미 담겨 있어요`); return; }
     setPlanError('');
-    onAddPlan({ date, kind: 'exercise', name: v });
-    setName('');
+    // **담긴 뒤에 지운다** (2026-11-25 · 근호) — 실패하거나 앞 것이 아직 담기는 중이면
+    // 친 이름을 남겨 둔다. 옛 부르는 쪽(답이 없는 손)이면 지금처럼 지운다
+    Promise.resolve(onAddPlan({ date, kind: 'exercise', name: v })).then((ok) => {
+      // 기다리는 사이 다음 이름을 치기 시작했으면 그것은 두고 간다
+      if (ok !== false) setName((cur) => (cur.trim() === v ? '' : cur));
+    });
   };
 
   return (

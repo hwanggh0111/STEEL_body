@@ -209,15 +209,20 @@ export default function HistoryPage() {
     }
   };
 
+  // **담겼는지 답한다** (2026-11-25 · 근호). 여태 제 오류를 삼키고 아무것도 안 돌려줘서,
+  // 부르는 쪽(`DaySheet`)은 실패도 성공으로 알고 **적은 글을 지웠다** — 신호가 없을 때
+  // 「담지 못했어요」와 함께 친 이름이 사라졌다(계획에는 오프라인 줄이 없다)
   const addPlan = async (plan) => {
-    if (addingPlan) return;
+    if (addingPlan) return false;
     setAddingPlan(true);
     try {
       const { data } = await client.post('/plans', plan);
       setPlans(prev => [...prev, data]);
       toast(`${dayLabel(plan.date)}에 담았어요`);
+      return true;
     } catch (err) {
       toast(err.response?.data?.error || '담지 못했어요', 'error');
+      return false;
     } finally {
       setAddingPlan(false);
     }

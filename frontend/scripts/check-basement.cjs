@@ -383,7 +383,14 @@ const codeOf = (s) => s
     smod.useRoutineSessionStore.setState({ server: null, session: null, queue: {}, loaded: false });
     fake.cut = [];
     fake.bodies['/routine-session'] = { session: BIG };
+    // ★ **브라우저가 「신호 없음」이라고 하는 동안** 다시 받는다 (2026-11-25 · 근호).
+    // 신호가 있으면 이제 `fetch` 가 읽은 바로 뒤에 담아둔 칸을 **올린다**(TODO 11/26 ⑤ —
+    // 여태 켤 때 올리기가 빈 줄을 봐서 칸이 영영 「대기」였다). 이 가짜 서버는 PATCH 에도
+    // 옛 진행표를 돌려주므로, 여기서는 **얹히는 모습만** 보려고 올리기를 비킨다.
+    // 올리는 쪽은 `check-todo1126` 이 값으로 본다
+    global.navigator.onLine = false;
     await S().fetch(true);
+    global.navigator.onLine = true;
     ok('담아둔 줄이 남아 있다', kept, 1);
     ok('  다시 받으면 그 줄이 그대로 얹힌다', S().session.items[2].setsDone, 3);
     ok('  넘긴 칸도 그대로다', S().session.items[0].state, 'skip');

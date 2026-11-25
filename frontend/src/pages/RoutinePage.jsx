@@ -412,6 +412,14 @@ export default function RoutinePage() {
       toast(`"${routine.name}"에 이미 있는 운동이에요`);
       return;
     }
+    // ── **저장 중에는 또 안 받는다** ── (2026-11-25 · 근호)
+    //
+    // 이 길은 **목록 전체**를 보낸다(`[...화면의 사본, 새것]`). 그런데 `saveMyRoutine` 처럼
+    // `savingRoutine` 을 걸지 않아서, A 를 넣는 답이 오기 전에 B 를 누르면 B 쪽 목록에는
+    // A 가 없고 — 서버에서 **A 를 덮어 지웠다.** 알림은 둘 다 「넣었어요」였다.
+    // 단추(`disabled={savingRoutine}`)는 이미 이 값을 보고 있으니, 걸기만 하면 막힌다
+    if (savingRoutine) return;
+    setSavingRoutine(true);
     const next = [...list, exercise];
     try {
       const { data: saved } = await client.put(`/my-routines/${id}`, { exercises: next });
@@ -427,6 +435,8 @@ export default function RoutinePage() {
       // 하는지 모른 채 같은 것을 다시 누른다.
       // **바로 위 `updateMyRoutine` 은 그 말을 쓰고 있었다** — 한 파일 안에서 갈렸다
       toast(err.response?.data?.error || '루틴에 넣지 못했어요', 'error');
+    } finally {
+      setSavingRoutine(false);
     }
   };
 

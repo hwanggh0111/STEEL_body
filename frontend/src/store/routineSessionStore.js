@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import client from '../api/client';
 import { sessionEpoch, isSameSession } from './session';
-import { isOfflineError } from '../data/offline';
+import { isOfflineError, isOnline } from '../data/offline';
 import {
   queueSets, queueState, dropIndex, markSessionFailed, pendingIndexes, pendingCount,
   applyQueue, trimQueue, readSessionQueue, saveSessionQueue, clearSessionQueue,
@@ -83,6 +83,13 @@ export const useRoutineSessionStore = create((set, get) => ({
       // 누른 것이 그대로 보인다 — 루틴이 바뀌었으면 `readSessionQueue` 가 버린다
       get().apply(server, readSessionQueue(server?.startedAt), { keep: true });
       set({ loaded: true, loading: false });
+      // ── **담아둔 칸은 여기서야 손에 들어온다** ── (2026-11-25 · 근호)
+      //
+      // 오프라인에서 누른 칸은 기기에 담기고, 이 `fetch` 가 그것을 줄(queue)로 읽는다.
+      // 그런데 앱을 켤 때의 올리기(`Layout` 의 `send`)는 **이 답보다 먼저** 돌아서 빈 줄을
+      // 봤다 — 다음 `online` 사건이 올 때까지 칸이 「대기」로 남고, 서버는 그 운동을
+      // 「할 일」로 알았다. 읽은 바로 뒤에 한 번 올린다(이미 올리는 중이면 `flush` 가 비킨다)
+      if (pendingIndexes(get().queue).length > 0 && isOnline()) get().flush().catch(() => {});
     } catch {
       if (!isSameSession(mine)) return;
       // 못 불러와도 기록 화면은 그대로 써야 한다. 진행표만 안 보인다

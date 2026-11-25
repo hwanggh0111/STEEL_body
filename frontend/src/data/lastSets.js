@@ -68,6 +68,24 @@ const at = (r) => {
   return Number.isFinite(t) && t > 0 ? t : null;
 };
 
+// ── **그날 안에서 가장 늦게 적은 줄** ── (2026-11-25 · 근호)
+//
+// 하루치 줄의 차례를 믿을 수 없다. 서버는 **최신이 앞**으로 주고(`db.js` ROW_CMP),
+// 올리지 못한 줄은 그 뒤에 **오래된 것부터** 붙는다(`offline.js` mergeQueue). 그래서
+// 「앞에서 첫 줄」도 「끝에서 첫 줄」도 틀린다 — 지하에서만 적은 날은 첫 세트를,
+// 메모는 그날 가장 오래된 것을 집었다. **적은 시각으로 고른다.** 시각이 없는 줄뿐이면
+// 서버 차례(앞이 최신)를 믿고 첫 줄을 쓴다
+function newestIn(list, pick) {
+  let best = null;
+  let bestT = -Infinity;
+  for (const w of list) {
+    if (!pick(w)) continue;
+    const t = at(w);
+    if (best === null || (t !== null && t > bestT)) { best = w; bestT = t ?? -Infinity; }
+  }
+  return best;
+}
+
 /**
  * 그 운동의 **판 목록**. 최신이 앞이다.
  *
@@ -405,8 +423,8 @@ export function lastRecordOf(workouts, exercise, today = null, writing = null) {
     .sort()
     .reverse();
   for (const date of dates) {
-    const hit = (workouts[date] || [])
-      .find((w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
+    const hit = newestIn(workouts[date] || [],
+      (w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
     if (hit) return { ...hit, date };
   }
   return null;
@@ -459,12 +477,11 @@ export function lastNoteOf(workouts, exercise, today = null, writing = null) {
     .sort()
     .reverse();
   for (const date of dates) {
-    const list = workouts[date] || [];
-    // 그 날 안에서는 **나중에 적은 줄이 먼저** — 마지막 세트에 붙인 말이 제일 새것이다
-    for (let i = list.length - 1; i >= 0; i--) {
-      const w = list[i];
-      if (String(w?.exercise ?? '').trim() === name && w?.note) return { note: String(w.note), date };
-    }
+    // 그 날 안에서는 **나중에 적은 줄이 먼저** — 마지막 세트에 붙인 말이 제일 새것이다.
+    // 끝에서부터 걸으면 서버 차례(앞이 최신)에서는 **가장 오래된** 메모를 집었다 —
+    // 적은 시각으로 고른다(위 `newestIn`, 2026-11-25 · 근호)
+    const w = newestIn(workouts[date] || [], (x) => String(x?.exercise ?? '').trim() === name && x?.note);
+    if (w) return { note: String(w.note), date };
   }
   return null;
 }
