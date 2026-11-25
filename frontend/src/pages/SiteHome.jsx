@@ -245,7 +245,7 @@ export default function SiteHome() {
               「로그인」과 「가입하기」다 */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {loggedIn ? (
-              <a href="/home" style={{
+              <a href="/home" className="tap-box" style={{
                 fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'none',
                 border: '1px solid var(--border-hover)', padding: '6px 13px',
                 borderRadius: 'var(--radius)', whiteSpace: 'nowrap',
@@ -657,11 +657,11 @@ export default function SiteHome() {
             <LogoMark size={16} />
             {loggedIn && (
               <>
-                <a href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
-                <a href="/support/notices" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>소식</a>
+                <a href="/support" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
+                <a href="/support/notices" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>소식</a>
               </>
             )}
-            <a href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>개인정보처리방침</a>
+            <a href="/privacy" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>개인정보처리방침</a>
             <span style={{ marginLeft: 'auto' }}>BLACK IRON</span>
           </div>
         </div>

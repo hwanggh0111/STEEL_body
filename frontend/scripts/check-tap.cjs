@@ -188,6 +188,29 @@ ok('  사진 위 ✕ 는 꼴 작게 · 닿는 자리만 넓게 (`delete-btn tap-
 ok('  1RM 줄: 무게 × 횟수는 둘째 줄 · 안 꺾는다',
   /<div style=\{\{ minWidth: 0 \}\}>\s*<div[^>]*>\{r\.data\?\.exercise\}<\/div>\s*<div[^>]*whiteSpace: 'nowrap'[^>]*>\{r\.data\?\.weight\}kg/
     .test(src('components', 'measure', 'OneRMSection.jsx')), true);
+// ── **링크는 전역 규칙에서 빠져 있었다** (로그인 전 화면 · 11/25) ──
+// 전역 44 는 `button` 만 건다. 로그인 「회원가입」 47×16 · 가입 「로그인」 35×16 ·
+// 홈페이지/개인정보 바닥 링크 높이 17~20 이었다. 폰에서 처음 여는 화면이다
+ok('`.tap-link` 가 폰 묶음 안에서 여백 · 당김 · 최소 폭으로 44 를 채운다',
+  /\.tap-link\s*\{\s*display:\s*inline-block;\s*padding:\s*14px 8px;\s*margin:\s*-14px -8px;\s*min-width:\s*44px/.test(block), true);
+{
+  const login = src('pages', 'LoginPage.jsx');
+  const reg = src('pages', 'RegisterPage.jsx');
+  const site = src('pages', 'SiteHome.jsx');
+  const priv = src('pages', 'PrivacyPage.jsx');
+  ok('  로그인 「회원가입」 · 가입 「로그인」이 그 손을 쓴다',
+    [/to="\/register"\s*className="tap-link"/.test(login), /<Link to="\/login" className="tap-link"/.test(reg)], [true, true]);
+  ok('  홈페이지 바닥 셋 · 개인정보 바닥 둘이 그 손을 쓴다',
+    [(site.match(/className="tap-link"/g) || []).length, (priv.match(/className="tap-link"/g) || []).length], [3, 2]);
+  ok('  「앱 열기」 · 비밀번호 「보기」는 꼴을 두고 닿는 자리만 (`tap-box`)',
+    [/<a href="\/home" className="tap-box"/.test(site), /setShowPw\(!showPw\)[\s\S]{0,300}className="tap-box"/.test(login)], [true, true]);
+}
+// ── **다크 전용인데 입력 요소가 밝게 그려졌다** (11/25) ──
+// `color-scheme` 이 없어서 체크박스가 하얀 네모 · 날짜 달력 · 고르기 목록이 밝은 모드였다.
+// 지우면 화면 자체는 멀쩡해 보이고 **그 요소들만** 조용히 하얘진다
+ok('다크 전용을 브라우저에 말한다 (`:root` color-scheme · index.html meta)',
+  [/:root\s*\{[^}]*color-scheme:\s*dark/.test(bare),
+    /<meta name="color-scheme" content="dark"/.test(fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'))], [true, true]);
 for (const f of ['WorkoutCard.jsx', 'InbodyCard.jsx']) {
   const c = src('components', f);
   const del = (c.match(/<button[^>]*className="([^"]*delete-btn[^"]*)"/) || [])[1] || '';

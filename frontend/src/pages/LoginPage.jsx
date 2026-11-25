@@ -468,6 +468,8 @@ function oauthErrorText(code) {
               type="button"
               onClick={() => setShowPw(!showPw)}
               aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+              // 입력칸 안에 떠 있는 글자 단추라 30 폭이었다 — 꼴은 두고 닿는 자리만 44 (11/25 · 맵시)
+              className="tap-box"
               style={{
                 position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', color: 'var(--text-muted)',
@@ -537,6 +539,7 @@ function oauthErrorText(code) {
               누른 사람이 가입을 끝내고 **「오늘」로** 간다. 적어둔 말이 거짓이 된다 */}
           <Link
             to="/register"
+            className="tap-link"
             state={backTo ? { from: safeBackTo(backTo) } : undefined}
             style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}
           >회원가입</Link>

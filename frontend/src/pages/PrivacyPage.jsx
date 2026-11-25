@@ -171,8 +171,8 @@ export default function PrivacyPage() {
 
         <hr className="rule-beam" style={{ margin: '30px 0 16px' }} />
         <div style={{ fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <a href="/site" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>홈페이지</a>
-          <a href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
+          <a href="/site" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>홈페이지</a>
+          <a href="/support" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
           <span style={{ marginLeft: 'auto' }}>BLACK IRON</span>
         </div>
       </div>

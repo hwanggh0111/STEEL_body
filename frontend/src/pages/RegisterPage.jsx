@@ -696,7 +696,7 @@ export default function RegisterPage() {
 
         <div style={{ textAlign: 'center', marginTop: 22 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>이미 계정이 있나요? </span>
-          <Link to="/login" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>로그인</Link>
+          <Link to="/login" className="tap-link" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>로그인</Link>
         </div>
       </div>
     </div>
