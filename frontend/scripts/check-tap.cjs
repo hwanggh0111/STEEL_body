@@ -169,8 +169,20 @@ if (tight.length) console.log('     ' + tight.join('\n     '));
 console.log('\n── 폭이 좁던 자리 (11/25) ──');
 const SRC = path.join(__dirname, '..', 'src');
 const src = (...p) => fs.readFileSync(path.join(SRC, ...p), 'utf8');
-ok('기록 줄 ✕(`.delete-btn`)도 닿는 폭을 넓힌다',
-  [/\.delete-btn::after/.test(block), /\.delete-btn\s*\{\s*position:\s*relative/.test(bare.replace(block, ''))], [true, true]);
+// ✕ 는 **제 폭**을 44 로 키운다. 처음엔 `::after` 로 사방 12 를 뻗게 했는데 운동 ·
+// 인바디 카드의 ✎ 이 4px 옆이라 **✎ 오른쪽 8px 을 덮었다**(근호 판정) — 안 보이는
+// 과녁은 이웃을 모른다. 그래서 `::after` 가 되살아나면 FAIL 이다
+ok('기록 줄 ✕(`.delete-btn`)는 제 폭을 44 로 (폰에서만)',
+  /\.delete-btn:not\(\.tap-tight\)\s*\{\s*min-width:\s*44px/.test(block), true);
+ok('  ✕ 는 안 보이게 뻗지 않는다 — 옆 ✎ 을 덮는다',
+  [/\.delete-btn::after/.test(bare), /\.delete-btn\s*\{\s*position:\s*relative/.test(bare)], [false, false]);
+// 이웃을 값으로 센다 — ✎ 과 ✕ 가 한 줄에 선 카드는 둘 사이를 4px 밖에 안 둔다.
+// 그 자리에서 ✕ 를 안 보이게 넓히는 손(`tap-box` · `tap-round`)이 붙으면 같은 겹침이다
+for (const f of ['WorkoutCard.jsx', 'InbodyCard.jsx']) {
+  const c = src('components', f);
+  const del = (c.match(/<button[^>]*className="([^"]*delete-btn[^"]*)"/) || [])[1] || '';
+  ok(`  ${f}: ✎ 옆 ✕ 에 안 보이게 넓히는 손이 없다`, /tap-(box|round)/.test(del), false);
+}
 const routine = src('pages', 'RoutinePage.jsx');
 ok('루틴 「수정」 「삭제」 둘 다 여백으로 44 폭',
   [/padding: '0 11px' \}\}\s*>수정<\/button>/.test(routine), /padding: '0 11px' \}\}\s*>삭제<\/button>/.test(routine)], [true, true]);

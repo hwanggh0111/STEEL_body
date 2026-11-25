@@ -132,8 +132,7 @@ button:active:not(:disabled),
    `position: fixed` 를 적은 단추(위로 가기)는 인라인이 이겨 그대로 떠 있고, 그것도
    `::after` 의 기준이 된다. 묶음 **밖**에 두는 것은 이 한 줄뿐이다 — 44 는 묶음 안에만 */
 .tap-round,
-.tap-box,
-.delete-btn { position: relative; }
+.tap-box { position: relative; }
 @media (pointer: coarse) {
   button:not(.tap-tight),
   [role="button"]:not(.tap-tight),
@@ -163,11 +162,18 @@ button:active:not(:disabled),
   button.tap-box {
     min-height: 0 !important;
   }
-  /* `.delete-btn`(기록 줄 끝의 ✕ · 아홉 자리)도 같은 손이다 — 높이만 44 가 되고 폭은
-     **20px** 그대로였다(몸 · 기록 화면 · 11/25 · 맵시). 꼴은 두고 닿는 폭만 넓힌다 */
+  /* ── **✕ 는 안 보이게 뻗지 않고 제 폭을 44 로** ── (2026-11-25 · 맵시)
+     `.delete-btn`(기록 줄 끝의 ✕ · 아홉 자리)은 높이만 44 가 되고 폭은 **20px** 이었다.
+     처음엔 위 `::after` 와 같은 손으로 사방 12 를 뻗게 했는데, 운동 · 인바디 카드는
+     ✎ 이 **4px 옆**에 있어서 ✕ 의 안 보이는 테두리가 **✎ 오른쪽 8px 을 덮었다** —
+     ✕ 가 뒤에 그려지니 그 자리를 누르면 지우기 확인창이 떴다(근호 판정 · 벼림 전달).
+     안 보이는 과녁은 **옆에 누가 있는지 모른다.** 그래서 ✕ 자체를 44 폭으로 키운다 —
+     보이는 자리가 넓어지니 ✎ 이 그만큼 왼쪽으로 비켜서고 겹침이 0 이 된다 */
+  .delete-btn:not(.tap-tight) {
+    min-width: 44px;
+  }
   .tap-round::after,
-  .tap-box::after,
-  .delete-btn::after {
+  .tap-box::after {
     content: '';
     position: absolute;
     inset: min(0px, calc((100% - 44px) / 2));
