@@ -71,9 +71,11 @@ router.post('/', auth, spamCheck, (req, res) => {
     used,
     height || null,
     weight,
-    fat_pct || null,
-    muscle_kg || null,
-    water_l || null,
+    // **0 은 값이다** (2026-11-25 · 근호). `|| null` 이 0 을 지웠다 — 고치기(PUT)는 0 을
+    // 그대로 담아서 같은 값이 만드는 길과 고치는 길에서 달랐다. 빈 값만 null 로 둔다
+    fat_pct ?? null,
+    muscle_kg ?? null,
+    water_l ?? null,
     bmi
   );
 

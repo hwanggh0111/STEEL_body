@@ -402,12 +402,15 @@ export default function InbodyPage({ embedded = false }) {
   const composition = useMemo(() => compositionOf(latestRecord), [latestRecord]);
 
   // 지난 기록에서 얼마나 움직였나. 하나뿐이면 견줄 것이 없다
+  // **옆 큰 숫자와 같은 두 줄로 잰다** (2026-11-25 · 근호). 여태 `records` 앞 둘을 썼는데,
+  // 큰 숫자는 앞날을 거르는 `latestInbody` 의 것이다 — 날짜를 다음 주로 잘못 적은 줄이
+  // 있으면 「오늘 체중 · 앞날 줄과 그 앞 줄의 차」가 나란히 섰다(몸 화면 머리글과도 달랐다)
   const sinceLast = useMemo(() => {
-    if (records.length < 2) return null;
-    const [a, b] = records;
+    const a = latestRecord;
+    const b = prevRecord;
     if (a?.weight == null || b?.weight == null) return null;
     return Number((a.weight - b.weight).toFixed(1));
-  }, [records]);
+  }, [latestRecord, prevRecord]);
 
   const gapDays = latestRecord ? daysBetween(latestRecord.date, today) : null;
 

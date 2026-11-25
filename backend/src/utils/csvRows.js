@@ -503,10 +503,30 @@ const inbodyKey = (r) => [r.date, r.weight, r.height ?? '', r.fat_pct ?? '', r.m
  * 그때는 하나로 본다. 같은 값을 두 번 적어둔 것을 하나로 만드는 쪽이,
  * 같은 파일을 두 번 넣을 때마다 줄이 불어나는 것보다 낫다.
  */
+//
+// ── ★ **파일이 되돌려 주는 꼴로 맞춰 본다** ── (2026-11-25 · 근호)
+//
+// 담긴 줄과 파일에서 읽은 줄이 **같은 측정인데 지문이 달랐다** — 셋이 어긋났다:
+//
+//   · `date` — 치수 화면은 `{ ...values, date }` 로 보내서 `data` 안에 날짜가 들어 있다.
+//     내보내기(`routes/export.js`)는 첫 칸에 있다고 **그 열쇠를 빼고** 쓴다
+//   · 빈 값 — 내보내기는 `null` · `''` 을 안 쓴다. 담긴 줄에는 남아 있을 수 있다
+//   · 글자 숫자 — 칸에서 온 `"100"` 이 담기고, 읽는 손(`readMeasures`)은 `100` 으로 되돌린다
+//
+// 그래서 같은 측정 CSV 를 다시 넣으면 **매번 `skipped 0` 으로 두 벌**이 됐다.
+// 지문을 **파일이 되돌려 주는 꼴**로 만든다 — 내보내기가 빼는 것은 빼고, 읽는 손이
+// 바꾸는 것은 같은 자로 바꾼다. 그러면 담긴 줄과 파일 줄이 같은 지문이 된다
+const measureValue = (v) => {
+  if (typeof v !== 'string') return v;
+  if (/^[[{]/.test(v)) { try { return JSON.parse(v); } catch { return v; } }
+  return v !== '' && !Number.isNaN(Number(v)) ? Number(v) : v;
+};
 const measureKey = (m) => {
   const data = m.data && typeof m.data === 'object' ? m.data : {};
   // 열쇠의 차례가 달라도 같은 지문이 나오게 정렬한다
-  const print = Object.keys(data).sort().map((k) => `${k}=${JSON.stringify(data[k])}`).join(',');
+  const print = Object.keys(data).sort()
+    .filter((k) => k !== 'date' && data[k] !== null && data[k] !== undefined && data[k] !== '')
+    .map((k) => `${k}=${JSON.stringify(measureValue(data[k]))}`).join(',');
   return `${m.date}|${m.type}|${print}`;
 };
 
