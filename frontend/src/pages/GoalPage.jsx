@@ -299,9 +299,14 @@ export default function GoalPage() {
     }
   };
 
-  // **못 받아온 사람도 목표를 세울 수 있어야 한다.** 여태 `loaded` 에만 걸려 있어서
-  // 못 받아오면 폼이 안 나왔다 — 「불러오는 중…」만 영영 도는 죽은 화면이었다
-  const showForm = editing || ((loaded || failed) && !hasGoal(goal));
+  // ── **못 받아왔으면 빈 칸을 내밀지 않는다** ── (2026-11-26 · 벼림, 근호 점검 높음 3)
+  //
+  // 11/09 에 「못 받아온 사람도 목표를 세울 수 있어야 한다」로 `failed` 에도 폼을 열었다 —
+  // 그때는 「불러오는 중…」만 영영 도는 죽은 화면이었기 때문이다. 그런데 그 빈 칸으로
+  // 저장하면 **진짜 목표를 덮는다**: 비운 칸이 null 로 가고 서버 `clean()` 이 그걸
+  // 「지운다」로 읽어 합치며, 시작일도 오늘이 된다. **있는지 모르는 것을 없다고 보고 적은 꼴이다.**
+  // 지금은 못 받은 자리에 「다시」 단추가 있어서 죽은 화면이 아니다 — 폼은 **받은 뒤에만** 연다
+  const showForm = editing || (loaded && !hasGoal(goal));
 
   return (
     <div>
@@ -334,7 +339,7 @@ export default function GoalPage() {
             // 글자 자리는 그대로 둔다 (11/25 · 맵시)
             style={{ background: 'none', border: 'none', padding: '0 11px', margin: '0 -11px', font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
           >다시</button>
-          <div style={{ marginTop: 6, fontSize: 12.5 }}>세운 목표가 있어도 지금은 보이지 않아요. 아래에 새로 적으셔도 됩니다.</div>
+          <div style={{ marginTop: 6, fontSize: 12.5 }}>세운 목표가 있어도 지금은 보이지 않아요. 불러온 뒤에 고칠 수 있어요 — 지금 적으면 있던 목표를 지울 수도 있어요.</div>
         </div>
       )}
 

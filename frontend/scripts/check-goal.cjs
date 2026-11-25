@@ -554,8 +554,23 @@ console.log('── ★ 못 받은 것을 「불러오는 중」으로 삼키지
   ok('화면이 셋을 가른다', /!loaded && !failed/.test(page), true);
   ok('  못 받았다고 말하고 다시 할 길을 준다',
     /failed && \(/.test(page) && /fetchGoal\(true\)/.test(page), true);
-  ok('  **못 받은 사람도 목표를 세울 수 있다**',
-    /\(loaded \|\| failed\) && !hasGoal\(goal\)/.test(page), true);
+  // ── 11/09 의 「못 받은 사람도 목표를 세울 수 있다」를 **뒤집는다** ── (2026-11-26 · 벼림,
+  // 근호 점검 높음 3). 그 빈 칸으로 저장하면 비운 칸이 null 로 가서 **진짜 목표를 지웠다**
+  // (서버 `clean()` 이 null 을 「지운다」로 읽는다 · 시작일도 오늘로). 못 받은 자리에는 이미
+  // 「다시」가 있어서 죽은 화면도 아니다 — 폼은 **받은 뒤에만** 연다.
+  // 식을 글자로 베끼지 않고, 화면의 `showForm` 줄을 떼어 **값으로** 돌린다
+  const line = (page.match(/const showForm = (.+);/) || [])[1];
+  ok('  showForm 식을 찾았다', !!line, true);
+  // eslint-disable-next-line no-new-func
+  const showForm = line
+    ? new Function('editing', 'loaded', 'failed', 'goal', 'hasGoal', `return ${line};`)
+    : () => null;
+  const has = (g) => !!g;
+  ok('  **못 받았으면 빈 칸을 안 연다** (있던 목표를 덮지 않게)', showForm(false, false, true, null, has), false);
+  ok('  받았는데 목표가 없으면 칸을 연다', showForm(false, true, false, null, has), true);
+  ok('  받았고 목표가 있으면 칸을 안 연다', showForm(false, true, false, { weeklyTarget: 3 }, has), false);
+  ok('  고치기를 눌렀으면 연다', showForm(true, true, false, { weeklyTarget: 3 }, has), true);
+  ok('  못 받은 자리가 있던 목표를 지울 수 있다고 말한다', /있던 목표를 지울 수도 있어요/.test(page), true);
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

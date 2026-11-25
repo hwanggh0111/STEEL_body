@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "3c125d89df",
+  "detailVersion": "9c09cc1c40",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,30 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "e922643",
+      "date": "2026-11-25",
+      "text": "phone-test.ps1 이 Windows PowerShell 5.1 에서 아예 안 돌았다 — UTF-8 BOM 을 붙인다",
+      "label": "고침",
+      "scope": "폰 테스트",
+      "has": true
+    },
+    {
+      "key": "3bc97e6",
+      "date": "2026-11-25",
+      "text": "측정을 다시 넣으면 두 벌 · 인바디 0 이 사라짐 · 「지난 기록보다」가 앞날 줄과 견줌 (TODO 11/26 ⑧ · ⑨ · ⑬)",
+      "label": "고침",
+      "scope": "2차",
+      "has": true
+    },
+    {
+      "key": "702a131",
+      "date": "2026-11-25",
+      "text": "근호 잔말 둘 — 사진 위 ✕ 는 꼴 작게 · 1RM 줄의 「무게 × 횟수」는 둘째 줄로",
+      "label": "고침",
+      "scope": "UI",
       "has": true
     },
     {
@@ -1111,30 +1135,6 @@
       "text": "두 번째 시계를 앱에서 걷었다 — 날이 바뀌면 열두 자리가 같이 따라간다",
       "label": "고침",
       "scope": "날짜",
-      "has": true
-    },
-    {
-      "key": "92f18ed",
-      "date": "2026-11-17",
-      "text": "같은 화면 위아래가 다른 주를 말했다 — 날이 바뀌면 띠·요약이 같이 넘어간다",
-      "label": "고침",
-      "scope": "홈",
-      "has": true
-    },
-    {
-      "key": "8ebff1f",
-      "date": "2026-11-17",
-      "text": "소식에 오른 해시가 코드를 안 가리켰다 — 빈 커밋은 본문이 가리키는 커밋으로 적는다",
-      "label": "고침",
-      "scope": "공지",
-      "has": true
-    },
-    {
-      "key": "519acfc",
-      "date": "2026-11-17",
-      "text": "이름이 길어지면 말줄임 대신 칸을 밀어내던 세 자리를 고친다",
-      "label": "고침",
-      "scope": "꼴",
       "has": true
     }
   ]

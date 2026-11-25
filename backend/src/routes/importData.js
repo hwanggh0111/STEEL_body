@@ -92,7 +92,7 @@ const KINDS = {
     existing: (userId) => db.getMeasures(userId),
     put: (userId, r) => db.createMeasure(userId, r.type, r.date, r.data),
   },
-};
+};
 
 // **빠진 갈래가 있으면 서버가 안 뜬다.** 위 까닭대로, 상한이 없는 갈래는 상한이
 // 없는 것이 아니라 **상한 검사가 통째로 사라진 것**이다. 사람 기록이 무한히
@@ -132,8 +132,24 @@ router.post('/', auth, (req, res) => {
   }
 
   // 이미 있는 것. **한 번만 읽어 열쇠로 만든다** — 줄마다 다시 훑으면 3만 줄에서 멎는다
-  const have = new Set(spec.existing(req.userId).map(spec.key));
-  const room = spec.max - have.size;
+  //
+  // ── **열쇠를 개수로 센다** ── (2026-11-26 · 벼림, 근호 점검 높음 2)
+  //
+  // 여태 `Set` 이었다. 그러면 같은 날 벤치 60kg 1×10 을 **세 줄로 적은 사람**이 내보낸
+  // 파일을 빈 계정에 넣으면 첫 줄을 넣고 `have.add` 한 뒤 둘째 · 셋째가 「이미 있다」로
+  // 빠졌다 — **복원하려고 만든 길에서 두 세트가 사라졌다.** 똑같은 세트를 여러 번 하는 것은
+  // 운동에서 흔한 일이다. 그래서 열쇠마다 **몇 줄 있나**를 센다:
+  //   이미 m 줄 · 파일에 n 줄 → 파일의 앞 m 줄은 「이미 있다」, 나머지 n − m 줄만 넣는다
+  //   (다시 넣으면 0 · 빈 계정이면 n · 11/24 「두 번 넣어도 안 늘어난다」는 그대로 선다)
+  const existing = spec.existing(req.userId);
+  const have = new Map();
+  for (const row of existing) {
+    const k = spec.key(row);
+    have.set(k, (have.get(k) || 0) + 1);
+  }
+  const seen = new Map(); // 이 파일에서 그 열쇠를 몇 번 만났나
+  // 상한도 **줄 수**로 센다 — 열쇠 수로 세면 같은 줄이 여럿인 사람의 남은 자리가 부풀었다
+  const room = spec.max - existing.length;
   if (room <= 0) {
     return res.status(409).json({ error: `${spec.label} 기록이 이미 가득해요 (${spec.max.toLocaleString()}줄)` });
   }
@@ -143,7 +159,9 @@ router.post('/', auth, (req, res) => {
   const failed = [...bad];
   for (const r of rows) {
     const k = spec.key(r);
-    if (have.has(k)) { skipped += 1; continue; }
+    const nth = (seen.get(k) || 0) + 1;
+    seen.set(k, nth);
+    if (nth <= (have.get(k) || 0)) { skipped += 1; continue; }
     if (added >= room) { failed.push({ line: 0, why: `${spec.label} 기록이 가득 차서 나머지는 못 넣었어요` }); break; }
     try {
       // 운동명 · 무게는 **읽는 쪽이 이미 다듬었다**(`utils/csvRows` → `workoutFields`).
@@ -154,7 +172,6 @@ router.post('/', auth, (req, res) => {
       // 여기만 날것으로 넣으면 화면이 그 줄에서 깨진다
       if (kind === 'measures') r.data = sanitizeObj(r.data);
       spec.put(req.userId, r);
-      have.add(k);
       added += 1;
     } catch (err) {
       failed.push({ line: 0, why: err.message || '못 넣은 줄이 있어요' });
