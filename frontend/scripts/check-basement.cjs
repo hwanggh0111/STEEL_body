@@ -389,8 +389,7 @@ const codeOf = (s) => s
     // 옛 진행표를 돌려주므로, 여기서는 **얹히는 모습만** 보려고 올리기를 비킨다.
     // 올리는 쪽은 `check-todo1126` 이 값으로 본다
     global.navigator.onLine = false;
-    await S().fetch(true);
-    global.navigator.onLine = true;
+    try { await S().fetch(true); } finally { global.navigator.onLine = true; }
     ok('담아둔 줄이 남아 있다', kept, 1);
     ok('  다시 받으면 그 줄이 그대로 얹힌다', S().session.items[2].setsDone, 3);
     ok('  넘긴 칸도 그대로다', S().session.items[0].state, 'skip');

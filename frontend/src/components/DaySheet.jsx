@@ -159,6 +159,9 @@ export default function DaySheet({
     const v = name.trim();
     if (!v) return;
     if (담겼나(v)) { setPlanError(`「${v}」 는 이 날에 이미 담겨 있어요`); return; }
+    // 앞 계획이 아직 담기는 중이면 **그렇다고 말한다** — 단추는 막혀 있지만 Enter 는 이리로
+    // 온다. 말없이 비키면 「눌렀는데 아무 일도 없다」로 보인다 (2026-11-25 · 벼림 감사)
+    if (addingPlan) { setPlanError('앞 계획을 담는 중이에요. 잠시 뒤 다시 눌러주세요'); return; }
     setPlanError('');
     // **담긴 뒤에 지운다** (2026-11-25 · 근호) — 실패하거나 앞 것이 아직 담기는 중이면
     // 친 이름을 남겨 둔다. 옛 부르는 쪽(답이 없는 손)이면 지금처럼 지운다
