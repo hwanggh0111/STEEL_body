@@ -28,7 +28,7 @@
 ### 텍스트
 - `--text-primary`: #eae4d6
 - `--text-secondary`: #aaa28e
-- `--text-muted`: #7a7160
+- `--text-muted`: #8c816e (11/25 · 화면·카드에서 4.5 : 1 이상 · 칩 4.11)
 
 ### 포인트
 - `--accent`: #eeb77d (주황을 30% 섞은 금)

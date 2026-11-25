@@ -25,7 +25,7 @@ const GOLD = '#eeb77d';
 const GOLD_LOW = '#d29a5f';
 const SKIN = '#1c1813';
 const SKIN_EDGE = '#2b251c';
-const DASH = '#7a7160';
+const DASH = '#8c816e';   // --text-muted 와 같은 값 (11/25 에 같이 바꿨다)
 // 아픔처럼 **금색이 아닌 뜻**으로 칠할 때 쓰는 값 (2026-09-30). 여기도 값을 직접 적는다 —
 // 위에 적어둔 대로 `var(--warning)` 을 SVG 속성에 넣으면 **아무 색도 안 칠해진다**
 export const MARK_WARNING = '#d9a441';

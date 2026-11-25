@@ -1123,7 +1123,7 @@ console.log('── 그래프를 그려본다 (recharts 를 걷어내고 직접 
 //
 // 이 그래프들이 조용히 죽는 방식은 둘이다. (1) 색이 안 먹어서 축 글씨가 검정이 된다
 // — 8/28 에 실제로 그랬다. (2) 안 잰 날을 이어 그려서 잰 것처럼 보여준다.
-const GOLD = '#eeb77d', MUTED = '#7a7160', RED = '#d96a5c', GREEN = '#7fb069', BLUE = '#7fa8d9';
+const GOLD = '#eeb77d', MUTED = '#8c816e', RED = '#d96a5c', GREEN = '#7fb069', BLUE = '#7fa8d9';
 const TWO = [{ key: 'before', label: '과거', color: MUTED }, { key: 'after', label: '현재', color: GOLD }];
 
 // 08-18 은 체지방·골격근을 안 쟀다 (체중만 쟀다)

@@ -15,7 +15,7 @@ export const CHART = {
   // 쓰는 데가 없지만, 이 표는 **그래프 색과 CSS 토큰의 짝**이고 `npm run data` 가
   // 그 짝을 지킨다(걷어봤더니 그 자가 잡았다). 비교 그림이 체수분 축을 쓴다
   water:  '#7fa8d9',   // --info        체수분
-  muted:  '#7a7160',   // --text-muted  축 글씨 · 기타 · 지난 값
+  muted:  '#8c816e',   // --text-muted  축 글씨 · 기타 · 지난 값
   text2:  '#aaa28e',   // --text-secondary  범례 · 항목 이름
   text:   '#eae4d6',   // --text-primary
   card:   '#1b1712',   // --bg-secondary  말풍선 바탕
