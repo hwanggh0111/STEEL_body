@@ -1,4 +1,4 @@
-# 폰으로 앱을 테스트할 수 있는 상태로 만든다 (2026-09-15).
+﻿# 폰으로 앱을 테스트할 수 있는 상태로 만든다 (2026-09-15).
 #
 #   실행:  powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1
 #   (Claude Code 프롬프트에서는  ! powershell -ExecutionPolicy Bypass -File scripts\phone-test.ps1)
