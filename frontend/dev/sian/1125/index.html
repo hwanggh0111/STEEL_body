@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 후보 셋 · 11/25</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다. 시안은 배포하지 않는다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e; --gold:#eeb77d; --new:#7fa8d9; --warn:#d29a5f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:24px 24px 8px; }
+  h1 { font:400 34px/1 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 8px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  h2 { font:600 15px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2); margin:26px 24px 0; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .sub { color:var(--t2); margin:0; max-width:94ch; }
+  .sub b { color:var(--new); font-weight:600; }
+  .lead { border-left:2px solid var(--warn); padding-left:12px; margin:10px 24px 0; max-width:94ch; color:var(--t2); }
+  .lead b { color:var(--t1); font-weight:600; }
+  .row { display:flex; gap:28px; overflow-x:auto; padding:16px 24px 28px; align-items:flex-start; }
+  .col { flex:0 0 390px; display:flex; flex-direction:column; gap:12px; }
+  .cap { font:400 17px 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .cap small { display:block; font:12.5px 'Barlow','IBM Plex Sans KR',sans-serif; letter-spacing:0; color:var(--t2); }
+  iframe { width:390px; height:844px; border:1px solid var(--line); background:#12100c; display:block; }
+  table { width:calc(100% - 48px); margin:14px 24px 0; border-collapse:collapse; font-size:13px; max-width:120ch; }
+  th, td { text-align:left; vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--t2); font-weight:600; white-space:nowrap; }
+  td b { color:var(--t1); font-weight:600; }
+  td.z { color:var(--gold); white-space:nowrap; }
+  td.w { color:var(--warn); white-space:nowrap; }
+  code { color:var(--gold); font-size:12px; }
+  a { color:var(--gold); }
+  .ex { background:var(--card); border:1px solid var(--line); padding:12px 14px; font-size:13px; color:var(--t2); }
+  .ex dt { color:var(--gold); font-weight:600; margin-top:10px; }
+  .ex dt:first-child { margin-top:0; }
+  .ex dd { margin:2px 0 0; }
+  .ex dd b { color:var(--t1); font-weight:600; }
+  ul.gone { margin:10px 24px 30px; padding-left:18px; color:var(--t2); max-width:100ch; }
+  ul.gone b { color:var(--t1); font-weight:600; }
+  @media (max-width:440px) { header, .row { padding-left:16px; padding-right:16px; } .col { flex-basis:100%; } iframe { width:100%; }
+    h2, .lead { margin-left:16px; margin-right:16px; } table, ul.gone { width:calc(100% - 32px); margin-left:16px; margin-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 후보 <em>셋</em> · 11/25</h1>
+  <p class="sub">주인: 「새기능 짜가지고 시안으로 올려 그리고 근호에게 검사받아」. <b>파란 점선</b>이 새로 붙는 자리다.
+    화면 속 숫자는 예시다. <a href="/dev">&larr; 개발 미리보기</a> · <a href="../1124/">11/24 후보 여덟</a></p>
+
+  <p class="lead"><b>뽑는 법은 11/24 와 같다 — 「서버는 아는데 화면이 말 안 하는 자리」.</b>
+    이번에는 11/12 ~ 11/24 시안에 이미 나온 쉰 개 남짓을 먼저 빼고 훑었다.
+    <b>훑은 자리 여덟 중 다섯은 이미 화면이 말하고 있었다</b>(맨 아래). 남은 것이 셋이다 —
+    <b>셋 다 서버 칸이 하나씩 든다</b> — 처음엔 둘을 「칸 0」으로 적었는데 근호 검사에서 틀렸다(아래).</p>
+
+  <p class="lead" style="border-color:#d29a5f"><b>★ 근호 검사 (11/25) — 처음 안에서 고친 것.</b><br>
+    <b>② FAIL → 고침.</b> <code>last_sent_date</code> 는 「보낸 날」이 아니라 <b>「보내려 한 날」</b>이다 —
+    두 번 가지 않게 <b>보내기 전에</b> 적는다(<code>reminderRunner.js:44</code>). 기기가 0대여도 · 푸시가 실패해도 그대로 남는다.
+    그대로 화면에 쓰면 <b>서버가 못 보낸 날도 「폰 문제」로 보이게 된다.</b> → 실제로 한 대 이상 나간 날만
+    <code>last_delivered_date</code> 로 따로 적는다(<code>reminderRunner.js:72~73</code> 의 <code>n &gt; 0</code> 자리 · 서버 칸 1).<br>
+    <b>① FAIL → 출시 뒤로.</b> 「적은 날 = 운동한 날」로는 다 못 거른다 — 지하에서 적어 밤에 올라간 줄은
+    <b>올린 시각</b>이 찍히고(<code>workoutStore.js:381</code> 이 적은 시각을 안 보낸다), 오늘 날짜 가져오기 · 운동 끝나고 몰아 적기도 통과한다.
+    그 시각으로 「대개 21시」라고 말하면 <b>지어낸 말</b>이다. → 줄에 <b>적은 순간의 기기 시각</b>을 싣는 칸이 먼저다.<br>
+    <b>③ PASS · 기준 하나 고침.</b> 「칸이 다 지나가면」은 <b>넘긴 칸도 지나간 것</b>으로 센다(<code>routineSession.js:63~70</code>) —
+    전부 넘겨도 「끝냄」이 된다. → <code>completed</code>(실제로 한 칸) 기준으로 센다.
+    그리고 「앱도 모른다」는 틀렸다 — <b>계획에 담은 루틴은 안다</b>(plans 의 <code>routine_id</code>). 정확히는 「계획 안 한 날은 모른다」.<br>
+    <b>이미 있던 다섯 · 겹침 — PASS.</b></p>
+
+  <p class="lead" style="border-color:#7fa8d9"><b>권고 (근호 판단 반영)</b><br>
+    <b style="color:#eeb77d">12/08 전에 넣는다 —</b> ② 마지막으로 <b>나간</b> 알림 (서버 칸 하나 + 화면 한 줄 · 칸 고침을 빼고 넣으면 안 된다).<br>
+    <b style="color:#d29a5f">출시 뒤로 —</b> ① 알림 시각과 실제 시각(기기 시각 칸이 먼저) ·
+    ③ 루틴 끝낸 날(<code>completed</code> 기준으로).</p>
+</header>
+
+<h2>한 장에</h2>
+<table>
+  <tr><th>안</th><th>서버가 아는 것</th><th>화면이 하는 말</th><th>값</th></tr>
+  <tr><td><b>① 알림 시각과 실제로 하는 시각</b></td>
+      <td>기록마다 남긴 시각(<code>created_at</code> · <code>pace.js</code> 가 이미 읽음) · 알림 시각</td>
+      <td>「알림은 19시, 기록은 대개 21시대」 + 옮기기 단추(권하지 않음)</td><td class="w">기기 시각 칸 1 · 출시 뒤</td></tr>
+  <tr><td><b>② 마지막으로 나간 알림</b></td>
+      <td><code>last_sent_date</code> 는 <b>보내려 한 날</b>이라 못 쓴다 — 실제로 나간 날은 아무 데도 안 남는다</td>
+      <td>「마지막으로 나간 알림 11/24 (월) · 받는 기기 중 한 대 이상」 — 서버가 보냈는지를 사람이 먼저 안다</td><td class="w">서버 칸 1 · 12/08 전</td></tr>
+  <tr><td><b>③ 루틴을 마지막으로 끝낸 날</b></td>
+      <td><b>계획 안 한 날은 모른다</b> — 세션은 한 줄이라 덮이고, 기록 줄에 루틴 칸이 없다</td>
+      <td>루틴 목록 옆 「2일 전 끝냄」 · 오래된 것은 색만</td><td class="w">서버 칸 1</td></tr>
+</table>
+
+<h2>화면</h2>
+<div class="row">
+  <div class="col"><div class="cap">① 알림 시각 · 실제 시각 · 출시 뒤<small>✗ 지금 자료로는 시각을 지어내게 된다 · 기기 시각 칸이 먼저</small></div>
+    <iframe src="01-WhenTrain.html" title="1. 알림 시각과 실제로 하는 시각"></iframe>
+    <dl class="ex">
+      <dt>무슨 기능인가</dt>
+      <dd>운동 알림 화면에 <b>「알림은 19시에 오는데, 실제로 기록을 적는 시각은 대개 21시대다」</b>를 한 줄과
+        작은 막대(시간대별 기록 수)로 보여준다. 원하면 누를 수 있게 <b>「알림을 20:30 으로 옮기기」</b> 단추를 둔다.</dd>
+      <dt>왜 필요한가</dt>
+      <dd>알림 시각은 처음 켤 때 한 번 정하고 다시 안 본다. 그런데 실제로 운동하는 시각과 어긋나 있으면
+        알림이 <b>너무 일찍 와서 그냥 지워진다</b>. 사람은 자기가 몇 시에 운동하는지 세어본 적이 없다 — 앱은 안다.</dd>
+      <dt>근거 — 시각은 있다, 그런데 그대로는 못 쓴다</dt>
+      <dd>기록 한 줄마다 <b>저장한 시각</b>이 남는다(<code>backend/src/db.js:984</code> 의 <code>created_at</code>).
+        화면도 이미 이 시각을 읽어 쉬는 시간을 잰다(<code>frontend/src/data/pace.js</code>).
+        알림 시각은 알림 설정에 있다(<code>settings.time</code>). <b>둘을 나란히 놓는 화면은 없다</b> — 다만 그 시각이 「운동한 시각」인지는 아래처럼 못 가른다.</dd>
+      <dt>어떻게 세나 — ✗ 근호 검사에서 막혔다</dt>
+      <dd>처음 안은 <b>운동한 날짜와 적은 날짜가 같은 줄만</b> 세려 했다. 그런데 그걸로는 못 거른다:
+        <b>지하에서 적고 밤에 신호가 돌아와 올라간 줄</b>은 올린 시각이 찍힌다(<code>workoutStore.js:381</code> 이 적은 시각을 안 보낸다 ·
+        서버는 받은 순간을 적는다 <code>db.js:984</code>). 오늘 날짜를 가져온 줄 · 운동 끝나고 한꺼번에 적은 줄도 날짜가 같아 통과한다.
+        <b>→ 줄마다 「적은 순간의 기기 시각」을 싣는 칸이 먼저 있어야 한다. 그래서 출시 뒤로 미룬다.</b></dd>
+      <dt>안 하는 것</dt>
+      <dd>옮기라고 <b>권하지 않는다</b>(단추만 둔다 — 19시 알림 받고 준비해서 21시에 가는 사람도 있다).
+        센 날이 <b>열흘이 안 되면 아무 말도 안 한다</b>(적은 수로 「대개」라고 말하면 지어낸 말이 된다).</dd>
+    </dl></div>
+  <div class="col"><div class="cap">② 마지막으로 나간 알림 · 12/08 전<small>실제로 나간 날만 적는다 · 나간 적 없으면 줄을 안 그린다</small></div>
+    <iframe src="02-LastAlert.html" title="2. 마지막으로 나간 알림"></iframe>
+    <dl class="ex">
+      <dt>무슨 기능인가</dt>
+      <dd>운동 알림 화면에 <b>「마지막으로 나간 알림 — 11월 24일 (월) · 받는 기기 중 한 대 이상에 나갔어요」</b> 한 줄을 보여준다.
+        그 아래 이미 있는 <b>「시험 알림 보내기」</b> 단추를 붙여, 안 왔으면 바로 시험해 볼 수 있게 한다.</dd>
+      <dt>왜 필요한가</dt>
+      <dd>「알림이 안 와요」라는 말을 들으면 <b>서버가 안 보낸 건지, 폰이 안 띄운 건지</b> 가를 길이 없었다.
+        날짜 한 줄이 있으면 — 서버는 어제 보냈는데 폰에 안 왔다 → <b>폰 알림 설정 문제</b>라고 사람이 먼저 안다.</dd>
+      <dt>근거 — 비슷한 날짜는 있는데, 그대로는 못 쓴다 (근호 검사)</dt>
+      <dd>서버에 <code>last_sent_date</code> 가 있고(<code>backend/src/db.js:2686</code>) 이미 화면까지 간다
+        (<code>backend/src/routes/reminders.js:68</code>) — 알림 화면은 안 읽는다. <b>그런데 이건 「보낸 날」이 아니라
+        「보내려 한 날」이다.</b> 같은 사람에게 두 번 안 가게 <b>보내기 전에</b> 적는다(<code>backend/src/utils/reminderRunner.js:44</code>).
+        받는 기기가 0대여도, 푸시 서비스가 실패해도 그 날짜가 남는다. 이걸 쓰면 <b>서버가 못 보낸 날도 「폰 문제」로 보인다.</b><br>
+        → 실제로 <b>한 대 이상 나간 경우에만</b>(<code>reminderRunner.js:72~73</code> 의 <code>n &gt; 0</code>) <code>last_delivered_date</code>
+        를 따로 적는다. <b>서버 칸 1 + 화면 한 줄.</b> 시험 알림 단추는 이미 있다(<code>reminders.js:135</code> 의 <code>POST /test</code>) —
+        다만 <b>시험 알림은 이 날짜를 안 바꾼다</b>(정한 시각에 나간 알림만 적는다). 그래서 시험 알림이 와도 줄은 그대로다.<br>
+        <b>「이 폰」이라고 단정하지 않는다 (근호 재검):</b> <code>n</code> 은 <b>사람 단위</b>다 — 기기 전부에 보내고 한 대라도 나가면 <code>n &gt; 0</code>.
+        폰·PC 두 대 중 PC 에만 나가고 이 폰은 실패해도 「나감」이 된다. 그래서 말은 <b>「받는 기기 중 한 대 이상에 나갔어요」</b>로 한다.
+        「이 기기에 마지막으로 나간 날」까지 말하려면 구독 줄마다 날짜를 적어야 한다(구독 칸 1) — 12/08 전 크기를 넘어서 뒤로 둔다.</dd>
+      <dt>안 하는 것</dt>
+      <dd>보낸 적이 없으면(알림을 막 켰거나 한 번도 안 갔으면) <b>이 줄을 그리지 않는다</b> — 「보낸 적 없음」을
+        고장처럼 보이게 하지 않는다. 「폰에 왔는지」는 서버가 모르니 <b>왔다고 말하지 않는다.</b></dd>
+    </dl></div>
+  <div class="col"><div class="cap">③ 루틴 끝낸 날<small>이름으로 짐작하지 않는다 · 재촉 안 함</small></div>
+    <iframe src="03-RoutineLast.html" title="3. 루틴을 마지막으로 끝낸 날"></iframe>
+    <dl class="ex">
+      <dt>무슨 기능인가</dt>
+      <dd>내 루틴 목록에서 루틴마다 <b>「2일 전 끝냄」 · 「24일 전 끝냄」 · 「아직 안 끝냄」</b>을 옆에 적는다.
+        오래 안 한 루틴은 <b>색만</b> 바뀐다.</dd>
+      <dt>왜 필요한가</dt>
+      <dd>상체 A · 상체 B · 하체처럼 돌려 하는 사람은 <b>「오늘 뭐 할 차례지?」</b>를 매번 기억에 기댄다.
+        목록만 봐도 오래 쉰 루틴이 보이면 고르기가 쉬워진다.</dd>
+      <dt>근거 — 계획 안 한 날은 앱도 모른다 (그래서 서버 칸 하나가 든다)</dt>
+      <dd>진행 중인 루틴은 <b>한 사람당 한 줄</b>이라 다음 루틴을 시작하면 덮인다
+        (<code>backend/src/routes/routineSession.js</code> 머리글). 기록 한 줄에는
+        <b>어느 루틴으로 했는지 적는 칸이 없다</b>(<code>backend/src/db.js:984</code> — 날짜 · 운동 · 무게 · 세트 · 횟수뿐).
+        달력에 계획으로 담은 루틴은 안다(plans 의 <code>routine_id</code>) — 계획 없이 바로 시작한 날은 남지 않는다.
+        그래서 <b>루틴을 끝내는 순간</b> 그 루틴에 <code>last_done</code> 날짜 하나를 적어 둔다.<br>
+        <b>「끝냄」의 기준 (근호 검사):</b> 「칸이 다 지나갔다」로 세면 <b>넘긴 칸도 지나간 것</b>이라(<code>routineSession.js:63~70</code>)
+        전부 넘기고 닫아도 「끝냄」이 된다. → <b>칸이 전부 지나갔고(남은 칸 0) 그중 실제로 한 칸(<code>completed</code>)이 하나 이상</b>일 때만 「끝냄」으로 적는다.
+        남은 칸이 있는 채 닫은 날 · 전부 넘긴 날은 적지 않는다.<br>
+        <b>적는 자리는 한 곳 (근호 3차):</b> 마지막 칸이 지나가면 서버가 스스로 끝낸다(<code>routineSession.js:149~152</code>) — 그 바로 앞에서 적는다.
+        「그만두기」는 다른 길(<code>DELETE</code> · <code>:158</code>)이라 접은 날은 저절로 빠진다.<br>
+        <b>넘긴 칸이 있어도 끝까지 간 날은 「끝냄」이다</b> — 넘긴 것도 사람이 고른 것이다.<br>
+        <b>날짜가 아니라 시각(ISO)으로 적는다.</b> 「N일 전」은 화면이 그 폰의 시간대로 센다 — 서버는 알림을 켠 사람의 시간대만 알아서,
+        날짜로 적으면 자정 근처에 하루가 어긋난다.</dd>
+      <dt>안 하는 것</dt>
+      <dd><b>기록의 운동 이름으로 짐작하지 않는다</b> — 상체 A 와 B 가 둘 다 벤치를 담고 있으면 이름으로는
+        어느 루틴이었는지 모른다. 시작했다 <b>중간에 접은 날은 세지 않는다.</b>
+        「할 차례입니다」라고 <b>재촉하지 않는다.</b></dd>
+      <dt>왜 출시 뒤로 미루나</dt>
+      <dd>②는 알림 보내는 곳(<code>reminderRunner.js</code>) 한 줄 + 칸 하나로 끝나지만, ③은 <b>루틴 진행 흐름</b>(끝내는 자리 · <code>completed</code> 세기)에 손이 간다.
+        12/08 얼리기 전에 넣으면 검사할 시간이 모자란다. ①은 기기 시각 칸이 먼저라 같이 출시 뒤다.</dd>
+    </dl></div>
+</div>
+
+<h2>훑었는데 이미 있던 것 다섯 — 다음에 또 「이거 없네」로 시작하지 않게</h2>
+<ul class="gone">
+  <li><b>못 지킨 계획 세기</b> — 달마다 이미 센다(<code>HistoryPage.jsx:339</code> · <code>missedCount</code>)</li>
+  <li><b>목표를 정한 뒤 얼마나 왔나</b> — 시작 값과 마지막 기록을 이미 보여준다(<code>GoalPage.jsx:511</code>)</li>
+  <li><b>인바디 지난번과 견주기</b> — 「며칠 전과 견주면」이 이미 있다(<code>BodyPage.jsx:138</code>)</li>
+  <li><b>헬스장마다 기구 세팅</b> — 다니는 곳 목록을 화면이 이미 그린다(<code>GymSetting.jsx:125</code> · 서버 자리는 <code>gymSettings.js:78</code>)</li>
+  <li><b>재는 도구 흐름</b> — <code>MeasurePage</code> 가 이미 그린다</li>
+</ul>
+</body>
+</html>

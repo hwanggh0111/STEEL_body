@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Barlow:wght@400;500;600;700&amp;family=IBM+Plex+Sans+KR:wght@400;600;700&amp;display=swap">
+<link rel="stylesheet" href="_s.css">
+<title>2. 마지막으로 나간 알림</title>
+<style>
+.mut{color:#aaa28e;font-size:12.5px}
+.ln{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2318;font-size:13.5px}
+.ln:last-child{border-bottom:none}
+.fact{background:#1b1712;border:1px solid #332b1e;border-left:2px solid #eeb77d;border-radius:2px;padding:11px 13px;font-size:13px;color:#cfc6b2}
+.fact b{color:#eae4d6}
+</style>
+</head>
+<body>
+<div class="ph">
+  <header class="hd">
+    <span class="logo">BLACK IRON</span>
+    <button class="acc" style="margin-left:auto" aria-label="내 계정"><span class="av">S</span><span class="n">seeddemo</span></button>
+  </header>
+  <main style="padding:18px 20px 90px">
+    <div class="st"><div class="bar"></div>운동 알림</div>
+
+    <div class="card">
+      <div class="ln"><span>알림</span><span style="color:#eeb77d">켜짐</span></div>
+      <div class="ln"><span>요일 · 시각</span><span class="mut">월 · 수 · 금 19:00</span></div>
+      <div class="ln"><span>받는 기기</span><span class="mut">2대</span></div>
+    </div>
+
+    <div class="fact nw">
+      <b>마지막으로 나간 알림 — 11월 24일 (월)</b><br>
+      <span class="mut">받는 기기 2대 중 한 대 이상에 나갔어요 — 어느 기기인지는 아직 모릅니다</span>
+      <button class="btn2" style="margin-top:10px;width:100%">시험 알림 보내기</button>
+    </div>
+
+    <div class="say">
+      <span class="ic" aria-hidden="true">&#9679;</span>
+      <div>「알림이 안 와요」 제보는 <b style="color:#eae4d6">서버가 안 보낸 것</b>과
+      <b style="color:#eae4d6">폰이 안 띄운 것</b>을 가를 수 없어서 늘 막혔습니다.
+      날짜 한 줄이면 <b style="color:#eae4d6">서버가 보냈는지</b>는 사람이 먼저 압니다. 「이 폰」이라고 단정하지는 않습니다. <b style="color:#eae4d6">실제로 나간 날만 적고, 나간 적이 없으면 이 줄은 안 그립니다.</b> 시험 알림은 이 날짜를 안 바꿉니다.</div>
+    </div>
+
+    <div class="flat">서버의 <span class="mut">last_sent_date</span> 는 <b style="color:#cfc6b2">보내기 전에</b> 적혀서
+      (<span class="mut">reminderRunner.js:44</span>) 못 보낸 날도 남습니다 — 그대로 쓰면 서버 탓을 폰 탓으로 보이게 합니다.
+      <b style="color:#d29a5f">서버 칸 하나</b> — 한 대 이상 나갔을 때만(<span class="mut">reminderRunner.js:72~73</span> 의 n &gt; 0)
+      <span class="mut">last_delivered_date</span> 를 적고, 화면은 그것만 읽습니다.</div>
+  </main>
+  <nav class="tb" aria-label="하단 네비게이션">
+    <button class="tab"><span>오늘</span></button>
+    <button class="tab"><span>운동</span></button>
+    <button class="tab"><span>기록</span></button>
+    <button class="tab"><span>몸</span></button>
+  </nav>
+</div>
+</body>
+</html>
