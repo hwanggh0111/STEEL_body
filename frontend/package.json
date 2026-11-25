@@ -117,6 +117,7 @@
     "alive": "node scripts/check-alive.cjs",
     "draw": "node scripts/check-draw.cjs",
     "nextstep": "node scripts/check-nextstep.cjs",
+    "rirroom": "node scripts/check-rirroom.cjs",
     "cardio": "node scripts/check-cardio.cjs",
     "weightread": "node scripts/check-weightread.cjs",
     "weighthands": "node scripts/check-weighthands.cjs",

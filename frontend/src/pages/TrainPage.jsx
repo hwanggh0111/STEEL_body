@@ -5,6 +5,8 @@ import { REPS_MAX, SETS_MAX, WEIGHT_KG_MAX, WORKOUT_NOTE_MAX, RIR_VALUES } from 
 import {
   nextStep, lastSession, stepReason, stepExcluded, shortDate, lastRecordOf, plannedSetsOf, lastNoteOf,
 } from '../data/lastSets';
+// 적어둔 여유를 세어 사실로 한 줄 (2026-11-25, `npm run rirroom`) — 권하지 않는다
+import { rirRoom, rirRoomText } from '../data/rirRoom';
 // 유산소는 **시간 · 거리로** 적는다 (2026-11-05, `npm run cardio`)
 import {
   isCardioName, isCardioRow, cardioText, cardioOf, paceLabel,
@@ -483,6 +485,7 @@ export default function TrainPage() {
 
   const step = useMemo(() => nextStep(workouts, exercise, today, date), [workouts, exercise, today, date]);
   const lastPlay = useMemo(() => lastSession(workouts, exercise, today, date), [workouts, exercise, today, date]);
+  const room = useMemo(() => rirRoom(workouts, exercise, today, date), [workouts, exercise, today, date]);
   // 지난 판은 **접은 채로** 시작한다 — 펼쳐 두면 적는 칸이 아래로 밀린다.
   // **운동을 바꾸면 다시 접는다** — 안 접으면 다음 운동의 지난 판이 펼쳐진 채
   // 뜬다(한 번 펼친 것이 그 뒤 모든 운동에 따라붙는다)
@@ -1522,6 +1525,25 @@ export default function TrainPage() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
                   권하는 것일 뿐이에요 — 오늘 컨디션은 사람이 압니다. 칸은 그대로 고칠 수 있어요.
+                </div>
+              </div>
+            )}
+
+            {/* ── 여유를 쓴다 ── (2026-11-25 · 시안 1124 ①)
+                적어둔 「몇 개 더 할 수 있었나」를 **센 사실**이다. 권하지 않는다 — 권하는
+                자리는 바로 위 「다음 한 걸음」이다. 그래서 **금 테두리를 안 쓴다**(그 카드와
+                같은 옷이면 권유로 읽힌다) · 축하가 아니라 최고 기록 배너의 옷도 아니다.
+                셈과 말은 `data/rirRoom.js` 가 한다 */}
+            {room && !editingId && (
+              <div style={{
+                marginBottom: 12, padding: '10px 12px', borderRadius: 'var(--radius)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              }}>
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {rirRoomText(room).head}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
+                  {rirRoomText(room).dates}
                 </div>
               </div>
             )}

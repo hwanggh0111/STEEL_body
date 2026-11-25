@@ -88,6 +88,7 @@ const SITES = {
   'components/home/TodayCard.jsx': [1, '홈의 바로 시작 — 전부는 「운동」 탭에 있고, 그 탭이 수를 적는다'],
   'components/measure/OneRMSection.jsx': [1, '**최근 다섯**이다 — 그 아래가 1RM 계산기고, 기록 전부는 「몸 → 재는 도구」에 있다'],
   'data/customTones.js': [2, '그리는 것이 아니라 **담는 한도**다 — 저장할 때 넘치는 것을 버린다'],
+  'data/rirRoom.js': [1, '날짜는 **최근 셋**만 적는다 — 같은 줄 앞에 센 수 전부(「N번이에요」)를 적고, 넷 이상이면 「최근」을 붙인다'],
   'pages/HistoryPage.jsx': [1, '**부위 비율 네 개를 한 줄로** 요약한다 — 목록이 아니라 한 문장이다'],
   'pages/HomeworkoutPage.jsx': [2, '**부위 막대 상위 네 개**다 — 그 아래에 「아직 안 건드린 곳」을 다 적는다'],
   'pages/PartsPage.jsx': [1, '그 운동이 **주로 달구는 곳 셋**이다 — 옆의 몸 그림이 여섯 부위를 다 칠한다'],
