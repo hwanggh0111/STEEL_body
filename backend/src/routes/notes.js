@@ -30,6 +30,7 @@ const { isRealDate, isPlanDay } = require('../utils/dayRange');
 // 여러 장이면 달력 칸에 몇 장인지를 또 그려야 한다. 같은 날에 또 보내면 고쳐준다.
 
 const MAX_NOTES = 30;     // 루틴 메모(날짜 없는 것) 장수
+const MAX_DAY_NOTES = 4000; // 날짜 메모 장수 — 하루 한 장이라 10년 남짓 (2026-11-25)
 // ── ★ **이름을 화면과 맞춘다 — 그래야 자가 두 쪽을 맞댄다** ── (2026-11-17 · 정석)
 //
 // 이 값은 `MAX_LEN` 이었다. 화면 쪽은 `data/limits.js` 의 `NOTE_BODY_MAX` 이고,
@@ -104,8 +105,15 @@ router.post('/', auth, spamCheck, (req, res) => {
     if (!isPlanDay(date)) return res.status(400).json({ error: '그 날짜에는 적을 수 없어요 (2000년 이후, 앞으로 2년까지)' });
     // **하루 한 장.** 이미 있으면 새로 만들지 않고 고친다 — 화면이 「적기」와 「고치기」를
     // 가리지 않아도 되고, 연타로 두 장이 생기지도 않는다
-    const exist = db.getNotes(req.userId).find(n => n.date === date);
+    const mine = db.getNotes(req.userId);
+    const exist = mine.find(n => n.date === date);
     if (exist) return res.json(db.updateNote(exist.id, req.userId, body).note);
+    // **그날 메모에도 상한** (2026-11-25 · 근호). 아래 `MAX_NOTES` 는 날짜 없는 것만 셌다 —
+    // 2000-01-01 부터 2년 뒤까지 날마다 2000자씩 넣으면 한 계정이 수십 MB 를 쥐었다.
+    // 하루 한 장이니 날짜 메모는 날 수만큼이고, 그 상한은 넉넉히 잡는다(10년 남짓)
+    if (mine.filter(n => n.date).length >= MAX_DAY_NOTES) {
+      return res.status(409).json({ error: `날짜 메모는 ${MAX_DAY_NOTES.toLocaleString()}장까지예요. 오래된 것을 지워주세요` });
+    }
     return res.status(201).json(db.createNote(req.userId, body, date));
   }
 

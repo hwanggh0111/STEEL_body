@@ -117,8 +117,13 @@ function checkMeasure(type, data) {
     const bound = Object.hasOwn(table, key) ? table[key] : null;
     if (!bound) continue;                     // 수가 아닌 칸(이름 · 랩 목록)
     if (raw === '' || raw === null || raw === undefined) continue;
-    const n = Number(raw);
     const name = FIELD_LABEL[key] || key;
+    // **수 칸에는 수 · 숫자 글자만** (2026-11-25 · 근호). `Number([80])` 은 80, `Number(true)` 는 1 이라
+    // 배열 · 참거짓이 테두리를 지나 **그 꼴 그대로** 담겼다 — 그래프가 못 읽는 값이 된다
+    if (typeof raw !== 'number' && typeof raw !== 'string') {
+      return { ok: false, why: `${eun(name)} 숫자로 적어주세요` };
+    }
+    const n = Number(raw);
     if (!Number.isFinite(n)) {
       return { ok: false, why: `${eun(name)} 숫자로 적어주세요` };
     }

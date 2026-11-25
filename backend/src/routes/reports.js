@@ -55,16 +55,21 @@ function pick(raw, spec) {
 }
 
 /**
- * 남은 기록 중 **제일 먼저 걸린 때**. 다시 걸 때 그때부터 센다 (2026-10-26).
+ * 남은 기록 중 **마지막으로 걸린 때**. 다시 걸 때 그때부터 센다.
  *
  * 짜증(`mild`)과 오탐(`dismissed`)은 안 센다 — `recomputeDays` 와 같은 규칙이다.
  * 셀 것이 없으면 `null` 이고, 그러면 다시 걸지 않는다.
+ *
+ * 2026-10-26 에는 「제일 먼저 걸린 때」였다. 정지는 걸릴 때마다 **그때부터** 다시 서므로
+ * (`abusePolicy.punish`) 지금 정지의 시작은 마지막 위반이다 — 처음부터 세면 오탐 하나를
+ * 걷는 것만으로 지금 정지가 이미 지난 것으로 셈해져 풀렸다 (2026-11-25 · 근호)
  */
-function earliestAbuseAt(logs) {
-  return (logs || [])
+function latestAbuseAt(logs) {
+  const at = (logs || [])
     .filter((a) => a && a.level !== 'mild' && !a.dismissed && a.created_at)
     .map((a) => a.created_at)
-    .sort()[0] || null;
+    .sort();
+  return at[at.length - 1] || null;
 }
 
 function badId(req) {
@@ -155,12 +160,22 @@ router.patch('/abuse/:id', adminAuth, (req, res) => {
     const days = recomputeDays(logs);
     // 되돌리는 쪽에는 **풀어줄 정지가 없다** — 그래서 `removed.earliest` 도 없다.
     // 그때는 남은 기록 중 제일 이른 것을 처음 걸린 때로 본다 (여기도 지금부터 세지 않는다)
-    const from = removed.earliest || earliestAbuseAt(logs);
+    //
+    // ── ★ **남은 위반 중 가장 늦은 것부터 센다** ── (2026-11-25 · 근호)
+    //
+    // 정지는 걸릴 때마다 **그때부터** 누적 일수로 다시 선다(`abusePolicy.punish`). 그러니 지금
+    // 서 있는 정지의 시작은 **마지막 위반**이다. 여태 「가장 먼저 선 정지」(`removed.earliest`)
+    // 부터 셌다 — 11/1 · 11/10 · 11/20 · 11/22 네 번(7일, 11/29 해제)에서 11/1 오탐 하나를
+    // 걷으면 「남은 셋 = 3일」을 **11/10 부터** 세어 11/13, 이미 지났다 → **정지가 통째로 풀렸다.**
+    // `dismissed:false` 를 다시 보내기만 해도 같은 일이 났다
+    const from = latestAbuseAt(logs) || removed.earliest;
+    // 미움 표현이 남아 있으면 그 이름도 지킨다 — 다시 걸며 「abuse」로 바꾸면 기록이 거짓이 된다
+    const hateLeft = (logs || []).some((a) => a && a.level === 'hate' && !a.dismissed);
     if (days > 0 && from) {
       const until = new Date(Date.parse(from) + days * 86400000);
       // 다시 세어보니 이미 지난 벌이면 그냥 풀린 채로 둔다
       if (until.getTime() > Date.now()) {
-        db.createSuspension(userId, 3, 'abuse',
+        db.createSuspension(userId, 3, hateLeft ? 'abuse-hate' : 'abuse',
           `욕설 기록을 다시 계산했습니다. 남은 누적으로 ${days}일 정지입니다 `
           // **서울 날짜로 말한다** (2026-10-27) — `abusePolicy` 와 같은 자리다
           + `(${seoulDay(until)} 해제).`,

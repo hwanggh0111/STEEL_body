@@ -456,6 +456,10 @@ router.post('/revoke-admin/:id', adminAuth, (req, res) => {
   const user = db.findUserById(id);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
   if (user.id === req.userId) return res.status(400).json({ error: '자신의 관리자 권한은 해제할 수 없어요' });
+  // **관리자만 내린다** (2026-11-25 · 근호). 여태 role 을 안 보고 'user' 로 바꿔서, **막힌 사람**에게
+  // 부르면 차단이 조용히 풀렸다(로그는 「관리자 권한 해제」라고 거짓을 적었다). 풀기는
+  // `unblock-user` 의 일이다 — 그쪽처럼 지금 role 을 먼저 본다
+  if (user.role !== 'admin') return res.status(400).json({ error: '관리자가 아니에요' });
   // 마지막 관리자를 내리면 아무도 관리자 화면에 못 들어간다.
   // 자기 자신만 막아두면 관리자 둘이 서로를 내리는 길이 남는다
   if (db.getAllUsers().filter(u => u.role === 'admin').length <= 1) {
