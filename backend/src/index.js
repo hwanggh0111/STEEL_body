@@ -745,6 +745,17 @@ app.get('*', (req, res, next) => {
 // 받아 **HTML 한 줄**(`Cannot GET …`)을 보냈다 — 받는 쪽은 전부 JSON 을 기다리는
 // 자리라, 「무엇이 왔는지」를 안 보는 코드가 있으면 `r.json()` 에서 터진다.
 // 같은 날 고친 폴백·서비스워커와 **같은 류**다: 주소의 종류와 몸통의 종류를 맞춘다.
+// ── ★ **async 손이 던져도 서버가 안 죽는다** ── (2026-11-25 · 근호)
+//
+// Express 4 는 손이 돌려준 Promise 를 안 본다 — async 손에서 try 밖으로 던지면 잡는 곳이
+// 없어 **프로세스가 내려갔다**(`d9b2f55` · 로그인 없이 소셜 콜백 한 번). 라우터를 **다 꽂은
+// 뒤** 길 전체를 훑어 async 손을 감싼다 — 거절은 `next(err)` 로 아래 오류 손에 간다.
+// 새 라우터를 더해도 이 줄이 이미 본다. 까닭과 손은 `utils/asyncRoute.js`
+{
+  const guarded = require('./utils/asyncRoute').guardAsyncRoutes(app);
+  if (process.env.NODE_ENV !== 'test') console.log(`[route] async 손 ${guarded}곳을 감쌌습니다`);
+}
+
 app.use('/api', (req, res) => {
   res.status(404).json({ error: '그런 길이 없습니다' });
 });
@@ -848,6 +859,17 @@ function start() {
   server.headersTimeout = 66000;
   server.timeout = 25000; // 요청 처리 최대 25초 (Render 30초 제한 여유)
 }
+
+// ── **마지막 그물 — 잡히지 않은 거절은 적고 넘어간다** ── (2026-11-25 · 근호)
+//
+// 라우트 손은 위 `guardAsyncRoutes` 가 감싼다. 그래도 타이머 · 알림 보내기처럼 **요청 밖에서**
+// 도는 async 일이 던지면 잡는 곳이 없다 — Node 15+ 는 그때 프로세스를 내리고, 묶어 둔 쓰기
+// (500ms)를 잃는다. 사람 하나의 이상한 요청으로 모두의 서버가 내려가는 것보다, **적고 계속
+// 도는 쪽**이 낫다. 동기 예외(uncaughtException)는 상태가 깨졌을 수 있어 그대로 둔다(내린다)
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] 잡히지 않은 거절 — 서버는 계속 돕니다:',
+    reason && reason.stack ? reason.stack.split('\n').slice(0, 3).join(' | ') : String(reason));
+});
 
 // 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)
 // graceful shutdown (DB flush 보장)
