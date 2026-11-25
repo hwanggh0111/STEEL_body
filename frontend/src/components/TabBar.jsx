@@ -117,6 +117,48 @@ const 탭바높이치우기 = () => {
   document.documentElement.style.removeProperty('--tabbar-h');
 };
 
+// ── **자판이 올라오면 탭바가 자판 위에 남아 칸을 덮었다** ── (2026-11-25 · 맵시)
+//
+// 폰에서 글 칸을 누르면 자판이 화면 아래 절반을 먹는다. 탭바는 `fixed; bottom: 0` 이라
+// **자판 바로 위로 따라 올라와** 65px 을 또 먹는다 — 높이 380 으로 흉내 내 보니 목표 화면
+// 「체지방률」 칸이 탭바 밑에 **통째로 가려졌다.** 브라우저는 누른 칸이 보이게 굴려 주지만
+// 고정 막대가 있다는 것은 모른다.
+//
+// 자판이 떠 있는 동안 탭을 누를 일은 없다 — **쓰는 동안만 탭바를 걷는다.** 걷으면 위
+// 측정이 높이를 0 으로 알려 바닥 여백도 같이 줄어든다(쓸 자리가 그만큼 는다).
+// 손가락 기기(`pointer: coarse`)에서만이다 — PC 는 자판이 화면을 안 먹는다.
+// 자판이 안 뜨는 칸(체크 · 라디오 · 날짜 · 색 · 파일 · 고르기)은 안 센다 — 그 칸을
+// 누를 때마다 탭바가 깜빡이면 그게 더 이상하다
+const 자판칸 = (el) => {
+  if (!el || !el.tagName) return false;
+  if (el.isContentEditable) return true;
+  if (el.tagName === 'TEXTAREA') return !el.readOnly;
+  if (el.tagName !== 'INPUT' || el.readOnly || el.disabled) return false;
+  const t = (el.getAttribute('type') || 'text').toLowerCase();
+  return !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file', 'image', 'hidden',
+    'date', 'time', 'month', 'week', 'datetime-local'].includes(t);
+};
+function use쓰는중(꺼짐) {
+  const [쓰는중, set쓰는중] = useState(false);
+  useEffect(() => {
+    if (꺼짐 || typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const 손가락 = window.matchMedia('(pointer: coarse)');
+    const 보기 = () => set쓰는중(손가락.matches && 자판칸(document.activeElement));
+    // `focusout` 직후에는 아직 다음 칸으로 안 옮겨 갔다 — 한 박자 뒤에 본다.
+    // 안 그러면 칸에서 칸으로 넘어갈 때마다 탭바가 한 번씩 튀어나온다
+    let t = 0;
+    const 나감 = () => { clearTimeout(t); t = setTimeout(보기, 0); };
+    document.addEventListener('focusin', 보기);
+    document.addEventListener('focusout', 나감);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('focusin', 보기);
+      document.removeEventListener('focusout', 나감);
+    };
+  }, [꺼짐]);
+  return 꺼짐 ? false : 쓰는중;
+}
+
 export default function TabBar() {
   const [splash, setSplash] = useState(false);
   const navRef = useRef(null);
@@ -159,6 +201,8 @@ export default function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isPC = useIsPC();
+  // 자판이 떠 있는 동안은 탭바를 걷는다 (위 `use쓰는중` 머리글)
+  const 쓰는중 = use쓰는중(isPC);
   // 손볼 제보가 있으면 관리자 항목에 숫자를 붙인다 — 화면을 열어봐야만 알던 것이다
   const pending = usePendingReports();
 
@@ -425,7 +469,8 @@ export default function TabBar() {
         WebkitBackdropFilter: 'var(--surface-blur)',
         borderTop: '1px solid var(--border)',
         zIndex: LAYER.탭바,
-        display: 'flex', justifyContent: 'center',
+        // 쓰는 동안은 걷는다 — 높이 측정이 0 을 알려 바닥 여백도 같이 빠진다
+        display: 쓰는중 ? 'none' : 'flex', justifyContent: 'center',
         // 아이폰 홈바 · 안드로이드 제스처 바가 탭을 덮지 않게 (2026-10-05).
         // 지금은 대개 0 이라 아무 일도 안 한다
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
