@@ -225,8 +225,11 @@ function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt
               border: `1px solid ${accentBorder ? 'var(--accent)' : 'var(--border)'}`,
             }}
           />
+          {/* 사진 위에 **떠 있는** ✕ 라 옆에 누를 것이 없다 — 그래서 여기만 보이는 꼴은 작게
+              두고 닿는 자리만 `tap-box` 로 넓힌다. 줄 안의 ✕ 처럼 제 폭을 44 로 키우면 사진
+              모서리를 그만큼 가린다 (11/25 · 맵시 · 근호 잔말) */}
           <button
-            className="delete-btn"
+            className="delete-btn tap-box"
             onClick={handleDelete}
             aria-label={`${label} 사진 지우기`}
             style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', borderRadius: 'var(--radius)', padding: '2px 6px' }}

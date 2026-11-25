@@ -178,6 +178,16 @@ ok('  ✕ 는 안 보이게 뻗지 않는다 — 옆 ✎ 을 덮는다',
   [/\.delete-btn::after/.test(bare), /\.delete-btn\s*\{\s*position:\s*relative/.test(bare)], [false, false]);
 // 이웃을 값으로 센다 — ✎ 과 ✕ 가 한 줄에 선 카드는 둘 사이를 4px 밖에 안 둔다.
 // 그 자리에서 ✕ 를 안 보이게 넓히는 손(`tap-box` · `tap-round`)이 붙으면 같은 겹침이다
+// 사진 위에 **떠 있는** ✕(비교 화면)는 이웃이 없다 — 거기만 꼴을 작게 두고 `tap-box` 로
+// 닿는 자리를 넓힌다. 제 폭 44 면 사진 모서리를 가린다 (근호 잔말 · 11/25)
+ok('  사진 위 ✕ 는 꼴 작게 · 닿는 자리만 넓게 (`delete-btn tap-box` · 폭 0 되돌림)',
+  [/className="delete-btn tap-box"/.test(src('pages', 'ComparePage.jsx')),
+    /\.delete-btn\.tap-box\s*\{\s*min-width:\s*0/.test(block)], [true, true]);
+// ✕ 가 44 가 되면서 1RM 줄이 320 에서 빠듯해졌다(약 282 / 256) — 「100kg × 10회」가
+// 반으로 꺾여 떨어졌다. 처음부터 둘째 줄에 두고 그 토막은 안 꺾는다 (근호 잔말)
+ok('  1RM 줄: 무게 × 횟수는 둘째 줄 · 안 꺾는다',
+  /<div style=\{\{ minWidth: 0 \}\}>\s*<div[^>]*>\{r\.data\?\.exercise\}<\/div>\s*<div[^>]*whiteSpace: 'nowrap'[^>]*>\{r\.data\?\.weight\}kg/
+    .test(src('components', 'measure', 'OneRMSection.jsx')), true);
 for (const f of ['WorkoutCard.jsx', 'InbodyCard.jsx']) {
   const c = src('components', f);
   const del = (c.match(/<button[^>]*className="([^"]*delete-btn[^"]*)"/) || [])[1] || '';

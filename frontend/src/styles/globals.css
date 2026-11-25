@@ -172,6 +172,11 @@ button:active:not(:disabled),
   .delete-btn:not(.tap-tight) {
     min-width: 44px;
   }
+  /* 사진 위에 **떠 있는** ✕(비교 화면)는 이웃이 없다 — 꼴은 작게 두고 `tap-box` 의
+     `::after` 로 닿는 자리만 넓힌다. 제 폭 44 는 사진 모서리를 가린다 (11/25 · 맵시) */
+  .delete-btn.tap-box {
+    min-width: 0;
+  }
   .tap-round::after,
   .tap-box::after {
     content: '';
