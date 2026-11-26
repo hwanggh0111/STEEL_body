@@ -28,7 +28,7 @@ import NumberStep, { stepFloor, plainFloor, 담을자릿수 } from '../component
 // 없다고 적어둔 기구 · 같은 부위의 다른 운동 (2026-11-19 · 시안 ③)
 import { 없다고적혔나, 대체후보 } from '../data/altExercise';
 // 조사는 한 자리에서 붙인다 (「런닝머신은」 · 「사이클은」)
-import { eun } from '../data/particle';
+import { eun, particle, euroJosa } from '../data/particle';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import SameWeightBanner from '../components/SameWeightBanner';
@@ -1251,9 +1251,32 @@ export default function TrainPage() {
                   누르면 「1세트 1회」로 적힌다. 그것이 유산소 칸을 만든 까닭인
                   바로 그 거짓이다. 유산소에는 아래 칸으로 적게 한다 */}
               {itemCardio ? (
+                /* ── **그 안내가 거짓이 되는 갈래가 하나 남아 있었다** ── (2026-11-26 · 맵시)
+                   깃발을 둘로 가른 것(위 `itemCardio`)으로 세트 단추는 안 뜨는데, 이 줄은
+                   「**아래에서** 시간 · 거리로 적습니다」라고 말한다. 그런데 아래 칸은
+                   **폼의 깃발**(`cardio`)을 보고 그려진다 — 루틴을 하다 다른 운동을 끼워
+                   넣으면 아래는 **세트 칸**이고, 그때 이 줄은 **없는 칸을 가리킨다.**
+                   꼴·손·안내 셋이 같은 말을 해야 한다(11/20 의 그 선). 그래서 폼이 그 칸을
+                   들고 있을 때만 「아래에서」라고 말하고, 아니면 **무엇을 적고 있는지**를
+                   말한다 — 사람이 끼워 넣기를 한 것 자체는 막지 않는다. */
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                  유산소는 세트로 세지 않아요 — 아래에서 <b style={{ color: 'var(--text-secondary)' }}>시간 · 거리</b>로
-                  적습니다. 적으면 다음 운동으로 넘어가요.
+                  {cardio ? (
+                    <>
+                      유산소는 세트로 세지 않아요 — 아래에서 <b style={{ color: 'var(--text-secondary)' }}>시간 · 거리</b>로
+                      적습니다. 적으면 다음 운동으로 넘어가요.
+                    </>
+                  ) : (
+                    <>
+                      <b style={{ color: 'var(--text-secondary)' }}>{current.name}</b>
+                      {particle(current.name, '은', '는')} 세트로 세지 않아요.
+                      {exercise
+                        ? <> 아래 칸은 지금 <b style={{ color: 'var(--text-secondary)' }}>{exercise}</b>
+                          {particle(exercise, '을', '를')} 적는 중이에요 — 그것도 그대로 적힙니다.</>
+                        : <> 아래 칸이 비어 있어요.</>}
+                      {' '}이름을 <b style={{ color: 'var(--text-secondary)' }}>{current.name}</b>
+                      {euroJosa(current.name)} 되돌리면 시간 · 거리 칸이 나와요.
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
