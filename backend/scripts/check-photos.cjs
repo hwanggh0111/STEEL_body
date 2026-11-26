@@ -217,8 +217,33 @@ console.log('── 프로필 사진은 더 줄이는가 ──');
   const layout = front('components/Layout.jsx');
   ok('프로필 자가 한 자리에 있다', /export const PROFILE_EDGE = 256;/.test(shrink), true);
   ok('  크기를 받는다', /maxEdge = MAX_EDGE, always = false/.test(shrink), true);
-  ok('  `always` 면 한도 안이어도 줄인다', /!always && original\.length <= PHOTO_MAX_BASE64/.test(shrink), true);
-  ok('  줄이려다 커지면 원본을 둔다', /always && out\.length >= original\.length/.test(shrink), true);
+  // ── ★ **꼴 대신 뜻으로 본다** ── (2026-11-26 · 정석)
+  //
+  // 과녁이 옛 구현의 글자(`!always && original.length <= PHOTO_MAX_BASE64`)에 못 박혀
+  // 있었다. 근호가 `580ee55` 로 **판단을 `needsShrink` 한 손으로 모으자**(「값만 보는
+  // 손이라 자가 그대로 부른다」) 뜻은 그대로인데 **자만 빨개졌다** [[ruler-copies-now]].
+  // 그 손은 브라우저 없이 돌아간다 — **진짜로 불러서** 본다
+  {
+    // **esbuild 는 화면 쪽 꾸러미다** — 여기(backend)에는 없다. 그 집에서 빌려 쓴다
+    // (처음에 그냥 `require('esbuild')` 로 적어 `MODULE_NOT_FOUND` 를 봤다)
+    const esbuild = require(path.join(__dirname, '..', '..', 'frontend', 'node_modules', 'esbuild'));
+    const out = path.join(__dirname, `.photos-shrink-${process.pid}.cjs`);
+    esbuild.buildSync({
+      entryPoints: [path.join(__dirname, '..', '..', 'frontend', 'src', 'data', 'shrinkImage.js')],
+      bundle: true, format: 'cjs', outfile: out, platform: 'node', logLevel: 'silent',
+    });
+    const S = require(out);
+    try { fs.unlinkSync(out); } catch { /* 없어도 된다 */ }
+    ok('  `always` 면 한도 안이어도 줄인다', S.needsShrink(1000, 100, { always: true }), true);
+    ok('    `always` 가 아니면 작고 작은 그림은 안 줄인다', S.needsShrink(1000, 100), false);
+    ok('    긴 변이 그리는 크기보다 크면 줄인다', S.needsShrink(1000, 5000), true);
+    ok('    프로필은 더 작은 자로 본다 (256)',
+      [S.needsShrink(1000, 300, { maxEdge: S.PROFILE_EDGE }), S.needsShrink(1000, 300)], [true, false]);
+  }
+  // 「줄이려다 커지면 원본을 둔다」는 **그리는 자리 안**이라 브라우저 없이 못 돌린다 —
+  // 그 자리에 그 판단이 **남아 있는지**만 본다 (글자가 아니라 `>= original.length` 라는 셈)
+  ok('  줄이려다 커지면 원본을 둔다',
+    (shrink.match(/>= original\.length\) return \{ data: original, shrunk: false \}/g) || []).length >= 2, true);
   // ── ★ **꼴이 아니라 뜻으로 본다** ── (2026-11-20 · 맵시)
   //
   // 여태 한 줄로 박아둔 글자를 그대로 맞댔다(`shrinkImage(file, { maxEdge: …, always: true })`).

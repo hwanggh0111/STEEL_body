@@ -674,7 +674,43 @@ router.post('/logout', (req, res) => {
 router.get('/me', require('../middleware/auth'), (req, res) => {
   const user = db.findUserById(req.userId);
   if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없어요' });
-  const { password, ...safeUser } = user;
+// ── ★ **「빼는 목록」이라 칸을 더하면 그대로 나간다** ── (2026-11-26 · 정석)
+//
+// 여태 `const { password, ...safeUser } = user` 였다 — **빼는 것만 적는 꼴**이다.
+// 그러면 사용자 줄에 칸이 하나 생길 때마다 **그 칸이 묻지도 않고 밖으로 나간다.**
+// 오늘 그 일이 났다: 소셜을 고유 번호로 잇게 하면서 `provider_ids`(네이버 · 구글이 준
+// 그 사람의 번호)를 줄에 적었는데, 이 한 줄이 그것을 **그대로 내보내고 있었다.**
+//
+// 이 집은 다른 자리에서 **적는 목록(whitelist)** 을 쓴다 — `routes/workouts.js` 의
+// `slim`(「읽지도 않는 칸을 보내지 않는다」) · `routes/exportAll.js` 의 `프로필`.
+// 같은 선으로 바꾼다: **화면이 읽는 칸만** 적는다. 새 칸은 여기 적어야 나간다
+// (`npm run mefields` 가 그것을 지킨다 — 모르는 칸이 생기면 운다).
+  const safeUser = {
+    id: user.id,
+    email: user.email,
+    nickname: user.nickname,
+    username: user.username,
+    role: user.role,
+    created_at: user.created_at,
+    // 아이디를 바꾼 날 — 화면이 「언제 또 바꿀 수 있나」를 센다(아래 `usernameDays`)
+    usernameChangedAt: user.usernameChangedAt,
+    username_changed_at: user.username_changed_at,
+    // ── 계정 지우기 유예는 **안 보낸다** ── (2026-11-26)
+    //
+    // 줄에는 `deleting_at` · `delete_due_at` 가 있는데(되돌려 보다가 그 이름을 알았다 —
+    // 처음엔 `deleteAt` 이라고 잘못 적어뒀다) **화면이 그 칸을 읽는 자리가 없다.**
+    // 지우기 화면은 `grace_days` 와 제 길의 답으로 말한다. **안 읽는 칸은 안 보낸다**
+    // (`routes/workouts.js` 의 `slim` 이 세운 그 선이다)
+    // 비밀번호를 아는가 · 소셜로 만든 계정인가 (아래에서 `is_social` 로 한 번 더 셈한다)
+    has_password: user.has_password,
+    is_social: user.is_social,
+    // ★ **성별 — 칸 이름은 `sex` 다** (2026-11-26). 적는 목록으로 바꾸면서 처음에
+    // `gender` 라고 적었다가 **화면이 읽는 칸을 떨어뜨렸다** — `checkAuth` 가 이
+    // 답의 `data.sex` 를 읽어 인바디 참고 범위에 쓴다(`store/authStore.js`).
+    // 10/01 에 「받아온다고 적어만 두고 실제로는 안 받아오던」 그 자리를 고쳤는데,
+    // 하마터면 그것을 되돌릴 뻔했다. **적는 목록은 읽는 쪽을 보고 적는다**
+    sex: user.sex,
+  };
   // 계정 삭제 화면이 **무엇을 물어야 하는지**를 여기서 안다. 소셜로만 들어온 사람은
   // 자기 비밀번호를 모르니 비밀번호를 물으면 안 된다
   res.json({
