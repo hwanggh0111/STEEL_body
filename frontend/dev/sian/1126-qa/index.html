@@ -305,6 +305,14 @@
     라이브 확인은 <b>그때그때 <code>index.html</code> 이 가리키는 조각</b>으로 한다(옛 조각 주소는 <code>immutable</code> 이라 영영 200 이다)</li>
 </ul>
 
+<p class="lead i"><b>★ 12/1 에는 순서가 있다</b> (부총재 넘김) — 라이브를 띄우기 <b>전에</b>
+  옛 사진 줄이는 일꾼을 돌려야 한다: <code>DATABASE_URL=&lt;라이브&gt; npm run shrinkphotos</code>(재기만) →
+  <code>-- --진짜로</code> → <b>그다음에</b> 서버를 띄운다. 서버가 사진 판을 램에 들고 있고
+  Postgres 에서는 바깥의 고침을 못 알아채서(<code>statMs</code> 가 <code>null</code>),
+  <b>떠 있는 서버가 사진 한 장을 저장하면 줄인 것이 통째로 되돌아간다.</b>
+  뜬 뒤에는 <b>배포가 지어졌는지부터</b> 보고 → 전수 → <code>npm run 오류</code> 로 그동안 쌓인 500 을 뽑는다.
+  (순서는 <code>docs/TODO-2026-11-27.md</code> 의 정석 칸에도 박아뒀다)</p>
+
 <h2>7. 권고 차례</h2>
 <p class="lead g"><b>① 상한 다섯 (값만 정해주시면 오늘 닫는다)</b> → <b>② 네이버 메일 (문서 확인 · 주인 판단)</b> →
   12/1 라이브 전수 → ③ <code>.writing</code> 찌꺼기 → ④ <code>setsDone</code> 테두리.
