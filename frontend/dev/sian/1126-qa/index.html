@@ -66,14 +66,15 @@
   <div class="c"><div class="k">자 전수 (backend)</div><div class="v ok">58 / 58</div><div class="n">+ 진짜 서버를 띄우는 자 6 전부 통과</div></div>
   <div class="c"><div class="k">자 전수 (frontend)</div><div class="v ok">123 / 123</div><div class="n">빌드 · 조각 쪼개기까지 통과</div></div>
   <div class="c"><div class="k">검사소 <code>inspect</code></div><div class="v ok">FAIL 0</div><div class="n">대조 · 실물 · 분기 · 결함류 (READ 5 는 읽어서 확정)</div></div>
-  <div class="c"><div class="k">오늘 내가 고친 것</div><div class="v warn">16</div><div class="n">버그 13 + 자의 과녁 3</div></div>
-  <div class="c"><div class="k">아직 열린 것</div><div class="v warn">5</div><div class="n">높음 1 · 낮음 2 · 판단 1 · 막힘 1</div></div>
+  <div class="c"><div class="k">오늘 내가 고친 것</div><div class="v warn">24</div><div class="n">버그 18 + 자의 과녁 6</div></div>
+  <div class="c"><div class="k">아직 열린 것</div><div class="v ok">1</div><div class="n">12/1 라이브 전수뿐 (503 이라 막혔다)</div></div>
   <div class="c"><div class="k">걷은 거짓</div><div class="v m">6</div><div class="n">의심이었지만 재 보니 아니었다</div></div>
 </div>
 
 <p class="lead g"><b>한 줄 판정 — 12/1 에 나갈 <code>main</code> 은 「알고 있는 버그가 없는」 상태다.</b>
   근호가 11/25 밤에 남긴 몫(① ④ · 의심 여섯)과 첫 판 의심 여섯을 전부 재서, <b>진짜인 여덟을 닫았다.</b>
-  남은 다섯 중 <b>높음 하나(아래 ①)만 12/1 전에 손대는 것을 권한다</b> — 나머지는 사람에게 안 닿거나 주인 결정이 필요하다.</p>
+  <b>그 뒤 주인이 「마저 고쳐」라고 해서 열린 다섯까지 닫았다</b>(3절) — ② 는 네이버 문서를 찾아
+  판정했다. <b>남은 것은 12/1 라이브 전수 하나뿐이다.</b></p>
 
 <h2>2. 오늘 닫은 것 (버그 13)</h2>
 <table>
@@ -155,38 +156,67 @@
   <code>db.addClientError</code> → <code>getClientErrors</code> → 묶어서 보고). 묶는 열쇠를 <b>메시지</b>로 둔 것도 맞다 —
   같은 까닭이 화면마다 따로 세면 <b>몇 번 났는지가 흩어진다.</b></p>
 
-<h2>3. 아직 열린 것 (다섯)</h2>
+<h2>3. 열려 있던 다섯 — <b>다 닫았다</b> (주인: 「그걸 마저고쳐」)</h2>
+<p class="lead g"><b>다섯 중 넷을 고치고, 하나(②)는 문서를 찾아 판정한 뒤 고쳤다.</b>
+  ②는 「코드로는 못 가린다」고 열어둔 자리였는데 — <b>네이버가 제 저장소에 답을 적어뒀다.</b>
+  남은 것은 <b>12/1 라이브 전수</b>뿐이다.</p>
 <table>
-  <tr><th>등급</th><th>①~⑤</th><th>무엇</th><th>왜 아직 안 닫았나</th></tr>
-  <tr><td class="w">높음</td><td><b>①</b></td>
-      <td><b>한 사람이 쥘 수 있는 양에 상한이 없다 — 자리 다섯.</b>
-        11/25 에 <b>측정 · 메모 둘만</b> 닫혔다. 남은 자리:
-        <code>POST /workouts</code>(파일로 넣는 길은 6만 줄에서 막는데 <b>손으로 적는 길은 무제한</b>) ·
-        <code>POST /inbody</code> · <code>POST /plans</code>(하루 10개만 있고 <b>총량이 없다</b> → 2년 × 10 = 7,300) ·
-        <code>POST /my-routines</code>(루틴 <b>개수</b>) · <code>POST /reports</code>(제보 수).
-        이 DB 는 <b>파일 하나를 통째로 쓴다</b> — 한 사람이 불린 양이 모두의 저장 시간이 된다</td>
-      <td><b>상한 숫자는 주인 결정</b>이다(가져오기 쪽 값과 맞출지, 더 낮출지).
-        값만 정해주시면 <b>다섯 자리를 한 번에</b> 닫고 자를 세운다 — 그 자리마다 「가득해요」를 사람 말로 적는 일까지</td></tr>
-  <tr><td class="m">판단</td><td><b>②</b></td>
-      <td><b>네이버가 준 메일을 「확인된 것」으로 믿고 계정을 잇는다.</b>
-        이 앱은 <b>메일 하나로 계정을 잇는다</b>(<code>findUserByEmail</code>). 구글은 <code>verified_email</code> 로 알려주는데 네이버는 그 표가 없다 —
-        네이버가 가입 때 메일을 확인하지 않는다면, 남의 메일을 적어둔 네이버 계정으로 <b>그 사람 기록에 들어갈 수 있다</b></td>
-      <td><b>코드로는 못 가린다 — 문서를 봐야 한다.</b> 근호도 「문서로 볼 것」으로 남겼다.
-        막는 쪽으로 틀면(이을 때 한 번 더 묻기) <b>네이버로 쓰던 사람이 한 번 불편해진다</b> — 주인 결정 거리</td></tr>
-  <tr><td class="m">낮음</td><td><b>③</b></td>
-      <td><b>원자적 쓰기의 임시 파일(<code>.writing</code>)이 남는다.</b> 오늘 트리에 셋 있었다
-        (<code>.check-order</code> · <code>.check-range</code> · <code>.check-session</code>) — <code>check-tidy</code> 는 <b>그 꼴을 안 본다</b>(임시 DB 모양만 본다)</td>
-      <td>사람 화면에 닿지 않는다. 다만 <b>훅 나눠 커밋하는 자리가 매번 어긋나고</b>(<code>git status</code> 가 늘 더럽다)
-        창 셋이 검사를 같이 돌리면 <code>check-tidy</code> 가 <b>남의 찌꺼기를 보고 운다</b> — 오늘 두 번 그랬다</td></tr>
-  <tr><td class="m">낮음</td><td><b>④</b></td>
-      <td><b>루틴 칸의 <code>setsDone</code> 이 그 칸의 <code>sets</code> 를 넘을 수 있다.</b>
-        테두리가 전역 <code>SETS_MAX</code>(100)뿐이라, 4세트 칸에 50 을 적어 보낼 수 있다</td>
-      <td>화면은 <code>sets</code> 만큼만 단추를 그려 <b>사람 손으로는 못 닿는다</b>.
-        담긴 뒤에도 기록(<code>workouts</code>)에는 영향이 없다 — 진행 막대만 이상해진다</td></tr>
-  <tr><td class="r">막힘</td><td><b>⑤</b></td>
+  <tr><th>①~⑤</th><th>무엇이었나</th><th>어떻게 닫았나</th><th>커밋</th></tr>
+  <tr><td class="g">① 닫음</td>
+      <td><b>한 사람이 쥘 수 있는 줄 수에 상한이 없었다 — 다섯 자리.</b>
+        11/25 에 측정 · 메모 <b>둘만</b> 닫혀 있었다. 남은 자리: 운동(<b>손으로 적는 길은 무제한</b> ·
+        파일 길만 6만) · 인바디 · 계획(<b>총량</b> 없음 → 2년 × 10 = 7,300) ·
+        루틴(<b>개수</b> 없음 · 안의 운동만 50) · 제보</td>
+      <td>다섯에 문을 달고 <b>값을 <code>utils/rowCaps.js</code> 한 벌로</b> 모았다 —
+        파일로 넣는 길도 이제 그것을 든다(두 벌이면 「파일로는 들어가는데 손으로는 안 된다」가 된다).
+        모르는 갈래를 물으면 <b>터진다</b>(11/13 에 상한이 조용히 사라졌던 그 꼴 방지).
+        <b>막지 않는 둘을 일부러 열어뒀다</b> — 지하에서 세운 줄의 <b>재전송</b>(새 줄이 아니다) ·
+        <b>고치기 · 지우기</b>(가득 찬 사람이 할 수 있는 일이 그것이다)</td>
+      <td class="m">cb47765</td></tr>
+  <tr><td class="g">② 닫음</td>
+      <td><b>네이버가 준 메일을 「확인된 것」으로 믿고 계정을 이었다.</b>
+        남의 메일이 적힌 네이버 계정으로 <b>그 사람 기록에 들어가는 길</b>이 열려 있었다</td>
+      <td>★ <b>문서로 확정했다</b> — 네이버가 제 저장소(naver/naveridlogin-API #107)에서
+        「<b>인증 절차를 거친 값이 아닐 수 있다</b> · 소유가 확인되지 않은 주소가 제공될 수 있다 ·
+        <b>검증 여부 필드는 제공되지 않는다</b>」, 그리고 「<b>이메일을 계정 연결 기준값으로 쓰지 말고
+        고유 식별자 <code>id</code> 를 쓰라</b>」고 답했다. 그 말대로 —
+        ⑴ <b>고유 번호로 잇는다</b>(콜백이 이미 모아 넘기던 값이 <b>버려지고 있었다</b>) ·
+        ⑵ 믿을 수 없는 길로 <b>비밀번호 계정에는 자동으로 안 잇는다</b>(화면이 할 일을 말한다) ·
+        ⑶ <b>쓰던 사람은 안 잠긴다</b>(비밀번호 없는 소셜 계정은 그 사람이다) ·
+        ⑷ 구글은 여태처럼</td>
+      <td class="m">cb47765</td></tr>
+  <tr><td class="g">③ 닫음</td>
+      <td><b>원자적 쓰기의 임시 파일(<code>.writing</code>)이 남았다</b> — 오늘 트리에 셋.
+        <code>check-tidy</code> 가 <b>그 꼴을 안 보고 있었다</b></td>
+      <td>갈아끼우다 터지면 <b>내가 만든 것을 내가 치운다</b> · 뜰 때도 한 번 치운다
+        (<code>storage.sweepTemp</code>) · <code>check-tidy</code> 는 이제 <b>꼬리로</b> 본다</td>
+      <td class="m">cb47765</td></tr>
+  <tr><td class="g">④ 닫음</td>
+      <td><b>루틴 칸의 <code>setsDone</code> 이 그 칸의 세트 수를 안 봤다</b> — 전역 100만 봐서
+        4세트 칸에 50 을 적어 보낼 수 있었다</td>
+      <td><b>칸이 세트 수를 아는 자리</b>에서 막는다(모르는 칸 — 유산소 · 글로만 적힌 루틴 — 은
+        여태처럼 전역 자만 본다)</td>
+      <td class="m">cb47765</td></tr>
+  <tr><td class="r">⑤ 남음</td>
       <td><b>라이브 전수 — 12/1</b></td>
-      <td>503 이라 못 한다. 오늘 것 전부가 <b>코드 · 띄운 서버 · 빌드</b> 로만 확인됐다 (아래 목록)</td></tr>
+      <td>503 이라 못 한다. 오늘 것 전부가 <b>코드 · 띄운 서버 · 빌드</b>로만 확인됐다 (6절)</td>
+      <td class="m">—</td></tr>
 </table>
+
+<p class="lead i"><b>자 둘을 새로 세웠다 (되돌려 열).</b>
+  <code>check-caps</code> — <b>가득 찬 판</b>을 만들어 라우터의 마지막 손을 돌리고,
+  되돌려는 <b>문을 하나씩 떼어</b> 그 자리만 빨개지는지 본다(다섯 문 전부 잡는다).
+  <code>check-sociallink</code> — 잇는 손만 꺼내 <b>공격자 꼴</b>(남의 메일이 적힌 네이버 계정)을
+  먹이고, <b>옛 네이버 사용자가 안 잠기는지</b>도 같이 본다.</p>
+
+<p class="lead"><b>★ 자 셋의 과녁도 고쳤다 — 그중 둘은 「자가 조용해진 것」이다.</b>
+  상한 값을 한 자리로 모으자 <code>check-twins</code> 가 <code>capOf('notes')</code> 꼴을
+  <b>통째로 못 보게 됐다</b> — FAIL 은 안 났지만 <b>화면과 서버를 견주던 짝이 조용히 사라졌다.</b>
+  <b>자가 조용해지는 것이 우는 것보다 나쁘다.</b> <code>check-cap</code> 은 숫자 꼴에 매여
+  <b>더 좋게 고친 쪽이 빨개졌고</b>, <code>check-aiday</code> 는 과녁이 <code>],
+</code> 이라
+  <b>CRLF 판에서만 빗나갔다</b>(커밋된 판에서는 통과한다 — 줄바꿈 과녁은 늘 <code>?
+</code>).</p>
 
 <h2>4. 걷은 거짓 (여섯) — 의심이었지만 재 보니 아니었다</h2>
 <ul>
