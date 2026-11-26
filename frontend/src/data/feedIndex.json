@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "4d8b04c968",
+  "detailVersion": "db15a9649b",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "e71efe8",
+      "date": "2026-11-26",
+      "text": "내보낸 파일을 다시 넣으면 그날 차례가 뒤집혀 드롭이 엉뚱한 줄에 붙었다 (TODO 11/26 중간 7)",
+      "label": "고침",
+      "scope": "2차",
       "has": true
     },
     {
@@ -1127,14 +1135,6 @@
       "text": "「한 장에 2000자까지」가 상수에서 온 수가 아니었다 — 한도는 이름으로 적는다",
       "label": "고침",
       "scope": "고객센터",
-      "has": true
-    },
-    {
-      "key": "5ff039a",
-      "date": "2026-11-17",
-      "text": "메모도 꺾쇠를 걷지 않고 거절한다 — 「L<R 불균형」이 「L」로 담기던 것 (주인 결정)",
-      "label": "고침",
-      "scope": "메모",
       "has": true
     }
   ]
