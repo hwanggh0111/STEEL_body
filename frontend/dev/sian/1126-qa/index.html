@@ -66,7 +66,7 @@
   <div class="c"><div class="k">자 전수 (backend)</div><div class="v ok">58 / 58</div><div class="n">+ 진짜 서버를 띄우는 자 6 전부 통과</div></div>
   <div class="c"><div class="k">자 전수 (frontend)</div><div class="v ok">123 / 123</div><div class="n">빌드 · 조각 쪼개기까지 통과</div></div>
   <div class="c"><div class="k">검사소 <code>inspect</code></div><div class="v ok">FAIL 0</div><div class="n">대조 · 실물 · 분기 · 결함류 (READ 5 는 읽어서 확정)</div></div>
-  <div class="c"><div class="k">오늘 내가 고친 것</div><div class="v warn">24</div><div class="n">버그 18 + 자의 과녁 6</div></div>
+  <div class="c"><div class="k">오늘 내가 고친 것</div><div class="v warn">30</div><div class="n">버그 22 + 자의 과녁 6 + 자의 위생 둘</div></div>
   <div class="c"><div class="k">아직 열린 것</div><div class="v ok">1</div><div class="n">12/1 라이브 전수뿐 (503 이라 막혔다)</div></div>
   <div class="c"><div class="k">걷은 거짓</div><div class="v m">6</div><div class="n">의심이었지만 재 보니 아니었다</div></div>
 </div>
@@ -217,6 +217,53 @@
 </code> 이라
   <b>CRLF 판에서만 빗나갔다</b>(커밋된 판에서는 통과한다 — 줄바꿈 과녁은 늘 <code>?
 </code>).</p>
+
+<h2>3-2. 그 뒤로 더 파서 닫은 넷 (주인: 「니도 마저 수절할거 마저해」)</h2>
+<p class="lead g"><b>열린 다섯을 닫은 뒤, 아직 사람 눈으로 안 읽은 자리를 계속 읽었다</b> —
+  알림 · 푸시 · 그림 셈 · 사용자 줄. <b>넷이 더 나왔고 다 닫았다.</b></p>
+<table>
+  <tr><th>등급</th><th>무엇이었나</th><th>어떻게 닫았나</th><th>커밋</th></tr>
+  <tr><td class="w">중간</td>
+      <td><b>알림이 바깥으로 나가는 수에 끝이 없었다.</b> 알림을 보낼 때 서버가 <b>구독 줄마다 직접 POST</b> 한다.
+        구독은 기기마다 하나지만 <b>브라우저를 다시 깔면 같은 기기가 새 주소</b>를 받으므로 —
+        <b>사람이 가만히 있어도 는다.</b> 줄이 천 개면 알림 한 통이 <b>천 번 바깥으로</b> 나간다.
+        11/26 에 상한 일곱을 막을 때 <b>이 칸이 목록에 없었다</b>(줄 수가 아니라 <b>나가는 수</b>를 정하는 자리라 덜 띄었다)</td>
+      <td><code>pushSubs: 20</code> · 가득 차면 <b>가장 오래 안 보인 줄을 밀어낸다</b>
+        (막으면 새로 깐 기기가 알림을 못 받는다 — 그쪽이 더 나쁘다) · <b>남의 줄은 안 건드린다</b></td>
+      <td class="m">7c3fddb</td></tr>
+  <tr><td class="m">낮음</td>
+      <td><b>「테스트 알림」에 전용 셈이 없었다</b> — 전역 셈(분당 100)만 있어서 한 사람이
+        <b>분당 100 × 기기 수</b>를 바깥으로 내보낼 수 있었다</td>
+      <td><code>pushTest</code> 10분에 다섯. <b>설정을 읽고 쓰는 길에는 안 걸었다</b>(그쪽은 알림을 안 보낸다)</td>
+      <td class="m">7c3fddb</td></tr>
+  <tr><td class="m">뚜껑</td>
+      <td><b>눈금이 셀 수 없는 값에서 <code>NaN</code> 을 그림 쪽으로 보냈다</b>(<code>niceScale</code>) —
+        축이 안 그려지고 점이 엉뚱한 자리에 선다. <b>지금은 테두리가 막아 닿지 않는다</b></td>
+      <td>전제가 깨지는 날 <b>조용히 어긋나는 것보다 한 칸 눈금으로 멎는 쪽</b>으로.
+        `check-data` 에 넷(끝없는 값 · 모를 값 · 거의 같은 두 수 · 아래가 끝없음)</td>
+      <td class="m">7c3fddb</td></tr>
+  <tr><td class="r">중대</td>
+      <td>★ <b><code>/auth/me</code> 가 「빼는 목록」이라 새 칸이 그대로 나갔다.</b>
+        <code>{ password, ...safeUser }</code> — 사용자 줄에 칸이 생기면 <b>묻지도 않고 나간다.</b>
+        오늘 내가 더한 <b>소셜 고유 번호</b>(<code>provider_ids</code>)가 그렇게 샜고,
+        되돌려 보니 <code>deleting_at</code> · <code>delete_due_at</code> 도 같이 새고 있었다.
+        <b>관리자 목록(<code>/security/users</code>)은 모든 사람의 그 칸</b>을 내보냈다</td>
+      <td>둘 다 <b>적는 목록</b>으로(이 집의 <code>slim</code> · <code>프로필</code> 과 같은 선).
+        <b>안 읽는 칸은 안 보낸다</b> · 관리자도 <b>화면이 읽는 일곱</b>만.
+        자(<code>check-mefields</code>)가 ⑴ <b>모르는 칸이 나가는지</b> ⑵ <b>화면이 읽는 칸이 빠졌는지</b> 둘을 본다</td>
+      <td class="m">57314e4 · ed7a84c</td></tr>
+</table>
+<p class="lead"><b>★ 고치면서 하나 떨어뜨렸고, 그것도 자가 잡았다.</b>
+  적는 목록으로 옮길 때 성별을 <code>gender</code> 로 적었는데 칸 이름은 <b><code>sex</code></b> 다 —
+  <code>checkAuth</code> 가 그 답의 <code>data.sex</code> 를 읽어 <b>인바디 참고 범위</b>에 쓴다.
+  10/01 에 고친 자리를 하마터면 되돌릴 뻔했다. 그래서 그 자는 <b>읽는 쪽을 보고</b> 센다.
+  <b>그리고 내 자가 저장소 안에 임시 파일을 써서</b> 다른 자를 울렸다 — ③ 에서 「찌꺼기를
+  남기지 않는다」를 세우면서 내가 그 선을 어긴 셈이라, 바깥 임시 자리로 옮겼다.</p>
+
+<p class="lead i"><b>④ 「적은 시각」의 값을 자에 박았다.</b> 「보냈다」만 보면 <b>왜 보내는지</b>가 안 남는다 —
+  지하에서 적은 한 판(50분)을 <b>적은 시각</b>으로 찍으면 하루 결산이 <code>usable: true</code> 로
+  「보통 7분 30초 쉰다 · 제일 길게 30분」을 말하고, <b>올린 순간</b>으로 찍으면 몇 초에 몰려
+  <code>batched</code> 가 되어 <b>그 줄이 통째로 사라진다.</b> 둘을 같은 판에서 값으로 견준다.</p>
 
 <h2>4. 걷은 거짓 (여섯) — 의심이었지만 재 보니 아니었다</h2>
 <ul>
