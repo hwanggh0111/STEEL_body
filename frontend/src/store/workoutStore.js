@@ -3,7 +3,7 @@ import client from '../api/client';
 import { sessionEpoch, isSameSession } from './session';
 import {
   isOfflineError, isOnline, makeQueued, isLocalId, mergeQueue,
-  dropFromQueue, markFailed, clearFailedMark, editInQueue,
+  dropFromQueue, markFailed, clearFailedMark, editInQueue, findInQueue, markRemoved,
   readQueue, saveQueue, readCache, saveCache, isTooFastError, retryAfterMs,
 } from '../data/offline';
 // 계정이 막힌 것은 **그 줄의 잘못이 아니다** (2026-10-24)
@@ -286,13 +286,27 @@ export const useWorkoutStore = create((set, get) => ({
     }
   },
 
+  // ── ★ **줄에 없는 로컬 id 를 조용히 삼키고 있었다** ── (2026-11-26 · 정석, TODO 11/26 높음 1)
+  //
+  // `local-` 로 시작하면 「아직 안 올라간 것」으로 보고 **줄에서만** 고쳤다. 그런데
+  // 수정 칸을 열어둔 사이 신호가 돌아오면 그 줄은 **올라가서 줄에서 빠진다** —
+  // `editInQueue` 는 아무것도 못 찾고 그대로 `{ queued: true }` 를 돌려줬다.
+  // 화면은 「담았어요」를 말하고 **서버는 옛 값 그대로, 오류도 없다.**
+  //
+  // 줄에 있나 **먼저 본다.** 없으면 그 사이 올라간 것이고, 서버 줄에 그 로컬 id 가
+  // `client_key` 로 남아 있다 — 서버가 그것으로 찾아 고친다(`routes/workouts.js`
+  // 의 `rowIdOf`). 지우기도 같다
   updateWorkout: async (id, workout) => {
     // 아직 안 올라간 것은 줄에서 고친다
     if (isLocalId(id)) {
-      const queue = editInQueue(get().queue, id, workout);
-      keepQueue(set, queue);
-      get().apply(null, queue);
-      return { ...workout, id, queued: true };
+      const item = findInQueue(get().queue, id);
+      if (item && !item.removed) {
+        const queue = editInQueue(get().queue, id, workout);
+        keepQueue(set, queue);
+        get().apply(null, queue);
+        return { ...workout, id, queued: true };
+      }
+      // 줄에 없다(그 사이 올라갔다) · 또는 지운 줄이다 — 서버에 묻는다. 없으면 404 가 온다
     }
     const { data } = await client.put(`/workouts/${id}`, workout);
     get().fetchAll(true).catch(() => {});
@@ -302,9 +316,23 @@ export const useWorkoutStore = create((set, get) => ({
   deleteWorkout: async (id) => {
     // 아직 안 올라간 것은 줄에서 뺀다. 서버에는 없는 것이라 DELETE 를 보내면 404 다
     if (isLocalId(id)) {
-      const queue = dropFromQueue(get().queue, id);
-      keepQueue(set, queue);
-      get().apply(null, queue);
+      const item = findInQueue(get().queue, id);
+      if (item) {
+        // **올리는 중이면 빼지 않고 적어둔다** (2026-11-26) — 빼면 그 POST 가
+        // 성공했을 때 서버에 줄이 남고 지울 손을 잃는다 (`markRemoved` 머리글)
+        const queue = get().flushing ? markRemoved(get().queue, id) : dropFromQueue(get().queue, id);
+        keepQueue(set, queue);
+        get().apply(null, queue);
+        return;
+      }
+      // 줄에 없다 — 그 사이 올라갔다. 서버가 `client_key` 로 찾아 지운다.
+      // **낙관적으로 빼지 않는다** — 화면의 그 줄은 이제 서버 번호를 달고 있어서
+      // 로컬 id 로는 못 찾는다(`dropRow` 가 헛손질한다). 지운 뒤 목록을 다시 받는다
+      const mineLocal = sessionEpoch();
+      await client.delete(`/workouts/${id}`);
+      if (!isSameSession(mineLocal)) return;
+      fetchedAt = 0;
+      await get().fetchAll(true).catch(() => {});
       return;
     }
     // 낙관적 업데이트: 먼저 UI에서 제거 (**빼는 자는 위 `dropRow` 한 자리다**)
@@ -370,15 +398,46 @@ export const useWorkoutStore = create((set, get) => ({
     let tooFastMs = 0;
     // 한 줄이라도 **서버가 담은 줄을 안 돌려줬으면** 통째로 받아 맞춘다 (아래)
     let missing = false;
+    // 올리는 사이에 사람이 고치거나 지운 줄이 있었다 — 그 손을 서버에 옮긴 뒤
+    // **목록을 다시 받는다** (2026-11-26). 드문 길이라 싼 쪽보다 맞는 쪽으로 간다
+    let resync = false;
     const mine = sessionEpoch();
     try {
       for (const item of queue) {
         // **나갔으면 거기서 멈춘다.** 쿠키가 이미 없어 올려도 401 이고,
         // 꽂으면 다음 사람 화면에 앞 사람 세트가 뜬다 (까닭은 `store/session.js`)
         if (!isSameSession(mine)) { stopped = true; break; }
+        // ── **보내기 전에 그 줄이 아직 그대로인지 본다** ── (2026-11-26 · 정석)
+        //
+        // 위에서 `queue` 를 베껴 들고 돌기 때문에, 그 사이 사람이 지운 줄도
+        // 이 고리에는 남아 있다 — 그대로 올리면 **지운 줄이 서버에 생긴다.**
+        const live = findInQueue(get().queue, item.id);
+        if (!live) continue;                         // 그 사이 사라졌다 (사람이 지웠다)
+        if (live.removed) {                          // 「지웠다」고 적힌 줄 — 안 올린다
+          const next = dropFromQueue(get().queue, item.id);
+          keepQueue(set, next);
+          get().apply(null, next);
+          continue;
+        }
+        // 보낼 때의 고침 횟수를 들고 있는다 — 끝난 뒤 견주어 그 사이의 손을 옮긴다
+        const sentRev = live.rev || 0;
         try {
           // 줄의 로컬 id 를 같이 보낸다 — 올리다 답이 끊겨 다시 보내도 서버가 한 번만 만든다
-          const { data } = await client.post('/workouts', { ...item.payload, clientKey: item.id });
+          // **지금 줄에 있는 값**을 보낸다 — 앞 줄을 올리는 사이에 사람이 이 줄을
+          // 고쳤을 수 있다(`live`). 베껴둔 `item.payload` 는 그때의 옛 값이다
+          //
+          // ── ★ **적은 시각을 같이 보낸다** ── (2026-11-26 · 정석, TODO 11/26 ④)
+          //
+          // 여태 안 보냈고, 서버는 **받은 순간**을 `created_at` 으로 찍었다. 지하에서
+          // 적은 한 판(스무 줄)은 신호가 돌아올 때 몇 초 안에 다 올라가므로 —
+          // `data/pace.js` 가 그 날을 **「몰아 적은 날」로 보고 운동 시간 · 쉰 시간
+          // 줄을 지웠다.** 그날 줄 차례도 온라인 줄과 섞인다.
+          //
+          // 줄에는 **적은 순간**이 `at` 으로 처음부터 적혀 있었다(`makeQueued`) —
+          // 화면이 그 값으로 못 올린 줄을 그리고 있다(`mergeQueue` 의 `created_at`).
+          // 그것을 그대로 보낸다. 서버의 테두리는 `utils/workoutFields.js` 한 자리다
+          const { data } = await client.post('/workouts',
+            { ...live.payload, clientKey: item.id, createdAt: live.at });
           // ── **올린 줄의 답을 버리고 있었다** ── (2026-11-03)
           //
           // 적는 길은 10/31 에 「담은 줄을 받아 제자리에 꽂는다」로 고쳤는데
@@ -400,6 +459,21 @@ export const useWorkoutStore = create((set, get) => ({
             // 옛 서버(줄을 안 돌려준다) — 아래에서 통째로 받아 맞춘다.
             // 배포가 엇갈리는 동안도 돌아야 한다
             missing = true;
+          }
+          // ── ★ **올리는 사이에 고치거나 지운 손을 서버에 옮긴다** ── (2026-11-26 · 정석)
+          //
+          // POST 가 날아가 있는 동안 사람이 그 줄을 고치면 **이미 나간 요청에는 옛
+          // 값**이 실려 있다. 그대로 줄에서 빼면 고친 것이 아무 데도 안 남는다
+          // (TODO 11/26 높음 1 의 「올라가는 중에 고친 경우도 옛 값이 실린다」).
+          // 지운 경우는 더 나쁘다 — **서버에 줄이 남고 지울 손이 없다.**
+          const after = findInQueue(get().queue, item.id);
+          const rowId = data?.workout?.id ?? data?.id ?? item.id;
+          if (after && after.removed) {
+            await client.delete(`/workouts/${rowId}`).catch(() => {});
+            resync = true;
+          } else if (after && (after.rev || 0) !== sentRev) {
+            await client.put(`/workouts/${rowId}`, after.payload).catch(() => {});
+            resync = true;
           }
           const next = dropFromQueue(get().queue, item.id);
           keepQueue(set, next);
@@ -441,7 +515,7 @@ export const useWorkoutStore = create((set, get) => ({
     // 다른 기기에서 바뀐 것은 최대 `FRESH_MS`(30초) 늦게 보인다
     if (!isSameSession(mine)) return { sent, failed, stopped, blocked, tooFastMs };
     if (!isSameSession(mine)) return { sent, failed, stopped, blocked, tooFastMs };
-    if (sent > 0 && missing) {
+    if (sent > 0 && (missing || resync)) {
       fetchedAt = 0;
       await get().fetchAll(true).catch(() => {});
     } else if (sent > 0) {

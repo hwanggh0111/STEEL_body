@@ -9,7 +9,10 @@ const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize')
 // 막는다 (`data/limits.js` · `npm run twins` 가 값을 견준다)
 const EXERCISE_NAME_MAX = 100;
 const { normalizeWeight, normalizeNote, normalizeRir,
-        normalizeSideWeight, normalizeSideReps } = require('../utils/workoutFields');
+        normalizeSideWeight, normalizeSideReps,
+        // 「적은 시각」 (2026-11-26) — 지하에서 적어 세운 줄이 **적은 순간**을 싣고 온다.
+        // 파일로 넣는 길도 같은 자를 든다 (`routes/importData.js`)
+        normalizeCreatedAt } = require('../utils/workoutFields');
 // 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
 // 여태 아래 두 자리에 `100` · `1000` 이 생글자로 박혀 있었고, `routineSession.js` 는
 // 옆에 `MAX_SETS = 100` 을 따로 적고 **주석으로** 「기록 화면이 100 까지 받는다」고
@@ -112,6 +115,9 @@ router.get('/', auth, (req, res) => {
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
   const { date, exercise, weight, sets, reps, clientKey, link, minutes, note, rir } = req.body;
+  // **적은 시각** (2026-11-26) — 줄에 세워뒀다 올리는 길만 싣고 온다(`createdAt`).
+  // 옛 앱과 파일 길이 `created_at` 으로 보낼 수 있다 — 둘 다 받는다
+  const createdAt = req.body.createdAt !== undefined ? req.body.createdAt : req.body.created_at;
   // 오른쪽 칸 (2026-11-19) — 화면은 `weightR` 로, 파일 길과 옛 앱은 `weight_r` 로 보낸다
   const weightR = req.body.weightR !== undefined ? req.body.weightR : req.body.weight_r;
   const repsR = req.body.repsR !== undefined ? req.body.repsR : req.body.reps_r;
@@ -206,9 +212,13 @@ router.post('/', auth, spamCheck, (req, res) => {
   const rr = normalizeSideReps(repsR, numReps, c.cardio);
   if (!rr.ok) return res.status(400).json({ error: rr.why });
 
+  // 적은 시각 — **거절한다, 조용히 지금으로 바꾸지 않는다** (`normalizeCreatedAt` 머리글)
+  const ca = normalizeCreatedAt(createdAt);
+  if (!ca.ok) return res.status(400).json({ error: ca.why });
+
   const result = db.createWorkout(req.userId, date, safeExercise, w.value, numSets, numReps, key, safeLink,
     { minutes: c.minutes, distanceKm: c.distanceKm },
-    { note: n.value, rir: r.value, weightR: wr.value, repsR: rr.value });
+    { note: n.value, rir: r.value, weightR: wr.value, repsR: rr.value, createdAt: ca.value });
   // **담은 줄을 같이 보낸다** (2026-10-31) — 화면이 그것을 제자리에 꽂고 목록
   // 전체를 다시 받지 않는다. `GET /workouts` 가 주는 줄과 **같은 모양**이어야 한다
   // (화면이 둘을 섞어 쓴다) — 그래서 다듬거나 고르지 않고 그대로 보낸다
@@ -221,12 +231,33 @@ router.post('/', auth, spamCheck, (req, res) => {
   });
 });
 
+// ── **지하에서 세운 줄의 id 로도 고치고 지울 수 있다** ── (2026-11-26 · 정석)
+//
+// 화면은 아직 안 올라간 줄에 `local-...` id 를 준다. 그 줄이 올라가면 번호가 바뀌는데
+// **수정 칸을 먼저 열어둔 사람의 손에는 옛 id 가 남는다** — 그 손으로 고치면 여태
+// 「잘못된 ID에요」(400)도 아니고, 화면이 아예 서버에 안 보냈다(`workoutStore`).
+// 서버 줄에 그 id 가 `client_key` 로 남아 있으니 **여기서 번호로 바꿔준다.**
+//
+// 값이 아닌 것(`local-` 이 아닌 글자 · 음수)은 여태처럼 400 이다. 모양은 맞는데
+// 그런 줄이 없으면 **404** 다 — 「없는 줄」이 맞는 말이고, 400 으로 답하면 화면이
+// 「잘못 보냈다」로 읽어 사람에게 엉뚱한 말을 한다.
+const LOCAL_KEY_MAX = 64;   // POST 가 받는 `clientKey` 와 **같은 선**이다 (위 `key`)
+function rowIdOf(raw, userId) {
+  if (typeof raw === 'string' && raw.startsWith('local-')) {
+    if (raw.length > LOCAL_KEY_MAX) return { bad: true };
+    const row = db.findWorkoutByClientKey(userId, raw);
+    return row ? { id: row.id } : { gone: true };
+  }
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? { id: n } : { bad: true };
+}
+
 // 수정
 router.put('/:id', auth, spamCheck, (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: '잘못된 ID에요' });
-  }
+  const found = rowIdOf(req.params.id, req.userId);
+  if (found.bad) return res.status(400).json({ error: '잘못된 ID에요' });
+  if (found.gone) return res.status(404).json({ error: '기록을 찾을 수 없어요' });
+  const id = found.id;
 
   const { date, exercise, weight, sets, reps, minutes, note, rir } = req.body;
   // 오른쪽 칸 (2026-11-19) — POST 와 같은 두 이름을 받는다
@@ -330,7 +361,13 @@ router.put('/:id', auth, spamCheck, (req, res) => {
 
 // 삭제
 router.delete('/:id', auth, (req, res) => {
-  const result = db.deleteWorkout(Number(req.params.id), req.userId);
+  // 로컬 id 로도 지운다 (위 `rowIdOf` 머리글) — 올리는 중에 지운 줄이 서버에 남으면
+  // 사람은 **지운 줄이 다음 받기에서 되살아나는 것**을 본다
+  const found = rowIdOf(req.params.id, req.userId);
+  if (found.bad || found.gone) {
+    return res.status(found.bad ? 400 : 404).json({ error: found.bad ? '잘못된 ID에요' : '기록을 찾을 수 없어요' });
+  }
+  const result = db.deleteWorkout(found.id, req.userId);
 
   if (result.changes === 0) {
     return res.status(404).json({ error: '기록을 찾을 수 없어요' });

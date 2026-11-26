@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import client from '../api/client';
 import {
-  isOfflineError, isOnline, localNoteId, isLocalNoteId, mergeNotes,
+  isOfflineError, isOnline, localNoteId, mergeNotes,
   queueSave, queueDelete, dropEntry, markNoteFailed, clearNoteFailed, dropFailedNotes,
   readNoteQueue, saveNoteQueue, saveNoteCache, cachedMonth,
 } from '../data/offlineNotes';
@@ -131,7 +131,18 @@ export const useNoteStore = create((set, get) => ({
     if (!date) return;
     const serverId = get().server[date]?.id ?? null;
 
-    if (serverId === null || isLocalNoteId(note.id)) {
+    // ── ★ **손에 든 옛 id 가 서버 번호를 이기고 있었다** ── (2026-11-26 · 정석)
+    //
+    // 여태 `serverId === null || isLocalNoteId(note.id)` 였다. **`||` 가 문제다** —
+    // 지하에서 적어 줄에 세운 메모는 화면에 `local-note-…` id 로 그려지는데,
+    // 그 화면을 열어둔 사이 신호가 돌아와 **올라가면 서버 번호가 생긴다.**
+    // 그런데 사람 손에 든 줄의 id 는 여전히 `local-note-…` 다 — 지우기를 누르면
+    // 이 갈래로 들어와 **줄에서만 빼고(이미 비어 있다) 서버 메모는 그대로 남았다.**
+    // 다음 받기에서 **지운 메모가 되살아난다.**
+    //
+    // 운동 기록에서 오늘 닫은 것과 **같은 류**다(TODO 11/26 높음 1 · `workoutStore`).
+    // **아는 사실이 손에 든 딱지를 이긴다** — 서버 번호를 알면 서버에서 지운다
+    if (serverId === null) {
       const queue = dropEntry(get().queue, date);
       keepNoteQueue(set, queue);
       get().apply(null, queue);

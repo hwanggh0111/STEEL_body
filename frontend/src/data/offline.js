@@ -110,6 +110,8 @@ export function mergeQueue(workouts, queue) {
   }
   for (const q of list) {
     if (!q || !q.payload || !q.payload.date) continue;
+    // 사람이 지운 줄이다 — 서버에서 지울 손이 끝나기를 기다리는 것뿐이다 (`markRemoved`)
+    if (q.removed) continue;
     const date = q.payload.date;
     if (!merged[date]) merged[date] = [];
     merged[date].push({
@@ -144,16 +146,42 @@ export function clearFailedMark(queue) {
 }
 
 // 줄에 있는 것을 고친다 (아직 안 올라갔으니 고치는 것은 줄에서 한다)
+//
+// ── **고친 횟수를 같이 센다** ── (2026-11-26 · 정석, TODO 11/26 높음 1)
+//
+// 올리는 중(POST 가 날아가 있는 동안)에 고치면 **이미 나간 요청에는 옛 값이 실려 있다.**
+// 줄의 payload 만 바꿔두고 그 POST 가 성공하면 그 줄은 줄에서 빠지고 — **고친 것이
+// 아무 데도 안 남는다.** 그래서 `rev` 를 올려둔다: 올리는 쪽이 **보낼 때의 rev** 를
+// 들고 있다가 끝난 뒤 견주어, 달라졌으면 그 값으로 한 번 더 보낸다(`flushQueue`)
 export function editInQueue(queue, id, payload) {
   return (Array.isArray(queue) ? queue : []).map(q => (
-    q && q.id === id ? { ...q, payload: { ...q.payload, ...payload } } : q
+    q && q.id === id ? { ...q, payload: { ...q.payload, ...payload }, rev: (q.rev || 0) + 1 } : q
+  ));
+}
+
+// 줄에서 하나를 찾는다. **「줄에 있나」를 묻는 자리가 셋**이다 (고치기 · 지우기 · 올린 뒤)
+export function findInQueue(queue, id) {
+  return (Array.isArray(queue) ? queue : []).find(q => q && q.id === id) || null;
+}
+
+// ── **올리는 중에 지운 것은 줄에서 빼지 않는다** ── (2026-11-26 · 정석)
+//
+// 빼 버리면 그 POST 가 성공했을 때 **서버에 줄이 남고 지울 손이 없다** — 사람은
+// 지운 줄이 다음 받기에서 되살아나는 것을 본다. 「지웠다」고 적어두면 올리는 쪽이
+// 보고 — 아직 안 올렸으면 **안 올리고 버리고**, 이미 올렸으면 **서버에서 지운다**.
+// 적어둔 줄은 화면에 그리지 않고 세지도 않는다 (`mergeQueue` · `offlineStatus`)
+export function markRemoved(queue, id) {
+  return (Array.isArray(queue) ? queue : []).map(q => (
+    q && q.id === id ? { ...q, removed: true } : q
   ));
 }
 
 // 화면 위쪽에 뭐라고 적을 것인가. 상태 넷을 한 곳에서 정한다 —
 // 화면마다 조건을 따로 적으면 곧 서로 다른 말을 한다
 export function offlineStatus({ online, queue, unsaved = false, tooFastLeftSec = 0 }) {
-  const list = Array.isArray(queue) ? queue : [];
+  // 지운 줄은 **세지 않는다** — 사람 눈에 없는 줄을 「올리는 중 1개」로 말하면
+  // 그 1 이 영영 안 줄어드는 것처럼 보인다 (`markRemoved`, 2026-11-26)
+  const list = (Array.isArray(queue) ? queue : []).filter(q => q && !q.removed);
   const failed = list.filter(q => q && q.failed).length;
   const waiting = list.length - failed;
 

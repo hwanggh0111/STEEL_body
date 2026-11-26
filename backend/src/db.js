@@ -994,7 +994,22 @@ const db = {
       if (existing) return { lastInsertRowid: existing.id, deduped: true, record: existing };
     }
     const id = nextId('workouts');
-    const workout = { id, user_id: userId, date, exercise, weight, sets, reps, created_at: new Date().toISOString() };
+    // ── **「적은 시각」이 실려 오면 그것을 쓴다** ── (2026-11-26 · 정석, TODO 11/26 ④)
+    //
+    // 여태 **들어온 순간**을 찍었다. 그런데 지하에서 적은 한 판은 신호가 돌아올 때
+    // 몇 초 안에 다 올라간다 — 그 순간들이 찍혀 **한 판이 「몰아 적은 날」**이 됐고,
+    // `data/pace.js` 가 그 날의 운동 시간 · 쉰 시간을 **못 재고 줄을 지웠다.**
+    // 그날 줄 차례도 온라인 줄과 섞인다.
+    //
+    // 받는 자리는 **`utils/workoutFields.js` 의 `normalizeCreatedAt` 하나**다.
+    // 안 실려 오면(온라인에서 바로 적는 길) 여태처럼 지금을 찍는다.
+    //
+    // **파일로 넣는 길은 이 칸을 안 쓴다** — 그쪽은 「순서」 칸으로 푼다(TODO ⑦ ·
+    // `routes/export.js` · `routes/importData.js`). 남의 파일에 적힌 시각을 그대로
+    // 믿고 찍는 것보다, **그날 몇째인가**만 받아 넣는 차례를 세우는 쪽이 좁다
+    const stamped = extra && extra.createdAt ? extra.createdAt : null;
+    const workout = { id, user_id: userId, date, exercise, weight, sets, reps,
+      created_at: stamped || new Date().toISOString() };
     if (clientKey) workout.client_key = clientKey;
     // 없으면 칸을 안 만든다 — 옛 줄과 모양이 같아야 섞어 읽을 때 갈라지지 않는다
     if (link) workout.link = link;
@@ -1031,6 +1046,21 @@ const db = {
     afterRowChange('workouts', userId, { removedId: id });
     save(data);
     return { changes: 1 };
+  },
+  // ── **지하에서 적어 세운 줄의 로컬 id 로도 찾는다** ── (2026-11-26 · 정석)
+  //
+  // 지하에서 적은 줄은 화면에서 `local-...` id 를 달고 있다(`data/offline.js`).
+  // 신호가 돌아와 올라가면 서버 줄이 되고 **번호가 바뀌는데**, 그 사이 수정 칸을
+  // 열어둔 사람의 손에는 **옛 로컬 id** 가 남아 있다. 그 손으로 고치면 화면은
+  // 「줄에서 고친다」로 가고 — 줄에는 이미 없으니 **아무것도 못 고치고 조용히
+  // 「담았다」고 답했다**(TODO 11/26 높음 1). 서버는 옛 값 그대로다.
+  //
+  // 서버 줄에는 그 로컬 id 가 `client_key` 로 남아 있다(위 `createWorkout`) —
+  // 두 번 넣지 않으려고 두는 표인데, **그 표가 곧 「그 줄이 무엇이 되었나」**다.
+  // **색인으로 찾는다** — 모든 사람의 모든 줄을 훑지 않는다(`rowsOf` 머리글)
+  findWorkoutByClientKey(userId, clientKey) {
+    if (!clientKey) return null;
+    return rowsOf('workouts', userId).find(w => w.client_key === clientKey) || null;
   },
   updateWorkout(id, userId, fields) {
     const data = load();

@@ -197,8 +197,15 @@ const call = async (method, p, body, headers = {}) => {
     const flush = store.slice(store.indexOf('flushQueue: async'), store.indexOf('retryFailed: async'));
     ok('  올린 줄을 제자리에 꽂는다 (putRow)', /putRow\(get\(\)\.server, data\.workout\)/.test(flush), true);
     ok('  그 딱지를 받아 적는다', /keepTag\(data\.tag\)/.test(flush), true);
-    // **꽂았으면 다시 받지 않는다.** 옛 서버(줄을 안 주는)일 때만 통째로 받는다
-    ok('  꽂았으면 통째로 다시 안 받는다', /sent > 0 && missing/.test(flush), true);
+    // **꽂았으면 다시 받지 않는다.** 통째로 받는 까닭이 있을 때만 받는다 —
+    // 옛 서버(줄을 안 주는 것 · `missing`), 그리고 **올리는 사이에 사람이 고치거나
+    // 지운 것**(`resync`, 2026-11-26 · TODO 11/26 높음 1). 뒤엣것은 드문 길이라
+    // 싼 쪽보다 맞는 쪽으로 갔다.
+    // ★ 과녁이 `/sent > 0 && missing/` 에 못 박혀 있어서 그 줄에 까닭이 하나
+    // 늘자 **고친 쪽이 빨개졌다** — 보는 것은 「**까닭이 있을 때만** 받는가」다
+    ok('  꽂았으면 통째로 다시 안 받는다', /sent > 0 && \(missing \|\| resync\)/.test(flush), true);
+    ok('    통째로 받을 까닭을 더 세우지 않는다 (`resync` 는 늦은 손 둘뿐)',
+      (flush.match(/resync = true/g) || []).length, 2);
     ok('    옛 서버면 통째로 받는다 (missing)', /missing = true/.test(flush), true);
     // **담는 것은 고리 밖에서 한 번** — `saveCache` 는 90일치를 통째로 글자로 만들어
     // 동기로 담는다. 줄 스물이면 스무 번이 되고, 그 멈춤은 신호가 돌아온 그때 온다

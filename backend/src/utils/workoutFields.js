@@ -207,8 +207,48 @@ function normalizeSideReps(raw, left, cardio) {
   return { ok: true, value: n };
 }
 
+// ── **「적은 시각」을 받는 자** ── (2026-11-26 · 정석, TODO 11/26 ④ · ⑦)
+//
+// 서버는 여태 줄이 **들어온 순간**을 `created_at` 으로 찍었다. 두 자리가 그 때문에
+// 어긋나 있었다 —
+//
+//   ④ **지하에서 적은 한 판이 「올린 순간」으로 찍힌다.** 신호가 돌아올 때 스무 줄이
+//      몇 초 안에 올라가므로 `data/pace.js` 가 그 날을 「몰아 적은 날」로 보고
+//      **운동 시간 · 쉰 시간이 사라진다.** 그날 줄 차례도 온라인 줄과 섞인다
+//   ⑦ **내보낸 파일을 다시 넣으면 그날 줄 차례가 뒤집힌다.** 내보내기는 최신이 앞인데
+//      넣는 쪽이 파일 차례대로 찍어서 — **드롭 · 슈퍼 묶음이 엉뚱한 줄에 붙는다**
+//
+// 둘을 한 칸이 푼다: **줄마다 「적은 시각」을 실어 보내고, 서버가 그것을 쓴다.**
+// 적는 길 둘(올리기 · 파일로 넣기)이 **같은 이 자**를 든다 — 무게가 10/22 에 바로
+// 이 꼴로 어긋났던 자리다(손으로는 막고 파일로는 그냥 들어왔다).
+//
+// ── 테두리 ──
+//
+//   · 안 보내면 `undefined` — 서버가 지금을 찍는다 (온라인에서 바로 적는 길)
+//   · 꼴은 `Date` 가 읽을 수 있는 글자여야 한다. **아니면 거절**한다 —
+//     조용히 지금으로 바꿔 찍으면 ④ 를 고치나 마나다
+//   · **2000년 이후 · 지금보다 앞은 아니게.** 앞날 시각을 받으면 그 줄이 목록 맨
+//     위에 영영 붙어 있는다(차례를 `created_at` 으로 정한다). 시계가 어긋난 폰을
+//     위해 **5분**은 봐준다 — 날짜 칸의 「하루 넉넉하게」와 같은 결이다
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+const CREATED_FLOOR = Date.UTC(2000, 0, 1);
+
+function normalizeCreatedAt(raw) {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw === null || raw === '') return { ok: true, value: null };
+  if (typeof raw !== 'string' && !(raw instanceof Date)) {
+    return { ok: false, why: '적은 시각이 글자가 아니에요' };
+  }
+  const t = raw instanceof Date ? raw.getTime() : Date.parse(raw);
+  if (!Number.isFinite(t)) return { ok: false, why: '적은 시각을 읽을 수 없어요' };
+  if (t < CREATED_FLOOR) return { ok: false, why: '적은 시각이 너무 옛날이에요' };
+  if (t > Date.now() + CLOCK_SKEW_MS) return { ok: false, why: '적은 시각이 앞날이에요' };
+  return { ok: true, value: new Date(t).toISOString() };
+}
+
 module.exports = {
   normalizeWeight, cleanExerciseName, WEIGHT_MAX, WEIGHT_KG_MAX, NAME_MAX,
   normalizeNote, normalizeRir, WORKOUT_NOTE_MAX, RIR_VALUES,
   normalizeSideWeight, normalizeSideReps,
+  normalizeCreatedAt, CLOCK_SKEW_MS,
 };
