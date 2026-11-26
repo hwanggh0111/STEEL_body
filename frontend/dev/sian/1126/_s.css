@@ -1,0 +1,87 @@
+html,body{height:100%}
+body{margin:0;background:#0b0a08}
+/* ── **폰 폭을 따라간다** ── (2026-11-20 · 맵시 · 주인 요청)
+   390×844 로 박아두면 `/dev` 폰 틀(320·360)에 넣었을 때 **옆이 잘릴 뿐**이고,
+   「크게」 150~200% 로 봐도 시안이 자라지 않는다. 틀을 흘려 두면 **시안을 그 자리에서
+   320·360 으로** 볼 수 있다 — 폰 점검표가 바라는 것이 그것이다.
+   혼자 열었을 때(iframe 밖)는 `100dvh` 가 화면 높이를 준다 */
+.ph{width:100%;max-width:390px;min-height:100dvh;margin:0 auto;position:relative;overflow-x:hidden;overflow-y:auto;background:#12100c;background-image:radial-gradient(120% 85% at 50% -5%,#241c14 0%,#181310 50%,#12100c 100%);color:#eae4d6;font-family:'Barlow','IBM Plex Sans KR',sans-serif;font-size:15px;line-height:1.6}
+.ph *{box-sizing:border-box}
+.hd{height:68px;display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid #332b1e;background:rgba(18,16,12,.72)}
+.logo{color:#eeb77d;font:21px/1 'Bebas Neue',sans-serif;letter-spacing:1.5px}
+.acc{display:flex;align-items:center;gap:7px;height:44px;padding:3px 10px 3px 8px;border:1px solid #332b1e;border-radius:999px;background:none}
+.av{width:26px;height:26px;border-radius:50%;background:#241a11;color:#eeb77d;font:13px 'Bebas Neue',sans-serif;display:flex;align-items:center;justify-content:center}
+.acc span.n{font:600 13px 'Barlow','IBM Plex Sans KR',sans-serif;color:#aaa28e}
+.st{display:flex;align-items:center;gap:8px;margin:0 0 14px;font:18px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:2px;color:#eae4d6}
+.bar{width:3px;height:18px;background:#eeb77d;flex-shrink:0}
+.card{background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;box-shadow:inset 0 1px 0 rgba(238,183,125,.16);padding:16px;margin-bottom:14px}
+.card.focus{border-color:#eeb77d}
+.lbl{font:600 12px/1.6 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:1px;color:#aaa28e;display:block;margin-bottom:5px}
+.in{width:100%;min-width:0;min-height:44px;background:#1b1712;border:1px solid #332b1e;color:#eae4d6;padding:10px 6px;font:14px 'Barlow','IBM Plex Sans KR',sans-serif;border-radius:2px;text-align:center}
+.step{display:flex;gap:4px}
+.step button{width:36px;min-height:44px;flex-shrink:0;background:#241a11;border:1px solid #4a3f2c;border-radius:2px;color:#eeb77d;font-size:19px;line-height:1;padding:0}
+.btn1{width:100%;min-height:48px;background:#282219;border:1px solid #eeb77d;color:#eeb77d;font:17px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:2px;padding:13px 24px;border-radius:2px}
+.btn2{min-height:44px;background:none;border:1px solid #4a3f2c;color:#cfc6b2;font:600 13px 'Barlow','IBM Plex Sans KR',sans-serif;padding:9px 14px;border-radius:2px}
+.nw{outline:1.5px dashed #7fa8d9;outline-offset:4px}
+/* ── **축하와 사실은 같은 옷을 입으면 안 된다** ── (2026-11-13 · 맵시)
+   `#241a11` + 금 테두리는 **최고 기록 배너가 입는 옷**이다(`PersonalRecordBanner.jsx:23`
+   — `--accent-dim` 바탕 + `--accent` 테두리). 그 옷을 아픈 곳 알림이 입으면,
+   운동하다 금색 칸이 뜬 순간 **잘했다는 줄 알고 넘긴다.**
+   사실을 말하는 칸은 **중립 바탕 + 왼쪽 금실 한 줄**로 둔다 — 눈에는 걸리되
+   축하로는 안 읽힌다. 금은 테두리 네 변이 아니라 **한 변**만 쓴다. */
+.say{display:flex;gap:11px;align-items:flex-start;background:#1b1712;border:1px solid #332b1e;
+  border-left:2px solid #d29a5f;border-radius:2px;padding:12px 14px;margin-bottom:16px}
+.say .ic{flex-shrink:0;color:#d29a5f;margin-top:2px}
+.flat{background:#1b1712;border:1px solid #332b1e;border-radius:2px;padding:11px 13px;margin-bottom:16px;font-size:13px;color:#aaa28e}
+.log{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;box-shadow:inset 0 1px 0 rgba(238,183,125,.16)}
+.log .nm{font-size:13px;flex-grow:1}
+.log .v{font-size:12.5px;color:#aaa28e}
+.gear{font:600 10.5px 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:.8px;color:#aaa28e;border:1px solid #4a3f2c;border-radius:999px;padding:2px 8px;flex-shrink:0}
+.tb{position:absolute;left:0;right:0;bottom:0;display:flex;border-top:1px solid #332b1e;background:rgba(18,16,12,.94)}
+.tab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 12px;border:none;background:none;color:#8c816e}
+.tab span{font:11px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1px}
+.tab.on{background:#241a11;color:#eeb77d}
+
+/* ── 11/20 UI 시안에서 더 쓰는 것 ── (맵시)
+   지금 꼴과 바꾼 꼴을 **한 틀 안에서** 견주려고 둘을 쌓는다 */
+.wrap{padding:16px 18px 86px;height:100%;overflow:hidden}
+.tag{display:inline-block;font:600 10px 'Barlow','IBM Plex Sans KR',sans-serif;letter-spacing:.8px;
+  border:1px solid #4a3f2c;border-radius:999px;padding:2px 8px;color:#aaa28e;margin-bottom:8px}
+.tag.now{border-color:#4a3f2c;color:#8c816e}
+.tag.new{border-color:#7fa8d9;color:#7fa8d9}
+.half{border:1px dashed #4a3f2c;border-radius:2px;padding:12px;margin-bottom:12px}
+.half.new{border-style:solid;border-color:#7fa8d9}
+.n{font-family:'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1px;color:#eae4d6}
+.mut{color:#8c816e;font-size:11.5px;line-height:1.6}
+.chip{display:inline-flex;align-items:center;min-height:30px;padding:4px 10px;border:1px solid #4a3f2c;
+  border-radius:999px;font-size:11.5px;color:#cfc6b2;background:none;margin:0 5px 5px 0}
+.chip.on{border-color:#eeb77d;color:#eeb77d;background:#241a11}
+.ring{position:relative;width:170px;height:170px;border-radius:50%;margin:0 auto;
+  background:conic-gradient(#eeb77d var(--p,62%),#282219 0)}
+.ring i{position:absolute;inset:11px;border-radius:50%;background:#12100c;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:2px;font-style:normal}
+.keys{display:grid;grid-template-columns:repeat(3,64px);gap:9px;justify-content:center}
+.keys button{min-height:52px;background:#1b1712;border:1px solid #332b1e;border-radius:2px;
+  color:#eae4d6;font:21px 'Bebas Neue',sans-serif}
+.keys button.gold{color:#eeb77d;border-color:#4a3f2c;background:#241a11}
+.dots{display:flex;gap:12px;justify-content:center}
+.dots s{width:11px;height:11px;border-radius:50%;border:1px solid #4a3f2c;display:block}
+.dots s.f{background:#eeb77d;border-color:#eeb77d}
+.rb{position:absolute;left:0;right:0;display:flex;align-items:center;gap:10px;padding:9px 14px;
+  border-top:1px solid #eeb77d;background:#241a11}
+.toast{position:absolute;left:50%;transform:translateX(-50%);background:#eeb77d;color:#12100c;
+  font:15px 'Bebas Neue','IBM Plex Sans KR',sans-serif;letter-spacing:1.2px;padding:10px 20px;border-radius:2px}
+
+/* ── 11/26 시안이 쓰는 것 (맵시) ──
+   ★ 이 판에서 #8f8471(걷은 --text-faint-tap)을 #8c816e(--text-muted)로 바꿨다 —
+     3 자리. 시안이 **없는 색**을 보여주면 고른 안이 붙을 때 달라 보인다. */
+.sc{border:1px dashed #4a3f2c;border-radius:2px;padding:12px 13px;margin-bottom:12px}
+.sc.pick{border-style:solid;border-color:#7fa8d9}
+.sc h4{margin:0 0 9px;font:600 12px Barlow,sans-serif;letter-spacing:.5px;color:#aaa28e}
+.cost{font-size:11px;color:#8c816e;line-height:1.65;margin-top:8px}
+.cost b{color:#cfc6b2}
+.swatch{display:inline-block;width:14px;height:14px;border:1px solid #332b1e;vertical-align:-2px;margin-right:5px}
+table.m{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0 2px}
+table.m th,table.m td{text-align:left;padding:4px 6px;border-bottom:1px solid #2a2419;color:#cfc6b2}
+table.m th{color:#8c816e;font-weight:600}
+table.m td.n{font-family:Bebas Neue,sans-serif;letter-spacing:.5px;color:#eae4d6}

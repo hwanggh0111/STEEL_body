@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>① 글자 크기 — 34종을 몇 단으로</title>
+<link rel="stylesheet" href="_s.css" />
+<style>
+  /* 네 칸이 **같은 화면**을 그린다 — 다른 것은 글자 크기뿐이다.
+     각 칸은 제 단을 CSS 변수로 들고, 안쪽 markup 은 그 변수만 쓴다.
+     이렇게 두면 「한 화면에 몇 크기가 섞였나」가 눈에 바로 보인다. */
+  .sc{--f1:11px;--f2:11.5px;--f3:12.5px;--f4:13px;--f5:14px;--f6:22px}
+  .sc.a{--f1:11.5px;--f2:11.5px;--f3:13px;--f4:13px;--f5:13px;--f6:22px}
+  .sc.b{--f1:11px;--f2:11px;--f3:12px;--f4:13px;--f5:14px;--f6:22px}
+  .mini{background:linear-gradient(180deg,#1e1a14 0%,#191510 100%);border:1px solid #332b1e;border-radius:2px;padding:11px 12px}
+  .mini .nm{font-size:var(--f5);color:#eeb77d;font-weight:600}
+  .mini .val{font-size:var(--f3);color:#aaa28e}
+  .mini .sub{font-size:var(--f2);color:#8c816e;line-height:1.65;margin-top:5px}
+  .mini .foot{font-size:var(--f1);color:#8c816e;margin-top:7px;letter-spacing:.3px}
+  .mini .big{font-family:'Bebas Neue',sans-serif;font-size:var(--f6);letter-spacing:1.5px;color:#eae4d6}
+  .mini .row{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
+  .mini .mo{font-family:'Bebas Neue',sans-serif;font-size:var(--f4);letter-spacing:1.6px;color:#aaa28e}
+  .mini .cnt{font-size:var(--f1);color:#8c816e}
+  .sizes{font-size:10.5px;color:#8c816e;margin-top:7px;letter-spacing:.2px}
+  .sizes b{color:#d29a5f;font-weight:600}
+</style>
+</head>
+<body>
+<div class="ph">
+  <div class="hd"><span class="logo">BLACK IRON</span></div>
+  <div class="wrap" style="height:auto;overflow:visible">
+
+    <div class="st"><i class="bar"></i>① 글자 크기 — 34종</div>
+
+    <div class="say">
+      <span class="ic">▣</span>
+      <div style="font-size:12px;line-height:1.7">
+        글자 크기가 적힌 자리를 세 봤습니다 — <b style="color:#eae4d6">1,538곳 · 종류 34</b>.
+        <b style="color:#eae4d6">11 · 11.5 · 12 · 12.5 · 13</b> 다섯에 1,201곳이 몰려 있습니다.
+        0.5px 차이는 눈에 거의 안 보이면서 <b style="color:#eae4d6">줄 높이와 꺾이는 자리만</b> 어긋나게 합니다.
+      </div>
+    </div>
+
+    <div class="flat" style="font-size:11.5px">
+      한 화면 안에서도 섞입니다 — <b style="color:#cfc6b2">한 해 벽</b>(<code>YearWall.jsx</code>) 한 장이
+      <b style="color:#d29a5f">10.5 · 11 · 11.5 · 12.5 · 13</b> 을 씁니다. 아래 네 칸은 <b style="color:#cfc6b2">같은 화면</b>이고
+      다른 것은 글자 크기뿐입니다.
+    </div>
+
+    <!-- 지금 -->
+    <div class="sc">
+      <h4><span class="tag now">지금</span> 종류 34 · 그 화면에서 쓰는 여섯</h4>
+      <div class="mini">
+        <div class="row"><span class="nm">벤치프레스</span><span class="val">80kg × 8</span></div>
+        <div class="sub">같은 무게에서 「세 개 이상 더 할 수 있었다」고 적은 날이 3번이에요.</div>
+        <div class="row" style="margin-top:9px"><span class="mo">NOVEMBER</span><span class="cnt">12</span></div>
+        <div class="foot">· 판을 누르면 그 달 달력으로</div>
+        <div class="row" style="margin-top:9px"><span class="big">2,480 KG</span></div>
+      </div>
+      <div class="sizes">쓰는 크기: <b>11 · 11.5 · 12.5 · 13 · 14 · 22</b> — 한 칸에 여섯</div>
+      <div class="cost">고치는 자리 <b>0곳</b>. 다음에 새 화면을 짤 때 <b>고를 값이 34개</b>라, 11.5 와 12 중 무엇을 쓸지 매번 다시 정하게 됩니다.</div>
+    </div>
+
+    <!-- A안 -->
+    <div class="sc a">
+      <h4><span class="tag">A안</span> 다섯 단 — 11.5 · 13 · 15 · 18 · 22</h4>
+      <div class="mini">
+        <div class="row"><span class="nm">벤치프레스</span><span class="val">80kg × 8</span></div>
+        <div class="sub">같은 무게에서 「세 개 이상 더 할 수 있었다」고 적은 날이 3번이에요.</div>
+        <div class="row" style="margin-top:9px"><span class="mo">NOVEMBER</span><span class="cnt">12</span></div>
+        <div class="foot">· 판을 누르면 그 달 달력으로</div>
+        <div class="row" style="margin-top:9px"><span class="big">2,480 KG</span></div>
+      </div>
+      <div class="sizes">쓰는 크기: <b>11.5 · 13 · 22</b> — 한 칸에 셋</div>
+      <div class="cost">
+        그대로 <b>600곳</b> · 움직임 <b>894곳</b> · <b>눈에 보이는 변화(1px↑) 169곳 · 파일 68개</b> · 최대 <b>2.5px</b>.<br />
+        리듬은 가장 또렷해집니다. 다만 본문이 <b>커지는</b> 자리가 많아(10.5·11 → 11.5 · 200곳)
+        <b>좁은 폰에서 넘침을 새로 만듭니다</b> — 169곳을 폰에서 다 봐야 합니다.
+      </div>
+    </div>
+
+    <!-- B안 -->
+    <div class="sc b pick">
+      <h4><span class="tag new">B안 · 권고</span> 일곱 단 — 11 · 12 · 13 · 14 · 16 · 18 · 22</h4>
+      <div class="mini">
+        <div class="row"><span class="nm">벤치프레스</span><span class="val">80kg × 8</span></div>
+        <div class="sub">같은 무게에서 「세 개 이상 더 할 수 있었다」고 적은 날이 3번이에요.</div>
+        <div class="row" style="margin-top:9px"><span class="mo">NOVEMBER</span><span class="cnt">12</span></div>
+        <div class="foot">· 판을 누르면 그 달 달력으로</div>
+        <div class="row" style="margin-top:9px"><span class="big">2,480 KG</span></div>
+      </div>
+      <div class="sizes">쓰는 크기: <b>11 · 12 · 13 · 14 · 22</b> — 한 칸에 다섯 (0.5 가 없다)</div>
+      <div class="cost">
+        그대로 <b>855곳</b> · 움직임 <b>639곳</b> · <b>눈에 보이는 변화(1px↑) 69곳 · 파일 38개</b> · 최대 <b>2px</b>.<br />
+        움직임의 대부분(<b>538곳</b>)이 <b>0.5px 내림</b>입니다 — 눈에 안 띄게 리듬만 정리되고,
+        <b>작아지는 쪽</b>이라 넘침이 새로 생기지 않습니다. 폰에서 훑을 자리가 <b>69곳</b>으로 셀 수 있는 양입니다.
+      </div>
+    </div>
+
+    <!-- C안 -->
+    <div class="sc">
+      <h4><span class="tag">C안</span> 토큰만 세우고 — 새로 짜는 화면부터</h4>
+      <div class="flat" style="margin:0;font-size:11.5px">
+        <code>--fs-1 … --fs-7</code> 을 <code>globals.css</code> 에 세우고 <b style="color:#cfc6b2">지금 화면은 그대로</b> 둡니다.
+        새로 짜거나 고치러 들어가는 화면만 그 값으로 바꿉니다.
+      </div>
+      <div class="cost">
+        고치는 자리 <b>0곳</b> · 위험 <b>0</b>. 대신 한동안 <b>두 체계가 섞여 삽니다</b> —
+        출시(12/24)까지 손대는 화면이 적으면 <b>34종이 거의 그대로 남습니다.</b>
+      </div>
+    </div>
+
+    <div class="say" style="margin-top:16px">
+      <span class="ic">▶</span>
+      <div style="font-size:12px;line-height:1.7">
+        <b style="color:#eae4d6">제 권고는 B안입니다.</b> 보이는 변화가 69곳이라 <b style="color:#eae4d6">폰에서 전수로 확인</b>할 수 있고,
+        거의 다 0.5px <b style="color:#eae4d6">내림</b>이라 넘침을 새로 만들지 않습니다.
+        붙일 때는 <b style="color:#eae4d6">자</b>를 같이 세웁니다 — <code>check-type</code> 이 「단에 없는 크기」를 울립니다.
+      </div>
+    </div>
+
+    <div class="mut" style="margin-top:14px">
+      ★ 이 장은 <b style="color:#cfc6b2">그림</b>입니다. 수(1,538 · 894 · 639 · 169 · 69)는 코드를 세어 적은 실측이고,
+      네 칸의 화면은 같은 markup 에 단만 바꿔 넣은 것입니다. <b style="color:#cfc6b2">「크게」 150~200%</b> 로 보면
+      각 안이 커진 폰에서 어떻게 자라는지 그 자리에서 보입니다.
+    </div>
+  </div>
+</div>
+</body>
+</html>
