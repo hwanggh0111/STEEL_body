@@ -178,7 +178,9 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   if (!user) {
     const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
     const username = provider + '_' + crypto.randomBytes(4).toString('hex');
-    db.createUser(email, randomPw, safeNickname, username);
+    // **만들면서 관리자가 되지 않게** 한다 (2026-11-26) — 못 믿는 길로 들어온
+    // 메일은 그 주소의 주인이 맞다는 보장이 없다. 아래 승격 자리도 같은 깃발을 본다
+    db.createUser(email, randomPw, safeNickname, username, { allowAdmin: mailTrusted });
     user = db.findUserByEmail(email);
     // **소셜이라고 적어 둔다** (2026-10-02). 이 사람은 자기 비밀번호를 모른다
     // (위의 난수다). 여태는 아이디 모양으로 알아봤는데, 아이디를 바꿀 수 있게
@@ -196,7 +198,21 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   //
   // 정한 메일 하나만 해당하지만 그 하나가 **관리자 계정**이다. 막힌 계정은 건드리지
   // 않는다 — 풀어주는 자리는 관리자 화면 한 곳이어야 한다(`routes/security.js`)
+  //
+  // ★ **메일 확인을 못 믿는 길로는 승격하지 않는다** (2026-11-26 · 근호 안전 3 의 남은 자리).
+  //
+  // 위에서 「확인 안 된 메일로 **있는 계정에** 붙지 않기」는 막혔다(`OAUTH_EMAIL_TAKEN`).
+  // 그런데 **그 메일로 계정이 아직 없으면** 막을 것이 없어서 바로 **새로 만들어진다** —
+  // 그리고 이 자리를 지나며 `admin` 이 된다. 즉 `ADMIN_EMAIL` 로 아직 가입하지 않은
+  // 동안, 그 주소를 제 네이버 계정에 적어둔 사람이 **관리자로 들어올 수 있었다.**
+  // (네이버는 메일 확인을 알려주지 않는다 — `MAIL_UNTRUSTED`.)
+  //
+  // 승격은 **되돌리기 어려운 손**이다. 그래서 「모를 때는 막는 쪽으로」를 여기도 적용한다 —
+  // 확인된 메일(구글)이나 비밀번호 로그인(`routes/auth.js` 의 같은 자리)으로만 승격한다.
+  // 주인이 네이버로 들어오더라도 **한 번은 다른 길로** 들어오면 그때 승격되고, 그 뒤로는
+  // 번호(`providerId`)로 같은 계정을 찾으므로 네이버로도 관리자다
   if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL)
+      && mailTrusted
       && user.role !== 'admin' && user.role !== 'blocked') {
     db.updateUserRole(user.id, 'admin');
     user.role = 'admin';

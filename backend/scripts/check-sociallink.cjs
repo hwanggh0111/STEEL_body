@@ -146,6 +146,45 @@ module.exports = { findOrCreateUser, MAIL_UNTRUSTED };
       db.linkProvider(옛사람, 'google', 'G-OLD').changes, 1);
 
     console.log('');
+    console.log('── ★ 관리자 승격 — 못 믿는 길로는 안 된다 (11/26 · 안전 3 의 남은 자리) ──');
+    //
+    // 위의 ⑵ 는 「**있는 계정에** 못 붙는다」를 본다. 그런데 그 메일로 계정이 **아직
+    // 없으면** 막을 것이 없어서 바로 새로 만들어지고, 그때 `ADMIN_EMAIL` 승격 자리를
+    // 지난다 — 즉 주인이 아직 가입하지 않은 동안, 그 주소를 제 네이버 계정에 적어둔
+    // 사람이 **관리자로 들어올 수 있었다.**
+    {
+      const 전 = process.env.ADMIN_EMAIL;
+      process.env.ADMIN_EMAIL = 'boss@sl.local';
+      try {
+        // 네이버(확인 못 믿는 길)로 그 주소를 들고 **처음** 들어온다
+        const n = await 해봄('boss@sl.local', '사칭', 'naver', { providerId: 'NAVER-FAKE-BOSS' });
+        const 네이버사람 = db.findUserByEmail('boss@sl.local');
+        ok('계정은 만들어진다 (막는 자리가 아니다)', n.ok, true);
+        ok('★ 그런데 관리자는 안 된다', 네이버사람 && 네이버사람.role, 'user');
+
+        // 구글(확인된 길)로 같은 주소가 들어오면 — 그때는 승격된다
+        const g = await 해봄('boss2@sl.local', '주인', 'google',
+          { providerId: 'G-BOSS', emailVerified: true });
+        process.env.ADMIN_EMAIL = 'boss2@sl.local';
+        const g2 = await 해봄('boss2@sl.local', '주인', 'google',
+          { providerId: 'G-BOSS', emailVerified: true });
+        void g; void g2;
+        const 구글사람 = db.findUserByEmail('boss2@sl.local');
+        ok('  확인된 메일(구글)로는 승격된다 (주인이 막히지 않는다)',
+          구글사람 && 구글사람.role, 'admin');
+
+        // 네이버가 **확인됐다고 값으로 알려주면** 그때는 믿는다 (`emailVerified: true`)
+        process.env.ADMIN_EMAIL = 'boss3@sl.local';
+        await 해봄('boss3@sl.local', '주인', 'naver',
+          { providerId: 'NAVER-VERIFIED', emailVerified: true });
+        const 확인된 = db.findUserByEmail('boss3@sl.local');
+        ok('  네이버가 확인됐다고 알려주면 믿는다', 확인된 && 확인된.role, 'admin');
+      } finally {
+        if (전 === undefined) delete process.env.ADMIN_EMAIL; else process.env.ADMIN_EMAIL = 전;
+      }
+    }
+
+    console.log('');
     console.log('── 메일이 없거나 이상하면 (여태 그대로) ──');
     ok('메일이 없으면 계정을 안 만든다', (await 해봄('', 'x', 'naver', {})).why, 'OAUTH_NO_EMAIL');
     ok('  @ 가 없는 것도 그렇다', (await 해봄('abc', 'x', 'naver', {})).why, 'OAUTH_NO_EMAIL');

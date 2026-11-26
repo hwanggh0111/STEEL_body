@@ -8,6 +8,8 @@ const { DEFAULTS: REMINDER_DEFAULTS } = require('./utils/reminderSchedule');
 // 하루 줄은 **서울 날짜**로 끊는다 — 적는 쪽(`aiGuard`)과 읽는 쪽이 같은 자를 써야
 // 한다. UTC 로 끊으면 한국 자정~오전 아홉 시가 어제로 밀린다 (`utils/seoulDay`)
 const { seoulDay } = require('./utils/seoulDay');
+// 한 사람이 쥘 수 있는 줄 수 — **한 자리에서** 온다 (2026-11-26 · `utils/rowCaps.js`)
+const { capOf } = require('./utils/rowCaps');
 // 보안 기록을 몇 건까지 들고 있나 (화면은 100건을 보여준다)
 const SECURITY_LOG_KEEP = 500;
 // 자동 판정 일지를 며칠 둘까. 화면이 이레를 그리고, 「지난달과 견주기」까지 쓸 수
@@ -951,7 +953,18 @@ const db = {
     if (!_index.userById) rebuildIndex();
     return _index.userByUsername.get(usernameKey(username)) || null;
   },
-  createUser(email, password, nickname, username) {
+  // ── ★ **만드는 자리가 메일만 보고 관리자로 박았다** ── (2026-11-26 · 근호 안전 3 의 뿌리)
+  //
+  // 아래 `role` 한 줄이 `ADMIN_EMAIL` 과 메일이 같으면 **만들면서 바로 `admin`** 으로
+  // 박는다. 메일 가입은 그 주소로 **번호를 받아 맞춘 사람**이라 그 판단이 선다.
+  // 그런데 **소셜 가입은 그 확인이 없다** — 네이버는 메일 확인을 알려주지 않으므로
+  // (`routes/oauth.js` 의 `MAIL_UNTRUSTED`), 주인이 아직 가입하지 않은 동안 그 주소를
+  // 제 네이버 계정에 적어둔 사람이 **만들어지는 그 순간 관리자**가 됐다.
+  //
+  // `oauth.js` 쪽에 막음을 세웠지만 **이 줄이 그 앞에서 비껴갔다**(자가 그것을 잡았다).
+  // 그래서 **부르는 쪽이 끌 수 있게** 한다 — `allowAdmin: false` 면 그냥 사람으로 만든다.
+  // 기본값은 여태와 같다(켜짐) — 메일 가입 길이 그대로 서야 한다.
+  createUser(email, password, nickname, username, opts = {}) {
     const data = load();
     if (data.users.some(u => emailKey(u.email) === emailKey(email))) {
       throw new Error('DUPLICATE_EMAIL');
@@ -961,7 +974,8 @@ const db = {
     }
     const id = data._nextId.users || 1;
     data._nextId.users = id + 1;
-    const role = (process.env.ADMIN_EMAIL && emailKey(email) === emailKey(process.env.ADMIN_EMAIL)) ? 'admin' : 'user';
+    const role = (opts.allowAdmin !== false
+      && process.env.ADMIN_EMAIL && emailKey(email) === emailKey(process.env.ADMIN_EMAIL)) ? 'admin' : 'user';
     const user = { id, email, password, nickname, username: username || null, role, created_at: new Date().toISOString() };
     data.users.push(user);
     invalidateUserIndex();
@@ -2848,6 +2862,15 @@ const db = {
   //
   // endpoint 가 곧 그 기기다. 같은 endpoint 가 다시 오면 새 줄을 만들지 않는다 —
   // 앱을 열 때마다 구독을 다시 보내므로, 안 그러면 기기 하나가 수십 줄이 된다
+  // ── **기기 줄은 사람이 가만히 있어도 는다** ── (2026-11-26 · 정석, 전수검사 ① 의 같은 류)
+  //
+  // 브라우저를 다시 깔거나 저장소를 비우면 **같은 기기가 새 구독 주소**를 받는다.
+  // 그런데 알림을 보낼 때 서버가 **줄마다 직접 POST** 한다(`utils/push.js` 의
+  // `sendToUser`) — 줄이 천 개면 알림 한 통이 **천 번 바깥으로** 나간다.
+  // 그래서 상한을 두고, 가득 차면 **가장 오래 안 보인 줄을 밀어낸다** — 막으면
+  // 새로 깐 기기가 알림을 못 받는다(그쪽이 더 나쁘다).
+  // 죽은 주소는 보낼 때 404 · 410 을 받아 그 자리에서 지워지지만, **보내기 전까지는
+  // 남아 있다** — 그 사이를 이 상한이 막는다
   savePushSub(userId, sub) {
     const data = load();
     if (!data.pushSubs) data.pushSubs = [];
@@ -2858,6 +2881,17 @@ const db = {
       found.seen_at = new Date().toISOString();
       save(data);
       return found;
+    }
+    // 내 줄이 가득 찼으면 **가장 오래 안 보인 것부터** 밀어낸다 (위 머리글)
+    const cap = capOf('pushSubs');
+    const mine = data.pushSubs.filter(s => s.user_id === userId);
+    if (mine.length >= cap) {
+      const 밀어낼것 = new Set(mine
+        .slice()
+        .sort((a, b) => String(a.seen_at || a.created_at || '').localeCompare(String(b.seen_at || b.created_at || '')))
+        .slice(0, mine.length - cap + 1)
+        .map(s => s.id));
+      data.pushSubs = data.pushSubs.filter(s => !밀어낼것.has(s.id));
     }
     const record = {
       id: nextId('pushSubs'), user_id: userId,
