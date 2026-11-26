@@ -77,6 +77,8 @@
     "pwkick": "node scripts/check-pwkick.cjs",
     "hygiene": "node scripts/check-hygiene.cjs",
     "cspnarrow": "node scripts/check-cspnarrow.cjs",
+    "shrinkphotos": "node scripts/shrink-photos.cjs",
+    "shrinkold": "node scripts/check-shrinkold.cjs",
     "오류": "node ../agents/buchongjae/triage.cjs"
   },
   "engines": {

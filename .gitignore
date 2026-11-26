@@ -94,3 +94,6 @@ backend/.env.render
 
 # Vite 가 미리 묶어둔 의존성 (검사·dev 가 지운다 · 다시 생긴다)
 frontend/.vite/
+
+# 옛 사진 줄이기가 쓰는 되돌릴 파일 (사람 사진이 들어 있다 — 올리지 않는다)
+backend/photo-backup-*.json
