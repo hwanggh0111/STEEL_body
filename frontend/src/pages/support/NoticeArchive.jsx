@@ -98,7 +98,7 @@ export default function NoticeArchive({ embedded = false }) {
           onClick={() => navigate('/support')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            color: 'var(--text-muted)', fontSize: 12.5, marginBottom: 18,
+            color: 'var(--text-muted)', fontSize: 12, marginBottom: 18,
           }}
         >← 고객센터로</button>
       )}
@@ -122,7 +122,7 @@ export default function NoticeArchive({ embedded = false }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="찾아보기 (예: 알림, 타이머, 루틴)"
-          style={{ paddingLeft: 36, paddingRight: q ? 34 : undefined, fontSize: 13.5 }}
+          style={{ paddingLeft: 36, paddingRight: q ? 34 : undefined, fontSize: 13 }}
         />
         <span style={{
           position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
@@ -163,7 +163,7 @@ export default function NoticeArchive({ embedded = false }) {
       </div>
 
       {/* 무엇을 보고 있는지 적는다 */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 18 }}>
         {searching
           ? `「${q.trim()}」로 찾은 ${shown.length}건${details ? '' : detailFailed ? ' (제목만 — 본문을 못 불러왔어요)' : ' (제목만 — 본문 받는 중)'}`
           : q.trim()
@@ -202,7 +202,7 @@ export default function NoticeArchive({ embedded = false }) {
       )}
 
       <div style={{
-        marginTop: 20, fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8,
+        marginTop: 20, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8,
       }}>
         화면이 바뀌지 않는 변경(문서 정리, 내부 구조 손질)은 올리지 않습니다.
       </div>

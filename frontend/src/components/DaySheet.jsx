@@ -182,14 +182,14 @@ export default function DaySheet({
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 1.5,
           color: 'var(--text-primary)',
         }}>{dayLabel(date)}</span>
-        {until && <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{until}</span>}
+        {until && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{until}</span>}
         {/* 계획한 날에 기록이 생기면 그것으로 끝이다. 따로 체크할 것이 없다.
             못 한 날은 흐리게만 적는다 — **잘못했다고 칠하지 않는다** */}
         {plans.length > 0 && state === 'done' && (
-          <span style={{ fontSize: 11.5, color: 'var(--accent)', marginLeft: 'auto' }}>하기로 한 것을 했어요</span>
+          <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 'auto' }}>하기로 한 것을 했어요</span>
         )}
         {plans.length > 0 && state === 'missed' && (
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 'auto' }}>기록이 없는 날이에요</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>기록이 없는 날이에요</span>
         )}
       </div>
 
@@ -201,7 +201,7 @@ export default function DaySheet({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {list.slice(0, 3).map((w) => (
-              <div key={w.id} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              <div key={w.id} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 {w.exercise}
                 <span style={{ color: 'var(--text-muted)' }}>
                   {/* 유산소 줄은 시간 · 거리다 (2026-11-05) */}
@@ -210,7 +210,7 @@ export default function DaySheet({
               </div>
             ))}
             {list.length > 3 && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>외 {list.length - 3}건</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>외 {list.length - 3}건</div>
             )}
           </div>
         </Section>
@@ -239,13 +239,13 @@ export default function DaySheet({
                   fontSize: 11, color: 'var(--text-muted)', flexShrink: 0,
                   border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1px 6px',
                 }}>{p.kind === 'routine' ? '루틴' : '운동'}</span>
-                <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>{p.name}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>{p.name}</span>
                 <button
                   onClick={() => onDeletePlan(p.id)}
                   aria-label={`${p.name} 빼기`}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', fontSize: 11.5, padding: '2px 3px', flexShrink: 0,
+                    color: 'var(--text-muted)', fontSize: 11, padding: '2px 3px', flexShrink: 0,
                   }}
                 >빼기</button>
               </div>
@@ -260,7 +260,7 @@ export default function DaySheet({
         )}
 
         {full && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
             하루에 <b style={{ color: 'var(--text-secondary)' }}>{MAX_PER_DAY}개</b>까지 담을 수 있어요.
             하나를 빼면 다시 담을 수 있습니다.
           </div>
@@ -324,7 +324,7 @@ export default function DaySheet({
       {writing ? (
         <div style={{ borderTop: '1px solid var(--border)', padding: '12px 15px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>이 날에 적기</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>이 날에 적기</span>
             <button onClick={() => setWriting(false)} style={{ ...chip, marginLeft: 'auto' }}>닫기</button>
           </div>
 
@@ -421,7 +421,7 @@ function Section({ label, action, children }) {
             style={{
               marginLeft: 'auto', background: 'none', cursor: 'pointer',
               border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-              color: 'var(--text-muted)', fontSize: 11.5, padding: '3px 10px',
+              color: 'var(--text-muted)', fontSize: 11, padding: '3px 10px',
               fontFamily: 'inherit',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
@@ -436,6 +436,6 @@ function Section({ label, action, children }) {
 
 const chip = {
   background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)',
-  padding: '7px 12px', fontSize: 12.5, borderRadius: 'var(--radius)',
+  padding: '7px 12px', fontSize: 12, borderRadius: 'var(--radius)',
   cursor: 'pointer', fontFamily: 'inherit',
 };

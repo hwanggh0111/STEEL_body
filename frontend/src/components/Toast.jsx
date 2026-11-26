@@ -170,7 +170,7 @@ export default function Toast() {
         }}
         style={{
           background: 'transparent', border: `1px solid ${textColor}`, color: textColor,
-          borderRadius: 'var(--radius)', padding: '7px 13px', fontSize: 12.5,
+          borderRadius: 'var(--radius)', padding: '7px 13px', fontSize: 12,
           fontWeight: 600, cursor: 'pointer', flex: 'none', whiteSpace: 'nowrap',
           fontFamily: 'inherit', letterSpacing: 'inherit',
         }}

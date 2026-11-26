@@ -98,6 +98,23 @@
      알림 · 제보 딱지. 손으로 적은 색은 **기준이 바뀔 때 같이 안 바뀐다.** */
   --on-danger:     #ffffff;
 
+  /* ── **글자 크기는 일곱 단이다** ── (2026-11-26 · 맵시 · 주인 「니가 판단해」)
+     11 · 12 · 13 · 14 · 16 · 18 · 22   ·   **24 이상은 따로 둔다**(Bebas 큰 수치)
+
+     11/26 에 세어보니 글자 크기가 적힌 자리가 **1,538곳 · 종류 34** 였고,
+     `11 · 11.5 · 12 · 12.5 · 13` 다섯에 **1,201곳**이 몰려 있었다. 0.5px 는 눈에
+     거의 안 보이면서 **줄 높이와 꺾이는 자리만** 어긋나게 한다 — 한 화면 안에서도
+     섞였다(`YearWall.jsx` 한 장이 `10.5 · 11 · 11.5 · 12.5 · 13`).
+
+     시안 셋(`/dev/sian/1126/01-Type.html`)에서 **B안**을 골랐다 — 움직인 639곳 중
+     **538곳이 0.5px 내림**이라 눈에 안 띄게 리듬만 서고, **작아지는 쪽**이라 넘침을
+     새로 만들지 않는다(A안 5단은 커지는 자리가 200곳이었다).
+
+     ★ 값을 여기 **토큰으로 두지 않는다.** 이 앱의 글자 크기는 거의 다 jsx 의
+     `fontSize: 13` 꼴이고, 쓰지 않는 토큰을 세우면 **두 체계가 생긴다.**
+     단을 지키는 것은 **자**다 — `npm run type` (`check-type.cjs`)이 단에 없는 크기를
+     쓰는 자리를 울린다. 새 크기가 꼭 필요하면 **단을 먼저 고치고** 자를 고친다. */
+
   /* 레이아웃 */
   --max-width:     640px;
   --padding-x:     20px;
@@ -251,7 +268,7 @@ button:active:not(:disabled),
 /* ─── 타이포그래피 ─────────────────── */
 body {
   font-family: 'Barlow', 'BI Sans KR', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--text-primary);
   background-color: var(--bg-primary);
@@ -323,7 +340,7 @@ body::before {
   border: 1px solid var(--accent);
   color: var(--accent);
   font-family: 'Bebas Neue', 'BI Sans KR', sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: 2px;
   padding: 13px 24px;
   border-radius: var(--radius);
@@ -468,7 +485,7 @@ body::before {
    이고, 색이 안 보여도 선은 보인다. 제자리는 선이 있고, 쉰 것은 없다.
    (글 자체도 둘을 가른다 — 셋 중 하나만 보여도 뜻이 온다) */
 .trend-note {
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   margin-top: 12px;
   padding: 8px 10px;
@@ -566,7 +583,7 @@ body::before {
   background: var(--accent);
   color: #12100c;
   font-family: 'Bebas Neue', 'BI Sans KR', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: 1.5px;
   padding: 11px 22px;
   border-radius: var(--radius);
@@ -690,7 +707,7 @@ body::before {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   padding: 4px;
   transition: color 0.15s;
 }

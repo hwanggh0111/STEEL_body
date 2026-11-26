@@ -231,7 +231,7 @@ export default function AppGuide({ onGo, openLabel }) {
               }}
             >
               <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{it.name}</span>
-              <span style={{ fontSize: 11.5, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
                 {p.spot === 'tab' ? `「${p.name}」 탭` : p.name}{p.hidden.includes(it) ? ' 안쪽' : ''} ›
               </span>
             </button>
@@ -270,7 +270,7 @@ export default function AppGuide({ onGo, openLabel }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {place.sketch.map((s) => (
               <div key={s} style={{
-                fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4,
+                fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4,
                 border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '7px 8px',
                 background: 'var(--bg-secondary)',
               }}>{s}</div>
@@ -289,7 +289,7 @@ export default function AppGuide({ onGo, openLabel }) {
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
           {place.spot === 'tab' ? `아래 「${place.name}」 탭` : `위 ${place.name} 단추`}
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
           그림의 점선 칸(탭 · 머리 단추)을 누르면 그 화면으로 바뀝니다
         </div>
         <Items list={place.items} onGo={onGo} openLabel={openLabel} />
@@ -325,11 +325,11 @@ function Items({ list, onGo, openLabel }) {
                 {i > 0 && <span aria-hidden="true" style={{ fontSize: 11, color: 'var(--text-muted)' }}>→</span>}
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5,
+                  fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5,
                   border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '2px 7px',
                   background: 'var(--bg-secondary)',
                 }}>
-                  <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700 }}>{i + 1}</span>
+                  <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>{i + 1}</span>
                   {step}
                 </span>
               </li>
@@ -343,7 +343,7 @@ function Items({ list, onGo, openLabel }) {
               style={{
                 marginTop: 6, minHeight: 36, padding: '6px 11px',
                 background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
+                cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--accent)',
                 fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
               }}
             >{openLabel}</button>

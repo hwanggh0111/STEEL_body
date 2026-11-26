@@ -195,6 +195,134 @@ console.log('── 3. 눌리는 칸 안의 글자는 그 칸 바탕에서 4.5 �
 }
 
 console.log('');
+console.log('── 3-2. 칩 바탕을 칠한 자리의 글자 ──');
+// ── **칩에서만 4.11 로 남아 있었다** ── (2026-11-26 · 맵시 · 시안 ② B안)
+//
+// `--bg-tertiary`(#282219)는 칩 · 큰 단추 · 고르기 칸이 쓰는 바탕이다. 11/25 에 주인이
+// 흐린 글자를 밝힌 뒤에도 **그 바탕에서만 4.11** 로 남았다(화면 4.96 · 카드 4.52).
+// **바탕은 안 내렸다** — 내리면 앱 전체가 따라오고, 내린 값은 카드 바탕과 거의 같아져
+// 칩이 떠 보이지 않는다(시안 ② A안의 치르는 값). **그 바탕에 얹는 글자만** 올렸다.
+//
+// ── 이 자를 세 번 고쳤다. 고친 까닭을 적어둔다 ──
+//
+// ⑴ **한 줄만** 봤다 → `MaintAdmin` 의 style 을 여러 줄로 쪼개자 색과 바탕이 다른 줄에
+//    놓여 **되돌려도 안 울었다**(되돌려-FAIL ③ 이 잡았다).
+// ⑵ **위아래 다섯 줄**을 봤다 → 거짓 FAIL 이 열일곱. `background` 와 `color` 가 각자
+//    삼항이고 조건이 서로 달랐다(홈 주간 달력은 칩 바탕일 때 글자가 **금색**이다).
+// ⑶ **갈래를 맞췄다**(토큰 수가 같을 때 같은 자리끼리) → 그래도 `WeeklyReport` 가 거짓이었다.
+//    막대는 칩 바탕이고 글자는 **옆 칸**인데, 다섯 줄 창이 그 둘을 한 자리로 봤다.
+//
+// 그래서 지금은 **같은 덩이**만 본다 — `--bg-tertiary` 를 감싼 **가장 안쪽 중괄호**를 찾아
+// 그 안의 `color:` 만 짝으로 본다. 옆 칸은 다른 덩이라 안 섞인다. 갈래 수가 다르면
+// (조건이 서로 다르면) **의심으로 적어만 둔다** — 거짓 FAIL 로 울리면 다음 사람이 자를 끈다.
+{
+  const 칩 = tokens['--bg-tertiary'];
+  const 난것 = [];
+  const 의심 = [];
+  const 예외 = [];   // 못 누르는 상태 — 흐린 것이 뜻이다
+
+  /** 그 자리를 감싼 **가장 안쪽 중괄호** 덩이 (style={{…}} · { label, color, dim } 둘 다) */
+  const 덩이 = (글, at) => {
+    let 깊이 = 0;
+    let 시작 = -1;
+    for (let i = at; i >= 0; i--) {
+      const c = 글[i];
+      if (c === '}') 깊이 += 1;
+      else if (c === '{') {
+        if (깊이 === 0) { 시작 = i; break; }
+        깊이 -= 1;
+      }
+    }
+    if (시작 < 0) return null;
+    깊이 = 0;
+    for (let i = 시작; i < 글.length; i++) {
+      const c = 글[i];
+      if (c === '{') 깊이 += 1;
+      else if (c === '}') { 깊이 -= 1; if (깊이 === 0) return 글.slice(시작, i + 1); }
+    }
+    return null;
+  };
+
+  /** 한 선언에서 쓰인 토큰을 **적힌 차례대로**. 괄호·따옴표를 세며 읽고 깊이 0 쉼표에서 끊는다 */
+  const 갈래 = (덩, 이름들) => {
+    const m = 덩.match(new RegExp('(?<![a-zA-Z-])(?:' + 이름들 + ')\\s*:'));
+    if (!m) return null;
+    let q = null;
+    let 깊이 = 0;
+    let 몸 = '';
+    for (let i = m.index + m[0].length; i < 덩.length; i++) {
+      const c = 덩[i];
+      if (q) { 몸 += c; if (c === q) q = null; continue; }
+      if (c === "'" || c === '"' || c === '`') { q = c; 몸 += c; continue; }
+      if (c === '(' || c === '{') 깊이 += 1;
+      if (c === ')' || c === '}') { if (깊이 === 0) break; 깊이 -= 1; }
+      if (깊이 === 0 && c === ',') break;
+      몸 += c;
+    }
+    return [...몸.matchAll(/var[(](--[\w-]+)[)]/g)].map((x) => x[1]);
+  };
+
+  const 잰다 = (토큰) => {
+    const c = tokens[토큰];
+    if (!c) return { 수: null, 글: 토큰 + ' (:root 에 없는 토큰)' };
+    const r = ratio(c, 칩);
+    return { 수: r, 글: 토큰 + ' ' + r };
+  };
+
+  const 훑기 = (dir) => {
+    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, f.name);
+      if (f.isDirectory()) { 훑기(full); continue; }
+      if (!/[.]jsx?$/.test(f.name)) continue;
+      const 글 = fs.readFileSync(full, 'utf8');
+      const 이름 = path.relative(ROOT, full).split(path.sep).join('/');
+      let at = -1;
+      for (;;) {
+        at = 글.indexOf('--bg-tertiary', at + 1);
+        if (at < 0) break;
+        // 주석 줄에 적힌 것은 건너뛴다 — 까닭을 적은 글에 제가 걸리면 안 된다
+        const 줄머리 = 글.lastIndexOf('\n', at) + 1;
+        if (/^\s*([/][/]|[*]|[/][*])/.test(글.slice(줄머리, at))) continue;
+        const 줄번호 = 글.slice(0, at).split('\n').length;
+        const 덩 = 덩이(글, at);
+        if (!덩) continue;
+        const 바탕들 = 갈래(덩, '(?:background|backgroundColor|dim)') || [];
+        const 글자들 = 갈래(덩, 'color') || [];
+        if (!글자들.length) continue;
+        const 칩자리 = 바탕들.indexOf('--bg-tertiary');
+        if (칩자리 < 0) continue;
+        const 자리 = 이름 + ':' + 줄번호;
+        // ★ **못 누르는 상태는 예외다** — 흐린 것이 뜻이다(`.btn-primary:disabled` 도
+        //   같은 꼴로 `--text-muted` 를 쓴다). 조용히 빼지 않고 **적어서** 둔다.
+        //   과녁은 그 덩이에 적힌 `not-allowed` · `disabled`, 즉 **그 자리가 스스로
+        //   「못 누른다」고 말하는가**다 (`OverlayCamera` 의 「찍기」가 그 하나다).
+        const 못누름 = /not-allowed|disabled/.test(덩);
+        if (바탕들.length === 글자들.length) {
+          const 짝 = 잰다(글자들[칩자리]);
+          if (짝.수 === null || 짝.수 < 4.5) (못누름 ? 예외 : 난것).push(자리 + ' ' + 짝.글);
+          continue;
+        }
+        const 낮은것 = 글자들.map(잰다).filter((x) => x.수 !== null && x.수 < 4.5);
+        if (낮은것.length) 의심.push(자리 + ' ' + 낮은것.map((x) => x.글).join(' · '));
+      }
+    }
+  };
+  훑기(path.join(ROOT, 'src'));
+  console.log('     칩 바탕 ' + 칩 + ' — 흐린 글자 ' + ratio(tokens['--text-muted'], 칩)
+    + ' · 보조 글자 ' + ratio(tokens['--text-secondary'], 칩));
+  ok('칩 바탕 위에서 4.5 를 못 지키는 글자', [...new Set(난것)], []);
+  // **의심은 FAIL 이 아니다** — 조건이 서로 달라 코드로는 못 가린다. 눈으로 볼 목록이다
+  if (예외.length) {
+    console.log('     못 누르는 상태라 비킨 자리 ' + 예외.length + '곳 (흐린 것이 뜻이다):');
+    for (const x of [...new Set(예외)]) console.log('       · ' + x);
+  }
+  if (의심.length) {
+    console.log('     의심 ' + [...new Set(의심)].length + '곳 (조건이 서로 다르다 — 눈으로 볼 것):');
+    for (const x of [...new Set(의심)].slice(0, 8)) console.log('       · ' + x);
+  }
+}
+
+console.log('');
 console.log('── 4. 밝은 색을 통째로 칠한 자리에 얹는 글자 ──');
 // 금·초록·노랑에 흰 글자를 얹으면 1.8 : 1 이다 (그래서 `--on-accent` 가 있다)
 // ★ 토큰이 없으면 **FAIL 로 적고 넘어간다** — 여기서 터지면 자가 죽어서, 그 뒤의

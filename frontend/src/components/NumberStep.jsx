@@ -144,7 +144,7 @@ export default function NumberStep({
     flexShrink: 0, width: BTN_W, display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--accent-dim)', border: '1px solid var(--border-hover)',
     borderRadius: 'var(--radius)', color: 'var(--accent)',
-    fontSize: 19, lineHeight: 1, fontFamily: 'inherit', cursor: 'pointer',
+    fontSize: 18, lineHeight: 1, fontFamily: 'inherit', cursor: 'pointer',
     // 꾹 누르는 동안 글자가 잡히면 파랗게 선택된다
     userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation',
   };

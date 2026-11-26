@@ -188,7 +188,7 @@ export default function StopwatchSection({ onSave }) {
           {laps.map((l, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < laps.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>랩 {laps.length - i}</span>
-              <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, color: 'var(--accent)', letterSpacing: 1 }}>{formatTime(l)}</span>
+              <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, color: 'var(--accent)', letterSpacing: 1 }}>{formatTime(l)}</span>
             </div>
           ))}
         </div>

@@ -49,7 +49,7 @@ function StatusBadge({ status, label }) {
   return (
     <span style={{
       display: 'inline-block',
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: 700,
       padding: '2px 8px',
       borderRadius: 'var(--radius)',
@@ -380,14 +380,14 @@ export default function SecurityPanel() {
           관리자 화면의 탭 이름도 「보안 관리」다 */}
       <h2 style={{
         fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-        fontSize: 20, letterSpacing: 2, color: 'var(--accent)', marginBottom: 6,
+        fontSize: 18, letterSpacing: 2, color: 'var(--accent)', marginBottom: 6,
       }}>
         보안 관리
       </h2>
       {/* **여기 오는 이유는 사람 때문이다.** 무엇을 하는 자리인지 먼저 적고,
           겹쳐 보이는 옆 화면과 무엇이 다른지도 한 줄로 갈라둔다 —
           9/1 에 「해킹 보안」과 「AI 관리자」가 같은 것을 따로 그리던 것을 정리했다 */}
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, margin: '0 0 14px' }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, margin: '0 0 14px' }}>
         가입한 사람을 찾아 막고 풀고 권한을 주는 자리입니다.
         <br />
         주소(IP)를 막고 푸는 것은 <b style={{ color: 'var(--text-secondary)' }}>해킹 보안</b>이 맡습니다 —
@@ -403,20 +403,20 @@ export default function SecurityPanel() {
         borderLeft: `2px solid ${blockedCount > 0 ? 'var(--danger)' : 'var(--border)'}`,
       }}>
         <span style={{ fontSize: 13, color: blockedCount > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
-          막아둔 사람 <b style={{ fontSize: 15 }}>{blockedCount}</b>명
+          막아둔 사람 <b style={{ fontSize: 14 }}>{blockedCount}</b>명
         </span>
         {/* **영구 정지는 자동으로 걸린다.** 관리자가 모르는 채 걸려 있을 수 있어서
             0 이 아닐 때만 보여주고, 보이면 눈에 띄게 둔다 */}
         {bannedCount > 0 && (
           <span style={{ fontSize: 13, color: 'var(--danger)' }}>
-            영구 정지 <b style={{ fontSize: 15 }}>{bannedCount}</b>명
+            영구 정지 <b style={{ fontSize: 14 }}>{bannedCount}</b>명
           </span>
         )}
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          오늘 가입 <b style={{ fontSize: 15, color: 'var(--text-secondary)' }}>{todaySignups ?? '-'}</b>명
+          오늘 가입 <b style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{todaySignups ?? '-'}</b>명
         </span>
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          관리자 <b style={{ fontSize: 15, color: 'var(--text-secondary)' }}>{adminCount}</b>명
+          관리자 <b style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{adminCount}</b>명
         </span>
         <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           전체 {totalUsers ?? users.length}명
@@ -470,7 +470,7 @@ export default function SecurityPanel() {
       </div>
 
       {shownUsers.length === 0 && (
-        <div className="card" style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
+        <div className="card" style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
           {users.length === 0 ? '아직 가입한 사람이 없습니다.' : '찾으시는 사람이 없습니다.'}
         </div>
       )}
@@ -481,13 +481,13 @@ export default function SecurityPanel() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{user.nickname || '(이름 없음)'}</span>
               <span style={{
-                fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5,
+                fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                 color: bannedColor(user),
                 border: `1px solid ${bannedColor(user)}`,
                 borderRadius: 'var(--radius)', padding: '0 6px',
               }}>{bannedLabel(user)}</span>
               {isMe(user) && (
-                <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>나</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>나</span>
               )}
             </div>
             {/* 이메일은 길어서 표에서 잘려 있었다. 카드에서는 줄을 바꿔 다 보여준다 */}
@@ -496,7 +496,7 @@ export default function SecurityPanel() {
             </div>
             {/* 서버가 주는 이름은 `created_at` 인데 화면은 `createdAt` 을 읽고 있었다 —
                 그래서 **가입일이 언제나 「-」**였다 (8/26 에 고쳤다) */}
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {/* **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** — 서버의 「오늘 가입」 셈은 이미 서울로 세는데(`seoulDay`)
                   이 줄만 UTC 로 잘라, 새벽에 가입한 사람이 **어제 가입**으로 적혔다 */}
               {user.created_at ? `${dayOf(user.created_at)} 가입` : '가입일 모름'} · id {user.id}
@@ -534,7 +534,7 @@ export default function SecurityPanel() {
                 <UserBtn tone="warning" ghost onClick={() => revokeAdmin(user)}>관리자 내리기</UserBtn>
               )}
               {user.role === 'admin' && (isMe(user) || adminCount <= 1) && (
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)', alignSelf: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
                   {isMe(user) ? '내 권한은 내가 못 내립니다' : '관리자가 한 명뿐이라 못 내립니다'}
                 </span>
               )}
@@ -558,10 +558,10 @@ export default function SecurityPanel() {
         }}
       >
         <span>서버 설정</span>
-        <span style={{ fontSize: 11.5, color: dangerN ? 'var(--danger)' : warnN ? 'var(--warning)' : 'var(--text-muted)' }}>
+        <span style={{ fontSize: 11, color: dangerN ? 'var(--danger)' : warnN ? 'var(--warning)' : 'var(--text-muted)' }}>
           {dangerN ? `위험 ${dangerN}` : warnN ? `주의 ${warnN}` : '다 안전합니다'}
         </span>
-        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 15, transform: settingsOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s' }}>+</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 14, transform: settingsOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s' }}>+</span>
       </button>
 
       {settingsOpen && (
@@ -696,7 +696,7 @@ export default function SecurityPanel() {
               {keepWarm.running ? `돌고 있어요 · ${keepWarm.everyMin}분마다` : '꺼져 있어요'}
             </span>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
             {keepWarm.running ? (
               <>
                 {keepWarm.target}
@@ -757,7 +757,7 @@ export default function SecurityPanel() {
             }}
           >
             <h3 style={{
-              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
               color: 'var(--danger)', marginBottom: 10,
             }}>계정 삭제</h3>
 
@@ -770,7 +770,7 @@ export default function SecurityPanel() {
               <b>{deleting.nickname}</b>
               <span style={{ color: 'var(--text-muted)' }}> · {deleting.email}</span>
             </p>
-            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, margin: '0 0 14px' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, margin: '0 0 14px' }}>
               이 사람의 <b style={{ color: 'var(--danger)' }}>운동 기록 · 인바디 · 측정 · 루틴 · 사진 · 제보</b>가
               전부 사라집니다. <b style={{ color: 'var(--danger)' }}>되돌릴 수 없습니다.</b>
             </p>

@@ -115,10 +115,10 @@ function GoalForm({ goal, latest, onSave, onCancel, saving }) {
               onClick={() => setWeekly(on ? null : n)}
               style={{
                 flex: '1 0 38px', padding: '9px 0', fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-                fontSize: 17, letterSpacing: 1,
+                fontSize: 16, letterSpacing: 1,
                 background: on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
-                color: on ? 'var(--accent)' : 'var(--text-muted)',
+                color: on ? 'var(--accent)' : 'var(--text-secondary)',
                 borderRadius: 'var(--radius)', cursor: 'pointer',
               }}
             >
@@ -127,7 +127,7 @@ function GoalForm({ goal, latest, onSave, onCancel, saving }) {
           );
         })}
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 18 }}>
         {weekly ? `한 주에 ${weekly}번 나가는 것을 목표로 합니다` : '안 쓰려면 비워두세요'}
       </div>
 
@@ -155,7 +155,7 @@ function GoalForm({ goal, latest, onSave, onCancel, saving }) {
             </div>
             {/* **지금 값이 있으면 그것을 말한다** — 없으면 어디서 적는지 말한다.
                 「진행률이 안 그려진다」로 끝내면 어디로 가야 하는지를 또 찾아야 한다 */}
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.6 }}>
               {now != null
                 ? `지금 ${now}${m.unit} 에서 시작합니다 · ${m.hint}`
                 /* 조사는 앞말에 맞춘다 — 지금 셋은 다 받침이 있어 「을」이 맞지만,
@@ -317,7 +317,7 @@ export default function GoalPage() {
         {hasGoal(goal) && !editing && (
           <button
             onClick={() => setEditing(true)}
-            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
           >
             고치기
           </button>
@@ -339,7 +339,7 @@ export default function GoalPage() {
             // 글자 자리는 그대로 둔다 (11/25 · 맵시)
             style={{ background: 'none', border: 'none', padding: '0 11px', margin: '0 -11px', font: 'inherit', color: 'var(--accent)', cursor: 'pointer' }}
           >다시</button>
-          <div style={{ marginTop: 6, fontSize: 12.5 }}>세운 목표가 있어도 지금은 보이지 않아요. 불러온 뒤에 고칠 수 있어요 — 지금 적으면 있던 목표를 지울 수도 있어요.</div>
+          <div style={{ marginTop: 6, fontSize: 12 }}>세운 목표가 있어도 지금은 보이지 않아요. 불러온 뒤에 고칠 수 있어요 — 지금 적으면 있던 목표를 지울 수도 있어요.</div>
         </div>
       )}
 
@@ -390,7 +390,7 @@ export default function GoalPage() {
                     <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5, color: 'var(--accent)' }}>
                       {streak?.current ?? 0}
                     </span>
-                    <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> 주 연속 (목표)</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}> 주 연속 (목표)</span>
                   </span>
                   {streak?.best > 0 && (
                     <span className="badge badge-success">가장 길게는 {streak.best}주</span>
@@ -481,10 +481,10 @@ export default function GoalPage() {
                       <>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
                           <span style={{ fontSize: 14 }}>
-                            {p.now} <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>→</span>{' '}
+                            {p.now} <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→</span>{' '}
                             <span style={{ color: 'var(--accent)' }}>{p.target}{m.unit}</span>
                           </span>
-                          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                             {p.reached ? '닿았습니다' : `${p.left}${m.unit} 남음`}
                           </span>
                         </div>
@@ -495,7 +495,7 @@ export default function GoalPage() {
                               background: p.reached ? 'var(--success)' : 'var(--accent)',
                             }} />
                           </div>
-                          <span style={{ width: 32, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          <span style={{ width: 32, textAlign: 'right', fontSize: 11, color: 'var(--text-muted)' }}>
                             {Math.round(p.ratio * 100)}%
                           </span>
                         </div>
@@ -505,12 +505,12 @@ export default function GoalPage() {
                             **체중만 말한다** — 체지방률·골격근량은 물 마신 것에도
                             흔들려서 4주 흐름으로 날을 집으면 그게 지어낸 수다 */}
                         {m.key === 'weight' && eta && (
-                          <div style={{ fontSize: 11.5, color: 'var(--success)', marginTop: 9 }}>
+                          <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 9 }}>
                             이대로면 {eta.label}에 닿습니다 (요즘 주 {Math.abs(eta.perWeek)}kg)
                           </div>
                         )}
                         {!(m.key === 'weight' && eta) && p.away && (
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 9 }}>
                             시작했을 때보다 목표에서 멀어져 있습니다
                           </div>
                         )}
@@ -526,7 +526,7 @@ export default function GoalPage() {
                     적는다 (하나만 쫓는 사람에게는 견줄 것이 없다) */}
                 {measures.length > 1 && (
                   <div style={{
-                    fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75,
+                    fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75,
                     marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--border)',
                   }}>
                     체중이 그대로여도 체지방률과 골격근량은 움직입니다 —
@@ -541,7 +541,7 @@ export default function GoalPage() {
             onClick={onClear}
             style={{
               width: '100%', padding: 12, background: 'none', border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 12.5, borderRadius: 'var(--radius)',
+              color: 'var(--text-muted)', fontSize: 12, borderRadius: 'var(--radius)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -557,7 +557,7 @@ export default function GoalPage() {
         onClick={() => navigate('/home')}
         style={{
           width: '100%', marginTop: 20, padding: 12, background: 'none', border: 'none',
-          color: 'var(--text-muted)', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit',
+          color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
         }}
       >
         ‹ 오늘로

@@ -171,7 +171,7 @@ export default function BodyMap() {
                   </b>
                 </span></>
               )}
-              <br /><span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+              <br /><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                 지도는 <b>근육 부위 여섯</b>(가슴 · 등 · 어깨 · 하체 · 팔 · 코어)을 그립니다 —
                 유산소 · 전신은 여기 자리가 없습니다.
               </span>
@@ -230,7 +230,7 @@ export default function BodyMap() {
         </span>
       </div>
 
-      <div style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12 }}>
+      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>
         몸이나 아래 줄을 누르면 그 부위를 자세히 봅니다
       </div>
 
@@ -281,7 +281,7 @@ export default function BodyMap() {
                   )}
                 </span>
 
-                <span style={{ width: 40, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+                <span style={{ width: 40, textAlign: 'right', fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
                   {slot.sets7 > 0 ? `${slot.sets7}세트` : '—'}
                 </span>
                 <span style={{ width: 46, textAlign: 'right', fontSize: 12, color: isCold ? 'var(--accent-low)' : 'var(--text-muted)', flexShrink: 0 }}>
@@ -327,10 +327,10 @@ export default function BodyMap() {
         }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: 'var(--info)', opacity: 0.9 }} />
           <span style={{ width: 44, flexShrink: 0, fontSize: 14, color: 'var(--info)' }}>유산소</span>
-          <span style={{ flexGrow: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text-secondary)' }}>
+          <span style={{ flexGrow: 1, minWidth: 0, fontSize: 12, color: 'var(--text-secondary)' }}>
             {[minuteLabel(heat.cardio7.minutes), kmLabel(heat.cardio7.km)].filter(Boolean).join(' · ')}
           </span>
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
             최근 이레 {heat.cardio7.count}건
           </span>
         </div>
@@ -355,7 +355,7 @@ export default function BodyMap() {
           유산소 줄에는 들어온다.** 그 칸이 없어서 할 수 없던 말이다.
           그래서 **지어내 적어둔 옛 줄**(1세트 1회)에만 그렇게 권한다 */}
       {heat.cardio.count > 0 && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
           유산소 · 전신 {heat.cardio.count}건은 지도의 여섯 부위에 자리가 없어요
           {heat.cardio.names.length > 0 && ` (${heat.cardio.names.slice(0, 3).join(' · ')}${heat.cardio.names.length > 3 ? ' 외' : ''})`}.
           지도는 근육 부위 여섯만 그립니다 — 기록은 그대로 남아 있습니다.
@@ -367,7 +367,7 @@ export default function BodyMap() {
         </div>
       )}
       {heat.other.count > 0 && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
           {heat.other.count}건은 부위를 못 알아봐서 지도에 없어요
           {heat.other.names.length > 0 && ` (${heat.other.names.slice(0, 3).join(' · ')}${heat.other.names.length > 3 ? ' 외' : ''})`}.
           운동 이름을 알아보게 적으면 지도에 들어옵니다.

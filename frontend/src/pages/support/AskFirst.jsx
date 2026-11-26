@@ -56,11 +56,11 @@ export default function AskFirst() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
           <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true"><NavIcon name="chat" size={16} /></span>
-          <span style={{ fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 500 }}>
+          <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
             먼저 하나만 여쭐게요
           </span>
         </div>
-        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' }}>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' }}>
           궁금해서 오신 거라면 여기서 바로 답을 드릴 수 있어요.<br />
           기다리지 않으셔도 되니까요.
         </p>
@@ -94,7 +94,7 @@ export default function AskFirst() {
         )}
 
         {typed && hits.length === 0 && (
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '2px 0 6px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '2px 0 6px' }}>
             여기에는 딱 맞는 답이 없네요.<br />
             <span style={{ color: 'var(--text-muted)' }}>
               그 이야기는 제가 직접 듣는 게 낫겠습니다 — 위에서 유형만 골라주세요.
@@ -114,7 +114,7 @@ export default function AskFirst() {
                 onKeyDown={onEnterSpace(() => { setOpen(on ? null : f.q); })}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', cursor: 'pointer' }}
               >
-                <span style={{ fontSize: 13.5, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
+                <span style={{ fontSize: 13, color: on ? 'var(--accent)' : 'var(--text-primary)', flex: 1 }}>
                   {f.q}
                 </span>
                 <span style={{
@@ -136,13 +136,13 @@ export default function AskFirst() {
             onClick={() => { setShowAll(v => !v); setOpen(null); }}
             style={{
               background: 'none', border: 'none', padding: '10px 0 0', cursor: 'pointer',
-              color: 'var(--text-muted)', fontSize: 12.5,
+              color: 'var(--text-muted)', fontSize: 12,
             }}
           >{showAll ? '접기' : `자주 묻는 것 ${FAQ.length}가지 모두 보기`}</button>
         )}
       </div>
 
-      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.85, padding: '14px 2px 0' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.85, padding: '14px 2px 0' }}>
         찾으시는 게 없어도 괜찮습니다. 위에서 유형만 골라주시면 나머지는 제가 여쭤볼게요 —
         버그는 <b style={{ color: 'var(--text-secondary)' }}>어떻게 하면 그렇게 되는지</b>,
         문의는 <b style={{ color: 'var(--text-secondary)' }}>궁금하신 것만</b>,

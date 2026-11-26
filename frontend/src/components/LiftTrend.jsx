@@ -123,7 +123,7 @@ export default function LiftTrend({ workouts, today }) {
                 (`--text-faint` 는 「있다는 것만 알리는」 자리다). */}
             {peak && (
               <>
-                <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>
                   가장 무거웠던 날 {peak.date} · {peak.kg}kg
                 </div>
                 <div style={{ fontSize: 11, marginTop: 2, color: 'var(--text-faint)' }}>

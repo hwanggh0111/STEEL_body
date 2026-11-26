@@ -140,7 +140,7 @@ export default function VoiceSet({ onFill }) {
                 onClick={close}
                 style={{
                   marginLeft: 'auto', background: 'none', border: '1px solid var(--border-hover)',
-                  color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12.5,
+                  color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12,
                   padding: '5px 12px', borderRadius: 'var(--radius)', cursor: 'pointer',
                 }}
               >닫기</button>
@@ -180,7 +180,7 @@ export default function VoiceSet({ onFill }) {
             {/* 들었는데 숫자가 없다 — **지어내지 않는다** */}
             {!listening && result && !result.ok && !error && (
               <>
-                <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                   「{result.raw}」에서 숫자를 못 찾았어요.<br />
                   「팔십 여덟개」 · 「60 12개 3세트」처럼 말해보세요.
                 </div>
@@ -190,7 +190,7 @@ export default function VoiceSet({ onFill }) {
 
             {!listening && error && (
               <>
-                <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.8 }}>{error}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>{error}</div>
                 <button className="btn-secondary" onClick={listen}>다시 해보기</button>
               </>
             )}

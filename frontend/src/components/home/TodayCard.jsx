@@ -49,7 +49,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
               길게 지으면 옆의 「진행 중」 꼬리표(`flexShrink: 0`)를 밀어내고 카드를
               넘어갔다. 360px 폭에서 터진다 (2026-11-16 · 맵시) */}
           <div style={{
-            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
             minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{session.name}</div>
           <span className="badge badge-accent" style={{ flexShrink: 0 }}>진행 중</span>
@@ -115,7 +115,7 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {parts.map(p => (
               <span key={p} style={{
-                fontSize: 11.5, padding: '2px 8px', borderRadius: 'var(--radius)',
+                fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius)',
                 border: '1px solid var(--border)', background: 'var(--bg-tertiary)',
                 color: 'var(--text-secondary)',
               }}>{p}</span>
@@ -149,10 +149,10 @@ export default function TodayCard({ session, todayWorkouts, todayPlans = [], myR
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2, color: 'var(--accent)' }}>
             오늘 할 것
           </span>
-          <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>달력에 담아두셨어요</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>달력에 담아두셨어요</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

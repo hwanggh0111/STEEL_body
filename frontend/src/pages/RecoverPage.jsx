@@ -72,7 +72,7 @@ export default function RecoverPage({ embedded = false }) {
           **판을 안 돌려도 한 번 재볼 수 있다.** 이력이 비었을 때 이 단추가 없으면
           이 화면은 「언젠가 쌓이면 보여드려요」만 적혀 있는 빈 칸이 된다 */}
       <div className="card" style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7 }}>
           여기서 <b>한 번 재볼</b> 수 있어요.
         </div>
         <RecoverTry breath={breath} enabled={canTry} />
@@ -80,7 +80,7 @@ export default function RecoverPage({ embedded = false }) {
 
       {groups.length === 0 ? (
         <div className="card">
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>
             아직 쌓인 것이 없어요.
           </div>
           {/* **어떻게 하면 쌓이는지** 적는다. 조건을 안 적으면 켜둔 사람이 고장으로 읽는다 */}
@@ -104,9 +104,9 @@ export default function RecoverPage({ embedded = false }) {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 13.5, color: 'var(--text-primary)', minWidth: 0 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-primary)', minWidth: 0 }}>
                   {g.exercise || '(이름 없음)'}
-                  {g.duration ? <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}> · {g.duration}초</span> : null}
+                  {g.duration ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}> · {g.duration}초</span> : null}
                 </span>
                 {/* 빨라진 것과 더 걸린 것을 색으로만 가른다. **좋고 나쁨을 매기지
                     않는다** — 느려진 날은 잠이나 감기가 그렇게 만든다 */}
@@ -121,7 +121,7 @@ export default function RecoverPage({ embedded = false }) {
                     : `${g.last.seconds}초 (${g.delta < 0 ? '−' : '+'}${Math.abs(g.delta)})`}
                 </span>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.65, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.65, marginTop: 4 }}>
                 {groupLine(g)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
@@ -136,7 +136,7 @@ export default function RecoverPage({ embedded = false }) {
       )}
 
       {/* ── 꼭 적는 것 ── */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 14 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 14 }}>
         <b>소리는 아무 데도 안 남아요.</b> 마이크로 크기만 재고 버립니다 — 녹음하지 않고,
         어디로도 안 보내요. 남는 것은 <b>초 · 날짜 · 어느 동작이었나</b>뿐이에요.<br />
         <b>진단이 아니에요.</b> 잠 · 물 · 방 온도 · 감기에도 흔들려요 — {SAME_SEC}초 안쪽

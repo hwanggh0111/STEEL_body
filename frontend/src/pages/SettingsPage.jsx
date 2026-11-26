@@ -71,9 +71,9 @@ function Toggle({ title, desc, on, onChange, disabled, children }) {
       padding: '11px 0', borderTop: '1px solid var(--border)',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, color: disabled ? 'var(--text-muted)' : 'var(--text-primary)' }}>{title}</div>
+        <div style={{ fontSize: 13, color: disabled ? 'var(--text-muted)' : 'var(--text-primary)' }}>{title}</div>
         {desc && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>{desc}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>{desc}</div>
         )}
         {children}
       </div>
@@ -149,7 +149,7 @@ function Group({ title, id, children }) {
   return (
     <div className="card" id={id} style={{ marginBottom: 14, scrollMarginTop: 14 }}>
       <div style={{
-        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11.5, letterSpacing: 1.8,
+        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8,
         color: 'var(--accent)', marginBottom: 10,
       }}>{title}</div>
       {children}
@@ -231,7 +231,7 @@ function JumpBar({ items }) {
             onClick={() => jump(id)}
             aria-current={on ? 'true' : undefined}
             style={{
-              fontFamily: 'inherit', fontSize: 11.5, letterSpacing: 0.6, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 11, letterSpacing: 0.6, cursor: 'pointer',
               color: on ? 'var(--accent)' : 'var(--text-secondary)',
               border: `1px solid ${on ? 'var(--accent-low)' : 'var(--border)'}`,
               background: on ? 'var(--accent-dim)' : 'var(--bg-secondary)',
@@ -260,9 +260,9 @@ function GoRow({ title, sub, warn, onClick }) {
         fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left',
       }}
     >
-      <span style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>{title}</span>
+      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{title}</span>
       {sub && (
-        <span style={{ fontSize: 11.5, color: warn ? 'var(--warning)' : 'var(--text-muted)' }}>· {sub}</span>
+        <span style={{ fontSize: 11, color: warn ? 'var(--warning)' : 'var(--text-muted)' }}>· {sub}</span>
       )}
       <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 13 }}>›</span>
     </button>
@@ -547,10 +547,10 @@ export default function SettingsPage() {
         {sound && (
           <>
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어떤 소리로</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>어떤 소리로</div>
               {/* **고르면 그 자리에서 들려준다.** 이름(「종」·「나무」)만으로는 아무도 모른다 */}
               <Pick items={tones} value={toneId} onPick={(id) => { setTone(id); previewTone(id, volume); }} />
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
                 {tone.name} — {tone.desc}
               </div>
 
@@ -571,7 +571,7 @@ export default function SettingsPage() {
             </div>
 
             <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>소리 크기</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>소리 크기</div>
               <Pick items={VOLUMES} value={volume} onPick={(id) => { setVolume(id); previewTone(toneId, id); }} />
             </div>
           </>
@@ -593,7 +593,7 @@ export default function SettingsPage() {
           onChange={setAutoStart}
         />
         <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>기본 휴식 시간</div>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>기본 휴식 시간</div>
           <Pick
             items={PRESETS.map((n) => ({ id: n, name: `${n}초` }))}
             value={duration}
@@ -612,15 +612,15 @@ export default function SettingsPage() {
             padding: '11px 0', borderTop: '1px solid var(--border)',
           }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>운동마다 기억한 쉬는 시간</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>운동마다 기억한 쉬는 시간</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
                 {기억한운동수}가지 운동에 따로 기억해 뒀어요 — 그 운동은 위 기본값 대신 그 길이로 돌아요.
               </div>
             </div>
             <button
               type="button"
               className="btn-secondary"
-              style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 12.5, padding: '8px 12px' }}
+              style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 12, padding: '8px 12px' }}
               onClick={async () => {
                 const ok = await confirmDialog(
                   `${기억한운동수}가지에 기억해 둔 쉬는 시간을 전부 잊습니다.
@@ -655,12 +655,12 @@ export default function SettingsPage() {
               {s.breath && (
                 <>
                   <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>어디서 쓸까요</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>어디서 쓸까요</div>
                     <Pick items={BREATH_WHERE} value={s.breathWhere} onPick={s.setBreathWhere} />
                     {/* 9/29 에는 「홈트에서만 / 운동할 때도」라고 적어놓고 헬스장에는
                         숨이 아예 없었다 — 고른 사람이 아무 일도 안 일어나는 것을 골랐다.
                         10/1 에 **헬스장 세트 사이 휴식에 진짜로 붙이고** 갈래를 하나 늘렸다 */}
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
                       <b>헬스장 휴식까지</b>를 고르면 세트 사이 쉬는 자리에도 한 줄이 생겨요 —
                       거기서 <b>「숨 듣기」를 눌러야</b> 마이크가 돌고, 휴식이 끝나면 꺼집니다.
                       헬스장은 시끄러워서 못 들을 때가 많아요. 그때는 <b>그 줄만 조용히 사라집니다.</b>
@@ -668,14 +668,14 @@ export default function SettingsPage() {
                   </div>
 
                   <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>얼마나 더 줄까요</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>얼마나 더 줄까요</div>
                     <Pick items={BREATH_MAX} value={s.breathMax} onPick={s.setBreathMax} />
                   </div>
 
                   <div style={{ padding: '11px 0', borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>얼마나 예민하게</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>얼마나 예민하게</div>
                     <Pick items={BREATH_SENSE} value={s.breathSense} onPick={s.setBreathSense} />
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 7 }}>
                       예민할수록 자주 늘려줘요. 옷 스치는 소리에도 반응할 수 있어요
                     </div>
                   </div>
@@ -724,8 +724,8 @@ export default function SettingsPage() {
       {/* ── 몸 ── */}
       <Group title="몸" id="set-body">
         <div style={{ padding: '11px 0 0' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>성별</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>성별</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
             인바디 참고 범위를 그리는 데만 써요. 안 밝히면 숫자만 보여드려요.
           </div>
           <Pick
@@ -758,8 +758,8 @@ export default function SettingsPage() {
             사진은 여기 없다(체형은 사진을 안 들고 있는다) — 비율 숫자와 날짜뿐이다 */}
         {shapeCount > 0 && (
           <div style={{ padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11 }}>
-            <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>체형에서 잰 비율</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>체형에서 잰 비율</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>
               {shapeCount}번 잰 것이 이 기기에 있어요 (사진은 없어요 — 비율 숫자와 날짜뿐이에요).
               지우면 <b>견줄 상대가 없어져요.</b>
             </div>
@@ -798,7 +798,7 @@ export default function SettingsPage() {
           서버 길로 가고, 비밀번호와 삭제는 계정 시트가 쓰는 그 모달을 그대로 연다 */}
       <Group title="계정" id="set-account">
         <div style={{ padding: '11px 0 0' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이름</div>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>이름</div>
           {nickEdit ? (
             <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
               <input
@@ -819,28 +819,28 @@ export default function SettingsPage() {
                 style={{
                   flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px',
                   background: 'var(--bg-primary)', border: '1px solid var(--border-hover)',
-                  borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                  borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit',
                 }}
               />
               <button
                 onClick={saveNick}
                 disabled={savingNick}
                 className="btn-primary"
-                style={{ width: 'auto', padding: '0 14px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                style={{ width: 'auto', padding: '0 14px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
               >저장</button>
               <button
                 onClick={() => setNickEdit(false)}
                 className="btn-secondary"
-                style={{ width: 'auto', padding: '0 12px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                style={{ width: 'auto', padding: '0 12px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
               >취소</button>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-              <span style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>{nickname || '이름 없음'}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{nickname || '이름 없음'}</span>
               <button
                 onClick={() => { setNickDraft(nickname || ''); setNickEdit(true); }}
                 className="btn-secondary"
-                style={{ width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                style={{ width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
               >바꾸기</button>
             </div>
           )}
@@ -855,7 +855,7 @@ export default function SettingsPage() {
             이름**이 붙어 있다. 그 사람이 이 줄을 찾을 수 있어야 한다. */}
         {acct.loaded && acct.username && (
           <div style={{ padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11 }}>
-            <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>아이디</div>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>아이디</div>
             {idEdit ? (
               <>
                 <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
@@ -873,7 +873,7 @@ export default function SettingsPage() {
                     autoFocus
                     autoComplete="username"
                     placeholder={`영문+숫자 4~${USERNAME_MAX}자`}
-                    style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'inherit',
+                    style={{ flex: 1, minWidth: 0, minHeight: 38, padding: '8px 11px', background: 'var(--bg-primary)', border: '1px solid var(--border-hover)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit',
                       borderColor: idDraft
                         ? (idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)') : 'var(--border-hover)')
                         : 'var(--border-hover)',
@@ -883,17 +883,17 @@ export default function SettingsPage() {
                     onClick={saveId}
                     disabled={savingId || !idMsg?.ok}
                     className="btn-primary"
-                    style={{ width: 'auto', padding: '0 14px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                    style={{ width: 'auto', padding: '0 14px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
                   >저장</button>
                   <button
                     onClick={() => { setIdEdit(false); setIdDraft(''); setIdMsg(null); }}
                     className="btn-secondary"
-                    style={{ width: 'auto', padding: '0 12px', fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                    style={{ width: 'auto', padding: '0 12px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
                   >취소</button>
                 </div>
                 {/* 왜 저장이 안 눌리는지 적는다. 회색으로 죽어 있기만 하면 아무도 모른다 */}
                 <div style={{
-                  fontSize: 11.5, marginTop: 6, lineHeight: 1.6,
+                  fontSize: 11, marginTop: 6, lineHeight: 1.6,
                   color: idChecking ? 'var(--text-muted)'
                     : idMsg ? (idMsg.ok ? 'var(--success)' : 'var(--danger)')
                       : 'var(--text-muted)',
@@ -904,7 +904,7 @@ export default function SettingsPage() {
                 </div>
                 {/* 누르기 전에 말한다 — 한 번 바꾸면 30일간 못 바꾸고, 옛 아이디로는
                     로그인이 안 된다. 바꾼 뒤에 알면 늦는 종류의 사실이다 */}
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
                   바꾸면 <b style={{ color: 'var(--text-secondary)' }}>옛 아이디로는 로그인되지 않아요.</b>
                   다음 변경은 {acct.cooldownDays}일 뒤에 할 수 있어요. 이메일로도 로그인할 수 있습니다.
                 </div>
@@ -913,7 +913,7 @@ export default function SettingsPage() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
                   <span style={{
-                    fontSize: 13.5, color: 'var(--text-secondary)', minWidth: 0,
+                    fontSize: 13, color: 'var(--text-secondary)', minWidth: 0,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{acct.username}</span>
                   {/* **누르기 전에 막힌 줄 알려준다.** 여태는 눌러서 새 아이디를 치고
@@ -924,13 +924,13 @@ export default function SettingsPage() {
                     disabled={acct.daysLeft > 0}
                     className="btn-secondary"
                     style={{
-                      width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11.5,
+                      width: 'auto', marginLeft: 'auto', padding: '5px 12px', fontSize: 11,
                       fontFamily: 'inherit', cursor: acct.daysLeft > 0 ? 'default' : 'pointer',
                       flexShrink: 0, opacity: acct.daysLeft > 0 ? 0.45 : 1,
                     }}
                   >바꾸기</button>
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
                   {/* 아직 못 바꾸는 사람에게는 **그 말이 제일 먼저** 필요하다.
                       자기가 고른 적 없는 이름이면 그렇다고 말해준다 — 「이게 왜 내
                       아이디지」로 두면 바꿀 수 있다는 것도 모른다 */}
@@ -971,7 +971,7 @@ export default function SettingsPage() {
             여기서는 **어디로 가면 되는지**만 적는다 (길을 두 벌로 만들지 않는다) */}
         <div style={{
           padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11,
-          fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+          fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6,
         }}>
           프로필 사진은 머리 오른쪽의 <b style={{ color: 'var(--text-secondary)' }}>내 이름</b>을
           누르면 바꿀 수 있어요.
@@ -1026,7 +1026,7 @@ export default function SettingsPage() {
         {widgetOn && (
           <div style={{
             padding: '11px 0 0', borderTop: '1px solid var(--border)', marginTop: 11,
-            fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7,
+            fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7,
           }}>
             <b style={{ color: 'var(--text-secondary)' }}>홈 화면 위젯</b> — 폰 홈 화면의 빈 곳을
             길게 누르고 <b style={{ color: 'var(--text-secondary)' }}>위젯 → BLACK IRON</b> 을 고르면,
@@ -1070,7 +1070,7 @@ export default function SettingsPage() {
         <ExportAll />
       </Group>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4, marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 4, marginBottom: 18 }}>
         여기 있는 것은 <b>이 기기에서 어떻게 쓸지</b>예요 — 로그아웃해도 남습니다.
         이름 · 성별만 서버에 있어서 기기를 바꿔도 따라갑니다.<br />
         {/* 판 번호는 **제보할 때 필요한 것**이다. 고객센터가 자동으로 붙여 보내지만,

@@ -127,14 +127,14 @@ export default function RoutineNotes({ onToRoutine }) {
   };
 
   const box = {
-    width: '100%', minHeight: 160, padding: 12, fontSize: 13.5, lineHeight: 1.8,
+    width: '100%', minHeight: 160, padding: 12, fontSize: 13, lineHeight: 1.8,
     background: 'var(--bg-secondary)', color: 'var(--text-primary)',
     border: '1px solid var(--border)', borderRadius: 'var(--radius)',
     fontFamily: 'inherit', resize: 'vertical',
   };
   const ghost = {
     background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-    padding: '5px 11px', fontSize: 11.5, borderRadius: 'var(--radius)', cursor: 'pointer',
+    padding: '5px 11px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
   };
 
   return (
@@ -144,7 +144,7 @@ export default function RoutineNotes({ onToRoutine }) {
         루틴 메모
       </div>
 
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.7 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.7 }}>
         떠오르는 대로 적어두는 곳이에요. <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>한 줄에 운동 하나</b>씩
         적어두면 그대로 <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>루틴으로 만들 수</b> 있어요.
         {' '}첫 줄은 루틴 이름이 됩니다.
@@ -161,7 +161,7 @@ export default function RoutineNotes({ onToRoutine }) {
         >+ 메모 적기</button>
       )}
       {!writing && openId === null && notes.length >= MAX_NOTES && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 14 }}>
           메모는 <b style={{ color: 'var(--text-secondary)' }}>{MAX_NOTES}장</b>까지
           담을 수 있어요. 루틴으로 만든 것이나 안 쓰는 것을 지우면 또 적을 수 있습니다.
         </div>
@@ -181,7 +181,7 @@ export default function RoutineNotes({ onToRoutine }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
             {/* 몇 줄이 운동으로 읽히는지 **적는 동안** 보여준다.
                 누르고 나서야 빈 루틴이 나오면 무엇이 잘못됐는지 알 길이 없다 */}
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               운동 {countExercises(draft)}개로 읽혀요 · {draft.length}/{NOTE_BODY_MAX}
             </span>
             <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
@@ -190,19 +190,19 @@ export default function RoutineNotes({ onToRoutine }) {
                 onClick={save}
                 className="btn-primary"
                 disabled={saving}
-                style={{ width: 'auto', padding: '6px 16px', fontSize: 12.5 }}
+                style={{ width: 'auto', padding: '6px 16px', fontSize: 12 }}
               >{saving ? '저장 중…' : '저장'}</button>
             </span>
           </div>
         </div>
       )}
 
-      {loading && <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>불러오는 중…</p>}
+      {loading && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>불러오는 중…</p>}
 
       {!loading && loadFailed && (
         <div className="card" style={{ padding: 14, borderColor: 'var(--danger)' }}>
           <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>메모를 못 불러왔어요</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
             적어두신 것이 사라진 것은 아니에요. 잠시 뒤에 다시 해주세요.
           </div>
           <button onClick={load} style={{ ...ghost, marginTop: 9 }}>다시 불러오기</button>
@@ -210,7 +210,7 @@ export default function RoutineNotes({ onToRoutine }) {
       )}
 
       {!loading && !loadFailed && notes.length === 0 && !writing && (
-        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           아직 적어둔 메모가 없어요.<br />
           운동하다 떠오른 것을 적어두면 다음에 루틴으로 만들 수 있어요.
         </p>
@@ -228,10 +228,10 @@ export default function RoutineNotes({ onToRoutine }) {
               onKeyDown={onEnterSpace(() => { open(note); })}
             >
               <div style={{
-                fontSize: 13.5, color: 'var(--text-primary)',
+                fontSize: 13, color: 'var(--text-primary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{noteTitle(note.body)}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
                 운동 {countExercises(note.body)}개 · {dayOf(note.updated_at)}
               </div>
             </div>

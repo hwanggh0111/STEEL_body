@@ -463,7 +463,7 @@ export default function HomePage() {
                     주 <span style={{ color: 'var(--accent)' }}>{weekGoal.target}</span>회 목표
                   </span>
                   <span>
-                    <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 1, color: weekGoal.met ? 'var(--success)' : 'var(--accent)' }}>
+                    <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 1, color: weekGoal.met ? 'var(--success)' : 'var(--accent)' }}>
                       {weekGoal.done}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}> / {weekGoal.target}</span>
@@ -532,7 +532,7 @@ export default function HomePage() {
                 );
               })}
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>
               이번 주 {weekDone}일 · 지금까지 통틀어 {totalWorkouts}회 기록
             </div>
           </div>
@@ -557,7 +557,7 @@ export default function HomePage() {
             <NavIcon name="body" size={20} />
             <span style={{ flexGrow: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)' }}>블랙아이언 소개</span>
-              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                 이 앱이 무엇을 하는지 · 새 화면으로 열려요
               </span>
             </span>

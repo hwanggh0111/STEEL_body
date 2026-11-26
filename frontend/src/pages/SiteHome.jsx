@@ -80,7 +80,7 @@ function Band({ id, title, note, children, style }) {
     <section id={id} style={{ paddingTop: 26, ...style }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 2.2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 2.2,
           color: 'var(--accent-low)', margin: 0, fontWeight: 400, whiteSpace: 'nowrap',
         }}>{title}</h2>
         {/* 실선은 **흐려지며 나간다.** 양끝이 또렷한 선은 표의 줄이고, 흐려지는 선은 결이다 */}
@@ -89,7 +89,7 @@ function Band({ id, title, note, children, style }) {
           background: 'linear-gradient(90deg, var(--border-hover), transparent)',
         }} />
         {note && (
-          <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--text-muted)' }}>{note}</span>
+          <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>{note}</span>
         )}
       </div>
       {children}
@@ -246,18 +246,18 @@ export default function SiteHome() {
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {loggedIn ? (
               <a href="/home" className="tap-box" style={{
-                fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'none',
+                fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'none',
                 border: '1px solid var(--border-hover)', padding: '6px 13px',
                 borderRadius: 'var(--radius)', whiteSpace: 'nowrap',
               }}>앱 열기</a>
             ) : (
               <>
                 <a href="/login" style={{
-                  fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'none',
+                  fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'none',
                   padding: '6px 9px', whiteSpace: 'nowrap',
                 }}>로그인</a>
                 <a href="/register" style={{
-                  fontSize: 12.5, color: 'var(--on-accent)', textDecoration: 'none',
+                  fontSize: 12, color: 'var(--on-accent)', textDecoration: 'none',
                   background: 'var(--accent)', padding: '7px 14px',
                   borderRadius: 'var(--radius)', fontWeight: 600, whiteSpace: 'nowrap',
                 }}>가입하기</a>
@@ -285,7 +285,7 @@ export default function SiteHome() {
         {/* **제목 다음 한 줄이 비어 있었다** (2026-10-20에 넣었다).
             제목은 「무엇이 문제인가」만 말하고 바로 그림이 나와서, 「그래서 이 앱이
             무엇을 해주는가」를 말하는 줄이 한 줄도 없었다 */}
-        <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.85, margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85, margin: 0 }}>
           세트를 적으면 <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>몸 그림 ·
           들어올린 무게 · 1년 열두 판</b>으로 돌려줍니다. 겨루는 상대는 지난주의
           자기 자신 하나입니다.
@@ -361,7 +361,7 @@ export default function SiteHome() {
                     minWidth: 0, flexGrow: 1, fontSize: 13, color: 'var(--text-secondary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{n.text}</span>
-                  <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>
                     {String(n.date).slice(5).replace('-', '.')}
                   </span>
                 </div>
@@ -373,7 +373,7 @@ export default function SiteHome() {
                 style={{
                   marginTop: 10, minHeight: 44, width: '100%', background: 'none',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-secondary)',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: 'var(--text-secondary)',
                 }}
               >공지함 ›</button>
             )}
@@ -417,7 +417,7 @@ export default function SiteHome() {
             ].map(([t, d, where, to]) => (
               <div key={t}>
                 <div style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>{t}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 3 }}>{d}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 3 }}>{d}</div>
                 {/* **줄 전체가 아니라 이 칸만 누른다.** 설명 문장에 링크를 걸면
                     읽다가 손가락이 닿아서 화면이 바뀐다 — 읽으라고 쓴 글이다 */}
                 <button
@@ -435,11 +435,11 @@ export default function SiteHome() {
                   }}
                 >
                   <span style={{
-                    fontSize: 11.5, color: 'var(--text-secondary)', minWidth: 0,
+                    fontSize: 11, color: 'var(--text-secondary)', minWidth: 0,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{where}</span>
                   <span style={{
-                    flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: 'var(--accent)',
+                    flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--accent)',
                   }}>{openLabel}</span>
                 </button>
               </div>
@@ -478,8 +478,8 @@ export default function SiteHome() {
                   width: 11, height: 1, background: 'var(--accent-low)', flexShrink: 0, marginTop: 10,
                 }} />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 600 }}>{t}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 2 }}>{d}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{t}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 2 }}>{d}</div>
                 </div>
               </div>
             ))}
@@ -488,10 +488,10 @@ export default function SiteHome() {
 
         {/* 지하 */}
         <Band id="site-offline" title="지하에서도" style={anchorStyle}>
-          <div className="serif-display" style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 10 }}>
+          <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.6, marginBottom: 10 }}>
             신호가 없어도<br />세트는 <span style={{ color: 'var(--accent)' }}>저장된다</span>
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8 }}>
             헬스장은 대개 지하에 있다. 신호가 끊기면 적은 것을 폰에 담아뒀다가
             올라와서 저절로 올린다. 같은 기록이 두 번 올라가지 않는다.
           </div>
@@ -502,7 +502,7 @@ export default function SiteHome() {
             이 앱에서 가장 차별점이 없는 것이다. 대신 **여기서 끝까지 된다**는 사실을
             적는다. 이 화면에서 가입 없이 진짜로 되는 몇 안 되는 것이라 그게 값이다 */}
         <Band id="site-find" title="운동 찾기" style={anchorStyle}>
-          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 12 }}>
             이름 · 영어 이름 · 초성 · 부위로 찾습니다. <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
             가입 전에도 찾아볼 수 있어요</b> — 사전이 앱에 같이 실려 오는 파일이라
             서버도 로그인도 필요 없습니다.
@@ -632,7 +632,7 @@ export default function SiteHome() {
           boxShadow: 'var(--card-edge)', borderRadius: 'var(--radius)',
           padding: '20px 18px', ...anchorStyle,
         }}>
-          <div className="serif-display" style={{ fontSize: 17, lineHeight: 1.5, marginBottom: 9 }}>
+          <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.5, marginBottom: 9 }}>
             오늘 한 세트부터
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
@@ -652,7 +652,7 @@ export default function SiteHome() {
           <hr className="rule-beam" style={{ marginBottom: 16 }} />
           <div style={{
             display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            fontSize: 12.5, color: 'var(--text-muted)',
+            fontSize: 12, color: 'var(--text-muted)',
           }}>
             <LogoMark size={16} />
             {loggedIn && (

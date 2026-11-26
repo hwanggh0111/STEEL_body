@@ -179,7 +179,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
 
   // 고른 것 / 안 고른 것 한 벌 — 유형 칩, 화면 칩, 빈도 칩이 전부 같은 모양을 쓴다
   const chip = (on) => ({
-    padding: '7px 12px', fontSize: 12.5, cursor: 'pointer',
+    padding: '7px 12px', fontSize: 12, cursor: 'pointer',
     borderRadius: 'var(--radius)',
     border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
     background: on ? 'var(--accent-dim)' : 'transparent',
@@ -235,11 +235,11 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                   <NavIcon name={x.icon} size={19} />
                 </div>
                 <div style={{
-                  fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
                   color: on ? 'var(--accent)' : 'var(--text-primary)',
                 }}>{x.label}</div>
                 {!kind && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{x.desc}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{x.desc}</div>
                 )}
               </button>
             );
@@ -350,7 +350,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                 fontSize: 11, lineHeight: 1,
               }}>{attach ? '✓' : ''}</div>
               <div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 3 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 3 }}>
                   기기 정보를 같이 보냅니다
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
@@ -368,7 +368,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
                   style={{
                     background: 'none', border: '1px solid var(--border)',
                     color: 'var(--text-muted)', fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-                    fontSize: 15, letterSpacing: 1.5, padding: '13px 18px',
+                    fontSize: 14, letterSpacing: 1.5, padding: '13px 18px',
                     borderRadius: 'var(--radius)', cursor: 'pointer', flexShrink: 0,
                     transition: 'all 0.15s',
                   }}
@@ -387,7 +387,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
             그대로 두면 성공한 직후에 "유형을 고르세요" 가 떠서 실패한 것처럼 읽힌다. */}
         {sendError ? (
           <div style={{
-            fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.75,
+            fontSize: 12, color: 'var(--danger)', marginTop: 10, lineHeight: 1.75,
             background: 'var(--danger-dim)', border: '1px solid var(--danger)',
             borderRadius: 'var(--radius)', padding: '10px 13px', whiteSpace: 'pre-wrap',
           }}>
@@ -403,7 +403,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
           </div>
         ) : kind && hints.length > 0 && (
           // 보낼 수는 있다. 다만 이게 있으면 더 빨리 찾는다는 것만 알려준다
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'center', marginTop: 9, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 9, lineHeight: 1.6 }}>
             {hints.join(' · ')} 까지 적어주시면 더 빨리 찾습니다
           </div>
         )}
@@ -417,7 +417,7 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
       />
 
       <div style={{
-        marginTop: 22, fontSize: 11.5, color: 'var(--text-muted)',
+        marginTop: 22, fontSize: 11, color: 'var(--text-muted)',
         textAlign: 'center', lineHeight: 1.8,
       }}>
         보낸 제보는 관리자만 봅니다. 다른 사람에게는 보이지 않습니다.

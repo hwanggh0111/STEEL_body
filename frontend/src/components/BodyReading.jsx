@@ -40,13 +40,13 @@ function Scale({ reading }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
         {bands.map((b, i) => (
           <span key={i} style={{
-            flexGrow: 1, fontSize: 10.5, textAlign: 'center',
+            flexGrow: 1, fontSize: 11, textAlign: 'center',
             color: position?.band === b ? 'var(--text-primary)' : 'var(--text-muted)',
           }}>{b.label}</span>
         ))}
       </div>
 
-      <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
         {scale.note}
       </div>
     </>
@@ -87,7 +87,7 @@ function ScoreCard({ record, prev, sex }) {
   if (got.score === null) {
     return (
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>인바디 점수</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>인바디 점수</div>
         <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{got.why}</div>
       </div>
     );
@@ -100,8 +100,8 @@ function ScoreCard({ record, prev, sex }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9 }}>
         <div style={{ flexGrow: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, letterSpacing: 1, color: 'var(--accent)' }}>인바디 점수</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--accent)' }}>인바디 점수</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
             참고 범위 {got.parts.length}가지를 접은 숫자예요 (100 이 범위 안)
           </div>
         </div>
@@ -121,7 +121,7 @@ function ScoreCard({ record, prev, sex }) {
       {/* 어디서 깎였나. 항목마다 적는다 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {got.parts.map((p) => (
-          <div key={p.metric} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12.5 }}>
+          <div key={p.metric} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12 }}>
             <span style={{ color: 'var(--text-secondary)', flexGrow: 1 }}>{p.label}</span>
             <span style={{ color: 'var(--text-muted)' }}>
               {p.inNormal
@@ -131,14 +131,14 @@ function ScoreCard({ record, prev, sex }) {
                   : `범위보다 ${p.off} 아래`}
             </span>
             <span style={{
-              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 0.5,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 0.5,
               color: 'var(--text-primary)', width: 32, textAlign: 'right',
             }}>{p.score}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
         {got.prev !== null
           ? `지난 기록은 ${got.prev}점이었어요. 견주는 상대는 지난 번의 나예요.`
           : '지난 기록이 없어서 아직 견줄 것이 없어요.'}
@@ -191,7 +191,7 @@ function Numbers({ record, prev }) {
             fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 22, letterSpacing: 1,
             color: 'var(--text-primary)', lineHeight: 1,
           }}>{r.now}</span>
-          {r.unit && <span style={{ fontSize: 11.5, color: 'var(--text-muted)', width: 18 }}>{r.unit}</span>}
+          {r.unit && <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 18 }}>{r.unit}</span>}
           <span style={{ width: 46, textAlign: 'right' }}><Delta value={r.delta} digits={r.digits} /></span>
         </div>
       ))}
@@ -233,8 +233,8 @@ export default function BodyReading({ record, prev }) {
       {/* 성별 — 필수가 아니다. 안 골라도 화면은 돈다 */}
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flexGrow: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>참고 범위 기준</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>참고 범위 기준</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {sex ? '언제든 바꾸거나 지울 수 있습니다' : '안 고르셔도 됩니다. 그러면 범위를 안 그립니다'}
           </div>
         </div>

@@ -214,11 +214,11 @@ export default function ShapePage({ embedded = false }) {
                 <ShapeSilhouette ratios={ratios} compare={prev} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--accent)', letterSpacing: 1, marginBottom: 9 }}>
+                <div style={{ fontSize: 11, color: 'var(--accent)', letterSpacing: 1, marginBottom: 9 }}>
                   이 사진에서 잰 것
                 </div>
                 {photoLines.map((l) => (
-                  <div key={l.key} style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7, marginBottom: 4 }}>
+                  <div key={l.key} style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7, marginBottom: 4 }}>
                     {l.text}
                   </div>
                 ))}
@@ -243,7 +243,7 @@ export default function ShapePage({ embedded = false }) {
                         key={o.key}
                         onClick={() => setAgainst(o.key)}
                         className={`btn-secondary${against === o.key ? ' active' : ''}`}
-                        style={{ flex: 1, padding: '7px 0', fontSize: 11.5 }}
+                        style={{ flex: 1, padding: '7px 0', fontSize: 11 }}
                       >{o.label}</button>
                     ))}
                   </div>
@@ -262,7 +262,7 @@ export default function ShapePage({ embedded = false }) {
               </div>
             )}
             {ratios.missing.length > 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 9 }}>
                 못 본 자리: {ratios.missing.join(' · ')}
               </div>
             )}
@@ -314,7 +314,7 @@ export default function ShapePage({ embedded = false }) {
               >겹쳐 찍기</button>
             </div>
             {span.count > 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.6 }}>
                 지난번에 잰 것이 {span.count}개 있어요 (마지막은 {shortDay(span.last)}) — 새로 한 장 올리면 그것과 견줍니다.
               </div>
             )}
@@ -327,7 +327,7 @@ export default function ShapePage({ embedded = false }) {
           </div>
         )}
         {error && (
-          <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.65 }}>
+          <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginTop: 10, lineHeight: 1.65 }}>
             {error}
           </div>
         )}
@@ -336,7 +336,7 @@ export default function ShapePage({ embedded = false }) {
             담기지 않으면 **다시 열었을 때 「지난 번」이 없다** — 두 번 찍은 사람이
             세 번째에도 「견줄 상대가 없어요」를 보는데 까닭을 알 길이 없었다 */}
         {kept === false && (
-          <div style={{ fontSize: 12.5, color: 'var(--warning)', marginTop: 10, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 12, color: 'var(--warning)', marginTop: 10, lineHeight: 1.7 }}>
             이 기기에 <b>잰 값을 담지 못했어요</b> — 이번 것은 아래에 보이지만,
             앱을 다시 열면 <b>지난 번과 견줄 수 없습니다.</b>
             <br />브라우저의 <b>사이트 데이터 저장</b>이 막혀 있는지 봐주세요.
@@ -364,7 +364,7 @@ export default function ShapePage({ embedded = false }) {
               paddingBottom: 10, marginBottom: 10, borderBottom: '1px solid var(--border)',
             }}>{line.text}</div>
           ))}
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>{read.need}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{read.need}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 7 }}>
             여기는 <b>최근 8주</b>를 봐요. 앞 4주와 지난 4주를 견줍니다.
           </div>
@@ -383,12 +383,12 @@ export default function ShapePage({ embedded = false }) {
             }}
           >
             <div style={{
-              fontSize: 11.5, letterSpacing: 1, marginBottom: 7,
+              fontSize: 11, letterSpacing: 1, marginBottom: 7,
               color: merged.verdict === 'rising' ? 'var(--text-muted)' : 'var(--accent)',
             }}>
               최근 8주
             </div>
-            <div style={{ fontSize: 17, color: 'var(--text-primary)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 16, color: 'var(--text-primary)', lineHeight: 1.6 }}>
               {merged.verdict === 'rising'
                 ? <><b>{read.least.part}</b>가 가장 적지만, 늘고 있어요.</>
                 : <>덜 한 곳은 <b>{read.least.part}</b>예요.</>}
@@ -416,12 +416,12 @@ export default function ShapePage({ embedded = false }) {
               >
                 <span style={{
                   flexShrink: 0, marginTop: 1,
-                  fontSize: 10.5, letterSpacing: 0.5, whiteSpace: 'nowrap',
+                  fontSize: 11, letterSpacing: 0.5, whiteSpace: 'nowrap',
                   padding: '3px 7px', borderRadius: 4,
                   border: `1px solid ${line.basis.includes('사진') ? 'var(--accent)' : 'var(--border-hover)'}`,
                   color: line.basis.includes('사진') ? 'var(--accent)' : 'var(--text-muted)',
                 }}>{line.basis}</span>
-                <span style={{ fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.65 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.65 }}>
                   {line.text}
                   {line.sure === false && line.basis === '사진' && (
                     <span style={{ color: 'var(--text-muted)' }}> 각도일 수 있어요.</span>
@@ -440,7 +440,7 @@ export default function ShapePage({ embedded = false }) {
               <div key={p.part} style={{ marginBottom: 11 }}>
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
-                  fontSize: 12.5, marginBottom: 5,
+                  fontSize: 12, marginBottom: 5,
                   color: p.part === read.least.part ? 'var(--accent)' : 'var(--text-secondary)',
                 }}>
                   <span>{p.part}</span>
@@ -477,7 +477,7 @@ export default function ShapePage({ embedded = false }) {
       )}
 
       {/* ── 꼭 적는 것 ── */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 14 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 14 }}>
         <b>진단이 아니에요.</b> 사진은 각도 · 옷 · 조명에 흔들려요 — 같은 자리·같은 옷으로
         찍은 것끼리 견줍니다.<br />
         <b>허리는 못 재요</b> (관절이 아니라서요). 어깨:골반으로 재고, 사진으로 근육량 ·

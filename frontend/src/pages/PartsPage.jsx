@@ -149,22 +149,22 @@ export default function PartsPage() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>{soreLine(row)}</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{soreLine(row)}</span>
                     <button
                       onClick={() => toggle(row.part)}
                       className="btn-secondary"
-                      style={{ width: 'auto', padding: '5px 10px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer' }}
+                      style={{ width: 'auto', padding: '5px 10px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
                     >지우기</button>
                   </div>
                   {/* **묻기만 한다.** 나았는지는 우리가 알 수 없어서 저절로 지우지 않는다 */}
                   {askLine(row) && (
-                    <div style={{ fontSize: 11.5, color: 'var(--warning)', lineHeight: 1.65, marginTop: 5 }}>
+                    <div style={{ fontSize: 11, color: 'var(--warning)', lineHeight: 1.65, marginTop: 5 }}>
                       {askLine(row)}
                     </div>
                   )}
                 </div>
               ))}
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 나으면 지워주세요 — <b>저절로 사라지지 않아요.</b> 나았는지는 본인만 알아요.
               </div>
             </div>
@@ -179,13 +179,13 @@ export default function PartsPage() {
               background: rows.length ? 'var(--accent-dim)' : undefined,
             }}
           >
-            <div style={{ fontSize: 11.5, letterSpacing: 1, color: 'var(--accent)', marginBottom: 7 }}>
+            <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--accent)', marginBottom: 7 }}>
               오늘 할 것
             </div>
             <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6 }}>
               {adviceLine(advice)}
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.65 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.65 }}>
               식은 차례는 <b>몸 지도</b>가 매긴 것을 그대로 써요 — 여기서 다시 매기면 두
               화면이 다른 말을 하게 돼요.
             </div>
@@ -254,7 +254,7 @@ export default function PartsPage() {
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{view.name}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: 5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: 5 }}>
                     {previewLine(view)}
                   </div>
                   {/* 아픈 부위여도 **막지 않는다.** 적어둔 것을 알려줄 뿐이다 */}
@@ -267,7 +267,7 @@ export default function PartsPage() {
               </div>
               {/* 사전이 모르는 이름이면 **부위를 짐작하지 않는다** */}
               {!view.known && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 11 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 11 }}>
                   아무 부위나 골라 적으면 몸 지도가 그 뒤로 틀린 색을 내요. 그래서
                   <b> 모른다고 적어둡니다.</b>
                 </div>
@@ -307,7 +307,7 @@ export default function PartsPage() {
                   </span>
                 </div>
               ))}
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 위에서 운동을 찾으면 그 운동이 어디를 달굴지 알려드려요.
               </div>
             </div>

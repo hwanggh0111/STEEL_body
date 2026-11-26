@@ -63,7 +63,12 @@ export const STATUS = {
   received: { label: '접수',     color: 'var(--info)',       dim: 'var(--info-dim)' },
   checking: { label: '확인중',   color: 'var(--warning)',    dim: 'var(--warning-dim)' },
   done:     { label: '처리완료', color: 'var(--success)',    dim: 'var(--success-dim)' },
-  held:     { label: '보류',     color: 'var(--text-muted)', dim: 'var(--bg-tertiary)' },
+  // ★ **이 줄은 사람 화면이다** (고객센터의 내 제보 목록 · `ReportBox`·`ReportList`).
+  // 보류는 **무채색이 뜻**이지만(접수·확인중·처리완료는 색을 쓴다) 칩 바탕(#282219)에서
+  // 흐린 글자는 4.11 로 기준선 밑이었다 — 색은 그대로 두고 밝기만 올렸다(6.20).
+  // 2026-11-26 · 맵시 · 시안 ② B안. **시안에 「관리자 둘뿐」이라고 적은 것은 틀렸다** —
+  // `.js` 파일을 안 훑어 이 자리를 못 셌고, 새로 세운 `check-contrast` 3-2 가 집었다
+  held:     { label: '보류',     color: 'var(--text-secondary)', dim: 'var(--bg-tertiary)' },
 };
 
 // 서버가 주는 날짜는 ISO 문자열이다. 화면에는 날짜만 쓴다

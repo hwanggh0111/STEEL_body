@@ -335,7 +335,7 @@ function oauthErrorText(code) {
   const divider = (label) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: label === 'OR' ? 0 : 24 }}>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      <span style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>{label}</span>
       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
     </div>
   );
@@ -356,7 +356,7 @@ function oauthErrorText(code) {
           <div style={{
             border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
             background: 'var(--bg-secondary)', padding: '13px 15px', marginBottom: 18,
-            fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8,
+            fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8,
           }}>
             <b style={{ color: 'var(--text-primary)' }}>계정 삭제를 예약했어요.</b><br />
             {/* **날짜는 그 사람의 시계로 만든다 (`dayOf`) — ISO 를 글자로 자르면 한국에서 자정~오전 9시가 하루 전이 된다** — 여기가 가장 아픈 자리다:
@@ -395,7 +395,7 @@ function oauthErrorText(code) {
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{savedNickname}</span>
               <span style={{
-                display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1,
+                display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 1,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{email}</span>
             </span>
@@ -404,7 +404,7 @@ function oauthErrorText(code) {
               onClick={() => { setSwitched(true); setEmail(''); setPassword(''); setError(''); }}
               style={{
                 marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
-                padding: 4, font: 'inherit', fontSize: 11.5, color: 'var(--accent-low)',
+                padding: 4, font: 'inherit', fontSize: 11, color: 'var(--accent-low)',
                 cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap',
               }}
             >다른 계정으로</button>
@@ -497,7 +497,7 @@ function oauthErrorText(code) {
             />
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)' }}>자동 로그인</span>
-              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
                 다음부터 이 기기에서는 바로 들어옵니다. 공용 기기에서는 꺼주세요.
               </span>
             </span>

@@ -89,7 +89,7 @@ export default function MapPreview({ id, onGo, style }) {
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 2,
           color: 'var(--text-primary)', margin: 0, fontWeight: 400,
         }}>이렇게 보여줍니다</h2>
         {/* **지어내지 않는다** — 누군가의 실제 기록이 아니라고 그 자리에 적는다 */}
@@ -110,10 +110,10 @@ export default function MapPreview({ id, onGo, style }) {
             <One part={part} level={level} />
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 12.5, letterSpacing: 1.2,
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 12, letterSpacing: 1.2,
                 color: level > 0 ? 'var(--text-primary)' : 'var(--accent-low)',
               }}>{part}</div>
-              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 1 }}>{ago}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{ago}</div>
             </div>
           </div>
         ))}
@@ -122,7 +122,7 @@ export default function MapPreview({ id, onGo, style }) {
       {/* **식은 곳이 답이다.** 그림만 두면 「금색이 많은 게 좋은 것」으로 읽힌다 —
           이 지도가 말하는 것은 그 반대다 */}
       <p style={{
-        fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7,
+        fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
         margin: 0, paddingTop: 11, borderTop: '1px solid var(--border)',
       }}>
         위라면 오늘은 <strong style={{ color: 'var(--accent-low)', fontWeight: 600 }}>어깨</strong>입니다 —

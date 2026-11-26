@@ -172,7 +172,7 @@ export default function PasswordResetModal({ onClose, fixedEmail, onDone }) {
             {mailReady === false && (
               <div role="alert" style={{
                 background: 'var(--bg-tertiary, rgba(255,255,255,0.04))', border: '1px solid var(--danger)',
-                padding: '10px 12px', borderRadius: 'var(--radius)', fontSize: 12.5,
+                padding: '10px 12px', borderRadius: 'var(--radius)', fontSize: 12,
                 color: 'var(--danger)', marginBottom: 10, lineHeight: 1.6,
               }}>
                 지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않았습니다 —

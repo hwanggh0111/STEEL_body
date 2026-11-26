@@ -99,8 +99,8 @@ function Toggle({ on, onClick, label, desc }) {
       style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '4px 0' }}
     >
       <div style={{ flexGrow: 1 }}>
-        <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>{label}</div>
-        {desc && <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{desc}</div>}
+        <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{label}</div>
+        {desc && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>}
       </div>
       <div style={{
         width: 40, height: 22, borderRadius: 11, padding: 3, flexShrink: 0,
@@ -139,7 +139,7 @@ function NextSet({ view }) {
             {done ? '지난 번만큼 다 했어요' : `다음 · ${nextSet}세트`}
           </span>
           <span style={{
-            fontSize: 11.5, color: 'var(--text-secondary)', minWidth: 0,
+            fontSize: 11, color: 'var(--text-secondary)', minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{exercise}</span>
         </div>
@@ -157,7 +157,7 @@ function NextSet({ view }) {
             marginLeft: weight > 0 ? 6 : 0,
           }}>{reps}</span>
           <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>회</span>
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 'auto' }}>방금과 같이</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>방금과 같이</span>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ function NextSet({ view }) {
           지난 번이 없으면 오늘 한 만큼만 그린다 (앞으로 몇 세트일지 지어내지 않는다) */}
       {planSets > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginRight: 2 }}>세트</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 2 }}>세트</span>
           {Array.from({ length: planSets }, (_, i) => i + 1).map(n => (
             <span key={n} style={{
               fontSize: 11, lineHeight: 1, padding: '4px 7px', borderRadius: 'var(--radius)',
@@ -179,14 +179,14 @@ function NextSet({ view }) {
       {last && (
         <div className="card" style={{ padding: '10px 13px' }}>
           <div className="label" style={{ marginBottom: 4 }}>지난 번 이 운동</div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             {String(last.date).slice(5).replace('-', '월 ')}일
             {last.weight > 0 ? ` · ${last.weight}kg` : ''} {last.topReps}회
             {' '}<span style={{ color: 'var(--text-primary)' }}>{last.sets}세트</span>
           </div>
           {/* 안 줄었으면 이 줄을 아예 안 그린다 — 「안 줄었어요」는 적을 값이 아니다 */}
           {drop && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               그날은 {drop.set}세트째에서 {drop.reps}회로 줄였어요
             </div>
           )}
@@ -304,13 +304,13 @@ export default function RestTimer() {
             {((label && !view) || nextName) && (
               <div style={{ width: '100%', minWidth: 0, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {label && !view && (
-                  <div style={{ fontSize: 13.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {label}
                   </div>
                 )}
                 {nextName && (
                   <div style={{
-                    fontSize: 12.5, color: 'var(--text-secondary)',
+                    fontSize: 12, color: 'var(--text-secondary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>다음 · {nextName}</div>
                 )}
@@ -358,7 +358,7 @@ export default function RestTimer() {
           그렇게 적는다 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...(prefsOpen ? null : { display: 'none' }) }}>
         {active && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             다음 휴식
             {/* ★ **이 운동에 쓸 길이를 적는다** (2026-11-19 · 시안 1119 ②).
                 아래 칩은 **기기 기본값**(`duration`)을 비추는데, 이 운동에 기억해 둔 것이
@@ -395,7 +395,7 @@ export default function RestTimer() {
             「3분 쉬세요」라고 말하면 코치 노릇이고, 그건 11/18 에 반려된 그 선이다 */}
         {restedName && (
           <div style={{ marginTop: 2 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 5 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>
               {restedName} 에 기억해 두기
               {기억한것(restedName) != null && (
                 <span style={{ color: 'var(--accent)' }}> · 지금 {formatLeft(기억한것(restedName) * 1000)}</span>
@@ -420,7 +420,7 @@ export default function RestTimer() {
                   key={sec}
                   type="button"
                   className={`btn-secondary${기억한것(restedName) === sec ? ' active' : ''}`}
-                  style={{ flexGrow: 1, padding: '8px 0', fontSize: 12.5 }}
+                  style={{ flexGrow: 1, padding: '8px 0', fontSize: 12 }}
                   /* 같은 값을 다시 누르면 **잊는다** — 「안 기억하기」 단추를 따로 두지 않는다 */
                   onClick={() => rememberFor(restedName, sec)}
                   aria-pressed={기억한것(restedName) === sec}
@@ -482,7 +482,7 @@ export default function RestTimer() {
             자리를 남겨두면 고장으로 읽힌다 */}
         {sound && (
           <div style={{ paddingLeft: 2, marginBottom: 4 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
               어떤 소리로 알릴까요 — 누르면 그 자리에서 들려드립니다
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -497,11 +497,11 @@ export default function RestTimer() {
               ))}
             </div>
             {/* 고른 소리가 어떤 것인지 한 줄. 이름(「종」·「나무」)만으로는 아무도 모른다 */}
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
               {(TONES.find((t) => t.id === tone) || TONES[0]).desc}
             </div>
 
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>소리 크기</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>소리 크기</div>
             <div style={{ display: 'flex', gap: 6 }}>
               {VOLUMES.map((v) => (
                 <button
@@ -514,7 +514,7 @@ export default function RestTimer() {
               ))}
             </div>
             {/* 폰이 무음이면 아무 소리도 안 난다. 「크게」로 해도 안 들리면 여기부터 본다 */}
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
               폰이 무음이면 소리가 나지 않습니다. 진동을 같이 켜두세요
             </div>
           </div>

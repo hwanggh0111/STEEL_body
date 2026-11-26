@@ -98,14 +98,14 @@ export default function PartTrend({ workouts, today }) {
               </div>
             )}
             {peak && (
-              <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>
                 가장 많이 들인 주 {weekLabel(peak.week)} · {peak.kg.toLocaleString()}kg
               </div>
             )}
             {/* **이번 주는 선에 없다.** 안 끝난 주를 점으로 찍으면 늘 마지막이
                 꺾여 보인다 — 그래서 수만 따로 말해준다 */}
             {trend.current && (
-              <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>
                 이번 주는 아직 안 끝나서 선에 안 넣었어요 — 지금까지 {trend.current.kg.toLocaleString()}kg
               </div>
             )}

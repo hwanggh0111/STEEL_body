@@ -43,7 +43,7 @@ export default function PersonalRecordBanner({ record, onClose }) {
       >×</button>
 
       <div className="badge badge-accent" style={{ background: 'var(--bg-primary)' }}>최고 기록</div>
-      <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>{entry.exercise}</div>
+      <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{entry.exercise}</div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
         <span style={{
@@ -61,7 +61,7 @@ export default function PersonalRecordBanner({ record, onClose }) {
 
       {/* 무게가 있는 종목은 왜 이게 경신인지를 밝힌다 (횟수가 달라 무게만으로는 안 보인다) */}
       {entry.kind === 'weighted' && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           1RM 환산 {prev.score} → {entry.score}
         </div>
       )}

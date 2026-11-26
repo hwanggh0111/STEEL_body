@@ -97,7 +97,7 @@ export default function BestRecords({ workouts, today = dateKey() }) {
             </div>
           )}
 
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 4 }}>
             무게가 있는 종목은 1RM 으로 환산해 견줍니다 — 70kg 12회가 80kg 5회보다 셀 수 있어서입니다.
             맨몸 운동은 횟수로 셉니다.
           </div>

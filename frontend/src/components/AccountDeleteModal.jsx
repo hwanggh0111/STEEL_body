@@ -133,7 +133,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
           <form onSubmit={submit}>
             {/* 무엇이 사라지는지 먼저 적는다. 누르고 나서 알게 하면 안 된다 */}
             <div style={{
-              fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8,
+              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8,
               background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
               padding: '12px 14px', marginBottom: 14,
             }}>
@@ -160,7 +160,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
                 그래서 **이 자리에서 받게 한다.** 창을 떠나지 않고, 누르기 전에.
                 받아야만 지울 수 있게 묶지는 않는다 — 그건 사람이 정할 일이다. */}
             <div style={{
-              fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 14,
+              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 14,
               background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)', padding: '12px 14px',
               borderLeft: '2px solid var(--accent)',
             }}>
@@ -174,7 +174,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
                 className="btn-secondary"
                 style={{ width: '100%', marginTop: 10 }}
               >{busy ? '묶는 중…' : '내 기록 전부 받기 (사진까지)'}</button>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
                 운동 기록 · 인바디 · 측정 · 메모 · 루틴 · 기구 세팅 · 사진을 한 묶음으로 받습니다.
                 사진이 많으면 시간이 걸려요 — 와이파이에서 받으시는 게 좋습니다.
               </div>
@@ -209,7 +209,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
 
                 <label style={{
                   display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer',
-                  fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14,
+                  fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14,
                 }}>
                   <input
                     type="checkbox"

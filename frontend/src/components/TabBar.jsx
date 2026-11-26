@@ -371,7 +371,7 @@ export default function TabBar() {
             minWidth: 16, minHeight: 16, padding: '0 4px',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 999, background: 'var(--danger-strong)', color: 'var(--on-danger)',
-            fontSize: 10, fontWeight: 700, lineHeight: 1, textAlign: 'center',
+            fontSize: 11, fontWeight: 700, lineHeight: 1, textAlign: 'center',
             fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
           }}>{item.badge > 99 ? '99+' : item.badge}</span>
         )}

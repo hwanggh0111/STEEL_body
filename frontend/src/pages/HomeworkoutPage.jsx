@@ -103,7 +103,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
   // 켜둔 사람이 고장으로 읽는다
   if (breath.phase !== 'ready') {
     return (
-      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
         {breath.phase === 'calibrating' && '조용한 소리를 재는 중이에요…'}
         {breath.phase === 'asking' && '마이크를 여는 중이에요…'}
         {breath.phase === 'blocked' && `숨이 안 잡혀요 — ${breath.why}`}
@@ -118,7 +118,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8, color: 'var(--info)' }}>
           {/* 듣고 있다는 표시는 **늘 켜둔다** — 마이크가 켜진 것을 모르는 채로 두지 않는다 */}
           <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', boxShadow: '0 0 0 3px rgba(127,168,217,0.16)' }} />
           숨
@@ -142,7 +142,7 @@ function BreathRow({ breath, extraGiven, onSkip }) {
         <div style={{
           marginTop: 11, padding: '9px 11px', borderRadius: 'var(--radius)',
           border: '1px solid var(--accent)', background: 'var(--accent-dim)',
-          fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.6,
+          fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.6,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
         }}>
           <span>숨이 아직 올라있어서 <b style={{ color: 'var(--accent)' }}>{extraGiven}초</b> 더 드렸어요</span>
@@ -170,7 +170,7 @@ function PumpRow({ pump, next }) {
     <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
       <PumpBody pump={pump} width={62} now={nextParts} />
       <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-        <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+        <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
           여기까지 채운 곳
         </div>
         {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
@@ -187,7 +187,7 @@ function PumpRow({ pump, next }) {
           </div>
         ))}
         {pump.untouched.length > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.5 }}>
             아직 안 건드린 곳: {pump.untouched.join(' · ')}
           </div>
         )}
@@ -213,7 +213,7 @@ function ProgramPump({ list }) {
     }}>
       <PumpBody pump={pump} width={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
+        <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8, color: 'var(--accent)', marginBottom: 7 }}>
           이 판이 채우는 곳
         </div>
         {pump.order.filter((r) => r.score > 0).slice(0, 4).map((r) => (
@@ -230,7 +230,7 @@ function ProgramPump({ list }) {
           </div>
         ))}
         {pump.untouched.length > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
             안 하는 곳: {pump.untouched.join(' · ')}
           </div>
         )}
@@ -938,7 +938,7 @@ export default function HomeworkoutPage() {
           <div className="card" style={{ marginBottom: 12, borderColor: 'var(--accent)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ minWidth: 0, flexGrow: 1 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--accent)', letterSpacing: 1 }}>하다가 멈춘 것</div>
+                <div style={{ fontSize: 11, color: 'var(--accent)', letterSpacing: 1 }}>하다가 멈춘 것</div>
                 <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {stash.program}
                 </div>
@@ -948,14 +948,14 @@ export default function HomeworkoutPage() {
               </div>
               <button
                 className="btn-primary"
-                style={{ width: 'auto', flexShrink: 0, padding: '8px 14px', fontSize: 12.5 }}
+                style={{ width: 'auto', flexShrink: 0, padding: '8px 14px', fontSize: 12 }}
                 onClick={pickStash}
               >이어서 하기</button>
             </div>
             {/* **버릴 길을 같이 준다.** 안 이어갈 것이면 이 카드가 매번 위에 남는다 */}
             <button
               className="btn-secondary"
-              style={{ width: '100%', marginTop: 8, padding: '6px 0', fontSize: 11.5 }}
+              style={{ width: '100%', marginTop: 8, padding: '6px 0', fontSize: 11 }}
               onClick={clearStash}
             >안 이어가요 (지우기)</button>
           </div>
@@ -966,14 +966,14 @@ export default function HomeworkoutPage() {
         {lastDone && (
           <div className="card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ minWidth: 0, flexGrow: 1 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>지난번에 한 것</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>지난번에 한 것</div>
               <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {lastDone.name} <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>· {agoLabel(lastDone.at)}</span>
+                {lastDone.name} <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>· {agoLabel(lastDone.at)}</span>
               </div>
             </div>
             <button
               className="btn-secondary"
-              style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+              style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12 }}
               onClick={() => setSelected(lastDone.name)}
             >또 하기</button>
           </div>
@@ -985,13 +985,13 @@ export default function HomeworkoutPage() {
           <button
             className={`btn-secondary${onlyQuiet ? ' active' : ''}`}
             aria-pressed={onlyQuiet}
-            style={{ width: 'auto', padding: '7px 12px', fontSize: 12.5 }}
+            style={{ width: 'auto', padding: '7px 12px', fontSize: 12 }}
             onClick={() => setOnlyQuiet((v) => !v)}
           >밤에도 조용한 것</button>
           <button
             className={`btn-secondary${onlyBare ? ' active' : ''}`}
             aria-pressed={onlyBare}
-            style={{ width: 'auto', padding: '7px 12px', fontSize: 12.5 }}
+            style={{ width: 'auto', padding: '7px 12px', fontSize: 12 }}
             onClick={() => setOnlyBare((v) => !v)}
           >준비물 없는 것</button>
         </div>
@@ -1034,7 +1034,7 @@ export default function HomeworkoutPage() {
 
                   {/* **고르기 전에 알아야 하는 둘.** 펼쳐야 보이면 늦다 —
                       배낭이 없는 사람은 시작하고 세 번째 운동에서 알게 된다 */}
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
                     <div>
                       {gear.length === 0
                         ? '준비물 없음 — 맨몸으로 합니다'
@@ -1092,7 +1092,7 @@ export default function HomeworkoutPage() {
                   {micSupported() && breathOn
                     && (breathWhere === 'all' || name === '기능성(특수부대식)') && (
                     <div style={{
-                      fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+                      fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6,
                       marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)',
                     }}>
                       <b style={{ color: 'var(--accent)' }}>숨 보고 쉬기</b>가 켜져 있어요 —
@@ -1141,7 +1141,7 @@ export default function HomeworkoutPage() {
         {/* 좁혀서 안 보이는 것이 있으면 그렇다고 말한다. 안 적으면 프로그램이
             줄어든 줄 안다 */}
         {narrowed && shown.length > 0 && shown.length < cards.length && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
             조건에 맞는 {shown.length}개만 보이고 있어요 (전체 {cards.length}개).
           </div>
         )}
@@ -1201,7 +1201,7 @@ export default function HomeworkoutPage() {
               숨이 찬 것과 근육이 타는 것은 다른 일이고 마이크는 앞의 것만 듣는다 */}
           {hardest.length > 0 && (
             <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
                 숨이 제일 찼던 동작
               </div>
               {hardest.map((m, i) => {
@@ -1209,7 +1209,7 @@ export default function HomeworkoutPage() {
                 const where = ex ? partsOf(ex).main.join('·') : '';
                 const top = hardest[0].ratio || 1;
                 return (
-                  <div key={m.index} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, marginBottom: 6 }}>
+                  <div key={m.index} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, marginBottom: 6 }}>
                     <span style={{ width: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ flex: 1, color: 'var(--text-primary)', minWidth: 0, textAlign: 'left' }}>{m.name}</span>
                     <span style={{ width: 46, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
@@ -1228,13 +1228,13 @@ export default function HomeworkoutPage() {
               정직한 선이다 (`recoverSummary` 에 적어둔 것) */}
           {recSum && (
             <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)', textAlign: 'left' }}>
-              <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 10.5, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
+              <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 11, letterSpacing: 1.8, color: 'var(--info)', marginBottom: 8 }}>
                 숨이 가라앉는 데 걸린 시간
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7 }}>
                 {summaryLine(recSum)}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.65 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.65 }}>
                 가장 오래 걸린 것은 <b style={{ color: 'var(--text-secondary)' }}>{recSum.slowest.exercise}</b> 뒤였어요
                 ({recSum.slowest.seconds}초).
               </div>
@@ -1259,7 +1259,7 @@ export default function HomeworkoutPage() {
           <div style={{
             marginTop: 12, padding: '9px 11px', borderRadius: 'var(--radius)',
             border: '1px solid var(--border-hover)', background: 'var(--bg-secondary)',
-            fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6,
+            fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6,
           }}>
             {/* **적는 그 함수에 물어본다** (2026-10-26). 여태 「건드린 부위」를 셌는데
                 (`touched`) 적히는 줄은 **주로 쓴 부위만**이다(`toRecords`) — 곁들여 쓴
@@ -1349,7 +1349,7 @@ export default function HomeworkoutPage() {
                 fontSize: 12, lineHeight: 1.6, textAlign: 'left',
               }}>
                 <span style={{
-                  flexShrink: 0, fontSize: 10, letterSpacing: 0.5, padding: '2px 6px',
+                  flexShrink: 0, fontSize: 11, letterSpacing: 0.5, padding: '2px 6px',
                   borderRadius: 4, border: '1px solid var(--info)', color: 'var(--info)',
                 }}>{recLine.basis}</span>
                 <span style={{ color: recLine.sure ? 'var(--text-primary)' : 'var(--text-muted)' }}>
@@ -1443,7 +1443,7 @@ export default function HomeworkoutPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
                 <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, color: 'var(--text-muted)', width: 20, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1 }}>{ex.name}</span>
+                  <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1 }}>{ex.name}</span>
                   {/* 어떻게 하는지를 여기에도 둔다 — 시작하기 전에 훑어보는 자리다 */}
                   {descOf(ex.name) && (
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 2 }}>{descOf(ex.name)}</div>

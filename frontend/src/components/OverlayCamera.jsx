@@ -119,12 +119,12 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
         borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
         <span className="label" style={{ marginBottom: 0, letterSpacing: 2 }}>겹쳐 찍기</span>
-        {label && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{label}</span>}
+        {label && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>}
         <button
           onClick={onClose}
           style={{
             marginLeft: 'auto', background: 'none', border: '1px solid var(--border-hover)',
-            color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12.5,
+            color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12,
             padding: '6px 13px', borderRadius: 'var(--radius)', cursor: 'pointer',
           }}
         >닫기</button>
@@ -169,7 +169,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
             <div role="alert" style={{
               position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
               justifyContent: 'center', padding: 24, textAlign: 'center',
-              fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.8,
+              fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8,
               background: 'rgba(8,7,5,0.9)',
             }}>{error}</div>
           )}
@@ -200,7 +200,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
             style={{
               flexShrink: 0, minHeight: 48, padding: '0 16px', cursor: 'pointer',
               background: 'none', border: '1px solid var(--border-hover)',
-              color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12.5,
+              color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: 12,
               borderRadius: 'var(--radius)',
             }}
           >{facing === 'environment' ? '앞면으로' : '뒷면으로'}</button>
@@ -220,7 +220,7 @@ export default function OverlayCamera({ reference, label, onShot, onClose }) {
           >찍기</button>
         </div>
 
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.7 }}>
           {reference
             ? '지난 사진에 몸을 겹쳐 맞추고 찍으세요. 보이는 그대로 저장됩니다.'
             : '겹칠 지난 사진이 없어요. 이번에 찍은 것이 다음번의 기준이 됩니다.'}

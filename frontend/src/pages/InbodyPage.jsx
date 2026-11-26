@@ -461,7 +461,7 @@ export default function InbodyPage({ embedded = false }) {
           </div>
           {/* 좋고 나쁨은 매기지 않는다. 숫자와 방향만 적는다 */}
           {(latestRecord.fat_pct != null || latestRecord.muscle_kg != null) && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {latestRecord.fat_pct != null && `체지방 ${latestRecord.fat_pct}%`}
               {latestRecord.fat_pct != null && latestRecord.muscle_kg != null && ' · '}
               {latestRecord.muscle_kg != null && `골격근 ${latestRecord.muscle_kg}kg`}
@@ -509,12 +509,12 @@ export default function InbodyPage({ embedded = false }) {
                   // 글자는 22px 폭이라 손가락에 좁다(11/25 · 맵시). 여백으로 44 를 채우고
                   // 같은 만큼 바깥 여백을 당겨 **글자 자리는 그대로** 둔다
                   padding: '0 11px', marginRight: -11,
-                  font: 'inherit', fontSize: 12.5, color: 'var(--text-muted)',
+                  font: 'inherit', fontSize: 12, color: 'var(--text-muted)',
                 }}
               >접기</button>
             )}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
             {quickMode
               ? '체중만 적습니다. 키는 지난 기록에서 가져옵니다.'
               : '체중 · 키 · 체지방률 · 골격근량 · 체수분까지 적습니다.'}
@@ -530,7 +530,7 @@ export default function InbodyPage({ embedded = false }) {
                 style={{ width: '100%', minHeight: 44, fontFamily: 'inherit', cursor: healthBusy ? 'default' : 'pointer' }}
               >{healthBusy ? '가져오는 중…' : '건강 앱에서 가져오기'}</button>
               {healthFrom && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
                   {healthFrom}
                   {' · '}
                   <button
@@ -640,7 +640,7 @@ export default function InbodyPage({ embedded = false }) {
           목록에는 그대로 있으니 **거기서 고치면 된다**고 적어준다 */}
       {ahead > 0 && (
         <div className="card" style={{
-          marginBottom: 16, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7,
+          marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
           borderColor: 'var(--warning)',
         }}>
           앞날 날짜로 적힌 기록이 <b style={{ color: 'var(--warning)' }}>{ahead}건</b> 있어요 —
@@ -706,7 +706,7 @@ export default function InbodyPage({ embedded = false }) {
         <div className="accent-bar" />
         지난 기록
         {records.length > 0 && (
-          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 0 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', letterSpacing: 0 }}>
             {records.length}건
           </span>
         )}
@@ -724,7 +724,7 @@ export default function InbodyPage({ embedded = false }) {
            믿고 적으면 **있는데 또 적는** 셈이 된다.
            「기구」 탭이 9/17 에 429 로 같은 자리를 겪고 적어둔 교훈이다 */
         <div className="card" style={{ borderLeft: '3px solid var(--warning)' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
             인바디 기록을 못 불러왔어요
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>

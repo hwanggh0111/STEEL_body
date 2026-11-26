@@ -111,7 +111,7 @@ export default function LineChart({ data, xKey, series, height = 180, unit = '',
           `minHeight` 와 **비율** 줄 높이로 푼다: 기본 크기에서는 11.5 × (18 / 11.5) = 18
           로 한 픽셀도 안 달라지고, 짚을 때 높이가 출렁이지 않는 것도 그대로다 */}
       <div style={{
-        minHeight: 18, fontSize: 11.5, textAlign: 'center', lineHeight: 18 / 11.5,
+        minHeight: 18, fontSize: 11, textAlign: 'center', lineHeight: 18 / 11.5,
         color: hover == null ? CHART.muted : CHART.text2,
       }}>
         {hoverText(rows, hover, shown, xKey, unit)}

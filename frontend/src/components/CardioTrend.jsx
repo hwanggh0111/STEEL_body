@@ -105,13 +105,13 @@ export default function CardioTrend({ workouts, today }) {
               </div>
             )}
             {peak && (
-              <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>
                 가장 많이 한 주 {weekLabel(peak.week)} · {metric.fmt(peak.value)}
               </div>
             )}
             {/* **이번 주는 선에 없다** — 안 끝난 주를 찍으면 늘 마지막이 꺾여 보인다 */}
             {now && now[metric.key] !== null && (
-              <div style={{ fontSize: 11.5, marginTop: 4, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>
                 이번 주는 아직 안 끝나서 선에 안 넣었어요 — 지금까지 {metric.fmt(now[metric.key])}
               </div>
             )}

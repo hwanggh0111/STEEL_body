@@ -120,7 +120,7 @@ export default function ExerciseNameInput({
       {unknown && (
         <div style={{
           // 읽어야 하는 **경고 문장**이다 — 딱지가 아니라 글이라 11.5 로 올렸다 (2026-11-11)
-          fontSize: 11.5, color: 'var(--warning)', lineHeight: 1.5,
+          fontSize: 11, color: 'var(--warning)', lineHeight: 1.5,
           marginTop: 3, letterSpacing: -0.1,
         }}>
           부위를 못 알아봐요 · 몸 지도에 안 들어갑니다
@@ -163,7 +163,7 @@ export default function ExerciseNameInput({
                       어느 것을 고르는지가 이름만으로는 안 갈린다 */}
                   {partOf(h) && (
                     <span style={{
-                      marginLeft: 'auto', flexShrink: 0, fontSize: 10.5,
+                      marginLeft: 'auto', flexShrink: 0, fontSize: 11,
                       color: 'var(--text-muted)', letterSpacing: 0.4,
                     }}>{partOf(h)}</span>
                   )}

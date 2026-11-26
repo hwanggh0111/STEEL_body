@@ -215,7 +215,7 @@ export default function SitePhotoAdmin() {
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: 13.5, color: p.caption ? 'var(--text-primary)' : 'var(--text-muted)', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 13, color: p.caption ? 'var(--text-primary)' : 'var(--text-muted)', lineHeight: 1.6 }}>
                     {p.caption || '설명 없음'}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>

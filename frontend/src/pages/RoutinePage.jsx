@@ -543,7 +543,7 @@ export default function RoutinePage() {
               onClick={() => setTab(key)}
               aria-pressed={on}
               style={{
-                flex: 1, padding: '10px 0', fontSize: 13.5, cursor: 'pointer',
+                flex: 1, padding: '10px 0', fontSize: 13, cursor: 'pointer',
                 borderRadius: 'var(--radius)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
                 background: on ? 'var(--accent)' : 'transparent',
@@ -563,14 +563,14 @@ export default function RoutinePage() {
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <div style={{ minWidth: 0, flexGrow: 1 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>하던 루틴</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>하던 루틴</div>
             <div style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {running.name} <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>· {session.done}/{session.total}</span>
+              {running.name} <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>· {session.done}/{session.total}</span>
             </div>
           </div>
           <button
             className="btn-secondary"
-            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12 }}
             onClick={() => navigate('/train')}
           >이어서</button>
         </div>
@@ -584,7 +584,7 @@ export default function RoutinePage() {
         나만의 루틴
       </div>
 
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.7 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.7 }}>
         루틴을 만들어두면 <b style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>순서를 따라가며 기록</b>할 수 있어요.
         지난번에 든 무게를 미리 채워둡니다.
       </p>
@@ -687,7 +687,7 @@ export default function RoutinePage() {
           {/* 무엇을 채웠고 무엇을 뺐는지 — **낭독기도 읽는다**(맵시) */}
           {fill && (
             <div role="status" style={{
-              fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: 12,
+              fontSize: 12, lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: 12,
               padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
             }}>
               <div style={{ color: 'var(--text-primary)' }}>{fill.head}</div>
@@ -718,13 +718,13 @@ export default function RoutinePage() {
                 className="btn-secondary"
                 aria-pressed={ordering}
                 onClick={() => setOrdering((v) => !v)}
-                style={{ padding: '6px 12px', fontSize: 12.5, flexShrink: 0 }}
+                style={{ padding: '6px 12px', fontSize: 12, flexShrink: 0 }}
               >{ordering ? '다 옮겼어요' : '순서 바꾸기'}</button>
             )}
           </div>
           <div style={{ height: 8 }} />
           {ordering && editingId != null && session?.routineId === editingId && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
               지금 하고 있는 판은 그대로예요 — 바꾼 순서는 다음에 시작할 때부터예요.
             </div>
           )}
@@ -849,7 +849,7 @@ export default function RoutinePage() {
           {/* 줄을 더하는 단추가 들고 있던 아래 틈(12px)을 대신 든다 — 없으면 「고치기」가 마지막 줄에 붙는다 */}
           {ordering && <div style={{ height: 12 }} />}
           {!ordering && newRoutine.exercises.length >= MAX_EXERCISES && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
               한 루틴에는 운동을 <b style={{ color: 'var(--text-secondary)' }}>{MAX_EXERCISES}개</b>까지
               담을 수 있어요. 더 넣으려면 루틴을 나눠 주세요.
             </div>
@@ -955,7 +955,7 @@ export default function RoutinePage() {
 
       {TYPE_NOTE[type] && (
         <div style={{
-          fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75,
+          fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.75,
           background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
           padding: '10px 13px', marginBottom: 14,
         }}>

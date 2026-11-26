@@ -33,7 +33,7 @@ function Row({ row, max }) {
         }} />
       </div>
 
-      <div style={{ width: 66, textAlign: 'right', fontSize: 13.5, color, flexShrink: 0 }}>
+      <div style={{ width: 66, textAlign: 'right', fontSize: 13, color, flexShrink: 0 }}>
         {fmt(row.delta, row.digits)}{row.unit}
       </div>
     </div>
@@ -80,7 +80,7 @@ export default function BodyChange({ records, workouts }) {
             </div>
             {change.headline ? (
               <>
-                <div style={{ fontSize: 16.5, color: 'var(--text-primary)', lineHeight: 1.6 }}>{change.headline.text}</div>
+                <div style={{ fontSize: 16, color: 'var(--text-primary)', lineHeight: 1.6 }}>{change.headline.text}</div>
                 {change.headline.sub && (
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{change.headline.sub}</div>
                 )}
@@ -102,13 +102,13 @@ export default function BodyChange({ records, workouts }) {
           {training && (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="label" style={{ marginBottom: 0 }}>그동안 운동은</div>
-              <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 {training.spanDays}일간 <span style={{ color: 'var(--accent)' }}>{training.days}일</span> 나와서
                 {' '}{training.count}번 적었어요
                 {training.perWeek != null && <> · 주 {training.perWeek.toFixed(1)}일</>}
               </div>
               {training.volumeKg > 0 && (
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   총 볼륨 {training.volumeKg >= 1000
                     ? `${(training.volumeKg / 1000).toFixed(1)}톤`
                     : `${training.volumeKg.toLocaleString()}kg`}
@@ -118,7 +118,7 @@ export default function BodyChange({ records, workouts }) {
             </div>
           )}
 
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
             좋고 나쁨을 매기지 않습니다. 무엇이 어느 쪽으로 갔는지만 보여드립니다.
           </div>
         </>

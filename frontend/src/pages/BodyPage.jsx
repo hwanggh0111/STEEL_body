@@ -134,14 +134,14 @@ export default function BodyPage() {
             fontFamily: 'inherit', borderColor: 'var(--accent)', background: 'var(--accent-dim)',
           }}
         >
-          <div style={{ fontSize: 11.5, color: 'var(--accent)', letterSpacing: 1, marginBottom: 7 }}>
+          <div style={{ fontSize: 11, color: 'var(--accent)', letterSpacing: 1, marginBottom: 7 }}>
             {change.days ? `${change.days}일 전과 견주면` : '지난번과 견주면'}
           </div>
-          <div style={{ fontSize: 14.5, color: 'var(--text-primary)', lineHeight: 1.75 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.75 }}>
             {change.headline.text}
           </div>
           {change.headline.sub && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 5 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 5 }}>
               {change.headline.sub}
             </div>
           )}
@@ -181,8 +181,8 @@ export default function BodyPage() {
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            <span style={{ display: 'block', fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 600 }}>{name} ›</span>
-            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{sub}</span>
+            <span style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{name} ›</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{sub}</span>
           </button>
         ))}
       </div>

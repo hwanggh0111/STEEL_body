@@ -672,7 +672,7 @@ export default function Layout() {
             }}>{nickname}</span>
             {checkAdmin() && (
               <span style={{
-                fontSize: 9, fontWeight: 700, color: 'var(--on-accent)', background: 'var(--accent)',
+                fontSize: 11, fontWeight: 700, color: 'var(--on-accent)', background: 'var(--accent)',
                 padding: '1px 6px', borderRadius: 'var(--radius)', letterSpacing: 0.5, flexShrink: 0,
               }}>관리자</span>
             )}
@@ -702,7 +702,7 @@ export default function Layout() {
               // (2026-10-15 에 151 자리를 한꺼번에 고친 규칙이다)
               minWidth: 44, minHeight: 32, marginLeft: -12,
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--accent)', fontSize: 17, lineHeight: 1, padding: 0,
+              color: 'var(--accent)', fontSize: 16, lineHeight: 1, padding: 0,
             }}
           >←</button>
           <span style={{

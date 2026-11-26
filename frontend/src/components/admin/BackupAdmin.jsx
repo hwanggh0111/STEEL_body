@@ -70,7 +70,7 @@ export default function BackupAdmin() {
         padding: '12px 14px', marginBottom: 12, borderLeft: '2px solid var(--warning)',
       }}>
         <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>사진은 안 들어갑니다</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
           프로필 · 전 · 후 사진은 따로 담겨 있고 수십 MB 라, 브라우저로 받으면 받다 멈춥니다.
           사진까지 뜨려면 서버에서 <code style={{ fontSize: 11 }}>npm run backup</code> 을 돌려야 합니다.
         </div>
@@ -80,7 +80,7 @@ export default function BackupAdmin() {
         padding: '12px 14px', marginBottom: 12, borderLeft: '2px solid var(--danger)',
       }}>
         <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>받은 파일은 간수하세요</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
           회원들의 메일 주소와 <b>비밀번호 해시</b>가 들어 있습니다. 비밀번호를 빼면 되돌렸을 때
           아무도 로그인을 못 하니 뺄 수가 없어요. 메신저나 메일로 보내지 마시고,
           <b> 본인 컴퓨터에만</b> 두세요.
@@ -94,7 +94,7 @@ export default function BackupAdmin() {
         style={{ width: '100%', minHeight: 44 }}
       >{busy ? '떠받는 중…' : '통째로 떠받기'}</button>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 12 }}>
         배포하기 전과 큰 것을 고치기 전에 한 번씩 떠두시면 됩니다.
       </div>
     </div>

@@ -24,7 +24,10 @@ const STATUS = {
   received: { label: '접수',     color: 'var(--info)',       dim: 'var(--info-dim)' },
   checking: { label: '확인중',   color: 'var(--warning)',    dim: 'var(--warning-dim)' },
   done:     { label: '처리완료', color: 'var(--success)',    dim: 'var(--success-dim)' },
-  held:     { label: '보류',     color: 'var(--text-muted)', dim: 'var(--bg-tertiary)' },
+  // 보류는 **무채색이 뜻**이다(접수·확인중·처리완료는 색을 쓴다). 색은 그대로 두고
+  // 밝기만 올렸다 — 칩 바탕(#282219)에서 흐린 글자는 4.11, 보조 글자는 6.20 이다
+  // (2026-11-26 · 맵시 · 시안 ② B안)
+  held:     { label: '보류',     color: 'var(--text-secondary)', dim: 'var(--bg-tertiary)' },
 };
 
 const FREQ = { always: '매번 그래요', sometimes: '가끔 그래요', once: '한 번만 그랬어요' };
@@ -141,7 +144,7 @@ function AbuseLogs() {
         <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>욕설 · 비하 기록</span>
         {pending > 0 && (
           <span style={{
-            fontSize: 10.5, padding: '1px 7px', borderRadius: 'var(--radius)',
+            fontSize: 11, padding: '1px 7px', borderRadius: 'var(--radius)',
             color: 'var(--danger)', border: '1px solid var(--danger)',
           }}>확인 안 함 {pending}</span>
         )}
@@ -162,17 +165,17 @@ function AbuseLogs() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, color: lv.color }}>{lv.label}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.action}</span>
-                  {a.dismissed && <span style={{ fontSize: 10.5, color: 'var(--success)' }}>오탐 처리됨</span>}
+                  {a.dismissed && <span style={{ fontSize: 11, color: 'var(--success)' }}>오탐 처리됨</span>}
                   {/* **오탐 처리와 정지는 같이 있을 수 있다** (2026-10-26). 여태
                       `!a.dismissed` 가 붙어 있어서, 오탐 하나를 뺀 뒤 남은 누적으로
                       **다시 걸린 정지**가 화면에서 사라졌다 — 「오탐 처리됨」만 보이고
                       그 사람은 아직 막혀 있었다 */}
-                  {a.suspended && <span style={{ fontSize: 10.5, color: 'var(--danger)' }}>정지 중</span>}
+                  {a.suspended && <span style={{ fontSize: 11, color: 'var(--danger)' }}>정지 중</span>}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                     {a.nickname || ('회원 ' + a.user_id)} · {day(a.created_at)}
                   </span>
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, wordBreak: 'break-all' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, wordBreak: 'break-all' }}>
                   {a.text}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -258,7 +261,7 @@ function Ratings() {
 
   if (!stats.count) {
     return (
-      <div className="card" style={{ marginBottom: 16, padding: 14, fontSize: 12.5, color: 'var(--text-muted)' }}>
+      <div className="card" style={{ marginBottom: 16, padding: 14, fontSize: 12, color: 'var(--text-muted)' }}>
         만족도 — 아직 아무도 매기지 않았습니다
       </div>
     );
@@ -273,12 +276,12 @@ function Ratings() {
         <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5, color: 'var(--accent)' }}>
           만족도
         </span>
-        <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, color: 'var(--text-primary)' }}>
+        <span style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, color: 'var(--text-primary)' }}>
           {stats.avg}
         </span>
-        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{stats.count}명</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{stats.count}명</span>
         {low > 0 && (
-          <span style={{ fontSize: 11.5, color: 'var(--danger)', marginLeft: 'auto' }}>
+          <span style={{ fontSize: 11, color: 'var(--danger)', marginLeft: 'auto' }}>
             2점 이하 {low}명
           </span>
         )}
@@ -365,7 +368,7 @@ export default function ReportAdmin() {
   };
 
   const chip = (on, color) => ({
-    padding: '7px 12px', fontSize: 12.5, borderRadius: 'var(--radius)',
+    padding: '7px 12px', fontSize: 12, borderRadius: 'var(--radius)',
     border: '1px solid ' + (on ? (color || 'var(--accent)') : 'var(--border)'),
     background: on ? (color || 'var(--accent)') : 'transparent',
     color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
@@ -388,7 +391,7 @@ export default function ReportAdmin() {
           onClick={load}
           style={{
             marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11.5,
+            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11,
             borderRadius: 'var(--radius)', cursor: 'pointer',
           }}
         >새로 읽기</button>
@@ -441,26 +444,26 @@ export default function ReportAdmin() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ color: kd.color, display: 'flex' }} aria-hidden="true"><NavIcon name={kd.icon} size={16} /></span>
-                    <span style={{ fontSize: 11.5, color: kd.color }}>{kd.label}</span>
+                    <span style={{ fontSize: 11, color: kd.color }}>{kd.label}</span>
                     <span style={{
-                      fontSize: 10.5, padding: '1px 7px', borderRadius: 'var(--radius)',
+                      fontSize: 11, padding: '1px 7px', borderRadius: 'var(--radius)',
                       color: st.color, background: st.dim, border: '1px solid ' + st.color,
                     }}>{st.label}</span>
-                    {r.reply && <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>답변함</span>}
+                    {r.reply && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>답변함</span>}
                     {/* 짜증 섞인 말로 통과한 제보. 처벌한 게 아니라 눈에만 띄게 한다 */}
                     {r.flagged === 'mild' && (
-                      <span style={{ fontSize: 10.5, color: 'var(--warning)' }}>말이 거칠음</span>
+                      <span style={{ fontSize: 11, color: 'var(--warning)' }}>말이 거칠음</span>
                     )}
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                       #{r.id} · 회원 {r.user_id} · {day(r.created_at)}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14.5, color: 'var(--text-primary)', lineHeight: 1.5 }}>{r.title}</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5 }}>{r.title}</div>
                   {tags.length > 0 && (
                     <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
                       {tags.map(t => (
                         <span key={t} style={{
-                          fontSize: 10.5, color: 'var(--text-muted)', border: '1px solid var(--border)',
+                          fontSize: 11, color: 'var(--text-muted)', border: '1px solid var(--border)',
                           borderRadius: 'var(--radius)', padding: '1px 6px',
                         }}>{t}</span>
                       ))}
@@ -480,7 +483,7 @@ export default function ReportAdmin() {
                     {/* 기기 정보 — 보낸 사람이 첨부에 동의했을 때만 있다 */}
                     {r.device && (
                       <div style={{
-                        fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7,
+                        fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7,
                         background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
                         padding: '8px 11px', marginBottom: 12, wordBreak: 'break-all',
                       }}>

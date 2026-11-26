@@ -80,7 +80,7 @@ export default function YearWall({ onPickMonth }) {
               {life.unit === 'ton' ? ' 톤' : life.unit === 'kg' ? ' kg' : ' 세트'}
             </span>
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.7 }}>
             운동한 날 <b style={{ color: 'var(--text-primary)' }}>{life.days.toLocaleString()}일</b>
             {life.first && <> &middot; 첫 기록 <b style={{ color: 'var(--text-primary)' }}>{life.first}</b></>}
             {/* 세트 수를 크게 적은 사람에게는 **같은 수를 두 번** 적지 않는다 */}
@@ -92,7 +92,7 @@ export default function YearWall({ onPickMonth }) {
               없다(`volumeOf`). 조용히 빼면 「나는 이만큼 했는데 수가 안 는다」가 된다 */}
           {life.unit !== 'set' && life.bodyweightSets > 0 && (
             <div style={{
-              fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.65,
+              fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.65,
               borderTop: '1px solid var(--border)', paddingTop: 8,
             }}>
               맨몸 <b style={{ color: 'var(--text-secondary)' }}>{life.bodyweightSets.toLocaleString()}세트</b>는
@@ -163,7 +163,7 @@ export default function YearWall({ onPickMonth }) {
                 color: m.count > 0 ? 'var(--text-secondary)' : 'var(--text-muted)',
               }}>{m.name}</span>
               {/* 그 달에 몇 번 했나. 9px 은 이 앱에서 가장 작은 글자였다 (2026-11-11) */}
-              <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
               {m.days.map((d) => (
@@ -209,12 +209,12 @@ export default function YearWall({ onPickMonth }) {
 
       {/* 한 해의 숫자 — 상자로 키우지 않는다. 벽이 주인공이다 */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        {total.tons > 0 && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{total.tons.toLocaleString()}톤</span>}
+        {total.tons > 0 && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{total.tons.toLocaleString()}톤</span>}
         {total.tons > 0 && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
-        <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>최장 {total.longest}일 연속</span>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>최장 {total.longest}일 연속</span>
         {total.bestMonth && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
         {total.bestMonth && (
-          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             가장 뜨거웠던 달 {total.bestMonth.name}
           </span>
         )}

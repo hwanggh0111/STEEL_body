@@ -110,14 +110,14 @@ export default function RestBreath() {
 
       <div style={{ minWidth: 0, flexGrow: 1 }}>
         {!breath.on ? (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             숨을 들어보고 아직 올라있으면 몇 초 더 드려요
           </div>
         ) : breath.phase === 'ready' || !breath.base ? (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>조용한 소리를 재는 중…</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>조용한 소리를 재는 중…</div>
         ) : (
           <>
-            <div style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{breathLabel(state)}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{breathLabel(state)}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               {/* 준 것이 없으면 「0초 더」라고 적지 않는다 — 그건 아무 말도 아니다 */}
               {given > 0 ? `${given}초 더 드렸어요` : '소리 크기만 재요 · 녹음하지 않아요'}
@@ -128,7 +128,7 @@ export default function RestBreath() {
 
       <button
         className="btn-secondary"
-        style={{ width: 'auto', padding: '5px 10px', fontSize: 11.5, flexShrink: 0 }}
+        style={{ width: 'auto', padding: '5px 10px', fontSize: 11, flexShrink: 0 }}
         onClick={() => (breath.on ? breath.stop() : breath.start())}
       >{breath.on ? '그만 듣기' : '숨 듣기'}</button>
     </div>

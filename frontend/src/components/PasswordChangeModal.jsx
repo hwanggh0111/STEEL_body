@@ -145,7 +145,7 @@ export default function PasswordChangeModal({ onClose, onChanged }) {
           )}
 
           <div style={{
-            fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7,
+            fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
             background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
             padding: '10px 12px', marginBottom: 14,
           }}>

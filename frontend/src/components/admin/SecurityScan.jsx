@@ -124,7 +124,7 @@ export default function SecurityScan() {
                   <span style={{ fontSize: 13, color: r.status === 'SAFE' ? 'var(--text-secondary)' : 'var(--danger)' }}>{r.name}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {r.severity && <span style={{ fontSize: 10, color: sevColor(r.severity), fontWeight: 700 }}>{SEV[r.severity] || r.severity}</span>}
+                  {r.severity && <span style={{ fontSize: 11, color: sevColor(r.severity), fontWeight: 700 }}>{SEV[r.severity] || r.severity}</span>}
                   <span style={{ fontSize: 12, color: r.status === 'SAFE' ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
                     {r.status === 'SAFE' ? '통과' : '걸림'}
                   </span>
@@ -134,7 +134,7 @@ export default function SecurityScan() {
                   「NODE_ENV · HIGH · VULN」만 보고는 무엇을 고쳐야 하는지 알 수 없다 —
                   「production 이 아님: development」가 있어야 손을 댈 수 있다 */}
               {r.detail && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 5, paddingLeft: 70, lineHeight: 1.6, wordBreak: 'break-all' }}>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 5, paddingLeft: 70, lineHeight: 1.6, wordBreak: 'break-all' }}>
                   {r.detail}
                 </div>
               )}
@@ -149,7 +149,7 @@ export default function SecurityScan() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
             <div className="card" style={{ padding: 12 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>서버</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>서버</div>
               <div style={{ fontSize: 13 }}>Node {srv.nodeVersion || '-'}</div>
               {/* **`env` 를 보내는데 안 읽고 있었다** (2026-10-27). 바로 위 검사가
                   「NODE_ENV 가 production 이 아님」으로 등급을 깎는 자리라, 지금 어느
@@ -165,7 +165,7 @@ export default function SecurityScan() {
               </div>
             </div>
             <div className="card" style={{ padding: 12 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>사용자</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>사용자</div>
               <div style={{ fontSize: 13 }}>총 {n(usr.total)}명</div>
               {/* **`banned` 를 보내는데 안 읽고 있었다** — 「차단」(권한)과 「정지」는
                   다른 일이다. 10/26 에 고친 것이 전부 정지 쪽인데 그 수가 이 화면에
@@ -175,14 +175,14 @@ export default function SecurityScan() {
               </div>
             </div>
             <div className="card" style={{ padding: 12 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>위협 감지</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>위협 감지</div>
               <div style={{ fontSize: 13, color: 'var(--danger)' }}>영구정지 {n(thr.level4)} · 정지 {n(thr.level3)} · 잠금 {n(thr.level2)}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 되돌려 보낸 비율 {thr.blockRate || '-'} ({n(thr.totalBlocked)}/{n(thr.totalRequests)})
               </div>
             </div>
             <div className="card" style={{ padding: 12 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>인증</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>인증</div>
               <div style={{ fontSize: 13 }}>{aut.jwtAlgorithm || '-'} · {aut.accessTokenExpiry || '-'}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 다시 받기 {aut.refreshTokenExpiry || '-'} · 암호 {n(aut.bcryptRounds)}회
@@ -200,7 +200,7 @@ export default function SecurityScan() {
                 **서버가 뜬 뒤로 몇 번 있었나**이고, 이것은 **지금 몇이 걸려 있나**다 —
                 풀어달라는 사람이 왔을 때 봐야 하는 쪽은 이쪽이다 */}
             <div className="card" style={{ padding: 12, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>지금 걸려 있는 것</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>지금 걸려 있는 것</div>
               <div style={{ fontSize: 13 }}>
                 막힌 주소 {n(thr.activeLocks)} · 정지 {n(thr.suspensions)} · 가입 막음 {n(thr.blacklistEntries)}
               </div>

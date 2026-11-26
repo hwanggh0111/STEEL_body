@@ -81,7 +81,7 @@ function MoreLink({ onClick, children }) {
       onClick={onClick}
       style={{
         background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer',
-        fontSize: 11.5, color: 'var(--text-muted)', textDecoration: 'underline',
+        fontSize: 11, color: 'var(--text-muted)', textDecoration: 'underline',
         textUnderlineOffset: 3,
       }}
     >{children}</button>
@@ -139,7 +139,7 @@ function Card({ ko, en, desc, pickLabel, onPick }) {
           </div>
           {en && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{en}</div>}
           {desc && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 5, lineHeight: 1.65 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 5, lineHeight: 1.65 }}>
               {desc}
             </div>
           )}
@@ -187,7 +187,7 @@ function Card({ ko, en, desc, pickLabel, onPick }) {
           {/* 순서가 있는 것이라 번호를 매긴다 — 이 자리에서는 번호가 장식이 아니다 */}
           <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {form.steps.map((line) => (
-              <li key={line} style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              <li key={line} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 {line}
               </li>
             ))}
@@ -259,7 +259,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
   return (
     <div>
       {!compact && (
-        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.7 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.7 }}>
           한국어 · 영어 · 초성으로 찾습니다. 부위 이름으로도 됩니다.
           <br />인터넷이 끊겨도 찾을 수 있습니다.
         </p>
@@ -325,7 +325,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
               <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>
                 앱 안에서는 못 찾았어요
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>이름 그대로 적으셔도 그대로 기록됩니다.</b>{' '}
                 사전에 없는 이름도 낱말을 보고 부위를 맞혀봅니다.
                 <br />오타일 수도 있어요 — 위의 부위 단추로 둘러보시거나,

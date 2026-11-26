@@ -44,7 +44,7 @@ export default function ProgramList({ onAdopt, adopting }) {
         <div className="accent-bar" />
         프로그램
       </div>
-      <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 14 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 14 }}>
         <b style={{ color: 'var(--text-secondary)' }}>일주일을 통째로 짜 둔 것</b>이에요.
         고르면 그 날들이 <b style={{ color: 'var(--text-secondary)' }}>내 루틴</b>으로 한 번에 들어갑니다 —
         그 다음부터는 평소처럼 고쳐 쓰시면 돼요. 앱이 붙잡아두지 않아요.
@@ -75,7 +75,7 @@ export default function ProgramList({ onAdopt, adopting }) {
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, letterSpacing: 0.3 }}>
                 주 {p.days_per_week}회 · {p.days.length}일 한 바퀴 · 종목 {total}개 · {p.weeks}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
                 {p.who}
               </div>
             </button>
@@ -83,7 +83,7 @@ export default function ProgramList({ onAdopt, adopting }) {
             {open && (
               <div style={{ padding: '0 16px 14px' }}>
                 <hr className="rule-beam" style={{ margin: '2px 0 12px' }} />
-                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 14 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 14 }}>
                   {p.note}
                 </p>
 

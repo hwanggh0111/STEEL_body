@@ -107,14 +107,14 @@ function WeeklyReport({ workouts, today }) {
 
         {/* 맨몸은 볼륨에 못 넣는다 — 체중을 모른다. 숨기지 말고 그렇다고 적어둔다 */}
         {r.volume.bodyweightSets > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: -8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: -8 }}>
             볼륨은 무게를 적은 것만 셉니다. 맨몸 {r.volume.bodyweightSets}세트는 빠져 있어요.
           </div>
         )}
 
         {/* 무게도 들고 유산소도 한 주 — **나란히** 적는다 */}
         {r.volume.kg > 0 && r.cardio?.count > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: -8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: -8 }}>
             유산소 {r.cardio.count}건 · {[minuteLabel(r.cardio.minutes), kmLabel(r.cardio.km)].filter(Boolean).join(' · ')}
             는 볼륨에 들지 않습니다.
           </div>
@@ -136,7 +136,7 @@ function WeeklyReport({ workouts, today }) {
             display: 'flex', flexDirection: 'column', gap: 2,
           }}>
             {r.notes.map((n, i) => (
-              <div key={i} style={{ fontSize: 13.5, color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{n}</div>
+              <div key={i} style={{ fontSize: 13, color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{n}</div>
             ))}
           </div>
         )}

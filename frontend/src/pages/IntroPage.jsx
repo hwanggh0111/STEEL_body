@@ -59,7 +59,7 @@ export default function IntroPage({ embedded = false }) {
         그래서 전부 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>값</span>이 있다.
       </p>
       <p style={{
-        fontSize: 14.5, lineHeight: 1.85, color: 'var(--text-secondary)',
+        fontSize: 14, lineHeight: 1.85, color: 'var(--text-secondary)',
         margin: '0 0 32px', maxWidth: 380,
       }}>
         빠진 날까지 전부 남는다.<br />
@@ -122,7 +122,7 @@ export default function IntroPage({ embedded = false }) {
         onClick={() => navigate('/train')}
         style={{
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
           color: 'var(--accent)', borderBottom: '2px solid var(--accent)',
           paddingBottom: 4, marginTop: 26,
         }}

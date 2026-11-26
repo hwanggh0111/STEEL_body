@@ -56,12 +56,12 @@ export default function BreathCheck({ sense }) {
         <button
           onClick={() => (breath.on ? breath.stop() : breath.start())}
           className="btn-secondary"
-          style={{ width: 'auto', padding: '5px 12px', fontSize: 11.5, fontFamily: 'inherit', cursor: 'pointer' }}
+          style={{ width: 'auto', padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}
         >{breath.on ? '멈추기' : '들어보기'}</button>
       </div>
 
       {!breath.on && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
           눌러서 숨을 한 번 쉬어보세요. <b>여기서 잰 것은 저장하지 않아요</b> —
           실제로 운동할 때 그 자리에서 다시 잽니다.
         </div>
@@ -69,7 +69,7 @@ export default function BreathCheck({ sense }) {
 
       {breath.on && breath.phase !== 'ready' && (
         <div style={{
-          fontSize: 11.5, lineHeight: 1.6,
+          fontSize: 11, lineHeight: 1.6,
           color: breath.phase === 'blocked' ? 'var(--warning)' : 'var(--text-muted)',
         }}>
           {breath.phase === 'asking' && '마이크를 여는 중이에요…'}

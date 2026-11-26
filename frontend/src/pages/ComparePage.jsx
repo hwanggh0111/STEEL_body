@@ -99,10 +99,10 @@ function ChangeRow({ c }) {
       <span style={{ fontSize: 13, color: 'var(--text-secondary)', flexShrink: 0 }}>{c.label}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{c.before}{c.unit}</span>
-        <span style={{ fontSize: 15, color: 'var(--text-muted)' }}>&#8594;</span>
+        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>&#8594;</span>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{c.after}{c.unit}</span>
         <span style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1,
           color: dirColor(c.dir), minWidth: 58, textAlign: 'right', flexShrink: 0,
         }}>{diffLabel(c)}</span>
       </div>
@@ -577,7 +577,7 @@ export default function ComparePage({ embedded = false }) {
         <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 6 }}>
           인바디 기록을 못 받아왔어요
         </div>
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 14 }}>
           기록이 없는 것이 아니라 <b>받아오지 못한 것</b>이에요.
           신호를 확인하고 다시 받아보세요.
         </div>
@@ -608,7 +608,7 @@ export default function ComparePage({ embedded = false }) {
           ))}
         </select>
       </div>
-      <div style={{ fontSize: 15, color: 'var(--text-muted)', paddingBottom: 11, flexShrink: 0 }}>&#8594;</div>
+      <div style={{ fontSize: 14, color: 'var(--text-muted)', paddingBottom: 11, flexShrink: 0 }}>&#8594;</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <label className="label" htmlFor="cmp-after">현재</label>
         <select
@@ -674,7 +674,7 @@ export default function ComparePage({ embedded = false }) {
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
           gap: 10, marginBottom: 20,
         }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, minWidth: 0 }}>
             사진은 마지막에 올린 두 장입니다 — 위에서 고른 날짜와는 별개예요.
           </div>
           {/* **내 것을 챙겨 나가는 길.** 운동 · 인바디 · 측정은 CSV 로 뺄 수 있는데
@@ -686,7 +686,7 @@ export default function ComparePage({ embedded = false }) {
             style={{
               flexShrink: 0, background: 'none', border: '1px solid var(--border)',
               color: saving ? 'var(--text-muted)' : 'var(--text-secondary)',
-              padding: '7px 12px', fontSize: 11.5, borderRadius: 'var(--radius)',
+              padding: '7px 12px', fontSize: 11, borderRadius: 'var(--radius)',
               cursor: saving ? 'default' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
             }}
           >
@@ -730,14 +730,14 @@ export default function ComparePage({ embedded = false }) {
       {list.length > 0 ? (
         <div className="card" style={{ marginBottom: 10 }}>
           {!isExample && days != null && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
               {spanLabel(days)}
             </div>
           )}
           {list.map((c) => <ChangeRow key={c.key} c={c} />)}
           {/* **판단하지 않는다고 말한다.** 색만 다르게 칠해두면 사람은 그 색을
               점수로 읽는다 — 초록이 없어도 주황이 있으면 주의로 읽는다 */}
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
             늘고 줆에 좋고 나쁨을 매기지 않습니다. 무엇이 어느 쪽으로 갔는지만 적어요 —
             <span style={{ color: 'var(--accent)' }}> 늘어난 것</span>과
             <span style={{ color: 'var(--info)' }}> 줄어든 것</span>.

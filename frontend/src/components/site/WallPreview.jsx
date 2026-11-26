@@ -61,7 +61,7 @@ export default function WallPreview({ style }) {
       <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.5, marginTop: 13 }}>
         {plates.year}년 <span style={{ color: 'var(--accent)' }}>{plates.days}일</span>을<br />새겼습니다
       </div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginTop: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, marginTop: 8 }}>
         무겁게 든 달일수록 깊다. 가장 길게 이어진 것은 {plates.longest}일이고,
         남은 두 판은 아직 비어 있다.
       </div>

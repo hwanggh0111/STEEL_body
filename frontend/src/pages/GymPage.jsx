@@ -75,7 +75,7 @@ function GymClear({ name, count, onClear }) {
         onClick={() => onClear(name, count)}
         style={{
           background: 'none', border: 'none', padding: '4px 2px', fontFamily: 'inherit',
-          fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline',
+          fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline',
         }}
       >{name} 세팅 {count}개 통째로 지우기</button>
     </div>
@@ -184,14 +184,14 @@ export default function GymPage() {
             그리는데 그 위에 같은 말을 한 줄 더 적고 있었다 — 같은 것을 두 번 그리지 않는다.
             칸이 하나도 없고 한마디만 적은 줄은 아래에서 한마디가 그 자리를 대신한다 */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, color: 'var(--text-primary)' }}>{s.exercise}</div>
+          <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{s.exercise}</div>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(s); }}
           aria-label={`${s.exercise} 세팅 지우기`}
           style={{
             flexShrink: 0, background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', fontSize: 11.5, padding: '6px 10px',
+            color: 'var(--text-muted)', fontSize: 11, padding: '6px 10px',
             borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >지우기</button>
@@ -206,7 +206,7 @@ export default function GymPage() {
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           {filledSlots(s).map((f) => (
             <span key={f.key} style={{
-              fontSize: 11.5, color: 'var(--text-secondary)',
+              fontSize: 11, color: 'var(--text-secondary)',
               background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius)', padding: '3px 9px',
             }}>{f.label} {f.value}</span>
@@ -228,7 +228,7 @@ export default function GymPage() {
           캡처를 뽑다가 레이트 리밋(429)에 걸려 실제로 그 화면을 봤다 (2026-09-17) */}
       {!loaded && failed && (
         <div className="card" style={{ borderLeft: '3px solid var(--warning)' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
             적어둔 세팅을 못 불러왔어요
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
@@ -259,7 +259,7 @@ export default function GymPage() {
                       minHeight: 40, padding: '0 13px', fontFamily: 'inherit', fontSize: 13,
                       background: on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                       border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
-                      color: on ? 'var(--accent)' : 'var(--text-muted)',
+                      color: on ? 'var(--accent)' : 'var(--text-secondary)',
                       borderRadius: 'var(--radius)', cursor: 'pointer',
                     }}
                   >
@@ -287,7 +287,7 @@ export default function GymPage() {
             </div>
 
             {gyms.length >= MAX_GYMS && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
                 헬스장은 <b style={{ color: 'var(--text-secondary)' }}>{MAX_GYMS}곳</b>까지
                 담을 수 있어요. 안 다니는 곳의 세팅을 지우면 또 더할 수 있습니다.
               </div>
@@ -310,12 +310,12 @@ export default function GymPage() {
                   className="btn-primary"
                   disabled={!gymInput.trim()}
                   onClick={() => { setGym(gymInput.trim()); setGymInput(''); setAdding(false); }}
-                  style={{ flexShrink: 0, width: 'auto', padding: '11px 16px', fontSize: 15, whiteSpace: 'nowrap' }}
+                  style={{ flexShrink: 0, width: 'auto', padding: '11px 16px', fontSize: 14, whiteSpace: 'nowrap' }}
                 >여기로</button>
               </div>
             )}
 
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
               {gym
                 ? <>지금 <span style={{ color: 'var(--accent)' }}>{gym}</span> 기준입니다 · 이 기기에만 남습니다</>
                 : '고르면 「운동」 화면에서 그곳 세팅이 뜹니다'}
@@ -345,7 +345,7 @@ export default function GymPage() {
                         type="button"
                         onClick={() => setAltFor(name)}
                         style={{
-                          minHeight: 36, padding: '0 11px', fontFamily: 'inherit', fontSize: 12.5,
+                          minHeight: 36, padding: '0 11px', fontFamily: 'inherit', fontSize: 12,
                           background: altFor === name ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
                           border: `1px solid ${altFor === name ? 'var(--accent)' : 'var(--border)'}`,
                           color: altFor === name ? 'var(--accent)' : 'var(--text-secondary)',
@@ -371,7 +371,7 @@ export default function GymPage() {
                         }}
                       >{/* NavIcon 에 「닫기」 그림이 없다 — 글자로 둔다 (지어내서 이름을 부르면
                            그 자리가 빈 칸으로 그려진다 · `check-name` 이 못 잡는 류다) */}
-                        <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>&times;</span>
+                        <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>&times;</span>
                       </button>
                     </span>
                   ))}
@@ -406,7 +406,7 @@ export default function GymPage() {
                   부위를 모르는 이름(사람이 지어 적은 것)에는 아무것도 권하지 않는다 */}
               {altFor && (
                 <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 11 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
                     <b>{altFor}</b> 대신 같은 부위로
                   </div>
                   {alts.length === 0 ? (
@@ -422,7 +422,7 @@ export default function GymPage() {
                           borderBottom: '1px solid var(--border)', fontSize: 13,
                         }}>
                           <span style={{ overflowWrap: 'anywhere' }}>{a.이름}</span>
-                          <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }}>
+                          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
                             {a.부위}{a.기구 ? ` · ${a.기구}` : ''}
                           </span>
                         </div>
@@ -480,7 +480,7 @@ export default function GymPage() {
                         onClick={() => setGym(name)}
                         style={{
                           marginLeft: 'auto', background: 'none', border: 'none',
-                          color: 'var(--accent)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                          color: 'var(--accent)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                         }}
                       >여기로 옮기기</button>
                     )}
@@ -496,7 +496,7 @@ export default function GymPage() {
 
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 4,
-            fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75,
+            fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75,
           }}>
             <span style={{ flexShrink: 0, marginTop: 2 }}><NavIcon name="wrench" size={14} /></span>
             <span>

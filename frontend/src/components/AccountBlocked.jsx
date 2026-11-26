@@ -117,7 +117,7 @@ export default function AccountBlocked() {
               {block.untilLabel}
             </div>
             {block.left && (
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10 }}>{block.left}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10 }}>{block.left}</div>
             )}
           </div>
         )}
@@ -138,7 +138,7 @@ export default function AccountBlocked() {
           </div>
         )}
 
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.9, marginBottom: 20 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.9, marginBottom: 20 }}>
           {block.tail}
           <br />
           {/* **지금은 제보도 막혀 있다.** 보낼 수 없는 길을 가리키지 않는다 —

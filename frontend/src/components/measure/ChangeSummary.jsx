@@ -18,7 +18,7 @@ export default function ChangeSummary({ records, fields, today }) {
 
   return (
     <div className="card" style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 8 }}>
         지난번과 견주면
       </div>
       {rows.map(({ f, ch }) => (
@@ -26,7 +26,7 @@ export default function ChangeSummary({ records, fields, today }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
           gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)',
         }}>
-          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{f.label}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{f.label}</span>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             {ch.prev}{f.unit} &#8594; <b style={{ color: 'var(--text-primary)' }}>{ch.last}{f.unit}</b>
             <b style={{
@@ -38,7 +38,7 @@ export default function ChangeSummary({ records, fields, today }) {
         </div>
       ))}
       {/* 색만 다르게 칠해두면 사람은 그 색을 점수로 읽는다. 아니라고 적어둔다 */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
         늘고 줆에 좋고 나쁨을 매기지 않습니다. 무엇이 어느 쪽으로 갔는지만 적어요.
       </div>
     </div>

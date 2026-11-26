@@ -415,7 +415,7 @@ export default function RegisterPage() {
               after={(
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
                   <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>또는 메일로 만들기</span>
                   <div style={{ flexGrow: 1, height: 1, background: 'var(--border)' }} />
                 </div>
               )}
@@ -427,7 +427,7 @@ export default function RegisterPage() {
               <div role="status" style={{
                 border: '1px solid var(--border-hover)', borderRadius: 'var(--radius)',
                 background: 'var(--bg-secondary)', padding: '10px 12px', marginBottom: 14,
-                fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7,
+                fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
               }}>
                 메일 확인부터 다시 해주세요 — 화면을 새로 열면 받은 번호는 남지 않아요.
                 <strong style={{ color: 'var(--text-primary)' }}> 가입은 아직 안 됐습니다.</strong>
@@ -472,7 +472,7 @@ export default function RegisterPage() {
             {emailOk && mailReady === false && (
               <div role="alert" style={{
                 border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
-                padding: '12px 13px', fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.7,
+                padding: '12px 13px', fontSize: 12, color: 'var(--danger)', lineHeight: 1.7,
               }}>
                 지금은 <strong>메일을 보낼 수 없어요.</strong> 메일 보내기가 아직 연결되지 않아
                 직접 만드는 가입은 잠시 막혀 있습니다 — 위의 <strong>Google 로 가입하기</strong>를
@@ -508,7 +508,7 @@ export default function RegisterPage() {
                         if (error) setError('');
                       }}
                       style={{
-                        marginBottom: 8, letterSpacing: 6, textAlign: 'center', fontSize: 19,
+                        marginBottom: 8, letterSpacing: 6, textAlign: 'center', fontSize: 18,
                         borderColor: code.length === 6 ? 'var(--success)' : 'var(--border)',
                       }}
                     />
@@ -567,7 +567,7 @@ export default function RegisterPage() {
             }}>
               <span style={{ fontSize: 12, color: 'var(--success)', flexShrink: 0 }}>확인됨</span>
               <span style={{
-                fontSize: 12.5, color: 'var(--text-primary)', minWidth: 0,
+                fontSize: 12, color: 'var(--text-primary)', minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{email}</span>
               <button
@@ -575,7 +575,7 @@ export default function RegisterPage() {
                 onClick={backToMail}
                 style={{
                   marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
-                  padding: 0, font: 'inherit', fontSize: 11.5, color: 'var(--accent-low)',
+                  padding: 0, font: 'inherit', fontSize: 11, color: 'var(--accent-low)',
                   cursor: 'pointer', textDecoration: 'underline',
                 }}
               >고치기</button>
@@ -673,7 +673,7 @@ export default function RegisterPage() {
                 <span style={{ color: pwStrength.color, whiteSpace: 'nowrap' }}>{pwStrength.label}</span>
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
               {password && !pwValid
                 ? `영문+숫자 조합 ${PW_MIN}자 이상 필수`
                 : '한 번만 적습니다 · 「보기」로 확인하세요'}

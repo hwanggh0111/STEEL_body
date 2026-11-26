@@ -1197,7 +1197,7 @@ export default function TrainPage() {
             <circle cx="12" cy="13" r="8" /><path d="M12 9.5V13l2.3 1.6M9 2h6" />
           </svg>
           <span style={{
-            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
             color: restRunning ? 'var(--accent)' : 'var(--text-muted)',
           }}>{restRunning ? <RestLeft /> : '휴식'}</span>
         </button>
@@ -1211,7 +1211,7 @@ export default function TrainPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: 1 }}>하는 중</span>
             <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{session.name}</span>
-            <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--accent)' }}>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent)' }}>
               {session.done} / {session.total}
             </span>
           </div>
@@ -1281,7 +1281,7 @@ export default function TrainPage() {
               ) : (
                 <>
                   <SetChecks done={setsDone} planned={plannedSets} onTap={tapSet} disabled={saving} />
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     {plannedSets
                       ? '한 세트 끝낼 때마다 누르세요. 마지막 세트를 누르면 기록하고 다음 운동으로 갑니다.'
                       : '한 세트 끝낼 때마다 누르세요. 다 하면 「여기까지 기록」을 누릅니다.'}
@@ -1326,7 +1326,7 @@ export default function TrainPage() {
                     color: done || skipped ? 'var(--text-muted)' : isNow ? 'var(--text-primary)' : 'var(--text-secondary)',
                     textDecoration: skipped ? 'line-through' : 'none',
                   }}>{item.name}</span>
-                  <span style={{ fontSize: 11.5, color: isNow ? 'var(--accent)' : 'var(--text-muted)' }}>
+                  <span style={{ fontSize: 11, color: isNow ? 'var(--accent)' : 'var(--text-muted)' }}>
                     {done ? '완료' : skipped ? '건너뜀' : item.sets ? `${item.sets}세트` : ''}
                   </span>
                 </div>
@@ -1368,8 +1368,8 @@ export default function TrainPage() {
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
-                    <span style={{ fontSize: 13.5, color: 'var(--text-primary)', flexGrow: 1 }}>{r.name}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)', flexGrow: 1 }}>{r.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {(r.exercises || []).length}개
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--accent)' }}>시작</span>
@@ -1401,23 +1401,23 @@ export default function TrainPage() {
                   그 자와 같다 — 「좁혀서 안 보이는 것이 있으면 그렇다고 말한다.
                   안 적으면 프로그램이 줄어든 줄 안다」 */}
               {routines.length > SHOWN_ROUTINES && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 2 }}>
                   짜둔 루틴 {routines.length}개 중 {SHOWN_ROUTINES}개만 보여요 —
                   아래 <b style={{ color: 'var(--text-secondary)' }}>「루틴 짜기」</b>에서 다 볼 수 있어요.
                 </div>
               )}
             </div>
           ) : (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.7 }}>
               {routinesFailed
                 ? '루틴을 못 불러왔어요. 아래에서 바로 적으실 수 있습니다.'
                 : '짜둔 루틴이 없어요. 아래에서 운동을 골라 바로 적으셔도 됩니다.'}
             </div>
           )}
           <div style={{ display: 'flex', gap: 7 }}>
-            <button className="btn-secondary" style={{ flexGrow: 1, fontSize: 12.5, padding: '9px 0' }}
+            <button className="btn-secondary" style={{ flexGrow: 1, fontSize: 12, padding: '9px 0' }}
               onClick={() => navigate('/routine')}>루틴 짜기</button>
-            <button className="btn-secondary" style={{ flexGrow: 1, fontSize: 12.5, padding: '9px 0' }}
+            <button className="btn-secondary" style={{ flexGrow: 1, fontSize: 12, padding: '9px 0' }}
               onClick={() => navigate('/homeworkout')}>기능성운동</button>
           </div>
         </div>
@@ -1461,7 +1461,7 @@ export default function TrainPage() {
 
             {/* 지난 기록은 **미리 채우기만 하고 끝내지 않는다.** 무엇을 보고 채웠는지
                 적어줘야 오늘 올릴지 말지를 사람이 정한다 */}
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.7 }}>
               {lastRecord ? (
                 <>지난번 <span style={{ color: 'var(--text-primary)' }}>
                   {/* 유산소 줄은 **그 줄에 적힌 것**으로 말한다 — 지어내 적어둔 옛
@@ -1503,12 +1503,12 @@ export default function TrainPage() {
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border)', borderLeft: '2px solid var(--accent-low)',
               }} role="status">
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                   {previewLine(view)}
                 </div>
                 {/* 「그럼 뭘 하지」의 답을 **같은 화면에** 둔다 — 아직 달아 있을 때만 */}
                 {elsewhere && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.6 }}>
                     {elsewhere}
                   </div>
                 )}
@@ -1536,7 +1536,7 @@ export default function TrainPage() {
                     fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", letterSpacing: 1,
                     fontSize: 25, lineHeight: 1.1, color: 'var(--accent)',
                   }}>{step.body ? step.reps : step.kg}</span>
-                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     {step.body
                       ? `회${step.sets ? ` · ${step.sets}세트` : ''}`
                       : `kg × ${step.reps}회${step.sets ? ` · ${step.sets}세트` : ''}`}
@@ -1555,20 +1555,20 @@ export default function TrainPage() {
                     한 문장이던 것이 접은 폴더블(280px)에서 **넉 줄 한 덩이**였다
                     (75자 · 769px / 안쪽 폭 236px). 갈라 놓으면 각각 두 줄이고,
                     크기와 색이 다르니 **덩이가 둘로 보인다.** */}
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.7 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.7 }}>
                   {stepReason(step)}
                 </div>
                 {stepExcluded(step) && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6 }}>
                     {stepExcluded(step)}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <button type="button" className="btn-primary" onClick={fillStep}
-                    style={{ flex: 1, padding: '8px 10px', fontSize: 12.5 }}>이대로 채우기</button>
+                    style={{ flex: 1, padding: '8px 10px', fontSize: 12 }}>이대로 채우기</button>
                   {step.kind === 'up' && (
                     <button type="button" className="btn-secondary" onClick={fillSame}
-                      style={{ flex: 1, padding: '8px 10px', fontSize: 12.5 }}>지난번과 같게</button>
+                      style={{ flex: 1, padding: '8px 10px', fontSize: 12 }}>지난번과 같게</button>
                   )}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
@@ -1587,10 +1587,10 @@ export default function TrainPage() {
                 marginBottom: 12, padding: '10px 12px', borderRadius: 'var(--radius)',
                 background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               }}>
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                   {rirRoomText(room).head}
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.6 }}>
                   {rirRoomText(room).dates}
                 </div>
               </div>
@@ -1614,7 +1614,7 @@ export default function TrainPage() {
                   style={{
                     width: '100%', minHeight: 40, padding: '9px 12px', background: 'none', border: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                    font: 'inherit', fontSize: 12.5, color: 'var(--text-secondary)', cursor: 'pointer',
+                    font: 'inherit', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer',
                   }}
                 >
                   <span>지난 판 · {shortDate(lastPlay.date)}
@@ -1628,7 +1628,7 @@ export default function TrainPage() {
                     {lastPlay.lines.map((l, i) => (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
-                        borderTop: '1px solid var(--border)', fontSize: 12.5,
+                        borderTop: '1px solid var(--border)', fontSize: 12,
                       }}>
                         <span style={{
                           width: 18, flexShrink: 0, color: 'var(--text-muted)',
@@ -1643,7 +1643,7 @@ export default function TrainPage() {
                         </span>
                         {l.link && (
                           <span style={{
-                            flexShrink: 0, fontSize: 10, padding: '0 5px', borderRadius: 'var(--radius)',
+                            flexShrink: 0, fontSize: 11, padding: '0 5px', borderRadius: 'var(--radius)',
                             border: '1px solid var(--border-hover)', color: 'var(--info)',
                           }}>{l.link === 'drop' ? '드롭' : '슈퍼'}</span>
                         )}
@@ -1666,7 +1666,7 @@ export default function TrainPage() {
                 marginBottom: 12, padding: '9px 12px', borderRadius: 'var(--radius)',
                 background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               }}>
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   내 최고 1RM <span style={{ color: 'var(--text-primary)' }}>{best.score}kg</span> 의{' '}
                   <strong style={{ color: 'var(--accent)' }}>{pct}%</strong>
                   {zone && <span style={{ color: 'var(--text-muted)' }}> · {zone.label}</span>}
@@ -1738,12 +1738,12 @@ export default function TrainPage() {
                 }}
               >
                 <div style={{ minWidth: 0, flexGrow: 1 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                     <b style={{ color: 'var(--text-primary)' }}>{gym}</b> 에 없다고 적어두신 거예요.
                   </div>
                   {바꿀것.length > 0 && (
                     <>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '6px 0 5px' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '6px 0 5px' }}>
                         같은 부위로 할 수 있는 것 — 누르면 바꿔 드려요
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1787,7 +1787,7 @@ export default function TrainPage() {
               onClick={() => navigate('/gym')}
               style={{
                 background: 'none', border: 0, padding: '0 0 12px', marginTop: -4,
-                color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
@@ -1832,7 +1832,7 @@ export default function TrainPage() {
                     />
                   </div>
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.6 }}>
                   유산소는 <b style={{ color: 'var(--text-secondary)' }}>시간과 거리</b>로 적어요 —
                   무게 · 세트 · 횟수는 안 적습니다. 둘 중 하나만 적어도 됩니다.
                   {/* 지어내는 것이 아니라 나눗셈이다. 그래도 「평균」이라고 적는다 —
@@ -1903,7 +1903,7 @@ export default function TrainPage() {
                 aria-expanded={false}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >+ 오른쪽이 다릅니다 (한쪽씩 하는 운동)</button>
             ) : (
@@ -1921,7 +1921,7 @@ export default function TrainPage() {
                     aria-expanded
                     style={{
                       marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none',
-                      padding: '2px 0', color: 'var(--text-muted)', fontSize: 11.5,
+                      padding: '2px 0', color: 'var(--text-muted)', fontSize: 11,
                       cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
                     }}
                   >접기</button>
@@ -1958,7 +1958,7 @@ export default function TrainPage() {
                 marginBottom: 10, padding: '7px 11px', borderRadius: 'var(--radius)',
                 background: 'var(--bg-secondary)', border: '1px solid var(--border)',
               }}>
-                <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexGrow: 1, minWidth: 0 }}>
                   {useBar === 0
                     ? (barByName === 'none'
                       ? '덤벨 · 머신 운동이라 꽂을 원판이 없어요'
@@ -1977,7 +1977,7 @@ export default function TrainPage() {
                   style={{
                     background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
                     border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                    fontSize: 11.5, padding: '3px 6px', fontFamily: 'inherit', flexShrink: 0,
+                    fontSize: 11, padding: '3px 6px', fontFamily: 'inherit', flexShrink: 0,
                   }}
                 >
                   {BARS.map((b) => <option key={b.kg} value={b.kg}>{b.label}</option>)}
@@ -2013,7 +2013,7 @@ export default function TrainPage() {
                 <button
                   className="btn-secondary"
                   onClick={() => setCountOpen(true)}
-                  style={{ width: '100%', minHeight: 40, marginTop: 8, fontFamily: 'inherit', fontSize: 12.5, cursor: 'pointer' }}
+                  style={{ width: '100%', minHeight: 40, marginTop: 8, fontFamily: 'inherit', fontSize: 12, cursor: 'pointer' }}
                 >횟수를 세어줄까요? (폰을 옆에 두세요)</button>
               )}
             </div>
@@ -2027,7 +2027,7 @@ export default function TrainPage() {
                 onClick={() => setPickDay(true)}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >지난 날짜에 적기</button>
             ) : (
@@ -2040,7 +2040,7 @@ export default function TrainPage() {
                       className="btn-secondary"
                       onClick={() => { datePicked.current = true; setDate(d); }}
                       style={{
-                        width: 'auto', padding: '6px 13px', fontSize: 12.5,
+                        width: 'auto', padding: '6px 13px', fontSize: 12,
                         ...(date === d ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)' } : null),
                       }}
                     >{dayLabel(d)}</button>
@@ -2066,11 +2066,11 @@ export default function TrainPage() {
                       datePicked.current = true;
                       setDate(e.target.value);
                     }}
-                    style={{ width: 'auto', flexGrow: 1, minWidth: 130, padding: '6px 10px', fontSize: 12.5 }}
+                    style={{ width: 'auto', flexGrow: 1, minWidth: 130, padding: '6px 10px', fontSize: 12 }}
                   />
                 </div>
                 {!isToday && (
-                  <div style={{ fontSize: 11.5, color: 'var(--warning)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--warning)' }}>
                     오늘이 아닌 {dayLabel(date)} 자리에 적습니다
                   </div>
                 )}
@@ -2095,7 +2095,7 @@ export default function TrainPage() {
                 aria-expanded={false}
                 style={{
                   background: 'none', border: 'none', padding: 0, marginBottom: 10,
-                  color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+                  color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >{cardio ? '+ 메모' : '+ 메모 · 몇 개 더 할 수 있었나'}</button>
             ) : (
@@ -2115,7 +2115,7 @@ export default function TrainPage() {
                           // 한 번 더 누르면 푼다 — 「안 적기」 단추를 따로 두지 않는다
                           onClick={() => setRir((cur) => (cur === v ? '' : v))}
                           style={{
-                            width: 'auto', padding: '6px 13px', fontSize: 12.5,
+                            width: 'auto', padding: '6px 13px', fontSize: 12,
                             ...(rir === v ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)' } : null),
                           }}
                         >{v === '0' ? '0 · 끝까지' : v === '1~2' ? '1~2개' : '3개 이상'}</button>
@@ -2139,7 +2139,7 @@ export default function TrainPage() {
             )}
 
             {error && (
-              <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 10 }}>{error}</div>
+              <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{error}</div>
             )}
 
             {/* 지금 적는 줄이 앞 줄과 이어진 것이라는 표시. 눌러놓고 잊지 않게 띄워둔다 */}
@@ -2149,7 +2149,7 @@ export default function TrainPage() {
                 padding: '7px 11px', borderRadius: 'var(--radius)',
                 background: 'var(--accent-dim)', border: '1px solid var(--accent)',
               }}>
-                <span style={{ fontSize: 12.5, color: 'var(--accent)', flexGrow: 1 }}>
+                <span style={{ fontSize: 12, color: 'var(--accent)', flexGrow: 1 }}>
                   {nextLink === 'drop' ? '드롭세트로 이어 적는 중' : '슈퍼세트로 이어 적는 중'}
                   <span style={{ color: 'var(--text-muted)' }}> · 앞 줄과 묶여 보여요</span>
                 </span>
@@ -2190,7 +2190,7 @@ export default function TrainPage() {
         ) : (
           <>
             <div className="label">무슨 운동을 하셨나요</div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
               이름을 찾아 고르면 지난 기록이 저절로 채워집니다.
             </div>
             <button className="btn-primary" onClick={() => setFinding(true)}>운동 찾기</button>
@@ -2207,14 +2207,14 @@ export default function TrainPage() {
             누르면 그 운동을 다시 고른 상태로 되돌린다 */}
         {justSaved && !editingId && !nextLink && isToday && !finding && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
               방금 적은 <span style={{ color: 'var(--text-secondary)' }}>{justSaved.exercise}</span> 에 쉬지 않고 이어가기
             </div>
             <div style={{ display: 'flex', gap: 7 }}>
               {justSaved.kg > 0 && dropSets(justSaved.kg).length > 0 && (
                 <button
                   className="btn-secondary"
-                  style={{ flex: 1, fontSize: 12.5 }}
+                  style={{ flex: 1, fontSize: 12 }}
                   onClick={() => {
                     const next = dropSets(justSaved.kg)[0];
                     // 지난 기록이 이 무게를 덮지 않게 한 번 비켜달라고 표시해둔다
@@ -2236,7 +2236,7 @@ export default function TrainPage() {
               )}
               <button
                 className="btn-secondary"
-                style={{ flex: 1, fontSize: 12.5 }}
+                style={{ flex: 1, fontSize: 12 }}
                 onClick={() => {
                   setNextLink('super');
                   useRestTimerStore.getState().stop();
@@ -2257,7 +2257,7 @@ export default function TrainPage() {
                 (처음 온 사람) 이 칸을 **아예 안 그린다** */}
             {often.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                   자주 하는 것
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -2266,7 +2266,7 @@ export default function TrainPage() {
                       key={n}
                       type="button"
                       className="btn-secondary"
-                      style={{ fontSize: 12.5, padding: '6px 11px' }}
+                      style={{ fontSize: 12, padding: '6px 11px' }}
                       onClick={() => pick(n)}
                     >{n}</button>
                   ))}
@@ -2299,7 +2299,7 @@ export default function TrainPage() {
       </div>
 
       {dayList.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
           {isToday
             ? '아직 없어요. 위에서 한 개 적으면 여기 쌓입니다.'
             : `${dayLabel(date)} 에 적은 것이 없어요.`}
@@ -2334,7 +2334,7 @@ export default function TrainPage() {
               <div style={{ flexGrow: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{w.exercise}</div>
                 {(w.rir || w.note || 오른쪽글(w)) && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
                     {/* ── **오른쪽 값은 이름 줄이 아니라 이 줄에 적는다** ── (2026-11-19 · 맵시)
                         값 칸(오른쪽 끝)에 `22.5/20 × 3×10/8 왼/우` 로 넣으면 320px 폰에서
                         그 칸이 **124px** 을 가져가고, 단추 둘(60) · 틈(24) 을 빼면 **이름에
@@ -2355,7 +2355,7 @@ export default function TrainPage() {
               {w.pending && !w.failed && (
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>이 기기에</span>
               )}
-              <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 {isCardioRow(w)
                   ? cardioText(w)
                   /* 한쪽씩 적은 줄의 **오른쪽 값은 이름 아래 줄**에 있다 (위 `오른쪽글`).

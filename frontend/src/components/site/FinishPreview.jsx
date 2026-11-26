@@ -34,7 +34,7 @@ export default function FinishPreview({ style }) {
               fontVariantNumeric: 'tabular-nums',
               color: gold ? 'var(--accent)' : 'var(--text-primary)',
             }}>{n}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{label}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -43,12 +43,12 @@ export default function FinishPreview({ style }) {
       <div style={{ marginTop: 14 }}>
         <div style={{
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-          fontSize: 11.5, letterSpacing: 2.2, color: 'var(--accent-low)', marginBottom: 6,
+          fontSize: 11, letterSpacing: 2.2, color: 'var(--accent-low)', marginBottom: 6,
         }}>새 최고기록</div>
         <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.5 }}>
           벤치프레스 <span style={{ color: 'var(--accent)' }}>100kg · 5회</span>
         </div>
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, marginTop: 8 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, marginTop: 8 }}>
           지난 최고보다 2.5kg. 넘지 못한 날에는 이 각인이 붙지 않는다.
         </div>
       </div>

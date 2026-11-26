@@ -113,7 +113,7 @@ function Todo({ pending, onGo }) {
               <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--accent)', lineHeight: 1 }}>
                 {pending.open}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>답을 기다리는 제보</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>답을 기다리는 제보</div>
             </div>
           )}
           {pending.abuse > 0 && (
@@ -121,7 +121,7 @@ function Todo({ pending, onGo }) {
               <div style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 2, color: 'var(--danger)', lineHeight: 1 }}>
                 {pending.abuse}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 욕설 신고</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>확인 안 한 욕설 신고</div>
             </div>
           )}
           <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>
@@ -160,8 +160,8 @@ function NewErrors({ count, loaded, onGo }) {
         color: 'var(--warning)', lineHeight: 1,
       }}>{count}</div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>새 화면 오류</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>새 화면 오류</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           흰 화면이 된 자리예요. 사람을 기다리게 하진 않아요
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function AdminPage() {
           </span>
         </button>
         <div style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 1.5,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5,
           // 가로 flex 자식이라 `minWidth: 0` 이 없으면 말줄임이 안 든다 (11/17 · 맵시)
           color: 'var(--accent)', minWidth: 0,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -293,12 +293,12 @@ export default function AdminPage() {
                           <NavIcon name={t.icon} size={18} />
                         </span>
                         <span style={{
-                          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
                           color: active ? 'var(--accent)' : 'var(--text-primary)',
                         }}>{t.label}</span>
                         {badge > 0 && <span className="badge badge-accent">{badge}</span>}
                       </span>
-                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t.desc}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t.desc}</span>
                     </button>
                   );
                 })}

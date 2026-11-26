@@ -166,7 +166,7 @@ export default function SupportPage() {
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 3,
           color: 'var(--accent)', margin: '0 0 8px',
         }}>고객센터</h2>
-        <p style={{ fontSize: 15, lineHeight: 1.85, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>
+        <p style={{ fontSize: 14, lineHeight: 1.85, color: 'var(--text-primary)', margin: 0, fontWeight: 300 }}>
           안 되는 게 있으면 알려주세요.<br />확인하고 여기에 답을 답니다.
         </p>
       </div>
@@ -188,7 +188,7 @@ export default function SupportPage() {
         >
           <div style={{ flexGrow: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, letterSpacing: 2, color: 'var(--text-muted)', marginBottom: 6 }}>내 제보</div>
-            <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 300, lineHeight: 1.8 }}>
+            <div style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 300, lineHeight: 1.8 }}>
               {hasNewReply
                 ? <>새 답변이 왔습니다.</>
                 : answered > 0
@@ -215,7 +215,7 @@ export default function SupportPage() {
           {soon.slice(0, 3).map((sc, i) => (
             <div key={i} style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.85, fontWeight: 300 }}>
               {whenLabel(sc)} {timeRange(sc)}
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}> · {sc.reason}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}> · {sc.reason}</span>
             </div>
           ))}
         </div>
@@ -243,7 +243,7 @@ export default function SupportPage() {
               <span style={{ display: 'block', fontSize: 16, color: 'var(--text-primary)', fontWeight: 400 }}>{h.line}</span>
               <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{h.sub}</span>
             </span>
-            <span style={{ color: 'var(--text-muted)', fontSize: 15, flexShrink: 0 }}>›</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 14, flexShrink: 0 }}>›</span>
           </div>
         ))}
       </div>
@@ -261,7 +261,7 @@ export default function SupportPage() {
                 onClick={() => setReportOpen(false)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  font: 'inherit', fontSize: 12.5, color: 'var(--text-muted)',
+                  font: 'inherit', fontSize: 12, color: 'var(--text-muted)',
                 }}
               >접기</button>
             </div>
@@ -274,14 +274,14 @@ export default function SupportPage() {
               background: 'none', border: '1px solid var(--border)', cursor: 'pointer',
               borderRadius: 'var(--radius)', padding: '11px 16px', width: '100%',
               display: 'flex', alignItems: 'center', gap: 10,
-              color: 'var(--text-secondary)', fontSize: 13.5,
+              color: 'var(--text-secondary)', fontSize: 13,
             }}
           >
             <span style={{ color: 'var(--accent)', display: 'flex' }} aria-hidden="true">
               <NavIcon name="inbox" size={18} />
             </span>
             <span>보낸 제보 보기 · 직접 쓰기</span>
-            <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 15 }}>+</span>
+            <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 14 }}>+</span>
           </button>
         )}
       </div>
@@ -303,7 +303,7 @@ export default function SupportPage() {
             value={faqQ}
             onChange={(e) => setFaqQ(e.target.value)}
             placeholder="궁금한 것을 쳐보세요 (예: 기록, 정지)"
-            style={{ fontSize: 13.5, paddingRight: faqQ ? 34 : undefined }}
+            style={{ fontSize: 13, paddingRight: faqQ ? 34 : undefined }}
           />
           {faqQ && (
             <button
@@ -319,7 +319,7 @@ export default function SupportPage() {
         </div>
 
         {faqTyped && faqHits.length === 0 && (
-          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.8, padding: '4px 0 12px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, padding: '4px 0 12px' }}>
             「{faqQ.trim()}」에 대한 답이 아직 없습니다. 무엇을 찾으셨는지는 남겨뒀습니다 —
             같은 것을 여러 분이 찾으시면 여기에 올려둡니다.
             <br />
@@ -352,17 +352,17 @@ export default function SupportPage() {
                 }}
               >
                 <span style={{
-                  fontSize: 15, color: on ? 'var(--accent)' : 'var(--text-primary)',
+                  fontSize: 14, color: on ? 'var(--accent)' : 'var(--text-primary)',
                   fontWeight: 400, flex: 1,
                 }}>{f.q}</span>
                 <span style={{
-                  color: 'var(--text-muted)', fontSize: 15, flexShrink: 0,
+                  color: 'var(--text-muted)', fontSize: 14, flexShrink: 0,
                   transform: on ? 'rotate(45deg)' : 'none', transition: 'transform 0.15s',
                 }}>+</span>
               </div>
               {on && (
                 <div style={{
-                  fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.85,
+                  fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85,
                   padding: '0 0 16px', maxWidth: 440,
                 }}>{f.a}</div>
               )}
@@ -370,13 +370,13 @@ export default function SupportPage() {
           );
         })}
         {faqTyped && faqHits.length > 0 && shownFaq.length < FAQ.length && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10 }}>
             「{faqQ.trim()}」로 찾은 {faqHits.length}건
           </div>
         )}
         {/* 지금은 두 개뿐이다. 지어내서 채우지 않는다 —
             관리자 화면의 「못 찾은 말」에 실제로 묻는 말이 쌓이면 그걸 보고 채운다 */}
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.7 }}>
           찾는 게 없으면{' '}
           <button
             onClick={() => openReport('ask')}
@@ -399,7 +399,7 @@ export default function SupportPage() {
           onClick={() => navigate('/support/notices')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            marginTop: 16, color: 'var(--accent)', fontSize: 13.5,
+            marginTop: 16, color: 'var(--accent)', fontSize: 13,
           }}
         >공지함에서 전부 보기 ({FEED.length}) →</button>
       </div>

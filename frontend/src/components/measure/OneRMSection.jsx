@@ -81,7 +81,7 @@ export default function OneRMSection({ records, onSave, onDelete }) {
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>예상 1RM</div>
           <div className="stat-number" style={{ fontSize: 40 }}>{result}<span style={{ fontSize: 16, color: 'var(--text-muted)' }}>kg</span></div>
           {over && (
-            <div style={{ fontSize: 11.5, color: 'var(--warning)', lineHeight: 1.6, marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--warning)', lineHeight: 1.6, marginTop: 2 }}>
               {RM_TRUST_REPS}회를 넘겨 어림한 값이에요 — <b>실제보다 높게 나옵니다.</b>
               {' '}견줄 때는 {RM_TRUST_REPS}회 이하로 재는 것이 맞습니다.
             </div>

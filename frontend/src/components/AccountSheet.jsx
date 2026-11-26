@@ -137,7 +137,7 @@ export default function AccountSheet({
               border: '1px solid var(--accent)',
               background: photo ? `center/cover no-repeat url(${photo})` : 'var(--bg-tertiary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
             }}
           >
             {/* 사진이 없을 때만 그린다. 점선 원과 「+ 사진」 두 줄이 있던 자리다 */}
@@ -236,7 +236,7 @@ export default function AccountSheet({
           ) : (
             <>
               <div style={{
-                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 21, letterSpacing: 1.5,
+                fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 22, letterSpacing: 1.5,
                 color: 'var(--text-primary)', lineHeight: 1.15,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{nickname || '이름 없음'}</div>
@@ -245,7 +245,7 @@ export default function AccountSheet({
                   기기를 같이 쓰는 사람에게는 이 한 줄이 제일 먼저 필요하다 */}
               {email && (
                 <div style={{
-                  fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3,
+                  fontSize: 11, color: 'var(--text-muted)', marginTop: 3,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{email}</div>
               )}
@@ -253,7 +253,7 @@ export default function AccountSheet({
                   한자리에 모여 있어야 「무엇으로 들어가지」가 한눈에 보인다 */}
               {username && (
                 <div style={{
-                  fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1,
+                  fontSize: 11, color: 'var(--text-muted)', marginTop: 1,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>아이디 {username}</div>
               )}
@@ -261,7 +261,7 @@ export default function AccountSheet({
                   글자를 키운 폰에서 잘리면 안 되는 쪽이다 */}
               {busyPhoto && (
                 // 금은 고리가 쓴다 — 글자까지 금이면 금이 두 자리가 된다 (집안 규칙)
-                <div role="status" style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 3 }}>
+                <div role="status" style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>
                   {STAGE_SAY[photoStage] || '하는 중…'}
                 </div>
               )}
@@ -280,7 +280,7 @@ export default function AccountSheet({
           display: 'flex', gap: 10, alignItems: 'flex-start',
           background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)',
           borderLeft: '2px solid var(--danger)',
-          padding: '11px 14px 12px', fontSize: 12.5, lineHeight: 1.7,
+          padding: '11px 14px 12px', fontSize: 12, lineHeight: 1.7,
           color: 'var(--text-secondary)',
         }}>
           <span aria-hidden="true" style={{ color: 'var(--danger)', flexShrink: 0, marginTop: 1 }}>
@@ -385,7 +385,7 @@ export default function AccountSheet({
         style={{
           display: 'block', width: '100%', background: 'none', cursor: 'pointer',
           border: 'none', borderTop: '1px solid var(--border)',
-          padding: '11px 16px', fontSize: 11.5, color: 'var(--text-muted)',
+          padding: '11px 16px', fontSize: 11, color: 'var(--text-muted)',
           textAlign: 'center', fontFamily: 'inherit',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; }}
@@ -418,7 +418,7 @@ function MenuItem({ icon, label, onClick, danger }) {
         minHeight: 44, padding: '0 13px',
         background: 'none', border: 'none', borderBottom: '1px solid var(--border)',
         color: danger ? 'var(--danger)' : 'var(--text-secondary)',
-        fontSize: 13.5, fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
+        fontSize: 13, fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
@@ -466,7 +466,7 @@ function Row({ icon, label, onClick, muted, badge, badgeText }) {
         <span style={{
           marginLeft: 'auto',
           background: 'var(--warning)', color: 'var(--on-accent)',
-          fontSize: 10.5, lineHeight: 1, padding: '3px 6px',
+          fontSize: 11, lineHeight: 1, padding: '3px 6px',
           borderRadius: 'var(--radius)', fontFamily: "'Barlow', 'BI Sans KR', sans-serif",
         }}>{badge > 99 ? '99+' : badge}</span>
       )}

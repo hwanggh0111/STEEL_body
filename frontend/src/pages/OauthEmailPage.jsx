@@ -194,9 +194,9 @@ export default function OauthEmailPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 14, fontWeight: 700, background: mark.bg, color: mark.fg,
           }}>{mark.text}</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, lineHeight: 1.5 }}>
             {who && <strong style={{ color: 'var(--text-primary)' }}>@{who}</strong>}
-            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
               {/* **조사를 고르는 손** (2026-10-27). 「으로」가 글자로 박혀 있어서
                   살아 있는 길인 **트위터(X)** 가 「트위터(X)으로 들어왔어요」가 됐다 */}
               {euro(label)} 들어왔어요
@@ -209,7 +209,7 @@ export default function OauthEmailPage() {
           <div role="alert" style={{
             border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
             padding: '12px 13px', marginBottom: 16,
-            fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.7,
+            fontSize: 12, color: 'var(--danger)', lineHeight: 1.7,
           }}>
             지금은 <strong>메일을 보낼 수 없어요.</strong> {eun(label)} 메일 주소를 알려주지 않아서
             이 걸음이 꼭 필요합니다 — <Link to="/login" style={{ color: 'var(--accent)' }}>
@@ -273,7 +273,7 @@ export default function OauthEmailPage() {
                   }}
                   disabled={saving}
                   style={{
-                    marginBottom: 8, letterSpacing: 6, textAlign: 'center', fontSize: 19,
+                    marginBottom: 8, letterSpacing: 6, textAlign: 'center', fontSize: 18,
                     borderColor: code.length === 6 ? 'var(--success)' : 'var(--border)',
                   }}
                 />
@@ -308,7 +308,7 @@ export default function OauthEmailPage() {
             )}
             {error && (
               <div role="alert" style={{
-                fontSize: 12.5, color: 'var(--danger)', marginTop: 10, lineHeight: 1.6,
+                fontSize: 12, color: 'var(--danger)', marginTop: 10, lineHeight: 1.6,
               }}>{error}</div>
             )}
           </form>
@@ -325,7 +325,7 @@ export default function OauthEmailPage() {
         </div>
 
         <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <Link to="/login" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+          <Link to="/login" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             다른 방법으로 들어가기
           </Link>
         </div>

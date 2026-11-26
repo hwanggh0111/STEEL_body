@@ -315,7 +315,7 @@ export default function AppLock() {
 
               `2ch` 를 남겨둘 까닭이 없다 — 자릿수를 사람이 미리 알아야 하고, 글꼴을
               바꾸면 `ch` 가 같이 움직인다. 글꼴 기능이 그 셋을 다 없앤다. */}
-          <div style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             {left > 0 ? (
               <>
                 {secs}초 뒤에 다시 치실 수 있어요

@@ -127,7 +127,7 @@ export default function ShoulderSection({ records, onSave, onDelete }) {
                 {ratio}
               </span>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
               어깨 너비를 허리둘레로 나눈 값입니다. 좋고 나쁨은 매기지 않습니다 —
               같은 값이라도 키에 따라 다르게 보입니다. <b style={{ color: 'var(--text-secondary)' }}>내 지난 값과 견주세요.</b>
             </div>

@@ -212,7 +212,7 @@ export default function MaintenanceScreen({ children }) {
           // 밖의 층과 겨루지 않는다 (그래서 표를 안 쓴다)
           position: 'sticky', top: 0, zIndex: 1,
           background: kind.color, color: 'var(--on-accent)',
-          padding: '7px 14px', fontSize: 12.5, fontWeight: 600,
+          padding: '7px 14px', fontSize: 12, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
         }}>
           <span aria-hidden="true" style={{ display: 'flex', color: kind.color }}><NavIcon name={kind.icon} size={18} /></span>

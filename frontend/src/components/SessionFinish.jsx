@@ -190,11 +190,11 @@ export default function SessionFinish() {
           <div style={{ marginTop: 'clamp(40px, 9vh, 76px)', textAlign: 'center' }}>
             <hr className="rule-beam" style={{ width: 56, margin: '0 auto 22px' }} />
             <div className="label" style={{ marginBottom: 12, letterSpacing: 2.2 }}>새 최고기록</div>
-            <div className="serif-display" style={{ fontSize: 20, lineHeight: 1.5 }}>
+            <div className="serif-display" style={{ fontSize: 18, lineHeight: 1.5 }}>
               {record.entry.exercise} {record.entry.kg ? `${record.entry.kg}kg · ` : ''}{record.entry.reps}회
             </div>
             {record.prev && record.prev.kg && record.entry.kg > record.prev.kg && (
-              <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
                 지난 최고보다 {Math.round((record.entry.kg - record.prev.kg) * 10) / 10}kg
               </div>
             )}
@@ -211,7 +211,7 @@ export default function SessionFinish() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
                 {parts.map((p) => (
                   <span key={p} style={{
-                    fontSize: 11.5, padding: '2px 9px', borderRadius: 'var(--radius)',
+                    fontSize: 11, padding: '2px 9px', borderRadius: 'var(--radius)',
                     border: '1px solid var(--border)', color: 'var(--text-secondary)',
                   }}>{p}</span>
                 ))}
@@ -221,7 +221,7 @@ export default function SessionFinish() {
               {items.slice(0, 5).map((w, i) => (
                 <div key={`${w.exercise}-${i}`} style={{
                   display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
-                  fontSize: 12.5, color: 'var(--text-secondary)',
+                  fontSize: 12, color: 'var(--text-secondary)',
                 }}>
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {w.exercise}
@@ -247,11 +247,11 @@ export default function SessionFinish() {
           marginTop: 'clamp(28px, 6vh, 44px)',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
-          {weighted && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{sets}세트</span>}
+          {weighted && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{sets}세트</span>}
           {weighted && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
-          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>운동 {count}개</span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>운동 {count}개</span>
           {weeks > 0 && <span style={{ flexShrink: 0, width: 2, height: 2, borderRadius: '50%', background: 'var(--border-hover)' }} />}
-          {weeks > 0 && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{weeks}주 연속</span>}
+          {weeks > 0 && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{weeks}주 연속</span>}
         </div>
 
         {/* ── 늘어졌나 ── (2026-09-16)
@@ -264,7 +264,7 @@ export default function SessionFinish() {
             못 재는 날(기록이 둘 이하 · 한꺼번에 적은 날)은 **아무 말도 안 한다** */}
         {pace?.usable && (
           <div style={{ marginTop: 'clamp(22px, 5vh, 34px)', textAlign: 'center' }}>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               헬스장에 {longTime(pace.spanMs)} · 기록 사이 보통 {shortTime(pace.medianMs)}
             </div>
             {pace.deltaMs !== null && Math.abs(pace.deltaMs) >= 30000 && (

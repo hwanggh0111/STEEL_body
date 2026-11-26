@@ -108,8 +108,8 @@ export default class ErrorBoundary extends Component {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         minHeight: '70vh', padding: 24, textAlign: 'center', gap: 12,
       }}>
-        <div style={{ fontSize: 17, fontWeight: 700 }}>{title}</div>
-        <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 380 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{title}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 380 }}>
           {desc}
         </div>
 
@@ -130,7 +130,7 @@ export default class ErrorBoundary extends Component {
             <summary style={{ cursor: 'pointer' }}>무슨 일인지 보기</summary>
             <pre style={{
               whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left',
-              marginTop: 8, fontSize: 11.5, lineHeight: 1.6,
+              marginTop: 8, fontSize: 11, lineHeight: 1.6,
             }}>{String(err?.message || err)}</pre>
           </details>
         )}

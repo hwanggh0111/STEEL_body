@@ -113,7 +113,12 @@ function MaintForm({ kind, onSchedule }) {
         {/* 긴급 점검 요약에 「· 강제 로그아웃」이라고 적혀 있었다.
             점검은 화면을 막을 뿐 **로그아웃시키지 않는다** (토큰을 그대로 둔다).
             화면이 안 하는 일을 한다고 적고 있었다 */}
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)' }}>
+        <div style={{
+          // 칩 바탕(#282219) 위에서 흐린 글자는 4.11 이다 — 기준선 밑이고, 이 줄은
+          // 「있다는 것만 알리는」 글자가 아니라 **읽는 설명**이다 (2026-11-26 · 맵시 · 시안 ② B안)
+          fontSize: 11, color: 'var(--text-secondary)', padding: '6px 10px',
+          background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)',
+        }}>
           {dateLabel(date)} {time} ~ {endTimeOf(time, min)} ({min}분간)
         </div>
         <button
@@ -364,7 +369,7 @@ export default function MaintAdmin() {
               그 점검은 여전히 그 하루만 돌았다. 화면이 안 하는 일을 말하고 있었다 */}
           {!repeats(form) ? (
             <div style={{
-              fontSize: 12, color: 'var(--text-muted)', marginBottom: 12,
+              fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12,
               background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)', padding: '8px 12px',
             }}>
               {form.date} 하루짜리 점검입니다 — 요일 반복이 아니에요.

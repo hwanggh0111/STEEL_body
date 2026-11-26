@@ -141,8 +141,8 @@ export default function RepCounter({ exercise, onDone, onClose }) {
         padding: '12px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>횟수 세기</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>횟수 세기</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
             {/* 조사는 앞말에 맞춘다 — 무릎「을」 · 팔꿈치「를」 (2026-10-21) */}
             {exercise}{joint && joint !== 'hold' ? ` · ${eul(JOINTS[joint].label)} 봐요` : ''}
           </div>
@@ -202,7 +202,7 @@ export default function RepCounter({ exercise, onDone, onClose }) {
                   margin: 'auto', display: 'flex', flexDirection: 'column',
                   alignItems: 'center', gap: 12,
                 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.75, textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.75, textAlign: 'center' }}>
                     폰을 <b style={{ color: 'var(--text-secondary)' }}>옆에 세워두고</b> 온몸이 보이게 놓아주세요.<br />
                     <b style={{ color: 'var(--text-secondary)' }}>영상은 아무 데도 안 남아요</b> — 세고 나서 숫자만 가져갑니다.
                   </div>
@@ -213,7 +213,7 @@ export default function RepCounter({ exercise, onDone, onClose }) {
                     style={{ width: 'auto', padding: '11px 22px', fontFamily: 'inherit', cursor: 'pointer' }}
                   >{stage ? (STAGE[stage] || '여는 중…') : '카메라 켜기'}</button>
                   {error && (
-                    <div role="alert" style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
+                    <div role="alert" style={{ fontSize: 12, color: 'var(--danger)', lineHeight: 1.65, textAlign: 'center' }}>
                       {error}
                     </div>
                   )}

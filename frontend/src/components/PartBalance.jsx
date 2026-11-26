@@ -72,7 +72,7 @@ export default function PartBalance() {
 
         <div style={{
           display: 'flex', justifyContent: 'space-between', gap: 10,
-          fontSize: 11.5, color: 'var(--text-muted)', marginTop: 7,
+          fontSize: 11, color: 'var(--text-muted)', marginTop: 7,
         }}>
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             상체 <b style={{ color: 'var(--text-secondary)' }}>{upper}</b>
@@ -91,7 +91,7 @@ export default function PartBalance() {
 
       {/* 세는 규칙을 적는다. **무게로 세지 않는 까닭**까지 한 줄로 —
           그 줄이 없으면 「내 스쿼트가 왜 안 보이나」가 된다 */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 8 }}>
         최근 {BALANCE_DAYS / 7}주를 <b style={{ color: 'var(--text-secondary)' }}>세트 수</b>로 셉니다
         — 무게로 세면 스쿼트 한 세트가 컬 열 세트를 이겨 하체가 늘 이깁니다.
         {안가린줄 > 0 && (

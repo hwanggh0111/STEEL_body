@@ -109,15 +109,15 @@ export default function FaqGapAdmin() {
 
                 <div style={{ flexGrow: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 15, color: 'var(--text-primary)',
+                    fontSize: 14, color: 'var(--text-primary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{row.term}</div>
                   {near ? (
-                    <div style={{ fontSize: 11.5, color: 'var(--success)', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--success)', lineHeight: 1.6 }}>
                       지금은 「{near.topic}」 문답이 걸립니다 · 지워도 됩니다
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       마지막 {String(row.last_at).slice(5, 10)}
                     </div>
                   )}

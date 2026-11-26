@@ -114,7 +114,7 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
           **늘고 줆에 좋고 나쁨을 매기지는 않는다** — 다만 이건 기록이라 최고는 말한다 */}
       {records.length >= 2 && (
         <div className="card" style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1, marginBottom: 8 }}>
             지난번과 견주면
           </div>
           {FITNESS_TESTS.map(f => {
@@ -129,7 +129,7 @@ export default function FitnessTestSection({ records, onSave, onDelete }) {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                 gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)',
               }}>
-                <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{f.label}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{f.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   {show(f, ch.prev)} &#8594; <b style={{ color: 'var(--text-primary)' }}>{show(f, ch.last)}</b>
                   <b style={{ color, marginLeft: 8 }}>

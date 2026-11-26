@@ -230,7 +230,7 @@ export default function HackingSecurityPanel() {
   const shieldBlock = (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-        <h2 style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
+        <h2 style={{ fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2, color: 'var(--accent)', margin: 0 }}>
           지금 막혀 있는 것
         </h2>
         {shield && (
@@ -239,24 +239,24 @@ export default function HackingSecurityPanel() {
           </span>
         )}
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
         아래 기록과 달리 <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 떠도 그대로 남습니다.</b>{' '}
         잘못 걸린 사람은 여기서 풀어주면 됩니다.
       </div>
 
       {shieldFailed ? (
-        <div className="card" style={{ padding: 16, fontSize: 12.5, color: 'var(--text-muted)', textAlign: 'center' }}>
+        <div className="card" style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
           막혀 있는 목록을 불러오지 못했습니다 — 없는 게 아니라 못 가져온 것입니다.
           <button className="btn-secondary" style={{ marginTop: 12 }} onClick={loadShield}>다시 읽기</button>
         </div>
       ) : !shield ? (
-        <div className="card" style={{ padding: 16, fontSize: 12.5, color: 'var(--text-muted)', textAlign: 'center' }}>불러오는 중…</div>
+        <div className="card" style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>불러오는 중…</div>
       ) : (
         <>
           {/* 막힌 주소 */}
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>차단된 주소</div>
           {shield.blocks.length === 0 ? (
-            <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--text-muted)' }}>막아둔 주소가 없습니다.</div>
+            <div className="card" style={{ padding: 14, fontSize: 12, color: 'var(--text-muted)' }}>막아둔 주소가 없습니다.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {shield.blocks.map((b) => (
@@ -264,19 +264,19 @@ export default function HackingSecurityPanel() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: "'Barlow', 'BI Sans KR', sans-serif", fontSize: 13, wordBreak: 'break-all' }}>{b.ip}</span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{LEVEL_TEXT[b.level] || '자동'}</span>
-                    <span style={{ fontSize: 11.5, color: b.remaining === null ? TONE.danger : 'var(--text-muted)', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 11, color: b.remaining === null ? TONE.danger : 'var(--text-muted)', marginLeft: 'auto' }}>
                       {leftText(b.remaining)}
                     </span>
                     <button
                       className="btn-secondary"
-                      style={{ width: 'auto', fontSize: 11.5, padding: '4px 10px' }}
+                      style={{ width: 'auto', fontSize: 11, padding: '4px 10px' }}
                       disabled={busy === 'ip:' + b.ip}
                       onClick={() => unblockIp(b.ip)}
                     >{busy === 'ip:' + b.ip ? '푸는 중…' : '풀기'}</button>
                   </div>
                   {/* 왜 막혔는지를 같이 적는다 — 이유를 모르면 풀지 말지 정할 수가 없다 */}
                   {b.reason && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                       {/* 서버가 `**굵게**` 를 적어 보내는 글이다 — 별표를 글자로
                           보여주지 않는다 (`components/Emphasis.jsx`, 2026-10-26) */}
                       <Emphasis text={b.reason} />
@@ -293,7 +293,7 @@ export default function HackingSecurityPanel() {
           {/* 로그인 잠금 */}
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '14px 0 6px' }}>잠긴 로그인</div>
           {shield.loginLocks.length === 0 ? (
-            <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--text-muted)' }}>잠긴 로그인이 없습니다.</div>
+            <div className="card" style={{ padding: 14, fontSize: 12, color: 'var(--text-muted)' }}>잠긴 로그인이 없습니다.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {shield.loginLocks.map((l) => (
@@ -304,12 +304,12 @@ export default function HackingSecurityPanel() {
                       color: TONE.warn, border: '1px solid ' + TONE.warn,
                     }}>{l.kind === 'account' ? '계정' : '주소'}</span>
                     <span style={{ fontSize: 13, wordBreak: 'break-all' }}>{l.target}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                       {l.count}번 틀림 · {leftText(l.remaining)}
                     </span>
                     <button
                       className="btn-secondary"
-                      style={{ width: 'auto', fontSize: 11.5, padding: '4px 10px' }}
+                      style={{ width: 'auto', fontSize: 11, padding: '4px 10px' }}
                       disabled={busy === l.key}
                       onClick={() => unlockLogin(l.key)}
                     >{busy === l.key ? '푸는 중…' : '풀기'}</button>
@@ -320,7 +320,7 @@ export default function HackingSecurityPanel() {
           )}
           {/* 계정 잠금은 남이 일부러 걸 수 있다. 관리자가 알고 있어야 풀어줄지 정할 수 있다 */}
           {shield.loginLocks.some((l) => l.kind === 'account') && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginTop: 8 }}>
               계정 잠금은 <b style={{ color: 'var(--text-secondary)' }}>남이 그 아이디로 일부러 틀려서</b> 걸 수도 있습니다.
               본인이 못 들어온다고 하면 풀어주세요 — 15분이면 저절로 풀립니다.
             </div>
@@ -348,7 +348,7 @@ export default function HackingSecurityPanel() {
       {shieldBlock}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
           color: 'var(--accent)', margin: 0,
         }}>보안 로그</h2>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>최근 {logs.length}건</span>
@@ -356,14 +356,14 @@ export default function HackingSecurityPanel() {
           onClick={load}
           style={{
             marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11.5,
+            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11,
             borderRadius: 'var(--radius)', cursor: 'pointer',
           }}
         >새로 읽기</button>
       </div>
 
       {/* 무엇을 보고 있는 건지 밝힌다. 0건인 것과 기록이 날아간 것은 다르다 */}
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 16 }}>
         최근 100건입니다. <b style={{ color: 'var(--text-secondary)' }}>서버를 다시 띄워도 남습니다</b> —
         기록 파일에서 같이 읽어요. 다만 파일이 2MB 를 넘기면 옛 한 벌만 남기고 미니까,
         여기가 비어 있다고 아무 일도 없었다는 뜻은 아닙니다.
@@ -381,8 +381,8 @@ export default function HackingSecurityPanel() {
                   fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 1.5,
                   color, lineHeight: 1,
                 }}>{c.today}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>오늘</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>오늘</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>
                   기록 {c.all}
                 </span>
               </div>
@@ -416,7 +416,7 @@ export default function HackingSecurityPanel() {
       )}
 
       {shown.length === 0 ? (
-        <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5 }}>
+        <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
           {logs.length === 0 ? '아직 쌓인 기록이 없습니다.' : '이 종류의 기록이 없습니다.'}
         </div>
       ) : (

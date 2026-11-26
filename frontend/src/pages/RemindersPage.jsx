@@ -394,7 +394,7 @@ export default function RemindersPage() {
           **그림은 지운다.** 「켜면 이렇게 옵니다」는 켜기 전에 봐야 하는 것이다 */}
       {off && (
         <div style={{
-          fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1.2,
+          fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1.2,
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
           marginBottom: 7, padding: '0 2px',
         }}>켜면 이렇게 옵니다</div>
@@ -475,7 +475,7 @@ export default function RemindersPage() {
         <div className="card" style={{ marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {!registered ? (
             <>
-              <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>이 기기는 아직 알림을 안 받습니다</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>이 기기는 아직 알림을 안 받습니다</div>
               {devices > 0 && (
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   다른 기기 {devices}대에서는 받고 있어요
@@ -588,7 +588,7 @@ export default function RemindersPage() {
         {/* **왜 안 눌리는지 그 자리에서 적는다.** 죽어 있는 단추만 보고
             까닭을 짐작하게 두지 않는다 — 이 화면이 지키는 것이 그것이다 */}
         {lastDayLocked && (
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
             마지막 요일은 끌 수 없어요 — 요일이 없으면 알림이 영영 안 옵니다.
             「오래 쉬면 한 번 알리기」를 켜면 요일 없이도 쓸 수 있습니다.
           </div>
@@ -606,7 +606,7 @@ export default function RemindersPage() {
                 disabled={busy || off}
                 onClick={() => patch({ days: p.days })}
                 style={{
-                  width: 'auto', padding: '5px 12px', fontSize: 11.5,
+                  width: 'auto', padding: '5px 12px', fontSize: 11,
                   ...(on ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : null),
                 }}
               >{p.label}</button>
@@ -664,7 +664,7 @@ export default function RemindersPage() {
         </select>
       </div>
 
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           정한 시각에 서버가 보냅니다. 그 시각에 서버가 쉬고 있었다면 그날은 건너뜁니다 —
           밤늦게 「오늘 운동하는 날이에요」가 오는 것보다 안 오는 게 낫다고 봤습니다.
           <br />

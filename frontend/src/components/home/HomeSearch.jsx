@@ -208,7 +208,7 @@ export default function HomeSearch() {
                   }}
                   style={{
                     marginTop: 10, background: 'none', border: '1px solid var(--border)',
-                    color: 'var(--accent)', fontSize: 12.5, padding: '8px 12px',
+                    color: 'var(--accent)', fontSize: 12, padding: '8px 12px',
                     borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >

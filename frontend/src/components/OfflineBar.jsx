@@ -126,9 +126,9 @@ export default function OfflineBar() {
         width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
         background: danger ? 'var(--danger)' : online ? 'var(--accent)' : 'var(--text-muted)',
       }} />
-      <span style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{status.text}</span>
+      <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{status.text}</span>
       {status.hint && (
-        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{status.hint}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{status.hint}</span>
       )}
       {danger && (
         <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>

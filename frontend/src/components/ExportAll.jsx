@@ -163,10 +163,10 @@ export default function ExportAll() {
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 11, marginTop: 2 }}>
-      <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 2 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 2 }}>
         내 기록 전부 받기
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 10 }}>
         고른 것을 <b style={{ color: 'var(--text-secondary)' }}>한 묶음</b>으로 받습니다.
         계정을 지우기 전에 받아두세요 — 지우면 30일 뒤에 사라집니다.
       </div>
@@ -212,12 +212,12 @@ export default function ExportAll() {
       {/* **하나도 안 고르면 왜 안 눌리는지 말한다** — 흐려진 단추만 두면
           고장 난 것으로 읽힌다 */}
       {!고른것.length && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
           담을 것을 하나 이상 골라주세요.
         </div>
       )}
       {사진담김 && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
           사진이 들어가면 묶음이 커서 <b style={{ color: 'var(--text-secondary)' }}>시간이 걸립니다</b> —
           와이파이에서 받으시는 게 좋아요.
         </div>

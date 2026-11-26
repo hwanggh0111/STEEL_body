@@ -137,7 +137,7 @@ ${rows > 0 ? `파일에 ${rows.toLocaleString()}줄이 적혀 있어요. ` : ''}
         title={`내려받아 둔 ${label} CSV 파일을 넣습니다`}
         style={{
           background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-          padding: '6px 11px', fontSize: 11.5, borderRadius: 'var(--radius)',
+          padding: '6px 11px', fontSize: 11, borderRadius: 'var(--radius)',
           cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
           opacity: busy ? 0.6 : 1, ...style,
         }}

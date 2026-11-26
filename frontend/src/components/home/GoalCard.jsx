@@ -52,10 +52,10 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
         }}
       >
         <span style={{ minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 13.5, color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)' }}>
             목표를 하나 정해두면 이번 주 수에 뜻이 생깁니다
           </span>
-          <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+          <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
             주 몇 번 · 몇 kg — 남과 겨루지 않습니다
           </span>
         </span>
@@ -86,7 +86,7 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
             <div className="serif-display" style={{ fontSize: 16, lineHeight: 1.5 }}>
               {weekLine(week)}
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
               주 {week.target}회
               {/* 이어온 주는 **둘 이상일 때만** 말한다. 「1주 연속」은 연속이 아니다.
                   **「목표」를 붙여 적는다** (2026-11-05) — 아래 이번 주 요약의
@@ -105,10 +105,10 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
       {body && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}>
-            <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               {body.label} <span style={{ color: 'var(--accent)' }}>{body.target}{body.unit}</span>까지
             </span>
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               {/* 체중 기록이 없으면 진행률을 지어내지 않는다 */}
               {body.now == null ? `${body.label} 기록이 없어요`
                 : body.reached ? '닿았습니다' : `${body.left}${body.unit} 남음`}
@@ -122,7 +122,7 @@ export default function GoalCard({ goal, loaded, workouts, records, today, onGo 
                   background: body.reached ? 'var(--success)' : 'var(--accent)',
                 }} />
               </div>
-              <span style={{ width: 32, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>
+              <span style={{ width: 32, textAlign: 'right', fontSize: 11, color: 'var(--text-muted)' }}>
                 {Math.round(body.ratio * 100)}%
               </span>
             </div>

@@ -24,7 +24,7 @@ export default function HintHits({ hits }) {
       border: '1px solid var(--border)', borderLeft: '2px solid var(--accent)',
       borderRadius: 'var(--radius)', padding: '10px 12px', marginBottom: 16,
     }}>
-      <div style={{ fontSize: 11.5, color: 'var(--accent)', marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: 'var(--accent)', marginBottom: 4 }}>
         혹시 이걸 찾으시나요?
       </div>
       {hits.map((f) => {
@@ -47,7 +47,7 @@ export default function HintHits({ hits }) {
               }}>+</span>
             </div>
             {on && (
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '0 0 8px' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, padding: '0 0 8px' }}>
                 {f.a}
               </div>
             )}

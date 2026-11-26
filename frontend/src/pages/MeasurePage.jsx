@@ -212,7 +212,7 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
 
       {!tab ? (
         <>
-          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.7 }}>
             재고 남기는 도구들입니다. 무엇을 하실지 골라주세요.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
@@ -228,10 +228,10 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
                 }}
               >
                 <span style={{
-                  fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 15, letterSpacing: 1.5,
+                  fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.5,
                   color: 'var(--text-primary)',
                 }}>{t.label}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t.desc}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t.desc}</span>
               </button>
             ))}
           </div>
@@ -272,7 +272,7 @@ export default function MeasurePage({ embedded = false, subTab = null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <button className="btn-secondary" onClick={() => setTab(null)}>‹ 도구 고르기</button>
           <div style={{
-            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 17, letterSpacing: 1.5,
+            fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 16, letterSpacing: 1.5,
             // 가로 flex 자식이라 `minWidth: 0` 이 없으면 말줄임이 안 든다 (11/17 · 맵시)
             color: 'var(--accent)', minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

@@ -209,7 +209,7 @@ export default function ConfirmModalHost() {
         {options.title && (
           <h3 style={{
             fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-            fontSize: 20, letterSpacing: 2,
+            fontSize: 18, letterSpacing: 2,
             color: 'var(--text-primary)', marginBottom: 10,
           }}>{options.title}</h3>
         )}

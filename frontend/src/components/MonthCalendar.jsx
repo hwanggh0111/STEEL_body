@@ -156,10 +156,10 @@ export default function MonthCalendar({
                     >
                       <span style={{ fontSize: 14, fontWeight: isToday ? 700 : 400, lineHeight: 1, textAlign: 'center' }}>{cell.day}</span>
                       {part ? (
-                        <span style={{ fontSize: 10.5, lineHeight: 1, opacity: 0.85, textAlign: 'center' }}>{SHORT[part] || '·'}</span>
+                        <span style={{ fontSize: 11, lineHeight: 1, opacity: 0.85, textAlign: 'center' }}>{SHORT[part] || '·'}</span>
                       ) : planned ? (
                         // 할 것이 있는 날은 개수를 적는다. 이름은 칸에 안 들어간다
-                        <span style={{ fontSize: 10.5, lineHeight: 1, opacity: missed ? 0.5 : 0.85, textAlign: 'center' }}>
+                        <span style={{ fontSize: 11, lineHeight: 1, opacity: missed ? 0.5 : 0.85, textAlign: 'center' }}>
                           {planned}개
                         </span>
                       ) : null}
@@ -173,7 +173,7 @@ export default function MonthCalendar({
                           (칸은 `minHeight: 96` 이라 두 줄이 들어간다). */}
                       {memo && (
                         <span style={{
-                          fontSize: 10.5, lineHeight: 1.3, marginTop: 1,
+                          fontSize: 11, lineHeight: 1.3, marginTop: 1,
                           color: 'var(--text-secondary)',
                           opacity: memoPending || memoFailed ? 0.7 : 0.95,
                           textDecoration: memoFailed ? 'underline dotted' : 'none',
@@ -195,7 +195,7 @@ export default function MonthCalendar({
                   display: 'flex', flexDirection: 'column', gap: 8,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>
                       {Number(selected.slice(5, 7))}월 {Number(selected.slice(8, 10))}일 메모
                     </span>
                     {!writing && (
@@ -211,23 +211,23 @@ export default function MonthCalendar({
                   {/* **못 불러온 것과 없는 것은 다르다.** 못 불러온 채로 적으면
                       서버에 있던 그날 메모를 덮어쓴다 — 그렇다고 말해준다 */}
                   {notesFailed && (
-                    <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.6 }}>
                       메모를 못 불러왔어요. 지금 적으면 그날 메모를 덮어쓸 수 있어요
                     </div>
                   )}
                   {note?.failed ? (
-                    <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.6 }}>
                       못 올렸어요 — {note.error || '서버가 받지 않았어요'}
                     </div>
                   ) : note?.pending ? (
                     /* **담지 못했으면 그렇다고 말한다** (2026-10-24) — 자리가 없거나
                        저장소를 막아둔 브라우저에서는 램에만 남는다(앱을 닫으면 사라진다) */
                     noteUnsaved ? (
-                      <div style={{ fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.6 }}>
                         아직 안 올라갔고 이 기기에도 담지 못했어요 — 앱을 닫으면 사라집니다
                       </div>
                     ) : (
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                         아직 안 올라갔어요 · 이 기기에 담아뒀어요. 연결되면 올라가요
                       </div>
                     )
@@ -256,14 +256,14 @@ export default function MonthCalendar({
                           onClick={save}
                           disabled={savingNote}
                           className="btn-primary"
-                          style={{ width: 'auto', padding: '6px 15px', fontSize: 12.5 }}
+                          style={{ width: 'auto', padding: '6px 15px', fontSize: 12 }}
                         >{savingNote ? '저장 중…' : '저장'}</button>
                       </div>
                     </>
                   ) : note ? (
                     // 적은 그대로 보여준다 — 줄바꿈이 곧 그 사람의 메모다
                     <div style={{
-                      fontSize: 12.5, lineHeight: 1.8, color: 'var(--text-secondary)',
+                      fontSize: 12, lineHeight: 1.8, color: 'var(--text-secondary)',
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>{note.body}</div>
                   ) : (
@@ -283,6 +283,6 @@ export default function MonthCalendar({
 
 const ghost = {
   background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-  padding: '3px 10px', fontSize: 11.5, borderRadius: 'var(--radius)',
+  padding: '3px 10px', fontSize: 11, borderRadius: 'var(--radius)',
   cursor: 'pointer', fontFamily: 'inherit',
 };

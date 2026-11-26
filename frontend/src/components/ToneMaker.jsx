@@ -21,7 +21,7 @@ import { previewTone, setExtraTones } from '../data/alertSound';
 function Row({ label, items, value, onPick, idOf = (x) => x.id, nameOf = (x) => x.name }) {
   return (
     <div style={{ marginBottom: 11 }}>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
         {items.map((it) => {
           const id = idOf(it);
@@ -32,7 +32,7 @@ function Row({ label, items, value, onPick, idOf = (x) => x.id, nameOf = (x) => 
               onClick={() => onPick(id)}
               aria-pressed={on}
               style={{
-                minHeight: 32, padding: '5px 11px', borderRadius: 'var(--radius)', fontSize: 11.5,
+                minHeight: 32, padding: '5px 11px', borderRadius: 'var(--radius)', fontSize: 11,
                 fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border-hover)'}`,
                 background: on ? 'var(--accent-dim)' : 'none',
@@ -99,7 +99,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
       {/* 만들어둔 것들 — 누르면 고쳐진다 */}
       {tones.length > 0 && (
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 7 }}>
             내가 만든 소리 {tones.length}/{MAX_TONES}
           </div>
           {tones.map((t) => (
@@ -107,7 +107,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '7px 0', borderTop: '1px solid var(--border)',
             }}>
-              <span style={{ fontSize: 12.5, color: 'var(--text-primary)', flexShrink: 0 }}>{t.name}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-primary)', flexShrink: 0 }}>{t.name}</span>
               <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {t.desc}
               </span>
@@ -176,7 +176,7 @@ export default function ToneMaker({ tones, volume, onSave, onPicked }) {
               style={{
                 flex: 1, minWidth: 0, minHeight: 36, padding: '7px 10px',
                 background: 'var(--bg-primary)', border: '1px solid var(--border-hover)',
-                borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 12.5, fontFamily: 'inherit',
+                borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'inherit',
               }}
             />
             <button

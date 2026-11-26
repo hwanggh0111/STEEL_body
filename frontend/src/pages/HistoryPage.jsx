@@ -85,7 +85,7 @@ function EmptyTab({ title, desc, onGo }) {
 
 const exportBtn = {
   background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-  padding: '7px 12px', fontSize: 11.5, borderRadius: 'var(--radius)',
+  padding: '7px 12px', fontSize: 11, borderRadius: 'var(--radius)',
   cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
 };
 
@@ -453,7 +453,7 @@ export default function HistoryPage() {
         <button className="btn-secondary" onClick={() => goMonth(-1)} aria-label="지난 달">‹</button>
         <div style={{
           flexGrow: 1, textAlign: 'center',
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
           color: 'var(--text-primary)',
         }}>{ym.year}년 {ym.month}월</div>
         <button className="btn-secondary" onClick={() => goMonth(1)} aria-label="다음 달">›</button>
@@ -499,10 +499,10 @@ export default function HistoryPage() {
       ) : next.length > 0 ? (
         <div className="card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ minWidth: 0, flexGrow: 1 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', letterSpacing: 1 }}>다음에 할 것</div>
-            <div style={{ fontSize: 13.5, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: 1 }}>다음에 할 것</div>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {next[0].name}
-              <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                 {' · '}{untilLabel(next[0].date, today)}
                 {next.length > 1 ? ` · 외 ${next.length - 1}개` : ''}
               </span>
@@ -510,7 +510,7 @@ export default function HistoryPage() {
           </div>
           <button
             className="btn-secondary"
-            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12.5 }}
+            style={{ width: 'auto', flexShrink: 0, padding: '7px 14px', fontSize: 12 }}
             onClick={() => { setYm({ year: Number(next[0].date.slice(0, 4)), month: Number(next[0].date.slice(5, 7)) }); setSelectedDate(next[0].date); }}
           >보기</button>
         </div>
@@ -519,12 +519,12 @@ export default function HistoryPage() {
       {/* 그 달 요약 — 아무것도 없으면 기록이 있는 달로 데려다준다 */}
       {summary.days > 0 ? (
         <div className="card" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>
             이 달에 <span style={{ color: 'var(--accent)' }}>{summary.days}일</span> 나오셨어요
             <span style={{ color: 'var(--text-muted)' }}> · {summary.count}건 · {summary.sets}세트</span>
           </div>
           {summary.volumeKg > 0 && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               총 볼륨 {summary.volumeKg >= 1000 ? `${(summary.volumeKg / 1000).toFixed(1)}톤` : `${summary.volumeKg}kg`}
               {summary.bodyweightSets > 0 && (
                 <span style={{ color: 'var(--text-muted)' }}> · 맨몸 {summary.bodyweightSets}세트는 빠짐</span>
@@ -534,20 +534,20 @@ export default function HistoryPage() {
           {/* 유산소 — **볼륨에 들 수 없는 것**이라 여태 이 요약에 한 줄도 없었다
               (2026-11-05). 한 달 내내 뛴 사람에게 「총 볼륨」만 보여주던 자리다 */}
           {summary.cardio?.count > 0 && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               유산소 {summary.cardio.count}건 ·{' '}
               {[minuteLabel(summary.cardio.minutes), kmLabel(summary.cardio.km)].filter(Boolean).join(' · ')}
             </div>
           )}
           {summary.parts.length > 0 && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {summary.parts.slice(0, 4).map(p => `${p.part} ${Math.round(p.ratio * 100)}%`).join(' · ')}
             </div>
           )}
           {/* 하기로 해놓고 못 한 날. **혼내지 않는다** — 몇 건인지만 적는다.
               0 이면 이 줄 자체가 안 나온다 (「못 한 것 0건」은 알릴 이유가 없다) */}
           {missed > 0 && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               하기로 했는데 못 한 날 {missed}건
             </div>
           )}
@@ -580,7 +580,7 @@ export default function HistoryPage() {
             onClick={() => setSelectedDate(null)}
             style={{
               marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
-              color: 'var(--text-muted)', padding: '3px 10px', fontSize: 11.5,
+              color: 'var(--text-muted)', padding: '3px 10px', fontSize: 11,
               borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
             }}
           >이 달 전체</button>
@@ -615,7 +615,7 @@ export default function HistoryPage() {
               aria-label="거르기 풀기"
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-                padding: '6px 10px', fontSize: 11.5, borderRadius: 'var(--radius)', cursor: 'pointer',
+                padding: '6px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer',
               }}
             >풀기</button>
           )}
@@ -661,7 +661,7 @@ export default function HistoryPage() {
             <ImportCsv kind="workouts" label="운동" onDone={() => fetchWorkouts(true)} />
             <ImportCsv kind="inbody" label="인바디" onDone={() => fetchInbody(true)} />
           </div>
-          <div style={{ marginTop: 9, fontSize: 11.5, color: 'var(--text-muted)' }}>
+          <div style={{ marginTop: 9, fontSize: 11, color: 'var(--text-muted)' }}>
             기기를 바꾸셨다면 내려받아 둔 파일을 넣으면 그대로 돌아옵니다
           </div>
         </div>

@@ -178,11 +178,11 @@ export default function ErrorAdmin() {
                 fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
                 color: 'var(--accent)', lineHeight: 1,
               }}>{rows.length}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginLeft: 6 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 6 }}>
                 건 · {groups.length}가지
               </span>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{span}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{span}</div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               <button className="btn-secondary" onClick={copyAll}>전부 복사</button>
               <button className="btn-secondary" onClick={load}>다시 읽기</button>
@@ -200,7 +200,7 @@ export default function ErrorAdmin() {
                 width: '100%', minHeight: 180, marginBottom: 12, padding: 10,
                 background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
                 border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, lineHeight: 1.6,
+                fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11, lineHeight: 1.6,
               }}
             />
           )}
@@ -229,7 +229,7 @@ export default function ErrorAdmin() {
                         fontSize: 14, color: 'var(--text-primary)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>{g.key}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                         {g.paths.join(' · ') || '어느 화면인지 모름'} · {day(g.last)}
                       </div>
                     </div>
@@ -241,7 +241,7 @@ export default function ErrorAdmin() {
 
                   {opened && (
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                         처음 {day(g.first)} · 마지막 {day(g.last)}
                       </div>
                       {/* 스택은 앞 다섯 줄만 온다 — 어디서 터졌는지 알기엔 그것으로 충분하다 */}

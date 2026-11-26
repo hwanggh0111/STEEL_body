@@ -54,7 +54,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
         <div className="card" style={{
           marginBottom: 10, padding: '10px 13px',
           borderLeft: '2px solid var(--accent)',
-          fontSize: 12.5, color: 'var(--accent)',
+          fontSize: 12, color: 'var(--accent)',
         }}>
           답변이 {newCount}건 왔습니다. 아래 맨 위에 있어요.
         </div>
@@ -163,13 +163,13 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 2px 4px',
                       color: confirmDel === item.id ? 'var(--danger)' : 'var(--text-muted)',
-                      fontSize: 11.5, flexShrink: 0,
+                      fontSize: 11, flexShrink: 0,
                     }}
                   >지우기</button>
                 </div>
 
                 <div style={{
-                  fontSize: 14.5, color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.45,
+                  fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.45,
                   ...(isOpen ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
                 }}>{item.title}</div>
 
@@ -193,14 +193,14 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                     padding: '9px 10px', background: 'var(--danger-dim)',
                     border: '1px solid var(--danger)', borderRadius: 'var(--radius)',
                   }}>
-                    <span style={{ fontSize: 11.5, color: 'var(--danger)', marginRight: 'auto' }}>
+                    <span style={{ fontSize: 11, color: 'var(--danger)', marginRight: 'auto' }}>
                       지우면 되돌릴 수 없습니다
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); setConfirmDel(null); }}
                       style={{
                         background: 'none', border: '1px solid var(--border-hover)',
-                        color: 'var(--text-secondary)', fontSize: 11.5,
+                        color: 'var(--text-secondary)', fontSize: 11,
                         padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
                       }}
                     >취소</button>
@@ -208,7 +208,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                       onClick={e => { e.stopPropagation(); setConfirmDel(null); onDelete(item.id); }}
                       style={{
                         background: 'var(--danger-strong)', border: '1px solid var(--danger-strong)',
-                        color: 'var(--on-danger)', fontSize: 11.5, fontWeight: 700,
+                        color: 'var(--on-danger)', fontSize: 11, fontWeight: 700,
                         padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
                       }}
                     >지웁니다</button>

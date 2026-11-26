@@ -41,7 +41,7 @@ function Chips({ options, value, onPick, allowFree, label }) {
               fontSize: o.length > 2 ? 13 : 17, letterSpacing: o.length > 2 ? 0 : 1,
               background: on ? 'var(--accent-dim)' : 'var(--bg-tertiary)',
               border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
-              color: on ? 'var(--accent)' : 'var(--text-muted)',
+              color: on ? 'var(--accent)' : 'var(--text-secondary)',
               borderRadius: 'var(--radius)', cursor: 'pointer',
             }}
           >{o}</button>
@@ -118,7 +118,7 @@ export default function GymSetting({ exercise }) {
   if (!gym) {
     return (
       <div style={BOX}>
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.7 }}>
           기구 세팅을 적어두려면 <b style={{ color: 'var(--text-primary)' }}>어디인지</b>부터 골라주세요.
           기구가 다르면 시트 번호도 다릅니다.
         </div>
@@ -129,7 +129,7 @@ export default function GymSetting({ exercise }) {
                 key={g.name}
                 onClick={() => setGym(g.name)}
                 className="btn-secondary"
-                style={{ fontSize: 12.5 }}
+                style={{ fontSize: 12 }}
               >{g.name}</button>
             ))}
           </div>
@@ -152,7 +152,7 @@ export default function GymSetting({ exercise }) {
             className="btn-primary"
             disabled={!gymInput.trim()}
             onClick={() => { setGym(gymInput.trim()); setGymInput(''); }}
-            style={{ flexShrink: 0, width: 'auto', padding: '11px 16px', fontSize: 15 }}
+            style={{ flexShrink: 0, width: 'auto', padding: '11px 16px', fontSize: 14 }}
           >여기로</button>
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
@@ -249,7 +249,7 @@ export default function GymSetting({ exercise }) {
             onClick={onRemove}
             style={{
               width: '100%', marginTop: 9, padding: 9, background: 'none', border: 'none',
-              color: 'var(--text-muted)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
+              color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >이 세팅 지우기</button>
         )}
@@ -262,7 +262,7 @@ export default function GymSetting({ exercise }) {
     return (
       <div style={{ ...BOX, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>
             이 기구 세팅을 적어둘까요?
           </span>
           <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
@@ -278,7 +278,7 @@ export default function GymSetting({ exercise }) {
               onClick={() => startEdit(copyable)}
               style={{
                 background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)',
-                padding: '7px 10px', fontSize: 11.5, borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
+                padding: '7px 10px', fontSize: 11, borderRadius: 'var(--radius)', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >베껴오기</button>
           )}
@@ -302,7 +302,7 @@ export default function GymSetting({ exercise }) {
         <span className="label" style={{ marginBottom: 0 }}>내 세팅</span>
         <button
           onClick={() => startEdit(setting)}
-          style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+          style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
         >고치기</button>
       </div>
 
@@ -331,7 +331,7 @@ export default function GymSetting({ exercise }) {
       )}
 
       {setting.note && (
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           「{setting.note}」
         </div>
       )}

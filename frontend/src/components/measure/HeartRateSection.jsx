@@ -84,7 +84,7 @@ export default function HeartRateSection() {
             placeholder="65" value={restHR} onChange={e => setRestHR(e.target.value)} />
         </div>
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
         안정시 심박수는 아침에 일어나 누운 채로 재는 것이 가장 정확합니다.
         적어주시면 <b style={{ color: 'var(--text-secondary)' }}>카보넨 식</b>으로 더 맞게 계산합니다.
       </div>
@@ -117,19 +117,19 @@ export default function HeartRateSection() {
 
           {/* 어림값을 딱 떨어지는 값처럼 보여주지 않는다 */}
           {!measured && (
-            <div style={{ fontSize: 11.5, color: 'var(--warning)', marginBottom: 12, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 11, color: 'var(--warning)', marginBottom: 12, lineHeight: 1.7 }}>
               220 − 나이는 어림식입니다. 사람마다 <b>10~12bpm</b> 쯤 어긋납니다 —
               재보신 적이 있으면 위에 그 값을 넣어주세요.
             </div>
           )}
           {measured && (
-            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
               직접 잰 값으로 계산했습니다.
             </div>
           )}
 
           {restTooHigh && (
-            <div style={{ fontSize: 11.5, color: 'var(--warning)', marginBottom: 12, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 11, color: 'var(--warning)', marginBottom: 12, lineHeight: 1.7 }}>
               안정시 심박수({rest})가 최대 심박수({maxHR})보다 높아요 — 둘 중 하나를
               다시 봐주세요. <b>지금은 최대 심박수만으로</b> 계산했습니다.
             </div>
@@ -150,7 +150,7 @@ export default function HeartRateSection() {
             );
           })}
 
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.7 }}>
             {rest && !restTooHigh
               ? '안정시 심박수를 넣어 카보넨 식(여유 심박)으로 계산했습니다.'
               : '최대 심박수에 비율을 곱해 계산했습니다. 안정시 심박수를 넣으면 더 맞습니다.'}

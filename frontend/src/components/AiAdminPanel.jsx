@@ -213,7 +213,7 @@ export default function AiAdminPanel() {
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <h2 style={{
-          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20, letterSpacing: 2,
+          fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18, letterSpacing: 2,
           color: 'var(--accent)', margin: 0,
         }}>AI 관리자</h2>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -224,18 +224,18 @@ export default function AiAdminPanel() {
           onClick={load}
           style={{
             marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11.5,
+            color: 'var(--text-muted)', padding: '5px 12px', fontSize: 11,
             borderRadius: 'var(--radius)', cursor: 'pointer',
           }}
         >새로 읽기</button>
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 18 }}>
         사람이 안 보고 있을 때는 안 읽습니다. 보고 있는 동안 {PULL_MS / 1000}초마다 새로 읽습니다.
       </div>
 
       {/* ── 지금 막혀 있는 것 (파일 · 재시작해도 남는다) ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>지금 막혀 있는 것</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 떠도 그대로 남습니다.</b>{' '}
         자세히 보고 풀어주는 것은 「해킹 보안」에서 합니다 — 같은 것을 두 화면이 따로 그리면 어느 쪽이 맞는지 헷갈립니다.
       </div>
@@ -260,7 +260,7 @@ export default function AiAdminPanel() {
           까닭은 **그 날 줄 아래 작게** 적는다. 「막음 12건」만으로는 무엇을
           막았는지 모르고, 그걸 알려면 로그 100줄을 읽어야 했다 */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>요 이레</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 떠도 남습니다</b> — 날마다 한 줄씩 적어둡니다.
         서울 날짜로 끊고, 서른 날까지 남습니다.
       </div>
@@ -279,7 +279,7 @@ export default function AiAdminPanel() {
           앞쪽을 「정상입니다」로 말하면 관리자가 **확인을 안 한다.** 모르는 것은
           모른다고 적는다 — 이 앱이 지켜온 선이다 */}
       {aiDays.length === 0 ? (
-        <div className="card" style={{ padding: '12px 14px', marginBottom: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+        <div className="card" style={{ padding: '12px 14px', marginBottom: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           {hasSlept ? (
             <>
               요 이레 <b style={{ color: 'var(--text-primary)' }}>적힌 줄이 없습니다.</b>
@@ -308,23 +308,23 @@ export default function AiAdminPanel() {
                     fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 14, letterSpacing: 1.2,
                     color: 'var(--text-secondary)', minWidth: 74,
                   }}>{d.day?.slice(5)}</span>
-                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     요청 <b style={{ color: 'var(--text-primary)' }}>{Number(d.requests || 0).toLocaleString()}</b>
                   </span>
                   {Number(d.blocked) > 0 && (
-                    <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       되돌려 보냄 <b style={{ color: 'var(--danger)' }}>{Number(d.blocked).toLocaleString()}</b>
                     </span>
                   )}
                   {judged > 0 && (
-                    <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       판정 <b style={{ color: 'var(--warning)' }}>{judged}</b>
                     </span>
                   )}
                 </div>
                 {/* 까닭. 없으면 줄을 안 만든다 — 빈 줄은 자리만 먹는다 */}
                 {reasons.length > 0 && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.7 }}>
                     {reasons.map(([why, n]) => `${why} ${n}`).join(' · ')}
                   </div>
                 )}
@@ -336,7 +336,7 @@ export default function AiAdminPanel() {
 
       {/* ── 서버가 뜬 뒤로 센 것 (램 · 재시작하면 0) ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>서버가 뜬 뒤로</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         {data?.since
           ? <>{timeOf(data.since)} 부터 <b style={{ color: 'var(--text-secondary)' }}>{sinceText(data.since)}</b> 센 것입니다. </>
           : null}
@@ -358,7 +358,7 @@ export default function AiAdminPanel() {
         <Num label="로그인 실패를 세는 것" value={stats.loginFailureTracking} color="var(--warning)" />
         <Num label="도배를 세는 사람" value={stats.spamTracking} color="var(--warning)" />
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 18 }}>
         <b style={{ color: 'var(--text-secondary)' }}>지금 지켜보고 있는 수</b>입니다 — 막힌 수가 아닙니다.
         조용해지면 스스로 0 으로 돌아갑니다.
       </div>
@@ -374,7 +374,7 @@ export default function AiAdminPanel() {
         ].map((t) => (
           <div key={t.label} className="card" style={{ padding: 10, textAlign: 'center' }}>
             <div style={{
-              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 20,
+              fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 18,
               color: t.value > 0 ? t.color : 'var(--text-muted)',
             }}>{t.value || 0}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.label}</div>
@@ -384,12 +384,12 @@ export default function AiAdminPanel() {
 
       {/* ── 자동으로 하는 규칙 (서버가 실제 값으로 준다) ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>자동으로 하는 규칙</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         서버가 <b style={{ color: 'var(--text-secondary)' }}>지금 쓰는 값을 그대로</b> 보내줍니다.
         화면에 손으로 적어두면 코드가 바뀔 때 여기만 옛 숫자로 남습니다 — 실제로 그랬습니다.
       </div>
       {policy.length === 0 ? (
-        <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 18 }}>
+        <div className="card" style={{ padding: 14, fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>
           규칙을 못 받아왔습니다.
         </div>
       ) : (
@@ -399,8 +399,8 @@ export default function AiAdminPanel() {
               padding: '10px 0',
               borderBottom: i === policy.length - 1 ? 'none' : '1px solid var(--border)',
             }}>
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 3 }}>{r.title}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 3 }}>{r.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7 }}>
                 {/* 서버가 **굵게** 로 보내는 자리를 그대로 굵게 그린다.
                     **규칙은 한 자리에 있다**(`components/Emphasis.jsx`) — 여기만
                     알고 있어서, 같은 글을 받는 정지 안내 화면은 별표를 글자로
@@ -414,7 +414,7 @@ export default function AiAdminPanel() {
 
       {/* ── 손으로 막기 ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>손으로 막기</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         막은 것은 「해킹 보안」 목록에 뜨고, 거기서 풀 수 있습니다.
         <b style={{ color: 'var(--text-secondary)' }}> 대역(/24)은 통째로 막지 않습니다</b> — 통신사 NAT 뒤에서는 수만 명이 같은 주소로 나옵니다.
       </div>
@@ -460,7 +460,7 @@ export default function AiAdminPanel() {
 
       {/* ── 최근에 한 판정 ── */}
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>최근에 한 판정</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
         이것도 램에 쌓입니다 — <b style={{ color: 'var(--text-secondary)' }}>서버가 다시 뜨면 비워집니다.</b>
       </div>
       {/* ── **안 보이는 것이 있으면 그렇다고 말한다** ── (2026-10-27)
@@ -469,13 +469,13 @@ export default function AiAdminPanel() {
           10/26 에 이 화면이 **오늘 일을 숨기고 옛 기록을 보여준** 일이 있었다.
           종목별 최고 기록이 「나머지 N종목은 히스토리에 있습니다」라고 적는 그 자와 같다 */}
       {logs.length > SHOWN_LOGS && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
           받아온 <b style={{ color: 'var(--text-secondary)' }}>{logs.length}건</b> 중
           최근 <b style={{ color: 'var(--text-secondary)' }}>{SHOWN_LOGS}건</b>만 그립니다.
         </div>
       )}
       {logs.length === 0 ? (
-        <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 18 }}>
+        <div className="card" style={{ padding: 14, fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>
           아직 판정한 것이 없습니다.
         </div>
       ) : (
@@ -492,7 +492,7 @@ export default function AiAdminPanel() {
                     fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 'var(--radius)',
                     color: kind.color, border: `1px solid ${kind.color}`,
                   }}>{kind.label}</span>
-                  {log.ip && <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{log.ip}</span>}
+                  {log.ip && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{log.ip}</span>}
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{timeOf(log.time)}</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 5, wordBreak: 'break-word', lineHeight: 1.6 }}>
@@ -507,7 +507,7 @@ export default function AiAdminPanel() {
       {/* ── 이력 (늘 볼 것은 아니라 접어둔다) ── */}
       <Fold title="정지 이력" count={`${suspensions.length}건`}>
         {suspensions.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>정지된 적이 없습니다.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>정지된 적이 없습니다.</div>
         ) : suspensions.map((s) => (
           <div key={s.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -518,7 +518,7 @@ export default function AiAdminPanel() {
                 {s.expires_at === 'permanent' ? '영구' : `${dayOf(s.expires_at)} 까지`}
               </span>
             </div>
-            {s.reason && <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 3 }}>{s.reason}</div>}
+            {s.reason && <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 3 }}>{s.reason}</div>}
           </div>
         ))}
       </Fold>
@@ -529,12 +529,12 @@ export default function AiAdminPanel() {
           계정을 지우면 이 줄은 주인 없이 남고 영원히 못 뺀다. 그 줄이 주소면
           **그 주소에서는 아무도 가입할 수 없다**(통신사 NAT 뒤의 모두가) */}
       <Fold title="블랙리스트 (가입 막힘)" count={`${blacklist.length}건`}>
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
           여기 올라간 이메일 · 주소로는 <b style={{ color: 'var(--text-secondary)' }}>가입이 막힙니다.</b>{' '}
           주소 한 줄 뒤에는 여럿이 있습니다 — 잘못 걸린 것은 풀어주세요.
         </div>
         {blacklist.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>올려둔 것이 없습니다.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>올려둔 것이 없습니다.</div>
         ) : blacklist.map((b) => (
           <div key={b.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -547,13 +547,13 @@ export default function AiAdminPanel() {
               {b.created_at ? <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{dayOf(b.created_at)}</span> : null}
               <button
                 className="btn-secondary"
-                style={{ marginLeft: 'auto', width: 'auto', fontSize: 11.5, padding: '4px 10px' }}
+                style={{ marginLeft: 'auto', width: 'auto', fontSize: 11, padding: '4px 10px' }}
                 disabled={busy}
                 onClick={() => unblockListed(b)}
               >풀기</button>
             </div>
             {b.reason && (
-              <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 3 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 3 }}>
                 <Emphasis text={b.reason} />
               </div>
             )}

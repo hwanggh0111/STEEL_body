@@ -42,7 +42,7 @@ export default function SameWeightBanner({ best, today, onClose }) {
       <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>
         {kgText(best.kg)}kg 으로 가장 많이 했어요 · {best.reps}회
       </div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
         전에는 {best.prevReps}회 · {when}
       </div>
     </div>

@@ -26,7 +26,7 @@ function Sec({ title, children }) {
           color: 'var(--text-primary)', margin: 0, fontWeight: 400,
         }}>{title}</h2>
       </div>
-      <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.85 }}>{children}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.85 }}>{children}</div>
     </section>
   );
 }
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           style={{
             display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none',
             cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 22,
-            color: 'var(--text-muted)', fontSize: 12.5,
+            color: 'var(--text-muted)', fontSize: 12,
           }}
         >
           <LogoMark size={16} /> BLACK IRON
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
           fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 26, letterSpacing: 2,
           color: 'var(--text-primary)', margin: '0 0 6px', fontWeight: 400,
         }}>개인정보처리방침</h1>
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 30 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 30 }}>
           마지막으로 고친 날: {UPDATED}
         </div>
 
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
         </Sec>
 
         <hr className="rule-beam" style={{ margin: '30px 0 16px' }} />
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <a href="/site" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>홈페이지</a>
           <a href="/support" className="tap-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>고객센터</a>
           <span style={{ marginLeft: 'auto' }}>BLACK IRON</span>

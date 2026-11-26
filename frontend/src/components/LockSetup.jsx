@@ -22,7 +22,7 @@ import { confirmDialog } from './ConfirmModal';
 
 const box = {
   letterSpacing: 8, textAlign: 'center', fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",
-  fontSize: 20, padding: '10px 12px',
+  fontSize: 18, padding: '10px 12px',
 };
 
 export default function LockSetup({ onClose }) {
@@ -53,7 +53,7 @@ export default function LockSetup({ onClose }) {
     // **사이트 데이터를 막아둔 브라우저는 네 자리를 담아주지 않는다**
     // (2026-10-31에 보탰다 — 담기지 않으면 「걸었습니다」가 거짓말이 된다)
     return (
-      <div style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+      <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
         이 브라우저에서는 잠금을 걸 수 없어요.
         <br />https 주소(또는 앱)에서 열고, <b>사이트 데이터 저장</b>이 막혀 있지 않은지 봐주세요.
       </div>
@@ -88,7 +88,7 @@ export default function LockSetup({ onClose }) {
 
   return (
     <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75 }}>
         앱을 열 때와 {Math.round(GRACE_MS / 1000)}초 넘게 다른 앱을 보다 돌아올 때 네 자리를 묻습니다.
         <br />
         <span style={{ color: 'var(--text-secondary)' }}>잠깐 빌려준 폰에서 가리는 잠금</span>이지,
@@ -132,7 +132,7 @@ export default function LockSetup({ onClose }) {
         </button>
         {enabled && (
           <button className="btn-secondary" onClick={remove} disabled={busy}
-            style={{ width: 'auto', fontSize: 12.5, padding: '10px 14px' }}>풀기</button>
+            style={{ width: 'auto', fontSize: 12, padding: '10px 14px' }}>풀기</button>
         )}
       </div>
 
@@ -162,11 +162,11 @@ export default function LockSetup({ onClose }) {
                 }
                 setBioBusy(false);
               }}
-              style={{ marginLeft: 'auto', width: 'auto', fontSize: 12.5, padding: '8px 14px' }}
+              style={{ marginLeft: 'auto', width: 'auto', fontSize: 12, padding: '8px 14px' }}
               aria-pressed={bioIsOn}
             >{bioIsOn ? '켜짐' : '켜기'}</button>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 7 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.75, marginTop: 7 }}>
             네 자리는 <b style={{ color: 'var(--text-secondary)' }}>그대로 남습니다</b> — 지문이 안 될 때 쓰는 길이에요.
             지문은 이 기기 안에만 있고 <b style={{ color: 'var(--text-secondary)' }}>서버로 보내지 않습니다</b>.
           </div>
