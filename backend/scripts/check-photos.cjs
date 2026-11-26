@@ -227,7 +227,10 @@ console.log('── 프로필 사진은 더 줄이는가 ──');
     // **esbuild 는 화면 쪽 꾸러미다** — 여기(backend)에는 없다. 그 집에서 빌려 쓴다
     // (처음에 그냥 `require('esbuild')` 로 적어 `MODULE_NOT_FOUND` 를 봤다)
     const esbuild = require(path.join(__dirname, '..', '..', 'frontend', 'node_modules', 'esbuild'));
-    const out = path.join(__dirname, `.photos-shrink-${process.pid}.cjs`);
+    // **저장소 안에 쓰지 않는다** — 다른 자가 그것을 「남은 찌꺼기」로 보거나
+    // 옛 사진 코드의 사본으로 오해한다(`check-tidy` · `check-shrinkold` 가 그 자리를 본다).
+    // 번들은 제 발로 서는 파일이라 바깥 임시 자리에 둬도 그대로 돈다
+    const out = path.join(os.tmpdir(), `photos-shrink-${process.pid}.cjs`);
     esbuild.buildSync({
       entryPoints: [path.join(__dirname, '..', '..', 'frontend', 'src', 'data', 'shrinkImage.js')],
       bundle: true, format: 'cjs', outfile: out, platform: 'node', logLevel: 'silent',

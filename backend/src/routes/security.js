@@ -214,9 +214,26 @@ router.get('/dashboard', adminAuth, (req, res) => {
   });
 });
 
-// GET /api/security/users - 전체 유저 목록 (password 제외)
+// ── GET /api/security/users — 전체 유저 목록 ──
+//
+// ★ **여기도 「빼는 목록」이었다** (2026-11-26 · 정석). `({ password, ...rest })` 는
+// 비밀번호만 떼고 **나머지 전부**를 내보낸다 — 그래서 사용자 줄에 칸이 생길 때마다
+// **모든 사람의 그 칸**이 관리자 화면으로 나갔다. 오늘 소셜을 고유 번호로 잇게 하면서
+// (`provider_ids`) 그것이 **모두의 네이버 · 구글 번호 목록**이 됐다.
+//
+// `/auth/me` 를 같은 날 적는 목록으로 바꿨다 — **류를 하나 닫으면 앱 전체에서 그 류를
+// 훑는 것까지가 한 건**이라 이 자리도 같이 닫는다. 관리자라도 **일에 필요한 칸만** 본다
+// (화면이 읽는 것은 일곱이다 — `SecurityPanel` 의 표). `npm run mefields` 가 둘 다 지킨다
 router.get('/users', adminAuth, (req, res) => {
-  const users = db.getAllUsers().map(({ password, ...rest }) => rest);
+  const users = db.getAllUsers().map((u) => ({
+    id: u.id,
+    email: u.email,
+    nickname: u.nickname,
+    username: u.username,
+    role: u.role,
+    is_banned: u.is_banned,
+    created_at: u.created_at,
+  }));
   res.json(users);
 });
 

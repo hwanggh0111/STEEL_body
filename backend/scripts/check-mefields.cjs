@@ -161,6 +161,37 @@ function meOf() {
     }
 
     console.log('');
+    console.log('── ⑶ 관리자 목록도 같은 류다 ──');
+    //
+    // `GET /security/users` 도 **빼는 목록**이었다(`{ password, ...rest }`) — 그러면
+    // 사용자 줄에 칸이 생길 때마다 **모든 사람의 그 칸**이 관리자 화면으로 나간다.
+    // 「류를 하나 닫으면 앱 전체에서 그 류를 훑는 것까지가 한 건」이라 같이 본다.
+    // 화면(`SecurityPanel`)이 읽는 것은 일곱이다
+    {
+      const sec = 되돌림
+        ? null
+        : require('../src/routes/security.js');
+      const 화면이읽는것 = ['id', 'email', 'nickname', 'username', 'role', 'is_banned', 'created_at'];
+      if (!sec) {
+        ok('  (되돌려에서는 안 본다 — 그 판은 `/me` 만 되돌린다)', true, true);
+      } else {
+        const layer = sec.stack.find((l) => l.route && l.route.path === '/users' && l.route.methods.get);
+        const hs = layer.route.stack;
+        const r2 = { code: 200, body: null };
+        r2.status = (c) => { r2.code = c; return r2; };
+        r2.json = (b) => { r2.body = b; return r2; };
+        await hs[hs.length - 1].handle({ userId: uid, params: {}, query: {}, body: {}, get: () => '' }, r2);
+        const 한줄 = Array.isArray(r2.body) ? r2.body.find((x) => x.id === uid) : null;
+        ok('그 목록에 내가 있다 (모집단 0 을 통과로 내보내지 않는다)', !!한줄, true);
+        const 샌것 = 한줄 ? Object.keys(한줄).filter((k) => !화면이읽는것.includes(k)) : ['못 읽었다'];
+        ok('★ 화면이 읽는 일곱만 나간다', 샌것, []);
+        for (const k of ['password', 'provider_ids', 'sex', 'deleting_at']) {
+          ok('  `' + k + '` 는 안 나간다', 한줄 ? (k in 한줄) : true, false);
+        }
+      }
+    }
+
+    console.log('');
     if (되돌림) {
       if (bad > 0) { console.log('되돌려: FAIL ' + bad + '건 — 자가 그 자리를 잡는다'); process.exit(0); }
       console.log('★ 되돌려인데 다 통과했다 — **이 자는 그 자리를 못 본다**');
