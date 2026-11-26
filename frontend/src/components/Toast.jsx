@@ -124,7 +124,7 @@ export default function Toast() {
 
   // 빨강은 통째로 칠하는 자리라 진한 쪽을 쓴다 — 밝은 --danger 에 흰 글자는 3.4:1 이다
   const bgColor = type === 'error' ? 'var(--danger-strong)' : type === 'warning' ? 'var(--warning)' : 'var(--accent)';
-  const textColor = type === 'error' ? '#fff' : 'var(--on-accent)';
+  const textColor = type === 'error' ? 'var(--on-danger)' : 'var(--on-accent)';
 
   // ── **낭독기에 알림이 아예 안 전해지고 있었다** ── (2026-11-11)
   //

@@ -309,43 +309,19 @@
   // **320·360 과 「크게」 150~200% 로 그 자리에서** 볼 수 있다(그래서 시안 틀도
   // 폰 폭을 따라가게 고쳤다 · `dev/sian/1120/_s.css`).
   //
-  // 날짜를 **박아 적는다.** 폴더를 훑어 짓는 쪽이 깔끔하지만 이 장은 **정적 HTML**
-  // 이라 파일 목록을 읽을 손이 없다. 새 시안을 만드는 날 이 줄을 같이 보탠다
+  // ── **손으로 적던 목차를 걷었다** ── (2026-11-26)
+  //
+  // 여기에 날짜를 박아 적고 「새 시안을 만드는 날 이 줄을 같이 보탠다」고 두었는데,
+  // 11/26 에 세어보니 **68장 중 34줄**이었다. 폴더 일곱이 통째로 빠져 있었다 —
+  // 1112 · 1113 · 1117 · 1118 · 1118b · 1119-fields · 1120-photo. 바쁜 날 빠진다.
+  //
+  // 「정적 HTML 이라 파일 목록을 읽을 손이 없다」가 틀렸다 — **개발 서버가 읽어준다**
+  // (`vite.config.js` 의 `/dev/sian.json`, `/dev/net.json` 과 같은 자리). 아래 `SIAN` 은
+  // **못 받았을 때만 쓰는 비상 줄** 셋만 남긴다.
   const SIAN = [
-    ['/dev/sian/1125b/', '★ 11/25 밤 새 기능 후보 둘 (index)'],
-    ['/dev/sian/1125b/01-ReplyCame.html', '① 제보에 답이 왔어요'],
-    ['/dev/sian/1125b/02-PlanAlert.html', '② 계획한 날은 그 계획으로 알린다'],
-    ['/dev/sian/1125/', '★ 11/25 새 기능 후보 셋 (index · 근호 검사)'],
-    ['/dev/sian/1125/01-WhenTrain.html', '① 알림 시각과 실제 시각 (출시 뒤)'],
-    ['/dev/sian/1125/02-LastAlert.html', '② 마지막으로 나간 알림 (12/08 전)'],
-    ['/dev/sian/1125/03-RoutineLast.html', '③ 루틴을 끝낸 날 (출시 뒤)'],
-    ['/dev/sian/1125/bugs.html', '★ 11/25 오늘 한 것 · 버그 확률표'],
-    ['/dev/sian/1124/', '★ 11/24 새 기능 후보 여덟 (index)'],
-    ['/dev/sian/1124/01-Rir.html', '① 올릴 때가 됐다 — 여유를 쓴다'],
-    ['/dev/sian/1124/02-NoteFind.html', '② 메모를 찾는다'],
-    ['/dev/sian/1124/03-FinishCard.html', '③ 결산을 한 장으로'],
-    ['/dev/sian/1124/04-NameMerge.html', '④ 갈린 이름을 합친다'],
-    ['/dev/sian/1124/05-RestLog.html', '⑤ 쉰 시간을 진짜로 남긴다'],
-    ['/dev/sian/1124/06-RoutineText.html', '⑥ 루틴 하나만 주고받기'],
-    ['/dev/sian/1124/07-BackupAge.html', '⑦ 백업을 언제 받아갔나'],
-    ['/dev/sian/1124/08-Health.html', '⑧ 건강 앱 — 다시 (권하지 않음)'],
-    ['/dev/sian/1120/', '11/20 UI 시안 열다섯 (index)'],
-    ['/dev/sian/1120/01-Lock.html', '① 잠금 — 한 화면에'],
-    ['/dev/sian/1120/02-Rest.html', '② 쉬는 중 — 한 장면으로'],
-    ['/dev/sian/1120/03-RestBar.html', '③ 쉬는 띠 — 띠가 진행이다'],
-    ['/dev/sian/1120/04-TabBar.html', '④ 탭바 — 적기를 가운데로'],
-    ['/dev/sian/1120/05-Toast.html', '⑤ 알림 — 머리 아래로'],
-    ['/dev/sian/1120/06-Write.html', '⑥ 적기 — 칩 한 줄'],
-    ['/dev/sian/1120/07-Step.html', '⑦ 숫자 칸 — ± 를 아래로'],
-    ['/dev/sian/1120/08-Save.html', '⑧ 저장 — 자판 위에'],
-    ['/dev/sian/1120/09-Home.html', '⑨ 오늘 — 한 장으로'],
-    ['/dev/sian/1120/10-History.html', '⑩ 기록 — 날짜를 기둥으로'],
-    ['/dev/sian/1120/11-Settings.html', '⑪ 설정 — 칩이 따라온다'],
-    ['/dev/sian/1120/12-Export.html', '⑫ 받기 — 요약 한 줄'],
-    ['/dev/sian/1120/13-Gold.html', '⑬ 금을 아낀다'],
-    ['/dev/sian/1120/14-Type.html', '⑭ 글꼴 — Bebas 는 숫자에만'],
-    ['/dev/sian/1120/15-Empty.html', '⑮ 빈 화면'],
-    ['/dev/sian/1119/', '11/19 기능 시안 여섯'],
+    ['/dev/sian/1125b/', '11/25 밤 — 새 기능 후보 둘'],
+    ['/dev/sian/1124/', '11/24 — 새 기능 후보 여덟'],
+    ['/dev/sian/1120/', '11/20 — UI 시안 열다섯'],
   ];
 
   // ── 기기 ──
@@ -450,14 +426,39 @@
       o.textContent = name + '  ' + p;
       앱.appendChild(o);
     }
-    const 시안 = 묶음('시안 · 11/20 UI 열다섯 (그림이다)');
+    // 시안은 **개발 서버에게 물어본다** (2026-11-26). 비상 줄을 먼저 세워두고,
+    // 답이 오면 그 묶음으로 갈아끼운다 — 못 받아도 고를 것이 셋은 남는다
+    const 비상 = 묶음('시안 (목록을 받는 중…)');
     for (const [p, name] of SIAN) {
       const o = document.createElement('option');
       o.value = p;
-      // 주소가 길어 이름만 적는다 — 고른 뒤 주소 칸에 그대로 들어간다
       o.textContent = name;
-      시안.appendChild(o);
+      비상.appendChild(o);
     }
+    fetch('/dev/sian.json')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => {
+        if (!j.묶음 || !j.묶음.length) throw new Error('빈 목록');
+        비상.remove();
+        for (const m of j.묶음) {
+          // 폴더의 문(index.html)이 있으면 그 제목이 묶음 이름이다 — 없으면 폴더 이름
+          const 문 = m.장.find((x) => x.문);
+          const g = 묶음('시안 · ' + (문 ? 문.제목 : m.이름) + '  (' + m.장.length + ')');
+          for (const x of m.장) {
+            const o = document.createElement('option');
+            o.value = x.주소;
+            // 주소가 길어 이름만 적는다 — 고른 뒤 주소 칸에 그대로 들어간다
+            o.textContent = (x.문 ? '★ ' : '') + x.제목;
+            g.appendChild(o);
+          }
+        }
+        // `?path=` 로 시안을 열었으면 그 줄이 **이제** 생겼다 — 고른 자리를 맞춘다
+        const q = new URLSearchParams(location.search).get('path');
+        if (q && [...routeSel.options].some((o) => o.value === q)) routeSel.value = q;
+      })
+      .catch((e) => {
+        비상.label = '시안 · 목록을 못 받았다 (/dev/sian.json — ' + e.message + ')';
+      });
   }
 
   const devSel = $('device');

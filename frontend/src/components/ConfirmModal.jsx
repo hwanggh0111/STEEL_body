@@ -48,10 +48,19 @@ export default function ConfirmModalHost() {
       return next;
     });
     _showConfirm = show;
-    // 마운트 직후 큐에 쌓인 요청 처리
+    // ── ★ **마운트 직후 처리가 줄을 지키지 않았다** ── (2026-11-26 · 정석, 근호 11/25 의심 목록)
+    //
+    // 여태 `setState(next)` 였다 — 바로 위에서 「덮어쓰지 않고 줄을 세운다」로 고친
+    // 그 자리를 **이 두 줄이 비껴갔다.** 물음이 떠 있는 채로 이 손이 또 돌면
+    // (개발의 StrictMode 는 effect 를 두 번 돌리고, 운영에서도 **줄에 둘 이상 쌓인
+    // 채 다시 마운트**되면 같은 일이 난다) 앞 물음이 화면에서 사라지고
+    // **그 promise 가 영영 안 풀린다** — 그것을 기다리던 `await` 가 그 자리에서 멈춘다
+    // (지우기 확인 · 나가기 확인이 거기 걸려 있다).
+    //
+    // **같은 `show` 를 쓴다.** 이미 떠 있으면 그 손이 줄에 되돌려 놓는다 — 잃는 줄이 없다
     if (_pendingQueue.length > 0) {
       const next = _pendingQueue.shift();
-      setState(next);
+      show(next);
     }
     // Toast 와 같은 이유로, 내가 걸어둔 것일 때만 치운다
     return () => { if (_showConfirm === show) _showConfirm = null; };
@@ -230,7 +239,7 @@ export default function ConfirmModalHost() {
             onClick={() => close(true)}
             style={{
               background: danger ? 'var(--danger-strong)' : 'var(--accent)',
-              border: 'none', color: danger ? '#fff' : 'var(--on-accent)', padding: '10px 18px',
+              border: 'none', color: danger ? 'var(--on-danger)' : 'var(--on-accent)', padding: '10px 18px',
               fontSize: 13, borderRadius: 'var(--radius)', cursor: 'pointer',
               fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", letterSpacing: 1.5, fontWeight: 600,
             }}

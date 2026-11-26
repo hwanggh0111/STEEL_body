@@ -416,6 +416,38 @@ console.log('── 달아오른 칠이 한 곳에서 오나 ── (2026-10-20)
   ok('  테두리는 작은 몸 몫(`SKIN_EDGE_MINI`)을 쓴다', /stroke=\{SKIN_EDGE_MINI\}/.test(mini), true);
   ok('  그 색은 조각 파일 한 자리에 있다', /export const SKIN_EDGE_MINI = '#[0-9a-f]{6}'/.test(shapes), true);
   ok('  지도는 제 테두리 그대로다(작은 몸 몫을 안 쓴다)', /SKIN_EDGE_MINI/.test(map), false);
+
+  // ── **몸 색을 세 파일이 따로 적고 있었다** ── (2026-11-26 · 맵시)
+  //
+  // `bodyShapes.jsx` 는 「조각을 복사하면 두 그림이 조용히 달라진다」고 적어두고
+  // 한 자리에 모았는데, **색은 복사돼 있었다** — `PumpBody` 와 `ShapeSilhouette` 가
+  // `GOLD`·`SKIN` 을 제 파일에 또 적었다(셋, 셋). 11/25 에 `--text-muted` 를 바꿀 때
+  // `PumpBody` 의 점선 색을 손으로 따라 바꿨다 — 그 손이 빠지는 날 점선만 옛 색이다.
+  {
+    const 뿌리 = 'src/components/';
+    const 또적은자리 = [];
+    for (const f of ['PumpBody.jsx', 'ShapeSilhouette.jsx', 'MiniBody.jsx', 'BodyMap.jsx']) {
+      const 글 = codeOf(read(뿌리 + f));
+      for (const 이름 of ['GOLD', 'GOLD_LOW', 'SKIN', 'SKIN_EDGE', 'DASH', 'GHOST', 'MARK_WARNING']) {
+        // `const GOLD = '#...'` — 받아 쓰는 `import` 는 걸리지 않는다
+        if (new RegExp('const ' + 이름 + "\\s*=\\s*'#").test(글)) 또적은자리.push(f + ' · ' + 이름);
+      }
+    }
+    ok('몸 색을 또 적은 자리', 또적은자리, []);
+
+    // 토큰을 베낀 넷은 `globals.css` 와 **같은 값**이어야 한다. SVG 속성에는 `var()` 가
+    // 안 먹어서 값을 적는 수밖에 없다 — 그러니 **어긋났는지는 자가 본다**
+    const css = read('src/styles/globals.css')
+      .replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, '$1');
+    const 토큰 = (이름) => ((css.match(new RegExp('--' + 이름 + '\\s*:\\s*(#[0-9a-fA-F]{6})')) || [])[1] || '').toLowerCase();
+    const 조각 = (이름) => ((shapes.match(new RegExp('const ' + 이름 + "\\s*=\\s*'(#[0-9a-fA-F]{6})'")) || [])[1] || '').toLowerCase();
+    const 어긋난짝 = [];
+    for (const [조각이름, 토큰이름] of [['GOLD', 'accent'], ['GOLD_LOW', 'accent-low'], ['DASH', 'text-muted'], ['MARK_WARNING', 'warning']]) {
+      const a = 조각(조각이름); const b = 토큰(토큰이름);
+      if (!a || !b || a !== b) 어긋난짝.push(조각이름 + ' ' + (a || '없음') + ' ≠ --' + 토큰이름 + ' ' + (b || '없음'));
+    }
+    ok('  토큰을 베낀 넷이 지금 토큰과 같다', 어긋난짝, []);
+  }
 }
 
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));

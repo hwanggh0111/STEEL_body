@@ -197,9 +197,76 @@ console.log('── 3. 눌리는 칸 안의 글자는 그 칸 바탕에서 4.5 �
 console.log('');
 console.log('── 4. 밝은 색을 통째로 칠한 자리에 얹는 글자 ──');
 // 금·초록·노랑에 흰 글자를 얹으면 1.8 : 1 이다 (그래서 `--on-accent` 가 있다)
+// ★ 토큰이 없으면 **FAIL 로 적고 넘어간다** — 여기서 터지면 자가 죽어서, 그 뒤의
+//   검사가 아예 안 돌고 「되돌려도 안 운다」가 된다 (2026-11-26 에 ③·④ 둘 다 밟았다)
+const 얹기 = (이름, 글자토큰, 바탕토큰) => {
+  const f = tokens[글자토큰]; const b = tokens[바탕토큰];
+  if (!f || !b) {
+    ok(`${이름} — 토큰이 있다 (${글자토큰} · ${바탕토큰})`, { [글자토큰]: f || null, [바탕토큰]: b || null },
+      { [글자토큰]: f || '있어야 한다', [바탕토큰]: b || '있어야 한다' });
+    return null;
+  }
+  const r = ratio(f, b);
+  ok(`${이름}(${b}) 위의 ${글자토큰} 가 4.5 : 1 이상 → ${r}`, r >= 4.5, true);
+  return r;
+};
 for (const [이름, t] of [['금', '--accent'], ['초록', '--success'], ['노랑', '--warning']]) {
-  const r = ratio(tokens['--on-accent'], tokens[t]);
-  ok(`${이름}(${tokens[t]}) 위의 --on-accent 가 4.5 : 1 이상 → ${r}`, r >= 4.5, true);
+  얹기(이름, '--on-accent', t);
+}
+// ── **빨강은 이 자에 아예 없었다** ── (2026-11-26 · 맵시)
+//
+// 빨강은 금과 **반대**다. 면으로 칠하는 것은 어두운 `--danger-strong` 이라 흰 글자가
+// 6.34 이고, 금 위에 쓰는 `--on-accent`(#12100c)를 얹으면 3.0 으로 떨어진다. 그래서
+// `--on-danger` 를 따로 둔다. 여태 여섯 자리가 `#fff` 를 **손으로** 적고 있었다.
+{
+  얹기('빨강', '--on-danger', '--danger-strong');
+  // 금 위의 글자를 빨강에 얹지 않는가 — 반대로 쓰면 3.0 이다
+  if (tokens['--on-accent'] && tokens['--danger-strong']) {
+    ok('  빨강 위에 --on-accent 를 얹으면 기준선 밑이다 (그래서 토큰이 둘이다)',
+      ratio(tokens['--on-accent'], tokens['--danger-strong']) < 4.5, true);
+  }
+  // 밝은 빨강은 **면으로 쓰지 않는다** — 그 위 흰 글자는 3.41 이다
+  ok('  밝은 --danger 를 면으로 칠한 자리', (() => {
+    const 난것 = [];
+    const 훑기 = (dir) => {
+      for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, f.name);
+        if (f.isDirectory()) { 훑기(full); continue; }
+        if (!/[.]jsx?$/.test(f.name)) continue;
+        fs.readFileSync(full, 'utf8').split('\n').forEach((line, i) => {
+          if (/^\s*([/][/]|[*])/.test(line)) return;
+          // `background: 'var(--danger)'` — 딱지(`badge-danger`)는 테두리·글자만 쓴다
+          if (/background(Color)?\s*:\s*'var[(]--danger[)]'/.test(line)) {
+            난것.push(path.relative(ROOT, full).split(path.sep).join('/') + ':' + (i + 1));
+          }
+        });
+      }
+    };
+    훑기(path.join(ROOT, 'src'));
+    return 난것;
+  })(), []);
+  // 손으로 적은 흰 글자 — 제공자 색(네이버·구글·인스타·X)만 빼고 0 이어야 한다
+  ok('  빨강 위 글자를 손으로 적은 자리', (() => {
+    const 난것 = [];
+    // 제공자 색(브랜드 가이드) · 사진 위에 그려 내보내는 글자(캔버스)는 토큰 자리가 아니다
+    const 제공자 = ['SocialLoginButtons.jsx', 'OauthEmailPage.jsx', 'mergeShots.js'];
+    const 훑기 = (dir) => {
+      for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, f.name);
+        if (f.isDirectory()) { 훑기(full); continue; }
+        if (!/[.]jsx?$/.test(f.name)) continue;
+        if (제공자.includes(f.name)) continue;   // 브랜드 가이드가 못 박은 색이다
+        fs.readFileSync(full, 'utf8').split('\n').forEach((line, i) => {
+          if (/^\s*([/][/]|[*])/.test(line)) return;
+          if (/(?<![a-zA-Z.-])color\s*[:=][^;\n,]*'#(fff|ffffff)'/.test(line)) {
+            난것.push(path.relative(ROOT, full).split(path.sep).join('/') + ':' + (i + 1));
+          }
+        });
+      }
+    };
+    훑기(path.join(ROOT, 'src'));
+    return 난것;
+  })(), []);
 }
 
 console.log('');

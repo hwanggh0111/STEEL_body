@@ -105,6 +105,29 @@ function 재기(틀원본, 설정원본) {
   // ⑹ `dist` 밖에 산다
   if (!알맹이(설정원본).includes("apply: 'serve'")) 어긋남.push("틀이 `dist` 에 실린다 (`apply: 'serve'` 가 없다)");
 
+  const c = 알맹이(설정원본);
+
+  // ⑺ **시안 목차를 손으로 적지 않는다** (2026-11-26 · 맵시)
+  //
+  // 11/26 까지 목차는 `preview.html` 에 박아 적은 `SIAN` 배열이었다. 「새 시안을 만드는
+  // 날 이 줄을 같이 보탠다」고 적어뒀는데 **68장 중 34줄**이었다 — 폴더 일곱이 통째로
+  // 빠졌다. 빠진 시안은 폰 틀에서 못 본다(주소를 외우는 사람만 본다).
+  if (!c.includes("'/dev/sian.json'")) 어긋남.push('개발 서버가 시안 목록을 안 내준다 (`/dev/sian.json`)');
+  if (!h.includes("fetch('/dev/sian.json')")) 어긋남.push('틀이 시안 목록을 안 받아온다 (손 목차로 돌아갔다)');
+
+  // ⑻ 손 목차는 **비상용뿐**이다 — 다시 쌓이면 또 빠진다
+  const s = h.indexOf('const SIAN = [');
+  if (s < 0) 어긋남.push('비상 줄(`SIAN`)이 아예 없다 — 목록을 못 받으면 고를 것이 0 이 된다');
+  else {
+    const 끝 = h.indexOf('];', s);
+    const 줄수 = h.slice(s, 끝 < 0 ? s + 4000 : 끝).split('\n').filter((l) => l.includes("['/dev/sian/")).length;
+    if (줄수 === 0) 어긋남.push('비상 줄이 비었다');
+    if (줄수 > 5) 어긋남.push('손 목차가 다시 쌓이고 있다 (' + 줄수 + '줄) — 비상용은 셋이면 된다');
+  }
+
+  // ⑼ **못 받으면 말을 한다.** 조용히 빈 목차를 두면 「시안이 없는 날」로 읽힌다
+  if (!h.includes('목록을 못 받았다')) 어긋남.push('목록을 못 받았을 때 아무 말도 안 한다');
+
   return 어긋남;
 }
 
@@ -125,6 +148,10 @@ if (process.argv.includes('--되돌려')) {
     ['  이름표가 눈에 보이는 수를 적으면 운다', 전부바꾸기(원본, 'r.width / f', 'r.width'), 설정원본, '나눈 쪽'],
     ['  한계 문구를 지우면 운다', 전부바꾸기(전부바꾸기(원본, '과장', ''), '안 넘친다', ''), 설정원본, '한계를 적은 줄이 없다'],
     ['  틀이 `dist` 에 실리면 운다', 원본, 전부바꾸기(설정원본, "apply: 'serve'", "apply: 'build'"), '`dist` 에 실린다'],
+    ['  서버가 시안 목록을 안 내주면 운다', 원본, 전부바꾸기(설정원본, "'/dev/sian.json'", "'/dev/nope.json'"), '시안 목록을 안 내준다'],
+    ['  틀이 손 목차로 돌아가면 운다', 전부바꾸기(원본, "fetch('/dev/sian.json')", 'fetch(0)'), 설정원본, '안 받아온다'],
+    ['  손 목차가 다시 쌓이면 운다', 전부바꾸기(원본, "    ['/dev/sian/1120/', '11/20 — UI 시안 열다섯'],", "    ['/dev/sian/a/', 'a'],\n    ['/dev/sian/b/', 'b'],\n    ['/dev/sian/c/', 'c'],\n    ['/dev/sian/d/', 'd'],"), 설정원본, '다시 쌓이고 있다'],
+    ['  못 받았을 때 말이 없으면 운다', 전부바꾸기(원본, '목록을 못 받았다', '…'), 설정원본, '아무 말도 안 한다'],
     ['  고친 꼴은 안 운다 (지금 판)', 원본, 설정원본, null],
   ];
   for (const [이름, h, c, 기대말] of 꼴) {
@@ -143,6 +170,38 @@ if (process.argv.includes('--되돌려')) {
 console.log('── 폰 틀의 「크게」 손잡이가 제자리인가 ──');
 // 0건은 통과가 아니다 — 파일이 사라지면 이 자가 장식이 된다
 ok('틀 파일을 찾았다', fs.existsSync(틀) && fs.existsSync(설정), true);
-ok('지켜야 하는 것 여섯이 다 있다', 재기(fs.readFileSync(틀, 'utf8'), fs.readFileSync(설정, 'utf8')), []);
+ok('지켜야 하는 것 아홉이 다 있다', 재기(fs.readFileSync(틀, 'utf8'), fs.readFileSync(설정, 'utf8')), []);
+
+// ── 시안 장마다 제목이 있는가 ── (2026-11-26)
+//
+// 목차는 장의 `<title>` 을 그대로 쓴다. 없으면 **파일 이름**이 뜬다(`03-FinishCard.html`)
+// — 고를 수가 없다. 폴더가 열둘이고 장이 여든이라 눈으로는 못 센다.
+console.log('');
+console.log('── 시안 여든 장이 목차에 이름으로 뜨는가 ──');
+{
+  const 뿌리 = path.join(ROOT, 'dev', 'sian');
+  const 제목없음 = [];
+  let 장수 = 0;
+  let 폴더수 = 0;
+  if (fs.existsSync(뿌리)) {
+    for (const d of fs.readdirSync(뿌리, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      폴더수 += 1;
+      const 칸 = path.join(뿌리, d.name);
+      for (const f of fs.readdirSync(칸)) {
+        if (!f.endsWith('.html')) continue;
+        장수 += 1;
+        const 글 = fs.readFileSync(path.join(칸, f), 'utf8').slice(0, 8192);
+        const a = 글.indexOf('<title>');
+        const b = a < 0 ? -1 : 글.indexOf('</title>', a);
+        if (a < 0 || b < 0 || !글.slice(a + 7, b).trim()) 제목없음.push(d.name + '/' + f);
+      }
+    }
+  }
+  // 0건은 통과가 아니다 — 폴더를 못 찾았으면 아래 []도 []다
+  ok('시안 폴더와 장을 찾았다', 폴더수 > 0 && 장수 > 0, true);
+  console.log('     폴더 ' + 폴더수 + '개 · 장 ' + 장수 + '개 (목차는 이 수를 그대로 받는다)');
+  ok('제목이 없는 장', 제목없음, []);
+}
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

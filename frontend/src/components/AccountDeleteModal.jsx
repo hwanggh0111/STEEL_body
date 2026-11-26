@@ -238,7 +238,7 @@ export default function AccountDeleteModal({ onClose, onDeleted }) {
                 borderRadius: 'var(--radius)', fontSize: 14, fontWeight: 600,
                 border: '1px solid var(--danger)',
                 background: canSubmit ? 'var(--danger-strong)' : 'transparent',
-                color: canSubmit ? '#fff' : 'var(--text-muted)',
+                color: canSubmit ? 'var(--on-danger)' : 'var(--text-muted)',
                 opacity: canSubmit ? 1 : 0.6, transition: 'all 0.15s',
               }}
             >

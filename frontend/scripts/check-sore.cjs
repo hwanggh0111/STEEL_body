@@ -149,6 +149,7 @@ const codeOf = (x) => x
   .replace(/^\s*\/\/.*$/gm, '');
 const partsPage = codeOf(fs.readFileSync('src/pages/PartsPage.jsx', 'utf-8'));
 const bodySvg = codeOf(fs.readFileSync('src/components/PumpBody.jsx', 'utf-8'));
+const bodyShapes = codeOf(fs.readFileSync('src/components/bodyShapes.jsx', 'utf-8'));
 
 console.log('── 몸 그림이 보이는가 ──');
 // 두 갈래 다 몸을 그린다 (아픔 · 미리보기 · 미리보기의 빈 상태 = 셋)
@@ -160,7 +161,17 @@ ok('아픔은 딴 색으로 칠한다', /mark=\{\{ parts: rows/.test(partsPage),
 ok('  그 색을 값으로 넘긴다 (CSS 변수는 SVG 에서 안 먹는다)',
   /color: MARK_WARNING/.test(partsPage), true);
 ok('  SVG 에 CSS 변수를 안 넘긴다', /mark=\{\{[^}]*var\(--/.test(partsPage), false);
-ok('그림 쪽도 값을 직접 들고 있다', /MARK_WARNING = '#[0-9a-f]{6}'/.test(bodySvg), true);
+// ── 2026-11-26: **파일이 아니라 규칙을 본다** ──
+// 여태 `PumpBody.jsx` 안에 `MARK_WARNING = '#...'` 이 있는지 봤다. 그 값은 11/26 에
+// 조각 파일(`bodyShapes.jsx`) 한 자리로 모았다 — 같은 색을 세 파일이 따로 적고 있어서
+// 11/25 에 한쪽만 바뀐 일이 있었다. 지켜야 하는 것은 **자리**가 아니라 「SVG 에 들어갈
+// 값이 **글자 그대로의 색**이다」이므로, 그 색이 적힌 자리를 조각 파일에서 보고
+// `PumpBody` 는 **받아서 다시 내보내는지**(`PartsPage` 가 거기서 받아 간다)를 본다.
+ok('그림 쪽도 값을 직접 들고 있다',
+  /MARK_WARNING = '#[0-9a-f]{6}'/.test(bodyShapes), true);
+ok('  그림이 그 값을 받아서 다시 내보낸다 (받아 가는 자리가 안 깨지게)',
+  /import \{[^}]*MARK_WARNING[^}]*\} from '\.\/bodyShapes'/.test(bodySvg)
+  && /export \{ MARK_WARNING \}/.test(bodySvg), true);
 // 읽어주는 말은 자리마다 달라야 한다 — 「이번 판에서 등를 채웠어요」는 여기서 틀린 말이다
 ok('읽어주는 말을 자리마다 바꿔 넘긴다', (partsPage.match(/label=/g) || []).length, 3);
 

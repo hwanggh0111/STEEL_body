@@ -10,10 +10,24 @@
 //
 // 색은 SVG 속성으로 나가므로 `var(--accent)` 를 못 쓴다 — 속성 안에서는 치환되지
 // 않는다. 토큰 값을 직접 적는다.
-export const GOLD = '#eeb77d';
-export const GOLD_LOW = '#d29a5f';
-export const SKIN = '#1c1813';
-export const SKIN_EDGE = '#2b251c';
+//
+// ── **몸 색은 여기 하나다** ── (2026-11-26 · 맵시)
+//
+// 위에 「조각을 복사하면 두 그림이 조용히 달라진다」고 적어두고 **색은 복사하고
+// 있었다** — `PumpBody` 와 `ShapeSilhouette` 가 같은 값을 제 파일에 또 적었다
+// (`GOLD`·`SKIN` 은 세 번, `GOLD_LOW`·`SKIN_EDGE` 는 두 번). 11/25 에 `--text-muted` 를
+// 바꿀 때 `PumpBody` 의 점선 색을 **손으로 따라 바꿨다** — 다음에 그 손이 빠지면
+// 점선만 옛 색으로 남는다. 그래서 셋이 여기서 받아 간다.
+export const GOLD = '#eeb77d';        // = --accent
+export const GOLD_LOW = '#d29a5f';    // = --accent-low
+export const SKIN = '#1c1813';        // 몸 그림 몫 (토큰이 아니다)
+export const SKIN_EDGE = '#2b251c';   // 몸 그림 몫
+/** 안 건드린 곳을 두르는 점선 (`PumpBody`) = --text-muted */
+export const DASH = '#8c816e';
+/** 잰 값이 없는 쪽을 흐리게 (`ShapeSilhouette`) — 몸 그림 몫 */
+export const GHOST = '#5a5348';
+/** 금색이 아닌 **뜻**으로 칠할 때 (아픔 · `PartsPage`) = --warning */
+export const MARK_WARNING = '#d9a441';
 // 운동 카드의 **작은 몸**만 쓰는 테두리 (2026-11-25 · 맵시). 36px 로 줄이면 `SKIN_EDGE` 는
 // 카드 바탕(`--bg-card`)에 묻혀 윤곽이 안 보인다. 지도는 크니까 그대로 둔다 —
 // 한 단계만 밝힌 중간 톤이다(운동명 `--text-secondary` 보다 한참 어둡다)

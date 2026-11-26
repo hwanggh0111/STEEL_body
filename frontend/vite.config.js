@@ -63,6 +63,54 @@ const devPreviewPlugin = () => ({
         res.end(JSON.stringify({ port, urls }));
         return;
       }
+      // ── **손으로 적는 목차는 빠진다** ── (2026-11-26 · 맵시)
+      //
+      // 시안 목차(`dev/preview.html` 의 `SIAN`)를 날마다 손으로 보태고 있었다. 그 장이
+      // 정적 HTML 이라 「파일 목록을 읽을 손이 없다」고 적어두고 그렇게 했는데,
+      // **읽을 손은 여기 있었다** — 이 플러그인이 `/dev/net.json` 을 이미 내주고 있다.
+      //
+      // 11/26 에 세어보니 시안 **68장 중 목차에 34줄**이었다. 폴더 일곱(1112 · 1113 ·
+      // 1117 · 1118 · 1118b · 1119-fields · 1120-photo)이 **통째로** 없었고, 1119 는
+      // 일곱 장에 한 줄이었다. 손으로 적는 자리는 **바쁜 날 빠진다** — 빠지면 그 시안은
+      // 폰 틀에서 못 본다(주소를 외우는 사람만 본다).
+      //
+      // 제목은 장마다 `<title>` 을 그대로 쓴다. 폴더는 **새 날이 위로** 온다.
+      if (path === '/dev/sian.json') {
+        const 뿌리 = new URL('./dev/sian', import.meta.url).pathname.replace(/^[/]([A-Za-z]:)/, '$1');
+        const 제목 = (파일) => {
+          const 글 = fs.readFileSync(파일, 'utf8').slice(0, 8192);
+          const a = 글.indexOf('<title>');
+          if (a < 0) return null;
+          const b = 글.indexOf('</title>', a);
+          if (b < 0) return null;
+          return 글.slice(a + 7, b).replace(/\s+/g, ' ').trim() || null;
+        };
+        const 묶음 = [];
+        if (fs.existsSync(뿌리)) {
+          const 폴더 = fs.readdirSync(뿌리, { withFileTypes: true })
+            .filter((d) => d.isDirectory()).map((d) => d.name)
+            // 「1125b」가 「1125」 뒤에 오게 — 날짜는 수로, 꼬리는 글자로 센다
+            .sort((x, y) => (parseInt(y, 10) - parseInt(x, 10)) || y.localeCompare(x));
+          for (const 이름 of 폴더) {
+            const 칸 = 뿌리 + '/' + 이름;   // 이 안에서 `path` 는 주소 글자다 (위에서 가렸다)
+            const 장 = fs.readdirSync(칸).filter((f) => f.endsWith('.html')).sort();
+            // index.html 이 있으면 맨 앞에 — 그 폴더의 문이다
+            장.sort((x, y) => (x === 'index.html' ? -1 : y === 'index.html' ? 1 : 0));
+            묶음.push({
+              이름,
+              장: 장.map((f) => ({
+                주소: '/dev/sian/' + 이름 + '/' + (f === 'index.html' ? '' : f),
+                제목: 제목(칸 + '/' + f) || f,
+                문: f === 'index.html',
+              })),
+            });
+          }
+        }
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.setHeader('cache-control', 'no-store');
+        res.end(JSON.stringify({ 묶음, 장수: 묶음.reduce((n, m) => n + m.장.length, 0) }));
+        return;
+      }
       next();
     });
   },

@@ -157,7 +157,22 @@ export default function StopwatchSection({ onSave }) {
             {time > 0 && mode === 'stopwatch' ? '이어하기' : '시작'}
           </button>
         ) : (
-          <button className="btn-primary" onClick={handleStop} style={{ flex: 1, background: 'var(--danger)' }}>정지</button>
+          // ── **「정지」 글자가 1.9 : 1 이었다** ── (2026-11-26 · 맵시)
+          //     `btn-primary` 는 **금 테두리 + 금 글자**다(면을 칠하지 않는다). 거기에 밝은
+          //     빨강을 면으로 깔아서, 금 글자(#eeb77d)가 밝은 빨강(#d96a5c) 위에 얹혔다 —
+          //     **1.9 : 1.** 운동 중에 누르는 단추인데 글자가 거의 안 보였다.
+          //     면으로 칠하는 빨강은 **진한 쪽 하나**다(집 규칙 · `Toast` 에도 적혀 있다).
+          //     테두리까지 같은 빨강으로 바꿔야 금테가 안 남는다.
+          <button
+            className="btn-primary"
+            onClick={handleStop}
+            style={{
+              flex: 1,
+              background: 'var(--danger-strong)',
+              borderColor: 'var(--danger-strong)',
+              color: 'var(--on-danger)',
+            }}
+          >정지</button>
         )}
         {mode === 'stopwatch' && running && (
           <button className="btn-secondary active" onClick={handleLap} style={{ padding: '10px 16px' }}>랩</button>

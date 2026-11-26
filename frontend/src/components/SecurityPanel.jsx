@@ -802,7 +802,7 @@ export default function SecurityPanel() {
                 style={{
                   flex: 1, border: '1px solid var(--danger)',
                   background: confirmEmail.trim().toLowerCase() === String(deleting.email).toLowerCase() ? 'var(--danger-strong)' : 'transparent',
-                  color: confirmEmail.trim().toLowerCase() === String(deleting.email).toLowerCase() ? '#fff' : 'var(--text-muted)',
+                  color: confirmEmail.trim().toLowerCase() === String(deleting.email).toLowerCase() ? 'var(--on-danger)' : 'var(--text-muted)',
                   padding: '10px 14px', borderRadius: 'var(--radius)',
                   cursor: 'pointer', fontSize: 13, fontWeight: 700,
                 }}

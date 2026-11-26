@@ -208,7 +208,7 @@ export default function ReportList({ items, loading, loadFailed, onDelete }) {
                       onClick={e => { e.stopPropagation(); setConfirmDel(null); onDelete(item.id); }}
                       style={{
                         background: 'var(--danger-strong)', border: '1px solid var(--danger-strong)',
-                        color: '#fff', fontSize: 11.5, fontWeight: 700,
+                        color: 'var(--on-danger)', fontSize: 11.5, fontWeight: 700,
                         padding: '5px 11px', borderRadius: 'var(--radius)', cursor: 'pointer',
                       }}
                     >지웁니다</button>
