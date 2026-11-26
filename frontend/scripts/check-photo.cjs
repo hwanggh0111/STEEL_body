@@ -110,7 +110,22 @@ function 줄이는손(raw) {
     let i = src.indexOf(머리);
     while (i >= 0) {
       const 뒤 = src.slice(i, i + 260);
-      if (/return\s*\{[^}]*data:\s*original/.test(뒤) && !/unreadable/.test(뒤)) {
+      // ── ★ **「못 읽는 자리」만 센다** ── (2026-11-26 · 굽는 손을 떼어낸 뒤)
+      //
+      // 11/26 에 다시 굽는 부분을 `bake` 로 떼어냈다(두 길이 같은 자를 쓰게). 그러자
+      // 이 자가 **굽다 터진 `catch` 까지** 「못 읽은 자리」로 세어 울었다 — 그 자리는
+      // 그림을 **이미 읽은 뒤**다(캔버스가 막힌 기기 등). 거기에 「못 읽었다」를 달면
+      // 사람에게 **사실이 아닌 말**을 하게 된다(그게 11/20 에 고친 바로 그 잘못이다).
+      //
+      // 그래서 **여는 손이 그 `try` 안에 있는 자리만** 과녁으로 삼는다. 여는 손이
+      // 없는 `try` 는 읽기와 무관하다. 그 `try` 의 머리를 뒤로 찾아 들어간다
+      const 앞 = src.slice(0, i);
+      const try자리 = 앞.lastIndexOf('try {');
+      const 읽는가 = 머리 === 'if (!ctx)'
+        ? false                                   // 캔버스를 못 얻은 것은 읽기가 아니다
+        : (try자리 >= 0 && /readAsDataURL|loadImage|createImageBitmap|\.decode\(/
+          .test(src.slice(try자리, i)));
+      if (읽는가 && /return\s*\{[^}]*data:\s*original/.test(뒤) && !/unreadable/.test(뒤)) {
         샌자리.push(머리 + ' (' + (src.slice(0, i).split('\n').length) + '줄)');
       }
       i = src.indexOf(머리, i + 1);
@@ -132,9 +147,13 @@ function 줄이는손(raw) {
  */
 function 한도안열어보나(raw) {
   const src = codeOf(raw);
-  const i = src.indexOf('<= PHOTO_MAX_BASE64');
-  // **0건은 통과가 아니다** — 한도를 보는 줄이 사라지면 이 검사가 장식이 된다
-  if (i < 0) return ['한도를 보는 줄을 못 찾았다'];
+  // ★ **그 줄이 11/26 에 `needsShrink` 로 바뀌었다** — 「거절하는 선 안이면 그대로」가
+  // 「담아둘 선 안이면 그대로」가 됐다(용량 점검). 그래서 두 꼴을 다 찾는다.
+  // 여기서 보는 것은 여전히 **그 가지 안에서 열어는 보는가**다 — 선이 무엇이든 같다
+  let i = src.indexOf('!needsShrink(');
+  if (i < 0) i = src.indexOf('<= PHOTO_MAX_BASE64');
+  // **0건은 통과가 아니다** — 그 줄이 사라지면 이 검사가 장식이 된다
+  if (i < 0) return ['건너뛰는 가지를 못 찾았다 (needsShrink · 한도 비교 둘 다 없다)'];
   // ★ **창으로 재지 않는다 — 가지를 뜬다.** 처음에 「그 자리에서 700자」로 봤다가
   // 진짜 파일로 되돌려 보고 두 번 샜다(11/20 · 둘 다 그 자리에서 고쳤다):
   //
@@ -147,8 +166,21 @@ function 한도안열어보나(raw) {
   // 중괄호 없는 한 줄(`if (…) return …;`)이면 여는 손이 들어갈 자리가 없다 — 그것이
   // 바로 샌 꼴이다. 여는 손은 셋 중 아무것이어도 된다(꼴을 하나로 못박으면 다르게
   // 적는 날 거짓 FAIL 이다).
-  let j = i;
-  while (j < src.length && src[j] !== '{' && src[j] !== ';') j += 1;
+  // ★ **조건 안의 중괄호에 속지 않는다** (2026-11-26) — `needsShrink(len, edge, { … })`
+  // 처럼 **조건 자리에 객체**가 들어온다. 그래서 「앞에서 만난 첫 `{`」로 가지를 뜨면
+  // 그 객체를 가지로 착각한다(그 꼴에 한 번 걸렸다). **조건의 괄호를 닫고 나서** 본다
+  // **`if` 의 괄호**에서 센다 — 조건 안에 또 부름이 있다(`if (!needsShrink(…))`).
+  // 안쪽 부름의 괄호에서 세면 거기서 닫히고, 그 다음 글자는 `{` 가 아니라 `)` 다
+  const ifAt = src.lastIndexOf('if', i);
+  let c = src.indexOf('(', ifAt >= 0 ? ifAt : i);
+  if (c < 0) return ['가지를 못 떴다 (조건 괄호가 없다)'];
+  let 괄호 = 0;
+  for (; c < src.length; c += 1) {
+    if (src[c] === '(') 괄호 += 1;
+    else if (src[c] === ')') { 괄호 -= 1; if (괄호 === 0) break; }
+  }
+  let j = c + 1;
+  while (j < src.length && /\s/.test(src[j])) j += 1;
   if (src[j] !== '{') return ['한도 안이면 열어보지도 않는다'];   // 한 줄 가지
   let 깊이 = 0;
   let 끝 = j;

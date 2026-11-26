@@ -1,4 +1,4 @@
-import { PHOTO_MAX_BASE64 } from './photoLimit';
+import { PHOTO_TARGET_BASE64 } from './photoLimit';
 
 // 사진을 올릴 수 있는 크기로 줄인다.
 //
@@ -18,6 +18,30 @@ import { PHOTO_MAX_BASE64 } from './photoLimit';
 // 부르는 쪽이 여느 때처럼 안내한다.
 
 const MAX_EDGE = 1280;
+
+/**
+ * **줄여야 하나.** (2026-11-26 · 근호 용량 점검)
+ *
+ * 여태 이 판단이 「거절하는 선(`PHOTO_MAX_BASE64`) 안이면 그대로」였다. 그래서
+ * 1.4MB 짜리가 원본대로 올라가 쌓였다 — 사람마다 3장이면 4MB 가 넘고, 그것이
+ * **사진 다 채운 40~50명에서 서버가 넘치던** 까닭이다(`photoLimit.js` 머리글).
+ *
+ * 이제 **담아둘 선**(`PHOTO_TARGET_BASE64`)으로 본다. 두 가지 중 하나라도 걸리면 줄인다 —
+ *
+ *   · 담아둘 선보다 크다
+ *   · 긴 변이 우리가 그리는 크기보다 크다 (1280px · 프로필은 256px)
+ *
+ * **둘 다 아니면 다시 굽지 않는다.** 작고 잘 눌린 그림을 다시 구우면 화질만 손해다.
+ *
+ * 값만 보는 손이라 자가 그대로 부른다(`npm run photosize`) — 브라우저 없이 돈다.
+ * 판단을 그리는 자리에 섞어두면 **잴 수가 없다.**
+ */
+export function needsShrink(len, edge, { maxEdge = MAX_EDGE, always = false } = {}) {
+  if (always) return true;
+  if (!(len > 0)) return false;
+  if (len > PHOTO_TARGET_BASE64) return true;
+  return Number.isFinite(edge) && edge > maxEdge;
+}
 
 /**
  * **프로필 사진은 더 줄인다** (2026-10-31).
@@ -88,7 +112,11 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false, on
   // 이미 넉넉하면 그대로 둔다. 다시 구우면 화질만 손해다.
   // **`always` 면 크기와 상관없이 줄인다** — 프로필처럼 **그리는 크기가 정해진**
   // 자리에서는 「한도 안이니 그대로」가 300KB 를 26px 에 쓰는 일이 된다 (2026-10-31)
-  if (!always && original.length <= PHOTO_MAX_BASE64) {
+  //
+  // ★ **판단은 `needsShrink` 한 손이 한다** (2026-11-26) — 여태 이 자리가 「거절하는
+  // 선 안이면 그대로」였고, 그래서 1.4MB 가 원본대로 쌓였다(그 머리글에 까닭).
+  // 크기만으로는 **긴 변**을 못 보므로, 한 번 열어 본 뒤 다시 묻는다(아래 `긴변`)
+  if (!needsShrink(original.length, Infinity, { maxEdge, always })) {
     // ── ★ **한도 안이어도 열어는 본다** ── (2026-11-20 · 정석 1차)
     //
     // 11/20 에 「못 읽은 것을 크다고 말하지 않는다」를 고쳤는데, **못 읽었는지 묻는
@@ -102,17 +130,40 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false, on
     //
     // 그래서 **열어만 본다.** 다시 굽지 않으므로 화질은 그대로다. 보여주려면
     // 브라우저가 어차피 한 번 풀어야 하는 그림이라 값도 늘지 않는다.
+    let 열어본것;
     try {
-      await loadImage(original);
+      열어본것 = await loadImage(original);
     } catch {
       return { data: original, shrunk: false, unreadable: true };
     }
-    return { data: original, shrunk: false };
+    // **긴 변까지 보고 다시 묻는다** (2026-11-26) — 300KB 짜리 4000px 사진이 있다.
+    // 크기는 담아둘 선 안이지만 **우리가 그리는 크기보다 훨씬 크다**. 그대로 두면
+    // 기기마다 그 4000px 을 받아 1280 으로 줄여 그린다(받는 값 · 푸는 값이 다 든다)
+    const 긴변 = Math.max(열어본것.naturalWidth || 0, 열어본것.naturalHeight || 0);
+    if (!needsShrink(original.length, 긴변, { maxEdge, always })) {
+      return { data: original, shrunk: false };
+    }
+    // 줄여야 한다 — 아래 굽는 자리로 **이미 열어둔 그림을 들고** 내려간다
+    return bake(열어본것, original, { maxEdge, always, onStage });
   }
 
   try {
     onStage?.('shrink');
     const img = await loadImage(original);
+    return bake(img, original, { maxEdge, always, onStage });
+  } catch {
+    // 브라우저가 못 여는 형식. 원본을 그대로 돌려주고 **못 읽었다고 말한다**
+    return { data: original, shrunk: false, unreadable: true };
+  }
+}
+
+/**
+ * 다시 굽는다. **두 길이 이 한 손을 쓴다** (2026-11-26) — 「담아둘 선을 넘어 들어온
+ * 길」과 「선 안이지만 긴 변이 큰 길」이다. 베껴 두면 한쪽만 고쳐진다
+ */
+function bake(img, original, { maxEdge = MAX_EDGE, always = false, onStage } = {}) {
+  try {
+    onStage?.('shrink');
     const edge = Math.max(img.naturalWidth, img.naturalHeight);
     const scale = edge > maxEdge ? maxEdge / edge : 1;
 
@@ -125,18 +176,23 @@ export async function shrinkImage(file, { maxEdge = MAX_EDGE, always = false, on
 
     for (const q of QUALITIES) {
       const out = canvas.toDataURL('image/jpeg', q);
-      if (out.length <= PHOTO_MAX_BASE64) {
+      // **담아둘 선**으로 본다 (2026-11-26) — 여태 거절하는 선(2MB)으로 봐서,
+      // 첫 화질이 1.9MB 여도 통과했다. 1280px 이면 대개 200~400KB 라 첫 번에 든다
+      if (out.length <= PHOTO_TARGET_BASE64) {
         // **더 커졌으면 원본을 둔다** — 이미 작고 잘 눌린 그림을 다시 구우면
         // 커지는 일이 있다(작은 PNG → JPEG). 줄이려고 부른 자가 늘리면 안 된다
-        if (always && out.length >= original.length) return { data: original, shrunk: false };
+        if (out.length >= original.length) return { data: original, shrunk: false };
         return { data: out, shrunk: true };
       }
     }
-    // 세 번을 낮춰도 안 되면 마지막 것을 준다. 부르는 쪽이 한도를 다시 보고 안내한다
-    return { data: canvas.toDataURL('image/jpeg', QUALITIES[QUALITIES.length - 1]), shrunk: true };
+    // 세 번을 낮춰도 담아둘 선에 안 들면 마지막 것을 준다. **거절하는 선(2MB)보다
+    // 작으면 올라간다** — 담아둘 선은 목표고, 거절하는 선은 서버와 맞춘 벽이다
+    const 마지막 = canvas.toDataURL('image/jpeg', QUALITIES[QUALITIES.length - 1]);
+    if (마지막.length >= original.length) return { data: original, shrunk: false };
+    return { data: 마지막, shrunk: true };
   } catch {
-    // 브라우저가 못 여는 형식. 원본을 그대로 돌려주고 **못 읽었다고 말한다**
-    return { data: original, shrunk: false, unreadable: true };
+    // 굽다 터졌다(캔버스가 막힌 기기 등). 원본을 그대로 둔다 — 부르는 쪽이 한도를 본다
+    return { data: original, shrunk: false };
   }
 }
 

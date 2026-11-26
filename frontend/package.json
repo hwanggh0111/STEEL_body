@@ -138,7 +138,8 @@
     "modal": "node scripts/check-modal.cjs",
     "keytap": "node scripts/check-keytap.cjs",
     "watchscope": "node scripts/check-watch.cjs",
-    "type": "node scripts/check-type.cjs"
+    "type": "node scripts/check-type.cjs",
+    "photosize": "node scripts/check-photosize.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
