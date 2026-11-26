@@ -28,8 +28,23 @@
 // `'wasm-unsafe-eval'` 은 WebAssembly 를 세우는 데 필요하다 — 없으면 wasm 을 받아도
 // 못 돌린다. `eval` 을 여는 것이 아니다(그건 `'unsafe-eval'` 이다).
 
-/** 미디어파이프가 받는 두 집 — 체형 읽기 · 횟수 세기가 여기에 걸려 있다 */
-const MEDIAPIPE = ['https://cdn.jsdelivr.net', 'https://storage.googleapis.com'];
+// ── ★ **집 전체를 믿고 있었다** ── (2026-11-26 · 근호 점검 안전 4)
+//
+// 여태 `https://cdn.jsdelivr.net` **통째로**였다. 그 집에는 **누구나 올린 꾸러미가
+// 수십만 개** 있다 — 즉 「jsdelivr 에 있는 아무 스크립트나 받아도 된다」였다.
+// 어디선가 주소 한 줄을 끼워 넣을 수 있으면(링크 · 설명글 · 남이 올린 꾸러미 이름)
+// CSP 가 막아주지 않는다. `storage.googleapis.com` 도 같다 — 버킷 전체다.
+//
+// **CSP 는 좁을수록 지킨다**(이 파일이 11/13 에 구글 글꼴 집 둘을 걷으며 적어둔 그 말).
+// 그래서 **우리가 실제로 받는 그 길까지** 적는다. CSP 는 `/` 로 끝나는 길을
+// **앞자리 맞추기**로 본다 — 그 아래만 열린다.
+//
+// 길이 바뀌면(판 올림) 조용히 막히지 않게, `check-cspnarrow` 가 **앱이 적어둔 주소가
+// 이 앞자리로 시작하는지** 본다. 두 벌이 어긋나는 그 꼴을 자가 잡는다.
+const MEDIAPIPE = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/',          // wasm 글루 (tasks-vision)
+  'https://storage.googleapis.com/mediapipe-models/',  // 자세 모델 파일
+];
 
 // ── 밖으로 묻는 곳은 **지금 미디어파이프 둘뿐이다** ── (2026-10-21)
 //
@@ -66,6 +81,18 @@ const DIRECTIVES = {
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
+  // ── ★ **화면 문서에 가는 CSP 가 helmet 의 셋을 잃고 있었다** ── (2026-11-26 · 근호 안전 8)
+  //
+  // helmet 은 적어주지 않은 것에 **제 기본값**을 보탠다. 그래서 API 응답에는 아래 셋이
+  // 붙었는데, 화면 문서(`index.html`)에는 `spaCSP` 가 **이 표만** 적어 보내서 셋이
+  // 빠졌다 — **같은 앱의 두 응답이 다른 말을 하고 있었다.**
+  //
+  // 고치는 방향은 「`spaCSP` 에 또 적기」가 아니다(그러면 두 벌이 되고, 이 파일이
+  // 만들어진 까닭이 바로 그 두 벌을 없애려는 것이다). **여기 한 곳에 적으면 양쪽이
+  // 같이 받는다.**
+  'script-src-attr': ["'none'"],        // `onclick="..."` 같은 속성 안의 코드를 막는다
+  'frame-ancestors': ["'self'"],        // 남의 페이지에 끼워 넣지 못한다 (클릭재킹)
+  'upgrade-insecure-requests': [],      // 값이 없는 지시 — 아래 `headerValue` 가 이름만 적는다
 };
 
 /** helmet 이 받는 모양 — 열쇠가 카멜케이스다 */
@@ -80,7 +107,9 @@ function helmetDirectives() {
 /** 머리에 그대로 적는 한 줄 */
 function headerValue() {
   return Object.entries(DIRECTIVES)
-    .map(([k, v]) => `${k} ${v.join(' ')}`)
+    // **값이 없는 지시는 이름만 적는다** (`upgrade-insecure-requests`) —
+    // `이름 ` 처럼 빈칸을 붙여 보내면 읽는 쪽이 통째로 버릴 수 있다
+    .map(([k, v]) => (v.length === 0 ? k : `${k} ${v.join(' ')}`))
     .join('; ');
 }
 

@@ -76,6 +76,7 @@
     "lockpair": "node scripts/check-lockpair.cjs",
     "pwkick": "node scripts/check-pwkick.cjs",
     "hygiene": "node scripts/check-hygiene.cjs",
+    "cspnarrow": "node scripts/check-cspnarrow.cjs",
     "오류": "node ../agents/buchongjae/triage.cjs"
   },
   "engines": {

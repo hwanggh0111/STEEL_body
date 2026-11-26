@@ -765,8 +765,23 @@ console.log('── 받아도 되는 집이 앱이 받는 집과 맞나 (CSP) �
     const FROM_HTML = new Set(['https://fonts.googleapis.com', 'https://fonts.gstatic.com']);
     const html = fs.readFileSync(
       path.join(__dirname, '..', '..', 'frontend', 'index.html'), 'utf8');
+    // ── **길까지 적힌 자리는 앞자리로 견준다** ── (2026-11-26 · 안전 4 를 고친 뒤)
+    //
+    // 11/26 에 `cdn.jsdelivr.net` 집 전체를 믿던 것을 **그 길까지**(`/npm/@mediapipe/`)
+    // 좁혔다. 그때부터 이 자리의 「집 이름이 같은가」 견주기가 **못 맞춘다** —
+    // 앱이 적어둔 것은 전체 주소(`.../tasks-vision@0.10.18/wasm`)이고 CSP 에 적힌 것은
+    // 그 **앞자리**다. 이름이 다르니 「안 묻는 집」으로 울었다(실제로는 묻는다).
+    //
+    // 그래서 **앱 주소가 그 앞자리로 시작하면 쓰는 것**으로 본다. 좁힌 것을 되돌리지
+    // 않고도 이 검사가 선다 — 여전히 **CSP 에만 남은 자리**는 걸린다.
+    // `outside` 는 **집 이름만** 모은다(위 `matchAll` 이 호스트까지 긁는다).
+    // 그래서 길까지 적힌 자리는 **그 집이 코드에 있나**로 본다
+    const 쓰나 = (h) => {
+      if (outside.has(h)) return true;
+      try { return outside.has(new URL(h).origin); } catch { return false; }
+    };
     const unused = [...allowed]
-      .filter((h) => !outside.has(h))
+      .filter((h) => !쓰나(h))
       .filter((h) => !(FROM_HTML.has(h) && html.includes(h)));
     ok('  허락했는데 앱이 안 묻는 집', unused, []);
 
