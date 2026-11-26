@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "aa0686f0f7",
+  "detailVersion": "8aa57dbbff",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "aea5581",
+      "date": "2026-11-26",
+      "text": "첫 판 「의심만」도 셋이 진짜였다 — 유산소 칸에 세트 · 기다린 요청의 표 · 앞 요청이 비우는 자리",
+      "label": "고침",
+      "scope": "2차",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "390px 에서 무게 · 횟수 칸의 숫자가 안 보였다 — 정석 (⑧ 2차에서 같이 봤다)",
       "label": "고침",
       "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "f9fc09b",
-      "date": "2026-11-18",
-      "text": "한 줄 메모 · 몇 개 더 할 수 있었나 — 운동 한 줄에 붙인다 (시안 1118b ⑧ ①)",
-      "label": "새 기능",
-      "scope": "기록",
       "has": true
     }
   ]
