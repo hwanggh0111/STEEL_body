@@ -12,6 +12,13 @@
 //      지금 정지는 7일까지라 안 나지만, 더 긴 정지가 생기는 날 난다.
 //      → 판단을 `data/blockWake.js` 로 꺼내고 **하루씩 나눠 건다**
 //
+//   (⑶ 「앞 요청의 `finally` 가 다음 자리를 비운다」는 저장소를 **돌려 보는** 자리라
+//    `check-offedit` 에 뒀다 — 그쪽에 가짜 client 와 틈을 만드는 손이 이미 있다)
+//   ⑷ **확인창이 마운트 직후에 줄을 지키지 않았다** (`ConfirmModal.jsx`) — 떠 있는
+//      물음을 덮어 그 `await` 가 영영 안 풀린다 (StrictMode · 줄 둘 이상인 재마운트)
+//   ⑸ **갱신을 기다린 요청에 「한 번 해봤다」 표가 없었다** (`api/client.js`) —
+//      401 이 또 나면 요청 → 갱신 → 요청이 끝없이 돈다
+//
 //   ⑵ **새로고침이 올리는 중인 사진을 덮는다** (`ComparePage.jsx`)
 //      머리의 새로고침이 보낸 `GET /photos` 의 답이 **내 손보다 늦게** 오면, 그 답은
 //      내가 올린 것을 모르는 옛 판이다 — 화면과 기기가 그것으로 덮여 **올린 사진이
@@ -25,6 +32,9 @@ const fs = require('fs');
 const path = require('path');
 
 const 되돌림 = process.argv.includes('--되돌려');
+// 여러 줄 과녁은 **줄바꿈을 글자로 짜서** 쓴다 — 셸·편집기를 거치며 CRLF 로 바뀌면
+// 생 줄바꿈이 든 과녁은 조용히 안 맞는다 ([[shell-eats-backslash]] 와 같은 결)
+const NL = String.fromCharCode(10);
 
 let bad = 0;
 const ok = (name, got, want) => {
@@ -43,6 +53,11 @@ const 되돌림꼴 = {
   '늦은 답이 손이 닿은 칸도 덮는다': { file: 'data/photoMerge.js', cases: ['2'],
     from: 'if (!((닿은때[key] || 0) >= 떠난때 && 닿은때[key])) continue;',
     to:   'if (true) continue;' },
+  '확인창이 줄을 지키지 않는다': { file: 'components/ConfirmModal.jsx', cases: ['4'],
+    from: '      show(next);', to: '      setState(next);' },
+  '기다린 요청에 표가 없다': { file: 'api/client.js', cases: ['5'],
+    from: '        originalRequest._retry = true;' + NL + '        return new Promise((resolve, reject) => {',
+    to:   '        return new Promise((resolve, reject) => {' },
 };
 
 let 되돌릴것 = null;
@@ -60,6 +75,28 @@ const patch = {
       return { contents: src.replace(되돌릴것.from, 되돌릴것.to), loader: 'jsx' };
     });
   },
+};
+
+// ── 소스를 **글자로 보는** 판정도 되돌림을 먹는다 ──
+//
+// `load()` 로 들어오는 것만 esbuild 가 고쳐 먹인다. 글자로 보는 판정(⑷ · ⑸)이
+// `fs.readFileSync` 로 **디스크를 바로 읽으면** 되돌려가 그 자리를 못 흔든다 —
+// 그러면 「되돌려도 안 빨개진다」가 되고, 그것은 **자가 그 자리를 못 본다**는 뜻이다.
+// (세우고 되돌려 보다가 바로 이 꼴을 봤다 — 꼴 둘이 조용했다)
+// ★ **주석은 안 센다.** 이 집은 까닭을 길게 적고 그 주석에 **옛 꼴을 그대로** 적어둔다 —
+// 고친 자리 위 주석에 「여태 `setState(next)` 였다」 · 「`_retry = true` 를 찍는데」가
+// 있어서, 글자만 세면 **고쳐 놓고도 안 고친 것으로 보이거나(⑷) 되돌려도 조용하다(⑸).**
+// 둘 다 세우다 밟았다 — 그래서 주석을 벗기고 센다
+const 벗김 = (t) => t.split(String.fromCharCode(10))
+  .filter((l) => !l.trim().startsWith('//')).join(String.fromCharCode(10));
+
+const 읽기 = (rel) => {
+  const src = fs.readFileSync('src/' + rel, 'utf-8');
+  if (!되돌릴것 || 되돌릴것.file !== rel) return src;
+  if (!src.includes(되돌릴것.from)) {
+    throw new Error('되돌릴 자리를 못 찾았다 — ' + rel);
+  }
+  return src.replace(되돌릴것.from, 되돌릴것.to);
 };
 
 let seq = 0;
@@ -150,6 +187,29 @@ async function 판(which) {
     const src = fs.readFileSync('src/pages/ComparePage.jsx', 'utf-8');
     봄('화면이 그 자를 부른다', /mergeServerPhotos\(\{/.test(src), true);
     봄('  올리기 · 지우기가 손이 닿았다고 적는다', (src.match(/touch\(photoKey\)/g) || []).length, 2);
+  }
+
+  if (돈다('4')) {
+    console.log('── ⑷ 확인창이 마운트 직후에도 줄을 지키는가 ──');
+    const src = 읽기('components/ConfirmModal.jsx');
+    const 효과 = 벗김(src.slice(src.indexOf('_showConfirm = show;'), src.indexOf('const close')));
+    봄('마운트 직후 처리가 **같은 `show`** 를 쓴다', /show\(next\);/.test(효과), true);
+    봄('  생 `setState(next)` 로 덮지 않는다', /setState\(next\)/.test(효과), false);
+    // 줄을 세우는 쪽은 그대로여야 한다 (이 고침이 그것을 지우지 않았나)
+    봄('  떠 있으면 줄에 세운다', /_pendingQueue\.push\(next\)/.test(src), true);
+  }
+
+  if (돈다('5')) {
+    console.log('── ⑸ 갱신을 기다린 요청에 「한 번 해봤다」 표가 있나 ──');
+    const src = 읽기('api/client.js');
+    // ★ 창을 `isRefreshing = true;` 까지 잡으면 **혼자 가는 길의 표**까지 들어온다 —
+    // 되돌려서 이 길의 표를 지워도 그 줄이 남아 조용했다. 창을 **이 길 안**으로 좁힌다
+    const 머리 = src.indexOf('if (isRefreshing) {');
+    const 기다리는길 = 벗김(src.slice(머리, src.indexOf('.then(() => client(originalRequest));', 머리)));
+    봄('기다리는 길을 찾았다 (못 찾으면 통과가 아니다)', 기다리는길.length > 0, true);
+    봄('기다리는 길도 표를 찍는다', /originalRequest\._retry = true;/.test(기다리는길), true);
+    봄('  표를 보고 가르는 조건이 그대로 있다',
+      /originalRequest\._retry/.test(벗김(src.slice(0, src.indexOf('if (isRefreshing) {')))), true);
   }
 
   return 본것;

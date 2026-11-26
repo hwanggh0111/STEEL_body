@@ -27,6 +27,8 @@ import VoiceSet from '../components/VoiceSet';
 import NumberStep, { stepFloor, plainFloor, 담을자릿수 } from '../components/NumberStep';
 // 없다고 적어둔 기구 · 같은 부위의 다른 운동 (2026-11-19 · 시안 ③)
 import { 없다고적혔나, 대체후보 } from '../data/altExercise';
+// 조사는 한 자리에서 붙인다 (「런닝머신은」 · 「사이클은」)
+import { eun } from '../data/particle';
 import RepCounter from '../components/RepCounter';
 import PersonalRecordBanner from '../components/PersonalRecordBanner';
 import SameWeightBanner from '../components/SameWeightBanner';
@@ -393,6 +395,21 @@ export default function TrainPage() {
   // 있는가로 본다(`isCardioRow`). 둘을 섞으면 지어내 적어둔 옛 줄이 갑자기
   // 「유산소 줄」로 읽혀 **없는 시간을 0분으로** 그린다
   const cardio = isCardioName(exercise);
+  // ── ★ **한 깃발이 두 질문에 쓰이고 있었다** ── (2026-11-26 · 정석, 근호 첫 판 의심 목록)
+  //
+  // 위 `cardio` 가 답하는 것은 **「지금 폼이 적는 운동이 유산소인가」**다(`picked` 를
+  // 먼저 본다). 그런데 아래 진행표 칸이 그 깃발로 **「지금 하는 루틴 칸이 유산소인가」**를
+  // 물었다 — 둘은 다른 질문이고, 루틴을 하다 **다른 운동 하나를 끼워 넣으면 갈린다.**
+  //
+  //   루틴의 지금 칸이 런닝머신인데 폼에서 벤치프레스를 고른다
+  //   → `cardio` 가 false 가 되어 **세트 단추가 뜨고**
+  //   → 누르면 `saveRoutineSets(item)` 이 **`item.name`(런닝머신)** 으로 저장한다
+  //   → **「런닝머신 3세트 × 10회」** — 유산소 칸을 만든 까닭인 바로 그 거짓이다
+  //     (횟수는 옛 런닝머신 줄이나 루틴 글에서 끌어온다 — 11/05 전에 그렇게 적어둔
+  //      사람에게는 값이 있다)
+  //
+  // 그래서 **칸의 질문은 칸의 이름으로** 묻는다. 폼의 질문은 위 깃발 그대로다
+  const itemCardio = isCardioName(current?.name || '');
 
   // ── 없다고 적어둔 기구인가 (2026-11-19 · 시안 ③) ──
   //
@@ -917,6 +934,14 @@ export default function TrainPage() {
       setError('횟수를 적어주세요 — 몇 회 했는지는 지어낼 수 없어요');
       return;
     }
+    // ★ **유산소 칸을 세트로 적지 않는다** (2026-11-26) — 위 `itemCardio` 머리글의
+    // 그 자리다. 화면을 고쳤어도 **저장하는 손에 문을 하나 둔다**: 이 길로 들어오면
+    // 「런닝머신 3세트 × 10회」가 담기고, 그 줄은 아무 자도 거짓이라고 말해주지 않는다
+    if (isCardioName(item.name)) {
+      // 조사는 **한 자리에서** 붙인다 (`data/particle.js`) — 「런닝머신은」 · 「사이클은」
+      setError(`${eun(item.name)} 세트로 세지 않아요 — 아래 시간 · 거리 칸에 적어주세요`);
+      return;
+    }
     await save({ exercise: item.name, weight: w, sets: String(count), reps: r });
   };
 
@@ -1215,7 +1240,7 @@ export default function TrainPage() {
                 }}>{current.name}</span>
                 {/* 유산소에는 세트가 없다 (2026-11-05) — 세트 단추를 안 그리면서
                     이 머리만 「0 / 4세트」로 남아 있으면 그 자리가 거짓이 된다 */}
-                {!cardio && (
+                {!itemCardio && (
                   <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
                     {setsDone}{plannedSets ? ` / ${plannedSets}` : ''}세트
                   </span>
@@ -1225,7 +1250,7 @@ export default function TrainPage() {
                   루틴에 런닝머신이 들어 있으면 이 자리에 **세트 단추**가 떴다 —
                   누르면 「1세트 1회」로 적힌다. 그것이 유산소 칸을 만든 까닭인
                   바로 그 거짓이다. 유산소에는 아래 칸으로 적게 한다 */}
-              {cardio ? (
+              {itemCardio ? (
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
                   유산소는 세트로 세지 않아요 — 아래에서 <b style={{ color: 'var(--text-secondary)' }}>시간 · 거리</b>로
                   적습니다. 적으면 다음 운동으로 넘어가요.
@@ -1240,7 +1265,7 @@ export default function TrainPage() {
                   </div>
                 </>
               )}
-              {canFinishEarly && !cardio && (
+              {canFinishEarly && !itemCardio && (
                 <button className="btn-primary" disabled={saving} onClick={finishSets}>
                   여기까지 기록 · {setsDone}세트
                 </button>

@@ -10,6 +10,14 @@ import { sessionEpoch, isSameSession } from './session';
 //
 // 다른 기기에서 바뀐 것은 최대 이만큼 늦게 보인다. 기록 앱에서 30초는 짧다.
 const FRESH_MS = 30000;
+// ── **앞 요청의 `finally` 가 다음 요청의 자리를 비우지 않게** ── (2026-11-26 · 정석)
+//
+// `inflight` 는 「날아가 있는 요청」 하나를 가리킨다. 그런데 나가기 → 들어오기처럼
+// 그 사이에 **새 요청이 들어서면**, 앞 요청의 늦은 `finally` 가 그 **새 요청의
+// 자리를 비운다**(`inflight = null`). 그러면 다음 화면이 「날아가 있는 것이 없다」로
+// 보고 **같은 목록을 한 번 더 받는다** — 5년치면 그 왕복이 209KB 다.
+// 번호를 달아 **내 것일 때만** 비운다 (근호 11/25 의심 목록 끝줄)
+let reqSeq = 0;
 let inflight = null;
 let fetchedAt = 0;
 
@@ -55,6 +63,7 @@ export const useInbodyStore = create((set, get) => ({
     set({ loading: true });
     // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
     const mine = sessionEpoch();
+    const myReq = (reqSeq += 1);
     inflight = (async () => {
       try {
         const { data } = await client.get('/inbody');
@@ -71,7 +80,8 @@ export const useInbodyStore = create((set, get) => ({
         // 줄이 낫다
         set({ loading: false, failed: true });
       } finally {
-        inflight = null;
+        // **내 것일 때만** 비운다 (위 `reqSeq` 머리글)
+        if (myReq === reqSeq) inflight = null;
       }
     })();
     return inflight;

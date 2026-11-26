@@ -11,6 +11,14 @@ import { sessionEpoch, isSameSession } from './session';
 // 실패를 빈 목록과 구분해서 들고 있는다 — 보낸 게 있는데 아무것도 없는 화면이 뜨면
 // 지워진 줄 안다.
 
+// ── **앞 요청의 `finally` 가 다음 요청의 자리를 비우지 않게** ── (2026-11-26 · 정석)
+//
+// `inflight` 는 「날아가 있는 요청」 하나를 가리킨다. 그런데 나가기 → 들어오기처럼
+// 그 사이에 **새 요청이 들어서면**, 앞 요청의 늦은 `finally` 가 그 **새 요청의
+// 자리를 비운다**(`inflight = null`). 그러면 다음 화면이 「날아가 있는 것이 없다」로
+// 보고 **같은 목록을 한 번 더 받는다** — 5년치면 그 왕복이 209KB 다.
+// 번호를 달아 **내 것일 때만** 비운다 (근호 11/25 의심 목록 끝줄)
+let reqSeq = 0;
 let inflight = null;
 
 export const useReportStore = create((set, get) => ({
@@ -24,10 +32,11 @@ export const useReportStore = create((set, get) => ({
     // 끊지 못하므로, 비운 뒤에 이 답이 내려앉으면 **다음 사람이 앞 사람의 제보를
     // 본다** — 이 파일이 `reset` 에 적어둔 바로 그 일이다 (까닭은 `store/session.js`)
     const mine = sessionEpoch();
+    const myReq = (reqSeq += 1);
     inflight = client.get('/reports')
       .then(({ data }) => { if (isSameSession(mine)) set({ items: Array.isArray(data) ? data : [], failed: false }); })
       .catch(() => { if (isSameSession(mine)) set({ failed: true }); })
-      .finally(() => { inflight = null; if (isSameSession(mine)) set({ loading: false }); });
+      .finally(() => { if (myReq === reqSeq) inflight = null; if (isSameSession(mine)) set({ loading: false }); });
     return inflight;
   },
 

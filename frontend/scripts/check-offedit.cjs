@@ -29,6 +29,8 @@
 //   5 **올리기 전**에 지운 줄은 올리지 않는다 (지운 줄이 서버에 생기지 않는다)
 //   6 지운 줄은 화면에 안 그려지고 **세지도 않는다** (「1개 올리는 중」이 안 남는다)
 //   7 메모 — 서버 번호를 알면 서버에서 지운다
+//   9 **앞 요청의 늦은 `finally` 가 다음 요청의 자리를 비우지 않는다** (근호 11/25
+//     의심 목록 끝줄) — 비우면 다음 화면이 같은 목록을 한 번 더 받는다(5년치 209KB)
 //   8 올릴 때 **적은 시각**을 같이 보낸다 (TODO 11/26 ④ — 「올린 시각」으로 찍히면
 //     `data/pace.js` 가 그 날을 「몰아 적은 날」로 보고 운동 시간 줄을 지운다)
 //
@@ -77,6 +79,8 @@ const M = {
   bodyOf(method, url) { const c = M.sent.find((x) => x.method === method && x.url === url); return c ? c.body : null; },
   waiting() { return held.length; },
   release() { const q = held.splice(0); for (const r of q) r(); },
+  // **하나만 내려놓는다** — 「앞 요청만 끝나고 뒤 요청은 아직 날아가 있다」를 만든다
+  releaseOne() { const r = held.shift(); if (r) r(); },
   _go(method, url, body) {
     M.calls.push(method + ' ' + url);
     M.sent.push({ method, url, body });
@@ -128,6 +132,8 @@ const 되돌림꼴 = {
   '적은 시각을 안 보낸다': { file: 'store/workoutStore.js', cases: ['8'],
     from: '{ ...live.payload, clientKey: item.id, createdAt: live.at });',
     to:   '{ ...live.payload, clientKey: item.id });' },
+  '앞 요청이 다음 자리를 비운다': { file: 'store/workoutStore.js', cases: ['9'],
+    from: 'if (myReq === reqSeq) inflight = null;', to: 'inflight = null;' },
   '메모가 옛 딱지를 믿는다': { file: 'store/noteStore.js', cases: ['7'],
     from: 'if (serverId === null) {',
     to:   "if (serverId === null || String(note.id).startsWith('local-note-')) {" },
@@ -316,6 +322,43 @@ async function 판(which) {
       fake.bodyOf('POST', '/workouts')?.createdAt, new Date(적은때).toISOString());
     봄('  줄이 들고 있던 그 값이다 (`makeQueued` 의 `at`)',
       fake.bodyOf('POST', '/workouts')?.createdAt, item.at);
+  }
+
+  // ── 9 앞 요청의 늦은 finally ──
+  if (돈다('9')) {
+    console.log('── 9 앞 요청의 늦은 `finally` 가 다음 자리를 비우는가 ──');
+    // ★ **판을 새로 깐다.** 이 묶음은 모듈이 들고 있는 `inflight` · `fetchedAt` 를
+    // 보는 자리라, 앞 묶음들이 남긴 그 값에 걸린다 — 처음엔 같은 판에서 돌려
+    // **고쳐 놓고도 빨개졌다**(앞 묶음의 받기가 `inflight` 에 남아 있었다)
+    const W9 = await load('src/store/workoutStore.js');
+    const store9 = () => W9.useWorkoutStore.getState();
+    비움();
+    fake.hold = true;
+    const A = store9().fetchAll(true);        // 앞 사람 요청 — 답을 손에 들고 있다
+    await tick();
+    W9.resetCache();                          // 나가기 (로그아웃이 부르는 그 손)
+    const B = store9().fetchAll(true);        // 새 사람 요청
+    await tick();
+    봄('GET 이 둘 날아갔다 (앞 사람 것 · 새 사람 것)',
+      fake.calls.filter((c) => c === 'GET /workouts').length, 2);
+    // ★ **앞 요청만** 내려놓는다. 둘 다 내려놓으면 뒤 요청도 끝나면서 제 손으로
+    // 자리를 비우고 — 그러면 고친 쪽도 못 가른다(처음에 그렇게 적어 FAIL 을 봤다)
+    fake.releaseOne();                       // 앞 요청의 답이 **늦게** 내려앉는다
+    await A.catch(() => {});
+    await tick(2);
+    const C = store9().fetchAll();            // 다음 화면이 뜬다
+    await tick();
+    // ★ **GET 수로는 못 가른다** — 앞 요청이 끝나면서 「방금 받았다」가 찍혀서,
+    // 자리가 비어도 다음 받기는 그 30초 문(`FRESH_MS`)에서 멎는다(그래서 GET 은 둘로
+    // 같다). 가르는 것은 **다음 화면이 무엇을 받아 들었나**다 — 자리가 그대로면
+    // **날아가 있는 그 요청을 같이 기다리고**, 비어 있으면 딴것을 받는다
+    // (되돌려 보다가 알았다 — 처음 과녁은 두 꼴에서 똑같이 2 였다)
+    봄('★ 다음 화면이 **날아가 있는 그 요청**을 같이 기다린다', C === B, true);
+    봄('  그래서 GET 이 늘지 않는다',
+      fake.calls.filter((c) => c === 'GET /workouts').length, 2);
+    fake.hold = false;
+    fake.release();
+    await Promise.all([B, C].map((p) => (p && p.catch ? p.catch(() => {}) : p)));
   }
 
   // ── 7 메모도 같은 류 ──

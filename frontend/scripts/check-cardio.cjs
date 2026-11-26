@@ -185,10 +185,15 @@ ok('  유산소 줄에 세트 · 횟수를 안 담는다', /distance_km: String\
 // 왜인지도 모른다 (그대로 저장하면 「시간이나 거리를 적어주세요」가 뜬다)
 ok('  고치기로 열면 시간 · 거리를 채운다', /setMinutes\(c\.minutes != null/.test(page), true);
 // ★ **루틴의 세트 단추가 유산소에 뜨면 「1세트 1회」가 다시 들어온다**
-ok('  루틴에서 유산소에는 세트 단추를 안 그린다', /\{cardio \? \(\s*<div[\s\S]{0,200}?유산소는 세트로 세지 않아요/.test(page), true);
-ok('  「여기까지 기록」도 안 그린다', /canFinishEarly && !cardio/.test(page), true);
+// ★ 과녁이 **깃발 이름**에 못 박혀 있었다 — 11/26 에 그 깃발이 둘로 갈렸다
+// (`cardio` = 폼이 적는 운동 · `itemCardio` = 진행표의 지금 칸). 뜻은 그대로인데
+// 자만 빨개졌다 [[ruler-copies-now]]. 보는 것은 **「칸의 이름으로 묻는가」**다
+ok('  루틴에서 유산소에는 세트 단추를 안 그린다', /\{itemCardio \? \(\s*<div[\s\S]{0,200}?유산소는 세트로 세지 않아요/.test(page), true);
+ok('  그 판단을 **칸의 이름**으로 한다 (폼이 고른 운동이 아니다)',
+  /const itemCardio = isCardioName\(current\?\.name/.test(page), true);
+ok('  「여기까지 기록」도 안 그린다', /canFinishEarly && !itemCardio/.test(page), true);
 // 세트 단추를 안 그리면서 머리만 「0 / 4세트」로 남으면 그 자리가 거짓이 된다
-ok('  진행 중 머리의 세트 수도 안 그린다', /\{!cardio && \([\s\S]{0,200}?setsDone/.test(page), true);
+ok('  진행 중 머리의 세트 수도 안 그린다', /\{!itemCardio && \([\s\S]{0,200}?setsDone/.test(page), true);
 // ★ **유산소 뒤에 휴식 타이머를 켜지 않는다** — 휴식은 세트 사이의 것이다
 ok('  유산소 뒤에 쉬라고 하지 않는다', /asCardio\s*\?\s*false/.test(page), true);
 

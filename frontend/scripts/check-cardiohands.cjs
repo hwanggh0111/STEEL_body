@@ -163,6 +163,30 @@ console.log('── 적는 자리가 서버와 같은 칸 이름을 쓰는가 �
 }
 
 console.log('');
+console.log('── ★ 「유산소인가」를 **두 질문**에 한 깃발로 묻지 않는가 ── (2026-11-26 · 정석)');
+{
+  // 근호 첫 판 의심 목록의 그 자리다. `TrainPage` 의 `cardio` 는 **폼이 적는 운동**을
+  // 묻는 깃발인데(`picked` 를 먼저 본다), **진행표의 지금 칸**도 그 깃발로 물었다 —
+  // 루틴의 지금 칸이 런닝머신인데 폼에서 벤치프레스를 고르면 **세트 단추가 뜨고**,
+  // 누르면 `saveRoutineSets` 가 `item.name`(런닝머신)으로 **「3세트 × 10회」를 담았다.**
+  // 유산소 칸을 만든 까닭인 바로 그 거짓이다.
+  const tp = fs.readFileSync(path.join(SCAN, 'src/pages/TrainPage.jsx'), 'utf8');
+  const 벗김 = (t) => t.split(String.fromCharCode(10))
+    .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('/*') && !l.trim().startsWith('*')).join(String.fromCharCode(10));
+  const 몸통 = 벗김(tp);
+  ok('칸의 질문은 **칸의 이름**으로 묻는다 (`itemCardio`)',
+    /const itemCardio = isCardioName\(current\?\.name/.test(몸통), true);
+  // 진행표 칸의 세 자리가 그 깃발을 쓴다 — 하나만 바꿔두면 다시 갈린다
+  ok('  진행표 칸 세 자리가 그것을 쓴다 (세트 머리 · 안내 · 「여기까지」)',
+    (몸통.match(/itemCardio/g) || []).length >= 4, true);
+  // **저장하는 손에도 문이 있다** — 화면만 고치면 다른 길로 또 들어온다
+  const 저장손 = 벗김(tp.slice(tp.indexOf('const saveRoutineSets'), tp.indexOf('const tapSet')));
+  ok('★ 저장하는 손이 유산소 칸을 세트로 담지 않는다',
+    /isCardioName\(item\.name\)/.test(저장손), true);
+  ok('  담기 전에 막는다 (돌아선다)', /return;/.test(저장손), true);
+}
+
+console.log('');
 console.log('── 0 은 담길 수 없다 (위 전제) ──');
 {
   // 이 전제가 깨지면 **맨 위 묶음이 갈린다** (`cardio.js` 는 0 을 유산소로 안 보고

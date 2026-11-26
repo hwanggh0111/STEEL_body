@@ -79,7 +79,17 @@ client.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        // 이미 갱신 중이면 큐에 넣고 대기
+        // 이미 갱신 중이면 큐에 넣고 대기.
+        //
+        // ── ★ **기다린 요청에는 「한 번 해봤다」 표가 없었다** ── (2026-11-26 · 정석)
+        //
+        // 아래 혼자 가는 길은 `originalRequest._retry = true` 를 찍는데 **이 길은
+        // 안 찍었다.** 그래서 갱신이 200 으로 끝난 뒤 다시 보낸 그 요청이 또 401 이면
+        // 이 가로채는 손이 **처음 온 요청처럼** 보고 갱신을 또 돌린다 — 갱신은 계속
+        // 성공하니 `refreshFailCount` 도 안 오르고, **요청 → 갱신 → 요청** 이 끝없이
+        // 돈다(느린 망에서 그 왕복이 그대로 사람의 기다림이다).
+        // 표를 찍어두면 두 번째 401 은 아래 「갱신해도 안 된다」 길로 가 사람에게 말한다
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           refreshQueue.push({ resolve, reject });
         }).then(() => client(originalRequest));

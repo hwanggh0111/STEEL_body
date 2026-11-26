@@ -11,6 +11,14 @@ import { sessionEpoch, isSameSession } from './session';
 //   inflight : 같은 요청이 날아가 있으면 그것을 같이 기다린다
 //   FRESH_MS : 방금 받아온 것은 잠깐 다시 쓴다 (세우거나 고친 뒤에는 곧바로 갈아끼운다)
 const FRESH_MS = 30000;
+// ── **앞 요청의 `finally` 가 다음 요청의 자리를 비우지 않게** ── (2026-11-26 · 정석)
+//
+// `inflight` 는 「날아가 있는 요청」 하나를 가리킨다. 그런데 나가기 → 들어오기처럼
+// 그 사이에 **새 요청이 들어서면**, 앞 요청의 늦은 `finally` 가 그 **새 요청의
+// 자리를 비운다**(`inflight = null`). 그러면 다음 화면이 「날아가 있는 것이 없다」로
+// 보고 **같은 목록을 한 번 더 받는다** — 5년치면 그 왕복이 209KB 다.
+// 번호를 달아 **내 것일 때만** 비운다 (근호 11/25 의심 목록 끝줄)
+let reqSeq = 0;
 let inflight = null;
 let fetchedAt = 0;
 
@@ -55,6 +63,7 @@ export const useGoalStore = create((set, get) => ({
     set({ loading: true, failed: false });
     // 기다리기 전에 **지금 사람**을 받아 둔다 (까닭은 `store/session.js`)
     const mine = sessionEpoch();
+    const myReq = (reqSeq += 1);
     inflight = (async () => {
       try {
         const { data } = await client.get('/goals');
@@ -72,7 +81,8 @@ export const useGoalStore = create((set, get) => ({
         // 목표를 세워둔 사람에게 「목표를 세워보세요」가 뜬다
         set({ loading: false, failed: true });
       } finally {
-        inflight = null;
+        // **내 것일 때만** 비운다 (위 `reqSeq` 머리글)
+        if (myReq === reqSeq) inflight = null;
       }
     })();
     return inflight;
