@@ -38,6 +38,27 @@ module.exports = (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: '계정을 찾을 수 없어요. 다시 로그인해주세요' });
     }
+    // ── ★ **비밀번호를 바꾼 뒤의 옛 토큰은 안 받는다** ── (2026-11-26 · 근호 점검 안전 7)
+    //
+    // 바꾸는 길은 로그인 유지 열쇠를 전부 걷지만(`deleteUserRefreshTokens`), 그때 남의
+    // 손에 들려 있던 **접근 토큰은 15분 더 살았다.** 쫓아내려고 비밀번호를 바꾼 사람이
+    // 15분을 기다려야 했고, 훔쳐 간 쪽은 그 15분을 다 쓴다.
+    //
+    // 바꾼 시각은 `db.updateUserPassword` 가 한 자리에서 찍는다(`pw_changed_at`).
+    // **초 단위로 견준다** — JWT 의 `iat` 은 초라서, 바꾼 바로 그 초에 다시 로그인한
+    // 사람의 새 토큰이 밀리초 때문에 억울하게 걸리는 일이 없게 한다(그 1초가 선이다).
+    //
+    // **옛 사람에게는 이 칸이 없다**(11/26 전에 바꾼 계정 · 한 번도 안 바꾼 계정) —
+    // 그때는 검사하지 않는다. 없는 칸을 「0」으로 읽어 전부 쫓아내면 안 된다
+    if (user.pw_changed_at && decoded.iat) {
+      const 바꾼초 = Math.floor(new Date(user.pw_changed_at).getTime() / 1000);
+      if (Number.isFinite(바꾼초) && decoded.iat < 바꾼초) {
+        return res.status(401).json({
+          code: 'pw_changed',
+          error: '비밀번호가 바뀌었어요. 다시 로그인해주세요',
+        });
+      }
+    }
     // ── 403 에는 **까닭 코드**를 같이 보낸다 ── (2026-10-24)
     //
     // 화면은 여태 이 403 을 아무 데서도 안 읽었다. 그래서 정지된 사람은 **까닭을

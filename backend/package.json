@@ -74,6 +74,7 @@
     "errorlog": "node scripts/check-errorlog.cjs",
     "triage": "node scripts/check-triage.cjs",
     "lockpair": "node scripts/check-lockpair.cjs",
+    "pwkick": "node scripts/check-pwkick.cjs",
     "오류": "node ../agents/buchongjae/triage.cjs"
   },
   "engines": {

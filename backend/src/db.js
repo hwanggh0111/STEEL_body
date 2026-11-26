@@ -1215,11 +1215,25 @@ const db = {
     return { changes: 1 };
   },
 
+  // ── ★ **비밀번호를 바꿔도 15분은 옛 세션이 살았다** ── (2026-11-26 · 근호 점검 안전 7)
+  //
+  // 바꾸는 두 길(`/auth/password` · `/auth/reset-password`)은 **로그인 유지 열쇠를
+  // 전부 걷었다**(`deleteUserRefreshTokens`). 그런데 그때 남의 손에 들려 있던
+  // **접근 토큰(15분)** 은 그대로 살아 있었다 — 쫓아내려고 비밀번호를 바꾼 사람이
+  // **15분을 더 기다려야** 했다. 훔쳐 간 쪽은 그 15분으로 할 일을 다 한다.
+  //
+  // 그래서 **바꾼 시각을 찍는다.** 검사는 `middleware/auth.js` 가 한다 —
+  // 그 시각보다 **먼저 발급된 토큰은 안 받는다**.
+  //
+  // 찍는 자리를 여기 한 곳으로 둔다. 바꾸는 길이 둘(앞으로 더 생길 수 있다)인데
+  // 둘 다 이 손을 지나므로, **그 길마다 적는 것보다 이 줄 하나**가 안 빠진다
+  // (이 앱이 「한쪽만 고쳐지는 꼴」을 여러 번 겪었다)
   updateUserPassword(id, hashedPassword) {
     const data = load();
     const user = data.users.find(u => u.id === id);
     if (!user) return { changes: 0 };
     user.password = hashedPassword;
+    user.pw_changed_at = new Date().toISOString();
     invalidateUserIndex();
     save(data);
     return { changes: 1 };
