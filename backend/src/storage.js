@@ -281,11 +281,36 @@ module.exports = {
     try { return fs.statSync(pathOf(name)).mtimeMs; } catch { return null; }
   },
 
-  /** 깨진 파일을 옆으로 치운다 (파일일 때만). 되살릴 것이 남아야 한다. */
+  /**
+   * 깨진 판을 **옆으로 치운다.** 되살릴 것이 남아야 한다.
+   *
+   * ── ★ **Postgres 에서는 사본이 안 남고 있었다** ── (2026-11-26 · 정석)
+   *
+   * 여기서 `null` 을 돌려주면 `db.js` 의 `load()` 는 「치우지 못했다」고 적고 그대로
+   * 간다 — 그리고 **바로 뒤의 `_flushSync` 가 빈 판을 쓴다.** 파일일 때는 깨진
+   * 파일이 `.broken-…` 으로 옆에 남아 사람이 손으로 꺼낼 수 있는데,
+   * **Postgres 에서는 그 줄이 빈 판으로 덮여 아무것도 안 남았다** (운영이 그쪽이다).
+   * 깨질 일은 드물지만, 걸리는 날은 **아홉 사람 기록 전부가 걸린 날**이다.
+   *
+   * 글자는 이미 램에 들고 있다(`preloaded` — 뜰 때 읽어둔 그 판이다). **다른 이름의
+   * 줄로 한 장 떠둔다.** 쓰는 것은 비동기지만 **글자는 지금 손에 있으므로**, 뒤이어
+   * 빈 판이 `MAIN` 을 덮어도 이 사본은 그 글자다(이름이 달라 줄이 겹치지도 않는다).
+   */
   keepBroken(name) {
-    if (KIND === 'postgres') return null;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (KIND === 'postgres') {
+      const body = preloaded.get(name);
+      if (body === undefined) return null;      // 읽은 것이 없으면 뜰 것도 없다
+      const kept = name + '.broken-' + stamp;
+      preloaded.set(kept, body);
+      // 못 떠도 뜨는 것을 막지는 않는다 — 적어만 둔다 (뜨지 못하면 앱이 아예 안 열린다)
+      pgWrite(kept, body).catch((err) => {
+        console.error('[DB] 깨진 판을 Postgres 에 떠두지 못했습니다:', err.message);
+      });
+      return kept;
+    }
     const file = pathOf(name);
-    const kept = file + '.broken-' + new Date().toISOString().replace(/[:.]/g, '-');
+    const kept = file + '.broken-' + stamp;
     fs.renameSync(file, kept);
     return path.basename(kept);
   },

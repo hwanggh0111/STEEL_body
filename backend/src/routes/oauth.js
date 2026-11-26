@@ -146,8 +146,19 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
     // 되면서 그 증거가 사라질 수 있게 됐다 — `isSocialAccount` 가 보는 값이다
     if (user) db.markSocialAccount(user.id);
   }
-  // ADMIN_EMAIL이면 자동 관리자 승격
-  if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL) && user.role !== 'admin') {
+  // ── ADMIN_EMAIL 이면 자동 관리자 승격 ──
+  //
+  // ★ **막힌 계정을 풀어주고 있었다** (2026-11-26 · 정석, 근호 11/25 의심 목록).
+  // 막힘은 `role` 로 잡는다(`middleware/auth`: `role === 'blocked'` → 403). 그래서
+  // 막힌 계정이 이 자리를 지나면 `role !== 'admin'` 이 참이라 **`'admin'` 으로 덮여
+  // 막힘이 사라졌다** — 소셜로 한 번 들어오기만 하면 된다. 11/25 에 고친
+  // 「revoke-admin 이 막힌 사람을 풂」(`5af070d`)과 **같은 류**다: 그쪽은 `role` 을
+  // 안 보고 `'user'` 로 덮었고, 여기는 `'admin'` 으로 덮는다.
+  //
+  // 정한 메일 하나만 해당하지만 그 하나가 **관리자 계정**이다. 막힌 계정은 건드리지
+  // 않는다 — 풀어주는 자리는 관리자 화면 한 곳이어야 한다(`routes/security.js`)
+  if (process.env.ADMIN_EMAIL && db.emailKey(user.email) === db.emailKey(process.env.ADMIN_EMAIL)
+      && user.role !== 'admin' && user.role !== 'blocked') {
     db.updateUserRole(user.id, 'admin');
     user.role = 'admin';
   }

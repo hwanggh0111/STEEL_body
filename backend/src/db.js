@@ -1204,11 +1204,26 @@ const db = {
   },
 
   // measures
+  // ── **같은 날 두 번 잰 것의 앞뒤를 가린다** ── (2026-11-26 · 정석, 근호 11/25 의심 목록)
+  //
+  // 여태 날짜만 보고 세웠다(`descStr(date)`). `Array.sort` 는 같은 것의 차례를 안
+  // 바꾸므로(V8 은 안정 정렬) **같은 날 두 줄은 적은 차례(오래된 것이 앞)로 남았다** —
+  // 그런데 이 목록을 받는 화면들은 **첫 줄을 「최근」으로 읽는다**
+  // (`ShoulderSection:71` 의 `upto[0]`). 아침에 재고 저녁에 다시 잰 사람은
+  // **아침 값을 「최근」으로** 보고, 「어깨가 +1.5cm 늘었어요」가 거짓이 된다.
+  // (같은 날 두 번 재는 것은 둘레 · 스톱워치에서 실제로 있는 일이라 내보내기가
+  //  그 때문에 「번호」 칸을 두고 있다 — `routes/export.js`)
+  //
+  // 운동 줄의 자(`ROW_CMP`)와 **같은 결로** 끝까지 가른다 — 적은 때 내림, 그래도
+  // 같으면 번호. **번호는 오름**이다(적은 차례): 같은 밀리초에 들어간 두 줄은
+  // 운동 쪽과 같은 뜻으로 서야 한다
   getMeasures(userId) {
     const data = load();
     return (data.measures || [])
       .filter(m => m.user_id === userId)
-      .sort((a, b) => descStr(a.date, b.date));
+      .sort((a, b) => descStr(a.date, b.date)
+        || descStr(a.created_at || '', b.created_at || '')
+        || (a.id - b.id));
   },
   createMeasure(userId, type, date, measureData) {
     const id = nextId('measures');

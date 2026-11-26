@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBlockStore } from '../store/blockStore';
 import { useAuthStore } from '../store/authStore';
 import NavIcon from './NavIcon';
@@ -9,6 +9,8 @@ import Emphasis from './Emphasis';
 import { euroJosa } from '../data/particle';
 import { useModalFocus } from '../data/useModalFocus';
 import { LAYER } from '../data/layers';
+// 긴 정지를 하루짜리 자 여럿으로 나누는 판단 (2026-11-26) — 까닭은 그 파일에 있다
+import { nextWake } from '../data/blockWake';
 
 // 계정이 막혔을 때 **앱을 덮고 까닭을 말한다** (2026-10-24).
 //
@@ -24,18 +26,27 @@ export default function AccountBlocked() {
   const block = useBlockStore((s) => s.block);
   const clear = useBlockStore((s) => s.clear);
   const logout = useAuthStore((s) => s.logout);
+  // 긴 정지를 **하루짜리 자 여럿**으로 나눠 센다 (아래 머리글). 깨어날 때마다 올린다
+  const [wakeup, setWakeup] = useState(0);
 
   // **기한이 지나면 저절로 열린다.** 점검 화면이 그렇게 한다 — 여기서 안 하면
   // 7일이 지난 사람이 「풀리는 때」가 지난 화면을 보면서 새로고침을 모른 채 기다린다
   const until = block?.until;
   useEffect(() => {
-    if (!until) return undefined;
-    const left = new Date(until).getTime() - Date.now();
-    if (Number.isNaN(left)) return undefined;
-    if (left <= 0) { clear(); window.location.reload(); return undefined; }
-    const timer = setTimeout(() => { clear(); window.location.reload(); }, left + 1000);
+    // 무엇을 할지 **정하는 자는 `data/blockWake.js` 한 곳**이다 — 그 자리에 왜
+    // 하루씩 나눠 거는지(32비트로 접히는 자) 적어뒀고, `npm run check` 가 60일
+    // 정지를 먹여 값으로 본다. 여기는 그 답대로 풀거나 자를 걸기만 한다
+    const todo = nextWake(until);
+    if (todo.kind === 'none') return undefined;
+    if (todo.kind === 'open') { clear(); window.location.reload(); return undefined; }
+    const timer = setTimeout(() => {
+      const again = nextWake(until);
+      if (again.kind === 'open') { clear(); window.location.reload(); return; }
+      // 아직 남았다 — 이 자리를 다시 세운다 (하루짜리 자를 또 건다)
+      setWakeup((n) => n + 1);
+    }, todo.wait);
     return () => clearTimeout(timer);
-  }, [until, clear]);
+  }, [until, clear, wakeup]);
 
   // 떠 있는 동안 ⑴ 뒤가 안 밀리게 ⑵ 탭이 뒤로 안 새게 한다 (2026-11-16 · 맵시).
   //

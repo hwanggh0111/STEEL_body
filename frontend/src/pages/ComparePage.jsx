@@ -1,3 +1,4 @@
+import { mergeServerPhotos } from '../data/photoMerge';
 import { useRefreshTick } from '../store/refreshStore';
 import { useState, useEffect, useRef } from 'react';
 import { useInbodyStore } from '../store/inbodyStore';
@@ -109,7 +110,7 @@ function ChangeRow({ c }) {
   );
 }
 
-function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt }) {
+function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt, touch }) {
   const inputRef = useRef(null);
   const [camOpen, setCamOpen] = useState(false);
   const photo = photos[photoKey] || null;
@@ -135,6 +136,7 @@ function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt
     // 올리면 뒤 것이 앞 것을 화면과 기기에서 지웠다(서버에는 둘 다 있다)
     // 기기에 담는 데 실패하면(자리 모자람) 서버에는 그대로 올라간다 —
     // 사라지지는 않지만 **신호가 없을 때 안 보인다.** 그 한 가지만 말해준다
+    touch(photoKey);                        // **내 손이 닿았다** — 늦은 답이 덮지 못하게
     const cached = applyPhotos((prev) => ({ ...prev, [photoKey]: data }));
     // 올린 날도 같이 바꾼다 — 안 바꾸면 새 사진에 옛 날짜(「3월 1일에 올림」)가 붙고
     // 지우기 확인과 공유 카드까지 그 날짜를 말한다
@@ -188,6 +190,7 @@ function PhotoUpload({ label, photoKey, photos, takenAt, applyPhotos, setPhotoAt
     );
     if (!yes) return;
 
+    touch(photoKey);                        // 지운 것도 손이다 (늦은 답이 되살리지 못하게)
     applyPhotos((prev) => {
       const updated = { ...prev };
       delete updated[photoKey];
@@ -322,12 +325,35 @@ export default function ComparePage({ embedded = false }) {
   // 최신 판을 **ref 로 들고**, 얹는 것은 보통 함수에서 한다 — 늙지도 않고, 두 번
   // 담지도 않고, 담긴 결과를 그 자리에서 돌려준다
   const photosRef = useRef(photos);
+  // ── ★ **새로고침의 늦은 답이 방금 올린 사진을 덮었다** ── (2026-11-26 · 정석, 근호 11/25 의심 목록)
+  //
+  // 머리의 새로고침을 누르면 `GET /photos` 가 날아간다. 그 답이 오기 **전에** 사진을
+  // 올리면(또는 지우면) — 돌아온 답은 **그 손을 모르는 옛 판**이고, 아래 effect 가
+  // 그것으로 화면과 기기(`savePhotos`)를 통째로 갈아끼웠다. 올린 사진이 화면에서
+  // 사라지고(서버에는 있다), **지운 사진은 되살아난다.** 몸 사진이라 특히 나쁘다.
+  //
+  // 사람 손이 **언제** 닿았는지 칸마다 적어둔다. 답을 받아 얹을 때, 그 요청이
+  // **떠난 뒤에 손이 닿은 칸**은 서버 값으로 덮지 않는다 — 그 칸의 진실은 아직
+  // 날아가고 있는 내 POST 쪽이다(`store/session.js` 의 「나간 뒤에 온 답」과 같은 결)
+  const touchedAt = useRef({});
+  // 올린 날도 **지금 판**을 들고 있어야 한다 (늦은 답이 날짜만 옛것으로 돌리지 않게)
+  const photoAtRef = useRef({});
   const applyPhotos = (고치기) => {
     const next = 고치기(photosRef.current);
     photosRef.current = next;
     setPhotos(next);
     return savePhotos(next);
   };
+  /** 올린 날을 고치면서 **ref 도 같이** 맞춘다 (자식이 부르는 손) */
+  const applyPhotoAt = (고치기) => {
+    setPhotoAt((prev) => {
+      const next = 고치기(prev);
+      photoAtRef.current = next;
+      return next;
+    });
+  };
+  /** 그 칸에 사람 손이 닿았다고 적는다 (올리기 · 지우기) */
+  const touch = (key) => { touchedAt.current[key] = Date.now(); };
 
   // 머리의 새로고침이 올리는 값. deps 에 넣는 것만으로 다시 받는다
   const refreshTick = useRefreshTick();
@@ -351,6 +377,7 @@ export default function ComparePage({ embedded = false }) {
     // 그 자리에 **앞 사람 몸 사진**이 다시 적히고, 다음 사람이 이 화면을 열면
     // 서버 답이 오기 전까지 그것이 떠 있다. 몸 사진이라 특히 나쁘다
     const mine = sessionEpoch();
+    const 떠난때 = Date.now();
     client.get('/photos', { params: { type: 'before,after' } }).then(({ data }) => {
       if (!isSameSession(mine)) return;
       if (!Array.isArray(data)) return;
@@ -360,10 +387,19 @@ export default function ComparePage({ embedded = false }) {
       const at = {};
       if (before) { serverPhotos.before = before.data; at.before = before.updated_at || before.created_at; }
       if (after) { serverPhotos.after = after.data; at.after = after.updated_at || after.created_at; }
-      photosRef.current = serverPhotos;      // 들고 있는 판도 같이 맞춘다
-      setPhotos(serverPhotos);
-      setPhotoAt(at);
-      savePhotos(serverPhotos);
+      // **이 요청이 떠난 뒤에 손이 닿은 칸은 지킨다** — 가르는 자는
+      // `data/photoMerge.js` 한 곳이고, 그 자리에 까닭과 「같은 밀리초는 지키는 쪽」
+      // 까지 적어뒀다. `npm run check` 가 올리는 중 · 지우는 중을 먹여 값으로 본다
+      const 얹음 = mergeServerPhotos({
+        server: serverPhotos, serverAt: at,
+        local: photosRef.current, localAt: photoAtRef.current,
+        touchedAt: touchedAt.current, sentAt: 떠난때,
+      });
+      photosRef.current = 얹음.photos;        // 들고 있는 판도 같이 맞춘다
+      setPhotos(얹음.photos);
+      setPhotoAt(얹음.at);
+      photoAtRef.current = 얹음.at;
+      savePhotos(얹음.photos);
     }).catch(() => {});
   // 머리의 새로고침 — 다른 기기에서 올린 사진이 여기서 보여야 한다
   }, [refreshTick]);
@@ -628,8 +664,8 @@ export default function ComparePage({ embedded = false }) {
 
       {/* ── 2. 사진 ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} applyPhotos={applyPhotos} setPhotoAt={setPhotoAt} />
-        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} applyPhotos={applyPhotos} setPhotoAt={setPhotoAt} />
+        <PhotoUpload label="BEFORE" photoKey="before" photos={photos} takenAt={photoAt.before} applyPhotos={applyPhotos} setPhotoAt={applyPhotoAt} touch={touch} />
+        <PhotoUpload label="AFTER" photoKey="after" photos={photos} takenAt={photoAt.after} applyPhotos={applyPhotos} setPhotoAt={applyPhotoAt} touch={touch} />
       </div>
       {/* **사진은 위에서 고른 날짜를 따라가지 않는다.** 없는 날짜를 지어내지 않고
           다른 것은 다르다고 적는다 — 안 적으면 사람은 같은 날의 것으로 읽는다 */}
