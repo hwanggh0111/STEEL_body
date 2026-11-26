@@ -2,7 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db     = require('../db');
-const { BCRYPT_ROUNDS, LOGIN_LOCK, PW_MIN, PW_MAX } = require('../config/security');
+const { BCRYPT_ROUNDS, LOGIN_LOCK, CODE_SEND, PW_MIN, PW_MAX } = require('../config/security');
 
 // 닉네임(이름)의 글자 수. **이름을 준다** (2026-10-31) — `30` 이 두 자리에
 // 생글자로 박혀 있었고(가입 · 이름 바꾸기), **화면 둘이 서로 다른 선을 들고 있었다**:
@@ -177,6 +177,35 @@ const slowMsFor = (count) => {
 };
 const 잠깐쉰다 = (ms) => (ms > 0 ? new Promise((done) => setTimeout(done, ms)) : null);
 
+// ── ★ **로그에 친 그대로가 남았다** ── (2026-11-26 · 근호 점검 안전 6)
+//
+// 로그인 실패를 적을 때 아이디 칸을 **글자 그대로** 실었다. 두 가지가 걸린다 —
+//
+//   1. **아이디 칸에 비밀번호를 치는 사람이 있다.** 그러면 그 비밀번호가 보안 기록에
+//      평문으로 남는다(관리자 화면 · DB · 파일 셋 다). 지우려면 기록을 지워야 한다
+//   2. **줄바꿈으로 없는 줄을 지어낼 수 있다.** 기록은 `[시각] [갈래] 내용` 한 줄 꼴이라
+//      (`routes/security.js` 의 `addLog`), 아이디에 `\n[2026-01-01] [login_ok] ...` 를
+//      넣으면 **읽는 쪽이 그것을 다른 사건으로 읽는다**(로그 지어내기)
+//
+// 그래서 **가려서** 적는다. 누구인지 가려볼 수는 있어야 하니(같은 사람이 반복해 치는가)
+// 앞 두 글자와 메일 도메인은 남기고, 가운데를 덮는다. 조절 글자는 걷는다.
+const maskId = (typed) => {
+  // **첫 덩어리만** 쓴다 — 아이디와 메일에는 빈칸이 없으므로, 지어내려고 붙인
+  // 뒤쪽(줄바꿈 뒤의 `[2026-..] [login_ok] ..`)이 여기서 통째로 떨어진다.
+  // (자가 그 자리를 잡았다 — 가리기만 했을 때는 **도메인 쪽에 그 말이 그대로** 붙었다)
+  const one = String(typed == null ? '' : typed)
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().split(/\s/)[0].slice(0, 80);
+  const at = one.indexOf('@');
+  if (at > 0) {
+    const 앞 = one.slice(0, at);
+    const 뒤 = one.slice(at);                     // `@도메인`
+    return (앞.length <= 2 ? 앞[0] + '*' : 앞.slice(0, 2) + '*'.repeat(Math.min(6, 앞.length - 2))) + 뒤;
+  }
+  if (one.length <= 2) return (one[0] || '?') + '*';
+  return one.slice(0, 2) + '*'.repeat(Math.min(6, one.length - 2));
+};
+
 // 친 아이디를 하나의 말로 맞춘다 — 대소문자와 앞뒤 공백으로 카운터를 피할 수 있으면 안 된다
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
 
@@ -273,6 +302,26 @@ router.post('/send-code', async (req, res) => {
   if (!email || !isValidEmail(email)) {
     return res.status(400).json({ error: '올바른 이메일을 입력해주세요' });
   }
+
+  // ── ★ **메일별 상한** ── (2026-11-26 · 근호 점검 안전 5)
+  //
+  // 여태 주소당 분 3번(`RATE_LIMITS`)뿐이라, 주소를 바꿔가며 한 메일로 번호를 몇백 번
+  // 보낼 수 있었다(받는 사람에게는 메일 폭탄 · 우리에게는 요금). 게다가 다시 보내면
+  // **맞춰본 횟수가 0 으로 돌아가서**(`putVerifyCode`) 맞춰보기 상한을 무한히 되돌릴
+  // 수 있었다 — 여섯 자리 번호를 지키는 그 상한이 없는 것과 같았다.
+  //
+  // 잠금 카운터를 그대로 쓴다(`recordLoginFail` — 「틀린 시도」가 아니라 **센다**는 뜻으로).
+  // 열쇠는 **메일 하나**이고(`code:` 머리), 주소와 섞지 않는다 — 주소를 바꿔도 같이 센다.
+  // **답은 가입 여부와 무관하게 같다**(계정 있나 없나를 알려주지 않는다 — 아래 머리글)
+  const codeKey = 'code:' + db.emailKey(email);
+  const codeLock = db.loginLockLeft(codeKey);
+  if (codeLock > 0) {
+    const remaining = Math.ceil(codeLock / 60000);
+    return res.status(429).json({
+      error: `인증번호를 너무 많이 보냈어요. ${remaining}분 후 다시 시도해주세요`,
+    });
+  }
+  db.recordLoginFail(codeKey, CODE_SEND.windowMs, CODE_SEND.maxPerEmail, CODE_SEND.lockMs);
 
   db.cleanVerifyCodes();
   const code = makeCode();
@@ -479,7 +528,7 @@ router.post('/login', async (req, res) => {
   const locked = Math.max(db.loginLockLeft(pairKey), db.loginLockLeft(ipKey));
   if (locked > 0) {
     const remaining = Math.ceil(locked / 60000);
-    addLog('login_blocked', `Login blocked: ${email} (locked ${remaining}min)`);
+    addLog('login_blocked', `Login blocked: ${maskId(email)} (locked ${remaining}min)`);
     return res.status(429).json({ error: `로그인 시도 초과. ${remaining}분 후 다시 시도해주세요` });
   }
 
@@ -494,7 +543,7 @@ router.post('/login', async (req, res) => {
     db.recordLoginFail(pairKey, LOGIN_WINDOW, LOGIN_MAX_PER_PAIR, LOGIN_LOCK_TIME);
     db.recordLoginFail(ipKey, LOGIN_WINDOW, LOGIN_MAX_PER_IP, LOGIN_LOCK_TIME);
     const acct = db.recordLoginFail(acctKey, LOGIN_WINDOW, LOGIN_NEVER_LOCK, LOGIN_LOCK_TIME);
-    addLog('login_fail', `Login failed: ${email} (attempt ${acct.count})`);
+    addLog('login_fail', `Login failed: ${maskId(email)} (attempt ${acct.count})`);
     // **쌓인 만큼 늦게 답한다** (분산 두들김 막기). 맞는 비밀번호는 이 길로 안 온다
     await 잠깐쉰다(slowMsFor(acct.count));
     // AI Guard에도 로그인 실패 기록 (clientIp는 상단에서 선언됨)

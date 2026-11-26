@@ -8,6 +8,23 @@ for (const key of REQUIRED_ENV) {
     process.exit(1);
   }
 }
+// ── ★ **개발 기능 전부가 `NODE_ENV` 한 글자에 기대고 있었다** ── (2026-11-26 · 근호 점검 안전 9)
+//
+// 배포에서 그 값이 빠지면(또는 오타가 나면) 서버는 **조용히 개발판이 된다** —
+// 인증번호를 답에 싣고(`routes/auth.js`) · CORS 가 `192.168.*` 를 받고 ·
+// 정적 파일 캐시가 꺼지고 · `health` 가 메모리를 말한다. **아무 경고도 없다.**
+//
+// Render 는 제 환경에 `RENDER` 를 심는다. 그러니 **`RENDER` 가 있는데 운영이 아니면
+// 그것은 사고다** — 그 자리에서 안 뜨는 쪽이 낫다. 기록 없이 뜨면 안 되는 것과
+// 같은 결이다(아래 `storage.init()` 머리글). 뜨기 전에 드러나면 고칠 수 있다.
+if (process.env.RENDER && process.env.NODE_ENV !== 'production') {
+  console.error('[FATAL] 배포 환경(RENDER)인데 NODE_ENV 가 production 이 아닙니다'
+    + ` (지금: ${JSON.stringify(process.env.NODE_ENV)})`);
+  console.error('[FATAL] 그대로 뜨면 인증번호를 답에 싣고 · CORS 가 사설망을 받습니다.'
+    + ' render.yaml 의 NODE_ENV 를 확인하세요.');
+  process.exit(1);
+}
+
 if (process.env.JWT_SECRET.length < 32) {
   console.error('[FATAL] JWT_SECRET은 최소 32자 이상이어야 합니다.');
   process.exit(1);

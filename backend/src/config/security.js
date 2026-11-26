@@ -102,6 +102,28 @@ const LOGIN_LOCK_DESC = `계정+주소별 ${LOGIN_LOCK.maxPerPair}회 · 주소�
   + ` (계정 전체는 잠그지 않고 ${LOGIN_LOCK.slowAfterPerAccount}회부터`
   + ` 최대 ${LOGIN_LOCK.slowMaxMs / 1000}초 늦춤)`;
 
+// ── ★ **인증번호 보내기에 메일별 상한이 없었다** ── (2026-11-26 · 근호 점검 안전 5)
+//
+// 막는 것이 **주소당 분 3번**뿐이었다(`RATE_LIMITS`). 그래서 주소를 바꿔가며 한
+// 메일로 번호를 **몇백 번** 보낼 수 있었다 — 받는 사람에게는 메일 폭탄이고,
+// 보내는 쪽(우리)에게는 SMTP 요금이다.
+//
+// 더 나쁜 것이 하나 더 있었다: 번호를 새로 보내면 **맞춰본 횟수가 0 으로 돌아간다**
+// (`putVerifyCode`). 번호는 여섯 자리고 맞춰보기 상한이 있는데, **다시 보내기로 그
+// 상한을 무한히 되돌릴 수 있으면** 상한이 없는 것과 같다.
+//
+// 그래서 **메일 하나에 창(15분)당 다섯 번**으로 끊는다. 정상인 사람은 한 번이면
+// 되고, 메일이 늦게 와서 다시 누르는 사람도 다섯 번 안에 든다.
+const CODE_SEND = {
+  windowMs: 15 * 60 * 1000,
+  maxPerEmail: 5,
+  lockMs: 15 * 60 * 1000,
+};
+
+/** 사람이 읽는 말로 — 관리자 보안 보고서가 쓴다 */
+const CODE_SEND_DESC = `메일별 ${CODE_SEND.maxPerEmail}회 / ${CODE_SEND.windowMs / 60000}분`
+  + ` → ${CODE_SEND.lockMs / 60000}분 쉼`;
+
 // HSTS. 서버(index.js)가 헤더로 내보내고 보안 보고서가 같은 값을 읽어 보여준다
 const HSTS_MAX_AGE = 31536000;
 
@@ -150,5 +172,5 @@ const PERMISSIONS_POLICY = 'camera=(self), microphone=(self), geolocation=()';
 module.exports = {
   RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY, REFRESH_REUSE_GRACE_MS,
   PW_MIN, PW_MAX,
-  LOGIN_LOCK, LOGIN_LOCK_DESC, HSTS_MAX_AGE,
+  LOGIN_LOCK, LOGIN_LOCK_DESC, CODE_SEND, CODE_SEND_DESC, HSTS_MAX_AGE,
 };
