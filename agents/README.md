@@ -31,8 +31,15 @@ agents/
 ├── agent-designer.md  ← 디자이너
 ├── agent-backend.md   ← 백엔드 개발자
 ├── agent-frontend.md  ← 프론트엔드 개발자
-└── agent-qa.md        ← QA (테스터)
+├── agent-qa.md        ← QA (테스터)
+├── buchongjae/        ← ★ 부총재 — 배포판 오류를 주인 대신 받아 고친다 (11/26)
+├── geunho/            ← 근호 — 비상 대기 · 본사 감사 (11/25)
+└── jeongseok/         ← 정석 — 검사 관리자
 ```
+
+> **직급 하나가 늘었다 (2026-11-26 · 주인 지시).** 라이브에서 난 오류를 여태 **주인이** 보고 옮겼다 — 그 왕복이 오류가 하루를 넘기던 까닭이다.
+> 이제 `npm run errors` 가 라이브 기록을 그대로 꺼내고, **부총재**가 그것을 받아 고친다.
+> 자리의 지키는 것은 `agents/buchongjae/README.md` 에 있다.
 
 ---
 
