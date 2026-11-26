@@ -108,12 +108,16 @@ console.log('── 서버에 있는데 아무도 안 부르는 길 ──');
 //   · 토큰 갱신은 `client` 안의 가로채기(interceptor)가 부른다 — 화면이 아니다
 //   · 화면 오류 보내기는 `ErrorBoundary` 가 `fetch` 로 보낸다 (그때는 앱이 깨진 상태다)
 //   · 헬스 체크는 Render 가 부른다
+//   · **서버가 터진 것**(`/security/errors`)은 화면이 아니라 `npm run errors` 와
+//     사람(고치는 쪽)이 꺼내 본다 — 주인이 정한 길이 「오류가 나면 Claude 가 고친다」다
+//     (2026-11-26). 관리자 화면에 칸을 붙이면 그때 이 줄을 **지운다**
 const BY_OTHER_MEANS = [
   /^GET \/oauth\//, /^POST \/oauth\/[a-z]+\/code$/,
   /^GET \/export\//,
   /^POST \/auth\/refresh$/, /^POST \/auth\/verify-code$/,
   /\/client-error/,
   /^GET \/health$/,
+  /^GET \/security\/errors$/,
 ];
 // **한 부름이 여러 길에 걸릴 수 있다.** 관리자 화면은 `/security/${action}/${id}` 처럼
 // 하는 일까지 값으로 만들어 부른다 — 그 한 줄이 `make-admin` · `revoke-admin` ·

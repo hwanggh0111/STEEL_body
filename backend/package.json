@@ -69,7 +69,9 @@
     "routinerow": "node scripts/check-routinerow.cjs",
     "delivered": "node scripts/check-delivered.cjs",
     "importdup": "node scripts/check-importdup.cjs",
-    "importorder": "node scripts/check-importorder.cjs"
+    "importorder": "node scripts/check-importorder.cjs",
+    "errors": "node scripts/errors.cjs",
+    "errorlog": "node scripts/check-errorlog.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

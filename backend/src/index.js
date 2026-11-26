@@ -28,6 +28,9 @@ const crypto = require('crypto');
 const aiGuard = require('./middleware/aiGuard');
 const db = require('./db');
 
+// 터진 것을 적는 자 (2026-11-26) — **오류 손과 거절 손 둘이 같은 자를 부른다**
+const { recordError } = require('./utils/errorLog');
+
 const app = express();
 
 // 프록시를 몇 홉이나 믿을지 — **함부로 믿으면 안 된다.**
@@ -781,9 +784,17 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed' || (err.status === 400 && 'body' in err)) {
     return res.status(400).json({ error: '요청 형식이 올바르지 않아요' });
   }
-  if (process.env.NODE_ENV !== 'production') {
-    console.error(err.message);
-  }
+  // ── ★ **라이브에서 난 500 이 아무 데도 남지 않았다** ── (2026-11-26 · 주인 지시)
+  //
+  // 여태 운영에서는 **한 줄도 안 적었다**(위 if 가 개발에서만 찍었다). 사람은
+  // 「문제가 생겼어요」를 보고 그만두고, 고치는 사람은 **그런 일이 있었다는 것조차**
+  // 몰랐다. 11/25 에 async 손을 감싸 서버가 안 죽게 한 뒤로는 그 거절도 전부 이 길로
+  // 와서 500 이 되는데, 역시 남지 않았다 — **오류율이 안 내려가던 까닭이 이것이다.**
+  //
+  // 이제 `utils/errorLog` 가 램 한 벌과 **DB 한 벌**(재시작 · 배포를 넘는다)을 적고,
+  // 관리자 길(`GET /api/security/errors`)과 `npm run errors` 가 그것을 꺼낸다.
+  // **본문 · 쿠키는 안 적는다**(그 머리글에 까닭을 적어뒀다)
+  recordError('request', err, req);
   res.status(500).json({ error: '서버에 문제가 생겼어요. 잠시 뒤에 다시 해주세요' });
 });
 
@@ -869,6 +880,9 @@ function start() {
 process.on('unhandledRejection', (reason) => {
   console.error('[process] 잡히지 않은 거절 — 서버는 계속 돕니다:',
     reason && reason.stack ? reason.stack.split('\n').slice(0, 3).join(' | ') : String(reason));
+  // **적어 둔다** (2026-11-26) — 요청 밖에서 던진 것은 사람에게 가는 답이 없어서,
+  // 적지 않으면 Render 로그가 밀려난 뒤 **아무 데도 안 남는다**(위 500 과 같은 까닭)
+  recordError('rejection', reason, null);
 });
 
 // 서버 타임아웃 (Render 무료 = 30초 제한이므로 여유 있게)

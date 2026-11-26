@@ -7,6 +7,10 @@ const db = require('../db');
 const storage = require('../storage');
 const { seoulDay } = require('../utils/seoulDay');
 const keepWarm = require('../utils/keepWarm');
+// 터진 것을 꺼내는 자 (2026-11-26) — 적는 쪽은 `index.js` 의 오류 손이다
+const { recentErrors, groupErrors } = require('../utils/errorLog');
+// 한 번에 꺼내는 수. 묶어서 보는 자리라 넉넉히 본다 (램 200 · DB 는 더 쌓인다)
+const ERROR_WANT = 300;
 const aiGuard = require('../middleware/aiGuard');
 const {
   RATE_LIMITS, JWT, BCRYPT_ROUNDS, BODY_LIMIT, PERMISSIONS_POLICY,
@@ -267,6 +271,20 @@ function recentLogs(limit) {
 
 router.get('/logs', adminAuth, (req, res) => {
   res.json(recentLogs(LOG_WANT));
+});
+
+// ── **서버가 터진 것만 따로** ── (2026-11-26 · 주인 지시)
+//
+// 터진 것은 보안 기록과 같은 표에 `server_error` 갈래로 쌓인다(`utils/errorLog`).
+// 위 `/logs` 에도 섞여 나오지만, **고치려고 보는 자리는 다르다** — 몇 번 났나로
+// 묶어서 **많이 나는 것부터** 봐야 한다. 그래서 길을 따로 둔다.
+//
+// 관리자만(`adminAuth`). 스택 세 줄이 들어 있어 아무에게나 보일 것이 아니다 —
+// 운영 답에 스택을 안 싣는다는 선(`index.js`)을 여기서 깨지 않으려고, **사람에게
+// 가는 답이 아니라 관리자가 들어와서 보는 자리**로만 낸다
+router.get('/errors', adminAuth, (req, res) => {
+  const list = recentErrors(ERROR_WANT);
+  res.json({ total: list.length, groups: groupErrors(list).slice(0, 30), recent: list.slice(0, 50) });
 });
 
 // POST /api/security/block-user/:id - 유저 차단
