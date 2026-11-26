@@ -452,6 +452,12 @@ app.use('/api/photos',      require('./routes/photos'));
 // 보는 쪽은 로그인이 없다: 홈페이지(`/site`)가 로그인 없이 열리는 자리다
 app.use('/api/site-photos', require('./routes/sitePhotos'));
 app.use('/api/faq-gaps',    require('./routes/faqGaps'));
+// 「테스트 알림」만 따로 묶는다 (2026-11-26 · 정석) — 누르면 서버가 알림 서비스로
+// **직접 POST** 한다(기기 수만큼). 설정을 읽고 쓰는 길은 그대로 전역 셈만 탄다
+app.use('/api/reminders/test', rateLimit({
+  ...RATE_LIMITS.pushTest,
+  message: { error: '방금 보냈어요. 잠시 뒤에 다시 눌러주세요' },
+}));
 app.use('/api/reminders',   require('./routes/reminders'));
 app.use('/api/routine-session', require('./routes/routineSession'));
 app.use('/api/plans',       require('./routes/plans'));

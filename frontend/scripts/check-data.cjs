@@ -1111,6 +1111,22 @@ ok('값이 하나뿐이면 위아래로 벌린다', sc(72, 72), [71, 72, 73]);
 ok('소수도 깔끔하게', sc(17.2, 18.9), [17, 17.5, 18, 18.5, 19]);
 ok('눈금이 늘 최소보다 아래에서 시작한다', axis.niceScale(70.4, 74.6).min <= 70.4, true);
 ok('눈금이 늘 최대보다 위에서 끝난다', axis.niceScale(70.4, 74.6).max >= 74.6, true);
+// ── ★ **셀 수 없는 값이 와도 NaN 을 그림 쪽으로 보내지 않는다** ── (2026-11-26 · 정석)
+//
+// 검사소가 그 나눗셈을 「분모 0 후보」로 집어 읽었다. 0 으로 나누는 자리는 아니었지만
+// `Infinity` · 아주 작은 차이(1e-320)에서 `step` 이 밑으로 넘쳐 **`min: NaN` ·
+// `values: []`** 이 나왔다 — 축이 안 그려지고 점이 엉뚱한 자리에 선다.
+// 지금은 테두리가 막아 **닿지 않는다**(그래서 뚜껑이다). 전제가 깨지는 날 이 자가 운다
+for (const [a, b, 이름] of [
+  [0, Infinity, '끝없는 값'], [0, NaN, '모를 값'], [0, 5e-324, '거의 같은 두 수'],
+  [-Infinity, 3, '아래가 끝없음'],
+]) {
+  const r = axis.niceScale(a, b);
+  ok('  ' + 이름 + ' — 눈금이 비지 않는다',
+    Array.isArray(r.values) && r.values.length >= 3, true);
+  ok('    그 눈금에 NaN 이 없다',
+    r.values.every((v) => Number.isFinite(v)) && Number.isFinite(r.min) && Number.isFinite(r.max), true);
+}
 ok('12.0 은 12 로 적는다', axis.fmt(12.0), '12');
 ok('12.34 는 12.3 으로', axis.fmt(12.34), '12.3');
 ok('없는 값은 - 로', axis.fmt(null), '-');

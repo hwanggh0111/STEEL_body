@@ -29,6 +29,21 @@ export function useWidth(fallback = 320) {
 // 축 눈금 — 사람이 읽는 숫자로 끊는다 (1 · 2 · 5 · 10 …).
 // 그냥 최소~최대를 3등분하면 「71.33」 같은 눈금이 나온다.
 export function niceScale(min, max, ticks = 4) {
+  // ── **셀 수 없는 값이 오면 눈금을 지어내지 않는다** ── (2026-11-26 · 정석)
+  //
+  // 검사소(`inspect`)가 아래 `raw` 나눗셈을 「분모 0 후보」로 집어 읽어봤다. 0 으로
+  // 나누는 자리는 아니었지만(위에서 `max > min` 을 먼저 막는다) **셀 수 없는 값**
+  // (`Infinity` · 아주 작은 차이 1e-320)에서 `mag` 가 밑으로 넘쳐 `step` 이 0 이나
+  // `NaN` 이 되고, 돌려주는 눈금이 **`min: NaN · values: []`** 이었다 — 그 NaN 이
+  // 그림 쪽으로 새어 나간다(축이 안 그려지고 점이 엉뚱한 자리에 선다).
+  //
+  // **지금은 닿지 않는다** — 무게 · 인바디 테두리가 그런 수를 막는다(그래서 이것은
+  // 고침이 아니라 **뚜껑**이다). 전제가 깨지는 날 그림이 조용히 어긋나는 것보다
+  // **한 칸 눈금으로 멎는 것**이 낫다. 아래 폴백과 같은 모양을 쓴다
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    const v = Number.isFinite(max) ? max : (Number.isFinite(min) ? min : 0);
+    return { min: v - 1, max: v + 1, values: [v - 1, v, v + 1] };
+  }
   if (!(max > min)) {
     const v = max || 0;
     return { min: v - 1, max: v + 1, values: [v - 1, v, v + 1] };
@@ -36,6 +51,12 @@ export function niceScale(min, max, ticks = 4) {
   const raw = (max - min) / ticks;
   const mag = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].find(s => s * mag >= raw) * mag;
+  // `mag` 가 밑으로 넘치면(차이가 1e-320 쯤) `step` 이 0 이나 NaN 이 된다 —
+  // 그 값으로 아래 고리를 돌면 **눈금이 하나도 안 나온다**(`values: []`).
+  // 위 머리글의 그 자리다: 지어내지 않고 한 칸으로 멎는다
+  if (!Number.isFinite(step) || step <= 0) {
+    return { min: min - 1, max: max + 1, values: [min - 1, min, min + 1] };
+  }
   const lo = Math.floor(min / step) * step;
   const hi = Math.ceil(max / step) * step;
   const values = [];
