@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "db15a9649b",
+  "detailVersion": "fe5f1381c3",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "6770989",
+      "date": "2026-11-26",
+      "text": "지하에서 적은 줄을 고치거나 지우면 조용히 사라졌다 (TODO 11/26 ① ④)",
+      "label": "고침",
+      "scope": "중대",
       "has": true
     },
     {
@@ -1127,14 +1135,6 @@
       "text": "거절도 않고 조용히 자르던 길이 남아 있었다 — 긴 글의 꺾쇠를 남긴다",
       "label": "고침",
       "scope": "제보",
-      "has": true
-    },
-    {
-      "key": "2f9acbd",
-      "date": "2026-11-17",
-      "text": "「한 장에 2000자까지」가 상수에서 온 수가 아니었다 — 한도는 이름으로 적는다",
-      "label": "고침",
-      "scope": "고객센터",
       "has": true
     }
   ]
