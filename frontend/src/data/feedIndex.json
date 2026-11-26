@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "c4a20f5ff5",
+  "detailVersion": "4d8b04c968",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "c027100",
+      "date": "2026-11-26",
+      "text": "밝기로는 「눌린다」를 말할 수 없다 — 한 해 벽 달 칸의 층이 뒤집혀 있었다 (63차)",
+      "label": "고침",
+      "scope": "UI",
       "has": true
     },
     {
@@ -1127,14 +1135,6 @@
       "text": "메모도 꺾쇠를 걷지 않고 거절한다 — 「L<R 불균형」이 「L」로 담기던 것 (주인 결정)",
       "label": "고침",
       "scope": "메모",
-      "has": true
-    },
-    {
-      "key": "816112b",
-      "date": "2026-11-17",
-      "text": "「L < R 처럼 띄어 주세요」라고 안내하면서 띄어 쓴 것도 거절했다",
-      "label": "고침",
-      "scope": "이름",
       "has": true
     }
   ]
