@@ -7,6 +7,7 @@
 // 아예 확인할 방법이 없다(관리자 계정을 지워봐야 한다). 그래서 값으로 본다.
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 // 진짜 DB 를 건드리지 않는다. 검사용 파일을 따로 쓰고 끝나면 지운다
 const TMP = path.join(__dirname, '..', '.photos-check.json');
@@ -115,8 +116,31 @@ console.log('── 깨진 파일을 덮어쓰지 않는가 ── (2026-09-19 �
   ok('  사진도 치워둔다', /keepBroken\(storage\.PHOTOS\)/.test(near(photo)), true);
   // 치우다 또 터져도 앱은 떠야 한다 — 거기서 던지면 서버가 아예 안 뜬다
   ok('  치우다 터져도 앱은 뜬다', (near(photo).match(/catch \(e2\)/g) || []).length, 1);
-  // 옆으로 치운 이름에 **시각**이 들어가야 두 번째 사고가 첫 번째를 안 덮는다
-  ok('치운 이름에 시각이 들어간다', /broken-' \+ new Date\(\)\.toISOString\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'storage.js'), 'utf8')), true);
+  // ── 옆으로 치운 이름에 **시각**이 들어가야 두 번째 사고가 첫 번째를 안 덮는다 ──
+  //
+  // ★ 과녁이 **꼴**이었다 — `/broken-' \+ new Date\(\)\.toISOString\(\)/` 로 소스를
+  // 봤다. 11/26 에 그 자리가 `const stamp = …` 로 묶이자(Postgres 갈래에도 같은 시각을
+  // 써야 해서) **뜻은 그대로인데 자만 빨개졌다.** 보는 것은 「그 글자를 그렇게 적었나」가
+  // 아니라 **「치운 이름이 서로 다른가」**다 — 진짜로 두 번 치워서 값으로 본다
+  {
+    const storage = require('../src/storage');
+    const 옛DB = process.env.DB_FILE;
+    const 터 = path.join(os.tmpdir(), `photos-broken-${process.pid}`);
+    fs.mkdirSync(터, { recursive: true });
+    const 이름들 = [];
+    for (const n of [1, 2]) {
+      const f = path.join(터, `b${n}.json`);
+      fs.writeFileSync(f, '{깨진 글자' + n);
+      process.env.DB_FILE = f;
+      이름들.push(storage.keepBroken(storage.MAIN));
+    }
+    process.env.DB_FILE = 옛DB;
+    ok('치운 이름에 시각이 들어간다', /broken-\d{4}-\d{2}-\d{2}T/.test(이름들[0] || ''), true);
+    ok('  두 번째 사고가 첫 번째를 안 덮는다 (이름이 다르다)', 이름들[0] !== 이름들[1], true);
+    const 남은것 = fs.readdirSync(터).filter((f) => f.includes('.broken-'));
+    ok('  깨진 글자가 둘 다 남아 있다', 남은것.length, 2);
+    fs.rmSync(터, { recursive: true, force: true });
+  }
 }
 
 console.log('');
