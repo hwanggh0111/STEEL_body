@@ -962,8 +962,17 @@ const db = {
   // 제 네이버 계정에 적어둔 사람이 **만들어지는 그 순간 관리자**가 됐다.
   //
   // `oauth.js` 쪽에 막음을 세웠지만 **이 줄이 그 앞에서 비껴갔다**(자가 그것을 잡았다).
-  // 그래서 **부르는 쪽이 끌 수 있게** 한다 — `allowAdmin: false` 면 그냥 사람으로 만든다.
-  // 기본값은 여태와 같다(켜짐) — 메일 가입 길이 그대로 서야 한다.
+  // 그래서 **부르는 쪽이 켜야** 승격한다 — `allowAdmin: true` 가 아니면 그냥 사람이다.
+  //
+  // ★ **기본값을 꺼짐으로 뒤집었다** (2026-11-26 밤 · 정석 감사 넘김). 처음에는
+  // 「여태와 같게」 켜둔 채로 `oauth.js` 만 끄게 했는데 — 그러면 **새로 계정을 만드는
+  // 길이 생기는 날 아무도 모르게 관리자를 준다**(이 집이 여러 번 겪은 꼴이다:
+  // 「칸을 늘리는 사람은 그 줄도 같이 본다」가 세 번 적힌 자리가 있다).
+  //
+  // 뒤집어도 **아무도 안 막힌다** — 메일 가입은 그 주소로 **번호를 맞춘 사람**이고,
+  // 그 길(`routes/auth.js` 의 가입)은 **계정을 만든 바로 뒤에 한 번 더 승격한다.**
+  // 로그인 길도 같은 자리를 지난다. 즉 승격은 **확인을 거친 길에서만** 일어난다.
+  // 「모를 때는 막는 쪽으로 틀린다」가 이 집의 선이고, 기본값이 그 선을 따라야 한다.
   createUser(email, password, nickname, username, opts = {}) {
     const data = load();
     if (data.users.some(u => emailKey(u.email) === emailKey(email))) {
@@ -974,7 +983,7 @@ const db = {
     }
     const id = data._nextId.users || 1;
     data._nextId.users = id + 1;
-    const role = (opts.allowAdmin !== false
+    const role = (opts.allowAdmin === true
       && process.env.ADMIN_EMAIL && emailKey(email) === emailKey(process.env.ADMIN_EMAIL)) ? 'admin' : 'user';
     const user = { id, email, password, nickname, username: username || null, role, created_at: new Date().toISOString() };
     data.users.push(user);

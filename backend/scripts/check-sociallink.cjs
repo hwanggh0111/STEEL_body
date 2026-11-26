@@ -185,6 +185,34 @@ module.exports = { findOrCreateUser, MAIL_UNTRUSTED };
     }
 
     console.log('');
+    console.log('── ★ 만드는 자리의 기본값은 **꺼짐**이다 (11/26 밤 · 정석 감사 넘김) ──');
+    //
+    // `db.createUser` 가 메일만 보고 `role:'admin'` 을 박던 것을 **부르는 쪽이 켜야**
+    // 하도록 바꿨다. 처음에는 기본값을 켜둔 채로 `oauth.js` 만 끄게 했는데 — 그러면
+    // **새로 계정을 만드는 길이 생기는 날 아무도 모르게 관리자를 준다.**
+    // 뒤집어도 아무도 안 막힌다: 승격하는 자리가 **확인을 거친 길**에 따로 있다
+    {
+      const 전 = process.env.ADMIN_EMAIL;
+      process.env.ADMIN_EMAIL = 'plain@sl.local';
+      try {
+        const made = db.createUser('plain@sl.local', HASH, '주인', 'slplain01');
+        const 그사람 = db.findUserById(made.lastInsertRowid);
+        ok('★ 깃발 없이 만들면 그냥 사람이다', 그사람 && 그사람.role, 'user');
+        process.env.ADMIN_EMAIL = 'plain2@sl.local';
+        const made2 = db.createUser('plain2@sl.local', HASH, '주인', 'slplain02', { allowAdmin: true });
+        ok('  켜서 부르면 승격한다', db.findUserById(made2.lastInsertRowid).role, 'admin');
+      } finally {
+        if (전 === undefined) delete process.env.ADMIN_EMAIL; else process.env.ADMIN_EMAIL = 전;
+      }
+      const dbSrc = fs.readFileSync(path.join(__dirname, '../src/db.js'), 'utf-8');
+      ok('★ 기본값이 꺼짐으로 적혀 있다 (`!== false` 가 아니다)',
+        /opts\.allowAdmin === true/.test(dbSrc), true);
+      const authSrc = fs.readFileSync(path.join(__dirname, '../src/routes/auth.js'), 'utf-8');
+      ok('  그래서 아무도 안 막힌다 — 가입 · 로그인 길이 끝에서 승격한다',
+        (authSrc.match(/db\.updateUserRole\([^)]*'admin'\)/g) || []).length >= 2, true);
+    }
+
+    console.log('');
     console.log('── 메일이 없거나 이상하면 (여태 그대로) ──');
     ok('메일이 없으면 계정을 안 만든다', (await 해봄('', 'x', 'naver', {})).why, 'OAUTH_NO_EMAIL');
     ok('  @ 가 없는 것도 그렇다', (await 해봄('abc', 'x', 'naver', {})).why, 'OAUTH_NO_EMAIL');
