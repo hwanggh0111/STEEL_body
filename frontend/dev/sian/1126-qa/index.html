@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>배포판 전수검사 — 11/26 (정석)</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e;
+          --gold:#eeb77d; --ok:#7fb069; --warn:#d29a5f; --bad:#d9705f; --info:#7fa8d9; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:26px 24px 10px; }
+  h1 { font:400 34px/1.05 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 10px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  h2 { font:600 15px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2);
+       margin:30px 24px 0; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .sub { color:var(--t2); margin:0; max-width:100ch; }
+  .sub a { color:var(--gold); }
+  .lead { border-left:2px solid var(--warn); padding-left:12px; margin:12px 24px 0; max-width:100ch; color:var(--t2); }
+  .lead.i { border-color:var(--info); }
+  .lead.g { border-color:var(--ok); }
+  .lead b { color:var(--t1); font-weight:600; }
+  .lead code, td code, li code { color:var(--gold); font-size:12.5px; }
+  .cards { display:flex; flex-wrap:wrap; gap:12px; padding:14px 24px 0; }
+  .c { background:var(--card); border:1px solid var(--line); padding:12px 14px; min-width:170px; flex:1 1 170px; }
+  .c .k { font:12px 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2); letter-spacing:.4px; }
+  .c .v { font:400 26px/1.2 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:1px; margin-top:4px; }
+  .c .v.ok { color:var(--ok); } .c .v.bad { color:var(--bad); } .c .v.warn { color:var(--warn); }
+  .c .n { font-size:12px; color:var(--t2); margin-top:3px; }
+  table { width:calc(100% - 48px); margin:14px 24px 0; border-collapse:collapse; font-size:13px; max-width:150ch; }
+  th, td { text-align:left; vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--t2); font-weight:600; white-space:nowrap; }
+  td b { color:var(--t1); font-weight:600; }
+  .g  { color:var(--ok); white-space:nowrap; font-weight:600; }
+  .w  { color:var(--warn); white-space:nowrap; font-weight:600; }
+  .r  { color:var(--bad); white-space:nowrap; font-weight:600; }
+  .m  { color:var(--t2); white-space:nowrap; }
+  ul { margin:10px 24px 0; padding-left:20px; color:var(--t2); max-width:110ch; }
+  li { margin-bottom:7px; }
+  li b { color:var(--t1); font-weight:600; }
+  .foot { color:var(--t2); padding:26px 24px 40px; max-width:110ch; font-size:13px; }
+  @media (max-width:560px) {
+    header, .cards { padding-left:16px; padding-right:16px; }
+    h2, .lead { margin-left:16px; margin-right:16px; }
+    table, ul { width:calc(100% - 32px); margin-left:16px; margin-right:16px; }
+    table { font-size:12.5px; } th, td { padding:8px 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>배포판 <em>전수검사</em> — 11/26</h1>
+  <p class="sub">주인: 「배포판 전수검사 시작해 버그랑 오류 전부 뒤지어까게, 그걸 보고서 형식인 시안으로 띄워」 · 검사: 관리자 <b>정석</b>
+    &nbsp;·&nbsp; <a href="/dev">← 개발 미리보기</a> · <a href="/dev/sian/1125b/">11/25 후보 둘</a></p>
+
+  <p class="lead"><b>★ 라이브에는 손이 닿지 않았다.</b> <code>steel-body.onrender.com</code> 은 지금
+    <b>503 “Service suspended”</b> 다(무료 시간 소진 · <b>12/1 에 풀리며 그때의 <code>main</code> 이 배포된다</b>).
+    그래서 <b>배포와 같은 꼴</b>로 깠다 — 지은 것(<code>dist</code>) · <b>진짜로 띄운 서버</b>(자 여섯) ·
+    자 전수 · 검사소. <b>아래 「라이브 미검증」은 12/1 에 내가 다시 깐다.</b></p>
+</header>
+
+<h2>1. 숫자로 먼저</h2>
+<div class="cards">
+  <div class="c"><div class="k">자 전수 (backend)</div><div class="v ok">58 / 58</div><div class="n">+ 진짜 서버를 띄우는 자 6 전부 통과</div></div>
+  <div class="c"><div class="k">자 전수 (frontend)</div><div class="v ok">123 / 123</div><div class="n">빌드 · 조각 쪼개기까지 통과</div></div>
+  <div class="c"><div class="k">검사소 <code>inspect</code></div><div class="v ok">FAIL 0</div><div class="n">대조 · 실물 · 분기 · 결함류 (READ 5 는 읽어서 확정)</div></div>
+  <div class="c"><div class="k">오늘 내가 고친 것</div><div class="v warn">16</div><div class="n">버그 13 + 자의 과녁 3</div></div>
+  <div class="c"><div class="k">아직 열린 것</div><div class="v warn">5</div><div class="n">높음 1 · 낮음 2 · 판단 1 · 막힘 1</div></div>
+  <div class="c"><div class="k">걷은 거짓</div><div class="v m">6</div><div class="n">의심이었지만 재 보니 아니었다</div></div>
+</div>
+
+<p class="lead g"><b>한 줄 판정 — 12/1 에 나갈 <code>main</code> 은 「알고 있는 버그가 없는」 상태다.</b>
+  근호가 11/25 밤에 남긴 몫(① ④ · 의심 여섯)과 첫 판 의심 여섯을 전부 재서, <b>진짜인 여덟을 닫았다.</b>
+  남은 다섯 중 <b>높음 하나(아래 ①)만 12/1 전에 손대는 것을 권한다</b> — 나머지는 사람에게 안 닿거나 주인 결정이 필요하다.</p>
+
+<h2>2. 오늘 닫은 것 (버그 13)</h2>
+<table>
+  <tr><th>등급</th><th>무엇이었나</th><th>어디</th><th>커밋</th></tr>
+  <tr><td class="r">중대</td>
+      <td><b>지하에서 적은 줄을 고치거나 지우면 조용히 사라졌다.</b> 올라가서 번호가 바뀌었는데 손에는 옛 <code>local-…</code> id 가 남아, 화면이 「줄에서 고친다」로 가고 <b>아무것도 못 고치고 「담았어요」로 답했다.</b> 지우기는 <b>서버 줄이 남아 되살아났다</b></td>
+      <td><code>workoutStore</code> · <code>routes/workouts</code>(<code>rowIdOf</code>) · <code>db.findWorkoutByClientKey</code></td>
+      <td class="m">6770989</td></tr>
+  <tr><td class="r">중대</td>
+      <td><b>올리는 중에 닿은 손이 버려졌다.</b> POST 가 날아가 있는 동안 고치면 이미 나간 요청에는 옛 값이 실려 있었다. 지우면 <b>서버에 줄이 남고 지울 손이 없었다</b></td>
+      <td><code>rev</code> 세기 · <code>markRemoved</code> · 올리기 전에 한 번 더 보기</td>
+      <td class="m">6770989</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>같은 류가 메모에도 있었다</b> — <code>serverId === null || isLocalNoteId(id)</code>. <code>||</code> 라서 <b>서버 번호를 아는데도</b> 손에 든 옛 딱지가 이겨 올라간 메모가 안 지워졌다</td>
+      <td><code>noteStore.removeNote</code></td>
+      <td class="m">6770989</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>지하에서 적은 한 판이 「몰아 적은 날」이 됐다.</b> 올릴 때 <b>적은 시각</b>을 안 보내 서버가 받은 순간을 찍었고, <code>pace.js</code> 가 그 날의 <b>운동 시간 · 쉰 시간을 못 재고 줄을 지웠다</b></td>
+      <td><code>createdAt</code> 싣기 · <code>normalizeCreatedAt</code> 한 자리</td>
+      <td class="m">6770989</td></tr>
+  <tr><td class="r">중대</td>
+      <td><b>Postgres 에서 깨진 판의 사본이 안 남았다.</b> <code>keepBroken</code> 이 그 갈래에서 <code>null</code> 을 주고 바로 뒤 <code>_flushSync</code> 가 <b>빈 판으로 덮었다</b> — 파일일 때는 <code>.broken-…</code> 이 남는데 <b>운영이 Postgres 다</b></td>
+      <td><code>storage.keepBroken</code></td>
+      <td class="m">08ecb5c</td></tr>
+  <tr><td class="r">중대</td>
+      <td><b><code>ADMIN_EMAIL</code> 이 막힌 계정을 풀어줬다.</b> 막힘은 <code>role</code> 로 잡는데 소셜 승격이 <code>role !== 'admin'</code> 만 보고 <code>'admin'</code> 으로 덮었다 — <b>소셜로 한 번 들어오면 막힘이 사라진다</b></td>
+      <td><code>oauth.findOrCreateUser</code></td>
+      <td class="m">08ecb5c</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>같은 날 두 번 잰 것의 「최근」이 앞 것이었다.</b> 날짜만 보고 세워(안정 정렬 → 오래된 것이 앞) 아침·저녁 두 번 잰 사람에게 <b>「어깨 +1.5cm」가 거짓</b>이 됐다. 화면이 아니라 <b>자를 고쳤다</b></td>
+      <td><code>db.getMeasures</code> (운동 줄의 <code>ROW_CMP</code> 와 같은 결)</td>
+      <td class="m">08ecb5c</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>새로고침의 늦은 답이 사진을 덮었다.</b> <code>GET /photos</code> 가 내 손보다 늦게 오면 <b>올린 사진이 사라지고 지운 사진이 되살아났다</b>(화면과 기기 둘 다)</td>
+      <td><code>data/photoMerge.js</code> — 떠난 뒤에 손이 닿은 칸만 지킨다</td>
+      <td class="m">08ecb5c</td></tr>
+  <tr><td class="m">낮음</td>
+      <td><b>오래 막힌 계정이 새로고침 고리에 빠진다.</b> <code>setTimeout</code> 은 24.8일(<code>2^31</code>ms)을 넘기면 접혀 <b>바로 깨어난다</b> → <code>reload()</code> → 또 같은 자. 지금 정지는 7일이라 아직 안 났다</td>
+      <td><code>data/blockWake.js</code> — 하루씩 나눠 건다</td>
+      <td class="m">08ecb5c</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>유산소 칸에 「3세트 × 10회」가 담겼다.</b> 한 깃발(<code>cardio</code>)이 두 질문에 쓰여, 루틴의 지금 칸이 런닝머신인데 폼에서 다른 운동을 고르면 <b>세트 단추가 뜨고 그 누름이 런닝머신으로 저장됐다</b> — 유산소 칸을 만든 까닭인 그 거짓</td>
+      <td><code>TrainPage</code> <code>itemCardio</code> + <b>저장하는 손에도 문</b></td>
+      <td class="m">aea5581</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>갱신을 기다린 요청에 「한 번 해봤다」 표가 없었다.</b> 401 이 또 나면 처음 온 요청처럼 보고 갱신을 또 돌려 <b>요청 → 갱신 → 요청이 끝없이</b> 돈다(갱신은 계속 성공하니 셈도 안 오른다)</td>
+      <td><code>api/client.js</code></td>
+      <td class="m">aea5581</td></tr>
+  <tr><td class="m">낮음</td>
+      <td><b>앞 요청의 늦은 <code>finally</code> 가 다음 요청의 자리를 비웠다</b> — 다음 화면이 같은 목록을 한 번 더 받는다(5년치 209KB). <b>저장소 다섯 자리 전부</b> 닫았다(근호는 한 곳을 적었다)</td>
+      <td><code>workout</code> · <code>goal</code> · <code>gym</code> · <code>inbody</code> · <code>report</code></td>
+      <td class="m">aea5581</td></tr>
+  <tr><td class="w">중간</td>
+      <td><b>확인창이 마운트 직후에 줄을 지키지 않았다.</b> 떠 있는 물음을 덮어 그 <code>await</code> 가 <b>영영 안 풀린다</b>(지우기·나가기 확인이 거기 걸려 있다)</td>
+      <td><code>ConfirmModal</code> — 같은 <code>show</code> 를 쓴다</td>
+      <td class="m">253a65c</td></tr>
+</table>
+
+<p class="lead i"><b>자도 같이 세웠다 — 되돌려 13꼴.</b>
+  <code>check-offedit</code>(묶음 9 · 저장소를 진짜로 돌리고 「올리는 중」이라는 틈을 만든다) ·
+  <code>check-offkey</code>(라우터의 마지막 손) · <code>check-doubt1125</code>(앞·뒤 두 벌) ·
+  <code>check-cardiohands</code> 에 「한 깃발로 두 질문을 묻지 않는가」.
+  되돌려는 <b>식을 베끼지 않는다</b> — 고친 줄을 <b>지운 소스</b>를 지어 같은 판을 돌리고 그 판정이 빨개지는지 본다.</p>
+
+<p class="lead"><b>★ 자의 과녁 셋도 고쳤다 (자가 「지금」을 베낀 자리).</b>
+  <code>check-tag</code> 는 <code>/sent &gt; 0 &amp;&amp; missing/</code> 에 못 박혀 있어 그 줄에 까닭이 하나 늘자 <b>고친 쪽이 빨개졌다</b>.
+  <code>check-photos</code> 는 <code>broken-' + new Date()…</code> 라는 <b>소스 꼴</b>을 봤다 — 이제 <b>진짜로 두 번 치워</b> 이름이 다른지 본다.
+  <code>check-cardio</code> 는 깃발 <b>이름</b>에 매여 있었다. 셋 다 뜻은 그대로인데 자만 울던 자리다.</p>
+
+<h2>3. 아직 열린 것 (다섯)</h2>
+<table>
+  <tr><th>등급</th><th>①~⑤</th><th>무엇</th><th>왜 아직 안 닫았나</th></tr>
+  <tr><td class="w">높음</td><td><b>①</b></td>
+      <td><b>한 사람이 쥘 수 있는 양에 상한이 없다 — 자리 다섯.</b>
+        11/25 에 <b>측정 · 메모 둘만</b> 닫혔다. 남은 자리:
+        <code>POST /workouts</code>(파일로 넣는 길은 6만 줄에서 막는데 <b>손으로 적는 길은 무제한</b>) ·
+        <code>POST /inbody</code> · <code>POST /plans</code>(하루 10개만 있고 <b>총량이 없다</b> → 2년 × 10 = 7,300) ·
+        <code>POST /my-routines</code>(루틴 <b>개수</b>) · <code>POST /reports</code>(제보 수).
+        이 DB 는 <b>파일 하나를 통째로 쓴다</b> — 한 사람이 불린 양이 모두의 저장 시간이 된다</td>
+      <td><b>상한 숫자는 주인 결정</b>이다(가져오기 쪽 값과 맞출지, 더 낮출지).
+        값만 정해주시면 <b>다섯 자리를 한 번에</b> 닫고 자를 세운다 — 그 자리마다 「가득해요」를 사람 말로 적는 일까지</td></tr>
+  <tr><td class="m">판단</td><td><b>②</b></td>
+      <td><b>네이버가 준 메일을 「확인된 것」으로 믿고 계정을 잇는다.</b>
+        이 앱은 <b>메일 하나로 계정을 잇는다</b>(<code>findUserByEmail</code>). 구글은 <code>verified_email</code> 로 알려주는데 네이버는 그 표가 없다 —
+        네이버가 가입 때 메일을 확인하지 않는다면, 남의 메일을 적어둔 네이버 계정으로 <b>그 사람 기록에 들어갈 수 있다</b></td>
+      <td><b>코드로는 못 가린다 — 문서를 봐야 한다.</b> 근호도 「문서로 볼 것」으로 남겼다.
+        막는 쪽으로 틀면(이을 때 한 번 더 묻기) <b>네이버로 쓰던 사람이 한 번 불편해진다</b> — 주인 결정 거리</td></tr>
+  <tr><td class="m">낮음</td><td><b>③</b></td>
+      <td><b>원자적 쓰기의 임시 파일(<code>.writing</code>)이 남는다.</b> 오늘 트리에 셋 있었다
+        (<code>.check-order</code> · <code>.check-range</code> · <code>.check-session</code>) — <code>check-tidy</code> 는 <b>그 꼴을 안 본다</b>(임시 DB 모양만 본다)</td>
+      <td>사람 화면에 닿지 않는다. 다만 <b>훅 나눠 커밋하는 자리가 매번 어긋나고</b>(<code>git status</code> 가 늘 더럽다)
+        창 셋이 검사를 같이 돌리면 <code>check-tidy</code> 가 <b>남의 찌꺼기를 보고 운다</b> — 오늘 두 번 그랬다</td></tr>
+  <tr><td class="m">낮음</td><td><b>④</b></td>
+      <td><b>루틴 칸의 <code>setsDone</code> 이 그 칸의 <code>sets</code> 를 넘을 수 있다.</b>
+        테두리가 전역 <code>SETS_MAX</code>(100)뿐이라, 4세트 칸에 50 을 적어 보낼 수 있다</td>
+      <td>화면은 <code>sets</code> 만큼만 단추를 그려 <b>사람 손으로는 못 닿는다</b>.
+        담긴 뒤에도 기록(<code>workouts</code>)에는 영향이 없다 — 진행 막대만 이상해진다</td></tr>
+  <tr><td class="r">막힘</td><td><b>⑤</b></td>
+      <td><b>라이브 전수 — 12/1</b></td>
+      <td>503 이라 못 한다. 오늘 것 전부가 <b>코드 · 띄운 서버 · 빌드</b> 로만 확인됐다 (아래 목록)</td></tr>
+</table>
+
+<h2>4. 걷은 거짓 (여섯) — 의심이었지만 재 보니 아니었다</h2>
+<ul>
+  <li><b>Postgres 쓰기 실패를 다시 안 한다</b> → <b>한다.</b> <code>storage.write</code> 가 실패를 돌려주고(11/23)
+    <code>_flush</code> 의 <code>catch</code> 가 <code>_dirty</code> 를 세우고 <code>finally</code> 가 500ms 뒤를 건다.
+    <b>다음 쓰기가 없어도 혼자 다시 쓴다</b> — 자가 <b>쓰기에 실패를 먹여</b> 확인했다(글로만 적어두면 그 손이 사라지는 날 모른다)</li>
+  <li><b><code>/send-code</code> 마다 시도 수가 처음으로 돌아간다</b> → 맞지만 <b>IP 자가 막는다</b>
+    (<code>verifyCode</code> 15분에 10회 · <code>authCode</code> 분당 3회). 번호 백만 개를 10회씩으로는 못 뚫는다</li>
+  <li><b>확인창이 StrictMode 에서 두 번 들어간다</b> → 그 자리는 <b>진짜였고 고쳤다</b>(위 표). 다만
+    「개발에서만」이 아니다 — <b>줄에 둘 이상 쌓인 채 다시 마운트되면 운영에서도</b> 난다</li>
+  <li><b>분모 0 후보 셋</b>(검사소 READ) → 닿지 않는다. <code>niceScale</code> 은 <code>max &gt; min</code> 을 먼저 막고,
+    <code>rmsOf</code> 의 버퍼 길이는 0 이 될 수 없다. <b>다만 <code>niceScale</code> 은 값 차이가 극히 작으면 눈금 셈이 멎는다</b> —
+    인바디·무게 테두리가 그 값을 막고 있어 지금은 못 닿는다(전제가 깨지는 날을 적어둔다)</li>
+  <li><b>배포 뒤 흰 화면(옛 껍데기가 없는 조각을 조른다)</b> → <b>회복 손이 이미 있다.</b>
+    <code>ErrorBoundary</code> 가 조각 오류를 알아보고 <b>한 번만</b> 새로 받는다(<code>sessionStorage</code> 표로 고리를 막는다)</li>
+  <li><b>옛 서비스워커가 옛 화면을 붙든다</b> → <code>CACHE_NAME</code> 이 빌드마다 바뀌고 새 워커가 옛 캐시를 지운다.
+    담아둔 조각도 <b>읽을 때 종류를 본다</b>(11/11 에 세운 자) — HTML 이 <code>.js</code> 자리에 담겼던 그 꼴은 스스로 낫는다</li>
+</ul>
+
+<h2>5. 류로 본 그림 — 오늘도 「고침이 자리 하나만 닫았다」가 여덟</h2>
+<p class="lead"><b>오늘 닫은 13 중 여덟이 같은 꼴이다.</b> 누군가 그 자리를 고쳤는데 <b>그 판단을 해야 하는 자리가 여럿</b>이었다 —
+  지하 줄의 고치기·지우기(셋) · 메모의 같은 류 · 「최근」을 읽는 화면들 · <code>inflight</code> 다섯 자리 ·
+  유산소 깃발 둘 · 기다린 요청의 표. <b>보는 법은 둘이다</b>:
+  ⑴ <b>그 판단을 해야 하는 자리가 몇 곳인가</b> ⑵ <b>문을 닫았으면 이미 안에 있는 것도 봤나</b>.
+  11/23·11/24·11/25 에도 같은 꼴이 각각 넷·다섯·열하나였다 — <b>이 류가 이 앱의 주된 결함 모양이다.</b></p>
+
+<h2>6. 12/1 라이브에서 내가 깔 것 (미검증 목록)</h2>
+<ul>
+  <li><b>지하 줄 한 바퀴</b> — 비행기 모드로 적고(여러 줄) → 신호 켜고 → <b>올라가는 중에 고치기 · 지우기</b> ·
+    올라간 뒤 <b>옛 화면의 수정 칸</b>으로 고치기. 서버 값이 바뀌는지 · 지운 줄이 되살아나지 않는지</li>
+  <li><b>적은 시각</b> — 지하에서 한 판(스무 줄)을 적고 올린 뒤, 그날 결산의 <b>운동 시간 · 쉰 시간</b>이 나오는지
+    (받은 순간으로 찍히면 그 줄이 사라진다)</li>
+  <li><b>사진 비교</b> — 새로고침을 누른 직후 사진을 올리고 · 지우고. 올린 것이 남는지 · 지운 것이 안 되살아나는지</li>
+  <li><b>어깨 측정</b> — 같은 날 두 번 재고 「최근」이 저녁 것인지</li>
+  <li><b>유산소 칸</b> — 루틴에 런닝머신을 넣고 중간에 다른 운동을 끼워 적어보기(세트 단추가 안 떠야 한다)</li>
+  <li><b>스플래시 둘</b>(11/24 부터 미검증) — 로그인 뒤 홈으로 넘어가는지 · 탭 스플래시가 사라지는지</li>
+  <li><b>관리자</b> — 막힌 계정이 <code>ADMIN_EMAIL</code> 로 소셜 로그인해도 막힌 채인지</li>
+  <li>그리고 <b>배포가 지어졌는지부터</b> — Render 가 커밋을 받고도 안 짓는 일이 11/9 에 두 번 있었다.
+    라이브 확인은 <b>그때그때 <code>index.html</code> 이 가리키는 조각</b>으로 한다(옛 조각 주소는 <code>immutable</code> 이라 영영 200 이다)</li>
+</ul>
+
+<h2>7. 권고 차례</h2>
+<p class="lead g"><b>① 상한 다섯 (값만 정해주시면 오늘 닫는다)</b> → <b>② 네이버 메일 (문서 확인 · 주인 판단)</b> →
+  12/1 라이브 전수 → ③ <code>.writing</code> 찌꺼기 → ④ <code>setsDone</code> 테두리.
+  <b>12/1 전에 <code>main</code> 에 들어가야 하는 것은 ① 하나다.</b></p>
+
+<div class="foot">
+  <b>이 보고서가 선 자리</b> — 자 전수(backend 58 + 서버를 띄우는 자 6 · frontend 123 · 빌드 · 검사소) ·
+  라우터의 마지막 손을 직접 돌린 판 · 저장소를 진짜로 돌린 판 · 그리고 사람 눈으로 읽은 자리
+  (라우트 23개 중 아직 안 읽힌 작은 길 전부 · 저장소 열넷 · 서비스워커 · 오류 경계 · 타이머 · 분모).
+  <b>커밋</b> <code>6770989</code> · <code>842c6c9</code> · <code>08ecb5c</code> · <code>b294dc5</code> · <code>aea5581</code> — 전부 <code>main</code> 에 밀었다.
+  <br><br>
+  <b>남의 트리를 건드리지 않았다</b> — 오늘 같은 트리에서 벼림(「순서」 칸 · 부총재 오류 관리자)과 맵시(UI)가 같이 일했다.
+  내가 받아 깐 둘: <b>⑦ 「순서」 칸 — PASS</b>(<code>check-importorder</code> 전부 통과 · 내보내고 되넣어 드롭 차례가 서는지 값으로 확인) ·
+  <b>맵시의 달 칸 층 뒤집힘 — PASS</b>(<code>--text-faint-tap</code> 을 쓰는 자리가 하나도 안 남았고 <code>check-contrast</code> 가 초록).
+</div>
+</body>
+</html>
