@@ -137,7 +137,8 @@
     "corner": "node scripts/check-corner.cjs",
     "modal": "node scripts/check-modal.cjs",
     "keytap": "node scripts/check-keytap.cjs",
-    "watchscope": "node scripts/check-watch.cjs"
+    "watchscope": "node scripts/check-watch.cjs",
+    "type": "node scripts/check-type.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -146,7 +147,7 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@vitejs/plugin-react": "^4.2.1",
-    "axios": "1.13.6",
+    "axios": "1.21.1",
     "capacitor-health": "^8.4.0",
     "esbuild": "^0.21.5",
     "react": "^18.2.0",
