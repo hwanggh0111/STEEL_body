@@ -48,10 +48,31 @@ const front = walk(path.join(ROOT, 'frontend', 'src'));
 // 글자와 목록은 뜻이 갈리는 일이 많아 여기서 보지 않는다 (이름표는 `check-data` 가 본다)
 const NUM = /(?:export\s+)?const\s+([A-Z][A-Z0-9_]{2,})\s*=\s*([\d_\s*+/.()-]+);/g;
 
+// ── ★ **한 자리에서 받아 적은 수도 센다** ── (2026-11-26 · 정석)
+//
+// 11/26 에 상한 일곱을 `utils/rowCaps.js` 한 벌로 모았다 — 서버 쪽이
+// `const MAX_NOTES = capOf('notes');` 가 됐다. 그러자 **이 자가 그 이름을 통째로
+// 못 보게 됐다**(숫자 꼴이 아니다): FAIL 은 안 났지만 **화면과 서버를 견주던 짝이
+// 조용히 사라졌다.** 자가 조용해지는 것이 자가 우는 것보다 나쁘다.
+// 그래서 그 꼴도 **수로 풀어** 센다
+const CAP_REF = /(?:export\s+)?const\s+([A-Z][A-Z0-9_]{2,})\s*=\s*capOf\(['"]([\w]+)['"]\);/g;
+let CAPS_TABLE = null;
+try { CAPS_TABLE = require(path.join(ROOT, 'backend', 'src', 'utils', 'rowCaps.js')).CAPS; }
+catch { CAPS_TABLE = null; }
+
 function numsOf(files) {
   const map = new Map();   // 이름 → [{ file, value }]
   for (const f of files) {
     const src = fs.readFileSync(f, 'utf8');
+    if (CAPS_TABLE) {
+      for (const m of src.matchAll(CAP_REF)) {
+        const [, name, key] = m;
+        const v = CAPS_TABLE[key];
+        if (!Number.isFinite(v)) continue;
+        if (!map.has(name)) map.set(name, []);
+        map.get(name).push({ file: path.relative(ROOT, f), value: v });
+      }
+    }
     for (const m of src.matchAll(NUM)) {
       const [, name, expr] = m;
       let v;

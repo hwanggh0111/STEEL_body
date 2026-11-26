@@ -121,7 +121,11 @@ ok('  자는 동안은 안 뛴다는 것을 적어뒀다', /깨어 있을 때만
 console.log('');
 console.log('── ③ 하루 줄은 사람 것이 아니다 ──');
 {
-  const m = /USER_COLLECTIONS: \[([\s\S]*?)\],\n/.exec(dbSrc);
+  // ★ 과녁이 `],\n` 으로 끝나 **CRLF 판에서 조용히 빗나갔다** (2026-11-26 · 정석).
+  // 이 집의 파일은 작업 트리에서 CRLF 인 것이 섞여 있다(git 은 LF 로 들고 있다) —
+  // 그래서 **커밋된 판에서는 통과하고 내 트리에서만 FAIL** 하는 꼴이 났다.
+  // 줄바꿈을 보는 과녁은 **늘 `\r?\n`** 으로 적는다 ([[shell-eats-backslash]] 와 같은 결)
+  const m = /USER_COLLECTIONS: \[([\s\S]*?)\],\r?\n/.exec(dbSrc);
   ok('`USER_COLLECTIONS` 를 찾았다', !!m, true);
   if (m) ok('  `aiDays` 가 거기 없다 (계정 지울 때 안 지워진다)', /['"]aiDays['"]/.test(m[1]), false);
 }

@@ -5,6 +5,14 @@ const db     = require('../db');
 const { isRecordDay } = require('../utils/dayRange');
 const { seoulDay } = require('../utils/seoulDay');
 const { sendFresh } = require('../utils/fresh');
+// ── **한 사람이 쥘 수 있는 줄 수** ── (2026-11-26 · 정석, 전수검사 ①)
+//
+// 11/25 에 측정 · 메모 둘에만 붙은 상한을 **남은 다섯 자리**에 같이 붙인다. 값은
+// `utils/rowCaps.js` 한 벌에서 오고, 파일로 넣는 길(`POST /import`)이 보는 것과 **같은 수**다 —
+// 두 벌로 두면 한쪽을 올리는 날 「파일로는 들어가는데 손으로는 안 된다」가 된다.
+// 이 DB 는 **파일 하나를 통째로 쓴다** — 한 사람이 불린 양이 모두의 저장 시간이 된다
+const { capOf, fullWhy } = require('../utils/rowCaps');
+
 
 // 칸의 테두리는 **한 자리에서** 온다 (`utils/inbodyRange.js`) — 파일로 넣는 길도
 // 같은 것을 쓴다. 여태 세 자리에 글자로 박혀 있었고 체지방률만 서로 달랐다
@@ -20,6 +28,10 @@ router.get('/', auth, (req, res) => {
 // 추가
 router.post('/', auth, spamCheck, (req, res) => {
   let { date, height, weight, fat_pct, muscle_kg, water_l } = req.body;
+
+  if (db.getInbody(req.userId).length >= capOf('inbody')) {
+    return res.status(409).json({ error: fullWhy('인바디', 'inbody') });
+  }
 
   if (weight === undefined || weight === null || weight === '') {
     return res.status(400).json({ error: '체중은 필수에요' });

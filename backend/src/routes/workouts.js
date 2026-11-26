@@ -23,6 +23,14 @@ const { isRecordDay } = require('../utils/dayRange');
 // **같은 자**를 들어야 한다 — 무게에서 이미 한 번 어긋났던 자리다
 const { normalizeCardio } = require('../utils/cardioFields');
 const { sendFresh } = require('../utils/fresh');
+// ── **한 사람이 쥘 수 있는 줄 수** ── (2026-11-26 · 정석, 전수검사 ①)
+//
+// 11/25 에 측정 · 메모 둘에만 붙은 상한을 **남은 다섯 자리**에 같이 붙인다. 값은
+// `utils/rowCaps.js` 한 벌에서 오고, 파일로 넣는 길(`POST /import`)이 보는 것과 **같은 수**다 —
+// 두 벌로 두면 한쪽을 올리는 날 「파일로는 들어가는데 손으로는 안 된다」가 된다.
+// 이 DB 는 **파일 하나를 통째로 쓴다** — 한 사람이 불린 양이 모두의 저장 시간이 된다
+const { capOf, fullWhy } = require('../utils/rowCaps');
+
 
 // 무게 칸과 운동명을 다듬는 자는 **`utils/workoutFields.js` 한 곳에** 있다
 // (2026-10-22 에 옮겼다). 파일로 넣는 길(`POST /import`)이 같은 자를 써야 한다 —
@@ -134,6 +142,13 @@ router.post('/', auth, spamCheck, (req, res) => {
   // 여태 그 둘이 필수라서 런닝머신을 적으려면 「1세트 1회」를 지어내야 했다
   const c = normalizeCardio(minutes, distanceKm);
   if (!c.ok) return res.status(400).json({ error: c.why });
+
+  // **가득 찼으면 안 받는다** (위 `capOf` 머리글). 겹침 열쇠(`clientKey`)로 들어온
+  // 재전송은 **새 줄이 아니다** — 그것까지 막으면 지하에서 올리던 줄이 영영 못 올라간다.
+  // 그래서 새로 만들 때만 센다(`createWorkout` 이 겹침을 먼저 거른다)
+  if (!key && db.getWorkouts(req.userId).length >= capOf('workouts')) {
+    return res.status(409).json({ error: fullWhy('운동', 'workouts') });
+  }
 
   // 0 은 빠뜨린 것이 아니라 잘못 적은 것이다. `!sets` 로 묶으면 「필수에요」라고 답하게 되는데,
   // 친 사람은 칸을 채웠으니 왜 안 되는지 모른다. 아래 「1 이상」 검사로 내려보낸다

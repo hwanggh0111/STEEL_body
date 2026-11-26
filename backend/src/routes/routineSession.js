@@ -134,6 +134,17 @@ router.patch('/', auth, (req, res) => {
     if (!Number.isInteger(setsDone) || setsDone < 0 || setsDone > SETS_MAX) {
       return res.status(400).json({ error: '세트 수가 올바르지 않아요' });
     }
+    // ── ★ **그 칸이 몇 세트인지를 안 봤다** ── (2026-11-26 · 정석, 전수검사 ④)
+    //
+    // 테두리가 전역 `SETS_MAX`(100)뿐이라 **4세트 칸에 50 을 적어 보낼 수 있었다.**
+    // 화면은 `sets` 만큼만 단추를 그려 사람 손으로는 안 닿지만, 담기면 진행 막대와
+    // 홈의 「진행 중」이 **있지도 않은 세트**를 센다. 칸이 세트 수를 아는 자리에서 막는다
+    // (모르는 칸 — `sets` 가 `null` 인 유산소 · 글로만 적힌 루틴 — 은 여태처럼 전역 자만 본다)
+    const cur = db.getRoutineSession(req.userId);
+    const 칸 = cur && cur.items ? cur.items[index] : null;
+    if (칸 && Number.isInteger(칸.sets) && 칸.sets > 0 && setsDone > 칸.sets) {
+      return res.status(400).json({ error: `그 운동은 ${칸.sets}세트예요` });
+    }
     const row = db.setRoutineItemSets(req.userId, index, setsDone);
     if (!row) return missing(req, res);
     return res.json({ session: shape(row), finished: false });

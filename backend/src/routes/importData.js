@@ -6,6 +6,15 @@ const {
   readWorkouts, readInbody, readMeasures,
   workoutKey, inbodyKey, measureKey,
 } = require('../utils/csvRows');
+// ── **상한 값은 한 자리에서 온다** ── (2026-11-26 · 정석)
+//
+// 아래 갈래마다 수가 생글자로 박혀 있었고, **손으로 적는 길**(`POST /workouts` 등)은
+// 그 수를 아예 안 보고 있었다(11/26 전수검사 ①). 값을 `utils/rowCaps.js` 한 벌로
+// 모았다 — 한쪽을 올리는 날 다른 쪽이 옛 수로 막으면 사람은 「파일로는 들어가는데
+// 손으로는 안 된다」를 겪는다. 갈래 안에 두는 것(11/13)은 그대로다: `max` 는 여전히
+// 갈래의 칸이고, 그 값을 여기서 받아 적는다
+const { capOf } = require('../utils/rowCaps');
+
 
 // ─────────────────────────────────────────────────────────────
 // 가져오기 (복원) — 2026-09-18.
@@ -48,7 +57,7 @@ const MAX_REASONS = 20;
 const KINDS = {
   workouts: {
     label: '운동',
-    max: 60000,
+    max: capOf('workouts'),
     read: readWorkouts,
     key: workoutKey,
     existing: (userId) => db.getWorkouts(userId),
@@ -78,7 +87,7 @@ const KINDS = {
   },
   inbody: {
     label: '인바디',
-    max: 6000,
+    max: capOf('inbody'),
     read: readInbody,
     key: inbodyKey,
     existing: (userId) => db.getInbody(userId),
@@ -86,7 +95,7 @@ const KINDS = {
   },
   measures: {
     label: '측정',
-    max: 20000,
+    max: capOf('measures'),
     read: readMeasures,
     key: measureKey,
     existing: (userId) => db.getMeasures(userId),

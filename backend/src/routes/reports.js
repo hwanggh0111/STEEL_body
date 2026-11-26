@@ -3,6 +3,9 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
+// 상한 값은 `utils/rowCaps.js` 한 자리에서 온다 (2026-11-26)
+const { capOf, fullWhy } = require('../utils/rowCaps');
+
 const { seoulDay } = require('../utils/seoulDay');
 const { recomputeDays } = require('../utils/abusePolicy');
 const { sanitize, sanitizeMultiline } = require('../utils/sanitize');
@@ -216,6 +219,15 @@ router.post('/', auth, spamCheck, (req, res) => {
       error: result.message,
       abuse: { level: verdict.level, days: result.days, count: result.count },
     });
+  }
+
+  // ── **한 사람이 쥘 수 있는 제보 수** ── (2026-11-26 · 정석, 전수검사 ①)
+  //
+  // 여태 `spamCheck`(분당 60)만 막았다 — 하루를 두면 8만 건이고, 이 DB 는 파일 하나를
+  // 통째로 쓴다. 제보는 **할 말이 있을 때** 쓰는 것이라 300건이면 넉넉하다.
+  // **욕설 판정 뒤에 센다** — 가득 찼다고 먼저 돌려보내면 그 사람의 위반이 안 적힌다
+  if (db.getReports(req.userId).length >= capOf('reports')) {
+    return res.status(409).json({ error: fullWhy('제보', 'reports') });
   }
 
   const record = db.createReport(req.userId, {

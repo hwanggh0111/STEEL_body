@@ -3,6 +3,14 @@ const auth   = require('../middleware/auth');
 const { spamCheck } = require('../middleware/aiGuard');
 const db     = require('../db');
 const { sanitize, cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
+// ── **한 사람이 쥘 수 있는 줄 수** ── (2026-11-26 · 정석, 전수검사 ①)
+//
+// 11/25 에 측정 · 메모 둘에만 붙은 상한을 **남은 다섯 자리**에 같이 붙인다. 값은
+// `utils/rowCaps.js` 한 벌에서 오고, 파일로 넣는 길(`POST /import`)이 보는 것과 **같은 수**다 —
+// 두 벌로 두면 한쪽을 올리는 날 「파일로는 들어가는데 손으로는 안 된다」가 된다.
+// 이 DB 는 **파일 하나를 통째로 쓴다** — 한 사람이 불린 양이 모두의 저장 시간이 된다
+const { capOf, fullWhy } = require('../utils/rowCaps');
+
 
 // 세트 · 횟수의 테두리는 **한 자리에서** 온다 (`utils/setRange.js`, 2026-10-31).
 // 여기는 여태 sets · reps 를 **아예 안 봤다** — `{ ...ex }` 로 받은 것을 그대로 담았다.
@@ -119,6 +127,11 @@ router.post('/', auth, spamCheck, (req, res) => {
   }
 
   const sanitizedExercises = validExercises.map(ex => ({ ...ex, name: sanitize(ex.name) }));
+
+  // ★ **루틴 안의 운동은 50개로 막는데 루틴 개수는 안 막았다** (2026-11-26)
+  if (db.getMyRoutines(req.userId).length >= capOf('routines')) {
+    return res.status(409).json({ error: fullWhy('루틴', 'routines') });
+  }
 
   const result = db.createMyRoutine(req.userId, safeName, sanitizedExercises);
   // **다듬은 글자를 같이 돌려준다** (2026-10-28). 여기서 이름의 앞뒤·가운데 공백을

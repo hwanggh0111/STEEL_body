@@ -61,6 +61,34 @@ if (left.length) {
   console.log('       `_flushPhotosSync()` 를 돌린다. `db.flushPhotosNow()` 를 지우기 **전에** 부른다');
 }
 
+// ── ★ **원자적 쓰기의 임시 파일은 안 보고 있었다** ── (2026-11-26 · 정석, 전수검사 ③)
+//
+// 위 `TEMP` 는 **임시 DB 모양**(`.check-*.json`)만 본다. 그런데 쓰는 중에 프로세스가
+// 죽으면 **`파일.writing`** 이 남는다(`storage.js` 의 원자적 쓰기) — 오늘 트리에 셋
+// 있었다(`.check-order.json.writing` · `.check-range…` · `.check-session…`).
+// 이 자가 세우려던 것이 「**작업 트리에 찌꺼기를 남기지 않는다**」인데 그 꼴을
+// 안 봤다. 이름을 세는 자는 또 새므로 — **꼬리로** 본다(`.writing` 로 끝나는 것 전부).
+//
+// 뜰 때 치우는 손도 같이 뒀다(`storage.sweepTemp`). 그래도 **검사가 남기고 간 것**은
+// 서버를 안 띄우면 안 치워지므로 여기서 운다
+console.log('');
+console.log('── 원자적 쓰기가 남긴 임시 파일 (`*.writing`) ──');
+{
+  const 남은것 = [];
+  for (const d of DIRS) {
+    const dir = path.join(ROOT, d);
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (/\.writing(\.sync)?$/.test(name)) 남은것.push(path.posix.join(d || '.', name));
+    }
+  }
+  ok('남은 `.writing` 이 없다', 남은것, []);
+  if (남은것.length) {
+    console.log('     ↑ 쓰다 죽은 자취다. 지워도 된다 — 본 파일은 그 옆에 온전히 있다');
+    console.log('       (서버를 띄우면 `storage.init` 의 `sweepTemp` 가 본 DB 옆의 것은 치운다)');
+  }
+}
+
 console.log('');
 console.log('── git 이 들고 있는 것 ──');
 let tracked = [];

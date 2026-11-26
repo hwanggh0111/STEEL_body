@@ -109,7 +109,15 @@ console.log('── 서버에도 같은 이름이 있는가 (값은 npm run twin
 for (const c of CAPS) {
   let srv = '';
   try { srv = codeOf(fs.readFileSync(path.join(__dirname, '..', c.server), 'utf8')); } catch { /* 없으면 아래에서 FAIL */ }
-  ok(c.label + ' 서버가 이름으로 든다', new RegExp('const ' + c.name + ' = \\d+;').test(srv), true);
+  // ── ★ **한 자리에서 받아 적은 꼴도 「이름으로 든다」다** ── (2026-11-26 · 정석)
+  //
+  // 11/26 에 상한 일곱을 `backend/src/utils/rowCaps.js` 한 벌로 모았다 — 서버가
+  // `const MAX_NOTES = capOf('notes');` 가 됐다. 과녁이 **숫자 꼴**에 못 박혀 있어서
+  // **더 좋게 고친 쪽이 빨개졌다**(이 자가 보려던 것은 「생글자가 흩어지지 않는가」다).
+  // 숫자든 `capOf()` 든 **이름으로 드는 것**이면 통과다. 값 견주기는 `npm run twins` 가 한다
+  const 이름줄 = (srv.match(new RegExp('const ' + c.name + ' = [^;]+;')) || [])[0] || '';
+  const 이름꼴 = /= (\d+|capOf\([^)]+\));$/.test(이름줄);
+  ok(c.label + ' 서버가 이름으로 든다', 이름꼴, true);
   // 글자로 박힌 수가 남아 있으면 한쪽만 고쳐지는 날이 온다
   const { lit } = holderOf(c);
   ok('  그 수를 글자로 또 적지 않는다',

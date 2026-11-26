@@ -4,6 +4,14 @@ const { spamCheck } = require('../middleware/aiGuard');
 const db = require('../db');
 const { cleanName, tagLike, ANGLE_WHY } = require('../utils/sanitize');
 const { isPlanDay } = require('../utils/dayRange');
+// ── **한 사람이 쥘 수 있는 줄 수** ── (2026-11-26 · 정석, 전수검사 ①)
+//
+// 11/25 에 측정 · 메모 둘에만 붙은 상한을 **남은 다섯 자리**에 같이 붙인다. 값은
+// `utils/rowCaps.js` 한 벌에서 오고, 파일로 넣는 길(`POST /import`)이 보는 것과 **같은 수**다 —
+// 두 벌로 두면 한쪽을 올리는 날 「파일로는 들어가는데 손으로는 안 된다」가 된다.
+// 이 DB 는 **파일 하나를 통째로 쓴다** — 한 사람이 불린 양이 모두의 저장 시간이 된다
+const { capOf, fullWhy } = require('../utils/rowCaps');
+
 
 // 앞으로 할 것 — 달력에서 날짜를 골라 미리 정해둔다.
 //
@@ -52,6 +60,12 @@ router.post('/', auth, spamCheck, (req, res) => {
   if (!safeName) return res.status(400).json({ error: '무엇을 할지 적어주세요' });
 
   const mine = db.getPlans(req.userId);
+  // ★ **하루 상한만 있고 총량이 없었다** (2026-11-26) — 앞으로 2년까지 담으므로
+  // 하루 10개 × 730일 = 7,300 까지 열려 있었다. 지난 계획은 **우리가 지우지 않으므로**
+  // (못 한 날이 왜 못 했는지 남아야 한다 — 이 파일 머리글) 총량도 막는다
+  if (mine.length >= capOf('plans')) {
+    return res.status(409).json({ error: fullWhy('계획', 'plans') });
+  }
   if (mine.filter(p => p.date === date).length >= MAX_PER_DAY) {
     return res.status(400).json({ error: `하루에 ${MAX_PER_DAY}개까지만 담을 수 있어요` });
   }

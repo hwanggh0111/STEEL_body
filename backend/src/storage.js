@@ -95,7 +95,17 @@ function fileWrite(file, text) {
       await fsp.unlink(tmp).catch(() => { /* 이미 없으면 그만 */ });
       return;
     }
-    await fsp.rename(tmp, file);
+    try {
+      await fsp.rename(tmp, file);
+    } catch (err) {
+      // ── ★ **갈아끼우다 터지면 임시 파일이 남는다** ── (2026-11-26 · 정석, 전수검사 ③)
+      //
+      // 다 쓴 뒤 `rename` 이 실패하면(디스크가 찼다 · 파일이 잠겼다) `.writing` 이
+      // 그 자리에 남는다. 사람 화면에는 안 닿지만 **`git status` 가 늘 더럽고**,
+      // 훅 나눠 커밋하는 자리가 매번 어긋난다. **내가 만든 것은 내가 치운다**
+      await fsp.unlink(tmp).catch(() => { /* 이미 없으면 그만 */ });
+      throw err;
+    }
   });
   // 사슬은 **실패해도 이어진다.** 한 번 터진 쓰기가 뒤의 모든 쓰기를 막으면 안 된다.
   // 터진 것은 부르는 쪽이 받는다 (`db.js` 가 다시 쓴다고 표시한다)
@@ -189,8 +199,23 @@ function photosPath() {
 
 const pathOf = (name) => (name === PHOTOS ? photosPath() : mainPath());
 
+/**
+ * 남아 있는 임시 파일(`*.writing` · `*.writing.sync`)을 걷는다.
+ *
+ * **본 파일 옆만 본다** — 아무 파일이나 지우지 않는다. Postgres 판에서도 파일 쪽
+ * 찌꺼기가 남아 있을 수 있어(파일로 쓰다 옮겨온 판) 갈래를 안 가린다.
+ */
+function sweepTemp() {
+  for (const base of [mainPath(), photosPath()]) {
+    for (const suffix of [TMP_SUFFIX, TMP_SUFFIX + '.sync']) {
+      try { fs.unlinkSync(base + suffix); } catch { /* 없으면 그만 */ }
+    }
+  }
+}
+
 module.exports = {
   KIND,
+  sweepTemp,
   MAIN,
   PHOTOS,
   isPostgres: KIND === 'postgres',
@@ -198,6 +223,13 @@ module.exports = {
 
   /** 서버가 **듣기 시작하기 전에** 한 번. 파일일 때는 할 일이 없다. */
   async init() {
+    // ── **지난번에 죽으면서 남긴 임시 파일을 치운다** ── (2026-11-26 · 정석, 전수검사 ③)
+    //
+    // 쓰는 중에 프로세스가 죽으면(Render 가 메모리를 넘겨 죽이는 일이 있다 · 검사를
+    // Ctrl+C 로 끊는 일이 더 흔하다) `파일.writing` 이 남는다. **그 파일은 누가 봐도
+    // 쓰레기다** — 이름이 임시 이름이고, 본 파일은 그 옆에 온전히 있다(원자적 쓰기의
+    // 뜻이 그것이다). 뜰 때 한 번 걷는다. 지우다 실패해도 **뜨는 것을 막지 않는다**
+    sweepTemp();
     if (KIND === 'file') return;
     await pgInit();
   },

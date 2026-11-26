@@ -2094,6 +2094,45 @@ const db = {
     return { changes: 1 };
   },
 
+  // ── ★ **제공자가 준 고유 번호로 잇는다** ── (2026-11-26 · 정석, 전수검사 ②)
+  //
+  // 이 앱은 여태 **메일 하나로 계정을 이었다**(`findUserByEmail`). 구글은 그 메일이
+  // 확인된 것인지 알려주는데(`verified_email`) **네이버는 안 알려준다.** 네이버가
+  // 제 저장소(naver/naveridlogin-API #107)에서 그렇게 답했다 —
+  //
+  //   「인증 절차를 거친 값이 아닐 수 있습니다 · 소유가 확인되지 않은 주소가 제공될
+  //    수 있습니다 · 과거 가입 회원은 이메일 인증 단계를 거치지 않은 사례가 있습니다」
+  //   「검증 여부를 나타내는 필드는 제공되지 않습니다」
+  //   「이메일을 계정 연결 기준값으로 쓰지 말고 **고유 식별자 `id`** 를 쓰십시오」
+  //
+  // 그 말대로 **제공자의 고유 번호를 적어두고 그것으로 찾는다.** 메일은 이름·표시에만 쓴다.
+  // 적는 자리는 `provider_ids` 한 칸이다(`{ naver: '...', google: '...' }`) — 사람 하나가
+  // 길 둘로 들어올 수 있고, 그때 **같은 계정**이어야 한다.
+  findUserByProvider(provider, providerId) {
+    if (!provider || !providerId) return null;
+    const data = load();
+    const want = String(providerId);
+    return (data.users || []).find(u => u.provider_ids && u.provider_ids[provider] === want) || null;
+  },
+
+  /** 그 사람이 그 길의 이 번호라고 적어 둔다. **이미 다른 번호가 적혀 있으면 안 덮는다** */
+  linkProvider(id, provider, providerId) {
+    if (!provider || !providerId) return { changes: 0 };
+    const data = load();
+    const user = data.users.find(u => u.id === id);
+    if (!user) return { changes: 0 };
+    const want = String(providerId);
+    if (!user.provider_ids) user.provider_ids = {};
+    // **덮지 않는다** — 한 계정에 그 길의 번호가 둘일 수는 없다. 다르면 그대로 두고
+    // 아무 일도 안 한 것으로 답한다(부르는 쪽이 그것을 보고 판단한다)
+    if (user.provider_ids[provider] && user.provider_ids[provider] !== want) return { changes: 0 };
+    if (user.provider_ids[provider] === want) return { changes: 0 };
+    user.provider_ids[provider] = want;
+    invalidateUserIndex();
+    save(data);
+    return { changes: 1 };
+  },
+
   /** 소셜로 만든 계정이라고 적어 둔다 (아이디를 바꿔도 남는다). */
   markSocialAccount(id) {
     const data = load();

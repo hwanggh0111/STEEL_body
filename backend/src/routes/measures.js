@@ -21,10 +21,13 @@ const { sanitizeObj } = require('../utils/sanitize');
 const { checkMeasure } = require('../utils/measureRange');
 const { isRecordDay } = require('../utils/dayRange');
 const { sendFresh } = require('../utils/fresh');
+const { capOf } = require('../utils/rowCaps');
+
 
 // 한 사람의 측정 줄 수 · 값 크기 상한 (2026-11-25 · 근호) — 줄 수는 가져오기와 같은 자
 // (`importData.js` KINDS.measures.max). 보통 줄은 100 바이트 남짓이라 4MB 면 4만 줄 몫이다
-const MAX_MEASURES = 20000;
+// 값은 `utils/rowCaps.js` 한 자리에서 온다 (2026-11-26) — 파일로 넣는 길과 같은 수다
+const MAX_MEASURES = capOf('measures');
 const MAX_MEASURE_BYTES = 4 * 1024 * 1024;
 
 // 전체 목록 조회. **바뀐 것이 없으면 다시 안 보낸다** (`utils/fresh.js`, 2026-10-24)

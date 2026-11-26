@@ -107,6 +107,14 @@ function getUrls(req) {
   return { backendUrl, frontendUrl };
 }
 
+// ── **메일 확인을 믿을 수 없는 제공자** ── (2026-11-26 · 정석)
+//
+// 네이버는 「인증 절차를 거친 값이 아닐 수 있다 · 검증 여부 필드는 없다」고 제 저장소에서
+// 답했다(naver/naveridlogin-API #107). **이 목록에 든 길로는 메일만 보고 계정을 잇지 않는다.**
+// 다른 길을 켤 때(카카오 · 페북) **그 문서를 보고 여기에 넣을지 정한다** — 넣는 것이
+// 기본이고, 「확인된 메일을 보장한다」고 문서에 적혀 있을 때만 뺀다(모를 때는 막는 쪽)
+const MAIL_UNTRUSTED = new Set(['naver', 'kakao', 'facebook']);
+
 // 소셜 로그인 공통: 유저 찾거나 생성
 async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   // ── 확인 안 된 이메일로는 계정을 잇지 않는다 ── (2026-09-18)
@@ -134,7 +142,38 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   // 메일 앞부분도 같은 손을 지난다. 첫 화면 「닉네임 정하기」에서 고쳐 쓴다
   const fromMail = socialNickname(email.split('@')[0], 30, provider + '_user');
   const safeNickname = socialNickname(rawNickname, 30, fromMail);
-  let user = db.findUserByEmail(email);
+
+  // ── ★ **메일로 잇지 않는다 — 제공자의 고유 번호로 잇는다** ── (2026-11-26 · 정석, 전수검사 ②)
+  //
+  // 이 앱은 여태 메일 하나로 계정을 이었다. 구글은 그 메일이 확인된 것인지 알려주지만
+  // (`verified_email`) **네이버는 안 알려주고, 확인되지 않은 주소를 줄 수 있다** —
+  // 네이버가 제 저장소에서 그렇게 답했다(까닭과 인용은 `db.findUserByProvider` 머리글).
+  // 그러면 남의 메일이 적힌 네이버 계정으로 **그 사람 기록에 들어가는 길**이 열린다.
+  //
+  // 그래서 셋으로 가른다 —
+  //
+  //   1. 그 길의 그 번호로 **이미 아는 계정**이면 그 사람이다 (가장 확실한 열쇠)
+  //   2. 메일이 **확인된** 제공자면(구글) 여태처럼 메일로 잇는다
+  //   3. 확인을 못 믿는 제공자(네이버)인데 그 메일의 계정이 **이미 있다**면 —
+  //      · 그 계정이 **비밀번호를 아는 계정**이면 **잇지 않는다**(`OAUTH_EMAIL_TAKEN`).
+  //        이것이 막으려는 그 길이다. 사람에게는 「비밀번호로 들어오라」고 말한다
+  //      · 비밀번호가 없는 **소셜 계정**이면 그 사람이다 — 그 계정의 메일은 애초에
+  //        그 제공자가 준 것이다. **여기서 막으면 쓰던 사람이 잠긴다**(고치는 쪽이
+  //        사람을 막아버리는 것이 더 나쁘다). 번호를 적어두고 다음부터는 1번으로 간다
+  const pid = opts.providerId != null && String(opts.providerId).trim()
+    ? String(opts.providerId).trim().slice(0, 100) : null;
+  // 메일 확인을 **믿을 수 있는 제공자**인가. 구글은 값으로 알려준다(위 `emailVerified`).
+  // 네이버는 알려주지 않으므로 「모른다」다 — **모를 때는 막는 쪽으로 틀린다**
+  const mailTrusted = opts.emailVerified === true || !MAIL_UNTRUSTED.has(provider);
+
+  let user = pid ? db.findUserByProvider(provider, pid) : null;
+  if (!user) {
+    const byMail = db.findUserByEmail(email);
+    if (byMail) {
+      if (mailTrusted || db.isSocialAccount(byMail)) user = byMail;
+      else throw new Error('OAUTH_EMAIL_TAKEN');
+    }
+  }
   const created = !user;
   if (!user) {
     const randomPw = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
@@ -168,6 +207,9 @@ async function findOrCreateUser(email, rawNickname, provider, opts = {}) {
   // 되살렸다는 것도 **화면까지 가져간다.** 이메일 로그인은 「계정이 되살아났어요」를
   // 띄우는데 소셜은 조용했다 — 지워졌는지 살아 있는지 모르는 채로 앱을 쓰게 된다
   const restored = !!db.cancelUserDeletion(user.id);
+  // **그 길의 번호를 적어 둔다** (위 머리글 1번) — 다음부터는 메일을 안 보고 이 번호로
+  // 찾는다. 이미 다른 번호가 적혀 있으면 덮지 않는다(`linkProvider`)
+  if (pid) db.linkProvider(user.id, provider, pid);
   return { user, nickname: user.nickname, email: user.email, created, restored };
 }
 
@@ -184,7 +226,9 @@ async function finishSocial(res, frontendUrl, provider, got, to) {
   // 메일을 받았으면 **묻지 않는다** — 인스타 · X 라도 나중에 주게 되면 그대로 통한다
   if (got.email || !ASK_EMAIL.has(provider)) {
     const info = await findOrCreateUser(got.email, got.nickname, provider,
-      { emailVerified: got.emailVerified });
+      // **고유 번호도 넘긴다** (2026-11-26) — 메일이 아니라 이 번호로 계정을 잇는다.
+      // 콜백들은 이미 그것을 모아 넘기고 있었고(`providerUserId`) 여기서 버려졌다
+      { emailVerified: got.emailVerified, providerId: got.providerUserId });
     setAuthCookies(res, info.user);
     return res.redirect(successUrl(frontendUrl, info, to));
   }
@@ -465,6 +509,9 @@ function providerDenied(req, provider) {
 function failCode(provider, err) {
   if (err?.message === 'OAUTH_EMAIL_UNVERIFIED') return provider + '_unverified';
   if (err?.message === 'OAUTH_NO_EMAIL') return provider + '_no_email';
+  // 그 메일로 **비밀번호를 아는 계정**이 이미 있다 (2026-11-26 · 전수검사 ②).
+  // 「실패」로 뭉개면 다시 눌러보게 되는데, 다시 눌러도 영영 안 된다 — 할 일을 말해준다
+  if (err?.message === 'OAUTH_EMAIL_TAKEN') return provider + '_mail_taken';
   return provider + '_failed';
 }
 
@@ -863,7 +910,10 @@ router.post('/email', async (req, res) => {
   try {
     // 번호가 맞았다 = **그 주소의 주인이다.** 그래서 `emailVerified: true` 다 —
     // 제공자가 확인해 준 것이 아니라 **우리가 직접 확인했다**
-    const info = await findOrCreateUser(email, row.nickname, row.provider, { emailVerified: true });
+    // 번호를 물어 확인한 길이라 메일은 믿을 수 있다. **그 길의 고유 번호도 같이 적어둔다** —
+    // 메일을 묻는 걸음에서 이미 들고 있었다(`putSocialPending` 의 `providerUserId`)
+    const info = await findOrCreateUser(email, row.nickname, row.provider,
+      { emailVerified: true, providerId: row.providerUserId });
     // 쓰고 난 것은 **둘 다** 버린다. 번호를 남기면 그 번호로 또 들어올 수 있다
     db.clearSocialPending(sha256(token));
     db.clearVerifyCode(email);
