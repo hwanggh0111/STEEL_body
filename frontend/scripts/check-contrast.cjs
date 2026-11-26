@@ -88,7 +88,7 @@ const walk = (dir) => {
         //   · `color: 'var(--text-muted)', border: '1px solid var(--border)'` 처럼
         //     한 줄에 둘이 있는 자리 → **쉼표에서 끊는다**
         if (new RegExp('(?<![a-zA-Z.-])color\\s*[:=][^;\\n,]*var\\(' + t + '\\)').test(line)) {
-          글자로쓴자리.push(path.relative(ROOT, full).replace(/\\/g, '/') + ':' + (i + 1));
+        글자로쓴자리.push(path.relative(ROOT, full).split(path.sep).join('/') + ':' + (i + 1));
         }
       }
     });
@@ -97,7 +97,8 @@ const walk = (dir) => {
 walk(path.join(ROOT, 'src'));
 ok('테두리 토큰을 글자색으로 쓴 자리', 글자로쓴자리, []);
 console.log('     ↑ 걸리면 **안 보이는 글자**다 (1.84 : 1). 흐리게 둘 자리라면');
-console.log('       `--text-faint`, 눌리는 것이면 `--text-faint-tap` 을 쓴다');
+console.log('       `--text-faint`, **눌리는** 자리면 `--text-muted` 를 쓰고 그 칸');
+console.log('       바탕이 4.5 를 못 받치면 **바탕을 내린다** (③ 을 볼 것)');
 
 console.log('');
 console.log('── 2. 글자 토큰이 늘 쓰는 바탕에서 읽히는가 ──');
@@ -123,30 +124,74 @@ const 재기 = (이름, 토큰, 최소) => {
 재기('본문 글자  --text-primary  ', '--text-primary', 4.5);
 재기('보조 글자  --text-secondary', '--text-secondary', 4.5);
 재기('금색      --accent        ', '--accent', 4.5);
-// ★ `--text-muted` 는 어느 바탕에서도 4.5 를 못 넘긴다(화면 3.94 · 카드 3.59 ·
-//   칩 3.27). 11~12px 보조 글자 766 자리가 이 색이라 **한 줄을 바꾸면 앱 전체가
-//   바뀐다** — 11/11 에 시안(지금 · A · B · C)으로 올려 주인 결정을 기다린다.
-//   그래서 지금은 **3 : 1 로 세운다**. 결정이 내려오면 이 줄을 4.5 로 올린다
+// ★ `--text-muted` — 11/25 에 **주인이 시안 A 를 골라** #7a7160 → #8c816e 가 됐다
+//   (화면 4.96 · 카드 4.52 · 칩 4.11). 11~12px 보조 글자 766 자리의 색이다.
+//   **칩(#282219) 위에서는 아직 4.11** 이라 바닥은 3 으로 둔다 — 여기를 4.5 로 올리려면
+//   칩 바탕을 내리는 결정이 먼저다. 다만 **눌리는 칸** 안에서는 4.5 를 지킨다 (③)
 재기('흐린 글자  --text-muted    ', '--text-muted', 3);
 // 뜻이 있어 흐린 것 — 「아직 안 온 날」처럼 **있다는 것만 알리는** 자리다.
 // 안 눌리는 정보이므로 3 : 1 을 바닥으로 둔다 (1.84 로 되돌아가면 여기서 걸린다)
 재기('흐려도 되는 것 --text-faint ', '--text-faint', 3);
 
 console.log('');
-console.log('── 3. 눌리는 것의 이름은 흐려도 4.5 를 지킨다 ──');
-// 한 해 벽의 달 칸은 **기록이 없어도 눌린다**(`onPickMonth`). 어디를 누르는지
-// 모른 채 누르게 두지 않는다. 그 칸의 바탕은 카드가 아니라 제 그라디언트다
+console.log('── 3. 눌리는 칸 안의 글자는 그 칸 바탕에서 4.5 를 지킨다 ──');
+// 한 해 벽의 달 칸은 **기록이 없어도 눌린다**(`onPickMonth`). 어디를 누르는지 모른 채
+// 누르게 두지 않는다. 그 칸의 바탕은 카드가 아니라 **제 그라디언트**다.
+//
+// 2026-11-26 에 보는 자리를 넓혔다 — 옛 자는 `--text-faint-tap` **토큰 하나**만 쟀고,
+// **같은 칸의 횟수**(`--text-muted` · 4.37)는 안 봤다. 그래서 11/25 에 muted 가 밝아져
+// 층이 뒤집힐 때(이름 4.55 > 횟수 4.37) 자는 초록이었다. 이제 ⑴ 바탕색을 `YearWall.jsx`
+// 에서 **읽고**(베껴 적으면 바탕이 바뀔 때 거짓 통과가 난다) ⑵ 그 칸이 쓰는 글자 토큰
+// **전부**를 그 바탕에서 잰다.
 {
-  const c = tokens['--text-faint-tap'];
-  ok('--text-faint-tap 토큰이 있다', !!c, true);
-  if (c) {
-    ok(`  달 칸(${달칸})에서 4.5 : 1 이상`, ratio(c, 달칸) >= 4.5, true);
-    console.log('     ' + c + ' → 달칸 ' + ratio(c, 달칸) + ' · 화면 ' + ratio(c, 바탕['화면']));
-    // 흐린 것보다 밝아야 뜻이 맞는다 — 「눌리니까 더 보인다」
-    ok('  흐린 글자보다 밝다', lum(c) > lum(tokens['--text-faint']), true);
+  const wallPath = path.join(ROOT, 'src', 'components', 'YearWall.jsx');
+  const wall = fs.readFileSync(wallPath, 'utf8');
+
+  // 칸 하나의 범위 — 바탕을 칠하는 줄부터 범례 앞까지
+  const 시작 = wall.indexOf('linear-gradient');
+  const 끝 = wall.indexOf('{/* 범례 */}');
+  ok('달 칸을 코드에서 찾았다', 시작 > 0 && 끝 > 시작, true);
+  const 칸 = wall.slice(시작, 끝);
+
+  // 그라디언트의 **밝은 쪽**(첫 색) — 가장 불리한 쪽이다
+  const g = 칸.match(/#[0-9a-fA-F]{6}/);
+  ok('  바탕을 자에 베끼지 않고 읽었다', !!g, true);
+  const 달칸바탕 = g ? g[0].toLowerCase() : null;
+
+  // 그 칸이 글자색으로 쓰는 토큰 전부 (삼항의 양쪽까지 — `color: a ? var(x) : var(y)`)
+  const 쓰는토큰 = [...new Set(칸.split('var(--text-').slice(1)
+    .map((t) => '--text-' + t.slice(0, t.indexOf(')'))))].sort();
+  ok('  칸이 쓰는 글자 토큰을 찾았다', 쓰는토큰.length > 0, true);
+  console.log('     바탕 ' + 달칸바탕 + ' · 글자 ' + 쓰는토큰.join(' · '));
+
+  if (달칸바탕) {
+    const 밑 = 쓰는토큰.filter((t) => !tokens[t] || ratio(tokens[t], 달칸바탕) < 4.5);
+    ok('  그 칸의 글자 전부가 4.5 : 1 이상', 밑, []);
+    for (const t of 쓰는토큰) {
+      // 없는 토큰을 쓰는 자리도 **FAIL 로 적고 넘어간다** — 여기서 터지면 자가 죽는다
+      console.log('     ' + t + (tokens[t]
+        ? ' (' + tokens[t] + ') → ' + ratio(tokens[t], 달칸바탕)
+        : ' → ★ :root 에 없는 토큰이다 (글자가 아예 안 칠해진다)'));
+    }
   }
-  const wall = fs.readFileSync(path.join(ROOT, 'src', 'components', 'YearWall.jsx'), 'utf8');
-  ok('  한 해 벽이 그 토큰을 쓴다', wall.includes('var(--text-faint-tap)'), true);
+
+  // 11/11 에 두고 11/26 에 걷은 토큰 — 되살아나면 층이 또 뒤집힌다.
+  // **쓰는 자리**(var(...))만 센다 — 까닭을 적은 주석에 제가 걸리면 안 된다
+  const 쓴자리 = [];
+  const 훑기 = (dir) => {
+    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, f.name);
+      if (f.isDirectory()) { 훑기(full); continue; }
+      if (!/[.](jsx?|css)$/.test(f.name)) continue;
+      if (fs.readFileSync(full, 'utf8').includes('var(--text-faint-tap)')) {
+        쓴자리.push(path.relative(ROOT, full).split(path.sep).join('/'));
+      }
+    }
+  };
+  훑기(path.join(ROOT, 'src'));
+  ok('  --text-faint-tap 토큰이 걷혔다 (밝기로 「눌린다」를 말하지 않는다)',
+    '--text-faint-tap' in tokens, false);
+  ok('  그 토큰을 쓰는 자리가 없다', 쓴자리, []);
 }
 
 console.log('');

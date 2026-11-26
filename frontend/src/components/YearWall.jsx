@@ -146,7 +146,9 @@ export default function YearWall({ onPickMonth }) {
             } : undefined}
             style={{
             cursor: onPickMonth ? 'pointer' : 'default',
-            background: 'linear-gradient(165deg, #221d16 0%, #16120e 100%)',
+            // 밝은 쪽을 한 단계 내렸다 (#221d16 → #1e1913, 2026-11-26) — 이 칸은
+            // **눌린다.** 그 바탕에서 `--text-muted` 가 4.37 이라 횟수가 기준선 밑이었다
+            background: 'linear-gradient(165deg, #1e1913 0%, #16120e 100%)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             boxShadow: 'inset 0 1px 0 rgba(238,183,125,0.1)',
@@ -155,8 +157,10 @@ export default function YearWall({ onPickMonth }) {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4, marginBottom: 8 }}>
               <span style={{
                 fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 13, letterSpacing: 1.6,
-                // 기록 없는 달도 **눌리는 칸**이다 — 흐려도 4.5 를 지킨다 (2026-11-11)
-                color: m.count > 0 ? 'var(--text-secondary)' : 'var(--text-faint-tap)',
+                // 기록 없는 달도 **눌리는 칸**이다 — 흐려도 4.5 를 지킨다 (2026-11-11).
+                // 2026-11-26: `--text-faint-tap` 을 걷고 `--text-muted` 로. 그 토큰은
+                // muted 가 밝아진 뒤(11/25) 옆 칸 횟수보다 밝아 **층이 뒤집혀 있었다**
+                color: m.count > 0 ? 'var(--text-secondary)' : 'var(--text-muted)',
               }}>{m.name}</span>
               {/* 그 달에 몇 번 했나. 9px 은 이 앱에서 가장 작은 글자였다 (2026-11-11) */}
               <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{m.count > 0 ? m.count : ''}</span>
