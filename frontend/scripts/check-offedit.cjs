@@ -322,6 +322,23 @@ async function 판(which) {
       fake.bodyOf('POST', '/workouts')?.createdAt, new Date(적은때).toISOString());
     봄('  줄이 들고 있던 그 값이다 (`makeQueued` 의 `at`)',
       fake.bodyOf('POST', '/workouts')?.createdAt, item.at);
+
+    // ── ★ **그 값이 무엇을 살리는지까지 본다** ── (2026-11-26 · 정석)
+    //
+    // 「보냈다」만 보면 **왜 보내는지**가 자에 안 남는다. 이 칸이 살리는 것은
+    // `data/pace.js` 의 하루 결산이다 — 지하에서 적은 한 판(50분)이 **적은 시각으로**
+    // 찍히면 「보통 이만큼 쉰다 · 제일 길게 쉰 것」이 나오고, **올린 순간으로** 찍히면
+    // 그 판이 몇 초에 몰려 `batched` 가 되어 **그 줄이 통째로 사라진다.**
+    const P = await load('src/data/pace.js');
+    const 판 = (hh, mm) => ({ id: 'local-p' + hh + mm, exercise: '벤치', weight: '60', sets: 1, reps: 10,
+      created_at: DAY + 'T' + hh + ':' + mm + ':00.000Z', pending: true });
+    const 적은시각 = { [DAY]: [판('10', '00'), 판('10', '05'), 판('10', '12'), 판('10', '20'), 판('10', '50')] };
+    const 올린순간 = { [DAY]: [1, 2, 3, 4, 5].map((n) => ({ id: n, exercise: '벤치', weight: '60', sets: 1, reps: 10,
+      created_at: DAY + 'T12:00:0' + n + '.000Z' })) };
+    봄('★ 적은 시각이 살아 있으면 **하루 결산이 선다**', P.buildPace(적은시각, DAY).usable, true);
+    봄('  「보통 이만큼 쉰다」가 나온다 (7분 30초)', P.buildPace(적은시각, DAY).medianMs, 450000);
+    봄('  올린 순간으로 찍히면 **그 줄이 사라진다** (`batched`)',
+      P.buildPace(올린순간, DAY).why, 'batched');
   }
 
   // ── 9 앞 요청의 늦은 finally ──
