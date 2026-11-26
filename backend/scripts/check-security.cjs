@@ -372,12 +372,19 @@ console.log('── 보안 보고서가 **지금 쓰는 값**을 말하는가 �
   ok('무차별 대입 설명이 설정 그대로다', rep.defense.bruteForce, cfg.LOGIN_LOCK_DESC);
   // **그 설명이 지금의 열쇠를 말하나** — 옛 버그(IP+이메일 · 5회)를 되말하지 않는다
   ok('  옛 열쇠를 되말하지 않는다', /IP\+email|5-attempt/i.test(rep.defense.bruteForce), false);
-  ok('  계정별과 주소별 둘을 말한다',
-    rep.defense.bruteForce.includes(String(cfg.LOGIN_LOCK.maxPerAccount))
+  // 11/26 에 **잠그는 열쇠가 「계정+주소」로** 바뀌었다 — 계정만으로 잠그면 남이 그 사람을
+  // 쫓아낼 수 있었다(`config/security.js` 의 `LOGIN_LOCK` 머리글 · `npm run lockpair`).
+  // 설명도 그 열쇠를 말해야 한다
+  ok('  계정+주소별과 주소별 둘을 말한다',
+    rep.defense.bruteForce.includes(String(cfg.LOGIN_LOCK.maxPerPair))
     && rep.defense.bruteForce.includes(String(cfg.LOGIN_LOCK.maxPerIp)), true);
+  ok('  ★ 「계정만으로 잠근다」고 말하지 않는다', /계정별 \d+회/.test(rep.defense.bruteForce), false);
+  ok('  계정 전체는 늦춘다고 말한다', /늦춤|늦춘/.test(rep.defense.bruteForce), true);
   // 로그인 자리가 **그 설정을 받아 쓰고 있나** (여기만 바꾸고 저쪽이 옛 숫자면 거짓말이다)
   const authSrc2 = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'auth.js'), 'utf-8');
-  ok('로그인이 그 설정을 받아 쓴다', /LOGIN_MAX_ATTEMPTS = LOGIN_LOCK\.maxPerAccount/.test(authSrc2), true);
+  ok('로그인이 그 설정을 받아 쓴다', /LOGIN_MAX_PER_PAIR = LOGIN_LOCK\.maxPerPair/.test(authSrc2), true);
+  ok('  계정 전체는 잠그지 않는다 (늦추기만)',
+    /recordLoginFail\(acctKey, LOGIN_WINDOW, LOGIN_NEVER_LOCK/.test(authSrc2), true);
   ok('  주소별도', /LOGIN_MAX_PER_IP = LOGIN_LOCK\.maxPerIp/.test(authSrc2), true);
 
   ok('HSTS 가 설정 그대로다', rep.headers.hsts, cfg.HSTS_MAX_AGE + 's');

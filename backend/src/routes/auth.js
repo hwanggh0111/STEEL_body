@@ -155,9 +155,27 @@ function checkCode(email, code) {
 // 숫자는 **설정 한 곳에서** 온다 (`config/security.js` 의 `LOGIN_LOCK`) —
 // 관리자 보안 보고서가 같은 값을 읽어 화면에 적는다 (2026-10-21)
 const LOGIN_WINDOW = LOGIN_LOCK.windowMs;
-const LOGIN_MAX_ATTEMPTS = LOGIN_LOCK.maxPerAccount;
+const LOGIN_MAX_PER_PAIR = LOGIN_LOCK.maxPerPair;
 const LOGIN_MAX_PER_IP = LOGIN_LOCK.maxPerIp;
 const LOGIN_LOCK_TIME = LOGIN_LOCK.lockMs;
+// 계정 전체는 **세기만 한다** — 잠그지 않는다(까닭은 `config/security.js` 의 그 머리글).
+// `Infinity` 를 주면 `recordLoginFail` 의 `count >= max` 가 영영 참이 안 되어 `until` 이 안 선다
+const LOGIN_NEVER_LOCK = Infinity;
+
+/**
+ * 틀린 답을 **얼마나 늦출까** — 그 계정에 쌓인 틀린 횟수로 정한다.
+ *
+ * 주소를 바꿔가며 한 계정을 두들기는 것(분산)은 주소별 뚜껑만으로는 못 막는다.
+ * 그렇다고 계정을 잠그면 **주인이 쫓겨난다**(그게 고친 그 버그다). 그래서 잠그는 대신
+ * 틀린 답을 느리게 준다 — 두들기는 쪽에는 벽이고, 주인에게는 아무 일도 아니다
+ * (**맞는 비밀번호는 안 늦춘다**).
+ */
+const slowMsFor = (count) => {
+  const over = count - LOGIN_LOCK.slowAfterPerAccount;
+  if (over < 0) return 0;
+  return Math.min(LOGIN_LOCK.slowMaxMs, (over + 1) * LOGIN_LOCK.slowStepMs);
+};
+const 잠깐쉰다 = (ms) => (ms > 0 ? new Promise((done) => setTimeout(done, ms)) : null);
 
 // 친 아이디를 하나의 말로 맞춘다 — 대소문자와 앞뒤 공백으로 카운터를 피할 수 있으면 안 된다
 const loginKeyOf = (typed) => 'acct:' + String(typed || '').trim().toLowerCase();
@@ -455,7 +473,10 @@ router.post('/login', async (req, res) => {
   const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
   const acctKey = loginKeyOf(email);
   const ipKey = 'ip:' + clientIp;
-  const locked = Math.max(db.loginLockLeft(acctKey), db.loginLockLeft(ipKey));
+  // **잠그는 열쇠는 「계정 + 주소」다** (2026-11-26) — 계정만으로 잠그면 남이 그 사람을
+  // 쫓아낼 수 있었다(`config/security.js` 의 `LOGIN_LOCK` 머리글)
+  const pairKey = `pair:${acctKey}|${clientIp}`;
+  const locked = Math.max(db.loginLockLeft(pairKey), db.loginLockLeft(ipKey));
   if (locked > 0) {
     const remaining = Math.ceil(locked / 60000);
     addLog('login_blocked', `Login blocked: ${email} (locked ${remaining}min)`);
@@ -468,18 +489,24 @@ router.post('/login', async (req, res) => {
   const user = (email.includes('@') && db.findUserByEmail(email)) || db.findUserByUsername(email);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    // 계정별 · IP별 두 자리에 같이 센다 (둘 중 하나만으로는 못 잡는 것이 있다)
-    const acct = db.recordLoginFail(acctKey, LOGIN_WINDOW, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_TIME);
+    // 세 자리에 센다 — **계정+주소**(잠근다) · **주소**(잠근다) · **계정 전체**(늦춘다).
+    // 하나만으로는 못 잡는 것이 있다: 주소를 바꾸는 쪽 · 계정을 바꾸는 쪽 · 남을 쫓아내는 쪽
+    db.recordLoginFail(pairKey, LOGIN_WINDOW, LOGIN_MAX_PER_PAIR, LOGIN_LOCK_TIME);
     db.recordLoginFail(ipKey, LOGIN_WINDOW, LOGIN_MAX_PER_IP, LOGIN_LOCK_TIME);
+    const acct = db.recordLoginFail(acctKey, LOGIN_WINDOW, LOGIN_NEVER_LOCK, LOGIN_LOCK_TIME);
     addLog('login_fail', `Login failed: ${email} (attempt ${acct.count})`);
+    // **쌓인 만큼 늦게 답한다** (분산 두들김 막기). 맞는 비밀번호는 이 길로 안 온다
+    await 잠깐쉰다(slowMsFor(acct.count));
     // AI Guard에도 로그인 실패 기록 (clientIp는 상단에서 선언됨)
     recordLoginFailure(clientIp);
     return res.status(401).json({ error: '아이디(이메일) 또는 비밀번호가 틀렸어요' });
   }
 
-  // 들어왔으면 그 계정 카운터는 지운다. **IP 쪽은 안 지운다** — 자기 계정 하나를
-  // 제대로 로그인해서 스무 번 틀린 흔적을 지우는 길이 되면 안 된다
+  // 들어왔으면 그 계정 카운터와 **이 자리(계정+주소)** 카운터를 지운다.
+  // **IP 쪽은 안 지운다** — 자기 계정 하나를 제대로 로그인해서 스무 번 틀린 흔적을
+  // 지우는 길이 되면 안 된다
   db.clearLoginFail(acctKey);
+  db.clearLoginFail(pairKey);
 
   // ── **비밀번호로 들어온 것이 증명이다** ── (2026-11-24)
   //
