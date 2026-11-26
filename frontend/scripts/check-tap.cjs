@@ -211,6 +211,18 @@ ok('`.tap-link` 가 폰 묶음 안에서 여백 · 당김 · 최소 폭으로 44
 ok('다크 전용을 브라우저에 말한다 (`:root` color-scheme · index.html meta)',
   [/:root\s*\{[^}]*color-scheme:\s*dark/.test(bare),
     /<meta name="color-scheme" content="dark"/.test(fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'))], [true, true]);
+// ── **자판이 올라오면 탭바가 칸을 덮었다** (11/25) ──
+// 높이 380 으로 흉내 내니 목표 화면 「체지방률」 칸이 탭바(65) 밑에 통째로 가려졌다
+{
+  const tab = src('components', 'TabBar.jsx');
+  ok('폰에서 글 칸에 쓰는 동안 탭바를 걷는다',
+    [/document\.addEventListener\('focusin'/.test(tab), /matchMedia\('\(pointer: coarse\)'\)/.test(tab),
+      /display: 쓰는중 \? 'none' : 'flex'/.test(tab)], [true, true, true]);
+  ok('  자판이 안 뜨는 칸(체크 · 날짜 등)에서는 안 걷는다',
+    /'checkbox', 'radio'[\s\S]{0,160}'date', 'time'/.test(tab), true);
+  ok('누른 칸이 머리 · 탭바 뒤로 안 숨게 굴림 여백을 둔다',
+    [/scroll-padding-top:\s*72px/.test(bare), /scroll-padding-bottom:\s*calc\(var\(--tabbar-h, 0px\) \+ 12px\)/.test(bare)], [true, true]);
+}
 for (const f of ['WorkoutCard.jsx', 'InbodyCard.jsx']) {
   const c = src('components', f);
   const del = (c.match(/<button[^>]*className="([^"]*delete-btn[^"]*)"/) || [])[1] || '';
