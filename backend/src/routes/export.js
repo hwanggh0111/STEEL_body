@@ -31,9 +31,29 @@ router.get('/workouts', auth, (req, res) => {
   // 유산소 칸 둘을 더한다 (2026-11-05). **되읽는 쪽과 짝이다** —
   // 내보낸 것을 못 되읽으면 「챙겨 나갈 수는 있는데 들고 들어올 수는 없다」가 된다
   const header = headerOf('workouts');
-  const rows = workouts.map(w =>
-    `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''},${csvCell(w.note || '')},${w.rir || ''},${csvCell(w.weight_r || '')},${w.reps_r || ''}`
-  );
+  // ── ★ **그날 적은 차례를 같이 적는다** ── (2026-11-26 · 정석, TODO 11/26 중간 7)
+  //
+  // 이 파일은 **최신이 앞**이다(`db.js` 의 ROW_CMP — 날짜 내림 · 적은 때 내림).
+  // 가져오기는 파일 차례대로 넣고, 넣는 그 순간이 `created_at` 으로 찍힌다 →
+  // **그날 줄이 거꾸로** 들어갔다. 화면은 그날의 앞뒤를 `created_at` 오름으로
+  // 정하므로(`TrainPage` 의 `linkBoundary` · `data/dayRoutine.js`),
+  // **60kg → 40kg 드롭**을 내보내고 다시 넣으면 드롭이 먼저 와서 엉뚱한 줄에 붙었다.
+  //
+  // 차례만 뒤집어 넣게 할 수는 없다 — **손으로 만든 파일은 오래된 것부터** 적혀
+  // 있을 수도 있어서, 가져오기는 「뒤집어야 하는 파일」인지 알 길이 없었다.
+  // 그래서 **파일이 말하게** 한다: 그날 **가장 먼저 적은 줄이 1** 이다.
+  // 이 칸이 있는 파일만 가져오기가 차례를 맞춰 넣고, 없는 파일은 여태처럼 파일 차례다.
+  //
+  // 측정이 「번호」로 같은 일을 하고 있다(아래 머리글) — 그 자리와 같은 결이다
+  const perDay = new Map();
+  for (const w of workouts) perDay.set(w.date, (perDay.get(w.date) || 0) + 1);
+  const left = new Map(perDay);                 // 그 날짜의 남은 줄 수
+  const rows = workouts.map((w) => {
+    // 최신이 앞이므로, 그 날짜를 처음 만났을 때가 **그날 마지막으로 적은 줄**이다
+    const no = left.get(w.date);
+    left.set(w.date, no - 1);
+    return `${w.date},${csvCell(w.exercise)},${csvCell(w.weight)},${w.sets || ''},${w.reps || ''},${LINK_KO[w.link] || ''},${w.minutes || ''},${w.distance_km || ''},${csvCell(w.note || '')},${w.rir || ''},${csvCell(w.weight_r || '')},${w.reps_r || ''},${no}`;
+  });
   const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM for Korean Excel support
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');

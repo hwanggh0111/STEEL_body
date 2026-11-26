@@ -49,7 +49,8 @@ const 본다 = (이름, 받은것, 바라던것) => {
 const 식 = {
   /** `routes/export.js` 의 운동 줄 식. 못 찾으면 `null` (= FAIL) */
   내보내는식(글) {
-    const m = /const rows = workouts\.map\(w =>\s*\n\s*`([^`]+)`/.exec(글);
+    // 11/26 에 「순서」 칸이 붙어 식이 `return` 안으로 들어갔다 — 두 꼴을 다 찾는다
+    const m = /const rows = workouts\.map\(\(?w\)? =>[\s\S]{0,3000}?`([^`]+)`/.exec(글);
     return m ? m[1] : null;
   },
   /** 그 식이 적는 칸 수 */
@@ -60,7 +61,8 @@ const 식 = {
 
 const 한줄로 = (식글, w) => {
   const LINK_KO = { drop: '드롭', super: '슈퍼' };
-  const 값 = (expr) => new Function('w', 'LINK_KO', 'return (' + expr + ');')(w, LINK_KO);
+  // `no` 는 그날 적은 차례(2026-11-26 「순서」 칸). 한 줄만 보는 자라 1 이다
+  const 값 = (expr) => new Function('w', 'LINK_KO', 'no', 'return (' + expr + ');')(w, LINK_KO, 1);
   return 식글
     .replace(/\$\{csvCell\(([^)]*?)\)\}/g, (_, e) => String(값(e)))
     .replace(/\$\{([^}]+)\}/g, (_, e) => String(값(e)));
@@ -140,7 +142,8 @@ const 내보내기글 = fs.readFileSync(SRC('routes/export.js'), 'utf8');
 const 식글 = 식.내보내는식(내보내기글);
 본다('내보내는 식을 찾았다', 식글 !== null, true);
 본다('머리줄 칸 수와 내보낸 칸 수가 같다', 식.칸수(식글), COLS.workouts.length);
-본다('열 이름이 바뀌지 않았다', COLS.workouts.slice(10), ['오른쪽 무게', '오른쪽 횟수']);
+// 11/26 에 끝에 「순서」가 붙었다(`csvRows.COLS` 머리글) — **이 두 칸의 자리는 그대로**다
+본다('열 이름이 바뀌지 않았다', COLS.workouts.slice(10, 12), ['오른쪽 무게', '오른쪽 횟수']);
 
 if (식글) {
   const 줄 = {

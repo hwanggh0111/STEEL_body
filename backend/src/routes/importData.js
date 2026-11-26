@@ -103,6 +103,38 @@ for (const [kind, spec] of Object.entries(KINDS)) {
   }
 }
 
+// ── ★ **그날 적은 차례대로 넣는다** ── (2026-11-26 · 정석, TODO 11/26 중간 7)
+//
+// 내보낸 파일은 **최신이 앞**이다(`routes/export.js`). 파일 차례대로 넣으면 넣는
+// 순간이 `created_at` 으로 찍혀 **그날 줄이 거꾸로** 들어갔다 — 화면은 그날의 앞뒤를
+// `created_at` 오름으로 보므로(`TrainPage` 의 `linkBoundary`) **60kg → 40kg 드롭**이
+// 뒤집혀 드롭이 엉뚱한 줄에 붙었다.
+//
+// 내보내기가 「순서」 칸을 적는다(그날 **가장 먼저 적은 줄이 1**). 그 칸이 있는 줄만
+// 그 차례로 세운다. **없는 파일은 손대지 않는다** — 손으로 만든 파일은 오래된 것부터
+// 적혀 있을 수도 있어서, 모르는 채로 뒤집으면 멀쩡한 파일을 망친다(모를 때는 그대로).
+//
+// 날짜끼리의 차례는 **파일 그대로** 둔다. 한 날짜 안에서만 세운다 —
+// 차례를 모르는 줄(`_seq` 가 없는 줄)은 그 날짜의 **뒤에** 파일 차례로 붙는다.
+//
+// 같은 밀리초에 여러 줄이 들어가도 선다 — 그때는 `created_at` 이 같아서 번호(`id`)
+// 오름이 앞뒤를 정하고(`db.js` ROW_CMP), 그 번호가 곧 **넣은 차례**다
+function orderForInsert(rows) {
+  if (!rows.some((r) => r._seq != null)) return rows;
+  const byDay = new Map();                       // 날짜 → 그 줄들 (처음 만난 차례대로)
+  for (const r of rows) {
+    if (!byDay.has(r.date)) byDay.set(r.date, []);
+    byDay.get(r.date).push(r);
+  }
+  const out = [];
+  for (const list of byDay.values()) {
+    const known = list.filter((r) => r._seq != null).sort((a, b) => a._seq - b._seq);
+    const unknown = list.filter((r) => r._seq == null);
+    out.push(...known, ...unknown);
+  }
+  return out;
+}
+
 // POST /api/import — { kind, csv }
 router.post('/', auth, (req, res) => {
   const kind = typeof req.body?.kind === 'string' ? req.body.kind : '';
@@ -157,7 +189,9 @@ router.post('/', auth, (req, res) => {
   let added = 0;
   let skipped = 0;
   const failed = [...bad];
-  for (const r of rows) {
+  // 넣는 차례를 먼저 세운다 (위 `orderForInsert`). 겹침을 세는 데는 영향이 없다 —
+  // 열쇠가 같은 줄끼리는 서로 똑같은 줄이라 어느 것을 먼저 넣어도 결과가 같다
+  for (const r of orderForInsert(rows)) {
     const k = spec.key(r);
     const nth = (seen.get(k) || 0) + 1;
     seen.set(k, nth);
