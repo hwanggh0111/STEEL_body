@@ -149,7 +149,38 @@ const storage = require(path.join(ROOT, 'backend/src/storage.js'));
 storage.init().then(() => {
   const { recentErrors, groupErrors } = require(path.join(ROOT, 'backend/src/utils/errorLog.js'));
   const 전체 = recentErrors(300);
-  const 묶음 = groupErrors(전체);
+  const 묶음 = groupErrors(전체).map((g) => Object.assign({}, g, { 출처: '서버' }));
+
+  // ── **화면에서 난 것도 읽는다** ── (2026-11-26 · 맵시)
+  //
+  // 처음 판은 **서버 기록만** 봤다. 그런데 사람이 겪는 고장의 큰 쪽은 화면에서 난다 —
+  // **흰 화면**이 그것이고, 서버에는 한 줄도 안 남는다. 그 길은 따로 있었다:
+  // `ErrorBoundary` → `POST /api/client-error` → `db.addClientError`(백 건 보관).
+  // 읽지 않으면 이 관리자가 「오류 0건」이라고 말하는데 화면은 흰 채로 있다.
+  //
+  // 묶는 열쇠는 **메시지**다(`path` 는 붙여만 둔다) — 같은 까닭이 화면마다 따로 세면
+  // 몇 번 났는지가 흩어진다.
+  const 화면묶음 = (() => {
+    let rows = [];
+    try { rows = require(path.join(ROOT, 'backend/src/db.js')).getClientErrors() || []; }
+    catch { return []; }
+    const by = new Map();
+    for (const r of rows) {
+      const 열쇠 = String(r.message || '').trim();
+      if (!열쇠) continue;
+      if (!by.has(열쇠)) {
+        by.set(열쇠, { what: 열쇠, count: 0, first: r.at, last: r.at, 출처: '화면', 화면들: new Set(), 스택: r.stack || null });
+      }
+      const g = by.get(열쇠);
+      g.count += 1;
+      if (r.at < g.first) g.first = r.at;
+      if (r.at > g.last) g.last = r.at;
+      if (r.path) g.화면들.add(r.path);
+      if (!g.스택 && r.stack) g.스택 = r.stack;
+    }
+    return [...by.values()].map((g) => Object.assign(g, { 화면들: [...g.화면들].slice(0, 5) }));
+  })();
+  const 화면건수 = 화면묶음.reduce((n, g) => n + g.count, 0);
 
   // 사람 수 — 한 사람만 겪는 것과 모두가 겪는 것은 **다른 일**이다
   const 사람수 = new Map();
@@ -160,8 +191,8 @@ storage.init().then(() => {
     if (u) 사람수.get(열쇠).add(u);
   }
 
-  const 건들 = 묶음.map((g) => {
-    const 규칙 = matchRule(g.what) || fallback(g.what);
+  const 건들 = [...묶음, ...화면묶음].map((g) => {
+    const 규칙 = matchRule(g.what, g.출처) || fallback(g.what);
     const 자리 = 자리들(g.what).map((z) => {
       const 참파일 = 파일찾기(z.파일);
       return {
@@ -184,8 +215,11 @@ storage.init().then(() => {
     가지수: 건들.length,
     모르는꼴: 건들.filter((b) => b.규칙.모름).length,
     자없는자리: 건들.filter((b) => b.자리.some((z) => z.파일 && z.자.length === 0)).length,
+    화면오류수: 화면건수,
     건들: 건들.map((b) => ({
-      무엇: b.what, 갈래: b.규칙.갈래, 급함: b.규칙.급함, 횟수: b.count, 사람: b.사람,
+      무엇: b.what, 출처: b.출처, 담당: b.규칙.담당 || '부총재',
+      갈래: b.규칙.갈래, 급함: b.규칙.급함, 횟수: b.count, 사람: b.사람,
+      화면들: b.화면들 || null, 볼곳: b.규칙.볼곳,
       처음: b.first, 마지막: b.last, 까닭: b.규칙.까닭, 다음: b.규칙.다음,
       사람에게: b.규칙.사람,
       자리: b.자리.map((z) => ({ 파일: z.파일 || z.적힌이름, 줄: z.줄, 자: z.자, 마지막손: z.마지막손 })),
@@ -203,15 +237,15 @@ storage.init().then(() => {
   console.log('  부총재 오류 관리자 — ' + 보고서.어디 + ' · ' + 한국시(보고서.언제));
   console.log(선);
 
-  if (전체.length === 0) {
+  if (전체.length === 0 && 화면건수 === 0) {
     console.log('');
-    console.log('  터진 기록이 없다. 라이브를 보려면 DATABASE_URL 을 주고 돌린다.');
+    console.log('  터진 기록이 없다 (서버 · 화면 둘 다). 라이브를 보려면 DATABASE_URL 을 주고 돌린다.');
     console.log('');
     process.exit(0);
   }
 
   console.log('');
-  console.log('  오류 ' + 보고서.오류수 + '건 · ' + 보고서.가지수 + '가지'
+  console.log('  오류 ' + (보고서.오류수 + 화면건수) + '건(서버 ' + 보고서.오류수 + ' · 화면 ' + 화면건수 + ') · ' + 보고서.가지수 + '가지'
     + ' · 모르는 꼴 ' + 보고서.모르는꼴 + '가지 · 자 없는 자리 ' + 보고서.자없는자리 + '가지');
   console.log('');
   console.log('  급함: 1 사람 기록이 걸린다 · 2 사람이 막힌다 · 3 보기 흉하다 · 4 곁일');
@@ -220,14 +254,17 @@ storage.init().then(() => {
   보일것.forEach((b, i) => {
     console.log('');
     console.log(선);
-    console.log('  ' + (i + 1) + '. [급함 ' + b.규칙.급함 + '] ' + b.규칙.갈래
+    console.log('  ' + (i + 1) + '. [급함 ' + b.규칙.급함 + ' · ' + b.출처 + ' · ' + (b.규칙.담당 || '부총재') + '] ' + b.규칙.갈래
       + '  —  ' + b.count + '번' + (b.사람 ? ' · 사람 ' + b.사람 + '명' : ''));
     console.log(선);
     console.log('  무엇   ' + b.what.slice(0, 160));
     console.log('  언제   ' + 한국시(b.first) + ' ~ ' + 한국시(b.last));
     console.log('  까닭   ' + b.규칙.까닭);
     console.log('  사람   ' + b.규칙.사람);
+    console.log('  볼곳   ' + b.규칙.볼곳);
     console.log('  다음   ' + b.규칙.다음);
+    if (b.화면들 && b.화면들.length) console.log('  화면   ' + b.화면들.join(' · '));
+    if (b.출처 === '화면' && b.스택) console.log('  스택   ' + String(b.스택).slice(0, 200));
     for (const z of b.자리) {
       if (!z.파일) {
         console.log('');
