@@ -71,7 +71,9 @@
     "importdup": "node scripts/check-importdup.cjs",
     "importorder": "node scripts/check-importorder.cjs",
     "errors": "node scripts/errors.cjs",
-    "errorlog": "node scripts/check-errorlog.cjs"
+    "errorlog": "node scripts/check-errorlog.cjs",
+    "triage": "node scripts/check-triage.cjs",
+    "오류": "node ../agents/buchongjae/triage.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
