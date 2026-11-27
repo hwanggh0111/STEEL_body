@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5c66b9457e",
+  "detailVersion": "226bead338",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "cdb88f2",
+      "date": "2026-11-27",
+      "text": "쓰는 중에 판을 놓으면 그 사진이 사라졌다 — 내가 오늘 낸 구멍을 막는다 (정석)",
+      "label": "고침",
+      "scope": "사진",
       "has": true
     },
     {
@@ -1126,14 +1134,6 @@
       "key": "f824a91",
       "date": "2026-11-20",
       "text": "못 읽은 사진이 한도 아래면 그냥 올라갔다 — 말만 고쳤고 판단은 크기 하나였다 (정석 1차)",
-      "label": "고침",
-      "scope": "사진",
-      "has": true
-    },
-    {
-      "key": "23c3638",
-      "date": "2026-11-20",
-      "text": "못 읽은 사진을 「당신 것이 크다」고 말했다 · 늦게 온 실패가 새 사진을 덮었다",
       "label": "고침",
       "scope": "사진",
       "has": true
