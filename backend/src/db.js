@@ -769,6 +769,23 @@ const _rowIndex = { workouts: null, inbody: null };
 //
 // 이 자리는 **목록을 받을 때마다** 지난다 — 화면이 뜰 때, 저장한 뒤, 새로고침 때.
 const descStr = (a, b) => (a < b ? 1 : a > b ? -1 : 0);   // 최신이 앞
+
+/**
+ * 운동 이름을 눕힌다 — **앱의 `frontend/src/data/flatName.js` 와 같은 식이다**
+ * (2026-11-27). 거기 머리글이 「이 앱에서 운동 이름을 견주는 식은 이것 하나다」라고
+ * 적어둔 그 식이고, 다른 런타임이라 불러올 수 없어 글자를 옮겨 적었다.
+ *
+ * **자가 두 식을 맞춰 본다** (`backend/scripts/check-gymkey.cjs` 가 그 앱 파일을 읽어
+ * 같은 보기들로 견준다) — 한쪽만 고치면 그 자가 운다. 쓰는 자리는 기구 세팅이다.
+ */
+const flatExercise = (s) => String(s || '')
+  .toLowerCase()
+  .replace(/[\s.,!?~·・\-_'"()]/g, '');
+/** 같은 운동인가 (빈 이름은 아무것과도 같지 않다) */
+const sameExercise = (a, b) => {
+  const x = flatExercise(a);
+  return !!x && x === flatExercise(b);
+};
 const ascStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0);    // 적은 차례대로
 
 // ── 색인을 **정렬된 채로** 들고 있는다 ── (2026-09-30, `npm run bench` 로 잡았다)
@@ -2618,6 +2635,22 @@ const db = {
   // ── 기구 세팅 ──
   //
   // 열쇠는 (사람 · 헬스장 · 운동) 셋이다. 같은 운동이라도 헬스장이 다르면 다른 줄이다.
+  //
+  // ── ★ **운동 이름은 눕혀서 견준다** ── (2026-11-27)
+  //
+  // 아래 `saveGymSetting` 머리글이 **「같은 (헬스장 · 운동) 은 한 줄뿐이다」**라고
+  // 적어뒀는데, 글자 그대로 견주던 동안 **그 선이 깨져 있었다** — 앱은 운동 이름을
+  // 눕혀서 견준다(`frontend/src/data/flatName.js`: 공백 · 점 · 붙임표 따위를 걷는다).
+  // 그래서 「벤치 프레스」와 「벤치프레스」가 **여기서는 두 줄, 앱에서는 한 운동**이었다.
+  // 두 줄이 서면 화면이 어느 것을 띄울지 정해야 하고, 그러면 세팅이 목록이 된다 —
+  // 그 머리글이 막으려던 바로 그 꼴이다.
+  //
+  // **식은 앱의 그것과 같아야 한다.** 다른 런타임이라 불러올 수는 없으니 글자를
+  // 옮겨 적는다 — 대신 **자가 두 식을 맞춰 본다**(`check-gymkey.cjs` 가 앱 파일을
+  // 읽어 같은 보기들로 견준다). 한쪽만 고치면 그 자가 운다.
+  //
+  // 담는 이름은 **사람이 친 그대로** 둔다(화면에 그 글자가 뜬다). 눕히는 것은
+  // 견줄 때만이다.
 
   /** 내 세팅 전부. 헬스장을 주면 그 헬스장 것만. */
   getGymSettings(userId, gym) {
@@ -2631,7 +2664,7 @@ const db = {
   getGymSetting(userId, gym, exercise) {
     const data = load();
     return (data.gymSettings || [])
-      .find((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise) || null;
+      .find((s) => s.user_id === userId && s.gym === gym && sameExercise(s.exercise, exercise)) || null;
   },
 
   /**
@@ -2642,12 +2675,15 @@ const db = {
     const data = load();
     if (!data.gymSettings) data.gymSettings = [];
     const now = new Date().toISOString();
-    let row = data.gymSettings.find((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise);
+    let row = data.gymSettings.find((s) => s.user_id === userId && s.gym === gym
+      && sameExercise(s.exercise, exercise));
     if (!row) {
       row = { id: nextId('gymSettings'), user_id: userId, gym, exercise, created_at: now };
       data.gymSettings.push(row);
     }
-    Object.assign(row, patch, { updated_at: now });
+    // 이름은 **방금 친 글자로 맞춘다** — 「벤치 프레스」로 적어둔 줄을 「벤치프레스」로
+    // 들어와 고쳤으면, 화면에 뜨는 이름도 지금 치는 그것이어야 한다(한 줄은 그대로다)
+    Object.assign(row, patch, { exercise, updated_at: now });
     save(data);
     return row;
   },
@@ -2655,7 +2691,7 @@ const db = {
   deleteGymSetting(userId, gym, exercise) {
     const data = load();
     const idx = (data.gymSettings || [])
-      .findIndex((s) => s.user_id === userId && s.gym === gym && s.exercise === exercise);
+      .findIndex((s) => s.user_id === userId && s.gym === gym && sameExercise(s.exercise, exercise));
     if (idx === -1) return { changes: 0 };
     data.gymSettings.splice(idx, 1);
     save(data);

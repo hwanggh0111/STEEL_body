@@ -9,6 +9,23 @@
 // 계산이랄 것은 별로 없지만 **한 곳에 모아둔다** — 카드 · 적는 칸 · 목록 셋이
 // 같은 이름과 같은 후보를 써야 한다. 흩어두면 카드는 「그립」인데 적는 칸은 「손잡이」가 된다.
 
+// ── **같은 운동인지 견주는 식은 이 앱에 하나다** ── (2026-11-27)
+//
+// `data/flatName.js` 가 그 하나다. **기구 세팅만 글자 그대로 견주고 있었다** —
+// 「벤치 프레스」로 적어둔 시트 번호가 다음에 「벤치프레스」로 들어가면 **사라졌다.**
+// 쉬는 시간과 원판은 그 둘을 한 운동으로 기억하고 있는데 세팅만 없으니, 사람 눈에는
+// **안 적어둔 것**으로 보인다. 운동 이름은 홈 · 검색 · 루틴에서 자유 글자로 들어온다.
+import { flatName } from './flatName';
+
+/**
+ * 같은 운동인가. **세팅을 찾는 자리는 다 이것으로 견준다** (화면 · 스토어 · 베끼기).
+ * 서버도 같은 식으로 한 줄을 지킨다(`db.js` 의 `sameExercise`).
+ */
+export const sameExercise = (a, b) => {
+  const x = flatName(a);
+  return !!x && x === flatName(b);
+};
+
 /** 서버가 받는 칸 셋. 기구마다 조절하는 것이 달라 **다 비워둘 수 있다** */
 export const SLOTS = [
   { key: 'seat', label: '시트', hint: '등받이 · 좌석 번호' },
@@ -81,5 +98,20 @@ export function isKnownGym(gyms, gym) {
 export function copyableFrom(allSettings, gym, exercise) {
   const name = String(exercise || '').trim();
   if (!name) return null;
-  return (allSettings || []).find((s) => s.exercise === name && s.gym !== gym) || null;
+  return (allSettings || []).find((s) => sameExercise(s.exercise, name) && s.gym !== gym) || null;
+}
+
+/**
+ * 지금 헬스장의 그 운동 세팅. **스토어도 이것을 부른다**(`store/gymStore.js`) —
+ * 식이 두 벌이면 한쪽만 고치는 날이 오고, 그러면 카드와 적는 칸이 서로 다른 줄을 본다.
+ *
+ * 헬스장 이름은 **글자 그대로** 견준다 — 그것은 사람이 붙인 장소 이름이고, 서버가
+ * 다듬어 담은 그 글자를 화면이 그대로 들고 있다(`gymStore` 의 「서버가 담은 이름을
+ * 쓴다」 머리글). 운동 이름만 눕혀 견준다.
+ */
+export function settingIn(settings, gym, exercise) {
+  const name = String(exercise || '').trim();
+  const place = String(gym || '').trim();
+  if (!name || !place) return null;
+  return (settings || []).find((s) => s?.gym === place && sameExercise(s?.exercise, name)) || null;
 }

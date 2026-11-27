@@ -79,6 +79,7 @@
     "cspnarrow": "node scripts/check-cspnarrow.cjs",
     "shrinkphotos": "node scripts/shrink-photos.cjs",
     "shrinkold": "node scripts/check-shrinkold.cjs",
+    "gymkey": "node scripts/check-gymkey.cjs",
     "오류": "node ../agents/buchongjae/triage.cjs"
   },
   "engines": {

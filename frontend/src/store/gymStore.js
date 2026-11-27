@@ -3,6 +3,7 @@ import client from '../api/client';
 import { sessionEpoch, isSameSession } from './session';
 import { readLS, saveLS } from '../data/safeStorage';
 import { GYM_KEY } from '../data/localKeys';
+import { settingIn } from '../data/gymSetting';
 
 // 기구 세팅.
 //
@@ -103,13 +104,14 @@ export const useGymStore = create((set, get) => ({
     return inflight;
   },
 
-  /** 지금 헬스장의 그 운동 세팅. 없으면 null */
-  settingOf: (exercise) => {
-    const name = String(exercise || '').trim();
-    const gym = get().gym;
-    if (!name || !gym) return null;
-    return get().settings.find((s) => s.gym === gym && s.exercise === name) || null;
-  },
+  /**
+   * 지금 헬스장의 그 운동 세팅. 없으면 null
+   *
+   * **견주는 식은 `data/gymSetting.js` 에 하나뿐이다** (2026-11-27) — 여기 손으로
+   * 적어두던 때는 운동 이름을 **글자 그대로** 견뒀고, 그래서 「벤치 프레스」로 적어둔
+   * 시트 번호가 「벤치프레스」로 들어가면 사라졌다
+   */
+  settingOf: (exercise) => settingIn(get().settings, get().gym, exercise),
 
   /**
    * 세팅 한 줄을 담는다.
