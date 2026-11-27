@@ -201,6 +201,15 @@ function loadPhotos() {
       _photoCache = JSON.parse(날글);
       if (!Array.isArray(_photoCache.photos)) _photoCache.photos = [];
       _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
+      // ── ★ **푼 것이 있으면 날글은 필요 없다** ── (2026-11-27 · 정석)
+      //
+      // Postgres 판은 뜰 때 사진을 **글자로** 들고 온다. 그 글자를 여기서 풀었으니
+      // 같은 사진이 **램에 두 벌**이 된 셈이다 — 60명이면 80MB + 80MB 고 뚜껑은
+      // 256MB 다. 푼 것을 들고 있는 동안 그 글자를 다시 읽을 일이 없으므로 놓는다.
+      //
+      // **푸는 데 성공한 뒤에만** 놓는다 — 실패하면 아래 `keepBroken` 이 그 글자로
+      // 깨진 판을 옆에 떠둬야 한다. 파일 판에서는 아무 일도 안 한다(날글을 안 들고 있다)
+      storage.releasePreloaded(storage.PHOTOS);
       return _photoCache;
     }
   } catch (err) {
@@ -253,6 +262,9 @@ function _flushPhotos() {
   storage.write(storage.PHOTOS, text).then(() => {
     // 우리가 쓴 시각을 기억한다 — 이 값이 「바깥에서 바뀌었나」의 기준이다
     _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
+    // ★ 쓰는 손이 그 글자를 **램에 넣어둔다**(`storage.write`) — 그러면 다시 두 벌이
+    //   된다. 푼 것이 그대로 있으니 놓는다 (위 `loadPhotos` 와 같은 까닭)
+    if (_photoCache) storage.releasePreloaded(storage.PHOTOS);
   }).catch((err) => {
     console.error('[DB] 사진 저장 실패:', err.message);
     // **다시 써야 한다고 표시만 하고 끝냈다** (2026-10-22). 본체는 같은 자리에서
@@ -346,6 +358,16 @@ function _freePhotosIfIdle() {
   if (_photoDirty || _photoTimer || _photoWriting) return;   // 잃을 것이 있으면 안 놓는다
   if (Date.now() - _photoTouchedMs < PHOTO_FREE_MS) return;
   if (_photoBytes && _photoBytes < PHOTO_FREE_MIN) return;  // 작은 판
+  // ── ★ **Postgres 판에서는 푼 것을 안 놓는다** ── (2026-11-27 · 정석)
+  //
+  // 파일 판은 다시 읽는 것이 **동기**라 놓아도 공짜다. Postgres 는 아니다 —
+  // 거기서 놓으면 `loadPhotos` 가 `readSync` 를 부르고, 그 글자는 이미 놓았으니
+  // **터진다**(그리고 그 자리는 사람이 사진을 보는 길이다).
+  //
+  // 그쪽에서는 **날글을 놓는 것으로** 같은 80MB 를 번다(`loadPhotos` 안의
+  // `releasePreloaded`) — 두 벌 중 한 벌만 들고 있으면 되고, 어느 쪽을 놓느냐가
+  // 사는 곳에 따라 다르다. 들고 있을 수 있는 쪽을 들고 있는다
+  if (storage.isPostgres) return;
   _photoCache = null;
   _photoWriteMs = 0;                                      // 다시 읽을 때 새로 잰다
   _photoFreedCount += 1;

@@ -133,6 +133,12 @@ function fileWrite(file, text) {
 // 표는 하나다. 「이름 → 글자」. 파일 두 장이 두 줄이 된다.
 let pool = null;
 const preloaded = new Map();      // 뜰 때 읽어둔 것 (이름 → 글자)
+// ── ★ **놓은 뒤에도 「있었다」는 남는다** ── (2026-11-27 · 정석)
+//
+// 날글(`preloaded`)을 램에서 놓으면 `existsSync` 가 **없다**고 말하게 된다 —
+// 그러면 `db.js` 가 **빈 판으로 시작해** 다음 저장이 사람 사진을 덮는다.
+// 그래서 「있었다」만 따로 적어둔다. 이름뿐이라 무게가 없다
+const known = new Set();          // Postgres 에 이 이름이 있다 (글자는 안 들고 있어도)
 let writeChain = Promise.resolve();
 
 function pgPool() {
@@ -168,7 +174,7 @@ async function pgInit() {
     )
   `);
   const { rows } = await p.query('SELECT name, body FROM blobs');
-  for (const r of rows) preloaded.set(r.name, r.body);
+  for (const r of rows) { preloaded.set(r.name, r.body); known.add(r.name); }
 
   // ── 처음 한 번은 **파일에서 옮겨 온다** ──
   //
@@ -183,6 +189,7 @@ async function pgInit() {
       JSON.parse(text);                        // 깨진 것을 옮기지 않는다
       await pgWrite(name, text);
       preloaded.set(name, text);
+      known.add(name);
       console.log(`[DB] ${name} 을 파일에서 Postgres 로 한 번 옮겼습니다 (${Math.round(text.length / 1024)}KB)`);
     } catch (err) {
       console.error(`[DB] ${name} 을 옮기지 못했습니다:`, err.message);
@@ -252,7 +259,8 @@ module.exports = {
 
   /** 있는가. 없으면 `db.js` 가 빈 판을 만든다. */
   existsSync(name) {
-    if (KIND === 'postgres') return preloaded.has(name);
+    // 글자를 놓았어도 **있었던 것은 있다** (위 `known` 머리글)
+    if (KIND === 'postgres') return preloaded.has(name) || known.has(name);
     return fs.existsSync(pathOf(name));
   },
 
@@ -275,6 +283,7 @@ module.exports = {
   write(name, text) {
     if (KIND === 'postgres') {
       preloaded.set(name, text);              // 램이 먼저 맞는다. 읽기는 여기서 나간다
+      known.add(name);
       // ── **실패를 부른 쪽에 돌려준다** (2026-11-23) ──
       //
       // 여태 `.catch` 가 오류를 삼킨 그 약속을 돌려줬다 — 늘 「됐다」로 끝났다.
@@ -307,6 +316,33 @@ module.exports = {
     fileWriteSync(pathOf(name), text);
     return Promise.resolve();
   },
+
+  /**
+   * ── ★ **푼 것을 들고 있으면 날글은 필요 없다** ── (2026-11-27 · 정석)
+   *
+   * Postgres 판은 뜰 때 두 장을 **글자로** 들고 온다(`preloaded`). 그런데 `db.js` 는
+   * 그 글자를 **한 번 풀어서** 제 캐시에 들고 있다 — 즉 사진이 **두 벌**로 램에 있다.
+   * 사진을 다 채운 60명이면 **80MB + 80MB** 고, 서버 뚜껑은 **256MB** 다.
+   *
+   * 푼 것이 있는 동안 날글을 다시 읽을 일은 없다. 그래서 **푼 뒤에 놓는다.**
+   * 놓아도 `existsSync` 는 선다(위 `known`).
+   *
+   * **파일 판에서는 아무것도 안 한다** — 거기서는 날글을 애초에 안 들고 있고,
+   * 다시 읽는 것도 동기로 공짜다(그쪽은 `db.js` 가 푼 것을 쉬면 놓는다).
+   *
+   * ★ **푼 것이 성공한 뒤에만 부른다.** 푸는 데 실패했을 때는 `keepBroken` 이
+   *   이 글자로 깨진 판을 옆에 떠둬야 한다 — 그 전에 놓으면 그 사본이 안 남는다.
+   */
+  releasePreloaded(name) {
+    if (KIND !== 'postgres') return false;
+    if (!preloaded.has(name)) return false;
+    known.add(name);                        // 놓기 전에 「있었다」를 적어둔다
+    preloaded.delete(name);
+    return true;
+  },
+
+  /** 지금 날글을 들고 있나 (자가 본다) */
+  holdsPreloaded(name) { return KIND === 'postgres' ? preloaded.has(name) : null; },
 
   /** 못 쓴 것이 남아 있으면 그것을 기다린다. 끝내기 전에 부른다. */
   async drain() {
