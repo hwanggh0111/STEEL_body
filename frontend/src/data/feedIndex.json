@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "5bacd6722d",
+  "detailVersion": "816e237f26",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "3e25e2d",
+      "date": "2026-11-27",
+      "text": "접힌 칸이 접혔다고 말하지 않았다 — 접힘 일곱에 aria-expanded",
+      "label": "고침",
+      "scope": "꼴",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "날짜 묶음에 글자가 들어 있으면 그 화면이 통째로 사라졌다 — 들어오는 자리에서 막는다",
       "label": "고침",
       "scope": "기록",
-      "has": true
-    },
-    {
-      "key": "a922884",
-      "date": "2026-11-19",
-      "text": "날짜 칸에 배열이 아닌 것이 오면 터졌다 — 같은 파일의 강한 쪽에 맞춘다 (정석 2차 · bb7438e)",
-      "label": "고침",
-      "scope": "결산",
       "has": true
     }
   ]
