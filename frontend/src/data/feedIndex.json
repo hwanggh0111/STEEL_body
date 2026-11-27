@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "91cba476e3",
+  "detailVersion": "e8a2055142",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "494a25d",
+      "date": "2026-11-27",
+      "text": "운동 이름을 견주는 식이 열세 자리에서 갈려 있었다 — 뿌리에 손 하나 (정석)",
+      "label": "고침",
+      "scope": "류",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "덮개 넘침 자가 빼주는 목록을 들고 있었다 — 걷고 MiniSplash 는 한 줄로 닫는다",
       "label": "고침",
       "scope": "자",
-      "has": true
-    },
-    {
-      "key": "6d03875",
-      "date": "2026-11-20",
-      "text": "무엇이 몇 줄 담기는지 누르기 전에 보여준다 — 담지 않는 것도 (시안 ⑥)",
-      "label": "새 기능",
-      "scope": "받기",
       "has": true
     }
   ]
