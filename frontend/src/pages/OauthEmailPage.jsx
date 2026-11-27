@@ -190,7 +190,8 @@ export default function OauthEmailPage() {
           borderRadius: 'var(--radius)', marginBottom: 18,
         }}>
           <div aria-hidden="true" style={{
-            width: 28, height: 28, borderRadius: 8, flex: '0 0 28px',
+            // 글자와 같이 자란다 (11/27 · 맵시)
+            width: 'max(28px, 2em)', height: 'max(28px, 2em)', borderRadius: 8, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 14, fontWeight: 700, background: mark.bg, color: mark.fg,
           }}>{mark.text}</div>

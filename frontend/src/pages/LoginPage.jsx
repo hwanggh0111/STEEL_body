@@ -384,7 +384,8 @@ function oauthErrorText(code) {
             background: 'var(--bg-secondary)', padding: '10px 12px',
           }}>
             <span style={{
-              width: 32, height: 32, flexShrink: 0, borderRadius: '50%',
+              // 글자와 같이 자란다 (11/27 · 맵시). 동그라미라 가로·세로가 같아야 한다
+              width: 'max(32px, 2.3em)', height: 'max(32px, 2.3em)', flexShrink: 0, borderRadius: '50%',
               background: 'var(--accent-dim)', border: '1px solid var(--accent-low)',
               display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--accent)',
               fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif",

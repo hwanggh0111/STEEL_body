@@ -122,6 +122,7 @@
     "weightread": "node scripts/check-weightread.cjs",
     "weighthands": "node scripts/check-weighthands.cjs",
     "brand": "node scripts/check-brand.cjs",
+    "zoom": "node scripts/check-zoom.cjs",
     "logo": "node scripts/check-logo.cjs",
     "samename": "node scripts/check-samename.cjs",
     "datehands": "node scripts/check-datehands.cjs",

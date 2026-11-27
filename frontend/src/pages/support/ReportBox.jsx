@@ -339,7 +339,8 @@ export default function ReportBox({ embedded = false, initialKind = '', pick = 0
               }}
             >
               <div style={{
-                width: 16, height: 16, flexShrink: 0, marginTop: 1,
+                // 글자를 키우면 ✓ 도 자란다 — 네모도 같이 자라게 둔다 (11/27 · 맵시)
+                width: 'max(16px, 1.45em)', height: 'max(16px, 1.45em)', flexShrink: 0, marginTop: 1,
                 border: `1px solid ${attach ? 'var(--accent)' : 'var(--border-hover)'}`,
                 background: attach ? 'var(--accent)' : 'transparent',
                 borderRadius: 'var(--radius)', color: 'var(--on-accent)',

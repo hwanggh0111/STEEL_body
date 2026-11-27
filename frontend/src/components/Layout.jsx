@@ -948,6 +948,11 @@ export default function Layout() {
             position: 'fixed',
             bottom: 'calc(var(--tabbar-h, 60px) + var(--restbar-h, 0px) + 30px)',
             left: 20,
+            // ★ 이 키는 **px 로 둔다** — 본문 아래 여백이 이 수를 읽어 비킨다
+            //   (`check-layer` 의 「본문이 떠 있는 것만큼 비키는가」). `max(40px, 2.2em)`
+            //   으로 바꿨더니 그 자가 키를 못 읽어 울었고, 울어야 맞았다 — 단추가 글자를
+            //   따라 88 까지 자라면 **맨 아래 글이 단추에 깔린다.** ↑ 한 글자는 200% 에서
+            //   36px 이고 flex 가 가운데 앉히니 잘리지 않는다 (11/27 · 맵시)
             width: 40, height: 40, borderRadius: '50%',
             background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
             fontSize: 18, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
