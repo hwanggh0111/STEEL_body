@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 기능 시안 — 11/27 (벼림)</title>
+<!-- 개발 서버에서만 산다: dev/ 는 dist 로 복사되지 않는다 (2026-11-12 주인 결정) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+  :root { --bg:#0b0a08; --card:#1b1712; --line:#332b1e; --t1:#eae4d6; --t2:#aaa28e;
+          --gold:#eeb77d; --ok:#7fb069; --warn:#d29a5f; --bad:#d9705f; --info:#7fa8d9; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--t1); font:14px/1.65 'Barlow','IBM Plex Sans KR',sans-serif; }
+  header { padding:26px 24px 10px; }
+  h1 { font:400 34px/1.05 'Bebas Neue','IBM Plex Sans KR',sans-serif; letter-spacing:2px; margin:0 0 10px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  h2 { font:600 15px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t2);
+       margin:34px 24px 0; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  h2 b { color:var(--gold); font-weight:600; }
+  h3 { font:600 14px/1.5 'Barlow','IBM Plex Sans KR',sans-serif; color:var(--t1); margin:20px 24px 0; }
+  .sub { color:var(--t2); margin:0; max-width:100ch; }
+  .sub a { color:var(--gold); }
+  .lead { border-left:2px solid var(--warn); padding-left:12px; margin:12px 24px 0; max-width:100ch; color:var(--t2); }
+  .lead.i { border-color:var(--info); } .lead.g { border-color:var(--ok); } .lead.r { border-color:var(--bad); }
+  .lead b { color:var(--t1); font-weight:600; }
+  .lead code, td code, li code, p code { color:var(--gold); font-size:12.5px; }
+  table { width:calc(100% - 48px); margin:14px 24px 0; border-collapse:collapse; font-size:13px; max-width:150ch; }
+  th, td { text-align:left; vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--t2); font-weight:600; white-space:nowrap; }
+  td b { color:var(--t1); font-weight:600; }
+  .g { color:var(--ok); white-space:nowrap; font-weight:600; }
+  .w { color:var(--warn); white-space:nowrap; font-weight:600; }
+  .r { color:var(--bad); white-space:nowrap; font-weight:600; }
+  .m { color:var(--t2); white-space:nowrap; }
+  ul { margin:10px 24px 0; padding-left:20px; color:var(--t2); max-width:110ch; }
+  li { margin-bottom:7px; } li b { color:var(--t1); font-weight:600; }
+  .foot { color:var(--t2); padding:26px 24px 40px; max-width:110ch; font-size:13px; }
+  .pick { display:flex; flex-wrap:wrap; gap:12px; padding:14px 24px 0; }
+  .p { background:var(--card); border:1px solid var(--line); padding:13px 15px; flex:1 1 230px; min-width:230px; }
+  .p .tag { font:400 20px/1 'Bebas Neue',sans-serif; letter-spacing:1.5px; color:var(--gold); }
+  .p .ttl { font-size:14px; font-weight:600; margin:5px 0 7px; }
+  .p .why { font-size:12.5px; color:var(--t2); }
+  .p .meta { font-size:11.5px; color:var(--t2); margin-top:9px; padding-top:8px; border-top:1px solid var(--line); }
+  .p .meta b { color:var(--t1); }
+  /* 폰 칸 — 지금 / 안 을 나란히 */
+  .seen { display:flex; flex-wrap:wrap; gap:14px; padding:14px 24px 0; align-items:flex-start; }
+  .phone { width:272px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .phone .cap { font-size:11.5px; color:var(--t2); letter-spacing:.3px; margin-bottom:10px; }
+  .phone .cap.bad { color:var(--bad); } .phone .cap.ok { color:var(--ok); }
+  .ttlrow { font-size:13px; font-weight:600; padding-bottom:9px; border-bottom:1px solid var(--line); }
+  .ttlrow small { display:block; color:var(--t2); font-weight:400; font-size:11px; margin-top:2px; }
+  .row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:0; }
+  .row .big { font:400 21px/1 'Bebas Neue',sans-serif; letter-spacing:1px; min-width:52px; }
+  .row .nm { font-size:13px; flex:1; }
+  .row .nm small { display:block; color:var(--t2); font-size:11px; }
+  .chip { font-size:10.5px; color:var(--t2); border:1px solid var(--line); border-radius:999px; padding:2px 7px; white-space:nowrap; }
+  .chip.am { color:var(--info); border-color:#2c3f55; }
+  .chip.pm { color:var(--gold); border-color:#4a3a26; }
+  .chip.dup { color:var(--bad); border-color:#4d2b26; }
+  .ask { margin-top:10px; border:1px solid var(--gold); border-radius:10px; padding:10px; }
+  .ask .q { font-size:12.5px; color:var(--t1); }
+  .ask .btns { display:flex; gap:7px; margin-top:9px; }
+  .btn { flex:1; text-align:center; font-size:12px; padding:7px 0; border-radius:8px;
+         border:1px solid var(--line); color:var(--t2); }
+  .btn.on { border-color:var(--gold); color:var(--gold); }
+  .note { margin-top:10px; border:1px dashed var(--line); color:var(--t2); font-size:11.5px;
+          padding:10px; border-radius:8px; }
+  .push { border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:#14110d; }
+  .push .app { font-size:10.5px; color:var(--t2); letter-spacing:.4px; }
+  .push .h { font-size:13px; font-weight:600; margin-top:3px; }
+  .push .b { font-size:12px; color:var(--t2); margin-top:2px; }
+  @media (max-width:560px) {
+    header, .pick, .seen { padding-left:16px; padding-right:16px; }
+    h2, h3, .lead { margin-left:16px; margin-right:16px; }
+    table, ul { width:calc(100% - 32px); margin-left:16px; margin-right:16px; }
+    table { font-size:12.5px; } th, td { padding:8px 6px; }
+    .phone, .p { width:100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>새 기능 <em>시안</em> — 11/27</h1>
+  <p class="sub">주인: 「새 기능을 시안으로 띄워」 · 고친 쪽 <b>벼림</b>
+    &nbsp;·&nbsp; <a href="/dev">← 개발 미리보기</a> · <a href="/dev/sian/1127-func/">오늘 기능 전수</a></p>
+
+  <p class="lead i"><b>세 안 다 오늘 판 증거에서 나왔다.</b> 머리로 지어낸 것이 아니라,
+    <b>앱이 이미 들고 있는데 말해주지 않는 것</b>들이다 — 적어둔 운동 이름 · 적은 시각 · 밀린 부위.
+    새로 모을 자료가 없으니 <b>서버도 안 늘어난다</b>.</p>
+
+  <p class="lead r"><b>★ 앱이 「안 하기로」 약속한 다섯을 넘지 않는다</b>
+    (<code>docs/SCREENS.md</code>) — 남과 겨루지 않는다(랭킹 없음) · 말을 걸지 않는다(커뮤니티 걷어냄) ·
+    광고 없음 · <b>지어내지 않는다</b>(칼로리 · 체지방률을 추정하지 않는다) ·
+    읽는 일은 폰 안에서 끝난다(사진 · 소리 · 영상이 서버로 안 간다).
+    아래 <b>6절에 「안 권하는 것」</b>을 따로 적었다.</p>
+</header>
+
+<h2>고르는 자리 — <b>셋 중에서</b> (12/24 출시 전)</h2>
+<div class="pick">
+  <div class="p">
+    <div class="tag">안 A</div>
+    <div class="ttl">같은 운동으로 볼까요<br>— 이름 묶기</div>
+    <div class="why">「벤치 프레스」와 「벤치프레스」를 둘 다 적어둔 사람에게, <b>한 번 눌러 이름을 통일</b>하게 한다.
+      오늘 고친 뿌리를 <b>사람 쪽에서</b> 닫는 자리다 — 보여주기는 맵시가 닫았고, 이건 <b>이름을 맞추는 쪽</b>이다.</div>
+    <div class="meta">크기 <b>하루</b> · 위험 <b>낮음</b>(내 기록만 고친다) · 자 <b>하나 더</b></div>
+  </div>
+  <div class="p">
+    <div class="tag">안 B</div>
+    <div class="ttl">아침에 잰 것, 저녁에 잰 것<br>— 같은 날 두 번</div>
+    <div class="why">같은 날 두 번 재면 서버는 <b>두 줄 다 남기는데</b> 화면은 그 둘을 구분해 보여주지 않는다.
+      <b>적은 시각이 이미 있다</b> — 꼬리표만 붙이면 된다.</div>
+    <div class="meta">크기 <b>반나절</b> · 위험 <b>아주 낮음</b>(보여주기만) · 자 <b>하나 더</b></div>
+  </div>
+  <div class="p">
+    <div class="tag">안 C</div>
+    <div class="ttl">알림에 「무엇을」을 담는다<br>— 밀린 부위 한 줄</div>
+    <div class="why">지금 운동 알림은 <b>「왔다」만 말한다</b>. 열어야 무엇이 밀렸는지 안다.
+      밀린 부위는 <b>내가 적은 것으로만</b> 세므로 지어내는 것이 없다.</div>
+    <div class="meta">크기 <b>이틀</b> · 위험 <b>가운데</b>(알림은 OS 쪽이다) · 자 <b>둘 더</b></div>
+  </div>
+</div>
+<p class="lead"><b>셋을 다 하자는 것이 아니다.</b> 12/24 까지는 굵은 것만 빠르게 가는 기간이라
+  <b>A → B</b> 를 권한다(합쳐 하루 반 · 둘 다 보여주기 쪽이라 되돌리기 쉽다).
+  <b>C</b> 는 사람을 다시 데려오는 힘이 제일 크지만 알림은 OS 와 기기 설정이 끼어들어
+  <b>실기기에서 눈으로 봐야</b> 한다 — 고르시면 그 순서로 붙인다.</p>
+
+<h2>안 A — <b>같은 운동으로 볼까요</b></h2>
+<p class="lead g"><b>★ 오늘 사이에 반이 닫혔다.</b> 이 시안을 쓰는 동안 맵시가 <b>기록 화면의 운동 필터</b>를
+  묶어 밀었다(<code>cdb9ca6</code> · 보일 이름은 <b>가장 많이 적은 꼴</b>). 그래서 <b>보여주는 쪽은 끝났다</b> —
+  아래 「지금」 칸은 <b>그 뒤에 남은 자리</b>로 다시 그렸다.</p>
+<p class="lead">남은 것은 <b>내가 적어둔 이름 자체가 둘로 남아 있다</b>는 것이다. 목록이 하나로 보여도
+  기록을 <b>내보내면 두 이름</b>이고, <b>루틴에 적힌 이름</b>도 그대로고, 앞으로 적을 때도 자동완성이
+  <b>두 꼴을 다 꺼낸다</b>. 묶어 <b>보여주는 것</b>과 이름을 <b>맞추는 것</b>은 다른 일이다 — 이 안은 뒤쪽이다.</p>
+<div class="seen">
+  <div class="phone">
+    <div class="cap bad">지금 — 적을 때 뜨는 자동완성</div>
+    <div class="ttlrow">운동 이름<small>「벤치」까지 쳤다</small></div>
+    <div class="row"><div class="nm">벤치 프레스 <small>내가 적은 이름 · 14회</small></div><span class="chip dup">같은 것?</span></div>
+    <div class="row"><div class="nm">벤치프레스 <small>내가 적은 이름 · 9회</small></div><span class="chip dup">같은 것?</span></div>
+    <div class="row"><div class="nm">인클라인 벤치프레스 <small>다른 운동</small></div></div>
+    <div class="note">무엇을 골라도 기록은 <b style="color:var(--t1)">이제 한 운동으로 센다</b>(오늘 고쳤다).
+      그래도 <b style="color:var(--t1)">고르는 자리마다 두 줄</b>이고, 내보낸 파일에도 두 이름이 남는다.</div>
+  </div>
+  <div class="phone">
+    <div class="cap ok">안 A — 묶을 것이 있으면 한 줄로 묻는다</div>
+    <div class="ttlrow">운동 이름 맞추기<small>기록 화면 · 한 번만 뜬다</small></div>
+    <div class="ask">
+      <div class="q"><b>같은 운동으로 볼까요?</b><br>
+        <span style="color:var(--t2);font-size:11.5px">「벤치 프레스」 14회 · 「벤치프레스」 9회 —
+        띄어쓰기만 다릅니다. 이름을 <b style="color:var(--t1)">벤치프레스</b>로 맞춥니다(기록은 안 지웁니다).</span></div>
+      <div class="btns"><div class="btn on">맞추기</div><div class="btn">그대로 두기</div></div>
+    </div>
+    <div class="row" style="margin-top:10px"><div class="nm">벤치프레스 <small>23회 적음</small></div></div>
+    <div class="row"><div class="nm">랫풀다운 <small>14회 적음</small></div></div>
+    <div class="note">「그대로 두기」를 누르면 <b style="color:var(--t1)">다시 안 묻는다</b> —
+      일부러 갈라 적는 사람이 있다(기구가 다르다든가).</div>
+  </div>
+</div>
+<table>
+  <tr><th>무엇으로 찾나</th><td><b>내 기록에 든 이름끼리만</b> 견준다 — 이미 있는 식(<code>flatName</code>)으로 눕혀 같아지는 것끼리.
+    <b>사전을 안 들인다</b>: 「Bench Press」와 「벤치프레스」는 묶을 후보로도 안 올린다(번역은 지어내는 일이다)</td></tr>
+  <tr><th>무엇을 고치나</th><td>고르면 <b>그 줄들의 이름만</b> 바꾼다(한 번에 · 되돌릴 수 있게). 무게 · 세트 · 날짜는 <b>한 글자도 안 건드린다</b></td></tr>
+  <tr><th>어디에 뜨나</th><td>기록 화면 위쪽에 <b>한 줄</b>. <b>묶을 것이 없으면 아무 줄도 안 뜬다</b> —
+    대부분의 사람에게는 <b>영영 안 뜬다</b></td></tr>
+  <tr><th>맵시 것과 뭐가 다른가</th><td>맵시가 닫은 것은 <b>보여주기</b>다(목록에 한 줄로 뜬다 — 기록은 그대로 둔다).
+    이 안은 <b>내 기록의 이름을 실제로 맞춘다</b> — 그래야 내보낸 파일 · 루틴 · 자동완성까지 하나가 된다.
+    <b>맵시의 손을 그대로 쓴다</b>(<code>pickExerciseNames</code> 가 고른 「가장 많이 적은 꼴」이 맞출 이름이다)</td></tr>
+  <tr><th>약속 점검</th><td class="g">랭킹 없음 · 커뮤니티 없음 · 광고 없음 · <b>지어내는 값 없음</b>(글자를 견주는 것뿐) · 서버로 새로 올리는 것 없음</td></tr>
+</table>
+
+<h2>안 B — <b>아침에 잰 것, 저녁에 잰 것</b></h2>
+<p class="lead">오늘 손으로 돌려 본 것: 같은 날 어깨를 두 번 재면 <b>서버는 두 줄 다 남긴다</b>(덮지 않는다).
+  앱은 <code>id</code> 가 큰 쪽을 「최근」으로 고른다 — <b>맞게 고르고 있다</b>.
+  그런데 <b>화면이 그 둘을 구분해 보여주지 않아서</b>, 사람은 「내가 아까 잰 건 어디 갔나」가 된다.
+  <b>적은 시각은 이미 들고 있다</b>(<code>created_at</code>).</p>
+<div class="seen">
+  <div class="phone">
+    <div class="cap bad">지금 — 전신 사이즈 · 어깨</div>
+    <div class="ttlrow">어깨<small>최근 → 지난번</small></div>
+    <div class="row"><div class="big" style="color:var(--t1)">121</div><div class="nm">11월 21일 <small>cm</small></div></div>
+    <div class="row"><div class="big" style="color:var(--t2)">118</div><div class="nm">11월 21일 <small>cm · 같은 날</small></div></div>
+    <div class="note">「+3cm 늘었어요」가 <b style="color:var(--t1)">하루 사이</b>로 보인다 —
+      실은 <b style="color:var(--t1)">아침과 저녁</b>이다. 어깨 · 허리는 하루 안에서도 달라진다.</div>
+  </div>
+  <div class="phone">
+    <div class="cap ok">안 B — 시각을 꼬리표로</div>
+    <div class="ttlrow">어깨<small>최근 → 지난번</small></div>
+    <div class="row"><div class="big" style="color:var(--t1)">121</div>
+      <div class="nm">11월 21일 <small>cm</small></div><span class="chip pm">저녁 9:40</span></div>
+    <div class="row"><div class="big" style="color:var(--t2)">118</div>
+      <div class="nm">11월 21일 <small>cm</small></div><span class="chip am">아침 7:10</span></div>
+    <div class="row"><div class="big" style="color:var(--t2)">117</div>
+      <div class="nm">11월 14일 <small>cm</small></div></div>
+    <div class="note"><b style="color:var(--t1)">같은 날이 둘일 때만</b> 꼬리표가 붙는다.
+      하루에 한 번 재는 사람 화면은 <b style="color:var(--t1)">지금과 똑같다</b>.</div>
+  </div>
+</div>
+<table>
+  <tr><th>무엇을 더 세나</th><td><b>아무것도 안 센다.</b> 이미 들고 있는 적은 시각을 <b>글자로 적어주는 것</b>뿐이다</td></tr>
+  <tr><th>견줄 때는</th><td>같은 날 두 줄이면 <b>「지난번」을 그 전날 것으로</b> 잡는 길도 같이 둔다 —
+    아침·저녁을 견줘 「+3cm」라고 말하는 것은 <b>그 사람을 속이는 셈</b>이다(지금 그렇게 보인다)</td></tr>
+  <tr><th>어디에 뜨나</th><td>전신 사이즈 · 체력 테스트 · 유연성 — <b>측정 셋이 같은 손을 쓴다</b>(<code>measureChange</code>)</td></tr>
+  <tr><th>약속 점검</th><td class="g">지어내는 값 없음 · 서버 안 늘어남 · 하루 한 번 재는 사람에게는 <b>아무 변화 없음</b></td></tr>
+</table>
+
+<h2>안 C — <b>알림에 「무엇을」을 담는다</b></h2>
+<p class="lead">지금 운동 알림은 <b>요일과 시각만</b> 안다(<code>reminderLabel</code> 이 「월·수·금 · 오후 7:00」을 적어준다).
+  와도 <b>「왔다」만 말하므로</b> 열어봐야 무엇이 밀렸는지 안다. 그런데 앱은 <b>어느 부위가 며칠 쉬었는지를
+  이미 센다</b>(<code>bodyHeat</code> · <code>partDays</code> · 이번 주 요약).</p>
+<div class="seen">
+  <div class="phone">
+    <div class="cap bad">지금 — 오후 7:00 알림</div>
+    <div class="push">
+      <div class="app">STEEL BODY</div>
+      <div class="h">운동 시간입니다</div>
+      <div class="b">오늘 운동을 적어보세요</div>
+    </div>
+    <div class="note">세 달 동안 <b style="color:var(--t1)">같은 한 줄</b>이다.
+      이런 알림은 <b style="color:var(--t1)">끄게 된다</b> — 열어야 알 수 있으니 안 열면 아무 일도 안 일어난다.</div>
+  </div>
+  <div class="phone">
+    <div class="cap ok">안 C — 내가 적은 것으로만 만든 한 줄</div>
+    <div class="push">
+      <div class="app">STEEL BODY</div>
+      <div class="h">가슴이 9일, 등이 11일 쉬었습니다</div>
+      <div class="b">이번 주 3번 · 지난주 4번</div>
+    </div>
+    <div class="push" style="margin-top:9px">
+      <div class="app">STEEL BODY</div>
+      <div class="h">이번 주는 아직 한 번도 안 적었습니다</div>
+      <div class="b">지난주 이맘때는 2번이었습니다</div>
+    </div>
+    <div class="note">적은 것이 적으면 <b style="color:var(--t1)">수를 말하지 않는다</b> —
+      「며칠 쉬었다」는 적은 기록이 있어야 할 수 있는 말이다(없으면 지금 문구 그대로 간다).</div>
+  </div>
+</div>
+<table>
+  <tr><th>지어내지 않나</th><td class="g"><b>안 지어낸다.</b> 「가슴 9일」은 <b>내가 적은 마지막 가슴 운동</b>에서 센 날 수다.
+    칼로리 · 체지방처럼 <b>추정하는 값이 아니다</b>. 셀 거리가 모자라면 <b>말하지 않는다</b></td></tr>
+  <tr><th>남과 겨루나</th><td class="g"><b>안 겨룬다.</b> 견주는 상대는 늘 <b>지난주의 나</b>다 — 남의 수는 어디에도 안 나온다</td></tr>
+  <tr><th>어디서 만드나</th><td><b>폰 안에서</b> 만든다(알림 예약은 기기가 한다 — <code>restAlarm</code> 과 같은 길).
+    서버로 보내는 것도, 서버가 보내는 것도 없다</td></tr>
+  <tr><th>위험한 자리</th><td class="w">알림 문구는 <b>예약할 때</b> 정해진다 — 예약하고 사흘 뒤에 받으면 그 사이 적은 것이 안 들어간다.
+    <b>앱을 열 때마다 다시 예약</b>하는 길을 같이 둔다(기기가 꺼져 있던 동안은 못 고친다 · 그래서 <b>실기기에서 눈으로 봐야</b> 한다)</td></tr>
+</table>
+
+<h2>안 권하는 것 — <b>약속을 깨는 쪽</b></h2>
+<table>
+  <tr><th>흔히 들어오는 것</th><th>왜 안 권하나</th></tr>
+  <tr><td>친구 · 랭킹 · 주간 순위</td><td class="m">「남과 겨루지 않는다」가 홈페이지에 적힌 약속이다. 커뮤니티는 <b>뒀다가 걷어냈다</b> — 같은 길을 또 열면 그때 걷어낸 까닭이 다시 온다</td></tr>
+  <tr><td>칼로리 · 체지방률 자동 계산</td><td class="m">「지어내지 않는다」. 추정값은 <b>그럴듯해서 더 나쁘다</b> — 사람이 그 수를 믿고 먹는 것을 바꾼다</td></tr>
+  <tr><td>자세를 영상으로 봐주기</td><td class="m">「읽는 일은 폰 안에서 끝난다」 — 영상이 서버로 가야 하는 기능이다. 지금도 <b>횟수 세기는 폰 안에서</b> 한다</td></tr>
+  <tr><td>AI 운동 코치 · 추천 루틴 자동 생성</td><td class="m">12/24 전에 <b>크기가 맞지 않는다</b>. 그리고 지어내는 쪽에 바로 닿는다 — 「이 무게로 하세요」는 다치는 말이 될 수 있다</td></tr>
+  <tr><td>운동 줄을 줄 단위 표로 옮기기</td><td class="m">기능이 아니라 <b>속살</b>이다. 한 장짜리 DB 라 50명 × 1년에서 30만 줄에 닿는데, <b>출시 뒤 과제</b>로 보는 것이 맞다(<code>docs/TODO-2026-11-27.md</code>)</td></tr>
+</table>
+
+<h2>고르면 — <b>다음 걸음</b></h2>
+<ul>
+  <li><b>고른 안만 붙인다</b> — 시안은 여기 남겨두고, 붙인 뒤 이 쪽에 「붙였다」를 적는다(11/26 에 맵시가 한 방식)</li>
+  <li>붙이는 한 건에 <b>자 하나</b>가 같이 선다 — <b>되돌려-FAIL 까지</b>가 한 건이다</li>
+  <li>사람 눈에 보이는 변화라 <b>공지 산출물 다섯</b>에 담아야 라이브에 간다 (11/27 에 넷에서 다섯이 됐다 — 판 번호)</li>
+  <li><b>12/1 에 라이브가 풀린다</b> — 그날의 <code>main</code> 이 배포되니, 그 전에 붙인 것은 그날 한 번에 나간다</li>
+</ul>
+
+<div class="foot">
+  11/27 · 고친 쪽 <b>벼림</b> · 지금 선 수 <b>backend 68/68 · frontend 128/128 · 빌드 통과</b>.
+  오늘 깐 기능 전수는 <a href="/dev/sian/1127-func/">여기</a>, 어제 배포판 전수검사는
+  <a href="/dev/sian/1126-qa/">여기</a>다. <b>A · B · C 중에서 고르시면 그 자리에서 붙인다.</b>
+</div>
+</body>
+</html>
