@@ -28,6 +28,7 @@
     "bench": "node scripts/bench.cjs",
     "photofree": "node scripts/check-photofree.cjs",
     "photoram": "node scripts/check-photoram.cjs",
+    "seclogdisk": "node scripts/check-seclogdisk.cjs",
     "boot": "node scripts/boot.cjs",
     "probe": "node scripts/probe.cjs",
     "oauth": "node scripts/check-oauth.cjs",

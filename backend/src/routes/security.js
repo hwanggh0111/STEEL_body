@@ -110,6 +110,9 @@ function readTail(file, bytes) {
 }
 
 /** 파일에 적힌 줄을 `addLog` 가 만드는 모양으로 되돌린다. 못 읽는 줄은 버린다. */
+// ★ 배포판에서는 **읽을 파일이 없다**(위 `addLog` 가 안 적는다) — 그래도 이 손은
+//   그대로 둔다: 없으면 빈 목록을 주고, `SECURITY_LOG_PATH` 를 디스크가 남는 자리로
+//   가리켜 둔 배포에서는 그 파일을 읽어야 한다
 function readLogFile() {
   // 민 뒤라 지금 파일이 짧을 수 있다 — 옛 한 벌(`.1`)을 **앞에** 붙인다
   const text = readTail(LOG_PATH + '.1', LOG_TAIL_BYTES) + readTail(LOG_PATH, LOG_TAIL_BYTES);
@@ -148,6 +151,25 @@ function addLog(type, detail) {
   try { db.addSecurityLog(entry); } catch (err) {
     console.error('[security] 기록을 DB 에 남기지 못했습니다:', err.message);
   }
+  // ── ★ **배포판에서는 파일을 안 적는다** ── (2026-11-27 · 정석, 주인 「서버 최적화」)
+  //
+  // 이 파일은 **얻는 것 없이 값만 치르는 자리**였다 —
+  //
+  //   · 같은 줄이 **이미 DB 에 있다**(바로 위 `db.addSecurityLog`). 보는 자리
+  //     (`recentLogs`)는 DB · 파일 · 램 셋을 합치고 **같은 줄을 접는다** — 즉
+  //     배포판에서 파일 쪽이 없어도 화면은 **똑같다**
+  //   · 배포판 디스크는 **날아간다**(Render 무료 판은 디스크를 못 붙인다. 그래서
+  //     10/14 에 DB 를 Postgres 로 옮겼다). 다시 뜨면 그 파일은 없다
+  //   · 그런데 값은 치른다: 보안 줄마다 `appendFile` 한 번 + 2MB 마다 `rename`,
+  //     그것을 **CPU 0.1 코어** 한 줄짜리 서버에서 한다
+  //
+  // 즉 배포판에서 그 파일은 **쓰는 값만 있고 읽는 값이 없다.** 파일 모드(내 컴퓨터 ·
+  // 디스크가 남는 자리)에서는 여태처럼 적는다 — 그쪽은 재시작을 넘겨 주는 값이 있다.
+  //
+  // 묻는 것은 **저장소 한 군데**뿐이다 — 이 자리는 「사는 곳이 어딘지 몰라도 된다」는
+  // 위 머리글의 뜻을 깨지 않는다
+  if (storage.isPostgres) return;
+
   // 파일에도 기록 (비동기)
   const line = `[${entry.timestamp}] [${type}] ${detail}\n`;
   _rollIfBig(Buffer.byteLength(line));
@@ -1000,3 +1022,9 @@ module.exports.addLog = addLog;
 // 서버를 내렸다 올리면 그 안에서 적은 것도 같이 사라져 볼 수가 없다.
 // 여기서만 쓰는 손잡이고, 이름에 그렇게 적어뒀다
 module.exports.__dropRamLogsForCheck = () => { securityLogs.length = 0; return true; };
+
+// 보는 자리를 자에게 내놓는다 (2026-11-27 · 정석). `check-seclogdisk` 가
+// **「배포판에서 파일을 안 적어도 화면이 똑같다」**를 이 손으로 본다 — 라우트로
+// 보려면 서버를 띄우고 관리자로 들어가야 하는데, 보는 식 자체는 이 함수 하나다.
+// 위 `__dropRamLogsForCheck` 와 같은 결의 손잡이다
+module.exports.recentLogs = recentLogs;
