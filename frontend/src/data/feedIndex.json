@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "2608ba12f2",
+  "detailVersion": "aaa19182cd",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "9b014ba",
+      "date": "2026-11-27",
+      "text": "고른 것을 금 테두리로만 말했다 — 묶음 열여섯에 aria-pressed",
+      "label": "고침",
+      "scope": "꼴",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "잠금 화면이 넘치는데 스크롤이 없어 지문 단추와 「잊으셨나요」가 잘렸다",
       "label": "고침",
       "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "9b9d268",
-      "date": "2026-11-20",
-      "text": "「사진」을 켜고 받으면 0장이 나갔다 — 사진은 photos.json 에 따로 산다",
-      "label": "고침",
-      "scope": "받기",
       "has": true
     }
   ]
