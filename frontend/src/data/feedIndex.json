@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "9f198e6dfd",
+  "detailVersion": "91981b1b64",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "86f1637",
+      "date": "2026-11-27",
+      "text": "적어둔 시트 번호가 사라졌다 — 「벤치 프레스」로 적고 「벤치프레스」로 들어가면",
+      "label": "고침",
+      "scope": "기구",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "쉬는 동안 「맨 위로」가 띠에 묻혀 안 눌렸다 — 떠 있는 것끼리의 겹침",
       "label": "고침",
       "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "8087ba0",
-      "date": "2026-11-20",
-      "text": "그 운동에서 평소 이만큼 쉬었다 — 고를 때 기댈 사실 한 줄 (시안 1119 ② 닫음)",
-      "label": "새 기능",
-      "scope": "휴식",
       "has": true
     }
   ]
