@@ -9,6 +9,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useNoteStore } from '../store/noteStore';
 import { eul } from '../data/particle';
+// 적힌 이름을 묶어 고를 목록을 만드는 손 — 셈은 **화면 밖**에 둔다(자가 떼어 돌린다)
+import { pickExerciseNames, matchesExercise } from '../data/exerciseNames';
 import { useInbodyStore } from '../store/inbodyStore';
 import StatBox from '../components/StatBox';
 import WeightChart from '../components/WeightChart';
@@ -286,7 +288,13 @@ export default function HistoryPage() {
       .catch(() => toast('내보내기에 실패했어요', 'error'));
   };
 
-  const allExercises = useMemo(() => [...new Set(Object.values(workouts).flat().map(w => w.exercise).filter(Boolean))].sort(), [workouts]);
+  // ── **같은 운동이 두 줄로 섰다** ── (2026-11-27 · 맵시 · 벼림 넘김)
+  //
+  // 이 목록만 이름을 **글자 그대로** 모아서 「벤치 프레스」와 「벤치프레스」가 **두 줄**로
+  // 떴고, 어느 쪽을 골라도 **절반만** 보였다. 묶는 셈과 **어느 글자를 보일지**는
+  // `data/exerciseNames.js` 에 있다 — 화면 안에 두면 자가 떼어 돌릴 수 없다.
+  // (11/27 에 같은 류를 최고기록 띠 `87f0b40` · 기구 세팅 `86f1637` 에서 닫았다)
+  const allExercises = useMemo(() => pickExerciseNames(workouts), [workouts]);
 
   const dates = useMemo(() => workouts ? Object.keys(workouts).sort().reverse() : [], [workouts]);
 
@@ -379,7 +387,9 @@ export default function HistoryPage() {
     const pool = selectedDate ? [selectedDate] : dates.filter(d => d.startsWith(prefix));
     return pool
       .map(date => [date, filterExercise
-        ? (workouts[date] || []).filter(w => w.exercise === filterExercise)
+        // **눕혀 견준다** — 글자 그대로 보면 고른 이름과 다르게 적은 줄이 빠진다
+        // (「벤치 프레스」를 골랐을 때 「벤치프레스」로 적은 날이 안 나왔다)
+        ? (workouts[date] || []).filter(w => matchesExercise(w, filterExercise))
         : (workouts[date] || [])])
       .filter(([, list]) => list.length > 0);
   }, [dates, workouts, filterExercise, ym, selectedDate]);

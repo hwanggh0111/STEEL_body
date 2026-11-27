@@ -124,6 +124,7 @@
     "brand": "node scripts/check-brand.cjs",
     "zoom": "node scripts/check-zoom.cjs",
     "aria": "node scripts/check-aria.cjs",
+    "exname": "node scripts/check-exname.cjs",
     "ver": "node scripts/check-version.cjs",
     "logo": "node scripts/check-logo.cjs",
     "samename": "node scripts/check-samename.cjs",
