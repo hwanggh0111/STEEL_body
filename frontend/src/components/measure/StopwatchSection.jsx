@@ -124,9 +124,9 @@ export default function StopwatchSection({ onSave }) {
       <div className="section-title"><div className="accent-bar" />스톱워치 / 타이머</div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        <button className={`btn-secondary${mode === 'stopwatch' ? ' active' : ''}`}
+        <button aria-pressed={mode === 'stopwatch'} className={`btn-secondary${mode === 'stopwatch' ? ' active' : ''}`}
           onClick={() => { handleReset(); setMode('stopwatch'); }} style={{ fontSize: 12, padding: '6px 14px' }}>스톱워치</button>
-        <button className={`btn-secondary${mode === 'timer' ? ' active' : ''}`}
+        <button aria-pressed={mode === 'timer'} className={`btn-secondary${mode === 'timer' ? ' active' : ''}`}
           onClick={() => { handleReset(); setMode('timer'); }} style={{ fontSize: 12, padding: '6px 14px' }}>타이머</button>
       </div>
 

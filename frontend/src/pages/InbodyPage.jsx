@@ -426,9 +426,9 @@ export default function InbodyPage({ embedded = false }) {
           </div>
 
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-            <button className={`btn-secondary${tab === 'record' ? ' active' : ''}`}
+            <button aria-pressed={tab === 'record'} className={`btn-secondary${tab === 'record' ? ' active' : ''}`}
               onClick={() => setTab('record')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>기록</button>
-            <button className={`btn-secondary${tab === 'compare' ? ' active' : ''}`}
+            <button aria-pressed={tab === 'compare'} className={`btn-secondary${tab === 'compare' ? ' active' : ''}`}
               onClick={() => setTab('compare')} style={{ width: 'auto', fontSize: 12, padding: '6px 16px' }}>비교</button>
           </div>
         </>
@@ -499,8 +499,8 @@ export default function InbodyPage({ embedded = false }) {
 
           {/* 간편 · 상세가 무엇이 다른지 적는다 — 예전에는 눌러봐야 알았다 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <button className={`btn-secondary${quickMode ? ' active' : ''}`} onClick={() => setQuickMode(true)} style={{ width: 'auto', fontSize: 12, padding: '5px 14px' }}>간편</button>
-            <button className={`btn-secondary${!quickMode ? ' active' : ''}`} onClick={() => setQuickMode(false)} style={{ width: 'auto', fontSize: 12, padding: '5px 14px' }}>상세</button>
+            <button aria-pressed={quickMode} className={`btn-secondary${quickMode ? ' active' : ''}`} onClick={() => setQuickMode(true)} style={{ width: 'auto', fontSize: 12, padding: '5px 14px' }}>간편</button>
+            <button aria-pressed={!quickMode} className={`btn-secondary${!quickMode ? ' active' : ''}`} onClick={() => setQuickMode(false)} style={{ width: 'auto', fontSize: 12, padding: '5px 14px' }}>상세</button>
             {!editingId && (
               <button
                 onClick={closeForm}

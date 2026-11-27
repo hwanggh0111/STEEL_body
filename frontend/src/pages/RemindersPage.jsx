@@ -577,6 +577,7 @@ export default function RemindersPage() {
             return (
               <button
                 key={d}
+                aria-pressed={on}
                 className={`btn-secondary${on ? ' active' : ''}`}
                 style={{ flexGrow: 1, padding: '10px 0', cursor: locked ? 'not-allowed' : undefined }}
                 disabled={busy || off || locked}

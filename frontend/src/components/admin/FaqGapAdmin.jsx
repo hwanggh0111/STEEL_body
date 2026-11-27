@@ -71,6 +71,7 @@ export default function FaqGapAdmin() {
         {RANGES.map(r => (
           <button
             key={r.days}
+            aria-pressed={days === r.days}
             className={`btn-secondary${days === r.days ? ' active' : ''}`}
             onClick={() => setDays(r.days)}
           >{r.label}</button>

@@ -242,6 +242,7 @@ export default function ShapePage({ embedded = false }) {
                       <button
                         key={o.key}
                         onClick={() => setAgainst(o.key)}
+                        aria-pressed={against === o.key}
                         className={`btn-secondary${against === o.key ? ' active' : ''}`}
                         style={{ flex: 1, padding: '7px 0', fontSize: 11 }}
                       >{o.label}</button>

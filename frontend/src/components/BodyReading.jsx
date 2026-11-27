@@ -242,6 +242,7 @@ export default function BodyReading({ record, prev }) {
           {SEXES.map(s => (
             <button
               key={s.key}
+              aria-pressed={sex === s.key}
               className={`btn-secondary${sex === s.key ? ' active' : ''}`}
               style={{ padding: '5px 12px' }}
               disabled={saving}

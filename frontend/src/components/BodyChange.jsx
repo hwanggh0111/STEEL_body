@@ -60,6 +60,7 @@ export default function BodyChange({ records, workouts }) {
         {SPANS.map(s => (
           <button
             key={s.key}
+            aria-pressed={span === s.key}
             className={`btn-secondary${span === s.key ? ' active' : ''}`}
             style={{ flexGrow: 1, padding: '8px 0' }}
             onClick={() => setSpan(s.key)}

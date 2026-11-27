@@ -376,12 +376,14 @@ export default function RestTimer() {
           {PRESETS.map(sec => (
             <button
               key={sec}
+              aria-pressed={duration === sec && !showCustom}
               className={`btn-secondary${duration === sec && !showCustom ? ' active' : ''}`}
               style={{ flexGrow: 1, padding: '9px 0' }}
               onClick={() => { setDuration(sec); setShowCustom(false); }}
             >{sec}초</button>
           ))}
           <button
+            aria-pressed={showCustom}
             className={`btn-secondary${showCustom ? ' active' : ''}`}
             style={{ flexGrow: 1, padding: '9px 0' }}
             onClick={() => setShowCustom(v => !v)}

@@ -944,6 +944,7 @@ export default function RoutinePage() {
         {['머신', '맨몸', '홈트', '기능성'].map((t) => (
           <button
             key={t}
+            aria-pressed={type === t}
             className={`btn-secondary${type === t ? ' active' : ''}`}
             onClick={() => setType(t)}
             style={{ flexShrink: 0 }}
@@ -971,6 +972,7 @@ export default function RoutinePage() {
           return (
             <button
               key={p}
+              aria-pressed={part === p}
               className={`btn-secondary${part === p ? ' active' : ''}`}
               onClick={() => setPart(p)}
               style={{ fontSize: 12, padding: '6px 14px', flexShrink: 0 }}

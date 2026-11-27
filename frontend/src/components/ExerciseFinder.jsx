@@ -284,6 +284,7 @@ export default function ExerciseFinder({ onPick, pickLabel = '기록하기', aut
         {CATEGORIES.map((c) => (
           <button
             key={c.q}
+            aria-pressed={query.trim() === c.q}
             className={`btn-secondary${query.trim() === c.q ? ' active' : ''}`}
             onClick={() => setQ(c.q)}
           >{c.label}</button>
