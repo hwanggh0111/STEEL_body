@@ -1018,6 +1018,7 @@ export default function HomeworkoutPage() {
               <div
                 role="button"
                 tabIndex={0}
+                aria-expanded={open}
                 onClick={() => setPreview(open ? null : name)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreview(open ? null : name); } }}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer', gap: 10 }}

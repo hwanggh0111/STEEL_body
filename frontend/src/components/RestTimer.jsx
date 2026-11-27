@@ -339,6 +339,7 @@ export default function RestTimer() {
       {active && !openPrefs && (
         <button
           type="button"
+          aria-expanded={false}
           onClick={() => setOpenPrefs(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: 40,
@@ -531,6 +532,7 @@ export default function RestTimer() {
         {active && (
           <button
             type="button"
+            aria-expanded
             onClick={() => setOpenPrefs(false)}
             style={{
               width: '100%', minHeight: 40, marginTop: 4, background: 'none', border: 'none',

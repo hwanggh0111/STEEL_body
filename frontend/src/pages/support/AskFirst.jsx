@@ -133,6 +133,7 @@ export default function AskFirst() {
 
         {!typed && (
           <button
+            aria-expanded={showAll}
             onClick={() => { setShowAll(v => !v); setOpen(null); }}
             style={{
               background: 'none', border: 'none', padding: '10px 0 0', cursor: 'pointer',

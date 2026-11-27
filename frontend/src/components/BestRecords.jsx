@@ -50,6 +50,7 @@ export default function BestRecords({ workouts, today = dateKey() }) {
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
         style={{

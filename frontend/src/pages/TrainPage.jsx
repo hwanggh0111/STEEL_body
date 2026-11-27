@@ -1184,6 +1184,7 @@ export default function TrainPage() {
           운동
         </div>
         <button
+          aria-expanded={showTimer}
           onClick={() => { primeAudio(); setShowTimer((v) => !v); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
