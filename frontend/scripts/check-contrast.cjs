@@ -195,7 +195,7 @@ console.log('── 3. 눌리는 칸 안의 글자는 그 칸 바탕에서 4.5 �
 }
 
 console.log('');
-console.log('── 3-2. 칩 바탕을 칠한 자리의 글자 ──');
+console.log('── 3-2. 바탕을 칠한 자리의 글자 ──');
 // ── **칩에서만 4.11 로 남아 있었다** ── (2026-11-26 · 맵시 · 시안 ② B안)
 //
 // `--bg-tertiary`(#282219)는 칩 · 큰 단추 · 고르기 칸이 쓰는 바탕이다. 11/25 에 주인이
@@ -212,15 +212,22 @@ console.log('── 3-2. 칩 바탕을 칠한 자리의 글자 ──');
 // ⑶ **갈래를 맞췄다**(토큰 수가 같을 때 같은 자리끼리) → 그래도 `WeeklyReport` 가 거짓이었다.
 //    막대는 칩 바탕이고 글자는 **옆 칸**인데, 다섯 줄 창이 그 둘을 한 자리로 봤다.
 //
-// 그래서 지금은 **같은 덩이**만 본다 — `--bg-tertiary` 를 감싼 **가장 안쪽 중괄호**를 찾아
-// 그 안의 `color:` 만 짝으로 본다. 옆 칸은 다른 덩이라 안 섞인다. 갈래 수가 다르면
-// (조건이 서로 다르면) **의심으로 적어만 둔다** — 거짓 FAIL 로 울리면 다음 사람이 자를 끈다.
+// 그래서 지금은 **같은 덩이**만 본다 — 바탕 토큰을 감싼 **가장 안쪽 중괄호**를 찾아
+// 그 안의 `color:` 만 짝으로 본다. 옆 칸은 다른 덩이라 안 섞인다. 짝을 못 가리면
+// **의심으로 적어만 둔다** — 거짓 FAIL 로 울리면 다음 사람이 자를 끈다.
+//
+// ⑷ **조건까지 보고 짝짓는다** (2026-11-27 · 맵시). ⑶ 은 **갈래 수가 같을 때만** 짝을
+//    맞췄다. 그런데 `background: on ? var(--accent) : 'transparent'` 는 토큰이 하나고
+//    `color: on ? var(--on-accent) : var(--text-secondary)` 는 둘이라 **수가 안 맞아
+//    의심으로 밀렸다** — 그 꼴이 열다섯이었다. 삼항을 **조건 → 값** 짝으로 쪼개고
+//    `transparent` · `none` 도 한 갈래로 세면 수가 맞고, 그래도 안 맞으면 **조건이 같은
+//    갈래끼리**(`on` ↔ `on`) 짝지으면 코드로 가려진다. 열다섯이 전부 OK 로 내려갔다.
+//
+// ★ 그리고 **바탕을 칩 하나만 보고 있었다** (2026-11-27 · 맵시). 11/26 에 고친
+//   「정지」 단추는 **밝은 빨강을 면으로 깔고 금 글자가 얹힌 것**(1.9 : 1)이었는데,
+//   이 자는 `--bg-tertiary` 만 과녁이라 그 자리를 **보지 못했다.** 면으로 칠하는
+//   **모든 밝은 토큰**을 같은 틀로 본다 — 3-2 는 칩, 3-3 은 금·초록·노랑·빨강·파랑.
 {
-  const 칩 = tokens['--bg-tertiary'];
-  const 난것 = [];
-  const 의심 = [];
-  const 예외 = [];   // 못 누르는 상태 — 흐린 것이 뜻이다
-
   /** 그 자리를 감싼 **가장 안쪽 중괄호** 덩이 (style={{…}} · { label, color, dim } 둘 다) */
   const 덩이 = (글, at) => {
     let 깊이 = 0;
@@ -238,13 +245,17 @@ console.log('── 3-2. 칩 바탕을 칠한 자리의 글자 ──');
     for (let i = 시작; i < 글.length; i++) {
       const c = 글[i];
       if (c === '{') 깊이 += 1;
-      else if (c === '}') { 깊이 -= 1; if (깊이 === 0) return 글.slice(시작, i + 1); }
+      else if (c === '}') { 깊이 -= 1; if (깊이 === 0) return { 글: 글.slice(시작, i + 1), 시작 }; }
     }
     return null;
   };
 
-  /** 한 선언에서 쓰인 토큰을 **적힌 차례대로**. 괄호·따옴표를 세며 읽고 깊이 0 쉼표에서 끊는다 */
-  const 갈래 = (덩, 이름들) => {
+  /**
+   * 한 선언의 몸통. 괄호·따옴표를 세며 읽고 **깊이 0 쉼표**에서 끊는다.
+   * 덩이 안에서의 **자리(시작 · 끝)도 같이** 돌려준다 — 과녁이 그 선언 안쪽인지
+   * 가리는 데 쓴다 (`stroke="var(--accent)"` 를 면으로 읽던 거짓을 막는다)
+   */
+  const 몸통 = (덩, 이름들) => {
     const m = 덩.match(new RegExp('(?<![a-zA-Z-])(?:' + 이름들 + ')\\s*:'));
     if (!m) return null;
     let q = null;
@@ -254,72 +265,157 @@ console.log('── 3-2. 칩 바탕을 칠한 자리의 글자 ──');
       const c = 덩[i];
       if (q) { 몸 += c; if (c === q) q = null; continue; }
       if (c === "'" || c === '"' || c === '`') { q = c; 몸 += c; continue; }
-      if (c === '(' || c === '{') 깊이 += 1;
-      if (c === ')' || c === '}') { if (깊이 === 0) break; 깊이 -= 1; }
+      if (c === '(' || c === '{' || c === '[') 깊이 += 1;
+      if (c === ')' || c === '}' || c === ']') { if (깊이 === 0) break; 깊이 -= 1; }
       if (깊이 === 0 && c === ',') break;
       몸 += c;
     }
-    return [...몸.matchAll(/var[(](--[\w-]+)[)]/g)].map((x) => x[1]);
+    const 시작 = m.index + m[0].length;
+    return { 몸, 시작, 끝: 시작 + 몸.length };
   };
 
-  const 잰다 = (토큰) => {
-    const c = tokens[토큰];
-    if (!c) return { 수: null, 글: 토큰 + ' (:root 에 없는 토큰)' };
-    const r = ratio(c, 칩);
-    return { 수: r, 글: 토큰 + ' ' + r };
-  };
-
-  const 훑기 = (dir) => {
-    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, f.name);
-      if (f.isDirectory()) { 훑기(full); continue; }
-      if (!/[.]jsx?$/.test(f.name)) continue;
-      const 글 = fs.readFileSync(full, 'utf8');
-      const 이름 = path.relative(ROOT, full).split(path.sep).join('/');
-      let at = -1;
-      for (;;) {
-        at = 글.indexOf('--bg-tertiary', at + 1);
-        if (at < 0) break;
-        // 주석 줄에 적힌 것은 건너뛴다 — 까닭을 적은 글에 제가 걸리면 안 된다
-        const 줄머리 = 글.lastIndexOf('\n', at) + 1;
-        if (/^\s*([/][/]|[*]|[/][*])/.test(글.slice(줄머리, at))) continue;
-        const 줄번호 = 글.slice(0, at).split('\n').length;
-        const 덩 = 덩이(글, at);
-        if (!덩) continue;
-        const 바탕들 = 갈래(덩, '(?:background|backgroundColor|dim)') || [];
-        const 글자들 = 갈래(덩, 'color') || [];
-        if (!글자들.length) continue;
-        const 칩자리 = 바탕들.indexOf('--bg-tertiary');
-        if (칩자리 < 0) continue;
-        const 자리 = 이름 + ':' + 줄번호;
-        // ★ **못 누르는 상태는 예외다** — 흐린 것이 뜻이다(`.btn-primary:disabled` 도
-        //   같은 꼴로 `--text-muted` 를 쓴다). 조용히 빼지 않고 **적어서** 둔다.
-        //   과녁은 그 덩이에 적힌 `not-allowed` · `disabled`, 즉 **그 자리가 스스로
-        //   「못 누른다」고 말하는가**다 (`OverlayCamera` 의 「찍기」가 그 하나다).
-        const 못누름 = /not-allowed|disabled/.test(덩);
-        if (바탕들.length === 글자들.length) {
-          const 짝 = 잰다(글자들[칩자리]);
-          if (짝.수 === null || 짝.수 < 4.5) (못누름 ? 예외 : 난것).push(자리 + ' ' + 짝.글);
-          continue;
-        }
-        const 낮은것 = 글자들.map(잰다).filter((x) => x.수 !== null && x.수 < 4.5);
-        if (낮은것.length) 의심.push(자리 + ' ' + 낮은것.map((x) => x.글).join(' · '));
+  /** 삼항을 **조건 → 값** 짝으로. `a ? X : b ? Y : Z` → [{a,X},{b,Y},{그밖,Z}] */
+  const 갈래 = (몸) => {
+    if (몸 == null) return null;
+    const 조각 = [];
+    const 끝 = [];
+    let q = null;
+    let 깊이 = 0;
+    let 지금 = '';
+    for (let i = 0; i < 몸.length; i++) {
+      const c = 몸[i];
+      if (q) { 지금 += c; if (c === q) q = null; continue; }
+      if (c === "'" || c === '"' || c === '`') { q = c; 지금 += c; continue; }
+      if (c === '(' || c === '{' || c === '[') { 깊이 += 1; 지금 += c; continue; }
+      if (c === ')' || c === '}' || c === ']') { 깊이 -= 1; 지금 += c; continue; }
+      // 삼항의 `?` `:` 만 구분자다. `?.` · `??` 는 아니고, 깊이 0 에서만 본다
+      if (깊이 === 0 && (c === '?' || c === ':') && !/[?:]/.test(몸[i + 1] || '') && 몸[i + 1] !== '.') {
+        조각.push(지금.trim()); 끝.push(c); 지금 = ''; continue;
       }
+      지금 += c;
     }
+    조각.push(지금.trim());
+    // 조각 **뒤에 오는 구분자가 `?`** 면 그 조각은 값이 아니라 **조건**이다
+    const 갈래들 = [];
+    let 앞조건 = null;
+    for (let i = 0; i < 조각.length; i++) {
+      if (끝[i] === '?') { 앞조건 = 조각[i]; continue; }
+      갈래들.push({ 조건: 앞조건 === null ? '늘' : 앞조건, 값: 조각[i] });
+      앞조건 = null;
+    }
+    return 갈래들;
   };
-  훑기(path.join(ROOT, 'src'));
+
+  const 토큰of = (값) => { const m = /var[(](--[\w-]+)[)]/.exec(값 || ''); return m ? m[1] : null; };
+  const 색of = (값) => {
+    const t = 토큰of(값);
+    if (t) return { 이름: t, 색: tokens[t] || null };
+    const h = /#[0-9a-fA-F]{6}\b/.exec(값 || '');
+    return h ? { 이름: h[0], 색: h[0].toLowerCase() } : { 이름: (값 || '').trim().slice(0, 24), 색: null };
+  };
+
+  /**
+   * 한 바탕 무리에 얹는 글자를 전부 잰다.
+   *   바탕들 — 과녁 바탕 토큰 (이 토큰을 **면으로 칠한** 덩이를 찾는다)
+   *   이름들 — 바탕으로 읽을 선언 이름 (칩은 `{label,color,dim}` 꼴의 `dim` 도 바탕이다)
+   */
+  const 면검사 = (바탕들, 이름들) => {
+    const 난것 = []; const 의심 = []; const 예외 = []; const 막대 = [];
+    const 훑기 = (dir) => {
+      for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, f.name);
+        if (f.isDirectory()) { 훑기(full); continue; }
+        if (!/[.]jsx?$/.test(f.name)) continue;
+        const 글 = fs.readFileSync(full, 'utf8');
+        const 이름 = path.relative(ROOT, full).split(path.sep).join('/');
+        for (const 과녁 of 바탕들) {
+          let at = -1;
+          for (;;) {
+            at = 글.indexOf(과녁, at + 1);
+            if (at < 0) break;
+            // 주석 줄에 적힌 것은 건너뛴다 — 까닭을 적은 글에 제가 걸리면 안 된다
+            const 줄머리 = 글.lastIndexOf('\n', at) + 1;
+            if (/^\s*([/][/]|[*]|[/][*])/.test(글.slice(줄머리, at))) continue;
+            // `--accent` 가 `--accent-dim` 의 앞머리로 걸리지 않게 한다
+            if (/[\w-]/.test(글[at + 과녁.length] || '')) continue;
+            const 줄번호 = 글.slice(0, at).split('\n').length;
+            const 덩싸개 = 덩이(글, at);
+            if (!덩싸개) continue;
+            const 덩 = 덩싸개.글;
+            const 안자리 = at - 덩싸개.시작;          // 덩이 안에서 과녁이 적힌 자리
+            const 바탕선언 = 몸통(덩, 이름들);
+            if (!바탕선언) continue;
+            // ★ **과녁이 그 선언 안쪽일 때만** 면으로 본다. 안 가리면 같은 덩이의
+            //   `stroke="var(--accent)"` · 옆 칸의 색까지 면으로 읽는다 (⑶ 의 구멍)
+            if (안자리 < 바탕선언.시작 || 안자리 >= 바탕선언.끝) continue;
+            const 바탕갈래 = 갈래(바탕선언.몸);
+            if (!바탕갈래) continue;
+            const 면자리 = 바탕갈래.findIndex((g) => 토큰of(g.값) === 과녁);
+            if (면자리 < 0) continue;
+            const 자리 = 이름 + ':' + 줄번호 + (바탕들.length > 1 ? ' [' + 과녁 + ']' : '');
+            const 글자선언 = 몸통(덩, 'color');
+            const 글자갈래 = 글자선언 ? 갈래(글자선언.몸) : null;
+            // **글자가 없는 덩이는 막대·점이다** — 읽을 글자가 없으니 대비를 안 본다.
+            //   (칩 쪽은 11/26 부터 그냥 넘겼다. 이제 세어서 적는다)
+            if (!글자갈래 || !글자갈래.length) { 막대.push(자리); continue; }
+            // ★ **못 누르는 상태는 예외다** — 흐린 것이 뜻이다(`.btn-primary:disabled` 도
+            //   같은 꼴로 `--text-muted` 를 쓴다). 조용히 빼지 않고 **적어서** 둔다.
+            //   과녁은 그 덩이에 적힌 `not-allowed` · `disabled`, 즉 **그 자리가 스스로
+            //   「못 누른다」고 말하는가**다 (`OverlayCamera` 의 「찍기」가 그 하나다).
+            const 못누름 = /not-allowed|disabled/.test(덩);
+            // 짝을 고르는 차례 — ⑴ 하나뿐 ⑵ **조건이 같은 것** ⑶ 갈래 수가 같으면 그 자리
+            const 짝 = 글자갈래.length === 1
+              ? 글자갈래[0]
+              : (글자갈래.find((x) => x.조건 === 바탕갈래[면자리].조건)
+                 ?? (바탕갈래.length === 글자갈래.length ? 글자갈래[면자리] : null));
+            if (!짝) {
+              의심.push(자리 + ' 짝을 못 가림 → ' + 글자갈래.map((x) => (x.조건 === '늘' ? '늘' : x.조건.slice(0, 12)) + '=' + 색of(x.값).이름).join(' / '));
+              continue;
+            }
+            const { 이름: 글자이름, 색: 글자색 } = 색of(짝.값);
+            const 바탕색 = tokens[과녁];
+            if (!글자색 || !바탕색) {
+              // 물려받는 색(`inherit` · `currentColor`)은 여기서 못 잰다 — 적어만 둔다
+              의심.push(자리 + ' 색을 못 읽음 → ' + 글자이름);
+              continue;
+            }
+            const r = ratio(글자색, 바탕색);
+            if (r < 4.5) (못누름 ? 예외 : 난것).push(자리 + ' ' + 글자이름 + ' ' + r);
+          }
+        }
+      }
+    };
+    훑기(path.join(ROOT, 'src'));
+    const u = (a) => [...new Set(a)];
+    return { 난것: u(난것), 의심: u(의심), 예외: u(예외), 막대: u(막대) };
+  };
+
+  const 적는다 = (제목, 결과) => {
+    ok(제목, 결과.난것, []);
+    if (결과.예외.length) {
+      console.log('     못 누르는 상태라 비킨 자리 ' + 결과.예외.length + '곳 (흐린 것이 뜻이다):');
+      for (const x of 결과.예외) console.log('       · ' + x);
+    }
+    if (결과.의심.length) {
+      console.log('     의심 ' + 결과.의심.length + '곳 (코드로 못 가린다 — 눈으로 볼 것):');
+      for (const x of 결과.의심.slice(0, 8)) console.log('       · ' + x);
+    }
+    console.log('     글자 없는 덩이(막대 · 점) ' + 결과.막대.length + '곳 — 읽을 글자가 없다');
+  };
+
+  const 칩 = tokens['--bg-tertiary'];
   console.log('     칩 바탕 ' + 칩 + ' — 흐린 글자 ' + ratio(tokens['--text-muted'], 칩)
     + ' · 보조 글자 ' + ratio(tokens['--text-secondary'], 칩));
-  ok('칩 바탕 위에서 4.5 를 못 지키는 글자', [...new Set(난것)], []);
-  // **의심은 FAIL 이 아니다** — 조건이 서로 달라 코드로는 못 가린다. 눈으로 볼 목록이다
-  if (예외.length) {
-    console.log('     못 누르는 상태라 비킨 자리 ' + 예외.length + '곳 (흐린 것이 뜻이다):');
-    for (const x of [...new Set(예외)]) console.log('       · ' + x);
-  }
-  if (의심.length) {
-    console.log('     의심 ' + [...new Set(의심)].length + '곳 (조건이 서로 다르다 — 눈으로 볼 것):');
-    for (const x of [...new Set(의심)].slice(0, 8)) console.log('       · ' + x);
-  }
+  적는다('칩 바탕 위에서 4.5 를 못 지키는 글자',
+    면검사(['--bg-tertiary'], '(?:background|backgroundColor|dim)'));
+
+  console.log('');
+  console.log('── 3-3. 밝은 색을 면으로 칠한 자리의 글자 ──');
+  // 「정지」가 여기 걸릴 자리였다 — 면이 밝으면 **금 글자도 흐린 글자도 안 보인다**.
+  // 면으로 칠해도 되는 밝은 토큰이면 글자는 `--on-accent` · `--on-danger` 중 하나다
+  적는다('밝은 면 위에서 4.5 를 못 지키는 글자',
+    면검사(['--accent', '--accent-hover', '--accent-low', '--success', '--warning',
+            '--danger', '--danger-strong', '--info'], '(?:background|backgroundColor)'));
 }
 
 console.log('');
