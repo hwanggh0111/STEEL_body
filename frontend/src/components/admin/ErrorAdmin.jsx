@@ -162,7 +162,7 @@ export default function ErrorAdmin() {
         </div>
       ) : rows.length === 0 ? (
         <div className="empty-state" style={{ padding: '40px 0' }}>
-          <div className="empty-state-title">없음</div>
+          <div className="empty-state-title">화면 오류 없음</div>
           <div className="empty-state-desc">
             터진 화면이 없습니다. 좋은 상태예요.
           </div>
@@ -206,23 +206,30 @@ export default function ErrorAdmin() {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {groups.map(g => {
+            {groups.map((g, i) => {
               const opened = open === g.key;
               return (
                 <div key={g.key} className="card" style={{ padding: '12px 14px' }}>
                   <div
                     role="button"
                     tabIndex={0}
+                    aria-expanded={opened}
+                    aria-controls={`error-${i}`}
                     onClick={() => setOpen(opened ? null : g.key)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(opened ? null : g.key); } }}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
                   >
-                    <div style={{
-                      fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
-                      // 여러 번 난 것은 **여러 사람이 걸린 길**이다. 한 번과 다르게 보여야 한다
-                      color: g.count >= 3 ? 'var(--danger)' : 'var(--text-secondary)',
-                      lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0,
-                    }}>{g.count}</div>
+                    {/* 여러 번 난 것을 **색으로만** 말하지 않는다 — 까닭은
+                        `ServerErrorAdmin.jsx` 의 같은 자리에 적었다 (한 쌍이다) */}
+                    <div style={{ minWidth: 34, textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{
+                        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
+                        color: 'var(--text-primary)', lineHeight: 1,
+                      }}>{g.count}</div>
+                      {g.count >= 3 && (
+                        <div style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.4, marginTop: 2 }}>몰림</div>
+                      )}
+                    </div>
 
                     <div style={{ flexGrow: 1, minWidth: 0 }}>
                       <div style={{
@@ -240,7 +247,13 @@ export default function ErrorAdmin() {
                   </div>
 
                   {opened && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <div id={`error-${i}`} style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                      {/* 머리줄의 터진 말은 잘린다 — 전문을 여기 먼저 둔다
+                          (`ServerErrorAdmin.jsx` 의 같은 자리에 까닭을 적었다) */}
+                      <div style={{
+                        fontSize: 13, lineHeight: 1.7, color: 'var(--text-primary)',
+                        wordBreak: 'break-word', marginBottom: 8,
+                      }}>{g.key}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                         처음 {day(g.first)} · 마지막 {day(g.last)}
                       </div>

@@ -131,7 +131,9 @@ export default function ServerErrorAdmin() {
         </div>
       ) : data.total === 0 ? (
         <div className="empty-state" style={{ padding: '40px 0' }}>
-          <div className="empty-state-title">없음</div>
+          {/* 「없음」 한 마디는 **무엇이 없는지**를 말하지 않는다. 탭을 여럿 둔 화면에서
+              빈 칸만 보면 어느 칸을 열어둔 것인지조차 흐려진다 (맵시 · 11/27) */}
+          <div className="empty-state-title">서버 오류 없음</div>
           <div className="empty-state-desc">
             서버가 거절한 것이 없습니다. 좋은 상태예요.
           </div>
@@ -182,16 +184,28 @@ export default function ServerErrorAdmin() {
                   <div
                     role="button"
                     tabIndex={0}
+                    aria-expanded={opened}
+                    aria-controls={`servererror-${i}`}
                     onClick={() => setOpen(opened ? null : i)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(opened ? null : i); } }}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
                   >
-                    <div style={{
-                      fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
-                      // 여러 번 난 것은 **여러 사람이 걸린 길**이다. 한 번과 다르게 보여야 한다
-                      color: g.count >= 3 ? 'var(--danger)' : 'var(--text-secondary)',
-                      lineHeight: 1, minWidth: 30, textAlign: 'right', flexShrink: 0,
-                    }}>{g.count}</div>
+                    {/* ── 여러 번 난 것을 **색으로만** 말하지 않는다 ── (2026-11-27 · 맵시)
+                        넘겨받은 꼴은 `count >= 3` 이면 숫자를 빨갛게 했다. 색만으로는
+                        「몰렸다」를 말할 수 없다 — 색이 안 보이는 눈에는 **큰 수와 작은
+                        수가 같아** 보이고, 서버 오류는 **한 번만 나도 큰 것**이라
+                        흐린 보조색으로 깎을 자리도 아니다. 숫자는 늘 본문색으로 두고
+                        **「몰림」이라고 적는다** — 색과 글자 둘로 말한다.
+                        (63차 「밝기로는 눌린다를 말할 수 없다」와 같은 뿌리) */}
+                    <div style={{ minWidth: 34, textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{
+                        fontFamily: "'Bebas Neue', 'BI Sans KR', sans-serif", fontSize: 24, letterSpacing: 1,
+                        color: 'var(--text-primary)', lineHeight: 1,
+                      }}>{g.count}</div>
+                      {g.count >= 3 && (
+                        <div style={{ fontSize: 11, color: 'var(--danger)', lineHeight: 1.4, marginTop: 2 }}>몰림</div>
+                      )}
+                    </div>
 
                     <div style={{ flexGrow: 1, minWidth: 0 }}>
                       <div style={{
@@ -209,7 +223,16 @@ export default function ServerErrorAdmin() {
                   </div>
 
                   {opened && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <div id={`servererror-${i}`} style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                      {/* ── **잘린 말을 어디서도 읽을 수 없었다** ── (2026-11-27 · 맵시)
+                          머리줄의 터진 말은 `nowrap` + … 로 잘린다. 폰 폭에서는 거의 늘
+                          잘리고(`TypeError: Cannot read properties of undefined …`),
+                          펼쳐도 **코드 줄만** 있었다 — 전문을 보는 길이 「전부 복사」
+                          하나뿐이었다. 고치려면 터진 말을 읽어야 한다. 여기 먼저 둔다 */}
+                      <div style={{
+                        fontSize: 13, lineHeight: 1.7, color: 'var(--text-primary)',
+                        wordBreak: 'break-word', marginBottom: 8,
+                      }}>{p.말}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
                         처음 {때(g.first)} · 마지막 {때(g.last)}
                       </div>
@@ -235,22 +258,30 @@ export default function ServerErrorAdmin() {
               <button
                 className="btn-secondary"
                 onClick={() => setRaw(!raw)}
+                aria-expanded={raw}
+                aria-controls="servererror-recent"
                 style={{ fontSize: 12 }}
               >
                 {raw ? '최근 줄 접기' : `최근 줄 그대로 보기 (${data.recent.length})`}
               </button>
               {raw && (
-                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div id="servererror-recent" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* ── 때와 줄을 **한 덩이로 흘리지 않는다** ── (2026-11-27 · 맵시)
+                      한 줄이 폰 폭에서 대여섯 줄로 접히는데, 그 머리에 시각이 같은
+                      크기로 붙어 있으면 **어디가 한 건의 시작인지** 안 보인다. 글자를
+                      150~200% 로 키우면 더 심하다. 시각을 윗줄로 올려 **훑을 수 있게**
+                      두고, 고정폭은 줄 쪽에만 쓴다(시각은 본문 글꼴이 읽기 쉽다) */}
                   {data.recent.map((r, i) => (
                     <div key={`${r.timestamp}-${i}`} style={{
-                      fontSize: 11, lineHeight: 1.7, color: 'var(--text-secondary)',
-                      fontFamily: 'ui-monospace, Menlo, monospace',
                       background: 'var(--bg-primary)', border: '1px solid var(--border)',
                       borderRadius: 'var(--radius)', padding: '6px 8px',
-                      wordBreak: 'break-word',
                     }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{때(r.timestamp)}</span>
-                      {' '}{r.detail}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{때(r.timestamp)}</div>
+                      <div style={{
+                        fontSize: 11, lineHeight: 1.7, color: 'var(--text-secondary)',
+                        fontFamily: 'ui-monospace, Menlo, monospace',
+                        wordBreak: 'break-word',
+                      }}>{r.detail}</div>
                     </div>
                   ))}
                 </div>
