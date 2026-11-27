@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "3593785270",
+  "detailVersion": "4aa976a6ed",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "eda3733",
+      "date": "2026-11-27",
+      "text": "판 번호가 문장 앞에 섰다 — 제 줄로 내리고 괄호를 안 갈리게 한다 (정석 넘김)",
+      "label": "고침",
+      "scope": "꼴",
       "has": true
     },
     {
@@ -1126,14 +1134,6 @@
       "key": "0830940",
       "date": "2026-11-20",
       "text": "글자를 키운 사람에게만 탭 이름을 접는다 (시안 ④ 중간안)",
-      "label": "새 기능",
-      "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "a82e7f4",
-      "date": "2026-11-20",
-      "text": "잠금을 한 화면에 — 지문을 자판의 빈 칸으로 (시안 ① · 625→483px)",
       "label": "새 기능",
       "scope": "꼴",
       "has": true
