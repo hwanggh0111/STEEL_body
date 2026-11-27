@@ -191,10 +191,14 @@ function _syncPhotosIfChanged() {
 }
 
 function loadPhotos() {
+  // 만진 때를 적는다 — 「쉬면 놓는다」가 이 값을 본다 (아래 `_freePhotosIfIdle`)
+  _touchPhotos();
   if (_photoCache) { _syncPhotosIfChanged(); return _photoCache; }
   try {
     if (storage.existsSync(storage.PHOTOS)) {
-      _photoCache = JSON.parse(storage.readSync(storage.PHOTOS));
+      const 날글 = storage.readSync(storage.PHOTOS);
+      _photoBytes = 날글.length;              // 판이 큰지 — 놓을지 말지를 이 수로 정한다
+      _photoCache = JSON.parse(날글);
       if (!Array.isArray(_photoCache.photos)) _photoCache.photos = [];
       _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
       return _photoCache;
@@ -221,6 +225,14 @@ function loadPhotos() {
 // **여기는 들여쓰기를 안 넣는다** — 사람이 읽을 파일이 아니고 base64 덩어리다
 function _flushPhotos() {
   if (!_photoDirty || !_photoCache) return;
+  // ★ **걸린 타이머를 여기서 끈다** (2026-11-27 · 정석)
+  //
+  // 여태 `savePhotoStore` 가 건 타이머가 **쓴 뒤에도 남아 있었다.** 다시 깨어나도
+  // 위 한 줄에서 바로 돌아오니 해롭지 않아 보였는데, 두 가지가 딸려 있다 —
+  //   · 「지금 쓸 것이 걸려 있나」를 그 값으로 볼 수 없다(늘 걸린 것처럼 보인다).
+  //     쉬면 사진 판을 놓는 손이 **그 값을 보고 영영 안 놓았다** — 자가 잡았다
+  //   · 쉬는 타이머가 이벤트 루프를 붙잡아 검사가 안 끝나는 자리가 생긴다
+  if (_photoTimer) { clearTimeout(_photoTimer); _photoTimer = null; }
   // 안 쓴 것이 있으면 합칠 수가 없다 — **말하고 덮는다** (본체와 같은 대접)
   const outside = _photoChangedOutside();
   if (outside !== null) {
@@ -236,6 +248,7 @@ function _flushPhotos() {
     return;
   }
   _photoDirty = false;
+  _photoBytes = text.length;            // 판이 큰지 (쉬면 놓을지를 이 수로 정한다)
   storage.write(storage.PHOTOS, text).then(() => {
     // 우리가 쓴 시각을 기억한다 — 이 값이 「바깥에서 바뀌었나」의 기준이다
     _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
@@ -254,8 +267,12 @@ function _flushPhotos() {
 /** 끝나는 자리용 — 동기로, 원자적으로 */
 function _flushPhotosSync() {
   if (!_photoDirty || !_photoCache) return;
+  if (_photoTimer) { clearTimeout(_photoTimer); _photoTimer = null; }   // 위와 같은 까닭
+
   try {
-    storage.writeSync(storage.PHOTOS, JSON.stringify(_photoCache));
+    const text = JSON.stringify(_photoCache);
+    _photoBytes = text.length;
+    storage.writeSync(storage.PHOTOS, text);
     _photoDirty = false;
     _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
   } catch (err) {
@@ -268,6 +285,59 @@ function savePhotoStore() {
   _photoDirty = true;
   if (_photoTimer) clearTimeout(_photoTimer);
   _photoTimer = setTimeout(_flushPhotos, 500);
+}
+
+// ── ★ **안 쓸 때는 사진 판을 램에서 놓는다** ── (2026-11-27 · 정석, 주인 「서버 최적화」)
+//
+// ── 잰 수 ──
+//
+// 사진을 다 채운 **사람 60명**이면 사진 판이 이렇다(장당 480KB · 줄인 선 안쪽) —
+//
+//   날글(파일/Postgres 에 든 꼴)   80MB
+//   푼 것(이 캐시가 드는 꼴)       80MB      ← 여기서 놓는 몫
+//   저장할 때 만드는 문자열        +80MB     ← 그 순간 **세 벌**이 된다
+//
+// 서버는 **`--max-old-space-size=256`** 으로 돈다. 즉 사진만으로 뚜껑의 2/3 를
+// 쓰고, 저장이 겹치는 순간 **넘는다.** Render 무료 판은 메모리를 넘기면 **바로
+// 죽인다** — 그때 램에만 있던 것이 사라진다(이 파일 곳곳에 적힌 그 꼴이다).
+//
+// ── 왜 놓아도 되나 ──
+//
+// `loadPhotos()` 는 캐시가 없으면 **다시 읽어 푼다** — 즉 놓는 것은 「사진 쪽만
+// 갓 뜬 상태」와 같다. 사진은 **드물게 보고 드물게 바꾼다**(운동 기록과 다르다).
+// 다시 푸는 값(60명이면 ~300ms · 0.1 코어면 그 몇 배)을 **쉰 뒤 처음 보는 사람
+// 한 번**이 치르고, 그 대신 **늘 80MB 가 비어 있다.**
+//
+// ── 놓지 않는 자리 (여기가 중요하다) ──
+//
+//   · **안 쓴 것이 있으면**(`_photoDirty`) 절대 안 놓는다 — 놓으면 그 사진이 사라진다
+//   · **쓰기가 걸려 있으면**(`_photoTimer`) 안 놓는다 — 그 손이 `_photoCache` 를 본다
+//   · **작은 판은 안 놓는다** — 다시 푸는 값만 치르고 얻는 것이 없다
+const PHOTO_FREE_MS = 120000;         // 2분 동안 아무도 안 보면
+const PHOTO_FREE_MIN = 8 * 1048576;   // 그런데 8MB 는 넘을 때만 (작은 판은 그대로 둔다)
+let _photoTouchedMs = 0;              // 마지막으로 사진 판을 만진 때
+let _photoBytes = 0;                  // 마지막에 쓴 날글 길이 (판이 큰지 보는 자)
+let _photoFreeTimer = null;
+let _photoFreedCount = 0;             // 몇 번 놓았나 (자가 본다)
+
+function _touchPhotos() {
+  _photoTouchedMs = Date.now();
+  if (_photoFreeTimer) return;
+  // **아주 조금씩만 깨운다** — 요청마다 타이머를 다시 걸면 그것이 값이 된다
+  _photoFreeTimer = setInterval(_freePhotosIfIdle, 30000);
+  // 이 타이머 때문에 프로세스가 안 끝나면 안 된다 (검사 · 끝내기 길)
+  if (typeof _photoFreeTimer.unref === 'function') _photoFreeTimer.unref();
+}
+
+function _freePhotosIfIdle() {
+  if (!_photoCache) return;
+  if (_photoDirty || _photoTimer) return;                 // 잃을 것이 있으면 안 놓는다
+  if (Date.now() - _photoTouchedMs < PHOTO_FREE_MS) return;
+  if (_photoBytes && _photoBytes < PHOTO_FREE_MIN) return;  // 작은 판
+  _photoCache = null;
+  _photoWriteMs = 0;                                      // 다시 읽을 때 새로 잰다
+  _photoFreedCount += 1;
+  if (_photoFreeTimer) { clearInterval(_photoFreeTimer); _photoFreeTimer = null; }
 }
 
 // 계정을 지울 때 사진도 같이 지운다
@@ -2049,6 +2119,23 @@ const db = {
    * 없었다** — 그래서 재는 쪽이 0.00MB 를 보고 「사진은 가볍다」로 읽을 뻔했다 (2026-09-18)
    */
   flushPhotosNow() { _flushPhotosSync(); },
+
+  /**
+   * **사진 판을 지금 램에 들고 있나** (2026-11-27 · 정석).
+   *
+   * 「쉬면 놓는다」가 정말 도는지 보는 창이다 — 자가 이것으로 **값을** 본다
+   * (`check-photofree`). 사람 길에서는 안 쓴다.
+   */
+  photoMem() {
+    return { 들고있다: !!_photoCache, 놓은횟수: _photoFreedCount, 날글바이트: _photoBytes };
+  },
+
+  /** 자 전용 — 쉰 것으로 보고 놓아 본다 (2분을 기다리지 않게) */
+  freePhotosForTest() {
+    _photoTouchedMs = 0;
+    _freePhotosIfIdle();
+    return !_photoCache;
+  },
 
   // ── 계정 삭제 예약 (30일 유예) ──
   //

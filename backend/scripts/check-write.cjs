@@ -72,9 +72,20 @@ function whoIsInFile() {
   ok('db.drain 은 기다린 뒤에 쓴다',
     near.indexOf('await storage.drain()') < near.indexOf('_flushImmediate()'), true);
   // 사진 쓰기가 실패하면 **다시 걸어야** 한다 (표시만 하면 램에만 남는다)
+  //
+  // ★ **창을 글자 수로 재지 않는다** (2026-11-27 · 정석). 여태 `ph + 1200` 으로
+  //   잘라 봤는데, 그 함수에 **주석 열한 줄을 더하자 과녁이 창 밖으로 밀려** 이
+  //   줄이 FAIL 했다 — 코드는 멀쩡한데 자가 운 것이다(거짓 FAIL). 자가 글자
+  //   거리에 매이면 **주석을 적는 것이 위험한 일**이 된다. 함수 끝까지 본다
   const ph = dbSrc.indexOf('function _flushPhotos()');
+  // 줄끝은 그 파일에서 읽는다 — 이 저장소에는 CRLF 와 LF 가 섞여 있다
+  const NL_SRC = dbSrc.includes(String.fromCharCode(13, 10)) ? String.fromCharCode(13, 10) : String.fromCharCode(10);
+  const 끝 = dbSrc.indexOf(NL_SRC + '}', ph);
+  const 사진손 = dbSrc.slice(ph, 끝 > ph ? 끝 : ph + 4000);
   ok('사진 쓰기 실패 뒤 다시 쓴다',
-    /_photoTimer = setTimeout\(_flushPhotos/.test(dbSrc.slice(ph, ph + 1200)), true);
+    /_photoTimer = setTimeout\(_flushPhotos/.test(사진손), true);
+  // **0건은 통과가 아니다** — 함수를 못 찾았으면 이 줄이 운다
+  ok('  그 함수를 찾았다', ph > 0 && 사진손.length > 200, true);
 
   // ── 4. **동기 쓰기와 비동기 쓰기가 겹칠 때** ── (2026-11-24)
   //
