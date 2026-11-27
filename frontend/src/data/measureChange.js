@@ -77,7 +77,24 @@ export function changeOf(records, key, today = dateKey()) {
   if (rows.length === 0) return null;
   const last = num(rows[0].data[key]);
   if (last === null) return null;
-  const prevRow = rows[1] || null;
+  // ── **같은 날 두 번 잰 것을 「변화」로 세지 않는다** ── (2026-11-27 · 정석 검토 넘김)
+  //
+  // 위 `withKey` 머리글이 **같은 날은 나중에 적은 것(id 큰 것)을 앞에 둔다**고 적어뒀다 —
+  // 「최근」을 저녁 것으로 고르는 그 자리는 맞다. 그런데 **「지난번」을 `rows[1]` 로
+  // 그냥 들고 있었다**: 아침에 118, 저녁에 121 을 재면 지난번이 **그날 아침**이 되어
+  //
+  //     121 · +3.0cm · 같은 날
+  //
+  // 이 뜬다. `sinceLabel` 이 「같은 날」을 붙여주니 **거짓은 아니지만**, 그 줄은
+  // **변화로 읽힌다** — 어깨 · 허리는 하루 안에서도 그만큼 달라진다(먹고 난 뒤 · 붓기 ·
+  // 펌핑). 「얼마나 달라졌나」를 말하는 자리에서 **하루 안의 흔들림을 변화로 내보내면**
+  // 그 사람은 늘지 않은 것을 늘었다고 읽는다. **측정 셋이 이 손을 같이 쓴다**
+  // (전신 사이즈 · 체력 테스트 · 유연성).
+  //
+  // 그래서 **날짜가 다른 첫 줄**을 지난번으로 든다. 같은 날 것밖에 없으면 `prev` 는
+  // `null` 이다 — 화면은 그때 「견줄 것이 없다」로 그린다(한 번만 적은 날과 같다).
+  // 같은 날 두 줄을 **보여주는** 것은 따로 할 일이다(시안 `1127-new` 의 안 B 꼬리표).
+  const prevRow = rows.find((r) => r.date !== rows[0].date) || null;
   const prev = prevRow ? num(prevRow.data[key]) : null;
   const d1 = dayStart(rows[0].date);
   const d0 = prevRow ? dayStart(prevRow.date) : null;

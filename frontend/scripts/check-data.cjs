@@ -622,12 +622,37 @@ ok('한 번만 적었으면 견주지 않는다', mc.changeOf([rows[0]], 'pushup
 ok('안 적은 항목은 null 을 준다', mc.changeOf(rows, 'plank'), null);
 // 빈 칸으로 저장한 기록이 최신인 척하면 안 된다
 // 아침에 재고 저녁에 또 재면 날짜가 같다. 들어온 차례대로 두면 「지난번」이 뒤집힌다
+const 하루두번 = [
+  { id: 5, date: '2026-09-01', data: { pushup: '31' } },
+  { id: 6, date: '2026-09-01', data: { pushup: '35' } },
+  { id: 4, date: '2026-08-20', data: { pushup: '28' } },
+];
 ok('같은 날 두 번 재면 나중에 적은 것이 최신이다',
+  mc.changeOf(하루두번, 'pushup').last, 35);
+// ── **같은 날 두 번 잰 것을 「변화」로 세지 않는다** ── (2026-11-27 · 정석 검토 넘김)
+//
+// 「최신」을 저녁 것으로 고르는 자리는 맞았다. 그런데 **「지난번」을 `rows[1]` 로 그냥
+// 들고 있었다** — 아침 31 · 저녁 35 면 지난번이 **그날 아침**이 되어 「+4개 · 같은 날」이
+// 뜬다. `sinceLabel` 이 「같은 날」을 붙이니 거짓은 아니지만 **변화로 읽힌다**:
+// 어깨 · 허리는 하루 안에서도 그만큼 흔들린다(붓기 · 펌핑 · 먹고 난 뒤).
+// 측정 셋이 이 손을 같이 쓴다.
+ok('★ 같은 날 두 줄이면 **그 전날 줄**을 지난번으로 든다',
+  [mc.changeOf(하루두번, 'pushup').prev, mc.changeOf(하루두번, 'pushup').diff], [28, 7]);
+ok('  며칠 만인지도 그 줄로 센다 (0 이 아니다)', mc.changeOf(하루두번, 'pushup').days, 12);
+// 같은 날 것밖에 없으면 견줄 것이 없다 — 한 번만 적은 날과 같은 꼴이다.
+// 0 으로 치거나 아침과 견주면 「+4개 늘었다」가 되는데, 그건 안 늘어난 것이다
+ok('★ 같은 날 것뿐이면 견주지 않는다',
+  (() => { const c = mc.changeOf(하루두번.slice(0, 2), 'pushup'); return [c.prev, c.diff, c.days]; })(),
+  [null, null, null]);
+ok('  그래도 최신은 저녁 것이다', mc.changeOf(하루두번.slice(0, 2), 'pushup').last, 35);
+// 같은 날이 **셋**이어도 (아침 · 점심 · 저녁) 그 셋을 다 건너뛴다
+ok('  같은 날이 셋이어도 다 건너뛴다',
   mc.changeOf([
-    { id: 5, date: '2026-09-01', data: { pushup: '31' } },
-    { id: 6, date: '2026-09-01', data: { pushup: '35' } },
+    { id: 9, date: '2026-09-01', data: { pushup: '30' } },
+    { id: 8, date: '2026-09-01', data: { pushup: '33' } },
+    { id: 7, date: '2026-09-01', data: { pushup: '35' } },
     { id: 4, date: '2026-08-20', data: { pushup: '28' } },
-  ], 'pushup').last, 35);
+  ], 'pushup').prev, 28);
 ok('빈 값은 적은 것으로 치지 않는다',
   mc.changeOf([{ id: 4, date: '2026-09-02', data: { pushup: '' } }, ...rows], 'pushup').last, 34);
 
