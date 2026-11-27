@@ -15,16 +15,17 @@
 // 「벤치 프레스」로 적어둔 시트 번호가 다음에 「벤치프레스」로 들어가면 **사라졌다.**
 // 쉬는 시간과 원판은 그 둘을 한 운동으로 기억하고 있는데 세팅만 없으니, 사람 눈에는
 // **안 적어둔 것**으로 보인다. 운동 이름은 홈 · 검색 · 루틴에서 자유 글자로 들어온다.
-import { flatName } from './flatName';
+import { sameName } from './flatName';
 
 /**
  * 같은 운동인가. **세팅을 찾는 자리는 다 이것으로 견준다** (화면 · 스토어 · 베끼기).
  * 서버도 같은 식으로 한 줄을 지킨다(`db.js` 의 `sameExercise`).
  */
-export const sameExercise = (a, b) => {
-  const x = flatName(a);
-  return !!x && x === flatName(b);
-};
+// ★ **식을 베끼지 않고 뿌리의 손을 부른다** (2026-11-27 · 정석) — 글자까지 같은
+//   식이 두 벌이면 한쪽만 고쳐지는 날이 온다(이 파일 머리글이 경계하는 그 꼴이다).
+//   이름은 `sameExercise` 로 둔다 — 서버의 짝(`db.js` 의 같은 이름)과 `check-gymkey`
+//   가 그 이름으로 둘을 견준다
+export const sameExercise = (a, b) => sameName(a, b);
 
 /** 서버가 받는 칸 셋. 기구마다 조절하는 것이 달라 **다 비워둘 수 있다** */
 export const SLOTS = [

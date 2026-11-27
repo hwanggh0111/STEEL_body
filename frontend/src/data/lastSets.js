@@ -1,3 +1,4 @@
+
 // 적는 자리가 **지난 판을 읽는 셈** (2026-11-05).
 //
 // ── 무엇이 없었나 ──
@@ -44,6 +45,7 @@ import { particle } from './particle';
 // 유산소 줄은 무게가 아니라 **시간 · 거리**다 (2026-11-05)
 import { isCardioRow, cardioText } from './cardio';
 import { WEIGHT_KG_MAX, REPS_MAX } from './limits';
+import { sameName } from './flatName';
 
 /** 올리는 칸을 모를 때 쓰는 값 — 바에 꽂는 제일 작은 원판 짝(1.25kg × 2) */
 export const DEFAULT_STEP = 2.5;
@@ -111,7 +113,7 @@ export function sessionsOf(workouts, exercise, today = null, { max = MAX_SESSION
 
   const out = [];
   for (const date of dates) {
-    const list = (workouts[date] || []).filter((w) => String(w?.exercise ?? '').trim() === name);
+    const list = (workouts[date] || []).filter((w) => sameName(w?.exercise, name));
     if (!list.length) continue;
 
     // 적은 차례로 — 목록은 최신이 위라 그대로 그리면 세트가 거꾸로 읽힌다.
@@ -424,7 +426,7 @@ export function lastRecordOf(workouts, exercise, today = null, writing = null) {
     .reverse();
   for (const date of dates) {
     const hit = newestIn(workouts[date] || [],
-      (w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
+      (w) => sameName(w?.exercise, name) && w?.link !== 'drop');
     if (hit) return { ...hit, date };
   }
   return null;
@@ -451,7 +453,7 @@ export function plannedSetsOf(workouts, exercise, today = null, writing = null, 
     .reverse();
   for (const date of dates) {
     const hit = (workouts[date] || [])
-      .find((w) => String(w?.exercise ?? '').trim() === name && w?.link !== 'drop');
+      .find((w) => sameName(w?.exercise, name) && w?.link !== 'drop');
     const n = posInt(hit?.sets);
     if (n) return n;
   }
@@ -480,7 +482,7 @@ export function lastNoteOf(workouts, exercise, today = null, writing = null) {
     // 그 날 안에서는 **나중에 적은 줄이 먼저** — 마지막 세트에 붙인 말이 제일 새것이다.
     // 끝에서부터 걸으면 서버 차례(앞이 최신)에서는 **가장 오래된** 메모를 집었다 —
     // 적은 시각으로 고른다(위 `newestIn`, 2026-11-25 · 근호)
-    const w = newestIn(workouts[date] || [], (x) => String(x?.exercise ?? '').trim() === name && x?.note);
+    const w = newestIn(workouts[date] || [], (x) => sameName(x?.exercise, name) && x?.note);
     if (w) return { note: String(w.note), date };
   }
   return null;

@@ -17,6 +17,7 @@
 //
 // kg 은 **숫자로** 견준다 — 「82.5」와 「82.50」은 같은 무게다
 import { parseWeight } from './personalRecord';
+import { sameName } from './flatName';
 
 const sameKg = (a, b) => Math.abs(a - b) < 1e-9;
 
@@ -38,7 +39,7 @@ export function sameWeightBest(workouts, row, today = null) {
   for (const [date, list] of Object.entries(workouts || {})) {
     if (today && date > today) continue;
     for (const w of list || []) {
-      if (String(w?.exercise ?? '').trim() !== name || w?.link === 'drop') continue;
+      if (!sameName(w?.exercise, name) || w?.link === 'drop') continue;
       const wkg = parseWeight(w.weight);
       if (wkg === null || !sameKg(wkg, kg)) continue;
       const r = Number(w.reps);

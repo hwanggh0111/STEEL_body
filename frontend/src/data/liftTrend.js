@@ -26,6 +26,7 @@
 //
 // 계산은 여기 한 자리에 둔다. 화면은 그리기만 한다 — `npm run data` 가 값으로 본다.
 import { parseWeight } from './personalRecord';
+import { sameName } from './flatName';
 
 /** 그릴 수 있는 기간. 「길면 더 좋다」가 아니다 — 폰 폭에 점이 너무 많으면 뭉친다 */
 export const SPANS = [
@@ -110,7 +111,7 @@ export function trendOf(workouts, exercise, { today = null, days = null, metric 
     if (today && date > today) continue;
     if (from && date < from) continue;
     for (const w of list || []) {
-      if ((w?.exercise || '').trim() !== want) continue;
+      if (!sameName(w?.exercise, want)) continue;
       const kg = read(w);
       if (kg === null) continue;
       const cur = top.get(date);

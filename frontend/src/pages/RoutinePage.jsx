@@ -79,6 +79,7 @@ import ProgramList from './routine/ProgramList';
 // 영영 안 들어간다.** 한 번이 아니라 매번. 「랫풀다운」을 「렛풀다운」으로 적어두면
 // 등은 영영 식은 채로 보인다.
 import ExerciseNameInput from '../components/ExerciseNameInput';
+import { sameName } from '../data/flatName';
 
 export default function RoutinePage() {
   // 어느 쪽을 보고 있나. 하던 루틴이나 만들어둔 루틴이 있으면 「내 루틴」이 먼저다 —
@@ -408,7 +409,7 @@ export default function RoutinePage() {
   const addToRoutine = async (routine, exercise) => {
     const id = routine.id ?? routine._id;
     const list = Array.isArray(routine.exercises) ? routine.exercises : [];
-    if (list.some(e => (typeof e === 'string' ? e : e?.name) === exercise.name)) {
+    if (list.some(e => sameName(typeof e === 'string' ? e : e?.name, exercise.name))) {
       toast(`"${routine.name}"에 이미 있는 운동이에요`);
       return;
     }

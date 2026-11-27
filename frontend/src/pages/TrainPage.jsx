@@ -54,6 +54,7 @@ import { readSore } from '../data/soreLocal';
 import GymSetting from '../components/GymSetting';
 import { useGymStore } from '../store/gymStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { sameName } from '../data/flatName';
 
 // 운동 — 5차 리모델링(2026-09-04).
 //
@@ -572,7 +573,7 @@ export default function TrainPage() {
   const zone = zoneOf(pct);
   // 워밍업은 **아직 한 세트도 안 한 운동에만** 보여준다. 세트를 하고 있는데
   // 「빈 바부터 올라가세요」가 떠 있으면 다 한 일을 다시 하라는 말이 된다
-  const doneToday = (workouts[date] || []).some(w => (w.exercise || '').trim() === exercise.trim());
+  const doneToday = (workouts[date] || []).some(w => sameName(w.exercise, exercise));
   // ── **꽂을 원판이 있느냐는 운동이 정한다** ── (2026-10-22)
   //
   // 고른 바(`barKg`)는 기기에 남는다 — 「그 헬스장에 어떤 바가 있나」라서다.
@@ -876,7 +877,7 @@ export default function TrainPage() {
       }
       // **폼이 그 운동이 아니면 폼을 비우지 않는다** — 쉬는 사이에 다른 운동을
       // 적던 중일 수 있다 (세트 칸에서 온 경우)
-      if (!over || exercise.trim() === name) setPicked(null);
+      if (!over || sameName(exercise, name)) setPicked(null);
     } catch (err) {
       setError(err.response?.data?.error || '저장하지 못했어요');
     } finally {
@@ -919,8 +920,8 @@ export default function TrainPage() {
 
   /** 지금 칸을 그 세트 수로 적는다. 폼의 무게 · 횟수를 쓴다 (없으면 지난 기록) */
   const saveRoutineSets = async (item, count) => {
-    const last = lastRecord && lastRecord.exercise?.trim() === item.name.trim() ? lastRecord : null;
-    const sameForm = exercise.trim() === item.name.trim();
+    const last = lastRecord && sameName(lastRecord.exercise, item.name) ? lastRecord : null;
+    const sameForm = sameName(exercise, item.name);
     // **무게도 지어내지 않는다** (2026-10-27) — 바로 아래 횟수와 같은 자다.
     // 폼이 **다른 운동**을 적고 있고 지난 기록도 없으면 몇 kg 인지 알 길이 없는데,
     // 빈 값은 `asWeight` 가 **「맨몸」**으로 바꿔 적었다 — 벤치프레스가 맨몸이 된다
@@ -982,7 +983,7 @@ export default function TrainPage() {
     }
 
     // 폼이 이 운동을 적고 있으면 세트 칸도 맞춰둔다 — 폼으로 저장해도 한 세트 수만큼 들어가게
-    if (!editingId && exercise.trim() === item.name.trim()) {
+    if (!editingId && sameName(exercise, item.name)) {
       setSets(next > 0 ? String(next) : (plannedSets ? String(plannedSets) : ''));
     }
     if (next <= before) return;   // 푼 것이다
@@ -1017,7 +1018,7 @@ export default function TrainPage() {
     if (!s || s.current < 0) return;
     const item = s.items[s.current];
     if (!item) return;
-    if (savedExercise != null && item.name.trim() !== String(savedExercise).trim()) return;
+    if (savedExercise != null && !sameName(item.name, savedExercise)) return;
     try {
       const res = await markItem(s.current, state);
       if (res?.unsaved) {

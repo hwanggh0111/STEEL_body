@@ -128,6 +128,7 @@
     "ver": "node scripts/check-version.cjs",
     "logo": "node scripts/check-logo.cjs",
     "samename": "node scripts/check-samename.cjs",
+    "samekey": "node scripts/check-samekey.cjs",
     "datehands": "node scripts/check-datehands.cjs",
     "dayflip": "node scripts/check-dayflip.cjs",
     "export": "node scripts/check-export.cjs",
