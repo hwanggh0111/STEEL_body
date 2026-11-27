@@ -22,7 +22,8 @@
 //   1. 큰 판은 쉬면 **놓는다** (들고있다 → false)
 //   2. 놓은 뒤에도 **사진이 그대로 돌아온다** — 글자 하나까지
 //   3. ★ **안 쓴 것이 있으면 안 놓는다** — 놓으면 그 사진이 사라진다
-//   4. ★ **쓰기가 걸려 있으면 안 놓는다** — 그 손이 캐시를 본다
+//   4. ★ **쓰기가 걸려 있거나 도는 중이면 안 놓는다** — 그 손이 캐시를 본다
+//      (★ 「도는 중」은 **내가 처음에 빠뜨린 자리**다 — 3-2 절이 그것을 본다)
 //   5. **작은 판은 안 놓는다** — 다시 푸는 값만 치르고 얻는 것이 없다
 //   6. 놓은 뒤 **저장이 멀쩡하다** (다시 읽어 담는다)
 //
@@ -94,7 +95,9 @@ ok('★ 쓰고 놓은 뒤에도 그 사진이 살아 있다', db.getPhotos(9).ma
 console.log('');
 console.log('── 4. 코드에 적힌 선 (시늉할 수 없는 자리) ──');
 const 손 = fs.readFileSync(path.join(__dirname, '..', 'src', 'db.js'), 'utf-8');
-ok('안 쓴 것 · 걸린 쓰기면 비킨다', /_photoDirty \|\| _photoTimer/.test(손), true);
+ok('안 쓴 것 · 걸린 쓰기 · **도는 쓰기**면 비킨다',
+  /_photoDirty \|\| _photoTimer \|\| _photoWriting/.test(손), true);
+ok('  도는 쓰기를 세고 끝에 내린다', /_photoWriting \+= 1/.test(손) && /_photoWriting -= 1/.test(손), true);
 ok('작은 판은 안 놓는다', /_photoBytes < PHOTO_FREE_MIN/.test(손), true);
 ok('깨우는 타이머가 프로세스를 붙잡지 않는다 (unref)', /_photoFreeTimer\.unref/.test(손), true);
 
@@ -124,6 +127,52 @@ db.flushPhotosNow();
 ok('★ 놓인 뒤 담은 것이 남는다', db.getPhotos(30).length, 1);
 ok('  먼저 담은 세 장도 그대로다', db.getPhotos(21).length, 3);
 
+// ★ **이 절은 맨 끝이다** — 쓰기 손을 흉내로 바꿔 물고 있어서, 앞 절들과
+//   겹치면 그 절들이 「안 놓는다」를 결함으로 읽는다(한 번 그렇게 울렸다)
 console.log('');
-console.log(bad ? bad + '건 실패' : '전부 통과');
-process.exit(bad ? 1 : 0);
+console.log('── 3-2. ★ 쓰는 **중에도** 안 놓는다 (내 손의 구멍이었다) ──');
+//
+// `_flushPhotos` 는 문자열을 만든 뒤 **곧바로** `_photoDirty` 를 끄고 그 다음에
+// 비동기로 쓴다. 즉 **쓰는 동안은 안 쓴 것도 없고 타이머도 없다** — 그 틈에 판을
+// 놓으면, 그 쓰기가 실패했을 때 되쓰기 손이 `_photoCache` 를 못 찾아 **그 사진이
+// 사라진다.** 틈을 흉내 내서 본다: 쓰기를 **느리게 하고 실패시킨다**
+{
+  const storage = require('../src/storage');
+  const 진짜쓰기 = storage.write;
+  let 늦추는중 = null;
+  storage.write = (name, text) => {
+    if (name !== storage.PHOTOS) return 진짜쓰기(name, text);
+    // 150ms 뒤에 **실패**한다 — 그 사이가 우리가 보려는 틈이다
+    늦추는중 = new Promise((_, reject) => setTimeout(() => reject(new Error('흉내: 쓰기 실패')), 150));
+    return 늦추는중;
+  };
+  db.savePhoto(40, 'before', 큰장);
+  const 넣은것 = db.getPhotos(40).map((p) => p.data.length);
+  db.flushPhotosNow();                       // 동기 길 — 여기서는 진짜로 쓴다
+  db.savePhoto(41, 'before', 큰장);
+  // 비동기 쓰기를 **지금 돌린다** (타이머를 기다리지 않게)
+  db.photoFlushForTest();
+  ok('쓰기가 도는 중이다', db.photoMem().쓰는중 > 0, true);
+  ok('★ 도는 쓰기 중에는 안 놓는다', db.freePhotosForTest(), false);
+  ok('  그 사진이 그대로 있다', db.getPhotos(41).map((p) => p.data.length).length, 1);
+  // 쓰기가 실패해 되쓰기가 걸린 뒤에도 — 판이 살아 있어야 다시 쓸 수 있다
+  const 기다림 = new Promise((r) => setTimeout(r, 300));
+  module.exports.대기 = 기다림.then(() => {
+    storage.write = 진짜쓰기;
+    ok('★ 쓰기가 실패한 뒤에도 그 사진이 살아 있다', db.getPhotos(41).length, 1);
+    ok('  다시 쓰겠다고 표시돼 있다 (램에만 두지 않는다)', db.photoMem().들고있다, true);
+    db.flushPhotosNow();
+    ok('  되쓰기가 성공한다', db.getPhotos(41).length, 1);
+    ok('  넣은 길이가 그대로다', db.getPhotos(40).map((p) => p.data.length), 넣은것);
+    끝맺기();
+  });
+}
+
+
+// 3-2 절의 뒷마무리(쓰기 실패를 기다리는 몫)가 끝나면 이것이 불린다.
+// **기다리는 것이 있으면 여기서 끝내지 않는다** — 안 그러면 그 절이 조용히 안 돈다
+function 끝맺기() {
+  console.log('');
+  console.log(bad ? bad + '건 실패' : '전부 통과');
+  process.exit(bad ? 1 : 0);
+}

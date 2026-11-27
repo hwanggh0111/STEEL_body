@@ -249,6 +249,7 @@ function _flushPhotos() {
   }
   _photoDirty = false;
   _photoBytes = text.length;            // 판이 큰지 (쉬면 놓을지를 이 수로 정한다)
+  _photoWriting += 1;                   // 도는 동안은 판을 놓지 않는다 (위 까닭)
   storage.write(storage.PHOTOS, text).then(() => {
     // 우리가 쓴 시각을 기억한다 — 이 값이 「바깥에서 바뀌었나」의 기준이다
     _photoWriteMs = storage.statMs(storage.PHOTOS) || 0;
@@ -261,7 +262,7 @@ function _flushPhotos() {
     _photoDirty = true;
     if (_photoTimer) clearTimeout(_photoTimer);
     _photoTimer = setTimeout(_flushPhotos, 1000);
-  });
+  }).finally(() => { _photoWriting -= 1; });
 }
 
 /** 끝나는 자리용 — 동기로, 원자적으로 */
@@ -319,6 +320,7 @@ let _photoTouchedMs = 0;              // 마지막으로 사진 판을 만진 �
 let _photoBytes = 0;                  // 마지막에 쓴 날글 길이 (판이 큰지 보는 자)
 let _photoFreeTimer = null;
 let _photoFreedCount = 0;             // 몇 번 놓았나 (자가 본다)
+let _photoWriting = 0;                // 지금 도는 쓰기 수 (아래 까닭)
 
 function _touchPhotos() {
   _photoTouchedMs = Date.now();
@@ -331,7 +333,17 @@ function _touchPhotos() {
 
 function _freePhotosIfIdle() {
   if (!_photoCache) return;
-  if (_photoDirty || _photoTimer) return;                 // 잃을 것이 있으면 안 놓는다
+  // ── ★ **도는 쓰기 중에는 안 놓는다** ── (2026-11-27 · 정석, 내 손의 구멍)
+  //
+  // `_flushPhotos` 는 문자열을 만든 **뒤 곧바로** `_photoDirty` 를 끄고, 그 다음에
+  // 비동기로 쓴다. 즉 **쓰는 동안은 `_photoDirty` 가 꺼져 있고 타이머도 없다** —
+  // 위 두 값만 보면 그 틈에 판을 놓게 된다. 그 쓰기가 실패하면 되쓰기 손이
+  // `_photoDirty = true` 로 되돌려 `_flushPhotos` 를 다시 부르는데, 그때
+  // **`_photoCache` 가 없어 첫 줄에서 돌아간다** — 그 사진이 사라진다.
+  //
+  // 틈이 짧다고 두면 안 된다: Postgres 쓰기는 망을 건너가고(수백 ms),
+  // 그 사이가 바로 「2분 쉬었다」와 겹칠 수 있는 자리다
+  if (_photoDirty || _photoTimer || _photoWriting) return;   // 잃을 것이 있으면 안 놓는다
   if (Date.now() - _photoTouchedMs < PHOTO_FREE_MS) return;
   if (_photoBytes && _photoBytes < PHOTO_FREE_MIN) return;  // 작은 판
   _photoCache = null;
@@ -2127,8 +2139,11 @@ const db = {
    * (`check-photofree`). 사람 길에서는 안 쓴다.
    */
   photoMem() {
-    return { 들고있다: !!_photoCache, 놓은횟수: _photoFreedCount, 날글바이트: _photoBytes };
+    return { 들고있다: !!_photoCache, 놓은횟수: _photoFreedCount, 날글바이트: _photoBytes, 쓰는중: _photoWriting };
   },
+
+  /** 자 전용 — 걸린 사진 쓰기를 **지금** 돌린다 (0.5초를 기다리지 않게) */
+  photoFlushForTest() { _flushPhotos(); },
 
   /** 자 전용 — 쉰 것으로 보고 놓아 본다 (2분을 기다리지 않게) */
   freePhotosForTest() {
