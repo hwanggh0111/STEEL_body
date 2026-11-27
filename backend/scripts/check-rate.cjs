@@ -37,6 +37,16 @@ fs.writeFileSync(TMP, JSON.stringify({
 const jwt = require('jsonwebtoken');
 const aiGuard = require('../src/middleware/aiGuard');
 
+// ── ★ **찌꺼기를 치우는 공용 손** ── (2026-11-27 · 정석)
+//
+// 이 자는 임시 DB 를 **트리 안**(`backend/.rate-check.json`)에 둔다. 끝에서 제
+// 목록으로 `.json` 둘만 지웠는데 **쓰다 끊기면 `.writing` 이 남는다** — 그 꼴은
+// `.gitignore` 에 안 걸린다. 공용 손은 네 꼴을 다 치우고, **`db.js` 보다 뒤에**
+// 걸려야 한다(db 의 나가는 손이 지운 파일을 되살린다 — `_tmpdb.cjs` 머리글).
+// `aiGuard` 가 `db.js` 를 들이므로 **이 줄이 그 뒤에 있어야 한다**
+// ★ **판은 두고 찌꺼기만** — 위에서 관리자 계정을 깔아뒀다(그것을 지우면 2건이 빨개진다)
+const 치운다 = require('./_tmpdb.cjs')(TMP, { 판은두기: true });
+
 let bad = 0;
 const ok = (name, got, want) => {
   const pass = JSON.stringify(got) === JSON.stringify(want);
@@ -195,8 +205,6 @@ const rate = aiGuard.policy().find((p) => p.title === '너무 잦은 요청');
 ok('계정 몫이 적혀 있다', rate.detail.includes(String(aiGuard.THRESHOLDS.ACCOUNT_RATE_PER_MIN)), true);
 ok('주소 몫도 적혀 있다', rate.detail.includes('주소'), true);
 
-for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
-  if (fs.existsSync(f)) fs.unlinkSync(f);
-}
+치운다();
 console.log('\n' + (bad ? bad + '건 실패' : '전부 통과'));
 process.exit(bad ? 1 : 0);

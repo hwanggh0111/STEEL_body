@@ -89,6 +89,60 @@ console.log('── 원자적 쓰기가 남긴 임시 파일 (`*.writing`) ─�
   }
 }
 
+// ── ★ **찌꺼기를 치우는 손을 등록했는가** ── (2026-11-27 · 정석)
+//
+// 위 꼬리 검사는 **그 자리에 남아 있을 때만** 운다. 그런데 그 꼴이 나는 자리는
+// **서버를 띄워 `kill()` 로 끊는 자 넷**이고(윈도 `kill()` 은 `TerminateProcess` 라
+// 끝내는 손이 아예 안 돈다), 그 찌꺼기는 **그 자를 다시 돌릴 때까지** 트리에 앉아
+// 있는다. 즉 전수를 한 바퀴 돌린 **뒤에** 남는다 — 돌리는 중에 보는 이 자는
+// 그때 조용하다. 11/27 에 둘이 또 남았다(`.check-order.json.writing` ·
+// `.check-range.json.writing`).
+//
+// 고친 뒤 **같은 구멍이 다시 생기지 않게** 보는 자리는 여기다 —
+// **임시 DB 를 쓰는 자가 공용 손(`_tmpdb.cjs`)을 등록하는가.** 그 손은 들어올 때와
+// 나갈 때 `.json` · `.photos.json` · `.writing` · `.writing.sync` 를 다 치운다.
+// 자 서른이 그것을 쓰는데 **서버를 띄우는 넷만 제 목록을 들고 있었고, 거기에
+// `.writing` 이 빠져 있었다.** 새 자를 쓰는 사람이 그것을 기억해야 하는 구조였다.
+//
+// **꼴을 베끼지 않는다** — 「`_tmpdb` 라는 글자가 있나」가 아니라, `DB_FILE` 을 제
+// 임시 파일로 돌리는 자를 **찾아서** 그 자가 그 손을 걸었는지 본다
+console.log('');
+console.log('── 임시 DB 를 쓰는 자가 치우는 손을 걸었는가 ──');
+{
+  const 자리 = path.join(ROOT, 'backend', 'scripts');
+  const 빠진것 = [];
+  let 센것 = 0;
+  for (const name of (fs.existsSync(자리) ? fs.readdirSync(자리) : [])) {
+    if (!/^check-.*\.cjs$/.test(name)) continue;
+    const src = fs.readFileSync(path.join(자리, name), 'utf-8');
+    // ★ **주석을 빼고 본다** — 고친 자리마다 「`_tmpdb.cjs` 로 모았다」고 까닭을
+    //   적어두는데, 글자로 찾으면 **그 설명이 걸려 자가 조용해진다.** 오늘 아침
+    //   `check-version` 이 같은 꼴로 울었다. 자는 **코드**를 봐야 한다
+    const 코드 = src.split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n");
+    if (!코드.includes("DB_FILE")) continue;
+    // ── ★ **트리 안에 두는 자만 본다** ── (첫 판이 열여섯을 거짓으로 걸었다)
+    //
+    // 자 스물여덟은 임시 DB 를 **`os.tmpdir()`** 에 둔다 — 그것이 남아도 작업
+    // 트리는 깨끗하고 `git status` 도 조용하다. **치우는 손이 필요한 것은
+    // 트리 안(`__dirname` 에서 만든 길)에 두는 자**다. 자리로 갈라야 한다 —
+    // 안 가르면 이 자가 고칠 것 없는 열여섯을 불러 세우고, **그 울음에 사람이
+    // 익숙해지면 진짜가 묻힌다**
+    const 안에둔다 = 코드.includes("path.join(__dirname");
+    const 밖에둔다 = 코드.includes("os.tmpdir()");
+    if (!안에둔다 || 밖에둔다) continue;
+    센것 += 1;
+    if (!코드.includes("_tmpdb.cjs")) 빠진것.push(name);
+  }
+  // **0건은 통과가 아니다** — 찾는 꼴이 어긋나면 조용히 다 지나간다
+  ok('트리 안에 임시 DB 를 두는 자를 찾았다 (스물은 넘는다)', 센것 > 20, true);
+  ok('★ 그 자들이 전부 공용 손을 걸었다', 빠진것, []);
+  if (빠진것.length) {
+    console.log('     ↑ 그 자가 끝내도(또는 끊겨도) `.writing` 이 트리에 남는다.');
+    console.log("       고치는 법: `const 치운다 = require('./_tmpdb.cjs')(TMP_DB);` 를 걸고");
+    console.log('       끝에서 `치운다()` 를 부른다 (제 목록을 들고 있으면 꼴이 하나 빠진다)');
+  }
+}
+
 console.log('');
 console.log('── git 이 들고 있는 것 ──');
 let tracked = [];

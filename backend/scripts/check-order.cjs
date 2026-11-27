@@ -18,6 +18,20 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
+// ── ★ **서버를 `kill()` 로 끊으면 쓰다 만 임시 파일이 남는다** ── (2026-11-27 · 정석)
+//
+// 이 자는 **진짜 서버를 띄웠다가 `kill()`** 한다. 윈도에서 `kill()` 은
+// `TerminateProcess` 라 **끝내는 손이 아예 안 돈다** — 서버가 비동기로 쓰던
+// `파일.writing` 이 그 자리에 남는다(`storage.js` 의 원자적 쓰기).
+//
+// 여태 이 자는 **제 목록으로** `.json` 둘만 지웠다 — `.writing` 이 빠져 있었다.
+// `.gitignore` 는 `backend/scripts/*.json` 이라 `.json.writing` 은 **안 걸러져**
+// `git status` 가 더러워지고 `check-tidy` 가 운다(11/27 에 둘이 또 남았다).
+// 자 30개가 쓰는 공용 손(`_tmpdb.cjs`)은 이미 `.writing` 까지 치운다 —
+// 서버를 띄우는 자 넷만 그 손을 안 쓰고 있었다. 같은 손으로 모은다
+const TMP_DB = path.join(__dirname, '.check-order.json');
+const 치운다 = require('./_tmpdb.cjs')(TMP_DB);
+
 let bad = 0;
 const ok = (name, got, want) => {
   const pass = JSON.stringify(got) === JSON.stringify(want);
@@ -53,8 +67,8 @@ const call = async (method, p, body) => {
     PORT: String(PORT),
     NODE_ENV: 'test',
     // 검사 계정이 제 기록을 만들고 지운다. 본 DB 를 안 건드리게 딴 파일을 쓴다
-    DB_FILE: path.join(__dirname, '.check-order.json'),
-    PHOTOS_FILE: path.join(__dirname, '.check-order.photos.json'),
+    DB_FILE: TMP_DB,
+    PHOTOS_FILE: TMP_DB.replace(/\.json$/, '.photos.json'),
     RATE_LIMIT_GLOBAL_MAX: '100000',
     // 서른두 자가 넘어야 서버가 뜬다 (`index.js` 가 그 자리에서 멈춘다)
     JWT_SECRET: 'check-order-secret-0123456789-abcdefghijklmnop',
@@ -245,9 +259,7 @@ const call = async (method, p, body) => {
   }
 
   stop();
-  for (const f of ['.check-order.json', '.check-order.photos.json']) {
-    try { require('fs').unlinkSync(path.join(__dirname, f)); } catch { /* 없으면 그만 */ }
-  }
+  치운다();
   console.log('');
   console.log(bad === 0 ? '전부 통과' : bad + '건 실패');
   process.exit(bad === 0 ? 0 : 1);

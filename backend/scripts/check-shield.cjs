@@ -45,11 +45,18 @@ const IP = {
   clean: '203.0.113.44',
 };
 
-const clean = () => {
-  for (const f of [TMP, TMP.replace(/\.json$/, '') + '.photos.json']) {
-    if (fs.existsSync(f)) fs.unlinkSync(f);
-  }
-};
+// ── ★ **`.writing` 이 빠져 있었다** ── (2026-11-27 · 정석)
+//
+// 이 자는 **진짜 서버를 띄웠다가 `child.kill()`** 한다. 윈도에서 `kill()` 은
+// `TerminateProcess` 라 **끝내는 손이 아예 안 돈다** — 서버가 비동기로 쓰던
+// `파일.writing` 이 그 자리에 남고(`storage.js` 의 원자적 쓰기), `.gitignore` 가
+// `backend/scripts/*.json` 이라 `.json.writing` 은 **안 걸러져** `git status` 가
+// 더러워진다. 그 찌꺼기는 **이 자를 다시 돌릴 때까지** 트리에 앉아 있는다.
+//
+// 자 스물넷이 쓰는 공용 손(`_tmpdb.cjs`)은 들어올 때와 나갈 때 `.json` ·
+// `.photos.json` · `.writing` · `.writing.sync` 를 다 치운다 — **제 목록을 들고
+// 있으면 꼴이 하나씩 빠진다.** 같은 손으로 모은다 (`check-tidy` 가 그것을 본다)
+const clean = require('./_tmpdb.cjs')(TMP);
 clean();
 
 let bad = 0;

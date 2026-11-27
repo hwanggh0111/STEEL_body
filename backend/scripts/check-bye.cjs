@@ -52,9 +52,13 @@ function run(code, tag) {
   } catch (e) {
     return 'FAIL 터졌다: ' + String(e.stdout || e.message).slice(0, 300);
   } finally {
-    for (const f of [file, db, db.replace(/\.json$/, '') + '.photos.json']) {
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    }
+    // ★ **공용 손으로 모은다** (2026-11-27 · 정석) — 꼬마 프로그램이 쓰다 끊기면
+    //   `파일.writing` 이 남고 `.gitignore` 의 `*.json` 에 안 걸린다. 처음에는
+    //   여기 목록만 맞췄는데, `check-tidy` 의 새 자가 **그것을 집었다** —
+    //   목록을 두 벌로 두면 다음에 꼴이 하나 더 늘 때 또 한쪽만 바뀐다.
+    //   꼬마 프로그램 파일(`file`)은 DB 가 아니라서 그것만 따로 지운다
+    require('./_tmpdb.cjs')(db)();
+    if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 }
 
