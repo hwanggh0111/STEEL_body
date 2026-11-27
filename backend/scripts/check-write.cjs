@@ -144,6 +144,46 @@ function whoIsInFile() {
     ['9.9.9.9', '9.9.9.8']);
   storage.write = realWrite;
 
+  // ── 6. **갈아끼우다 터지면 임시 파일을 치우는가** ── (2026-11-27 · 정석)
+  //
+  // 11/26 에 「내가 만든 것은 내가 치운다」를 붙인 자리가 **비동기 쪽 하나**였다.
+  // 동기 쪽(`fileWriteSync`)은 `renameSync` 가 터지면 `.writing.sync` 를 남겼고,
+  // **그 꼴이 실제로 나왔다**: 11/27 에 창 셋이 자를 겹쳐 돌릴 때 이 자가
+  // `EPERM: rename` 으로 터지면서 찌꺼기를 남기고 `check-tidy` 까지 울렸다.
+  //
+  // 터지게 만드는 법 — **갈 자리를 빈 디렉터리가 아닌 디렉터리로 둔다.** 파일을
+  // 디렉터리 위로 옮길 수는 없으니 어느 운영체제에서나 터진다(윈도 `EPERM` ·
+  // 리눅스 `EISDIR`/`ENOTEMPTY`). 시간에도 남의 창에도 안 기댄다
+  console.log('');
+  console.log('── 갈아끼우다 터져도 찌꺼기를 안 남긴다 ──');
+  const 막는다 = () => {
+    for (const f of [PHOTOS_FILE, PHOTOS_FILE + '.writing', PHOTOS_FILE + '.writing.sync']) {
+      if (fs.existsSync(f) && fs.statSync(f).isFile()) fs.unlinkSync(f);
+    }
+    fs.mkdirSync(PHOTOS_FILE, { recursive: true });
+    fs.writeFileSync(path.join(PHOTOS_FILE, '막음.txt'), 'x', 'utf-8');
+  };
+  const 치운다 = () => fs.rmSync(PHOTOS_FILE, { recursive: true, force: true });
+  const 남은것 = () => [fs.existsSync(PHOTOS_FILE + '.writing'), fs.existsSync(PHOTOS_FILE + '.writing.sync')];
+
+  막는다();
+  let 터졌나 = '안 터졌다';
+  try { storage.writeSync(storage.PHOTOS, blob('S', 1)); } catch (e) { 터졌나 = e.code || e.message; }
+  ok('★ 동기 — 터진 것을 부른 쪽에 돌려준다', 터졌나 !== '안 터졌다', true);
+  ok('★ 동기 — `.writing.sync` 를 안 남긴다', 남은것(), [false, false]);
+  치운다();
+
+  막는다();
+  let 터졌나2 = '안 터졌다';
+  try { await storage.write(storage.PHOTOS, blob('B', 1)); } catch (e) { 터졌나2 = e.code || e.message; }
+  ok('★ 비동기 — 터진 것을 부른 쪽에 돌려준다', 터졌나2 !== '안 터졌다', true);
+  ok('★ 비동기 — `.writing` 을 안 남긴다', 남은것(), [false, false]);
+  치운다();
+
+  // 터진 쓰기가 **뒤의 쓰기를 막지 않는다** — 사슬은 실패해도 이어진다
+  await storage.write(storage.PHOTOS, blob('C', 1));
+  ok('  터진 뒤에도 다음 쓰기가 간다', whoIsInFile(), 'C');
+
   for (const f of [TMP, PHOTOS_FILE, PHOTOS_FILE + '.writing', PHOTOS_FILE + '.writing.sync', TMP + '.writing', TMP + '.writing.sync']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   }

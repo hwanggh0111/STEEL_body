@@ -62,7 +62,23 @@ function fileWriteSync(file, text) {
   // 쓰다 죽어도 앞의 것이 남게 — 딴 이름으로 다 쓴 뒤 이름을 바꿔 끼운다
   const tmp = file + TMP_SUFFIX + '.sync';
   fs.writeFileSync(tmp, text, 'utf-8');
-  fs.renameSync(tmp, file);
+  // ── ★ **류가 반만 닫혀 있었다** ── (2026-11-27 · 정석)
+  //
+  // 11/26 에 「갈아끼우다 터지면 내가 만든 것은 내가 치운다」를 붙였는데(전수검사 ③)
+  // **비동기 쪽에만** 붙였다. 동기 쪽은 `renameSync` 가 터지면 `.writing.sync` 가
+  // 그 자리에 남는다 — 그리고 **그 꼴이 실제로 나왔다**: 11/27 에 창 셋이 자를 겹쳐
+  // 돌릴 때 `check-write` 가 `EPERM: rename` 으로 터지면서 `.writing.sync` 를 남기고,
+  // 그것이 `check-tidy` 까지 울렸다(거짓이 거짓을 낳았다). 윈도에서는 남이 그 파일을
+  // 열고만 있어도 `rename` 이 `EPERM` 이다 — 드문 일이 아니다.
+  //
+  // 뜰 때 걷는 손(`sweepTemp`)이 있지만 그것은 **다음에 뜰 때**다. 끝내는 자리에서
+  // 터진 찌꺼기를 그때까지 두면 `git status` 가 더럽고 훅 나눠 담는 자리가 어긋난다
+  try {
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    try { fs.unlinkSync(tmp); } catch { /* 이미 없으면 그만 */ }
+    throw err;
+  }
   // 갈아끼운 **뒤에** 적는다 — 적는 사이에 비동기 쪽이 끼어들 틈은 없다(동기가 줄을 쥔다)
   syncSeq.set(file, mySeq);
 }
