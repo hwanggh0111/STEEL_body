@@ -85,7 +85,8 @@
   <p class="sub">주인: 「새 기능을 시안으로 띄워」 · 고친 쪽 <b>벼림</b>
     &nbsp;·&nbsp; <a href="/dev">← 개발 미리보기</a> · <a href="/dev/sian/1127-func/">오늘 기능 전수</a></p>
 
-  <p class="lead i"><b>세 안 다 오늘 판 증거에서 나왔다.</b> 머리로 지어낸 것이 아니라,
+  <p class="lead i"><b>안 다 오늘 판 증거에서 나왔다</b>(셋으로 냈고 검토에서 <b>넷</b>이 됐다 — A 가 A-1 · A-2 로 쪼개졌다).
+    머리로 지어낸 것이 아니라,
     <b>앱이 이미 들고 있는데 말해주지 않는 것</b>들이다 — 적어둔 운동 이름 · 적은 시각 · 밀린 부위.
     새로 모을 자료가 없으니 <b>서버도 안 늘어난다</b>.</p>
 
@@ -96,36 +97,58 @@
     아래 <b>6절에 「안 권하는 것」</b>을 따로 적었다.</p>
 </header>
 
-<h2>고르는 자리 — <b>셋 중에서</b> (12/24 출시 전)</h2>
+<h2>고르는 자리 — <b>정석 검토 뒤</b> (판정은 7절에)</h2>
+<p class="lead i"><b>★ 이 칸은 검토를 받고 다시 적었다.</b> 넷으로 갈렸다 — 안 A 가 <b>A-1 · A-2</b> 로
+  쪼개졌기 때문이다(정석 권고). <b>판정과 까닭은 7절</b>에 그대로 있고, 여기는 고르기 쉽게 줄인 것이다.
+  내 처음 권고(A → B)는 <b>아래에 그대로 남겨 뒀다</b> — 바뀐 것을 숨기지 않는다.</p>
 <div class="pick">
-  <div class="p">
-    <div class="tag">안 A</div>
-    <div class="ttl">같은 운동으로 볼까요<br>— 이름 묶기</div>
-    <div class="why">「벤치 프레스」와 「벤치프레스」를 둘 다 적어둔 사람에게, <b>한 번 눌러 이름을 통일</b>하게 한다.
-      오늘 고친 뿌리를 <b>사람 쪽에서</b> 닫는 자리다 — 보여주기는 맵시가 닫았고, 이건 <b>이름을 맞추는 쪽</b>이다.</div>
-    <div class="meta">크기 <b>하루</b> · 위험 <b>낮음</b>(내 기록만 고친다) · 자 <b>하나 더</b></div>
+  <div class="p" style="border-color:var(--bad)">
+    <div class="tag" style="color:var(--bad)">먼저 · 고를 것 아님</div>
+    <div class="ttl">같은 날 두 줄을 <b>변화로 셌다</b><br>— 안 B 의 반쪽</div>
+    <div class="why">아침 118 · 저녁 121 을 <b>「+3cm」</b>로 센다(<code>days</code> 가 0 이다).
+      거짓은 아니다 — 「같은 날」이 붙는다 — 그래도 <b>변화로 읽힌다</b>.
+      <b>기능이 아니라 틀린 셈</b>이라 고르실 일이 아니다.</div>
+    <div class="meta">정석 <b>지금 고친다</b> · 말씀만 주시면 그 자리에서</div>
+  </div>
+  <div class="p" style="border-color:var(--ok)">
+    <div class="tag" style="color:var(--ok)">안 A-1</div>
+    <div class="ttl">고르는 자리만 묶는다<br>— 기록은 안 건드린다</div>
+    <div class="why">자동완성 · 루틴에 담기 · 운동 고르기에서 <b>두 줄을 한 줄로</b>.
+      맵시의 <code>pickExerciseNames</code> 를 <b>쓰기만</b> 한다.</div>
+    <div class="meta">반나절 · 위험 <b>0</b>(되돌릴 것도 없다) · <b>정석 권고</b></div>
+  </div>
+  <div class="p" style="border-color:var(--ok)">
+    <div class="tag" style="color:var(--ok)">안 B</div>
+    <div class="ttl">아침에 잰 것, 저녁에 잰 것<br>— 꼬리표</div>
+    <div class="why">같은 날 두 줄에 <b>아침 7:10 · 저녁 9:40</b>. 적은 시각은 이미 들고 있다.
+      하루 한 번 재는 사람 화면은 <b>그대로</b>다.</div>
+    <div class="meta">반나절 · 위험 <b>아주 낮음</b>(보여주기) · <b>PASS</b></div>
   </div>
   <div class="p">
-    <div class="tag">안 B</div>
-    <div class="ttl">아침에 잰 것, 저녁에 잰 것<br>— 같은 날 두 번</div>
-    <div class="why">같은 날 두 번 재면 서버는 <b>두 줄 다 남기는데</b> 화면은 그 둘을 구분해 보여주지 않는다.
-      <b>적은 시각이 이미 있다</b> — 꼬리표만 붙이면 된다.</div>
-    <div class="meta">크기 <b>반나절</b> · 위험 <b>아주 낮음</b>(보여주기만) · 자 <b>하나 더</b></div>
+    <div class="tag">안 A-2</div>
+    <div class="ttl">내 기록의 이름을 <b>실제로</b> 맞추기</div>
+    <div class="why">내보낸 파일까지 하나가 되는 쪽. <b>이 안만 사람 기록을 고친다</b> —
+      선 넷(재기만 · 되돌릴 길 · <b>지하 큐가 빌 때만</b> · 줄 수 상한)이 붙는다.</div>
+    <div class="meta">하루 · <b>출시 뒤</b>(조건부)</div>
   </div>
   <div class="p">
     <div class="tag">안 C</div>
-    <div class="ttl">알림에 「무엇을」을 담는다<br>— 밀린 부위 한 줄</div>
-    <div class="why">지금 운동 알림은 <b>「왔다」만 말한다</b>. 열어야 무엇이 밀렸는지 안다.
-      밀린 부위는 <b>내가 적은 것으로만</b> 세므로 지어내는 것이 없다.</div>
-    <div class="meta">크기 <b>이틀</b> · 위험 <b>가운데</b>(알림은 OS 쪽이다) · 자 <b>둘 더</b></div>
+    <div class="ttl">알림에 「무엇을」을 담는다</div>
+    <div class="why">셋을 걸면 PASS — <b>부위를 못 맞힌 주에는 부위 이야기를 안 한다</b> ·
+      권고하는 말을 안 쓴다 · <b>끄는 자리</b>를 둔다.</div>
+    <div class="meta">이틀 · <b>출시 뒤</b>(조건부 · 실기기 눈이 필요하다)</div>
   </div>
 </div>
-<p class="lead"><b>셋을 다 하자는 것이 아니다.</b> 12/24 까지는 굵은 것만 빠르게 가는 기간이라
-  <b>A → B</b> 를 권한다(합쳐 하루 반 · 둘 다 보여주기 쪽이라 되돌리기 쉽다).
-  <b>C</b> 는 사람을 다시 데려오는 힘이 제일 크지만 알림은 OS 와 기기 설정이 끼어들어
-  <b>실기기에서 눈으로 봐야</b> 한다 — 고르시면 그 순서로 붙인다.</p>
+<p class="lead"><b>차례 — 정석 권고</b>: ⑴ <b>지금</b> B 의 견주기 고침(결함) ·
+  ⑵ <b>12/24 전에 하나만 고른다면</b> A-1 <b>또는</b> B 의 꼬리표(둘 다 해도 하루) ·
+  ⑶ <b>출시 뒤</b> A-2 · C. <b>셋 다 미루는 것도 맞는 답</b>이다 — 12/1 라이브 전수와 판 올림이 더 굵다.</p>
+<p class="lead m"><b>벼림 권고(검토 전)</b>: A → B 를 권했다. <b>정석 판정으로 바뀐 자리</b> —
+  ⑴ A 를 통째로 보고 「하루 · 위험 낮음」이라 적었는데, <b>값의 거의 전부가 A-1 에 있고 그쪽은 위험이 0</b> 이다
+  ⑵ B 를 「보여주기뿐」으로 봤는데 <b>그 안에 틀린 셈이 숨어 있었다</b>(내 시안의 「속이는 셈」은 과했다 —
+  「같은 날」이 이미 붙는다) ⑶ C 에서 내가 물은 것은 「권고로 읽히나」였는데,
+  <b>먼저 걸리는 자리는 부위가 맞히는 값이라는 것</b>이었다.</p>
 
-<h2>안 A — <b>같은 운동으로 볼까요</b></h2>
+<h2>안 A-2 — <b>같은 운동으로 볼까요</b> <span class="m">(이름을 실제로 맞추기 · 처음엔 「안 A」였다)</span></h2>
 <p class="lead g"><b>★ 오늘 사이에 반이 닫혔다.</b> 이 시안을 쓰는 동안 맵시가 <b>기록 화면의 운동 필터</b>를
   묶어 밀었다(<code>cdb9ca6</code> · 보일 이름은 <b>가장 많이 적은 꼴</b>). 그래서 <b>보여주는 쪽은 끝났다</b> —
   아래 「지금」 칸은 <b>그 뒤에 남은 자리</b>로 다시 그렸다.</p>
@@ -169,6 +192,39 @@
   <tr><th>약속 점검</th><td class="g">랭킹 없음 · 커뮤니티 없음 · 광고 없음 · <b>지어내는 값 없음</b>(글자를 견주는 것뿐) · 서버로 새로 올리는 것 없음</td></tr>
 </table>
 
+<h2>안 A-1 — <b>고르는 자리만 묶는다</b> <span class="m">(정석 권고 · 기록은 안 건드린다)</span></h2>
+<p class="lead g"><b>정석이 A 를 쪼갰다.</b> 위 안 A 의 값은 거의 전부 <b>「고르는 자리에 두 줄이 선다」</b>에 있고,
+  그것은 <b>기록을 한 글자도 안 고치고</b> 닫힌다 — 맵시가 기록 필터에 쓴 손(<code>pickExerciseNames</code> ·
+  「가장 많이 적은 꼴」)을 <b>남은 고르는 자리에 쓰기만</b> 하면 된다. <b>되돌릴 것도 없다.</b></p>
+<div class="seen">
+  <div class="phone">
+    <div class="cap bad">지금 — 루틴에 운동 담기</div>
+    <div class="ttlrow">운동 고르기<small>「벤치」까지 쳤다</small></div>
+    <div class="row"><div class="nm">벤치 프레스 <small>내가 적은 이름 · 14회</small></div><span class="chip dup">둘</span></div>
+    <div class="row"><div class="nm">벤치프레스 <small>내가 적은 이름 · 9회</small></div><span class="chip dup">둘</span></div>
+    <div class="row"><div class="nm">인클라인 벤치프레스 <small>다른 운동</small></div></div>
+    <div class="note">어느 쪽을 담아도 <b style="color:var(--t1)">셈은 한 운동</b>이다(오늘 고쳤다).
+      그래도 <b style="color:var(--t1)">고를 때마다</b> 두 줄을 보고 망설인다.</div>
+  </div>
+  <div class="phone">
+    <div class="cap ok">안 A-1 — 한 줄로 뜬다</div>
+    <div class="ttlrow">운동 고르기<small>「벤치」까지 쳤다</small></div>
+    <div class="row"><div class="nm">벤치프레스 <small>내가 적은 이름 · 23회</small></div></div>
+    <div class="row"><div class="nm">인클라인 벤치프레스 <small>다른 운동</small></div></div>
+    <div class="note"><b style="color:var(--t1)">기록은 그대로다</b> — 「벤치 프레스」로 적은 14줄은
+      그 글자 그대로 남아 있고, <b style="color:var(--t1)">고르는 목록만</b> 한 줄이 된다.
+      묶을 것이 없는 사람 화면은 <b style="color:var(--t1)">지금과 똑같다</b>.</div>
+  </div>
+</div>
+<table>
+  <tr><th>어디를 고치나</th><td>운동 적는 칸의 <b>자동완성</b> · <b>루틴에 담기</b> · 운동 <b>검색</b>.
+    기록 화면 필터는 <b>맵시가 이미 닫았다</b>(<code>cdb9ca6</code>)</td></tr>
+  <tr><th>무엇을 안 하나</th><td class="g"><b>기록을 안 고친다.</b> 그래서 되돌릴 길 · 지하 큐 · 줄 수 상한이
+    <b>필요 없다</b> — 안 A-2 에 붙는 선 넷이 여기는 안 붙는다</td></tr>
+  <tr><th>남는 것</th><td class="m">내보낸 파일에는 <b>두 이름이 그대로</b> 남는다. 그것까지 하나로 만드는 것이
+    <b>안 A-2</b>(출시 뒤)다</td></tr>
+</table>
+
 <h2>안 B — <b>아침에 잰 것, 저녁에 잰 것</b></h2>
 <p class="lead">오늘 손으로 돌려 본 것: 같은 날 어깨를 두 번 재면 <b>서버는 두 줄 다 남긴다</b>(덮지 않는다).
   앱은 <code>id</code> 가 큰 쪽을 「최근」으로 고른다 — <b>맞게 고르고 있다</b>.
@@ -199,7 +255,9 @@
 <table>
   <tr><th>무엇을 더 세나</th><td><b>아무것도 안 센다.</b> 이미 들고 있는 적은 시각을 <b>글자로 적어주는 것</b>뿐이다</td></tr>
   <tr><th>견줄 때는</th><td>같은 날 두 줄이면 <b>「지난번」을 그 전날 것으로</b> 잡는 길도 같이 둔다 —
-    아침·저녁을 견줘 「+3cm」라고 말하는 것은 <b>그 사람을 속이는 셈</b>이다(지금 그렇게 보인다)</td></tr>
+    아침·저녁을 견줘 「+3cm」라고 말하는 것은 <b>변화로 읽힌다</b> — <span class="m">처음에 「속이는 셈」이라고
+    적었는데 <b>과한 말이었다</b>(정석 검토): <code>sinceLabel</code> 이 <code>days ≤ 0</code> 에 <b>「같은 날」을
+    이미 붙인다</b>. 거짓이 아니라 <b>오해 소지</b>다 — 그래도 고치는 것이 맞다</span></td></tr>
   <tr><th>어디에 뜨나</th><td>전신 사이즈 · 체력 테스트 · 유연성 — <b>측정 셋이 같은 손을 쓴다</b>(<code>measureChange</code>)</td></tr>
   <tr><th>약속 점검</th><td class="g">지어내는 값 없음 · 서버 안 늘어남 · 하루 한 번 재는 사람에게는 <b>아무 변화 없음</b></td></tr>
 </table>
@@ -253,6 +311,12 @@
   <tr><td>자세를 영상으로 봐주기</td><td class="m">「읽는 일은 폰 안에서 끝난다」 — 영상이 서버로 가야 하는 기능이다. 지금도 <b>횟수 세기는 폰 안에서</b> 한다</td></tr>
   <tr><td>AI 운동 코치 · 추천 루틴 자동 생성</td><td class="m">12/24 전에 <b>크기가 맞지 않는다</b>. 그리고 지어내는 쪽에 바로 닿는다 — 「이 무게로 하세요」는 다치는 말이 될 수 있다</td></tr>
   <tr><td>운동 줄을 줄 단위 표로 옮기기</td><td class="m">기능이 아니라 <b>속살</b>이다. 한 장짜리 DB 라 50명 × 1년에서 30만 줄에 닿는데, <b>출시 뒤 과제</b>로 보는 것이 맞다(<code>docs/TODO-2026-11-27.md</code>)</td></tr>
+  <tr><td>운동 이름을 <b>사전으로 번역해</b> 묶기<div class="m">「Bench Press」 ↔ 「벤치프레스」</div></td>
+    <td class="m">오늘 뿌리를 고치면서 <b>일부러 안 한 선</b>이다(정석 검토). 사전을 들이면 <b>사전에 없는 이름이 또 갈리고</b>,
+      그때는 「왜 이것만 안 묶이나」가 된다. 묶는 식은 <b>글자를 눕히는 것까지</b>다 — 번역은 지어내는 쪽에 닿는다</td></tr>
+  <tr><td>부위를 <b>자동으로 고쳐 적기</b></td>
+    <td class="m">부위는 <b>맞히는 값</b>이다(<code>bodyPartOf</code> — 사전에 없으면 「기타」). 기록에 그 값을 <b>적어 넣으면
+      추정이 사실로 굳는다</b> — 그 뒤로는 되돌릴 길이 없다. <b>보여주는 데까지가 선</b>이다(정석 검토)</td></tr>
 </table>
 
 <h2>정석 검토 — <b>안마다 판정</b> (11/27)</h2>
