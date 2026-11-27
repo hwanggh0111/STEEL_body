@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "2a56d76692",
+  "detailVersion": "91cba476e3",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "b54753b",
+      "date": "2026-11-27",
+      "text": "찌꺼기를 치우는 공용 손을 안 쓰는 자가 열둘이었다 — 벼림 넘김의 뿌리 (정석)",
+      "label": "고침",
+      "scope": "류",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "무엇이 몇 줄 담기는지 누르기 전에 보여준다 — 담지 않는 것도 (시안 ⑥)",
       "label": "새 기능",
       "scope": "받기",
-      "has": true
-    },
-    {
-      "key": "454d271",
-      "date": "2026-11-20",
-      "text": "덮개 셋이 넘치는데 스크롤이 없어 단추와 설명이 잘렸다 — 같은 류 전수 (맵시 eac5fa4 뒤)",
-      "label": "고침",
-      "scope": "꼴",
       "has": true
     }
   ]
