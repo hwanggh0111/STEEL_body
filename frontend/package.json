@@ -123,6 +123,7 @@
     "weighthands": "node scripts/check-weighthands.cjs",
     "brand": "node scripts/check-brand.cjs",
     "logo": "node scripts/check-logo.cjs",
+    "samename": "node scripts/check-samename.cjs",
     "datehands": "node scripts/check-datehands.cjs",
     "dayflip": "node scripts/check-dayflip.cjs",
     "export": "node scripts/check-export.cjs",

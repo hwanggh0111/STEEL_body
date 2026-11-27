@@ -8,6 +8,28 @@
 
 // 무게는 자유 입력이다 ('60' · '60kg' · '20kg 양쪽' · '맨몸').
 // 문자열에서 처음 나오는 수를 무게로 읽고, 수가 없으면 맨몸으로 친다.
+// ── **같은 운동인지 견주는 식은 이 앱에 하나다** ── (2026-11-27)
+//
+// `data/flatName.js` 가 그 하나다 — 쉬는 시간 · 원판 · 대체 운동 · 속도가 다 그것을
+// 쓴다. **최고 기록만 글자 그대로 견주고 있었다**(`(record.exercise || '').trim()`).
+// 그래서 사람에게 이렇게 보였다 —
+//
+//   「벤치 프레스」로 100kg 을 들어 최고가 섰다. 다음에 「벤치프레스」로 **95kg** 을
+//   들면 **「최고 기록!」 띠가 뜬다** — 처음 보는 운동으로 세기 때문이다.
+//   반대로 진짜 경신인데 안 뜨는 날도 있고, 최고 기록 목록에는 **같은 운동이 두 줄**로
+//   선다. 운동 이름은 홈 · 검색 · 루틴에서 **자유 글자로** 들어온다(서버도 그대로 받는다).
+//
+// 눕히는 식은 공백 · 점 · 붙임표만 걷으므로 「인클라인 벤치프레스」와 「벤치프레스」는
+// 그대로 다른 운동이다.
+import { flatName } from './flatName';
+
+/**
+ * 최고 기록 표(`bestRecords`)의 열쇠. **열쇠를 손으로 짜는 자리를 두지 않는다** —
+ * 표를 만드는 쪽과 찾는 쪽이 갈리면 **최고 기록이 조용히 사라진다**(찾는 쪽이 늘
+ * `undefined` 를 받는다. 아무 자도 안 울린다).
+ */
+export const bestKey = (name, kind) => `${flatName(name)}::${kind}`;
+
 export function parseWeight(raw) {
   if (raw === null || raw === undefined) return null;
   const text = String(raw);
@@ -156,7 +178,7 @@ export function bestRecords(workouts, today = null) {
       if (!name) return;
       const s = strengthOf(record);
       if (!s.score) return;
-      const key = `${name}::${s.kind}`;
+      const key = bestKey(name, s.kind);
       const cur = best.get(key);
       if (!cur || s.score > cur.score || (s.score === cur.score && date < cur.date)) {
         best.set(key, toEntry(record, date, s));
@@ -180,7 +202,7 @@ export function checkRecord(before, record) {
   const s = strengthOf(record);
   if (!s.score) return null;
 
-  const prev = (before instanceof Map) ? before.get(`${name}::${s.kind}`) : null;
+  const prev = (before instanceof Map) ? before.get(bestKey(name, s.kind)) : null;
   if (prev && s.score <= prev.score) return null;
 
   return { entry: toEntry(record, record.date, s), prev: prev || null };

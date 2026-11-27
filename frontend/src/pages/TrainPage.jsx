@@ -40,7 +40,7 @@ import { primeAudio } from '../data/alertSound';
 import { useToday } from '../data/useToday';
 import { MIN_RECORD_DAY } from '../data/useRecordDate';
 import { dateKey, atDay } from '../data/dateKey';
-import { bestRecords, checkRecord, parseWeight } from '../data/personalRecord';
+import { bestRecords, bestKey, checkRecord, parseWeight } from '../data/personalRecord';
 import { sameWeightBest } from '../data/sameWeight';
 import { cannotCount } from '../data/repCount';
 import { liftNames } from '../data/liftTrend';
@@ -524,7 +524,7 @@ export default function TrainPage() {
     setError('');
   };
 
-  // 최고 기록. **`bestRecords` 는 Map 이고 열쇠가 `이름::갈래`다** — 같은 운동이라도
+  // 최고 기록. **`bestRecords` 는 Map 이고 열쇠가 `눕힌이름::갈래`다** — 같은 운동이라도
   // 무게로 든 것과 맨몸으로 한 것을 따로 센다. 무게 쪽만 화면에 적는다.
   //
   // ── 표는 기록이 바뀔 때만 만든다 ── (2026-09-18)
@@ -539,7 +539,9 @@ export default function TrainPage() {
   const bestMap = useMemo(() => bestRecords(workouts, today), [workouts, today]);
   const best = useMemo(() => {
     if (!exercise) return null;
-    return bestMap.get(`${exercise.trim()}::weighted`) || null;
+    // **열쇠를 손으로 짜지 않는다** (2026-11-27) — 표를 만드는 쪽과 찾는 쪽이
+    // 갈리면 최고 기록이 조용히 사라진다 (`bestKey` 머리글)
+    return bestMap.get(bestKey(exercise, 'weighted')) || null;
   }, [bestMap, exercise]);
 
   // ── 오늘 무게를 1RM 으로 읽는다 ── (2026-10-05)

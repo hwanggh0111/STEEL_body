@@ -21,7 +21,7 @@
 //   · **사전에 둘 다 따로 있으면 진짜 다른 운동**이다 — 안 묶는다
 //   · 줄 하나에 D 는 하나 — 갈린 이름이 둘 이상이면 「다른 이름 2개로도 6일」
 //   · 「최대 둘」에 D 는 안 센다(그 줄의 딸린 줄이다). 묶인 이름은 따로 줄로 안 나온다
-import { bestRecords } from './personalRecord';
+import { bestRecords, bestKey } from './personalRecord';
 import { hasExercise, isPart, searchExercises } from './exerciseDict';
 
 export const MINE_MAX = 2;
@@ -83,11 +83,13 @@ export function mineIndex(workouts, today = null) {
   }
 
   const best = bestRecords(workouts, today);
-  // `bestRecords` 는 `이름::종류` → 최고 줄의 Map 이다 (운동 화면이 쓰는 그 표)
+  // `bestRecords` 는 `눕힌이름::종류` → 최고 줄의 Map 이다 (운동 화면이 쓰는 그 표).
+  // **열쇠는 손으로 짜지 않는다** — `bestKey` 가 그 하나다(2026-11-27). 짜던 때는
+  // 표가 눕힌 이름으로 서는데 여기서 그대로 찾아 **최고가 안 나오는 꼴**이 됐다
   const bestOf = (name) => {
-    const w = best.get(`${name}::weighted`);
+    const w = best.get(bestKey(name, 'weighted'));
     if (w) return { kind: 'weighted', kg: w.kg, reps: w.reps };
-    const b = best.get(`${name}::bodyweight`);
+    const b = best.get(bestKey(name, 'bodyweight'));
     return b && b.reps > 0 ? { kind: 'bodyweight', kg: null, reps: b.reps } : null;
   };
 
