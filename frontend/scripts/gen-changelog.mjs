@@ -15,6 +15,13 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../src/data/changelog.json');
+// ── **판 번호만 담은 작은 산출물** ── (2026-11-27 · 정석)
+//
+// 화면이 「지금 무슨 판인가」를 보여야 하는데, 그 수를 `changelog.json` 에서 꺼내면
+// **75KB 가 첫 화면 묶음에 따라온다** — 이 집이 10/16 에 `feedData.js` 에서 일부러
+// 떼어낸 그 무게다(「고객센터 한 번 여는 데 91KB」). 그래서 **맨 윗 커밋만** 담은
+// 작은 파일을 따로 뽑는다. 이것도 **커밋해야 라이브에 간다**(Render 는 얕은 클론).
+const BUILD_OUT = resolve(HERE, '../src/data/build.json');
 // json 에 담을 개수. 화면에서 몇 개를 보여줄지는 화면이 정한다 (홈페이지는 6줄).
 // 8 이었는데, 하루에 커밋 일곱 개를 올리니 어제 것이 통째로 밀려났다.
 // 공지함은 "전부 보기" 라고 해놓고 최근 8건만 들고 있었다.
@@ -334,3 +341,11 @@ if (kept > data.items.length) {
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(data, null, 2) + '\n', 'utf8');
 console.log(`[changelog] ${data.items.length}건 → src/data/changelog.json`);
+
+// 판 번호 — **위 목록의 맨 윗 커밋과 늘 같다**(`check-version` 이 그것을 본다).
+// 얕은 클론에서 위에서 `exit(0)` 으로 비켰으면 여기도 안 온다 — 커밋된 값이 맞다
+const top = data.items[0] || {};
+writeFileSync(BUILD_OUT, JSON.stringify({
+  hash: top.hash || '', date: top.date || '',
+}, null, 2) + '\n', 'utf8');
+console.log(`[changelog] 판 ${top.hash || '모름'} → src/data/build.json`);

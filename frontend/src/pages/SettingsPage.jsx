@@ -24,7 +24,7 @@ import { NICKNAME_MAX, USERNAME_MAX } from '../data/limits';
 import { usernameHint } from '../data/username';
 import { cleanIdField } from '../data/typedField';
 import { nextSavedId } from '../data/savedId';
-import pkg from '../../package.json';
+import { label } from '../data/appVersion';
 // 셋 다 **열 때 받는다.** 설정을 보러 온 사람이 다 누르는 것이 아니다 —
 // 비밀번호를 바꾸거나 계정을 지우는 일은 몇 달에 한 번이다
 const LockSetup = lazy(() => import('../components/LockSetup'));
@@ -1075,7 +1075,7 @@ export default function SettingsPage() {
         이름 · 성별만 서버에 있어서 기기를 바꿔도 따라갑니다.<br />
         {/* 판 번호는 **제보할 때 필요한 것**이다. 고객센터가 자동으로 붙여 보내지만,
             「지금 무슨 판을 쓰고 있나」를 눈으로 볼 자리가 아무 데도 없었다 */}
-        BLACK IRON v{pkg.version}
+        BLACK IRON {label}
       </div>
 
       {/* ── 기본값으로 되돌리기 ── (2026-10-01)

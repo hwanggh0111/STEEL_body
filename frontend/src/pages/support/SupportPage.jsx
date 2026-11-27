@@ -9,7 +9,7 @@ import { getSchedules, fetchSchedules } from '../../components/MaintenanceScreen
 // 「언제 도나」를 적는 자는 한 곳에 있다 — 여기서 따로 적어뒀더니 **날짜를 한 번도
 // 안 적었고**(03:00 – 04:00 한 줄뿐이었다) 지나간 점검도 영영 「예정」으로 남았다
 import { upcoming, whenLabel, timeRange } from '../../data/maintForm';
-import pkg from '../../../package.json';
+import { label } from '../../data/appVersion';
 
 
 // 최근 바뀐 것 — 손으로 적지 않는다.
@@ -440,7 +440,7 @@ export default function SupportPage() {
         borderTop: '1px solid var(--border)', marginTop: 28, paddingTop: 20,
         fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.9,
       }}>
-        <div>v{pkg.version} · 다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
+        <div>{label} · 다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
         <div>브라우저 메뉴의 <b style={{ color: 'var(--text-secondary)' }}>홈 화면에 추가</b>를 누르면 앱처럼 열립니다</div>
       </div>
     </div>

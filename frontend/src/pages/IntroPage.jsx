@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { onEnterSpace } from '../data/pressKey';
 import { useIntroStats, FEATURES } from './support/introData';
 import NavIcon from '../components/NavIcon';
-import pkg from '../../package.json';
+import { label } from '../data/appVersion';
 
 // 앱 소개 — 「이 앱은」.
 //
@@ -133,7 +133,7 @@ export default function IntroPage({ embedded = false }) {
         borderTop: '1px solid var(--border)', marginTop: 34, paddingTop: 20,
         fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.9,
       }}>
-        <div>v{pkg.version} · 다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
+        <div>{label} · 다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
         <div>브라우저 메뉴의 <b style={{ color: 'var(--text-secondary)' }}>홈 화면에 추가</b>를 누르면 앱처럼 열립니다</div>
       </div>
     </div>

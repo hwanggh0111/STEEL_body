@@ -35,8 +35,10 @@ npm run errors -- 50               # 최근 50건까지
 3. 고친다. **자(검사자)를 같이 만든다** — 자가 없으면 같은 오류가 다시 온다
 4. **되돌려-FAIL** 을 본다: 고침을 빼면 자가 우는지. 울지 않으면 그 자는 거짓이다
 5. `npm run check` 양쪽 · 필요하면 build
-6. 커밋 → **공지 산출물 넷**(`changelog.json` · `feedIndex.json` · `feedList.json` ·
-   `feed-detail.json`)을 다시 지어 같이 커밋 → **push**.
+6. 커밋 → **공지 산출물 다섯**(`changelog.json` · `feedIndex.json` · `feedList.json` ·
+   `feed-detail.json` · `build.json`)을 다시 지어 같이 커밋 → **push**.
+   `build.json` 은 **판 번호**다(2026-11-27 · 정석) — 빼면 화면과 제보가 **옛 판
+   번호**를 말한다. `check-version` 이 공지 맨 윗 커밋과 견주어 운다
    산출물을 빼면 **라이브 공지에 안 간다**(Render 는 얕은 클론이라 거기서 짓지 않는다)
 7. 라이브에 붙은 뒤 **그 화면에서 재현해 본다** — 밀고 끝이 아니다
 

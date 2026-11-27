@@ -1,5 +1,23 @@
 apply plugin: 'com.android.application'
 
+// `package.json` 하나가 버전의 주인이다 (2026-11-27 · 정석).
+// `frontend/package.json` → 이 파일에서 `../../package.json`
+def appVersionName = { ->
+    def f = new File(projectDir, '../../package.json')
+    if (!f.exists()) throw new GradleException("package.json 을 못 찾았다: ${f.canonicalPath}")
+    def v = new groovy.json.JsonSlurper().parse(f).version
+    if (!(v ==~ /\d+\.\d+\.\d+/)) throw new GradleException("package.json 의 version 꼴이 아니다: ${v}")
+    return v
+}()
+
+def appVersionCode = { ->
+    def (major, minor, patch) = appVersionName.tokenize('.').collect { it as int }
+    if (minor > 99 || patch > 99) {
+        throw new GradleException("versionCode 셈이 어긋난다 (minor·patch 는 99 까지): ${appVersionName}")
+    }
+    return major * 10000 + minor * 100 + patch
+}()
+
 android {
     namespace = "com.blackiron.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +25,18 @@ android {
         applicationId "com.blackiron.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // ── **버전을 손으로 맞추지 않는다** ── (2026-11-27 · 정석)
+        //
+        // 여기에 `versionName "1.0"` 이 박혀 있었고 `package.json` 은 `1.0.0` 이었다 —
+        // **스토어는 「1.0」, 앱 화면은 「v1.0.0」** 으로 서로 다른 수를 말했다.
+        // 두 자리를 손으로 맞추는 일은 반드시 한쪽이 빠진다. `package.json` 하나를 읽는다.
+        //
+        // `versionCode` 는 스토어가 **늘 커지기만 하는 정수**를 요구한다(올릴 때마다
+        // 커야 한다). 버전에서 셈한다 — `1.0.0` → `10000` · `1.2.3` → `10203`.
+        // 아직 스토어에 올린 판이 없어서(등록비 미결제) **1 에서 바꿔도 안전하다.**
+        // 자리는 둘씩이니 `minor`·`patch` 가 100 을 넘으면 어긋난다 — 그날은 터뜨린다
+        versionName appVersionName
+        versionCode appVersionCode
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

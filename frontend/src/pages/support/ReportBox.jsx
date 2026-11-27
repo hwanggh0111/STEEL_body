@@ -4,7 +4,7 @@ import HintHits from './HintHits';
 import client from '../../api/client';
 import { useReportStore } from '../../store/reportStore';
 import { matchFaq } from './faq';
-import pkg from '../../../package.json';
+import { stamp } from '../../data/appVersion';
 import NavIcon from '../../components/NavIcon';
 import { KINDS, kindOf, SCREENS, FREQ, WORKAROUND } from './reportMeta';
 import ReportList from './ReportList';
@@ -33,7 +33,7 @@ import { REPORT_BODY_MAX, TITLE_MAX } from '../../data/limits';
 // 재현에 실제로 쓰는 것만 담는다 — 무엇을 보내는지 화면에 그대로 적어둔다.
 function useDeviceInfo() {
   return useMemo(() => ({
-    appVersion: pkg.version,
+    appVersion: stamp,
     browser: `${navigator.userAgent} · ${window.innerWidth}x${window.innerHeight}`,
   }), []);
 }
