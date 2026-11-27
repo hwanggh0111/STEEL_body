@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "aaa19182cd",
+  "detailVersion": "2a56d76692",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "cdb9ca6",
+      "date": "2026-11-27",
+      "text": "고르는 칸에 같은 운동이 두 줄로 섰다 — 어느 쪽을 골라도 절반만 보였다 (벼림 넘김)",
+      "label": "고침",
+      "scope": "기록",
       "has": true
     },
     {
@@ -1126,14 +1134,6 @@
       "key": "454d271",
       "date": "2026-11-20",
       "text": "덮개 셋이 넘치는데 스크롤이 없어 단추와 설명이 잘렸다 — 같은 류 전수 (맵시 eac5fa4 뒤)",
-      "label": "고침",
-      "scope": "꼴",
-      "has": true
-    },
-    {
-      "key": "eac5fa4",
-      "date": "2026-11-20",
-      "text": "잠금 화면이 넘치는데 스크롤이 없어 지문 단추와 「잊으셨나요」가 잘렸다",
       "label": "고침",
       "scope": "꼴",
       "has": true
