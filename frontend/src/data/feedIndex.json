@@ -1,6 +1,6 @@
 {
   "note": "뽑아 적은 파일이다. 손으로 고치지 않는다 — notices.json 에서 고치고 `npm run feed`. 본문(detail)은 public/feed-detail.json 에 따로 있고 화면이 펼칠 때 받는다.",
-  "detailVersion": "56e596a00c",
+  "detailVersion": "a387ce1604",
   "items": [
     {
       "key": "n-2026-10-26-c",
@@ -498,6 +498,14 @@
       "date": "2026-08-20",
       "text": "이 목록은 이제 자동으로 채워집니다",
       "notice": true,
+      "has": true
+    },
+    {
+      "key": "d08877d",
+      "date": "2026-11-26",
+      "text": "관리자 승격의 기본값을 꺼짐으로 뒤집는다 (정석 감사 넘김 · 안전 3 의 잔말)",
+      "label": "고침",
+      "scope": "안전",
       "has": true
     },
     {
@@ -1128,14 +1136,6 @@
       "text": "②③ 의 빠진 두 화면 — 기억해 둔 것을 보는 자리 · 없는 기구를 적는 자리에서 말하기",
       "label": "새 기능",
       "scope": "화면",
-      "has": true
-    },
-    {
-      "key": "b98547e",
-      "date": "2026-11-19",
-      "text": "지문 · 얼굴로 푼다 — 네 자리는 그대로 남는다 (시안 1119 ⑤)",
-      "label": "새 기능",
-      "scope": "잠금",
       "has": true
     }
   ]
