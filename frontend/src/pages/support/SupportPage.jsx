@@ -440,8 +440,15 @@ export default function SupportPage() {
         borderTop: '1px solid var(--border)', marginTop: 28, paddingTop: 20,
         fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.9,
       }}>
-        <div>{label} · 다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
+        <div>다크 전용 · 기록은 서버에 남습니다 (기기를 바꿔도 그대로)</div>
         <div>브라우저 메뉴의 <b style={{ color: 'var(--text-secondary)' }}>홈 화면에 추가</b>를 누르면 앱처럼 열립니다</div>
+        {/* ── **판 번호는 제 줄에 둔다** ── (2026-11-27 · 맵시 · 정석 넘김)
+            `v1.0.0` 이 `v1.0.0 (66a3630)` 으로 열다섯 자 길어지면서, 사람이 먼저
+            읽는 말 **앞에** 읽을 수 없는 글자가 섰다. `··` 사이에 끼어 있어 줄이
+            접힐 때 `v1.0.0` / `(66a3630)` 으로 **갈리기도** 한다(글자 150~200%
+            에서는 거의 늘). 지우지는 않는다 — **제보할 때 읽는 수**다. 제 줄로
+            내리면 문장이 안 밀리고, 찾기 쉽고, 키워도 그 줄만 한 줄이다 */}
+        <div style={{ marginTop: 6, whiteSpace: 'nowrap' }}>{label}</div>
       </div>
     </div>
   );
